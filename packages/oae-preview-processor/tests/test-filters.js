@@ -14,13 +14,20 @@
  */
 
 import assert from 'assert';
-import _ from 'underscore';
+import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
 
 import { Content } from 'oae-content/lib/model';
 import { FilterGenerator } from 'oae-preview-processor/lib/filters';
 
+const isNotEmpty = compose(not, isEmpty);
+const isFalse = x => equals(false, x)
+const isTrue = x => equals(true, x)
+
 describe('Preview processor - filters', () => {
-  // A set of timestamps (ms since epoch) each a day apart (A = 5 days ago against F, B = 4 days ago, etc)
+  /**
+   * A set of timestamps (ms since epoch) each a day apart
+   * (A = 5 days ago against F, B = 4 days ago, etc)
+   */
   const times = {
     A: 1378396474099,
     B: 1378482876661,
@@ -56,6 +63,11 @@ describe('Preview processor - filters', () => {
       new Content('camtest', 'c:camtest:d', 'public', 'D', 'D', 'file', 'u:camtest:simon', times.C, times.D, 'd-2'),
       new Content('gttest', 'c:gttest:e', 'public', 'E', 'E', 'file', 'u:gttest:stuart', times.D, times.F, 'e-2')
     ];
+
+    // Make sure we create the contentId field because we need it for the contentIdFilter test
+    forEach(eachContent => {
+      eachContent.contentId = eachContent.id;
+    }, content);
 
     // Give each content item a revision
     content[0].previews = { status: 'error' };
@@ -151,9 +163,9 @@ describe('Preview processor - filters', () => {
       }
     ];
     // Populate each piece of content's tenantAlias
-    _.each(content, c => {
-      c.tenantAlias = c.tenant.alias;
-    });
+    forEach(eachContent => {
+      eachContent.tenantAlias = eachContent.tenant.alias;
+    }, content);
 
     return content;
   };
@@ -166,7 +178,7 @@ describe('Preview processor - filters', () => {
       const filters = {};
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
-      assert.ok(filterGenerator.getErrors().length > 0);
+      assert.ok(isNotEmpty(filterGenerator.getErrors()));
       assert.strictEqual(filterGenerator.getFirstError().code, 400);
       callback();
     });
@@ -182,7 +194,7 @@ describe('Preview processor - filters', () => {
       };
       let filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
-      assert.ok(filterGenerator.getErrors().length > 0);
+      assert.ok(isNotEmpty(filterGenerator.getErrors()));
       assert.strictEqual(filterGenerator.getFirstError().code, 400);
 
       filters = {
@@ -192,7 +204,7 @@ describe('Preview processor - filters', () => {
       };
       filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
-      assert.ok(filterGenerator.getErrors().length > 0);
+      assert.ok(isNotEmpty(filterGenerator.getErrors()));
       assert.strictEqual(filterGenerator.getFirstError().code, 400);
       callback();
     });
@@ -211,7 +223,7 @@ describe('Preview processor - filters', () => {
      */
     const _filterAndAssert = function(filters, expectations) {
       const filterGenerator = new FilterGenerator(filters);
-      assert.ok(!filterGenerator.hasErrors());
+      assert.ok(isFalse(filterGenerator.hasErrors()));
       assert.strictEqual(filterGenerator.needsRevisions(), expectations.needsRevisions);
 
       // Filter some content
@@ -220,17 +232,17 @@ describe('Preview processor - filters', () => {
       assert.ok(filteredContent);
       assert.strictEqual(filteredContent.length, expectations.contentStage.length);
       for (let i = 0; i < 0; i++) {
-        assert.strictEqual(filteredContent[i].id, expectations.contentStage[i]);
+        assert.strictEqual(nth(i, filteredContent).id, nth(i, expectations.contentStage));
       }
 
       // Filter the remaining revisions
       filteredContent = filterGenerator.filterRevisions(filteredContent);
       assert.ok(filteredContent);
-      assert.strictEqual(filteredContent.length, expectations.revisionStage.length);
-      for (let i = 0; i < filteredContent.length; i++) {
-        assert.strictEqual(filteredContent[i].id, expectations.revisionStage[i].contentId);
+      assert.strictEqual(length(filteredContent), length(expectations.revisionStage));
+      for (const [i, element] of filteredContent.entries()) {
+        assert.strictEqual(element.id, expectations.revisionStage[i].contentId);
         for (let r = 0; r < expectations.revisionStage[i].revisions.length; r++) {
-          assert.strictEqual(filteredContent[i].revisions[r].revisionId, expectations.revisionStage[i].revisions[r]);
+          assert.strictEqual(nth(r, element.revisions).revisionId, nth(r, nth(i, expectations.revisionStage).revisions));
         }
       }
     };
@@ -298,6 +310,24 @@ describe('Preview processor - filters', () => {
         ]
       });
       callback();
+    });
+
+    /**
+     * Test that verifies you can filter by contentId
+     */
+    it('filter by content.contentId', done => {
+      const filters = {
+        content: {
+          contentId: 'c:camtest:d'
+        }
+      };
+
+      _filterAndAssert(filters, {
+        needsRevisions: false,
+        contentStage: ['c:camtest:d'],
+        revisionStage: [{ contentId: 'c:camtest:d', revisions: ['d-1', 'd-2'] }]
+      });
+      done();
     });
 
     /**
@@ -401,7 +431,7 @@ describe('Preview processor - filters', () => {
         new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
       ];
       const filterGenerator = new FilterGenerator(filters);
-      assert.ok(!filterGenerator.hasErrors());
+      assert.ok(isFalse(filterGenerator.hasErrors()));
       assert.strictEqual(filterGenerator.needsRevisions(), false);
 
       const filteredContent = filterGenerator.filterContent(content);
@@ -434,7 +464,7 @@ describe('Preview processor - filters', () => {
       const content = [
         new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
       ];
-      content[0].revisions = [
+      head(content).revisions = [
         {
           revisionId: 'd-1',
           created: times.C,
@@ -443,8 +473,8 @@ describe('Preview processor - filters', () => {
         }
       ];
       const filterGenerator = new FilterGenerator(filters);
-      assert.ok(!filterGenerator.hasErrors());
-      assert.strictEqual(filterGenerator.needsRevisions(), true);
+      assert.ok(isFalse(filterGenerator.hasErrors()));
+      assert.ok(isTrue(filterGenerator.needsRevisions()));
 
       let filteredContent = filterGenerator.filterContent(content);
       assert.ok(filteredContent);

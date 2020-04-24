@@ -13,8 +13,62 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-import * as OaeUtil from 'oae-util/lib/util';
+import { toArray } from 'oae-util/lib/util';
+import {
+  equals,
+  not,
+  both,
+  compose,
+  isEmpty,
+  path,
+  forEach,
+  filter,
+  contains,
+  gt,
+  lt,
+  head,
+  forEachObjIndexed,
+  curry,
+  __,
+  map,
+  ifElse,
+  pipe
+} from 'ramda';
+
+// Auxiliary functions
+const isDefined = Boolean;
+const isNotDefined = compose(not, isDefined);
+const greaterThanZero = curry(gt)(__, 0);
+const returnItself = x => x;
+const contentIsNotDefined = filters => compose(not, isDefined, path(['content']))(filters);
+const revisionIsNotDefined = filters => compose(not, isDefined, path(['revision']))(filters);
+const statusIsDefined = previews => path(['status'], previews);
+
+const RESOURCE_SUBTYPE = 'resourceSubType';
+const resourceSubType = {
+  key: RESOURCE_SUBTYPE,
+  columnName: RESOURCE_SUBTYPE
+};
+const previewStatusFilter = {
+  key: 'previewsStatus',
+  columnName: 'previews'
+};
+const contentIdFilter = {
+  key: 'contentId'
+};
+const createdByFilter = {
+  key: 'createdBy'
+};
+const createdAfterFilter = {
+  key: 'createdAfter'
+};
+const createdBeforeFilter = {
+  key: 'createdBefore'
+};
+const tenantFilter = {
+  key: 'tenant',
+  columnName: 'tenantAlias'
+};
 
 /**
  * Allows for validation and applying of filters when triggering a "reprocessing" previews task
@@ -40,107 +94,87 @@ const FilterGenerator = function(filters) {
   const columnNames = ['contentId', 'latestRevisionId', 'previews'];
 
   // Loop over the filters and check if there are errors
-  if (_.isEmpty(filters) || (!filters.content && !filters.revision)) {
+  if (isEmpty(filters) || both(contentIsNotDefined, revisionIsNotDefined)(filters)) {
     errors.push({ code: 400, msg: 'Missing or invalid filters object' });
   }
 
   const contentFilters = filters.content;
   const revisionFilters = filters.revision;
 
-  // Loop over all the filters and check their validity
-  // At the same we construct all the functions that are
-  // required to do in-app filtering
-
-  // Content
-  _.each(contentFilters, (value, name) => {
-    if (name === 'resourceSubType') {
+  /**
+   * Loop over all the filters and check their validity
+   * At the same we construct all the functions that are
+   * required to do in-app filtering
+   */
+  forEachObjIndexed((filterValue, filterKey) => {
+    const filterContains = curry(contains)(__, toArray(filterValue));
+    if (equals(filterKey, resourceSubType.key)) {
       // We'll need the resourceSubType column if we want to run this filter
-      columnNames.push('resourceSubType');
+      columnNames.push(resourceSubType.columnName);
 
       // Construct the filter function
-      const types = OaeUtil.toArray(value);
-      contentCheckers.push(content => {
-        return _.contains(types, content.resourceSubType);
-      });
-    } else if (name === 'previewsStatus') {
+      contentCheckers.push(content => filterContains(content.resourceSubType));
+    } else if (equals(filterKey, previewStatusFilter.key)) {
       // We'll need the previews column if we want to run this filter
-      columnNames.push('previews');
+      columnNames.push(previewStatusFilter.columnName);
 
       // Construct the filter function
-      const statuses = OaeUtil.toArray(value);
       contentCheckers.push(content => {
-        if (content.previews && content.previews.status) {
-          return _.contains(statuses, content.previews.status);
+        if (both(isDefined, statusIsDefined)(content.previews)) {
+          return filterContains(content.previews.status);
         }
 
         // If the previews object is missing, something is seriously wrong and we should reprocess it
         return true;
       });
-    } else if (name === 'createdBy') {
-      const userIds = OaeUtil.toArray(value);
-      contentCheckers.push(content => {
-        return _.contains(userIds, content.createdBy);
-      });
-    } else if (name === 'tenant') {
-      columnNames.push('tenantAlias');
-      const tenantAliases = OaeUtil.toArray(value);
-
-      contentCheckers.push(content => {
-        return _.contains(tenantAliases, content.tenantAlias);
-      });
+    } else if (equals(filterKey, createdByFilter.key)) {
+      contentCheckers.push(content => filterContains(content.createdBy));
+    } else if (equals(filterKey, tenantFilter.key)) {
+      columnNames.push(tenantFilter.columnName);
+      contentCheckers.push(content => filterContains(content.tenantAlias));
+    } else if (equals(filterKey, contentIdFilter.key)) {
+      contentCheckers.push(content => equals(content.contentId, filterValue));
     } else {
       errors.push({ code: 400, msg: 'Unknown content filter' });
     }
-  });
+  }, contentFilters);
 
   // Revisions
-  _.each(revisionFilters, (value, name) => {
-    if (name === 'mime') {
+  forEachObjIndexed((filterValue, filterKey) => {
+    const filterContains = curry(contains)(__, toArray(filterValue));
+    if (equals(filterKey, 'mime')) {
       needsRevisions = true;
-      const types = OaeUtil.toArray(value);
       revisionCheckers.push(revision => {
-        if (!revision.mime) {
-          return false;
-        }
+        if (isNotDefined(revision.mime)) return false;
 
         // Check if the mime type is in the desired set of mimetypes
-        return _.contains(types, revision.mime);
+        return filterContains(revision.mime);
       });
-    } else if (name === 'previewsStatus') {
+    } else if (equals(filterKey, previewStatusFilter.key)) {
       needsRevisions = true;
-      const statuses = OaeUtil.toArray(value);
       revisionCheckers.push(revision => {
-        if (revision.previews && revision.previews.status) {
-          return _.contains(statuses, revision.previews.status);
+        if (both(isDefined, statusIsDefined)(revision.previews)) {
+          return filterContains(revision.previews.status);
         }
 
         // If the previews object is missing, something is seriously wrong and we should reprocess it
         return true;
       });
-    } else if (name === 'createdBy') {
+    } else if (equals(filterKey, createdByFilter.key)) {
       needsRevisions = true;
-      const userIds = OaeUtil.toArray(value);
-      revisionCheckers.push(revision => {
-        return _.contains(userIds, revision.createdBy);
-      });
-    } else if (name === 'createdAfter') {
+      revisionCheckers.push(revision => filterContains(revision.createdBy));
+    } else if (equals(filterKey, createdAfterFilter.key)) {
       needsRevisions = true;
-      const afterTs = parseInt(value, 10);
-
-      revisionCheckers.push(revision => {
-        return revision.created > afterTs;
-      });
-    } else if (name === 'createdBefore') {
+      const createdAfter = curry(gt)(__, Number.parseInt(filterValue, 10));
+      revisionCheckers.push(revision => createdAfter(revision.created));
+    } else if (equals(filterKey, createdBeforeFilter.key)) {
       needsRevisions = true;
-      const beforeTs = parseInt(value, 10);
-
-      revisionCheckers.push(revision => {
-        return revision.created < beforeTs;
-      });
+      const createdBefore = curry(lt)(__, Number.parseInt(filterValue, 10));
+      revisionCheckers.push(revision => createdBefore(revision.created));
     } else {
       errors.push({ code: 400, msg: 'Unknown revision filter' });
     }
-  });
+  }, revisionFilters);
 
   const that = {};
 
@@ -149,36 +183,28 @@ const FilterGenerator = function(filters) {
    *
    * @return {Boolean}    `true` if the filters contain errors
    */
-  that.hasErrors = function() {
-    return !_.isEmpty(errors);
-  };
+  that.hasErrors = () => compose(not, isEmpty)(errors);
 
   /**
    * Get the first error in the list of errors
    *
    * @return {Object}     Standard error object containing a `code` and `msg`.
    */
-  that.getFirstError = function() {
-    return errors[0];
-  };
+  that.getFirstError = () => head(errors);
 
   /**
    * Get all the errors
    *
    * @return {Object[]}   An array of standard error objects
    */
-  that.getErrors = function() {
-    return errors;
-  };
+  that.getErrors = () => errors;
 
   /**
    * Whether or not revisions need to be retrieved to do proper filtering
    *
    * @return {Boolean}    `true` if the revisions should be retrieved
    */
-  that.needsRevisions = function() {
-    return needsRevisions;
-  };
+  that.needsRevisions = () => needsRevisions;
 
   /**
    * Returns the names of the columns that should be retrieved when iterating over
@@ -186,9 +212,7 @@ const FilterGenerator = function(filters) {
    *
    * @return {String[]}   The names of the columns that should be retrieved
    */
-  that.getContentColumnNames = function() {
-    return columnNames;
-  };
+  that.getContentColumnNames = () => columnNames;
 
   /**
    * Filter an array of content items
@@ -196,13 +220,14 @@ const FilterGenerator = function(filters) {
    * @param  {Content[]}  content     The array of content items to filter
    * @return {Content[]}              The filtered array of content items
    */
-  that.filterContent = function(content) {
-    let chain = _.chain(content);
-    _.each(contentCheckers, contentChecker => {
-      chain = chain.filter(contentChecker);
-    });
+  that.filterContent = content => {
+    const allFilters = map(each => filter(each), contentCheckers);
 
-    return chain.value();
+    return ifElse(
+      () => isEmpty(allFilters),
+      returnItself,
+      content => pipe(...allFilters)(content)
+    )(content);
   };
 
   /**
@@ -212,20 +237,23 @@ const FilterGenerator = function(filters) {
    * @param  {Content[]}  content     An array of content items for which to filter the revisions. It's assumed that the revisions are available at `content[i].revisions`
    * @return {Content[]}              A filtered array of content items
    */
-  that.filterRevisions = function(content) {
-    _.each(content, contentItem => {
-      let chain = _.chain(contentItem.revisions);
-      _.each(revisionCheckers, revisionChecker => {
-        chain = chain.filter(revisionChecker);
-      });
-      contentItem.revisions = chain.value();
-    });
+  that.filterRevisions = content => {
+    let allFilters = [];
+    forEach(eachContentItem => {
+      allFilters = [];
+      forEach(eachRevisionChecker => {
+        allFilters.push(filter(eachRevisionChecker));
+      }, revisionCheckers);
+
+      eachContentItem.revisions = ifElse(
+        () => isEmpty(allFilters),
+        returnItself,
+        revisions => pipe(...allFilters)(revisions)
+      )(eachContentItem.revisions);
+    }, content);
 
     // Remove all those content items who no longer have a matching revision
-    content = _.filter(content, contentItem => {
-      return contentItem.revisions.length > 0;
-    });
-
+    content = filter(contentItem => greaterThanZero(contentItem.revisions.length), content);
     return content;
   };
 

@@ -20,11 +20,11 @@ import stream from 'stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import gm from 'gm';
 import pdfjsLib from 'pdfjs-dist';
-import _ from 'underscore';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 import domStubs from './domstubs';
+import { join, pluck, includes, and, either, not, path as getPath, equals, compose } from 'ramda';
 
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsMakeDir = util.promisify(fs.mkdir);
@@ -33,17 +33,23 @@ const log = logger('oae-preview-processor');
 
 const PAGES_SUBDIRECTORY = 'pages';
 const TXT_CONTENT_FILENAME = 'plain.txt';
-const RESOURCE_SUBTYPE = 'file';
+const FILE_SUBTYPE = 'file';
 let viewportScale = 1.5;
 const pdfContents = [];
+const HTML_FORMAT = 'html';
+const SVG_FORMAT = 'svg';
+const TEXT_FORMAT = 'txt';
+
+// Auxiliary functions
+const differs = compose(not, equals);
+const isDefined = Boolean;
+const isNotDefined = compose(not, isDefined);
 
 // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
 ReadableSVGStream.prototype._read = function() {
   let chunk;
-  while ((chunk = this.serializer.getNext()) !== null) {
-    if (!this.push(chunk)) {
-      return;
-    }
+  while (differs((chunk = this.serializer.getNext()), null)) {
+    if (isNotDefined(this.push(chunk))) return;
   }
 
   this.push(null);
@@ -59,7 +65,9 @@ util.inherits(ReadableSVGStream, stream.Readable);
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const init = function(config, callback) {
-  if (!config || !config.pdfPreview || !config.pdfPreview.viewportScale) {
+  const previewIsNotDefined = config => compose(not, getPath(['pdfPreview']))(config);
+  const viewportIsNotDefined = config => compose(not, getPath(['pdfPreview', 'viewportScale']))(config);
+  if (isNotDefined(config) || either(previewIsNotDefined, viewportIsNotDefined)(config)) {
     return callback({
       code: 500,
       msg: 'Missing configuration for the pdf preview / processing'
@@ -73,8 +81,11 @@ const init = function(config, callback) {
 /**
  * @borrows Interface.test as PDF.test
  */
-const test = function(ctx, contentObj, callback) {
-  if (contentObj.resourceSubType === RESOURCE_SUBTYPE && PreviewConstants.TYPES.PDF.includes(ctx.revision.mime)) {
+const test = function(ctx, contentObject, callback) {
+  const resourceIsFile = equals(FILE_SUBTYPE);
+  const mimeTypeIncludesPDF = mime => includes(mime, PreviewConstants.TYPES.PDF);
+
+  if ((and(resourceIsFile(contentObject.resourceSubType)), mimeTypeIncludesPDF(ctx.revision.mime))) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -84,14 +95,10 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as PDF.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
-  // Download the file
+const generatePreviews = (ctx, contentObject, callback) => {
   ctx.download((err, path) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    // Generate the previews for it
     previewPDF(ctx, path, callback);
   });
 };
@@ -128,11 +135,11 @@ const previewPDF = async function(ctx, pdfPath, callback) {
     const doc = await loadedPDFDocument.promise;
     const { numPages } = doc;
 
-    ctx.addPreview(output, 'txt');
+    ctx.addPreview(output, TEXT_FORMAT);
     ctx.addPreviewMetadata('pageCount', numPages);
 
     await processAllPages(ctx, pagesDir, numPages, doc);
-    await fsWriteFile(output, pdfContents.join(' '));
+    await fsWriteFile(output, join(' ', pdfContents));
 
     _generateThumbnail(ctx, pdfPath, pagesDir, callback);
   } catch (error) {
@@ -157,7 +164,7 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
   // Convert the first page to a png file by executing the equivalent of
   //    gm convert +adjoin -define pdf:use-cropbox=true -density 150 -resize 2000 -quality 100 input.pdf[0] output.png
   const width = PreviewConstants.SIZES.PDF.LARGE;
-  const output = pagesDir + '/page.1.png';
+  const output = `${pagesDir}/page.1.png`;
   gm(path + '[0]')
     .adjoin()
     .define('pdf:use-cropbox=true')
@@ -183,8 +190,8 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
  * @param  {Number} pageNum  The page number
  * @return {String} The file path for the svg file corresponding to the page
  */
-function getFilePathForPage(pagesDir, pageNum, format) {
-  return path.join(pagesDir, 'page.' + pageNum + '.' + format);
+function getFilePathForPage(pagesDir, pageNumber, format) {
+  return path.join(pagesDir, `page.${pageNumber}.${format}`);
 }
 
 /**
@@ -195,9 +202,7 @@ function getFilePathForPage(pagesDir, pageNum, format) {
  * @param {DOMElement} options.svgElement The element to serialize
  */
 function ReadableSVGStream(options) {
-  if (!(this instanceof ReadableSVGStream)) {
-    return new ReadableSVGStream(options);
-  }
+  if (not(this instanceof ReadableSVGStream)) return new ReadableSVGStream(options);
 
   stream.Readable.call(this, options);
   this.serializer = options.svgElement.getSerializer();
@@ -234,12 +239,12 @@ function writeSvgToFile(svgElement, filePath) {
  * @param  {Number} pageNum     The page number we're dealing with
  * @param  {Object} doc          Object representing the PDF
  */
-const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
+const previewAndIndexEachPage = async function(ctx, pagesDir, pageNumber, doc) {
   try {
-    const page = await doc.getPage(pageNum);
+    const page = await doc.getPage(pageNumber);
     const viewport = page.getViewport({ scale: viewportScale });
-    ctx.addPreview(getFilePathForPage(pagesDir, pageNum, 'html'), 'html');
-    ctx.addPreview(getFilePathForPage(pagesDir, pageNum, 'svg'), 'svg');
+    ctx.addPreview(getFilePathForPage(pagesDir, pageNumber, HTML_FORMAT), HTML_FORMAT);
+    ctx.addPreview(getFilePathForPage(pagesDir, pageNumber, SVG_FORMAT), SVG_FORMAT);
 
     const opList = await page.getOperatorList();
     const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
@@ -247,14 +252,14 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
 
     const svg = await svgGfx.getSVG(opList, viewport);
 
-    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum, 'html'));
-    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNum, 'svg'));
+    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNumber, HTML_FORMAT));
+    await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNumber, SVG_FORMAT));
     const content = await page.getTextContent();
 
     // Content contains lots of information about the text layout and
     // styles, but we need only strings at the moment
-    const pageContents = _.pluck(content.items, 'str').join(' ');
-    const pageName = util.format('page.%s.txt', pageNum);
+    const pageContents = compose(join(' '), pluck('str'))(content.items);
+    const pageName = util.format('page.%s.txt', pageNumber);
     const pagePath = util.format('%s/%s', pagesDir, pageName);
 
     pdfContents.push(pageContents);
@@ -262,7 +267,7 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
 
     return fsWriteFile(pagePath, pageContents);
   } catch (error) {
-    const errorMessage = `Preview processing for pdf page ${pageNum} file failed`;
+    const errorMessage = `Preview processing for pdf page ${pageNumber} file failed`;
     log().error({ error }, errorMessage);
     throw error;
   }
@@ -277,8 +282,8 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNum, doc) {
  * @param  {Number} pageNum     The page number we're dealing with
  * @param  {Object} doc          Object representing the PDF
  */
-const processAllPages = async function(ctx, pagesDir, numPages, doc) {
-  for (let i = 1; i <= numPages; i++) {
+const processAllPages = async function(ctx, pagesDir, numberPages, doc) {
+  for (let i = 1; i <= numberPages; i++) {
     // eslint-disable-next-line no-await-in-loop
     await previewAndIndexEachPage(ctx, pagesDir, i, doc);
   }

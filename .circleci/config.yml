@@ -59,7 +59,6 @@ aliases:
           yarn run migrate; \
           cp ep-settings.json etherpad/settings.json; \
           yarn run etherpad; \
-          export REDIS_HOST="oae-redis" \
           yarn run ethercalc; \
           yarn run test-with-coverage"
   - &run_parallel_tests
@@ -67,8 +66,8 @@ aliases:
       name: Run tests in parallel
       command: |
         docker-compose run --rm oae-hilary "\
-          cp ep-settings.json etherpad/settings.json; \
           yarn run migrate; \
+          cp ep-settings.json etherpad/settings.json; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"

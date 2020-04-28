@@ -18,8 +18,9 @@ import path from 'path';
 import url from 'url';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import _ from 'underscore';
-import gm from 'gm';
-import { add, compose, slice, lastIndexOf, not, find, __ } from 'ramda';
+import sharp from 'sharp';
+
+import { equals, add, compose, slice, lastIndexOf, not, find, __ } from 'ramda';
 import request from 'request';
 
 import { logger } from 'oae-logger';
@@ -163,18 +164,20 @@ const generatePreviews = function(ctx, contentObj, callback) {
             return callback(err);
           }
 
-          // If the image is solid white don't attach it as a screenshot
-          gm.compare(
-            imgPath,
-            path.resolve(__dirname, '../../../static/link/blank.png'),
-            0,
-            (err, isEqual, equality, raw) => {
-              if (err) {
-                log().error({ err, contentId: ctx.contentId }, 'Could not compare image');
-                return callback(err);
-              }
+          // specific callback for image comparison
+          const throwComparisonError = (err, callback) => {
+            log().error({ err, contentId: ctx.contentId }, 'Could not compare image');
+            return callback(err);
+          };
 
-              log().trace({ contentId: ctx.contentId, equality, raw });
+          // If the image is solid white don't attach it as a screenshot
+          sharp(imgPath).metadata((err, imageMetainfo) => {
+            if (err) throwComparisonError(err, callback);
+            sharp(path.resolve(__dirname, '../../../static/link/blank.png')).metadata((err, solidWhiteMetainfo) => {
+              if (err) throwComparisonError(err, callback);
+              const isEqual = equals(imageMetainfo, solidWhiteMetainfo);
+
+              log().trace({ contentId: ctx.contentId, equality: isEqual });
 
               if (isEqual) {
                 log().info({ contentId: ctx.contentId }, 'Not attaching blank screenshot');
@@ -182,8 +185,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
               }
 
               return LinkProcessorUtil.generatePreviewsFromImage(ctx, imgPath, null, callback);
-            }
-          );
+            });
+          });
         });
       }
     };

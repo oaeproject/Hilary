@@ -94,6 +94,7 @@
     "redlock": "^4.0.0",
     "request": "2.88.2",
     "rimraf": "^3.0.2",
+    "sharp": "^0.25.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "snyk": "^1.298.0",

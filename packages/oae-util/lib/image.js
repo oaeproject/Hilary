@@ -13,12 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { exec } from 'child_process';
-
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
-import gm from 'gm';
+import sharp from 'sharp';
+
 import temp from 'temp';
 import _ from 'underscore';
 
@@ -57,10 +55,9 @@ const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
 const autoOrient = function(inputPath, opts, callback) {
   opts = opts || {};
   const outputPath = opts.outputPath || temp.path({ suffix: getImageExtension(inputPath, '.jpg') });
-  gm(inputPath)
-    .noProfile()
-    .autoOrient()
-    .write(outputPath, err => {
+  sharp(inputPath)
+    .rotate()
+    .toFile(outputPath, err => {
       if (err) {
         fs.unlink(outputPath, err => {
           if (err) {
@@ -295,7 +292,7 @@ const cropImage = function(imagePath, selectedArea, callback) {
  */
 const _cropImage = function(imagePath, selectedArea, callback) {
   // Make sure that the pic is big enough
-  gm(imagePath).size((err, size) => {
+  sharp(imagePath).metadata((err, metainfo) => {
     if (err) {
       log().error({ err }, 'Could not get the image size for the large image');
       return callback({ code: 500, msg: 'Could not get the image size for the large image' });
@@ -303,20 +300,19 @@ const _cropImage = function(imagePath, selectedArea, callback) {
 
     // Ensure we do not try and crop outside of the image size boundaries
     if (
-      selectedArea.x > size.width ||
-      selectedArea.y > size.height ||
-      selectedArea.width > size.width - selectedArea.x ||
-      selectedArea.height > size.height - selectedArea.y
+      selectedArea.x > metainfo.width ||
+      selectedArea.y > metainfo.height ||
+      selectedArea.width > metainfo.width - selectedArea.x ||
+      selectedArea.height > metainfo.height - selectedArea.y
     ) {
       return callback({ code: 400, msg: 'You cannot crop outside of the image' });
     }
 
     // Crop it and write it to a temporary file
     const tempPath = temp.path({ suffix: getImageExtension(imagePath, '.jpg') });
-    gm(imagePath)
-      .crop(selectedArea.width, selectedArea.height, selectedArea.x, selectedArea.y)
-      .noProfile()
-      .write(tempPath, err => {
+    sharp(imagePath)
+      .extract({ width: selectedArea.width, height: selectedArea.height, left: selectedArea.x, top: selectedArea.y })
+      .toFile(tempPath, err => {
         if (err) {
           fs.unlink(tempPath, () => {
             if (err) {
@@ -415,9 +411,9 @@ const _resizeImage = function(imagePath, size, callback) {
   const suffix = size.width + 'x' + size.height + getImageExtension(imagePath, '.jpg');
   const tempPath = temp.path({ suffix });
 
-  gm(imagePath)
+  sharp(imagePath)
     .resize(size.width, size.height)
-    .write(tempPath, err => {
+    .toFile(tempPath, err => {
       if (err) {
         fs.unlink(tempPath, () => {
           if (err) {
@@ -501,64 +497,51 @@ const convertToJPG = function(inputPath, callback) {
     conversionPath = inputPath + '[0]';
   }
 
-  gm(conversionPath).size((err, size) => {
+  sharp(conversionPath).metadata((err, metainfo) => {
     if (err) {
       log().error({ err }, 'Unable to get size of the image that should be converted to JPG');
       return callback({ code: 500, msg: err });
     }
 
-    /*!
-     * The below command is responsible for generating a somewhat decent looking JPG.
-     * We superimpose the original image over a white image of the same size to ensure
-     * that formats which can contain transparant pixels look reasonably well in a JPG.
-     *
-     * gm convert -size 220x276 xc:white -compose over img.png -flatten flattened.jpg
-     *
-     * There doesn't seem to be a good way to execute the proper command with the `gm` module,
-     * so we have to do it manually here.
-     */
-    const outputPath = temp.path({ suffix: '.jpg' });
-    const cmd = util.format(
-      'gm convert -size %dx%d xc:white -compose over %s -flatten %s',
-      size.width,
-      size.height,
-      conversionPath,
-      outputPath
-    );
-
     const now = Date.now();
-    log().trace({ cmd }, 'Begin converting image into a JPG');
-    exec(cmd, { timeout: 4000 }, err => {
-      const durationMs = Date.now() - now;
-      if (err) {
-        log().error({ err }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
-        return callback({ code: 500, msg: 'Failed converting input image to JPG' });
-      }
+    const outputPath = temp.path({ suffix: '.jpg' });
 
-      log().trace('Finished converting image into a JPG (Took %sms)', durationMs);
-
-      fs.stat(outputPath, (err, stat) => {
+    log().trace('Begin converting image into a JPG');
+    sharp(conversionPath)
+      .flatten({ background: 'white' })
+      .resize(metainfo.width, metainfo.height)
+      .jpeg()
+      .toFile(outputPath, err => {
+        const durationMs = Date.now() - now;
         if (err) {
-          fs.unlink(outputPath, () => {
-            if (err) {
-              log().warn({ err, path: outputPath }, 'Could not unlink a file');
-            }
-          });
-          log().error({ err }, 'Could not get the file system information about %s', outputPath);
-          return callback({
-            code: 500,
-            msg: 'Could not retrieve the file information for the converted file'
-          });
+          log().error({ err }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
+          return callback({ code: 500, msg: 'Failed converting input image to JPG' });
         }
 
-        const file = {
-          path: outputPath,
-          size: stat.size,
-          name: path.basename(outputPath)
-        };
-        return callback(null, file);
+        log().trace('Finished converting image into a JPG (Took %sms)', durationMs);
+
+        fs.stat(outputPath, (err, stat) => {
+          if (err) {
+            fs.unlink(outputPath, () => {
+              if (err) {
+                log().warn({ err, path: outputPath }, 'Could not unlink a file');
+              }
+            });
+            log().error({ err }, 'Could not get the file system information about %s', outputPath);
+            return callback({
+              code: 500,
+              msg: 'Could not retrieve the file information for the converted file'
+            });
+          }
+
+          const file = {
+            path: outputPath,
+            size: stat.size,
+            name: path.basename(outputPath)
+          };
+          return callback(null, file);
+        });
       });
-    });
   });
 };
 

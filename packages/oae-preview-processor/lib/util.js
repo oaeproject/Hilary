@@ -16,7 +16,7 @@
 import fs from 'fs';
 import util from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import gm from 'gm';
+import sharp from 'sharp';
 import request from 'request';
 import _ from 'underscore';
 
@@ -160,7 +160,7 @@ const _resizeImages = function(ctx, path, sizes, callback) {
   let called = false;
 
   // Get the source size first, so we don't accidentally upscale an image that is smaller than the target size.
-  gm(path).size((err, sourceSize) => {
+  sharp(path).metadata((err, metainfo) => {
     if (err) {
       called = true;
       log().error({ err, path, contentId: ctx.content.id }, 'Could not retrieve the size for this image.');
@@ -168,23 +168,23 @@ const _resizeImages = function(ctx, path, sizes, callback) {
     }
 
     sizes.forEach(size => {
-      let ratio = sourceSize.height / size.height;
+      let ratio = metainfo.height / size.height;
       // If both sides are smaller we don't have to do anything.
-      if (size.width > sourceSize.width && size.height > sourceSize.height) {
+      if (size.width > metainfo.width && size.height > metainfo.height) {
         ratio = 1;
 
         // If only the width is larger, we scale it down width-wise
-      } else if (sourceSize.width > size.width && sourceSize.height < size.height) {
-        ratio = sourceSize.width / size.width;
+      } else if (metainfo.width > size.width && metainfo.height < size.height) {
+        ratio = metainfo.width / size.width;
 
         // If only the height is larger, we scale it down height-wise
-      } else if (sourceSize.width < size.width && sourceSize.height > size.height) {
-        ratio = sourceSize.height / size.height;
+      } else if (metainfo.width < size.width && metainfo.height > size.height) {
+        ratio = metainfo.height / size.height;
       }
 
       // Scale the size
-      size.width = Math.floor(sourceSize.width / ratio);
-      size.height = Math.floor(sourceSize.height / ratio);
+      size.width = Math.floor(metainfo.width / ratio);
+      size.height = Math.floor(metainfo.height / ratio);
 
       // Perform the actual resize.
       _resize(ctx, path, size, err => {
@@ -357,14 +357,14 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
 const _cropIntelligently = function(ctx, path, width, height, opts, filename, callback) {
   log().trace({ contentId: ctx.contentId }, 'Cropping image: %s', path);
   opts = opts || {};
-  gm(path).size((err, size) => {
+  sharp(path).metadata((err, metainfo) => {
     if (err) {
       log().error({ err }, 'Could not get the image size for the large image.');
       return callback({ code: 500, msg: 'Could not get the image size for the large image.' });
     }
 
-    const imageWidth = size.width;
-    const imageHeight = size.height;
+    const imageWidth = metainfo.width;
+    const imageHeight = metainfo.height;
 
     // Ignore if the image is too small.
     if (!opts.allowStretching && (imageWidth < width || imageHeight < height)) {

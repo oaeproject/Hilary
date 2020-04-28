@@ -16,7 +16,9 @@
 import assert from 'assert';
 import fs from 'fs';
 import Path from 'path';
-import gm from 'gm';
+import sharp from 'sharp';
+
+import { toUpper } from 'ramda';
 
 import * as ImageUtil from 'oae-util/lib/image';
 
@@ -70,10 +72,10 @@ describe('Image', () => {
                     assert.ok(fs.existsSync(file.path));
                     assert.ok(file.name);
                     assert.ok(file.size > 0);
-                    gm(file.path).size((err, size) => {
+                    sharp(file.path).metadata((err, metainfo) => {
                       assert.ok(!err);
-                      assert.strictEqual(size.width, 10);
-                      assert.strictEqual(size.height, 10);
+                      assert.strictEqual(metainfo.width, 10);
+                      assert.strictEqual(metainfo.height, 10);
 
                       return callback();
                     });
@@ -137,15 +139,14 @@ describe('Image', () => {
         assert.ok(file.name);
         assert.ok(file.size > 0);
 
-        // Read the image back out with GM.
         // The image should've been rotated and it's orientation should be fixed.
-        gm(file.path).identify((err, data) => {
+        sharp(file.path).metadata((err, metainfo) => {
           assert.ok(!err);
-          assert.strictEqual(data.size.width, 480);
-          assert.strictEqual(data.size.height, 640);
+          assert.strictEqual(metainfo.width, 480);
+          assert.strictEqual(metainfo.height, 640);
 
           // The EXIF orientation should be removed.
-          assert.strictEqual(data.Orientation, 'Unknown');
+          assert.strictEqual(metainfo.orientation, undefined);
           callback();
         });
       });
@@ -225,10 +226,10 @@ describe('Image', () => {
                                           assert.ok(fs.existsSync(files['20x20'].path));
                                           assert.ok(files['20x20'].name);
                                           assert.ok(files['20x20'].size > 0);
-                                          gm(files['20x20'].path).size((err, size) => {
+                                          sharp(files['20x20'].path).metadata((err, metainfo) => {
                                             assert.ok(!err);
-                                            assert.strictEqual(size.width, 20);
-                                            assert.strictEqual(size.height, 20);
+                                            assert.strictEqual(metainfo.width, 20);
+                                            assert.strictEqual(metainfo.height, 20);
                                             callback();
                                           });
                                         }
@@ -285,9 +286,9 @@ describe('Image', () => {
         assert.ok(file);
 
         // Check it has really been converted to a JPG
-        gm(file.path).identify((err, data) => {
+        sharp(file.path).metadata((err, data) => {
           assert.ok(!err);
-          assert.strictEqual(data.format, 'JPEG');
+          assert.strictEqual(toUpper(data.format), 'JPEG');
 
           // Clean up the file
           fs.unlink(file.path, err => {

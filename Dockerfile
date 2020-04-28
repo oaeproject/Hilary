@@ -26,7 +26,7 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM node:12-alpine3.9
+FROM node:12-alpine3.10
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
@@ -39,7 +39,7 @@ RUN apk --update --no-cache add \
       make \
       python \
       ghostscript \
-      graphicsmagick \
+      vips \
       libreoffice \
       openjdk8-jre
 

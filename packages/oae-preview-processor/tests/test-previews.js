@@ -19,7 +19,9 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import _ from 'underscore';
-import gm from 'gm';
+import sharp from 'sharp';
+import { toUpper } from 'ramda';
+
 import request from 'request';
 import nock from 'nock';
 
@@ -536,9 +538,9 @@ describe('Preview processor', () => {
         }).pipe(stream);
         stream.on('finish', () => {
           // Verify that this is a JPG image
-          gm(tmpFile.path).identify((err, info) => {
+          sharp(tmpFile.path).metadata((err, info) => {
             assert.ok(!err);
-            assert.strictEqual(info.format, 'JPEG');
+            assert.strictEqual(toUpper(info.format), 'JPEG');
 
             // Clean up the temp file
             tmpFile.remove(err => {

@@ -18,7 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import querystring from 'querystring';
 import url from 'url';
-import gm from 'gm';
+import sharp from 'sharp';
 import _ from 'underscore';
 
 import * as LocalStorage from 'oae-content/lib/backends/local';
@@ -146,10 +146,10 @@ describe('Profile pictures', () => {
     // #564 - Ensure the filename contains the extension.
     assert.strictEqual(path.extname(uriPath), '.jpg');
 
-    gm(uriPath).size((err, size) => {
+    sharp(uriPath).metadata((err, metainfo) => {
       assert.ok(!err);
-      assert.strictEqual(size.width, width);
-      assert.strictEqual(size.height, height);
+      assert.strictEqual(metainfo.width, width);
+      assert.strictEqual(metainfo.height, height);
       return callback();
     });
   };

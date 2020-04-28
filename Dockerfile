@@ -43,10 +43,10 @@ RUN apk --update --no-cache add \
       libreoffice \
       openjdk8-jre
 
-# Installs the 3.9 Chromium package
+# Installs the 3.10 Chromium package
 RUN apk update && apk upgrade && \
-      echo @3.10 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
-      echo @3.10 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
+      echo @3.10 http://nl.alpinelinux.org/alpine/v3.10/community >> /etc/apk/repositories && \
+      echo @3.10 http://nl.alpinelinux.org/alpine/v3.10/main >> /etc/apk/repositories && \
       apk add --no-cache \
       chromium@3.10 \
       nss@3.10 \

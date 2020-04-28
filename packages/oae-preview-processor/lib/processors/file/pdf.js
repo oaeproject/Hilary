@@ -155,15 +155,14 @@ const previewPDF = async function(ctx, pdfPath, callback) {
 };
 
 // TODO
-const convertToSVG = async page => {
+const convertToSVG = async (page, svgPath) => {
   const viewport = page.getViewport({ scale: 1 });
   const opList = await page.getOperatorList();
   const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
   svgGfx.embedFonts = true;
   const svg = await svgGfx.getSVG(opList, viewport);
 
-  const svgPath = head(split('.', path)) + '.svg';
-  await writeSvgToFile(svg, svgPath);
+  return writeSvgToFile(svg, svgPath);
 };
 
 /**
@@ -183,15 +182,15 @@ const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
     return callback({ code: 500, msg: 'Could not convert a PDF page to a PNG' });
   };
 
-  let svgPath = '';
   const width = PreviewConstants.SIZES.PDF.LARGE;
   const output = `${pagesDir}/page.1.png`;
   const data = new Uint8Array(fs.readFileSync(path));
+  const svgPath = head(split('.', path)) + '.svg';
 
   try {
     const doc = await loadPDFDocument(data);
     const page = await doc.getPage(1);
-    svgPath = await convertToSVG(page);
+    await convertToSVG(page, svgPath);
   } catch (error) {
     returnError(error);
   }

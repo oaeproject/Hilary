@@ -45,14 +45,14 @@ RUN apk --update --no-cache add \
 
 # Installs the 3.9 Chromium package
 RUN apk update && apk upgrade && \
-      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
-      echo @3.9 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
+      echo @3.10 http://nl.alpinelinux.org/alpine/v3.9/community >> /etc/apk/repositories && \
+      echo @3.10 http://nl.alpinelinux.org/alpine/v3.9/main >> /etc/apk/repositories && \
       apk add --no-cache \
-      chromium@3.9 \
-      nss@3.9 \
-      freetype@3.9 \
-      harfbuzz@3.9 \
-      ttf-freefont@3.9
+      chromium@3.10 \
+      nss@3.10 \
+      freetype@3.10 \
+      harfbuzz@3.10 \
+      ttf-freefont@3.10
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true

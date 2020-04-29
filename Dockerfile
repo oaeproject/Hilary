@@ -26,36 +26,43 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-FROM node:12-alpine3.10
+# This tag corresponds to node 12.x and alpine 3.10
+FROM node:12-alpine3.11
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
 
+# Upgrade system libraries
+RUN apk update ; apk upgrade
+
 # Install system dependencies
-RUN apk --update --no-cache add \
+RUN apk --no-cache add \
       curl \
       git \
       make \
-      python \
+      python2 \
       ghostscript \
       vips \
       libreoffice \
+      vips \
+      graphicsmagick \
+      ca-certificates \
       openjdk8-jre
 
-# Installs the 3.10 Chromium package
-RUN apk update && apk upgrade && \
-      echo @3.10 http://nl.alpinelinux.org/alpine/v3.10/community >> /etc/apk/repositories && \
-      echo @3.10 http://nl.alpinelinux.org/alpine/v3.10/main >> /etc/apk/repositories && \
-      apk add --no-cache \
-      chromium@3.10 \
-      nss@3.10 \
-      freetype@3.10 \
-      harfbuzz@3.10 \
-      ttf-freefont@3.10
+# Installs latest Chromium
+RUN apk --no-cache add \
+      chromium \
+      nss \
+      freetype \
+      freetype-dev \
+      harfbuzz \
+      ca-certificates \
+      ttf-freefont
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Set the Hilary directory
 ENV CODE_DIR /usr/src

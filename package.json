@@ -16,9 +16,7 @@
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
   "license": "ECL-2.0",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*"],
   "engines": {
     "node": ">=12.16.0"
   },
@@ -50,7 +48,6 @@
     "etherpad-lite-client": "^0.8.0",
     "express": "^4.17.1",
     "globalize": "0.1.1",
-    "gm": "^1.23.0",
     "immutable": "^4.0.0-rc.12",
     "ioredis": "^4.16.0",
     "ioredis-ratelimit": "^2.1.0",
@@ -86,7 +83,7 @@
     "passport-twitter": "^1.0.4",
     "pdfjs-dist": "^2.1.266",
     "properties-parser": "^0.3.1",
-    "puppeteer": "2.1.1",
+    "puppeteer": "^3.0.2",
     "rails-timezone": "^1.0.0",
     "ramda": "^0.27.0",
     "readdirp": "^3.4.0",
@@ -150,23 +147,13 @@
   },
   "nyc": {
     "include": "packages/**/*",
-    "exclude": [
-      "3akai-ux",
-      "**/domstubs.js "
-    ]
+    "exclude": ["3akai-ux", "**/domstubs.js "]
   },
   "xo": {
     "prettier": true,
-    "extends": [
-      "prettier"
-    ],
-    "plugins": [
-      "prettier"
-    ],
-    "ignores": [
-      "**/processors/file/domstubs.js",
-      "**/tests/*.js"
-    ],
+    "extends": ["prettier"],
+    "plugins": ["prettier"],
+    "ignores": ["**/processors/file/domstubs.js", "**/tests/*.js"],
     "rules": {
       "node/prefer-promises/fs": "off",
       "import/no-extraneous-dependencies": "off",
@@ -180,9 +167,7 @@
       "prefer-named-capture-group": "off",
       "import/no-unresolved": "off"
     },
-    "env": [
-      "mocha"
-    ],
+    "env": ["mocha"],
     "overrides": [
       {
         "files": "**/tests/*.js",

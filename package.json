@@ -96,7 +96,7 @@
     "rimraf": "^3.0.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "snyk": "^1.298.0",
+    "snyk": "^1.316.1",
     "sockjs": "^0.3.20",
     "sockjs-client": "^1.4.0",
     "strftime": "^0.10.0",

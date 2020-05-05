@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.13.3
+version: v1.14.1
 ignore: {}
 # patches apply the minimum changes required to fix a vulnerability
 patch:
@@ -62,3 +62,106 @@ patch:
         patched: '2019-04-23T13:09:34.786Z'
     - ethercalc-client > ethercalc > zappajs > socket.io > socket.io-client > engine.io-client > ws:
         patched: '2019-04-23T13:09:34.786Z'
+  SNYK-JS-LODASH-567746:
+    - cheerio > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - codacy-coverage > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nock > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > inquirer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nodemailer-html-to-text > html-to-text > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/dep-graph > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-config > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-mvn-plugin > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-nodejs-lockfile-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-nuget-plugin > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - mocha > yargs-unparser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > eslint > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - jsdom > request-promise-native > request-promise-core > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/dep-graph > graphlib > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-go-plugin > graphlib > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-nodejs-lockfile-parser > graphlib > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/dep-graph > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-nuget-plugin > dotnet-deps-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > snyk-php-plugin > @snyk/composer-lockfile-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - codacy-coverage > request-promise > request-promise-core > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - pm2 > @pm2/js-api > async > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - pm2 > vizion > async > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > @typescript-eslint/parser > @typescript-eslint/typescript-estree > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > eslint > inquirer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > eslint > table > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > eslint-plugin-ava > enhance-visitors > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/prompt > inquirer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/dep-graph > graphlib > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/cocoapods-lockfile-parser > @snyk/ruby-semver > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > @babel/traverse > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - xo > @typescript-eslint/parser > @typescript-eslint/experimental-utils > @typescript-eslint/typescript-estree > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/version > @lerna/prompt > inquirer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > conventional-changelog-writer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > conventional-commits-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/version > @lerna/conventional-commits > conventional-recommended-bump > conventional-commits-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - youtube-api > googleapis > request > form-data > async > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/cocoapods-lockfile-parser > @snyk/dep-graph > graphlib > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > @babel/helpers > @babel/traverse > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/npm-publish > @lerna/otplease > @lerna/prompt > inquirer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > conventional-changelog-writer > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/version > @lerna/conventional-commits > conventional-changelog-core > conventional-commits-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - lerna > @lerna/publish > @lerna/version > @lerna/conventional-commits > conventional-recommended-bump > conventional-commits-parser > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - youtube-api > googleapis > google-auth-library > request > form-data > async > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > @babel/helpers > @babel/traverse > @babel/generator > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > @babel/helpers > @babel/traverse > @babel/helper-split-export-declaration > @babel/types > lodash:
+        patched: '2020-05-05T04:58:54.332Z'
+    - nyc > istanbul-lib-instrument > @babel/core > @babel/helpers > @babel/traverse > @babel/helper-function-name > @babel/helper-get-function-arity > @babel/types > lodash:
+        patched: '2020-05-05T04:58:54.332Z'

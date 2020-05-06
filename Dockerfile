@@ -26,7 +26,7 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-# This tag corresponds to node 12.x and alpine 3.10
+# This tag corresponds to node 12.x and alpine 3.11
 FROM node:12-alpine3.11
 
 LABEL Name=OAE-Hilary
@@ -46,7 +46,6 @@ RUN apk --no-cache add \
       vips \
       libreoffice \
       vips \
-      graphicsmagick \
       ca-certificates \
       openjdk8-jre
 
@@ -62,7 +61,7 @@ RUN apk --no-cache add \
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+      PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Set the Hilary directory
 ENV CODE_DIR /usr/src

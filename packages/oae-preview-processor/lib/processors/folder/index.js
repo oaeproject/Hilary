@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
+import sharp from 'sharp';
+import { slice, map } from 'ramda';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Context } from 'oae-context';
@@ -28,15 +29,14 @@ import { FoldersConstants } from 'oae-folders/lib/constants';
 import * as FoldersAPI from 'oae-folders';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import * as ImageUtil from 'oae-util/lib/image';
 import * as LibraryAPI from 'oae-library';
 import * as TempFile from 'oae-util/lib/tempfile';
 
 const log = logger('folders-previews');
 
-// The path to a file that only contains white pixels. This file can be used as
-// filler content in the generated image grid
-const SPACER_PATH = path.resolve(__dirname, '../../../static/folder/spacer.png');
+const MONTAGE_PREVIEW_COLUMNS = 3;
+const MONTAGE_PREVIEW_ROWS = 3;
+const MONTAGE_NUMBER_PREVIEWS = 9;
 
 /**
  * Generate preview images for a folder
@@ -47,13 +47,10 @@ const SPACER_PATH = path.resolve(__dirname, '../../../static/folder/spacer.png')
  */
 const generatePreviews = function(folderId, callback) {
   _getData(folderId, (err, folder, contentItems) => {
-    if (err) {
-      return callback(err);
-
-      // If there are no content items in this folder we can't generate a thumbnail for it.
-      // However, we should set an empty previews object as we might have removed all the
-      // content items that were used in the old thumbnail
-    }
+    // If there are no content items in this folder we can't generate a thumbnail for it.
+    // However, we should set an empty previews object as we might have removed all the
+    // content items that were used in the old thumbnail
+    if (err) return callback(err);
 
     if (_.isEmpty(contentItems)) {
       return FoldersDAO.setPreviews(folder, {}, callback);
@@ -61,9 +58,7 @@ const generatePreviews = function(folderId, callback) {
 
     // Generate the preview images
     _generatePreviews(folder, contentItems, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
       return callback();
@@ -84,14 +79,10 @@ const generatePreviews = function(folderId, callback) {
  */
 const _getData = function(folderId, callback) {
   FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _getContentWithPreviews(folder, (err, contentItems) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       return callback(null, folder, contentItems);
     });
@@ -112,9 +103,7 @@ const _getContentWithPreviews = function(folder, callback, _contentWithPreviews,
   _contentWithPreviews = _contentWithPreviews || [];
 
   FoldersDAO.getContentItems(folder.groupId, { start: _start, limit: 20 }, (err, contentItems, nextToken) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _contentWithPreviews = _.chain(contentItems)
       // Remove null content items. This can happen if libraries are in an inconsistent
@@ -160,8 +149,8 @@ const _getContentWithPreviews = function(folder, callback, _contentWithPreviews,
       })
       .value()
 
-      // We only use up to 8 items, so only hold on to the 8 newest items
-      .slice(0, 8);
+      // We only use up to 9 items, so only hold on to the 9 newest items
+      .slice(0, MONTAGE_NUMBER_PREVIEWS);
 
     if (!nextToken) {
       // Once we have exhausted all items and kept only the 8 most recent, we return with our
@@ -191,15 +180,11 @@ const _generatePreviews = function(folder, contentItems, callback) {
   // Retrieve the thumbnails
   const ctx = new Context(folder.tenant);
   _retrieveThumbnails(ctx, contentItems.slice(), (err, paths) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Construct the montages
     _createMontages(paths, (err, thumbnail, wide) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       _removeOldPreviews(ctx, folder, err => {
         if (err) {
@@ -255,20 +240,17 @@ const _createMontages = function(paths, callback) {
     width: PreviewConstants.SIZES.IMAGE.THUMBNAIL,
     height: PreviewConstants.SIZES.IMAGE.THUMBNAIL
   };
-  _createMontage({ columns: 2, rows: 2 }, thumbnailSize, paths.slice(), (err, thumbnail) => {
-    if (err) {
-      return callback(err);
-    }
+  // Generate the wide image
+  const wideSize = {
+    width: PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
+    height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
+  };
 
-    // Generate the wide image
-    const wideSize = {
-      width: PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
-      height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
-    };
-    _createMontage({ columns: 4, rows: 2 }, wideSize, paths.slice(), (err, wide) => {
-      if (err) {
-        return callback(err);
-      }
+  _createMontage(thumbnailSize, paths, (err, thumbnail) => {
+    if (err) return callback(err);
+
+    _createMontage(wideSize, paths, (err, wide) => {
+      if (err) return callback(err);
 
       return callback(null, thumbnail, wide);
     });
@@ -295,38 +277,72 @@ const _createMontages = function(paths, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the montage
  * @api private
  */
-const _createMontage = function(tile, size, paths, callback) {
-  // If we have less images than cells, we add an empty image
-  // in each empty cell. Another option could be to use gm's `null:`
-  // value, but that is neither documented nor does it support borders
-  const total = tile.columns * tile.rows;
-  for (let i = paths.length; i < total; i++) {
-    paths.push(SPACER_PATH);
-  }
+const _createMontage = function(size, paths, callback) {
+  const BLANK = path.resolve(__dirname, '../../../static/link/blank.png');
+  const allBuffers = [];
 
-  const tileStr = util.format('%sx%s', tile.columns, tile.rows);
-  const tmpFile = TempFile.createTempFile({ suffix: '.jpg' });
-  const cmd = util.format(
-    'gm montage -geometry 324x324+0+0 -borderwidth 1 -bordercolor gray89 -fill white -tile %s %s %s',
-    tileStr,
-    paths.join(' '),
-    tmpFile.path
-  );
-  // eslint-disable-next-line no-unused-vars
-  exec(cmd, { timeout: 4000 }, (err, stdout, stderr) => {
-    if (err) {
-      log().error({ err }, 'Unable to create folder montage');
-      return callback({ code: 500, msg: 'Failed to create folder montage' });
-    }
+  resizeAllPreviews(paths, size, allBuffers, (err, buffers) => {
+    const suffix = `${size.width}x${size.height}.jpg`;
+    const tmpFile = TempFile.createTempFile({ suffix });
 
-    // Resize the image to the desired size
-    ImageUtil.resizeImage(tmpFile.path, size, (err, resizedFile) => {
-      // Clean up our temporary file regardless of any errors
-      tmpFile.remove(() => {
-        return callback(err, resizedFile);
+    sharp(BLANK)
+      .composite(buffers)
+      .resize(size.width, size.height)
+      .toFile(tmpFile.path, (err, info) => {
+        if (err) {
+          log().error({ err }, 'Unable to create folder montage');
+          return callback({ code: 500, msg: 'Failed to create folder montage' });
+        }
+
+        const file = {
+          path: tmpFile.path,
+          size: info.size,
+          name: path.basename(tmpFile.path)
+        };
+
+        return callback(err, file);
       });
-    });
   });
+};
+
+// TODO JSDoc
+const resizeAllPreviews = (paths, size, allBuffers, callback) => {
+  if (paths.length === 0) return callback(null, allBuffers);
+
+  const nextPreview = paths.shift();
+
+  resizePreview(nextPreview, size, allBuffers.length, (err, data) => {
+    if (err) return callback(err);
+
+    allBuffers.push(data);
+    resizeAllPreviews(paths, size, allBuffers, callback);
+  });
+};
+
+// TODO JSDoc
+const resizePreview = (path, size, gravity, callback) => {
+  sharp(path)
+    .resize(size.width / MONTAGE_PREVIEW_COLUMNS, size.height / MONTAGE_PREVIEW_ROWS)
+    .toBuffer((err, data /* , info */) => {
+      if (err) return callback(err);
+
+      const { top, left } = getMontageCoordinates(gravity, size);
+
+      const preview = {
+        input: data,
+        top,
+        left
+      };
+
+      return callback(null, preview);
+    });
+};
+
+// TODO JSdoc
+const getMontageCoordinates = (position, size) => {
+  const row = Math.floor(position / MONTAGE_PREVIEW_ROWS);
+  const column = position % MONTAGE_PREVIEW_COLUMNS;
+  return { top: (size.height / MONTAGE_PREVIEW_ROWS) * row, left: (size.width / MONTAGE_PREVIEW_COLUMNS) * column };
 };
 
 /**
@@ -355,9 +371,7 @@ const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
     ctx,
     contentItem.previews.thumbnailUri,
     (err, file) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       _paths.push(file.path);
       return _retrieveThumbnails(ctx, contentItems, callback, _paths);

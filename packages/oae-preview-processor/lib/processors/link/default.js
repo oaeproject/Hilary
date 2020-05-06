@@ -17,15 +17,34 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import _ from 'underscore';
 import sharp from 'sharp';
 
-import { equals, add, compose, slice, lastIndexOf, not, find, __ } from 'ramda';
+import {
+  both,
+  isEmpty,
+  head,
+  concat,
+  split,
+  equals,
+  add,
+  compose,
+  slice,
+  defaultTo,
+  match,
+  lastIndexOf,
+  not,
+  find,
+  __,
+  propEq,
+  includes,
+  path as getPath
+} from 'ramda';
 import request from 'request';
 
 import { logger } from 'oae-logger';
 
 import * as OaeUtil from 'oae-util/lib/util';
+const { getNumberParam } = OaeUtil;
 import { setUpConfig } from 'oae-config';
 import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
 import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
@@ -34,10 +53,12 @@ const log = logger('oae-preview-processor');
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const screenShottingOptions = {};
+const HTTP_HEAD = 'HEAD';
 
 // Auxiliary functions
 const increment = add(1);
 const isOneOfForbidden = find(__, PreviewConstants.FORBIDDEN.INTERNAL_IPS);
+const isDefined = Boolean;
 
 /**
  * Initializes the Default Link Preview Processor
@@ -48,9 +69,9 @@ const isOneOfForbidden = find(__, PreviewConstants.FORBIDDEN.INTERNAL_IPS);
  * @param  {Object}     callback.err                        An error that occurred, if any
  */
 const init = function(_config, callback) {
-  _config = _config || {};
+  _config = defaultTo({}, _config);
 
-  screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
+  screenShottingOptions.timeout = getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
 
   const chromiumExecutable = _config.screenShotting.binary;
   if (chromiumExecutable) screenShottingOptions.executablePath = chromiumExecutable;
@@ -66,10 +87,12 @@ const init = function(_config, callback) {
  */
 const test = function(ctx, contentObj, callback) {
   // Don't bother with non-link content items
-  if (contentObj.resourceSubType === 'link') {
+  const isLink = propEq('resourceSubType', 'link');
+  if (isLink(contentObj)) {
     const { link } = contentObj;
     // Only allow HTTP(S) URLs
-    if (/^http(s)?:\/\//.test(link)) {
+    const isHTTPS = compose(not, isEmpty, match(/^http(s)?:\/\//));
+    if (isHTTPS(link)) {
       // Don't generate previews for internal IPs
       const extractFromLink = slice(__, link);
       const ipAddress = compose(extractFromLink, increment, lastIndexOf('://'))(link);
@@ -91,7 +114,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
   // Do a head request to check if this site allows for embedding
   const options = {
     url: contentObj.link,
-    method: 'HEAD',
+    method: HTTP_HEAD,
     timeout: screenShottingOptions.timeout,
     headers: {
       // Certain webservers will not send an `x-frame-options` header when no browser user agent is not specified
@@ -110,13 +133,18 @@ const generatePreviews = function(ctx, contentObj, callback) {
       ctx.addPreviewMetadata('embeddable', false);
     } else {
       // The link isn't embeddable because the browser will prompt to save the target if the Content-Disposition header is set to attachment
-      let forcedDownload =
-        response.headers['content-disposition'] &&
-        response.headers['content-disposition'].split(';')[0] === 'attachment';
-      // ..or it's type is 'application/octet-stream'
-      forcedDownload = forcedDownload || response.headers['content-type'] === PreviewConstants.TYPES.DEFAULT;
+      const isAttachment = compose(equals('attachment'), head, split(';'), getPath(['headers', 'content-disposition']));
 
-      /*
+      let forcedDownload = both(getPath(['headers', 'content-disposition']), isAttachment)(response);
+
+      // ..or it's type is 'application/octet-stream'
+      const isOctectStream = equals(PreviewConstants.TYPES.DEFAULT);
+      forcedDownload = defaultTo(
+        compose(isOctectStream, getPath(['headers', 'content-type']))(response),
+        forcedDownload
+      );
+
+      /**
        * See https://developer.mozilla.org/en-US/docs/HTTP/X-Frame-Options
        * There are 3 options for the x-frame-options header:
        *      - DENY
@@ -126,13 +154,13 @@ const generatePreviews = function(ctx, contentObj, callback) {
        * All 3 of these would block embedding so as soon as the header is defined,
        * we add some metadata that tells the UI this link cannot be embedded.
        */
-      if (response.headers['x-frame-options'] || forcedDownload) {
+      if (defaultTo(forcedDownload, getPath(['headers', 'x-frame-options'], response))) {
         ctx.addPreviewMetadata('embeddable', false);
       } else {
         ctx.addPreviewMetadata('embeddable', true);
       }
 
-      contentType = response.headers['content-type'];
+      contentType = getPath(['headers', 'content-type'], response);
       ctx.addPreviewMetadata('targetType', contentType);
     }
 
@@ -140,9 +168,10 @@ const generatePreviews = function(ctx, contentObj, callback) {
      * Generate a thumbnail
      */
     const generateThumbnail = function() {
-      const imgPath = ctx.baseDir + '/webshot.png';
+      const imgPath = concat(ctx.baseDir, '/webshot.png');
       // If the link target is an image just grab it instead of screenshotting it
-      if (contentType && _.contains(PreviewConstants.TYPES.IMAGE, contentType)) {
+      const isImage = includes(__, PreviewConstants.TYPES.IMAGE);
+      if (both(isDefined, isImage)(contentType)) {
         const image = fs.createWriteStream(imgPath);
         image.on('close', () => {
           LinkProcessorUtil.generatePreviewsFromImage(ctx, imgPath, null, callback);
@@ -175,8 +204,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
             if (err) throwComparisonError(err, callback);
             sharp(path.resolve(__dirname, '../../../static/link/blank.png')).metadata((err, solidWhiteMetainfo) => {
               if (err) throwComparisonError(err, callback);
-              const isEqual = equals(imageMetainfo, solidWhiteMetainfo);
 
+              const isEqual = equals(imageMetainfo, solidWhiteMetainfo);
               log().trace({ contentId: ctx.contentId, equality: isEqual });
 
               if (isEqual) {
@@ -194,8 +223,9 @@ const generatePreviews = function(ctx, contentObj, callback) {
     const urlParts = new URL(contentObj.link);
 
     // If we previously tried an HTTPS link we can just determine whether the link is embeddable over HTTPS by checking if that request succeeded
-    if (urlParts.protocol === 'https:') {
-      const httpsAccessible = !err;
+    const isHTTPS = equals('https:');
+    if (isHTTPS(urlParts.protocol)) {
+      const httpsAccessible = not(err);
       ctx.addPreviewMetadata('httpsAccessible', httpsAccessible);
       return generateThumbnail();
 
@@ -222,14 +252,11 @@ const generatePreviews = function(ctx, contentObj, callback) {
 const _checkHttps = function(link, callback) {
   const options = {
     url: link,
-    method: 'HEAD',
+    method: HTTP_HEAD,
     timeout: screenShottingOptions.timeout
   };
-  // eslint-disable-next-line no-unused-vars
-  request(options, (err, response) => {
-    if (err) {
-      return callback(false);
-    }
+  request(options, (err /* , response */) => {
+    if (err) return callback(false);
 
     return callback(true);
   });

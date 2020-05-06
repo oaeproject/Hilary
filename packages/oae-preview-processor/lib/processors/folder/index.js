@@ -14,13 +14,30 @@
  */
 
 import fs from 'fs';
-import path from 'path';
+import { basename, resolve } from 'path';
 import util from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import _ from 'underscore';
 import { logger } from 'oae-logger';
 import sharp from 'sharp';
-import { slice, map } from 'ramda';
+import {
+  negate,
+  prop,
+  lte,
+  both,
+  propSatisfies,
+  pathSatisfies,
+  pipe,
+  filter,
+  concat,
+  sortBy,
+  reject,
+  isNil,
+  defaultTo,
+  compose,
+  isEmpty,
+  slice,
+  not
+} from 'ramda';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Context } from 'oae-context';
@@ -28,6 +45,7 @@ import { FoldersConstants } from 'oae-folders/lib/constants';
 
 import * as FoldersAPI from 'oae-folders';
 import * as ContentUtil from 'oae-content/lib/internal/util';
+const { getStorageBackend } = ContentUtil;
 import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 import * as LibraryAPI from 'oae-library';
 import * as TempFile from 'oae-util/lib/tempfile';
@@ -37,6 +55,16 @@ const log = logger('folders-previews');
 const MONTAGE_PREVIEW_COLUMNS = 3;
 const MONTAGE_PREVIEW_ROWS = 3;
 const MONTAGE_NUMBER_PREVIEWS = 9;
+const BLANK = resolve(__dirname, '../../../static/link/blank.png');
+
+// Auxiliary functions
+const isDefined = Boolean;
+const isNotDefined = compose(not, isDefined);
+const byNewest = compose(negate, prop('lastModified'));
+const withThumbnail = both(
+  pathSatisfies(isDefined, ['previews']),
+  pathSatisfies(isDefined, ['previews', 'thumbnailUri'])
+);
 
 /**
  * Generate preview images for a folder
@@ -47,14 +75,13 @@ const MONTAGE_NUMBER_PREVIEWS = 9;
  */
 const generatePreviews = function(folderId, callback) {
   _getData(folderId, (err, folder, contentItems) => {
-    // If there are no content items in this folder we can't generate a thumbnail for it.
-    // However, we should set an empty previews object as we might have removed all the
-    // content items that were used in the old thumbnail
     if (err) return callback(err);
-
-    if (_.isEmpty(contentItems)) {
-      return FoldersDAO.setPreviews(folder, {}, callback);
-    }
+    /**
+     * If there are no content items in this folder we can't generate a thumbnail for it.
+     * However, we should set an empty previews object as we might have removed all the content item
+     * that were used in the old thumbnail
+     */
+    if (isEmpty(contentItems)) return FoldersDAO.setPreviews(folder, {}, callback);
 
     // Generate the preview images
     _generatePreviews(folder, contentItems, err => {
@@ -100,61 +127,48 @@ const _getData = function(folderId, callback) {
  * @api private
  */
 const _getContentWithPreviews = function(folder, callback, _contentWithPreviews, _start) {
-  _contentWithPreviews = _contentWithPreviews || [];
+  _contentWithPreviews = defaultTo([], _contentWithPreviews);
 
   FoldersDAO.getContentItems(folder.groupId, { start: _start, limit: 20 }, (err, contentItems, nextToken) => {
     if (err) return callback(err);
 
-    _contentWithPreviews = _.chain(contentItems)
-      // Remove null content items. This can happen if libraries are in an inconsistent
-      // state. For example, if an item was deleted from the system but hasn't been removed
-      // from the libraries, a `null` value would be returned by `getMultipleContentItems`
-      .compact()
+    // Only use content items that are implicitly visible to those that can see this folder's library
+    const implicitlyVisibleOnly = contentItem => {
+      // If this content item were inserted into the folder's content library, it would be
+      // in this visibility bucket (e.g., a public content item would be in the public
+      // library)
+      const targetBucketVisibility = LibraryAPI.Authz.resolveLibraryBucketVisibility(folder.id, contentItem);
+      const targetBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(targetBucketVisibility);
 
-      // We can only use content items that have a thumbnail
-      .filter(contentItem => {
-        return contentItem.previews && contentItem.previews.thumbnailUri;
-      })
+      // If a user has access to see this visibility of folder implicitly, then they will
+      // get this visibility bucket. E.g., if folder is public, we only use content items
+      // from the public visibility bucket (i.e., public content items)
+      const implicitBucketVisibility = folder.visibility;
+      const implicitBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(implicitBucketVisibility);
 
-      // Only use content items that are implicitly visible to those that can see this
-      // folder's library
-      .filter(contentItem => {
-        // If this content item were inserted into the folder's content library, it would be
-        // in this visibility bucket (e.g., a public content item would be in the public
-        // library)
-        const targetBucketVisibility = LibraryAPI.Authz.resolveLibraryBucketVisibility(folder.id, contentItem);
-        const targetBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(targetBucketVisibility);
+      // Only use content items whose target bucket visibility is visibile within the
+      // implicit bucket visibility
+      return lte(targetBucketVisibilityPriority, implicitBucketVisibilityPriority);
+    };
 
-        // If a user has access to see this visibility of folder implicitly, then they will
-        // get this visibility bucket. E.g., if folder is public, we only use content items
-        // from the public visibility bucket (i.e., public content items)
-        const implicitBucketVisibility = folder.visibility;
-        const implicitBucketVisibilityPriority = AuthzConstants.visibility.ALL_PRIORITY.indexOf(
-          implicitBucketVisibility
-        );
+    // Remove null content items. This can happen if libraries are in an inconsistent
+    // state. For example, if an item was deleted from the system but hasn't been removed
+    // from the libraries, a `null` value would be returned by `getMultipleContentItems`
+    // Add them to the set of items we've already retrieved
+    _contentWithPreviews = pipe(
+      reject(isNil),
+      filter(withThumbnail),
+      filter(implicitlyVisibleOnly),
+      concat(_contentWithPreviews),
+      sortBy(byNewest),
+      slice(0, MONTAGE_NUMBER_PREVIEWS)
+    )(contentItems);
 
-        // Only use content items whose target bucket visibility is visibile within the
-        // implicit bucket visibility
-        return targetBucketVisibilityPriority <= implicitBucketVisibilityPriority;
-      })
-
-      // Add them to the set of items we've already retrieved
-      .concat(_contentWithPreviews)
-
-      // Ensure that the newest items are on top. Underscore's sortBy function sorts ascending,
-      // so we multiply the lastModified timestamp with `-1` so the newest (=highest) value
-      // comes first
-      .sortBy(contentItem => {
-        return -1 * contentItem.lastModified;
-      })
-      .value()
-
-      // We only use up to 9 items, so only hold on to the 9 newest items
-      .slice(0, MONTAGE_NUMBER_PREVIEWS);
-
-    if (!nextToken) {
-      // Once we have exhausted all items and kept only the 8 most recent, we return with our
-      // results
+    if (isNotDefined(nextToken)) {
+      /**
+       * Once we have exhausted all items and kept only the 8 most recent,
+       * we return with our results
+       */
       return callback(null, _contentWithPreviews);
     }
 
@@ -204,13 +218,13 @@ const _generatePreviews = function(folder, contentItems, callback) {
             wideUri
           };
           FoldersDAO.setPreviews(folder, previews, err => {
-            // Clean up any temporary files regardless of whether there was an error storing the previews
-            // Depending on which backend was used to store the thumbnail or wide images, those files
-            // may or may not already be removed
-            // const allTempPaths = _.union(paths, [thumbnail.path, wide.path]);
-            _removeAll(paths, () => {
-              return callback(err);
-            });
+            /**
+             * Clean up any temporary files regardless of whether there was an error storing
+             * the previews
+             * Depending on which backend was used to store the thumbnail or wide images,
+             * those files may or may not already be removed
+             */
+            _removeAll(paths, () => callback(err));
           });
         });
       });
@@ -246,13 +260,13 @@ const _createMontages = function(paths, callback) {
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
   };
 
-  _createMontage(thumbnailSize, paths, (err, thumbnail) => {
+  _createMontage(thumbnailSize, paths, (err, squaredThumbnail) => {
     if (err) return callback(err);
 
-    _createMontage(wideSize, paths, (err, wide) => {
+    _createMontage(wideSize, paths, (err, wideThumbnail) => {
       if (err) return callback(err);
 
-      return callback(null, thumbnail, wide);
+      return callback(null, squaredThumbnail, wideThumbnail);
     });
   });
 };
@@ -278,26 +292,27 @@ const _createMontages = function(paths, callback) {
  * @api private
  */
 const _createMontage = function(size, paths, callback) {
-  const BLANK = path.resolve(__dirname, '../../../static/link/blank.png');
   const allBuffers = [];
 
   resizeAllPreviews(paths, size, allBuffers, (err, buffers) => {
-    const suffix = `${size.width}x${size.height}.jpg`;
-    const tmpFile = TempFile.createTempFile({ suffix });
+    if (err) return callback(err);
+
+    const { width, height } = size;
+    const { path } = TempFile.createTempFile({ suffix: `${width}x${height}.jpg` });
 
     sharp(BLANK)
       .composite(buffers)
-      .resize(size.width, size.height)
-      .toFile(tmpFile.path, (err, info) => {
+      .resize(width, height)
+      .toFile(path, (err, info) => {
         if (err) {
           log().error({ err }, 'Unable to create folder montage');
           return callback({ code: 500, msg: 'Failed to create folder montage' });
         }
 
         const file = {
-          path: tmpFile.path,
+          path,
           size: info.size,
-          name: path.basename(tmpFile.path)
+          name: basename(path)
         };
 
         return callback(err, file);
@@ -307,7 +322,7 @@ const _createMontage = function(size, paths, callback) {
 
 // TODO JSDoc
 const resizeAllPreviews = (paths, size, allBuffers, callback) => {
-  if (paths.length === 0) return callback(null, allBuffers);
+  if (isEmpty(paths)) return callback(null, allBuffers);
 
   const nextPreview = paths.shift();
 
@@ -323,13 +338,13 @@ const resizeAllPreviews = (paths, size, allBuffers, callback) => {
 const resizePreview = (path, size, gravity, callback) => {
   sharp(path)
     .resize(size.width / MONTAGE_PREVIEW_COLUMNS, size.height / MONTAGE_PREVIEW_ROWS)
-    .toBuffer((err, data /* , info */) => {
+    .toBuffer((err, input /* , info */) => {
       if (err) return callback(err);
 
       const { top, left } = getMontageCoordinates(gravity, size);
 
       const preview = {
-        input: data,
+        input,
         top,
         left
       };
@@ -339,10 +354,13 @@ const resizePreview = (path, size, gravity, callback) => {
 };
 
 // TODO JSdoc
-const getMontageCoordinates = (position, size) => {
-  const row = Math.floor(position / MONTAGE_PREVIEW_ROWS);
-  const column = position % MONTAGE_PREVIEW_COLUMNS;
-  return { top: (size.height / MONTAGE_PREVIEW_ROWS) * row, left: (size.width / MONTAGE_PREVIEW_COLUMNS) * column };
+const getMontageCoordinates = (gravity, size) => {
+  const row = Math.floor(gravity / MONTAGE_PREVIEW_ROWS);
+  const top = (size.height / MONTAGE_PREVIEW_ROWS) * row;
+
+  const column = gravity % MONTAGE_PREVIEW_COLUMNS;
+  const left = (size.width / MONTAGE_PREVIEW_COLUMNS) * column;
+  return { top, left };
 };
 
 /**
@@ -356,27 +374,21 @@ const getMontageCoordinates = (position, size) => {
  * @api private
  */
 const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
-  _paths = _paths || [];
+  _paths = defaultTo([], _paths);
 
   // If there is nothing left to retrieve, we return to the caller
-  if (contentItems.length === 0) {
-    return callback(null, _paths);
-  }
+  if (isEmpty(contentItems)) return callback(null, _paths);
 
   // Retrieve the thumbnail for the next content item. Keep in mind
   // that the order of the `_paths` array is important. So we retrieve
   // thumbnails in the same order as they are in the `contentItems` array
   const contentItem = contentItems.shift();
-  ContentUtil.getStorageBackend(ctx, contentItem.previews.thumbnailUri).get(
-    ctx,
-    contentItem.previews.thumbnailUri,
-    (err, file) => {
-      if (err) return callback(err);
+  getStorageBackend(ctx, contentItem.previews.thumbnailUri).get(ctx, contentItem.previews.thumbnailUri, (err, file) => {
+    if (err) return callback(err);
 
-      _paths.push(file.path);
-      return _retrieveThumbnails(ctx, contentItems, callback, _paths);
-    }
-  );
+    _paths.push(file.path);
+    return _retrieveThumbnails(ctx, contentItems, callback, _paths);
+  });
 };
 
 /**
@@ -387,15 +399,10 @@ const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
  * @api private
  */
 const _removeAll = function(paths, callback) {
-  if (paths.length === 0) {
-    return callback();
-  }
+  if (isEmpty(paths)) return callback();
 
   const path = paths.pop();
-  // eslint-disable-next-line no-unused-vars
-  fs.unlink(path, err => {
-    _removeAll(paths, callback);
-  });
+  fs.unlink(path, (/* err */) => _removeAll(paths, callback));
 };
 
 /**
@@ -409,9 +416,7 @@ const _removeAll = function(paths, callback) {
  */
 const _removeOldPreviews = function(ctx, folder, callback) {
   _removeOldPreview(ctx, folder, 'thumbnailUri', err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _removeOldPreview(ctx, folder, 'wideUri', callback);
   });
@@ -428,8 +433,9 @@ const _removeOldPreviews = function(ctx, folder, callback) {
  * @api private
  */
 const _removeOldPreview = function(ctx, folder, type, callback) {
-  if (folder.previews && folder.previews[type]) {
-    ContentUtil.getStorageBackend(ctx).remove(ctx, folder.previews[type], callback);
+  const hasPreviews = both(propSatisfies(isDefined, 'previews'), pathSatisfies(isDefined, ['previews', type]));
+  if (hasPreviews(folder)) {
+    getStorageBackend(ctx).remove(ctx, folder.previews[type], callback);
   } else {
     return callback();
   }
@@ -449,16 +455,12 @@ const _removeOldPreview = function(ctx, folder, type, callback) {
 const _storeNewPreviews = function(ctx, folder, thumbnail, wide, callback) {
   // Store the files with a unique filename
   let filename = util.format('thumbnail_%s.jpg', Date.now());
-  ContentUtil.getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (err, thumbnailUri) => {
-    if (err) {
-      return callback(err);
-    }
+  getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (err, thumbnailUri) => {
+    if (err) return callback(err);
 
     filename = util.format('wide_%s.jpg', Date.now());
-    ContentUtil.getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (err, wideUri) => {
-      if (err) {
-        return callback(err);
-      }
+    getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (err, wideUri) => {
+      if (err) return callback(err);
 
       return callback(null, thumbnailUri, wideUri);
     });

@@ -24,7 +24,22 @@ import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 import domStubs from './domstubs';
-import { head, split, join, pluck, includes, and, either, not, path as getPath, equals, compose } from 'ramda';
+import {
+  curry,
+  __,
+  concat,
+  head,
+  split,
+  join,
+  pluck,
+  includes,
+  and,
+  either,
+  not,
+  path as getPath,
+  equals,
+  compose
+} from 'ramda';
 
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsMakeDir = util.promisify(fs.mkdir);
@@ -44,6 +59,7 @@ const TEXT_FORMAT = 'txt';
 const differs = compose(not, equals);
 const isDefined = Boolean;
 const isNotDefined = compose(not, isDefined);
+const appendSVG = curry(concat)(__, '.svg');
 
 // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
 ReadableSVGStream.prototype._read = function() {
@@ -67,7 +83,9 @@ util.inherits(ReadableSVGStream, stream.Readable);
 const init = function(config, callback) {
   const previewIsNotDefined = config => compose(not, getPath(['pdfPreview']))(config);
   const viewportIsNotDefined = config => compose(not, getPath(['pdfPreview', 'viewportScale']))(config);
-  if (isNotDefined(config) || either(previewIsNotDefined, viewportIsNotDefined)(config)) {
+  const configIsMissing = either(isNotDefined, either(previewIsNotDefined, viewportIsNotDefined))(config);
+
+  if (configIsMissing) {
     return callback({
       code: 500,
       msg: 'Missing configuration for the pdf preview / processing'
@@ -103,7 +121,10 @@ const generatePreviews = (ctx, contentObject, callback) => {
   });
 };
 
-// TODO
+/**
+ * @function loadPDFDocument
+ * @param  {Object}   data    Object representing the pdf doc to load
+ */
 const loadPDFDocument = async data => {
   // Will be using promises to load document, pages and misc data instead of
   // callback.
@@ -154,7 +175,11 @@ const previewPDF = async function(ctx, pdfPath, callback) {
   }
 };
 
-// TODO
+/**
+ * @function convertToSVG
+ * @param  {Object} page    Object representing a pdf page (loaded)
+ * @param  {String} svgPath String representing the path to write svg to
+ */
 const convertToSVG = async (page, svgPath) => {
   const viewport = page.getViewport({ scale: 1 });
   const opList = await page.getOperatorList();
@@ -185,7 +210,7 @@ const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
   const width = PreviewConstants.SIZES.PDF.LARGE;
   const output = `${pagesDir}/page.1.png`;
   const data = new Uint8Array(fs.readFileSync(path));
-  const svgPath = head(split('.', path)) + '.svg';
+  const svgPath = compose(appendSVG, head, split('.'))(path);
 
   try {
     const doc = await loadPDFDocument(data);
@@ -213,9 +238,7 @@ const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
  * @param  {Number} pageNum  The page number
  * @return {String} The file path for the svg file corresponding to the page
  */
-function getFilePathForPage(pagesDir, pageNumber, format) {
-  return path.join(pagesDir, `page.${pageNumber}.${format}`);
-}
+const getFilePathForPage = (pagesDir, pageNumber, format) => path.join(pagesDir, `page.${pageNumber}.${format}`);
 
 /**
  * A readable stream which offers a stream representing the serialization of a

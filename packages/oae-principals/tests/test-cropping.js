@@ -362,7 +362,7 @@ describe('Profile pictures', () => {
     _createUser(ctx => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, err => {
         assert.ok(!err);
-        _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 10, 20000), 400, callback);
+        _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 10, 20000), 500, callback);
       });
     });
   });
@@ -374,8 +374,8 @@ describe('Profile pictures', () => {
     _createUser(ctx => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, err => {
         assert.ok(!err);
-        _verifyCropping(ctx, ctx.user, _createSelectedArea(20000, 10, 100), 400, () => {
-          _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 200000, 100), 400, callback);
+        _verifyCropping(ctx, ctx.user, _createSelectedArea(20000, 10, 100), 500, () => {
+          _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 200000, 100), 500, callback);
         });
       });
     });

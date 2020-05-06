@@ -14,11 +14,11 @@
  */
 
 import fs from 'fs';
-import path from 'path';
+import { basename, extname } from 'path';
 import sharp from 'sharp';
 
 import temp from 'temp';
-import _ from 'underscore';
+import { concat, contains, equals, defaultTo, compose, not, pipe, isEmpty, when } from 'ramda';
 
 import { logger } from 'oae-logger';
 
@@ -33,10 +33,12 @@ const {
   toInt,
   isArrayNotEmpty
 } = validator;
-import { pipe } from 'ramda';
 
 const log = logger('oae-util-image');
 const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
+
+const isDefined = Boolean;
+const isNotDefined = compose(not, isDefined);
 
 /**
  * Auto orients an image (based on the EXIF Orientation data) and stores it in a temporary file
@@ -53,55 +55,33 @@ const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
  * @param  {Number}     callback.file.size      The size of the oriented image (in bytes)
  */
 const autoOrient = function(inputPath, opts, callback) {
-  opts = opts || {};
-  const outputPath = opts.outputPath || temp.path({ suffix: getImageExtension(inputPath, '.jpg') });
+  opts = defaultTo({}, opts);
+  const outputPath = defaultTo(temp.path({ suffix: getImageExtension(inputPath, '.jpg') }), opts.outputPath);
   sharp(inputPath)
     .rotate()
-    .toFile(outputPath, err => {
+    .toFile(outputPath, (err, info) => {
       if (err) {
-        fs.unlink(outputPath, err => {
-          if (err) {
-            log().warn({ err, path: outputPath }, 'Could not unlink a file');
-          }
-        });
         log().error({ err }, 'Could not auto orient the image %s', inputPath);
         return callback({ code: 500, msg: 'Could not auto orient the image' });
       }
 
-      fs.stat(outputPath, (err, stat) => {
+      const file = {
+        path: outputPath,
+        size: info.size,
+        name: basename(outputPath)
+      };
+
+      // Return without deleting the file if the caller specified to do so
+      if (isNotDefined(opts.removeInput)) return callback(null, file);
+
+      // Delete the input file now that we've completed
+      fs.unlink(inputPath, err => {
         if (err) {
-          fs.unlink(outputPath, () => {
-            if (err) {
-              log().warn({ err, path: outputPath }, 'Could not unlink a file');
-            }
-          });
-          log().error({ err }, 'Could not get the file system information about %s', outputPath);
-          return callback({
-            code: 500,
-            msg: 'Could not retrieve the file information for the cropped file'
-          });
+          log().error({ err }, 'Could not unlink the input image');
+          return callback({ code: 500, msg: 'Could not unlink the input image' });
         }
 
-        const file = {
-          path: outputPath,
-          size: stat.size,
-          name: path.basename(outputPath)
-        };
-
-        // Return without deleting the file if the caller specified to do so
-        if (!opts.removeInput) {
-          return callback(null, file);
-        }
-
-        // Delete the input file now that we've completed
-        fs.unlink(inputPath, err => {
-          if (err) {
-            log().error({ err }, 'Could not unlink the input image');
-            return callback({ code: 500, msg: 'Could not unlink the input image' });
-          }
-
-          return callback(null, file);
-        });
+        return callback(null, file);
       });
     });
 };
@@ -131,7 +111,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
       msg: 'The coordinates for the area you wish to crop must be specified'
     })(selectedArea);
 
-    const selectedAreaIsDefined = Boolean(selectedArea);
+    const selectedAreaIsDefined = isDefined(selectedArea);
     unless(bothCheck(selectedAreaIsDefined, pipe(toInt, isZeroOrGreater)), {
       code: 400,
       msg: 'The x-coordinate needs to be an integer larger than 0'
@@ -178,41 +158,37 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     return callback(error);
   }
 
-  // Crop the image
   _cropImage(imagePath, selectedArea, (err, croppedFile) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
-    const files = {};
-    let resized = 0;
-    let called = false;
+    const allSizes = {};
+    const resizeForAllSizes = (sizes, croppedFile, allSizes, callback) => {
+      if (isEmpty(sizes)) return callback(null, allSizes);
 
-    // Use a foreach so that the callback function of resizeImage has the size on the stack
-    sizes.forEach(size => {
-      // Resize the image
-      _resizeImage(croppedFile.path, { width: size.width, height: size.height }, (err, file) => {
-        resized++;
-        if (err && !called) {
-          called = true;
-          return callback(err);
-        }
+      const nextSize = sizes.pop();
+      const key = `${nextSize.width}x${nextSize.height}`;
+      resizeFor(nextSize, croppedFile, (err, resizedFile) => {
+        if (err) return callback(err);
 
-        const key = size.width + 'x' + size.height;
-        files[key] = file;
-        if (resized === sizes.length && !called) {
-          called = true;
+        allSizes[key] = resizedFile;
+        return resizeForAllSizes(sizes, croppedFile, allSizes, callback);
+      });
+    };
 
-          // Remove the cropped one before we call the callback
-          fs.unlink(croppedFile.path, err => {
-            if (err) {
-              called = true;
-              return callback({ code: 500, msg: err });
-            }
+    const resizeFor = (size, croppedFile, callback) => {
+      const { width, height } = size;
+      _resizeImage(croppedFile.path, { width, height }, (err, file) => {
+        if (err) return callback(err);
 
-            return callback(null, files);
-          });
-        }
+        return callback(null, file);
+      });
+    };
+
+    resizeForAllSizes(sizes, croppedFile, allSizes, () => {
+      fs.unlink(croppedFile.path, err => {
+        if (err) return callback({ code: 500, msg: err });
+
+        return callback(null, allSizes);
       });
     });
   });
@@ -291,62 +267,25 @@ const cropImage = function(imagePath, selectedArea, callback) {
  * @api private
  */
 const _cropImage = function(imagePath, selectedArea, callback) {
-  // Make sure that the pic is big enough
-  sharp(imagePath).metadata((err, metainfo) => {
-    if (err) {
-      log().error({ err }, 'Could not get the image size for the large image');
-      return callback({ code: 500, msg: 'Could not get the image size for the large image' });
-    }
+  const tempPath = temp.path({ suffix: getImageExtension(imagePath, '.jpg') });
+  const { width, height, x: left, y: top } = selectedArea;
 
-    // Ensure we do not try and crop outside of the image size boundaries
-    if (
-      selectedArea.x > metainfo.width ||
-      selectedArea.y > metainfo.height ||
-      selectedArea.width > metainfo.width - selectedArea.x ||
-      selectedArea.height > metainfo.height - selectedArea.y
-    ) {
-      return callback({ code: 400, msg: 'You cannot crop outside of the image' });
-    }
+  sharp(imagePath)
+    .extract({ width, height, left, top })
+    .toFile(tempPath, (err, info) => {
+      if (err) {
+        log().error({ err }, err.message);
+        return callback({ code: 500, msg: err.message });
+      }
 
-    // Crop it and write it to a temporary file
-    const tempPath = temp.path({ suffix: getImageExtension(imagePath, '.jpg') });
-    sharp(imagePath)
-      .extract({ width: selectedArea.width, height: selectedArea.height, left: selectedArea.x, top: selectedArea.y })
-      .toFile(tempPath, err => {
-        if (err) {
-          fs.unlink(tempPath, () => {
-            if (err) {
-              log().warn({ err, path: tempPath }, 'Could not unlink a file');
-            }
-          });
-          log().error({ err }, 'Could not crop the image %s', imagePath);
-          return callback({ code: 500, msg: 'Could not crop the image' });
-        }
+      const file = {
+        path: tempPath,
+        size: info.size,
+        name: basename(tempPath)
+      };
 
-        fs.stat(tempPath, (err, stat) => {
-          if (err) {
-            fs.unlink(tempPath, () => {
-              if (err) {
-                log().warn({ err, path: tempPath }, 'Could not unlink a file');
-              }
-            });
-            log().error({ err }, 'Could not get the file system information about %s', tempPath);
-            return callback({
-              code: 500,
-              msg: 'Could not retrieve the file information for the cropped file'
-            });
-          }
-
-          const file = {
-            path: tempPath,
-            size: stat.size,
-            name: path.basename(tempPath)
-          };
-
-          return callback(null, file);
-        });
-      });
-  });
+      return callback(null, file);
+    });
 };
 
 /**
@@ -408,44 +347,24 @@ const resizeImage = function(imagePath, size, callback) {
  * @api private
  */
 const _resizeImage = function(imagePath, size, callback) {
-  const suffix = size.width + 'x' + size.height + getImageExtension(imagePath, '.jpg');
-  const tempPath = temp.path({ suffix });
+  const { width, height } = size;
+  const tempPath = temp.path({ suffix: `${width}x${height}${getImageExtension(imagePath, '.jpg')}` });
 
   sharp(imagePath)
     .resize(size.width, size.height)
-    .toFile(tempPath, err => {
+    .toFile(tempPath, (err, info) => {
       if (err) {
-        fs.unlink(tempPath, () => {
-          if (err) {
-            log().warn({ err, path: tempPath }, 'Could not unlink a file');
-          }
-        });
         log().error({ err }, 'Could not resize the image %s', imagePath);
         return callback({ code: 500, msg: 'Could not resize the image' });
       }
 
-      fs.stat(tempPath, (err, stat) => {
-        if (err) {
-          fs.unlink(tempPath, () => {
-            if (err) {
-              log().warn({ err, path: tempPath }, 'Could not unlink a file');
-            }
-          });
-          log().error({ err }, 'Could not get the file system information for %s', tempPath);
-          return callback({
-            code: 500,
-            msg: 'Could not get the file information for the resized file'
-          });
-        }
+      const file = {
+        path: tempPath,
+        size: info.size,
+        name: basename(tempPath)
+      };
 
-        const file = {
-          path: tempPath,
-          size: stat.size,
-          name: path.basename(tempPath)
-        };
-
-        return callback(null, file);
-      });
+      return callback(null, file);
     });
 };
 
@@ -457,14 +376,15 @@ const _resizeImage = function(imagePath, size, callback) {
  * @param  {String}     [fallback]  The fallback extension. Defaults to '.jpg'
  * @return {String}                 A proper image extension. e.g., '.jpg'
  */
-const getImageExtension = function(source, fallback) {
-  fallback = fallback || '.jpg';
-  let ext = path.extname(source);
-  if (!_.contains(VALID_EXTENSIONS, ext)) {
-    ext = fallback;
-  }
+const getImageExtension = function(sourceFile, fallback) {
+  fallback = defaultTo('.jpg', fallback);
+  let extension = extname(sourceFile);
 
-  return ext;
+  const isValidExtension = contains(VALID_EXTENSIONS);
+
+  if (compose(not, isValidExtension)(extension)) extension = fallback;
+
+  return extension;
 };
 
 /**
@@ -491,58 +411,32 @@ const convertToJPG = function(inputPath, callback) {
     return callback(error);
   }
 
-  let conversionPath = inputPath;
-  if (inputPath.lastIndexOf('.gif') === inputPath.length - 4) {
-    // If we're dealing with a GIF, we use the first frame
-    conversionPath = inputPath + '[0]';
-  }
+  const itsAGif = compose(equals('.gif'), extname);
+  const conversionPath = when(itsAGif, filePath => concat(filePath, '[0]'), inputPath);
 
-  sharp(conversionPath).metadata((err, metainfo) => {
-    if (err) {
-      log().error({ err }, 'Unable to get size of the image that should be converted to JPG');
-      return callback({ code: 500, msg: err });
-    }
+  const now = Date.now();
+  const outputPath = temp.path({ suffix: '.jpg' });
 
-    const now = Date.now();
-    const outputPath = temp.path({ suffix: '.jpg' });
+  log().trace('Begin converting image into a JPG');
+  sharp(conversionPath)
+    .flatten({ background: 'white' })
+    .jpeg()
+    .toFile(outputPath, (err, info) => {
+      const durationMs = Date.now() - now;
+      if (err) {
+        log().error({ err }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
+        return callback({ code: 500, msg: 'Failed converting input image to JPG' });
+      }
 
-    log().trace('Begin converting image into a JPG');
-    sharp(conversionPath)
-      .flatten({ background: 'white' })
-      .resize(metainfo.width, metainfo.height)
-      .jpeg()
-      .toFile(outputPath, err => {
-        const durationMs = Date.now() - now;
-        if (err) {
-          log().error({ err }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
-          return callback({ code: 500, msg: 'Failed converting input image to JPG' });
-        }
+      log().trace('Finished converting image into a JPG (Took %sms)', durationMs);
 
-        log().trace('Finished converting image into a JPG (Took %sms)', durationMs);
-
-        fs.stat(outputPath, (err, stat) => {
-          if (err) {
-            fs.unlink(outputPath, () => {
-              if (err) {
-                log().warn({ err, path: outputPath }, 'Could not unlink a file');
-              }
-            });
-            log().error({ err }, 'Could not get the file system information about %s', outputPath);
-            return callback({
-              code: 500,
-              msg: 'Could not retrieve the file information for the converted file'
-            });
-          }
-
-          const file = {
-            path: outputPath,
-            size: stat.size,
-            name: path.basename(outputPath)
-          };
-          return callback(null, file);
-        });
-      });
-  });
+      const file = {
+        path: outputPath,
+        size: info.size,
+        name: basename(outputPath)
+      };
+      return callback(null, file);
+    });
 };
 
 export { autoOrient, cropAndResize, cropImage, resizeImage, getImageExtension, convertToJPG };

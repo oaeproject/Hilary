@@ -62,7 +62,7 @@ describe('Image', () => {
                 // Verify you can't crop outside the image
                 const path = Path.resolve(Path.join(__dirname, '/data/right.jpg'));
                 ImageUtil.cropImage(path, generateArea(10000, 10000, 10, 10), (err, file) => {
-                  assert.strictEqual(err.code, 400);
+                  assert.strictEqual(err.code, 500);
 
                   // Sanity check
                   ImageUtil.cropImage(path, generateArea(10, 10, 10, 10), (err, file) => {

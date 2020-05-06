@@ -18,9 +18,8 @@ import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import _ from 'underscore';
 import sharp from 'sharp';
-import { toUpper } from 'ramda';
+import { keys, equals, find, toUpper, not, compose, head, values, prop } from 'ramda';
 
 import request from 'request';
 import nock from 'nock';
@@ -49,7 +48,7 @@ import * as PreviewOffice from 'oae-preview-processor/lib/processors/file/office
 import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf';
 import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare';
 import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import { downloadRemoteFile } from 'oae-preview-processor/lib/util';
 import { flush } from 'oae-util/lib/redis';
 
 const PRIVATE = 'private';
@@ -176,8 +175,8 @@ describe('Preview processor', () => {
 
       // Create a piece of content as a regular user
       TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
-        assert.ok(!err);
-        const restCtx = _.values(response)[0].restContext;
+        assert.ok(not(err));
+        const restCtx = compose(prop('restContext'), head, values)(response);
 
         RestAPI.Content.createFile(
           restCtx,
@@ -611,67 +610,23 @@ describe('Preview processor', () => {
                 assert.ok(!err);
 
                 // The PDF has 1 page, there should only be 1 corresponding HTML file
-                assert.ok(
-                  _.find(previews.files, file => {
-                    return file.filename === 'page.1.svg';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'page.2.svg';
-                  })
-                );
+                assert.ok(find(eachFile => equals(eachFile.filename, 'page.1.svg'), previews.files));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'page.2.svg'), previews.files)));
 
                 // The PDF has 1 page, there should only be 1 corresponding txt file
-                assert.ok(
-                  _.find(previews.files, file => {
-                    return file.filename === 'page.1.svg';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'page.2.svg';
-                  })
-                );
+                assert.ok(find(eachFile => equals(eachFile.filename, 'page.1.svg'), previews.files));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'page.2.svg'), previews.files)));
 
                 // There should be 1 plain.txt file
-                assert.ok(
-                  _.find(previews.files, file => {
-                    return file.filename === 'plain.txt';
-                  })
-                );
+                assert.ok(find(file => equals(file.filename, 'plain.txt'), previews.files));
 
                 // There should not be any original individual CSS files
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'base.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'base.min.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'fancy.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'fancy.min.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'lines.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'lines.min.css';
-                  })
-                );
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'base.css'), previews.files)));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'base.min.css'), previews.files)));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'fancy.css'), previews.files)));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'fancy.min.css'), previews.files)));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'lines.css'), previews.files)));
+                assert.ok(not(find(eachFile => equals(eachFile.filename, 'lines.min.css'), previews.files)));
                 callback();
               });
             });
@@ -710,48 +665,16 @@ describe('Preview processor', () => {
                 assert.ok(!err);
 
                 // The PDF has 2 pages, there should be 2 corresponding HTML files
-                assert.ok(
-                  _.find(previews.files, file => {
-                    return file.filename === 'page.1.svg';
-                  })
-                );
-                assert.ok(
-                  _.find(previews.files, file => {
-                    return file.filename === 'page.2.svg';
-                  })
-                );
+                assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
+                assert.ok(find(file => equals(file.filename, 'page.2.svg'), previews.files));
 
                 // There should not be any original individual CSS files
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'base.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'base.min.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'fancy.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'fancy.min.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'lines.css';
-                  })
-                );
-                assert.ok(
-                  !_.find(previews.files, file => {
-                    return file.filename === 'lines.min.css';
-                  })
-                );
+                assert.ok(not(find(file => equals(file.filename, 'base.css'), previews.files)));
+                assert.ok(not(find(file => equals(file.filename, 'base.min.css'), previews.files)));
+                assert.ok(not(find(file => equals(file.filename, 'fancy.css'), previews.files)));
+                assert.ok(not(find(file => equals(file.filename, 'fancy.min.css'), previews.files)));
+                assert.ok(not(find(file => equals(file.filename, 'lines.css'), previews.files)));
+                assert.ok(not(find(file => equals(file.filename, 'lines.min.css'), previews.files)));
                 callback();
               });
             });
@@ -765,9 +688,7 @@ describe('Preview processor', () => {
      */
     it('verify uploading new pdf revision', function(callback) {
       // Ignore this test if the PP is disabled
-      if (!defaultConfig.previews.enabled) {
-        return callback();
-      }
+      if (not(defaultConfig.previews.enabled)) return callback();
 
       // OpenOffice can sometimes be painfully slow to start up
       this.timeout(50000);
@@ -781,16 +702,8 @@ describe('Preview processor', () => {
           assert.ok(!err);
 
           // The PDF has 2 pages, there should be 2 corresponding HTML files
-          assert.ok(
-            _.find(previews.files, file => {
-              return file.filename === 'page.1.svg';
-            })
-          );
-          assert.ok(
-            _.find(previews.files, file => {
-              return file.filename === 'page.2.svg';
-            })
-          );
+          assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
+          assert.ok(find(file => equals(file.filename, 'page.2.svg'), previews.files));
 
           // Now upload a new revision which only has one page in it
           RestAPI.Content.updateFileBody(restCtx, content.id, getPDFStream, err => {
@@ -813,16 +726,8 @@ describe('Preview processor', () => {
                     assert.ok(!err);
 
                     // The PDF has 1 pages, there should only be one corresponding HTML file
-                    assert.ok(
-                      _.find(previews.files, file => {
-                        return file.filename === 'page.1.svg';
-                      })
-                    );
-                    assert.ok(
-                      !_.find(previews.files, file => {
-                        return file.filename === 'page.2.svg';
-                      })
-                    );
+                    assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
+                    assert.ok(not(find(file => equals(file.filename, 'page.2.svg'), previews.files)));
                     callback();
                   }
                 );
@@ -1756,7 +1661,7 @@ describe('Preview processor', () => {
 
       TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
         assert.ok(!err);
-        const restCtx = _.values(response)[0].restContext;
+        const restCtx = compose(prop('restContext'), head, values)(response);
         RestAPI.Content.createCollabDoc(
           restCtx,
           'Test document',
@@ -1819,7 +1724,7 @@ describe('Preview processor', () => {
         MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
           TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
             assert.ok(!err);
-            const restCtx = _.values(response)[0].restContext;
+            const restCtx = compose(prop('restContext'), head, values)(response);
 
             // Create the initial revision as a zip file. ZIP is used as this gets ignored by the
             // PP so the unit test can end within the test timeout time.
@@ -2269,7 +2174,7 @@ describe('Preview processor', () => {
       // Verify anonymous, regular users and tenant admins from other tenants cannot reprocess previews
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
-        const { 0: user } = _.values(users);
+        const { 0: user } = values(users);
         RestAPI.Previews.reprocessPreview(
           user.restContext,
           'c:camtest:someContent',
@@ -2449,7 +2354,7 @@ describe('Preview processor', () => {
       TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
 
-        const userRestCtx = users[_.keys(users)[0]].restContext;
+        const userRestCtx = users[head(keys(users))].restContext;
 
         // Verify that an anonymous user-tenant user cannot reprocess previews
         _reprocessWithHandler(anonymousRestContext, null, _handleTaskFail, err => {
@@ -2856,7 +2761,7 @@ describe('Preview processor', () => {
        */
       it('verify remote files can be downloaded', callback => {
         const tmpFile = Tempfile.createTempFile();
-        PreviewUtil.downloadRemoteFile('http://localhost:2000/api/me', tmpFile.path, (err, path) => {
+        downloadRemoteFile('http://localhost:2000/api/me', tmpFile.path, (err, path) => {
           assert.ok(!err);
           fs.readFile(path, 'utf8', (err, data) => {
             assert.ok(!err);

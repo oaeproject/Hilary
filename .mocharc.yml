@@ -1,0 +1,12 @@
+retries: 3
+# check-leaks: true
+bail: true
+timeout: false
+global:
+  - "oaeTests"
+slow: 3000
+full-trace: true
+exit: true # could be expressed as "no-exit: true"
+
+# This is an example Mocha config containing every Mocha option plus others
+# https://github.com/mochajs/mocha/blob/master/example/config/.mocharc.yml

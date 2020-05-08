@@ -16,10 +16,8 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import querystring from 'querystring';
-import url from 'url';
 import sharp from 'sharp';
-import _ from 'underscore';
+import { filter, equals, nth, not, compose, head, values } from 'ramda';
 
 import * as LocalStorage from 'oae-content/lib/backends/local';
 import * as RestAPI from 'oae-rest';
@@ -30,6 +28,13 @@ import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as PrincipalsUtil from 'oae-principals/lib/util';
 
 import { PrincipalsConstants } from 'oae-principals/lib/constants';
+
+const SMALL = 'small';
+const MEDIUM = 'medium';
+const LARGE = 'large';
+
+const codeIs200 = equals(200);
+const DUMMY_BASE = 'http://localhost';
 
 describe('Profile pictures', () => {
   // Rest context that can be used every time we need to make a request as a global admin
@@ -65,8 +70,8 @@ describe('Profile pictures', () => {
    */
   const _createUser = function(callback) {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-      assert.ok(!err);
-      const user = _.values(users)[0];
+      assert.ok(not(err));
+      const user = compose(head, values)(users);
       const ctx = user.restContext;
       ctx.user = user.user;
       return callback(ctx);
@@ -82,12 +87,9 @@ describe('Profile pictures', () => {
    */
   const _createUsers = function(callback) {
     TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-      assert.ok(!err);
-      const contexts = {};
-      users = _.values(users);
-      contexts.simon = users[0];
-      contexts.nicolaas = users[1];
-      return callback(contexts);
+      assert.ok(not(err));
+      const [simon, nicolaas] = values(users);
+      return callback({ simon, nicolaas });
     });
   };
 
@@ -95,25 +97,19 @@ describe('Profile pictures', () => {
    * @return {Stream} A stream to jpg image
    * @api private
    */
-  const _getPictureStream = function() {
-    const file = path.join(__dirname, '/data/restroom.jpg');
-    return fs.createReadStream(file);
-  };
+  const _getPictureStream = () => fs.createReadStream(path.join(__dirname, '/data/restroom.jpg'));
 
   /**
    * @return {Stream} A stream to text file
    * @api private
    */
-  const _getTextStream = function() {
-    const file = path.join(__dirname, '/data/speech.txt');
-    return fs.createReadStream(file);
-  };
+  const _getTextStream = () => fs.createReadStream(path.join(__dirname, '/data/speech.txt'));
 
   /**
    * Returns an object that can be used to crop out a rectangle
    * @api private
    */
-  const _createSelectedArea = function(x, y, width) {
+  const _createSelectedArea = (x, y, width) => {
     return {
       x,
       y,
@@ -125,10 +121,7 @@ describe('Profile pictures', () => {
    * Given a picture URL, parse the backend URI from the query string
    * @api private
    */
-  const _getUriFromDownloadUrl = function(downloadUrl) {
-    const DUMMY_BASE = 'http://localhost';
-    return new URL(downloadUrl, DUMMY_BASE).searchParams.get('uri');
-  };
+  const _getUriFromDownloadUrl = downloadUrl => new URL(downloadUrl, DUMMY_BASE).searchParams.get('uri');
 
   /**
    * Verifies the size of an image
@@ -141,13 +134,13 @@ describe('Profile pictures', () => {
    */
   const _verifySize = function(uri, width, height, callback) {
     // Strip 'local:' from the uri.
-    const uriPath = rootFilesDir + '/' + uri.substr(6);
+    const uriPath = rootFilesDir + '/' + uri.slice(6);
 
     // #564 - Ensure the filename contains the extension.
     assert.strictEqual(path.extname(uriPath), '.jpg');
 
     sharp(uriPath).metadata((err, metainfo) => {
-      assert.ok(!err);
+      assert.ok(not(err));
       assert.strictEqual(metainfo.width, width);
       assert.strictEqual(metainfo.height, height);
       return callback();
@@ -170,8 +163,8 @@ describe('Profile pictures', () => {
    */
   const _verifyCropping = function(restCtx, principal, selectedArea, expectedHttpCode, callback) {
     RestAPI.Crop.cropPicture(restCtx, principal.id, selectedArea, (err, data) => {
-      if (expectedHttpCode === 200) {
-        assert.ok(!err);
+      if (codeIs200(expectedHttpCode)) {
+        assert.ok(not(err));
       } else {
         // It was expected that this request would fail
         assert.strictEqual(err.code, expectedHttpCode);
@@ -232,7 +225,7 @@ describe('Profile pictures', () => {
 
         // Verify it for a group
         TestsUtil.generateTestGroups(ctx, 1, function(...args) {
-          const groupId = _.first(args).group.id;
+          const groupId = head(args).group.id;
           RestAPI.User.uploadPicture(ctx, groupId, _getPictureStream, null, err => {
             assert.ok(!err);
             return callback();
@@ -469,24 +462,24 @@ describe('Profile pictures', () => {
           assert.ok(!err);
 
           // Download the different sizes
-          RestAPI.Group.downloadPicture(ctx, groupA.group.id, 'small', (err, body, response) => {
+          RestAPI.Group.downloadPicture(ctx, groupA.group.id, SMALL, (err, body, response) => {
             assert.ok(!err);
             assert.strictEqual(response.statusCode, 204);
-            RestAPI.Group.downloadPicture(ctx, groupA.group.id, 'medium', (err, body, response) => {
+            RestAPI.Group.downloadPicture(ctx, groupA.group.id, MEDIUM, (err, body, response) => {
               assert.ok(!err);
               assert.strictEqual(response.statusCode, 204);
-              RestAPI.Group.downloadPicture(ctx, groupA.group.id, 'large', (err, body, response) => {
+              RestAPI.Group.downloadPicture(ctx, groupA.group.id, LARGE, (err, body, response) => {
                 assert.ok(!err);
                 assert.strictEqual(response.statusCode, 204);
 
                 // Now try downloading it with some invalid parameters
-                RestAPI.Group.downloadPicture(ctx, 'invalid-group-id', 'small', (err, body, response) => {
+                RestAPI.Group.downloadPicture(ctx, 'invalid-group-id', SMALL, (err, body, response) => {
                   assert.strictEqual(err.code, 400);
                   RestAPI.Group.downloadPicture(ctx, groupA.group.id, null, (err, body, response) => {
                     assert.strictEqual(err.code, 400);
 
                     // The other group has no picture, this should result in a 404
-                    RestAPI.Group.downloadPicture(ctx, groupB.group.id, 'small', (err, body, response) => {
+                    RestAPI.Group.downloadPicture(ctx, groupB.group.id, SMALL, (err, body, response) => {
                       assert.strictEqual(err.code, 404);
                       callback();
                     });
@@ -514,13 +507,13 @@ describe('Profile pictures', () => {
               _verifyCropping(ctx, group, _createSelectedArea(-10, -10, 200), 400, () => {
                 _verifyCropping(ctx, group, _createSelectedArea(10, 10, 200), 200, () => {
                   // Download the different sizes.
-                  RestAPI.Group.downloadPicture(ctx, group.id, 'small', (err, body, request) => {
+                  RestAPI.Group.downloadPicture(ctx, group.id, SMALL, (err, body, request) => {
                     assert.ok(!err);
                     assert.strictEqual(request.statusCode, 204);
-                    RestAPI.Group.downloadPicture(ctx, group.id, 'medium', (err, body, request) => {
+                    RestAPI.Group.downloadPicture(ctx, group.id, MEDIUM, (err, body, request) => {
                       assert.ok(!err);
                       assert.strictEqual(request.statusCode, 204);
-                      RestAPI.Group.downloadPicture(ctx, group.id, 'large', (err, body, request) => {
+                      RestAPI.Group.downloadPicture(ctx, group.id, LARGE, (err, body, request) => {
                         assert.ok(!err);
                         assert.strictEqual(request.statusCode, 204);
                         callback();
@@ -920,10 +913,11 @@ describe('Profile pictures', () => {
     TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
       assert.ok(!err);
 
-      const publicUser = _.values(users)[0];
-      const loggedInUser = _.values(users)[1];
-      const privateUser = _.values(users)[2];
-      const nonMemberUser = _.values(users)[3];
+      let index = 0;
+      const publicUser = nth(index++, values(users));
+      const loggedInUser = nth(index++, values(users));
+      const privateUser = nth(index++, values(users));
+      const nonMemberUser = nth(index++, values(users));
 
       RestAPI.User.updateUser(loggedInUser.restContext, loggedInUser.user.id, { visibility: 'loggedin' }, err => {
         assert.ok(!err);
@@ -1032,7 +1026,7 @@ describe('Profile pictures', () => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
       assert.ok(!err);
 
-      const simon = _.values(users)[0];
+      const simon = compose(head, values)(users);
 
       // Create some groups
       TestsUtil.generateTestGroups(simon.restContext, 4, (oaeTeam, backendTeam, uiTeam, qaTeam) => {
@@ -1074,9 +1068,8 @@ describe('Profile pictures', () => {
                         assert.strictEqual(results.total, 4);
 
                         // We only need the groups
-                        results.results = _.filter(results.results, result => {
-                          return result.resourceType !== 'user';
-                        });
+                        const isNotUser = compose(not, equals('user'));
+                        results.results = filter(eachResult => isNotUser(eachResult.resourceType), results.results);
 
                         // All the groups should expose their thumbnail regardless of their visibility setting.
                         assert.ok(results.results[0].thumbnailUrl);

@@ -18,9 +18,11 @@ import fs from 'fs';
 import Path from 'path';
 import sharp from 'sharp';
 
-import { toUpper } from 'ramda';
+import { gt, toUpper, __ } from 'ramda';
 
 import * as ImageUtil from 'oae-util/lib/image';
+
+const greaterThanZero = gt(__, 0);
 
 /**
  * Most of the tests in this suite don't actually crop or resize anything.
@@ -71,7 +73,7 @@ describe('Image', () => {
                     assert.ok(file.path);
                     assert.ok(fs.existsSync(file.path));
                     assert.ok(file.name);
-                    assert.ok(file.size > 0);
+                    assert.ok(greaterThanZero(file.size));
                     sharp(file.path).metadata((err, metainfo) => {
                       assert.ok(!err);
                       assert.strictEqual(metainfo.width, 10);
@@ -137,7 +139,7 @@ describe('Image', () => {
         assert.ok(file);
         assert.ok(file.path);
         assert.ok(file.name);
-        assert.ok(file.size > 0);
+        assert.ok(greaterThanZero(file.size));
 
         // The image should've been rotated and it's orientation should be fixed.
         sharp(file.path).metadata((err, metainfo) => {
@@ -225,7 +227,7 @@ describe('Image', () => {
                                           assert.ok(files['20x20'].path);
                                           assert.ok(fs.existsSync(files['20x20'].path));
                                           assert.ok(files['20x20'].name);
-                                          assert.ok(files['20x20'].size > 0);
+                                          assert.ok(greaterThanZero(files['20x20'].size));
                                           sharp(files['20x20'].path).metadata((err, metainfo) => {
                                             assert.ok(!err);
                                             assert.strictEqual(metainfo.width, 20);

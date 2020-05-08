@@ -36,6 +36,7 @@ import {
   compose,
   isEmpty,
   slice,
+  clone,
   not
 } from 'ramda';
 
@@ -260,10 +261,11 @@ const _createMontages = function(paths, callback) {
     height: PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
   };
 
+  const previewPaths = clone(paths);
   _createMontage(thumbnailSize, paths, (err, squaredThumbnail) => {
     if (err) return callback(err);
 
-    _createMontage(wideSize, paths, (err, wideThumbnail) => {
+    _createMontage(wideSize, previewPaths, (err, wideThumbnail) => {
       if (err) return callback(err);
 
       return callback(null, squaredThumbnail, wideThumbnail);
@@ -320,7 +322,13 @@ const _createMontage = function(size, paths, callback) {
   });
 };
 
-// TODO JSDoc
+/**
+ * @function resizeAllPreviews
+ * @param  {Array} paths      Array of paths of previews to composite
+ * @param  {Object} size       Object with width and height of final montage
+ * @param  {Array} allBuffers Array of buffers of previews properly resized
+ * @param  {Function} callback   Standard callback function
+ */
 const resizeAllPreviews = (paths, size, allBuffers, callback) => {
   if (isEmpty(paths)) return callback(null, allBuffers);
 
@@ -334,10 +342,16 @@ const resizeAllPreviews = (paths, size, allBuffers, callback) => {
   });
 };
 
-// TODO JSDoc
+/**
+ * @function resizePreview
+ * @param  {String} path        Path of preview to resize
+ * @param  {Object} size        Object containing width and height to resize to
+ * @param  {Number} gravity     Gravity is the 3x3 square index (0-8)
+ * @param  {Function} callback  Standard callback function
+ */
 const resizePreview = (path, size, gravity, callback) => {
   sharp(path)
-    .resize(size.width / MONTAGE_PREVIEW_COLUMNS, size.height / MONTAGE_PREVIEW_ROWS)
+    .resize(Math.floor(size.width / MONTAGE_PREVIEW_COLUMNS), Math.floor(size.height / MONTAGE_PREVIEW_ROWS))
     .toBuffer((err, input /* , info */) => {
       if (err) return callback(err);
 
@@ -353,13 +367,17 @@ const resizePreview = (path, size, gravity, callback) => {
     });
 };
 
-// TODO JSdoc
+/**
+ * @function getMontageCoordinates
+ * @param  {Number} gravity     Gravity is the 3x3 square index (0-8)
+ * @param  {Object} size        Object containing width and height to resize to
+ */
 const getMontageCoordinates = (gravity, size) => {
   const row = Math.floor(gravity / MONTAGE_PREVIEW_ROWS);
-  const top = (size.height / MONTAGE_PREVIEW_ROWS) * row;
+  const top = Math.floor((size.height / MONTAGE_PREVIEW_ROWS) * row);
 
   const column = gravity % MONTAGE_PREVIEW_COLUMNS;
-  const left = (size.width / MONTAGE_PREVIEW_COLUMNS) * column;
+  const left = Math.floor((size.width / MONTAGE_PREVIEW_COLUMNS) * column);
   return { top, left };
 };
 

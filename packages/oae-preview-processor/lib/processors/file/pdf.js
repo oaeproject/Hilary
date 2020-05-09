@@ -18,13 +18,28 @@ import util from 'util';
 import path from 'path';
 import stream from 'stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
-import gm from 'gm';
+import sharp from 'sharp';
 import pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 import domStubs from './domstubs';
-import { join, pluck, includes, and, either, not, path as getPath, equals, compose } from 'ramda';
+import {
+  curry,
+  __,
+  concat,
+  head,
+  split,
+  join,
+  pluck,
+  includes,
+  and,
+  either,
+  not,
+  path as getPath,
+  equals,
+  compose
+} from 'ramda';
 
 const fsWriteFile = util.promisify(fs.writeFile);
 const fsMakeDir = util.promisify(fs.mkdir);
@@ -44,6 +59,7 @@ const TEXT_FORMAT = 'txt';
 const differs = compose(not, equals);
 const isDefined = Boolean;
 const isNotDefined = compose(not, isDefined);
+const appendSVG = curry(concat)(__, '.svg');
 
 // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
 ReadableSVGStream.prototype._read = function() {
@@ -67,7 +83,9 @@ util.inherits(ReadableSVGStream, stream.Readable);
 const init = function(config, callback) {
   const previewIsNotDefined = config => compose(not, getPath(['pdfPreview']))(config);
   const viewportIsNotDefined = config => compose(not, getPath(['pdfPreview', 'viewportScale']))(config);
-  if (isNotDefined(config) || either(previewIsNotDefined, viewportIsNotDefined)(config)) {
+  const configIsMissing = either(isNotDefined, either(previewIsNotDefined, viewportIsNotDefined))(config);
+
+  if (configIsMissing) {
     return callback({
       code: 500,
       msg: 'Missing configuration for the pdf preview / processing'
@@ -104,6 +122,23 @@ const generatePreviews = (ctx, contentObject, callback) => {
 };
 
 /**
+ * @function loadPDFDocument
+ * @param  {Object}   data    Object representing the pdf doc to load
+ */
+const loadPDFDocument = async data => {
+  // Will be using promises to load document, pages and misc data instead of
+  // callback.
+  const loadedPDFDocument = pdfjsLib.getDocument({
+    data,
+    // Try to export JPEG images directly if they don't need any further
+    // processing.
+    nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
+  });
+
+  return loadedPDFDocument.promise;
+};
+
+/**
  * Generates previews for a PDF file.
  * 1 html will be generated for each page.
  *
@@ -123,16 +158,7 @@ const previewPDF = async function(ctx, pdfPath, callback) {
     // Create a directory where we can store the files
     await fsMakeDir(pagesDir, { recursive: true });
 
-    // Will be using promises to load document, pages and misc data instead of
-    // callback.
-    const loadedPDFDocument = pdfjsLib.getDocument({
-      data,
-      // Try to export JPEG images directly if they don't need any further
-      // processing.
-      nativeImageDecoderSupport: pdfjsLib.NativeImageDecoding.NONE
-    });
-
-    const doc = await loadedPDFDocument.promise;
+    const doc = await loadPDFDocument(data);
     const { numPages } = doc;
 
     ctx.addPreview(output, TEXT_FORMAT);
@@ -150,6 +176,21 @@ const previewPDF = async function(ctx, pdfPath, callback) {
 };
 
 /**
+ * @function convertToSVG
+ * @param  {Object} page    Object representing a pdf page (loaded)
+ * @param  {String} svgPath String representing the path to write svg to
+ */
+const convertToSVG = async (page, svgPath) => {
+  const viewport = page.getViewport({ scale: 1 });
+  const opList = await page.getOperatorList();
+  const svgGfx = new pdfjsLib.SVGGraphics(page.commonObjs, page.objs);
+  svgGfx.embedFonts = true;
+  const svg = await svgGfx.getSVG(opList, viewport);
+
+  return writeSvgToFile(svg, svgPath);
+};
+
+/**
  * Generate a thumbnail for the PDF file. This works by converting the first page
  * of the PDF to an image and then cropping a thumbnail out of it
  *
@@ -160,22 +201,29 @@ const previewPDF = async function(ctx, pdfPath, callback) {
  * @param  {Object}              callback.err    An error that occurred, if any
  * @api private
  */
-const _generateThumbnail = function(ctx, path, pagesDir, callback) {
-  // Convert the first page to a png file by executing the equivalent of
-  //    gm convert +adjoin -define pdf:use-cropbox=true -density 150 -resize 2000 -quality 100 input.pdf[0] output.png
+const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
+  const returnError = err => {
+    log().error({ err, contentId: ctx.contentId }, 'Could not convert a PDF page to a PNG');
+    return callback({ code: 500, msg: 'Could not convert a PDF page to a PNG' });
+  };
+
   const width = PreviewConstants.SIZES.PDF.LARGE;
   const output = `${pagesDir}/page.1.png`;
-  gm(path + '[0]')
-    .adjoin()
-    .define('pdf:use-cropbox=true')
-    .density(150, 150)
-    .resize(width, '')
-    .quality(100)
-    .write(output, err => {
-      if (err) {
-        log().error({ err, contentId: ctx.contentId }, 'Could not convert a PDF page to a PNG');
-        return callback({ code: 500, msg: 'Could not convert a PDF page to a PNG' });
-      }
+  const data = new Uint8Array(fs.readFileSync(path));
+  const svgPath = compose(appendSVG, head, split('.'))(path);
+
+  try {
+    const doc = await loadPDFDocument(data);
+    const page = await doc.getPage(1);
+    await convertToSVG(page, svgPath);
+  } catch (error) {
+    returnError(error);
+  }
+
+  sharp(svgPath, { density: 150 })
+    .resize(width)
+    .toFile(output, err => {
+      if (err) returnError(err);
 
       // Crop a thumbnail out of the png file
       PreviewUtil.generatePreviewsFromImage(ctx, output, { cropMode: 'TOP' }, callback);
@@ -190,9 +238,7 @@ const _generateThumbnail = function(ctx, path, pagesDir, callback) {
  * @param  {Number} pageNum  The page number
  * @return {String} The file path for the svg file corresponding to the page
  */
-function getFilePathForPage(pagesDir, pageNumber, format) {
-  return path.join(pagesDir, `page.${pageNumber}.${format}`);
-}
+const getFilePathForPage = (pagesDir, pageNumber, format) => path.join(pagesDir, `page.${pageNumber}.${format}`);
 
 /**
  * A readable stream which offers a stream representing the serialization of a
@@ -235,8 +281,8 @@ function writeSvgToFile(svgElement, filePath) {
 /**
  * @function previewAndIndexEachPage
  * @param  {PreviewContext} ctx  The preview context associated to this file
- * @param  {pagesDir} pagesDir   The direcotry holding the svg previews on disk
- * @param  {Number} pageNum     The page number we're dealing with
+ * @param  {pagesDir} pagesDir   The directory holding the svg previews on disk
+ * @param  {Number} pageNum      The page number we're dealing with
  * @param  {Object} doc          Object representing the PDF
  */
 const previewAndIndexEachPage = async function(ctx, pagesDir, pageNumber, doc) {

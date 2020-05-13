@@ -298,7 +298,7 @@ config.previews = {
     viewportScale: '1.6'
   },
   screenShotting: {
-    timeout: 30000
+    timeout: 30000,
     viewport: {
       width: 640 * 3,
       height: 480 * 3,

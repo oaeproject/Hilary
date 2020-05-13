@@ -39,18 +39,18 @@ const toInt = curry(parseInt)(__, 10);
 const equalsZero = equals(0);
 const isDefined = Boolean;
 
-/// ///////////////
-// GLOBAL UTILS //
-/// ///////////////
+/**
+ * GLOBAL UTILS
+ */
 
 // Include some global utilities and extensions (e.g., underscore mixins). See the directory
 // `oae-util/lib/internal/globals` for all the global definitions
 // eslint-disable-next-line import/namespace, no-unused-vars
 import * as globals from './internal/globals';
 
-/// ////////////////
-// OAEUTIL UTILS //
-/// ////////////////
+/**
+ * OAEUTIL UTILS
+ */
 
 /**
  * Checks if the passed in value is a stringified Boolean and returns a Boolean type if there's a match.

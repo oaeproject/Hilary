@@ -72,6 +72,7 @@ const init = function(_config, callback) {
   _config = defaultTo({}, _config);
 
   screenShottingOptions.timeout = getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
+  screenShottingOptions.viewport = _config.screenShotting.viewport;
 
   const chromiumExecutable = _config.screenShotting.binary;
   if (chromiumExecutable) screenShottingOptions.executablePath = chromiumExecutable;

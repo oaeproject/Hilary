@@ -299,6 +299,11 @@ config.previews = {
   },
   screenShotting: {
     timeout: 30000
+    viewport: {
+      width: 640 * 3,
+      height: 480 * 3,
+      deviceScaleFactor: 1
+    }
   },
   credentials: {
     username: 'administrator',

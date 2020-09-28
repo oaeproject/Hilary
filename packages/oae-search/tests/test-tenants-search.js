@@ -13,27 +13,47 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
+import { toLower, compose, prop, length, head, find, slice, propEq } from 'ramda';
 
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 
+const { generateRandomText, createTenantRestContext, createGlobalAdminRestContext } = TestsUtil;
+const { assertSearchSucceeds } = SearchTestsUtil;
+const {
+  generateTestTenantAlias,
+  generateTestTenantHost,
+  createTenantAndWait,
+  stopTenantAndWait,
+  generateTestTenants
+} = TenantsTestUtil;
+
+const NO_PARAMS = null;
+const TENANTS = 'tenants';
+const ALIAS = 'alias';
+
+const getAlias = prop('alias');
+const resultsWithin = prop('results');
+const getDisplayName = prop('displayName');
+const getHost = prop('host');
+
 describe('Tenants Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
-  let anonymousRestContext = null;
+  let asCambridgeAnonymousUser = null;
   // Rest context that can be used every time we need to make a request as a global admin
-  let globalAdminRestContext = null;
+  let asGlobalAdmin = null;
 
   /*!
    * Initialize our rest contexts before each test
    */
   beforeEach(callback => {
     // Fill up anonymous rest context
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+
     // Fill up global admin rest context
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asGlobalAdmin = createGlobalAdminRestContext();
 
     callback();
   });
@@ -42,7 +62,7 @@ describe('Tenants Search', () => {
    * Test that verifies tenant search is available on the global admin server
    */
   it('verify tenants search works on the global admin server', callback => {
-    SearchTestsUtil.assertSearchSucceeds(globalAdminRestContext, 'tenants', null, { q: 'Some querystring' }, result => {
+    assertSearchSucceeds(asGlobalAdmin, TENANTS, NO_PARAMS, { q: 'Some querystring' }, result => {
       _assertEmptyTenantsSearchResult(result);
       return callback();
     });
@@ -52,80 +72,69 @@ describe('Tenants Search', () => {
    * Test that verifies tenants search matches a tenant by all expected properties
    */
   it('verify it matches a tenant by alias, display name and host with case-insensitive search', callback => {
-    const alias = TenantsTestUtil.generateTestTenantAlias();
-    const displayName = TestsUtil.generateRandomText();
-    const host = TenantsTestUtil.generateTestTenantHost();
+    const someAlias = generateTestTenantAlias();
+    const displayName = generateRandomText();
+    const someHost = generateTestTenantHost();
 
     // Ensure none of the strings match a tenant yet
-    SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: alias.toLowerCase() }, result => {
+    assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: toLower(someAlias) }, result => {
       _assertEmptyTenantsSearchResult(result);
-      SearchTestsUtil.assertSearchSucceeds(
-        anonymousRestContext,
-        'tenants',
-        null,
-        { q: displayName.toLowerCase() },
-        result => {
+
+      assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: toLower(displayName) }, result => {
+        _assertEmptyTenantsSearchResult(result);
+
+        assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: toLower(someHost) }, result => {
           _assertEmptyTenantsSearchResult(result);
 
-          SearchTestsUtil.assertSearchSucceeds(
-            anonymousRestContext,
-            'tenants',
-            null,
-            { q: host.toLowerCase() },
-            result => {
-              _assertEmptyTenantsSearchResult(result);
+          // Create a tenant with the alias, display name and host
+          createTenantAndWait(asGlobalAdmin, someAlias, displayName, someHost, NO_PARAMS, err => {
+            assert.isNotOk(err);
 
-              // Create a tenant with the alias, display name and host
-              TenantsTestUtil.createTenantAndWait(globalAdminRestContext, alias, displayName, host, null, err => {
-                assert.ok(!err);
+            setTimeout(
+              assertSearchSucceeds,
+              2000,
+              asCambridgeAnonymousUser,
+              TENANTS,
+              NO_PARAMS,
+              { q: toLower(someAlias) },
+              result => {
+                // Ensure we get the tenant in all searches now
+                assert.strictEqual(result.total, 1);
+                assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
+                assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
+                assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
 
-                setTimeout(
-                  SearchTestsUtil.assertSearchSucceeds,
-                  5000,
-                  anonymousRestContext,
-                  'tenants',
-                  null,
-                  { q: alias.toLowerCase() },
+                assertSearchSucceeds(
+                  asCambridgeAnonymousUser,
+                  TENANTS,
+                  NO_PARAMS,
+                  { q: toLower(displayName) },
                   result => {
-                    // Ensure we get the tenant in all searches now
                     assert.strictEqual(result.total, 1);
-                    assert.strictEqual(result.results[0].alias, alias);
-                    assert.strictEqual(result.results[0].displayName, displayName);
-                    assert.strictEqual(result.results[0].host, host.toLowerCase());
+                    assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
+                    assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
+                    assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
 
-                    SearchTestsUtil.assertSearchSucceeds(
-                      anonymousRestContext,
-                      'tenants',
-                      null,
-                      { q: displayName.toLowerCase() },
+                    assertSearchSucceeds(
+                      asCambridgeAnonymousUser,
+                      TENANTS,
+                      NO_PARAMS,
+                      { q: toLower(someHost) },
                       result => {
                         assert.strictEqual(result.total, 1);
-                        assert.strictEqual(result.results[0].alias, alias);
-                        assert.strictEqual(result.results[0].displayName, displayName);
-                        assert.strictEqual(result.results[0].host, host.toLowerCase());
-
-                        SearchTestsUtil.assertSearchSucceeds(
-                          anonymousRestContext,
-                          'tenants',
-                          null,
-                          { q: host.toLowerCase() },
-                          result => {
-                            assert.strictEqual(result.total, 1);
-                            assert.strictEqual(result.results[0].alias, alias);
-                            assert.strictEqual(result.results[0].displayName, displayName);
-                            assert.strictEqual(result.results[0].host, host.toLowerCase());
-                            return callback();
-                          }
-                        );
+                        assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
+                        assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
+                        assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
+                        return callback();
                       }
                     );
                   }
                 );
-              });
-            }
-          );
-        }
-      );
+              }
+            );
+          });
+        });
+      });
     });
   });
 
@@ -133,20 +142,22 @@ describe('Tenants Search', () => {
    * Test that verifies partial matches get results
    */
   it('verify it matches partial matches', callback => {
-    TenantsTestUtil.generateTestTenants(globalAdminRestContext, 1, tenant => {
-      const alias = tenant.alias.toLowerCase().slice(0, 3);
-      const displayName = tenant.displayName.toLowerCase().slice(0, 3);
+    generateTestTenants(asGlobalAdmin, 1, tenant => {
+      const alias = compose(slice(0, 3), toLower, getAlias)(tenant);
+      const displayName = compose(slice(0, 3), toLower, getDisplayName)(tenant);
       const host = tenant.host.toLowerCase().slice(0, 3);
+      // TODO use this
+      const aliasIsTheSameAsTenants = propEq(ALIAS, getAlias(tenant));
 
       // Take just the first 3 characters of each field and ensure we get the tenant
-      SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: alias }, result => {
-        assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+      assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: alias }, result => {
+        assert.ok(find(aliasIsTheSameAsTenants, resultsWithin(result)));
 
-        SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: displayName }, result => {
-          assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+        assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: displayName }, result => {
+          assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
 
-          SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: host }, result => {
-            assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+          assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: host }, result => {
+            assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
             return callback();
           });
         });
@@ -159,24 +170,24 @@ describe('Tenants Search', () => {
    * can be included or excluded from results when specified
    */
   it('verify tenant updates are persisted and search for disabled tenants', callback => {
-    TenantsTestUtil.generateTestTenants(globalAdminRestContext, 1, tenant => {
+    generateTestTenants(asGlobalAdmin, 1, tenant => {
       // Ensure the tenant can be found in search
-      SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: tenant.alias }, result => {
-        assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+      assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: getAlias(tenant) }, result => {
+        assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
 
         // Stop the tenant and ensure it no longer appears
-        TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, tenant.alias, () => {
-          SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { q: tenant.alias }, result => {
+        stopTenantAndWait(asGlobalAdmin, getAlias(tenant), () => {
+          assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: getAlias(tenant) }, result => {
             _assertEmptyTenantsSearchResult(result);
 
             // Search while enabling disabled tenants and ensure it appears again
-            SearchTestsUtil.assertSearchSucceeds(
-              anonymousRestContext,
-              'tenants',
-              null,
-              { q: tenant.alias, disabled: true },
+            assertSearchSucceeds(
+              asCambridgeAnonymousUser,
+              TENANTS,
+              NO_PARAMS,
+              { q: getAlias(tenant), disabled: true },
               result => {
-                assert.ok(_.findWhere(result.results, { alias: tenant.alias }));
+                assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
 
                 return callback();
               }
@@ -192,53 +203,37 @@ describe('Tenants Search', () => {
    */
   it('verify tenant search paging', callback => {
     // Get the first 3 tenants in search
-    SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { start: 0, limit: 3 }, result => {
+    assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 0, limit: 3 }, result => {
       _assertTenantsSearchResult(result);
-      assert.strictEqual(result.results.length, 3);
-      const tenants = result.results;
+      assert.lengthOf(resultsWithin(result), 3);
+      const tenants = resultsWithin(result);
 
       // Get just the first, second and third and ensure you get just the one tenant
-      SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { start: 0, limit: 1 }, result => {
+      assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 0, limit: 1 }, result => {
         _assertTenantsSearchResult(result);
-        assert.deepStrictEqual(result.results, tenants.slice(0, 1));
+        assert.deepStrictEqual(resultsWithin(result), slice(0, 1, tenants));
 
-        SearchTestsUtil.assertSearchSucceeds(anonymousRestContext, 'tenants', null, { start: 1, limit: 1 }, result => {
+        assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 1, limit: 1 }, result => {
           _assertTenantsSearchResult(result);
-          assert.deepStrictEqual(result.results, tenants.slice(1, 2));
-          SearchTestsUtil.assertSearchSucceeds(
-            anonymousRestContext,
-            'tenants',
-            null,
-            { start: 2, limit: 1 },
-            result => {
+          assert.deepStrictEqual(resultsWithin(result), slice(1, 2, tenants));
+
+          assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 2, limit: 1 }, result => {
+            _assertTenantsSearchResult(result);
+            assert.deepStrictEqual(resultsWithin(result), slice(2, 3, tenants));
+
+            // Get 2 at a time and ensure you get the two expected
+            assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 0, limit: 2 }, result => {
               _assertTenantsSearchResult(result);
-              assert.deepStrictEqual(result.results, tenants.slice(2, 3));
+              assert.deepStrictEqual(resultsWithin(result), slice(0, 2, tenants));
 
-              // Get 2 at a time and ensure you get the two expected
-              SearchTestsUtil.assertSearchSucceeds(
-                anonymousRestContext,
-                'tenants',
-                null,
-                { start: 0, limit: 2 },
-                result => {
-                  _assertTenantsSearchResult(result);
-                  assert.deepStrictEqual(result.results, tenants.slice(0, 2));
-                  SearchTestsUtil.assertSearchSucceeds(
-                    anonymousRestContext,
-                    'tenants',
-                    null,
-                    { start: 1, limit: 2 },
-                    result => {
-                      _assertTenantsSearchResult(result);
-                      assert.deepStrictEqual(result.results, tenants.slice(1, 3));
+              assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { start: 1, limit: 2 }, result => {
+                _assertTenantsSearchResult(result);
+                assert.deepStrictEqual(resultsWithin(result), slice(1, 3, tenants));
 
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
+                return callback();
+              });
+            });
+          });
         });
       });
     });
@@ -251,10 +246,10 @@ describe('Tenants Search', () => {
  * @param  {SearchResult}   result  The search result object
  * @throws {AssertionError}         Thrown if the result object doesn't match the intended format or is not empty
  */
-const _assertEmptyTenantsSearchResult = function(result) {
+const _assertEmptyTenantsSearchResult = result => {
   _assertTenantsSearchResult(result);
   assert.strictEqual(result.total, 0);
-  assert.strictEqual(result.results.length, 0);
+  assert.lengthOf(resultsWithin(result), 0);
 };
 
 /*!
@@ -263,9 +258,9 @@ const _assertEmptyTenantsSearchResult = function(result) {
  * @param  {SearchResult}   result  The search result object
  * @throws {AssertionError}         Thrown if the result object doesn't match the intended format
  */
-const _assertTenantsSearchResult = function(result) {
+const _assertTenantsSearchResult = result => {
   assert.ok(result);
-  assert.ok(_.isNumber(result.total));
-  assert.ok(_.isArray(result.results));
-  assert.ok(result.results.length <= result.total);
+  assert.isNumber(result.total);
+  assert.isArray(resultsWithin(result));
+  assert.isAtMost(compose(length, resultsWithin)(result), result.total);
 };

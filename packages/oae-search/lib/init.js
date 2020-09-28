@@ -29,9 +29,7 @@ export function init(config, callback) {
   SearchAPI.registerSearch('email', queryBuilder, postProcessor);
 
   SearchAPI.refreshSearchConfiguration(config.search, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Build the index and seed the search schema
     return SearchAPI.buildIndex(destroy, callback);

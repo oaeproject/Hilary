@@ -25,7 +25,7 @@
 
 /* eslint-disable unicorn/filename-case */
 export const followers = {
-  type: 'string',
-  store: 'no',
-  index: 'not_analyzed'
+  type: 'keyword',
+  store: 'false',
+  index: 'true'
 };

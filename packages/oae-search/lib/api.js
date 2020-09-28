@@ -20,9 +20,13 @@ import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
 import { Validator as validator } from 'oae-util/lib/validator';
-const { unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
+const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
+import { gt, length, equals, defaultTo, forEach, assoc, assocPath } from 'ramda';
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
+
+const { transformSearchResults } = SearchUtil;
+
 import * as MQ from 'oae-util/lib/mq';
 import * as client from './internal/elasticsearch';
 
@@ -35,6 +39,7 @@ let index = null;
 // Indicates whether or not the search indexing handler has been bound to the task queue
 let boundIndexWorkers = false;
 
+const resourceChildren = [];
 const childSearchDocuments = {};
 const reindexAllHandlers = {};
 const searches = {};
@@ -253,6 +258,9 @@ const registerChildSearchDocument = function(name, options, callback) {
       }
     };
 
+  // Add this child to the list to later be mapped to the resource parent
+  resourceChildren.push(name);
+
   return _createChildSearchDocumentMapping(name, options.schema, callback);
 };
 
@@ -266,7 +274,7 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
   index = searchConfig.index;
   const processIndexJobs = searchConfig.processIndexJobs !== false;
 
-  client.refreshSearchConfiguration(index.name, { hosts: searchConfig.hosts });
+  client.refreshSearchConfiguration(index.name, { nodes: searchConfig.nodes });
 
   if (processIndexJobs && !boundIndexWorkers) {
     boundIndexWorkers = true;
@@ -289,7 +297,8 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
 };
 
 /**
- * Build the search index to use for indexing and searching documents. If `destroy` is `true`, the current index and all its
+ * Build the search index to use for indexing and searching documents.
+ * If `destroy` is `true`, the current index and all its
  * data will be destroyed. This will leave an empty search index that needs to be reindexed!
  *
  * @param  {Boolean}    [destroy]       Whether or not to first destroy / delete the index before rebuilding. Default: `false`
@@ -298,12 +307,10 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
  */
 const buildIndex = function(destroy, callback) {
   _ensureIndex(index.name, index.settings, destroy, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Create the resource document mapping
-    return _ensureSearchSchema(callback);
+    setTimeout(() => _ensureSearchSchema(callback), 2000);
   });
 };
 
@@ -329,54 +336,46 @@ const search = function(ctx, searchType, opts, callback) {
   }
 
   // Invoke the search plugin to get the query object
-  registeredSearch.queryBuilder(ctx, opts, (err, queryData) => {
-    if (err) {
-      return callback(err);
-    }
+  // registeredSearch.queryBuilder(ctx, opts, (err, queryData) => {
+  // TODO experiment because I need the index down the line
+  opts.index = index;
+  registeredSearch.queryBuilder(ctx, opts, (err, queryBody) => {
+    if (err) return callback(err);
+    if (!queryBody) callback(null, new SearchResult(0, []));
 
-    if (!queryData) {
-      return callback(null, new SearchResult(0, []));
-    }
-
-    // Query only the document fields in the index, and not the _source and others
-    queryData.fields = '*';
+    // Query only the document fields stored in the index, and not the _source and others
+    opts.storedFields = '*';
 
     // Perform the search with the query data
-    client.search(queryData, null, (err, elasticSearchResponse) => {
+    client.search(queryBody, opts, (err, elasticSearchResponse) => {
       if (err) {
         log().error({ err }, 'An unexpected error occurred performing a search');
         return callback({ code: 500, msg: 'An unexpected error occurred performing the search' });
       }
 
       // We pull the '_extra' field out and parse it into JSON
-      _.each(elasticSearchResponse.hits.hits, hit => {
+      _.each(elasticSearchResponse.body.hits.hits, hit => {
         try {
+          // TODO this must be wrong surely? it's not even an array.
           hit.fields._extra[0] = JSON.parse(hit.fields._extra[0]);
         } catch (error) {
           log().warn({ err: error, hit }, 'Failed to parse _extra field of search document into JSON. Ignoring');
         }
       });
 
-      SearchUtil.transformSearchResults(
-        ctx,
-        searchDocumentTransformers,
-        elasticSearchResponse,
-        (err, transformedResults) => {
-          if (err) {
-            return callback(err);
-          }
+      transformSearchResults(ctx, searchDocumentTransformers, elasticSearchResponse, (err, transformedResults) => {
+        if (err) callback(err);
 
-          // Ensure we scrub any `_extra` field from all results
-          _.each(transformedResults.results, doc => {
-            delete doc._extra;
-          });
+        // Ensure we scrub any `_extra` field from all results
+        _.each(transformedResults.results, doc => {
+          delete doc._extra;
+        });
 
-          SearchAPI.emit(SearchConstants.events.SEARCH, ctx, searchType, opts, transformedResults);
+        SearchAPI.emit(SearchConstants.events.SEARCH, ctx, searchType, opts, transformedResults);
 
-          // Perform post-processing (if any)
-          return registeredSearch.postProcessor(ctx, opts, transformedResults, callback);
-        }
-      );
+        // Perform post-processing (if any)
+        return registeredSearch.postProcessor(ctx, opts, transformedResults, callback);
+      });
     });
   });
 };
@@ -475,12 +474,11 @@ const postDeleteTask = function(id, children, callback) {
  * @api private
  */
 const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
+  // TODO ramda ifElse
   if (destroy) {
     log().info('Destroying index "%s"', indexName);
     client.deleteIndex(indexName, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       client.createIndex(indexName, indexSettings, err => {
         if (err) {
@@ -488,8 +486,29 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
           return callback(err);
         }
 
-        log().info('Recreated index "%s" after deletion', indexName);
-        return callback();
+        /**
+         * Create the children / parent relationship, which must be done as a one-off operation
+         * Check the documentation:
+         * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
+         */
+        // TODO move this somewhere up
+        const resourceChildren = [
+          'discussion_message',
+          'resource_members',
+          'resource_memberships',
+          'content_body',
+          'content_comment',
+          'folder_message',
+          'resource_followers',
+          'resource_following',
+          'meeting-jitsi_message'
+        ];
+        client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren, err => {
+          if (err) return callback(err);
+
+          log().info('Recreated index "%s" after deletion', indexName);
+          return callback();
+        });
       });
     });
   } else {
@@ -511,26 +530,22 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
+// TODO fix this fucking mess, callback comes last!!!
 const _ensureSearchSchema = function(callback, _names) {
   if (!_names) {
-    return client.putMapping(SearchConstants.search.MAPPING_RESOURCE, require('./schema/resourceSchema'), null, err => {
-      if (err) {
-        return callback(err);
-      }
+    return client.putMapping(require('./schema/resourceSchema'), null, err => {
+      if (err) return callback(err);
 
       return _ensureSearchSchema(callback, _.keys(childSearchDocuments));
     });
   }
 
-  if (_.isEmpty(_names)) {
-    return callback();
-  }
+  if (_.isEmpty(_names)) return callback();
 
+  // TODO not sure why this exists, I don't think it's ever ran...
   const name = _names.shift();
   return _createChildSearchDocumentMapping(name, childSearchDocuments[name].schema, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Recursively create the next child document schema mapping
     return _ensureSearchSchema(callback, _names);
@@ -555,9 +570,9 @@ const _createChildSearchDocumentMapping = function(name, schema, callback) {
    * For more information, please see the elasticsearch mapping documentation:
    * http://www.elasticsearch.org/guide/reference/mapping/
    */
-  const opts = { _parent: SearchConstants.search.MAPPING_RESOURCE };
+  // const opts = { _parent: SearchConstants.search.MAPPING_RESOURCE };
 
-  client.putMapping(name, schema, opts, callback);
+  client.putMapping(schema, null, callback);
 };
 
 /**
@@ -584,8 +599,7 @@ const _handleReindexAllTask = function(data, callback) {
   // Invoke all handlers and return to the caller when they have all completed (or we get an error)
   let numToProcess = _.keys(reindexAllHandlers).length;
   let complete = false;
-  // eslint-disable-next-line no-unused-vars
-  _.each(reindexAllHandlers, (handler, handlerId) => {
+  _.each(reindexAllHandlers, (handler /* , handlerId */) => {
     handler(err => {
       if (complete) {
         // Do nothing, we've already returned to the caller
@@ -680,9 +694,7 @@ const _handleDeleteDocumentTask = function(data, callback) {
  * @api private
  */
 const _deleteAll = function(deletes, callback) {
-  if (_.isEmpty(deletes)) {
-    return callback();
-  }
+  if (isEmpty(deletes)) return callback();
 
   const del = deletes.shift();
 
@@ -692,10 +704,8 @@ const _deleteAll = function(deletes, callback) {
    *
    * @param  {Object}     err     An error that occurred, if any
    */
-  const _handleDocumentsDeleted = function(err) {
-    if (err) {
-      log().error({ err, operation: del }, 'Error deleting a document from the search index');
-    }
+  const _handleDocumentsDeleted = err => {
+    if (err) log().error({ err, operation: del }, 'Error deleting a document from the search index');
 
     return _deleteAll(deletes, callback);
   };
@@ -712,8 +722,8 @@ const _deleteAll = function(deletes, callback) {
 };
 
 /**
- * When bound to am TaskQueue index document task, this method will index the resource document(s) as described by the
- * task data.
+ * When bound to am TaskQueue index document task, this method will index the resource
+ * document(s) as described by the task data.
  *
  * @param  {Object}             data            The task data. See SearchAPI#postIndexTask for more information
  * @param  {Function}           callback        Standard callback function
@@ -721,6 +731,8 @@ const _deleteAll = function(deletes, callback) {
  * @api private
  */
 const _handleIndexDocumentTask = function(data, callback) {
+  const isTrue = equals(true);
+
   callback =
     callback ||
     function(err) {
@@ -733,13 +745,15 @@ const _handleIndexDocumentTask = function(data, callback) {
 
   const resourcesToIndex = {};
   const resourceChildrenToIndex = {};
-  _.each(data.resources, resource => {
-    data.index = data.index || {};
-    data.index.children = data.index.children || {};
+  forEach(resource => {
+    data.index = defaultTo({}, data.index);
+    data.index.children = defaultTo({}, data.index.children);
 
-    // If the children property is set to boolean true, it indicates all known child documents for this
-    // resource type should be indexed for the resource
-    if (data.index.children === true) {
+    /**
+     * If the children property is set to boolean true, it indicates all known
+     * child documents for this resource type should be indexed for the resource
+     */
+    if (isTrue(data.index.children)) {
       data.index.children = {};
       _.each(childSearchDocuments, (options, documentType) => {
         // Only include this child if it is specified to be a child of this resource type
@@ -751,6 +765,9 @@ const _handleIndexDocumentTask = function(data, callback) {
 
     // Keep track of all core resource documents that need to be indexed
     if (data.index.resource) {
+      // TODO totally guessing here...
+      resource.type = 'resource';
+
       resourcesToIndex[data.resourceType] = resourcesToIndex[data.resourceType] || [];
       resourcesToIndex[data.resourceType].push(resource);
     }
@@ -762,28 +779,32 @@ const _handleIndexDocumentTask = function(data, callback) {
         resourceChildrenToIndex[documentType] = resourceChildrenToIndex[documentType] || [];
         resourceChildrenToIndex[documentType].push(resource);
       });
-  });
+  }, data.resources);
+
+  /**
+   * Create the children / parent relationship, which must be done as a one-off operation
+   * Check the documentation:
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
+   */
+  // TODO this is not the ideal place to do this, but let's go with it for now
+  // client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren, err => {
+  // if (err) return callback(err);
+  // resourceChildren = [];
 
   _produceAllResourceDocuments(resourcesToIndex, (err, resourceDocs) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) callback(err);
 
     log().trace({ data, resourceDocs }, 'Produced top-level resource docs');
 
     _produceAllChildDocuments(resourceChildrenToIndex, (err, childResourceDocs) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       log().trace({ data, childResourceDocs }, 'Produced child resource docs');
 
       const allDocs = _.union(resourceDocs, childResourceDocs);
-      if (_.isEmpty(allDocs)) {
-        return callback();
-      }
+      if (isEmpty(allDocs)) return callback();
 
-      if (allDocs.length > 1) {
+      if (gt(length(allDocs), 1)) {
         const ops = SearchUtil.createBulkIndexOperations(allDocs);
         client.bulk(ops, err => {
           if (err) {
@@ -797,15 +818,48 @@ const _handleIndexDocumentTask = function(data, callback) {
       } else {
         const doc = allDocs[0];
         const { id } = doc;
-        const opts = {};
+        let opts = {};
 
-        if (doc._parent) {
-          opts.parent = doc._parent;
-        }
+        /*
+          if (doc._parent) {
+            opts.parent = doc._parent;
+          }
+          */
+
+        // TODO oh, shit
+        /*
+          if (doc._parent) {
+            doc._parent = doc._type;
+            // "my_join_field": "question"
+            // opts.parent = doc._parent;
+          } else {
+            doc._parent = {
+              name: doc._type
+              parent: doc._parent
+              // "name": "answer", 
+              // "parent": "1"
+            }
+          }
+          */
+
+        // TODO debug
+        // one has got to do this when indexing docs with join
+        // https://www.elastic.co/guide/en/elasticsearch/reference/7.x/parent-join.html
+        //  "my_join_field": "question"
+        if (doc._type) doc.type = doc._type;
+        delete doc._type;
+        doc._parent = { name: doc.type, parent: doc._parent };
+
+        // TODO experiment to overcome the routing issue
+        /**
+         * It is required to index the lineage of a parent in the same shard so you
+         * must always route child documents using their greater parent id.
+         */
+        opts = assoc('routing', doc._parent.parent, opts);
 
         // These properties go in the request metadata, not the actual document
         delete doc.id;
-        delete doc._parent;
+        if (doc.resourceType === 'user') delete doc._parent;
 
         client.runIndex(doc._type, id, doc, opts, err => {
           if (err) {
@@ -819,6 +873,7 @@ const _handleIndexDocumentTask = function(data, callback) {
       }
     });
   });
+  // });
 };
 
 /**
@@ -833,13 +888,13 @@ const _handleIndexDocumentTask = function(data, callback) {
 const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resourceTypes, _documents) {
   _resourceTypes = _resourceTypes || _.keys(resourcesToIndex);
   _documents = _documents || [];
-  if (_.isEmpty(_resourceTypes)) {
-    return callback(null, _documents);
-  }
+
+  if (_.isEmpty(_resourceTypes)) return callback(null, _documents);
 
   // Select the next resourceType from the list whose documents to produce
   const resourceType = _resourceTypes.shift();
   const searchDocumentProducer = searchDocumentProducers[resourceType];
+
   if (searchDocumentProducer) {
     searchDocumentProducer(resourcesToIndex[resourceType], (errs, documents) => {
       // Some resources might have triggered an error. We log those here,
@@ -850,7 +905,7 @@ const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resou
 
       documents = _.map(documents, doc => {
         const newDoc = _.extend({}, doc, {
-          _type: SearchConstants.search.MAPPING_RESOURCE,
+          type: SearchConstants.search.MAPPING_RESOURCE,
           resourceType
         });
         if (newDoc._extra) {
@@ -887,9 +942,8 @@ const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resou
 const _produceAllChildDocuments = function(resourceChildrenToIndex, callback, _documentTypes, _documents) {
   _documentTypes = _documentTypes || _.keys(resourceChildrenToIndex);
   _documents = _documents || [];
-  if (_.isEmpty(_documentTypes)) {
-    return callback(null, _documents);
-  }
+
+  if (isEmpty(_documentTypes)) return callback(null, _documents);
 
   // Select the next documentType from the list whose child documents to produce
   const documentType = _documentTypes.shift();

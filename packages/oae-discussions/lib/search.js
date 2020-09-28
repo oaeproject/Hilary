@@ -27,6 +27,8 @@ import { DiscussionsConstants } from './constants';
 
 const log = logger('discussions-search');
 
+import { head, concat, mergeDeepWith } from 'ramda';
+
 /**
  * Initializes the child search documents for the Discussions module
  *
@@ -266,8 +268,15 @@ SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchD
 const _transformDiscussionDocuments = function(ctx, docs, callback) {
   const transformedDocs = {};
   _.each(docs, (doc, docId) => {
+    // TODO check this out
+    try {
+      doc.fields._extra = JSON.parse(doc.fields._extra);
+    } catch (error) {
+      // TODO log something here
+    }
+
     // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra) || {};
+    const extra = head(doc.fields._extra || {});
 
     // Build the transformed result document from the ElasticSearch document
     const result = { id: docId };
@@ -276,6 +285,7 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
       // to the transformed search document
       result[name] = _.first(value);
     });
+    // const result = mergeDeepWith(concat, { id: docId }, doc.fields);
 
     // Take just the `lastModified` from the extra fields, if specified
     _.extend(result, _.pick(extra, 'lastModified'));
@@ -299,9 +309,9 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('discussion', _transformDiscussionDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handler
+ */
 
 SearchAPI.registerReindexAllHandler('discussion', callback => {
   /*!

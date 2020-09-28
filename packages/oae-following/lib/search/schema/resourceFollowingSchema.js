@@ -24,7 +24,7 @@
  */
 /* eslint-disable unicorn/filename-case */
 export const following = {
-  type: 'string',
-  store: 'no',
-  index: 'not_analyzed'
+  type: 'keyword',
+  store: 'false',
+  index: 'true'
 };

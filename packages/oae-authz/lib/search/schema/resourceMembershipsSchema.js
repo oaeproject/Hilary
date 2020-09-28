@@ -26,7 +26,7 @@
  */
 // eslint-disable-next-line camelcase
 export const direct_memberships = {
-  type: 'string',
-  store: 'no',
-  index: 'not_analyzed'
+  type: 'keyword',
+  store: 'false',
+  index: 'true'
 };

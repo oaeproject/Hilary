@@ -1449,7 +1449,6 @@ describe('Content Activity', () => {
                   'Reply Comment A',
                   commentA.created,
                   (err, replyCommentA) => {
-                    if (err) console.log(err);
                     assert.ok(!err);
 
                     ActivityTestsUtil.collectAndGetActivityStream(

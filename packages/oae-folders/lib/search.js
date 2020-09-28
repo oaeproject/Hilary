@@ -32,6 +32,8 @@ import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 
 const log = logger('folders-search');
 
+import { concat, head, mergeDeepWith } from 'ramda';
+
 /**
  * Initializes the child search documents for the folders module
  *
@@ -311,12 +313,19 @@ SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments
 const _transformFolderDocuments = function(ctx, docs, callback) {
   const transformedDocs = {};
   _.each(docs, (doc, docId) => {
+    // TODO take care of this
+    try {
+      doc.fields._extra = JSON.parse(doc.fields._extra);
+    } catch (error) {
+      // TODO log here something
+    }
+
     // Remember, the document id is the *group* id
     const result = { groupId: docId };
 
     // Extract the extra object from the search document
     // as that's where we stored the folder id in
-    const extra = _.first(doc.fields._extra) || {};
+    const extra = head(doc.fields._extra) || {};
     result.id = extra.folderId;
 
     // Apply the scalar values wrapped in each ElasticSearch document
@@ -324,6 +333,7 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
     _.each(doc.fields, (value, name) => {
       result[name] = _.first(value);
     });
+    // result = mergeDeepWith(concat, result, doc.fields);
 
     // Add the full tenant object and profile path
     _.extend(result, {
@@ -346,9 +356,9 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('folder', _transformFolderDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handlers
+ */
 
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Folders CF

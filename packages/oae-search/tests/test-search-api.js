@@ -14,46 +14,70 @@
  */
 
 /* eslint-disable camelcase */
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as MQTestsUtil from 'oae-util/lib/test/mq-util';
+import { getResourceFromId } from 'oae-authz/lib/util';
+import { whenTasksEmpty } from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
-import * as SearchAPI from 'oae-search';
-import * as MQ from 'oae-util/lib/mq';
-import * as TestsUtil from 'oae-tests/lib/util';
-
+import {
+  registerChildSearchDocument,
+  registerReindexAllHandler,
+  registerSearch,
+  search,
+  registerSearchDocumentProducer,
+  registerSearchDocumentTransformer,
+  postIndexTask
+} from 'oae-search';
+import { subscribe, unsubscribe } from 'oae-util/lib/mq';
+import {
+  createTenantRestContext,
+  createGlobalRestContext,
+  generateTestUsers,
+  createGlobalAdminRestContext,
+  createTenantAdminRestContext
+} from 'oae-tests/lib/util';
 import { SearchConstants } from 'oae-search/lib/constants';
 
+import { compose, forEach, prop, of } from 'ramda';
+
+const { reindexAll } = RestAPI.Search;
+
+const TEXT_TYPE = 'text';
+const NO_STORE = 'false';
+const NOT_ANALYZED = 'true';
+const T = 't';
+const EMPTY_OBJECT = {};
+
+const getId = prop('id');
+const getResourceType = prop('resourceType');
+
 describe('Search API', () => {
-  // REST Contexts we will use to execute requests
-  let anonymousRestContext = null;
-  let globalAdminRestContext = null;
-  let camAdminRestContext = null;
+  let asAnonymousUserFromCambridge = null;
+  let asGlobalAdmin = null;
+  let asTenantAdminOnCambridge = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asAnonymousUserFromCambridge = createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asGlobalAdmin = createGlobalAdminRestContext();
+    asTenantAdminOnCambridge = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Unbind the current handler, if any
-    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
-      assert.ok(!err);
+    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+      assert.notExists(err);
 
       /*!
        * Task handler that will just drain the queue.
        *
        * @see TaskQueue#bind
        */
-      const _handleTaskDrain = function(data, mqCallback) {
+      const _handleTaskDrain = (data, done) => {
         // Simply callback, which acknowledges messages without doing anything.
-        mqCallback();
+        done();
       };
 
       // Drain the queue
-      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskDrain, err => {
-        assert.ok(!err);
+      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskDrain, err => {
+        assert.notExists(err);
         callback();
       });
     });
@@ -63,11 +87,11 @@ describe('Search API', () => {
    * Test that verifies an error is thrown when registering a document transformer that already exists.
    */
   it('verify cannot register non-unique search document transformers', callback => {
-    SearchAPI.registerSearchDocumentTransformer('test-registerSearchDocumentTransformer', () => {});
+    registerSearchDocumentTransformer('test-registerSearchDocumentTransformer', () => {});
 
     // Try and register a second transformer of the same type, log the error and verify it happened.
     assert.throws(() => {
-      SearchAPI.registerSearchDocumentTransformer('test-registerSearchDocumentTransformer', () => {});
+      registerSearchDocumentTransformer('test-registerSearchDocumentTransformer', () => {});
     }, Error);
 
     return callback();
@@ -77,11 +101,11 @@ describe('Search API', () => {
    * Test that verifies an error is thrown when registering a document producer that already exists.
    */
   it('verify cannot register non-unique search document producers', callback => {
-    SearchAPI.registerSearchDocumentProducer('test-registerSearchDocumentProducer', () => {});
+    registerSearchDocumentProducer('test-registerSearchDocumentProducer', () => {});
 
     // Try and register a second producer of the same type
     assert.throws(() => {
-      SearchAPI.registerSearchDocumentProducer('test-registerSearchDocumentProducer', () => {});
+      registerSearchDocumentProducer('test-registerSearchDocumentProducer', () => {});
     }, Error);
 
     return callback();
@@ -91,11 +115,11 @@ describe('Search API', () => {
    * Test that verifies an error is thrown when registering a search type that already exists.
    */
   it('verify cannot register a non-unique search type', callback => {
-    SearchAPI.registerSearch('test-registerSearch', () => {});
+    registerSearch('test-registerSearch', () => {});
 
     // Try and register a second search of the same id, log the error and verify it happened.
     assert.throws(() => {
-      SearchAPI.registerSearch('test-registerSearch', () => {});
+      registerSearch('test-registerSearch', () => {});
     }, Error);
 
     return callback();
@@ -105,11 +129,11 @@ describe('Search API', () => {
    * Test that verifies an error is thrown when registering a reindex all handler that already exists
    */
   it('verify cannot register non-unique search reindex all handler', callback => {
-    SearchAPI.registerReindexAllHandler('test-registerReindexAllHandler', () => {});
+    registerReindexAllHandler('test-registerReindexAllHandler', () => {});
 
     // Try and register a second handler of the same id, log the error and verify it happened.
     assert.throws(() => {
-      SearchAPI.registerReindexAllHandler('test-registerReindexAllHandler', () => {});
+      registerReindexAllHandler('test-registerReindexAllHandler', () => {});
     }, Error);
 
     return callback();
@@ -122,9 +146,9 @@ describe('Search API', () => {
     const options = {
       schema: {
         test_field_name: {
-          type: 'string',
-          store: 'no',
-          index: 'not_analyzed'
+          type: TEXT_TYPE,
+          store: NO_STORE,
+          index: NOT_ANALYZED
         }
       },
       producer(resources, callback) {
@@ -132,13 +156,14 @@ describe('Search API', () => {
       }
     };
 
-    SearchAPI.registerChildSearchDocument('test-registerChildSearchDocument', options, err => {
-      assert.ok(!err);
+    registerChildSearchDocument('test-registerChildSearchDocument', options, err => {
+      assert.notExists(err);
 
       // Try and register a second handler of the same id, log the error and verify it happened.
-      SearchAPI.registerChildSearchDocument('test-registerChildSearchDocument', options, err => {
+      registerChildSearchDocument('test-registerChildSearchDocument', options, err => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
+
         return callback();
       });
     });
@@ -148,9 +173,10 @@ describe('Search API', () => {
    * Test that verifies an error occurrs when trying to invoke an invalid search type.
    */
   it('verify cannot search invalid type', callback => {
-    SearchAPI.search({}, 'not-a-search-type', {}, (err, docs) => {
+    search(EMPTY_OBJECT, 'not-a-search-type', EMPTY_OBJECT, (err /* , docs */) => {
       assert.ok(err);
       assert.strictEqual(err.code, 400);
+
       callback();
     });
   });
@@ -160,8 +186,8 @@ describe('Search API', () => {
    */
   it('verify reindex all triggers an mq task', callback => {
     // Unbind the current handler, if any
-    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
-      assert.ok(!err);
+    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+      assert.notExists(err);
 
       /*!
        * Simply call the test callback to continue tests. If this is not invoked, the test will timeout
@@ -169,18 +195,18 @@ describe('Search API', () => {
        *
        * @see TaskQueue#bind
        */
-      const _handleTask = function(data, mqCallback) {
-        mqCallback();
+      const _handleTask = function(data, done) {
+        done();
         callback();
       };
 
       // Bind the handler to invoke the callback when the test passes
-      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTask, err => {
-        assert.ok(!err);
+      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTask, err => {
+        assert.notExists(err);
 
         // Reprocess previews
-        RestAPI.Search.reindexAll(globalAdminRestContext, err => {
-          assert.ok(!err);
+        reindexAll(asGlobalAdmin, err => {
+          assert.notExists(err);
         });
       });
     });
@@ -191,52 +217,62 @@ describe('Search API', () => {
    */
   it('verify non-global admin users cannot trigger reindex all', callback => {
     // Unbind the current handler, if any
-    MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
-      assert.ok(!err);
+    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+      assert.notExists(err);
 
       /*!
        * Task handler that will fail the test if invoked.
        *
        * @see TaskQueue#bind
        */
-      const _handleTaskFail = function(data, mqCallback) {
-        mqCallback();
+      const _handleTaskFail = function(data, done) {
+        done();
         assert.fail('Did not expect the task to be invoked.');
       };
 
-      // Bind a handler to handle the task that invokes an assertion failure, as no task should be triggered from this test
-      MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskFail, err => {
-        assert.ok(!err);
+      /**
+       * Bind a handler to handle the task that invokes an assertion failure,
+       * as no task should be triggered from this test
+       */
+      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskFail, err => {
+        assert.notExists(err);
 
         // Generate a normal user with which to try and reprocess previews
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-          assert.ok(!err);
+        generateTestUsers(asTenantAdminOnCambridge, 1, (err, users) => {
+          assert.notExists(err);
 
-          const userRestCtx = users[_.keys(users)[0]].restContext;
+          const { 0: johnDoe } = users;
+          const asJohnDoe = johnDoe.restContext;
 
           // Verify that an anonymous user-tenant user cannot reprocess previews
-          RestAPI.Search.reindexAll(anonymousRestContext, err => {
+          reindexAll(asAnonymousUserFromCambridge, err => {
             assert.ok(err);
 
-            // The user-tenant currently doesn't have this end-point. This assertion simply ensures
-            // that no regression comes in here if it is introduced as an endpoint
+            /**
+             * The user-tenant currently doesn't have this end-point.
+             * This assertion simply ensures that no regression comes in
+             * here if it is introduced as an endpoint
+             */
             assert.strictEqual(err.code, 404);
 
             // Verify that an anonymous global-tenant user cannot reprocess previews
-            RestAPI.Search.reindexAll(TestsUtil.createGlobalRestContext(), err => {
+            reindexAll(createGlobalRestContext(), err => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
               // Verify that a regular user cannot generate a task
-              RestAPI.Search.reindexAll(userRestCtx, err => {
+              reindexAll(asJohnDoe, err => {
                 assert.ok(err);
 
-                // The user-tenant currently doesn't have this end-point. This assertion simply ensures
-                // that no regression comes in here if it is introduced as an endpoint
+                /**
+                 * The user-tenant currently doesn't have this end-point.
+                 * This assertion simply ensures that no regression comes in here
+                 * if it is introduced as an endpoint
+                 */
                 assert.strictEqual(err.code, 404);
 
                 // Verify that a tenant admin cannot generate a task
-                RestAPI.Search.reindexAll(camAdminRestContext, err => {
+                reindexAll(asTenantAdminOnCambridge, err => {
                   assert.ok(err);
 
                   // The user-tenant currently doesn't have this end-point. This assertion simply ensures
@@ -259,15 +295,15 @@ describe('Search API', () => {
   it('verify specifying child document resource types filters the resource types', callback => {
     let invoked = 0;
 
-    SearchAPI.registerChildSearchDocument(
+    registerChildSearchDocument(
       'test_filter_types',
       {
-        resourceTypes: ['test_resource_type'],
+        resourceTypes: of('test_resource_type'),
         schema: {
           test_field_name: {
-            type: 'string',
-            store: 'no',
-            index: 'not_analyzed'
+            type: TEXT_TYPE,
+            store: NO_STORE,
+            index: NOT_ANALYZED
           }
         },
         producer(resources, callback) {
@@ -275,26 +311,29 @@ describe('Search API', () => {
 
           callback(null, []);
 
-          _.each(resources, resource => {
+          forEach(resource => {
             // Make sure we only ever get content items
-            assert.strictEqual(AuthzUtil.getResourceFromId(resource.id).resourceType, 't');
-          });
+            assert.strictEqual(compose(getResourceType, getResourceFromId, getId)(resource), T);
+          }, resources);
         }
       },
       err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Send an index task of a document of the proper resource type
-        SearchAPI.postIndexTask('test_resource_type', [{ id: 't:cam:test' }], { children: true }, err => {
-          assert.ok(!err);
+        postIndexTask('test_resource_type', of({ id: 't:cam:test' }), { children: true }, err => {
+          assert.notExists(err);
 
           // Send an index task of a document of not the proper resource type
-          SearchAPI.postIndexTask('not_test_resource_type', [{ id: 'n:cam:test' }], { children: true }, err => {
+          postIndexTask('not_test_resource_type', of({ id: 'n:cam:test' }), { children: true }, err => {
+            assert.notExists(err);
+
             // Wait for the producers to be invoked
-            MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-              MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+            whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+              whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 // Ensure only the proper resource type invoked the producer
                 assert.strictEqual(invoked, 1);
+
                 return callback();
               });
             });
@@ -310,14 +349,14 @@ describe('Search API', () => {
   it('verify unspecifyied child document resource type accepts all resource types', callback => {
     let invoked = 0;
 
-    SearchAPI.registerChildSearchDocument(
+    registerChildSearchDocument(
       'test_filter_no_types',
       {
         schema: {
           test_field_name: {
-            type: 'string',
-            store: 'no',
-            index: 'not_analyzed'
+            type: TEXT_TYPE,
+            store: NO_STORE,
+            index: NOT_ANALYZED
           }
         },
         producer(resources, callback) {
@@ -326,19 +365,22 @@ describe('Search API', () => {
         }
       },
       err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Send an index task of a document of the proper resource type
-        SearchAPI.postIndexTask('test_resource_type', [{ id: 't:cam:test' }], { children: true }, err => {
-          assert.ok(!err);
+        postIndexTask('test_resource_type', of({ id: 't:cam:test' }), { children: true }, err => {
+          assert.notExists(err);
 
           // Send an index task of a document of not the proper resource type
-          SearchAPI.postIndexTask('another_test_resource_type', [{ id: 'n:cam:test' }], { children: true }, err => {
+          postIndexTask('another_test_resource_type', of({ id: 'n:cam:test' }), { children: true }, err => {
+            assert.notExists(err);
+
             // Wait for the producers to be invoked
-            MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-              MQTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+            whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
+              whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 // Ensure only the proper resource type invoked the producer
                 assert.strictEqual(invoked, 2);
+
                 return callback();
               });
             });

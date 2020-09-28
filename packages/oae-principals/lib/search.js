@@ -33,11 +33,13 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import { PrincipalsConstants } from 'oae-principals/lib/constants';
 import { User } from 'oae-principals/lib/model';
 
+import { head, defaultTo, concat, mergeDeepWith } from 'ramda';
+
 const log = logger('principals-search');
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+/**
+ * Indexing tasks
+ */
 
 /*!
  * When a user is created, we must index the user resource document
@@ -155,9 +157,9 @@ const _handleUpdateGroupMembers = function(ctx, group, principalIds) {
   AuthzSearch.fireMembershipUpdateTasks(principalIds);
 };
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produces search documents for 'user' resources.
@@ -231,9 +233,7 @@ const _produceUserSearchDocument = function(user) {
  */
 const _produceGroupSearchDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
-    return callback(_errs, _documents);
-  }
+  if (_.isEmpty(resources)) return callback(_errs, _documents);
 
   const resource = resources.pop();
   if (resource.group) {
@@ -293,12 +293,13 @@ const _produceGroupSearchDocument = function(group) {
 SearchAPI.registerSearchDocumentProducer('user', _produceUserSearchDocuments);
 SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
- * Given an array of user search documents, transform them into search documents suitable to be displayed to the user in context.
+ * Given an array of user search documents, transform them into search documents
+ * suitable to be displayed to the user in context.
  *
  * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
  * @param  {Object}    docs            A hash, keyed by the document id, while the value is the document to transform
@@ -310,16 +311,20 @@ SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
 const _transformUserDocuments = function(ctx, docs, callback) {
   const transformedDocs = {};
   _.each(docs, (doc, docId) => {
-    const displayName = _.first(doc.fields.displayName);
-    const email = _.first(doc.fields.email);
-    const extra = _.first(doc.fields._extra) || {};
-    const tenantAlias = _.first(doc.fields.tenantAlias);
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
-    const visibility = _.first(doc.fields.visibility);
+    // TODO clean and ramdify
+    const displayName = head(doc.fields.displayName);
+    const email = head(defaultTo([], doc.fields.email));
+    const extra = head(defaultTo({}, doc.fields._extra));
+    const tenantAlias = head(doc.fields.tenantAlias);
+    const thumbnailUrl = head(defaultTo([], doc.fields.thumbnailUrl));
+    const visibility = head(doc.fields.visibility);
 
-    // First we need to convert the data in this document back into the source user object so that we may use PrincipalsUtil.hideUserData
-    // to hide its information. We will then after convert the user *back* to a search document once the user information has been
-    // scrubbed
+    /**
+     * First we need to convert the data in this document back into the source user object
+     * so that we may use PrincipalsUtil.hideUserData to hide its information.
+     * We will then after convert the user *back* to a search document once the user information
+     * has been scrubbed
+     */
     const user = new User(tenantAlias, docId, displayName, email, {
       visibility,
       publicAlias: extra.publicAlias,
@@ -350,7 +355,10 @@ const _transformUserDocuments = function(ctx, docs, callback) {
       result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, user.picture.mediumUri);
     }
 
-    // We need to delete these fields which are added by the producer but aren't supposed to be included in the UI
+    /**
+     * We need to delete these fields which are added by the producer but aren't
+     * supposed to be included in the UI
+     */
     delete result.q_high;
     delete result.sort;
 
@@ -376,14 +384,23 @@ SearchAPI.registerSearchDocumentTransformer('user', _transformUserDocuments);
 const _transformGroupDocuments = function(ctx, docs, callback) {
   const transformedDocs = {};
   _.each(docs, (doc, docId) => {
-    // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra);
+    try {
+      doc.fields._extra = JSON.parse(doc.fields._extra);
+    } catch (error) {
+      // TODO do something here, this try catch is mine
+    }
 
+    // Extract the extra object from the search document
+    const extra = head(doc.fields._extra || {});
+
+    // TODO simplify here
     // Build the transformed result document from the ElasticSearch document
     const result = { id: docId };
     _.each(doc.fields, (value, name) => {
       result[name] = _.first(value);
     });
+
+    // const result = mergeDeepWith(concat, { id: docId }, doc.fields);
 
     // Sign the thumbnail URL so it may be downloaded by the client
     if (result.thumbnailUrl) {
@@ -411,9 +428,9 @@ const _transformGroupDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('group', _transformGroupDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handlers
+ */
 
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Principals CF (users and groups)
@@ -456,9 +473,9 @@ SearchAPI.registerReindexAllHandler('principal', callback => {
   return PrincipalsDAO.iterateAll(null, 100, _onEach, callback);
 });
 
-/// //////////////////
-// DELETE HANDLERS //
-/// //////////////////
+/**
+ * Delete handlers
+ */
 
 /**
  * Handler to invoke the search tasks required to invalidate search documents necessary

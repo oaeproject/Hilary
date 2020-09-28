@@ -22,6 +22,10 @@ import * as RestAPI from 'oae-rest';
 import * as SearchAPI from 'oae-search';
 import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
 import { SearchConstants } from 'oae-search/lib/constants';
+import { prop, isEmpty } from 'ramda';
+
+const { buildIndex } = SearchAPI;
+// TODO simplify and ramdify this file
 
 /**
  * Completely empty out the search index
@@ -29,10 +33,10 @@ import { SearchConstants } from 'oae-search/lib/constants';
  * @param  {Function}           callback    Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs
  */
-const deleteAll = function(callback) {
+const deleteAll = callback => {
   whenIndexingComplete(() => {
     // Destroy and rebuild the search schema, as well as all documents inside it
-    SearchAPI.buildIndex(true, err => {
+    buildIndex(true, err => {
       assert.ok(!err);
       return callback();
     });
@@ -46,12 +50,14 @@ const deleteAll = function(callback) {
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if an error occurrs
  */
-const reindexAll = function(globalAdminRestCtx, callback) {
+const reindexAll = (globalAdminRestCtx, callback) => {
   RestAPI.Search.reindexAll(globalAdminRestCtx, err => {
     assert.ok(!err);
 
-    // When the reindex-all task has completed, we have a guarantee that all index tasks
-    // have been recognized by MQ
+    /**
+     * When the reindex-all task has completed, we have a guarantee that all
+     * index tasks have been recognized by MQ
+     */
     return whenIndexingComplete(callback);
   });
 };
@@ -137,6 +143,7 @@ const assertSearchNotContains = function(restCtx, searchType, params, opts, notC
  * @throws {AssertionError}                     Thrown if the search fails or if the results do not match the expected ids
  */
 const assertSearchEquals = function(restCtx, searchType, params, opts, expectedIds, callback) {
+  // searchAll(restCtx, null, params, opts, (err, response) => {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
     assert.ok(!err);
     assert.deepStrictEqual(_.pluck(response.results, 'id').sort(), expectedIds.slice().sort());
@@ -179,33 +186,34 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
 
   whenIndexingComplete(() => {
     // Search first with a limit of 1. This is to get the total number of documents available to search
-    opts.limit = 1;
+    // opts.limit = 1;
+    opts.size = 1;
     searchRefreshed(restCtx, searchType, params, opts, (err, result) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) callback(err);
 
-      if (result.total === 0) {
+      // const totalResults = path(['total', 'value'], result);
+      const totalResults = prop('total', result);
+
+      if (totalResults === 0) {
         // We got 0 documents, just return the result as-is
         return callback(null, result);
       }
 
       // An object that will resemble all the results
-      const allData = { total: result.total, results: [] };
+      const allData = { total: totalResults, results: [] };
 
       // There are more results, search for everything. Don't refresh this time since we already did for the previous query (if specified)
       const getMoreResults = function() {
-        opts.start = allData.results.length;
-        opts.limit = 25;
-        RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {
-          if (err) {
-            return callback(err);
-          }
+        // opts.start = allData.results.length;
+        opts.from = allData.results.length;
+        // opts.limit = 25;
+        opts.size = 25;
 
-          if (_.isEmpty(data.results)) {
-            // There are no more new results coming back which means we've got them all
-            return callback(null, allData);
-          }
+        RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {
+          if (err) return callback(err);
+
+          // There are no more new results coming back which means we've got them all
+          if (isEmpty(data.results)) return callback(null, allData);
 
           // Add the new results
           allData.results = allData.results.concat(data.results);

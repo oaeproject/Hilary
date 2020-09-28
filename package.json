@@ -42,6 +42,7 @@
     "dompurify": "^2.0.8",
     "dox": "^0.9.0",
     "elasticsearchclient": "^0.5.3",
+    "@elastic/elasticsearch": "^7.8.0",
     "ent": "^2.2.0",
     "esm": "3.2.20",
     "ethercalc-client": "github:oaeproject/ethercalc-client#master",

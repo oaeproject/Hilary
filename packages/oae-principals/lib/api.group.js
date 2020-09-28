@@ -927,9 +927,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
   // Ensure the target group exists
   PrincipalsDAO.getPrincipal(groupId, (err, oldStorageGroup) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     if (oldStorageGroup.deleted) {
       return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
@@ -937,18 +935,15 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
 
     // Check if we can update this group
     AuthzPermissions.canManage(ctx, oldStorageGroup, err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       profileFields = _.extend({}, profileFields, {
         lastModified: Date.now().toString(),
         description: profileFields.description ? MessageBoxAPI.replaceLinks(profileFields.description) : ''
       });
+
       PrincipalsDAO.updatePrincipal(groupId, profileFields, err => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Keep track of the updated storage group model so we can emit it in the UPDATE_GROUP event
         const updatedStorageGroup = _.extend({}, oldStorageGroup, profileFields);
@@ -956,9 +951,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         // Get the user-facing updated group object to return to the user
         // eslint-disable-next-line no-unused-vars
         PrincipalsUtil.getPrincipal(ctx, groupId, (err, updatedGroup) => {
-          if (err) {
-            return callback(err);
-          }
+          if (err) return callback(err);
 
           // Emit the fact that we have updated this group
           PrincipalsEmitter.emit(
@@ -967,9 +960,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
             updatedStorageGroup,
             oldStorageGroup,
             errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
+              if (errs) return callback(_.first(errs));
 
               return getFullGroupProfile(ctx, groupId, callback);
             }

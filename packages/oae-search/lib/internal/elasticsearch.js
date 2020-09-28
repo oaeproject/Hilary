@@ -13,11 +13,32 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
 import { logger } from 'oae-logger';
 
-import ElasticSearchClient from 'elasticsearchclient';
 import { telemetry } from 'oae-telemetry';
+import {
+  keys,
+  map,
+  inc,
+  and,
+  head,
+  equals,
+  length,
+  assoc,
+  path,
+  prop,
+  isEmpty,
+  compose,
+  not,
+  propEq,
+  filter,
+  reject,
+  mergeAll,
+  forEach,
+  assocPath
+} from 'ramda';
+
+const { Client } = require('@elastic/elasticsearch');
 
 const log = logger('elasticsearchclient');
 
@@ -26,20 +47,27 @@ const Telemetry = telemetry('search');
 let index = null;
 let client = null;
 
+const returned200 = propEq('statusCode', 200);
+const isOne = equals(1);
+const firstKeyOf = compose(head, keys);
+
+// const INDEX_RETRY_TIMEOUT = 5;
+
 /**
  * Refresh the search configuration with the given options.
  *
  * @param  {String}    index       The index to use
- * @param  {Object}    serverOpts  The server opts with which to configure the client
+ * @param  {Object}    serverNodes  The server opts with which to configure the client
  */
-const refreshSearchConfiguration = function(_index, serverOpts) {
+const refreshSearchConfiguration = function(_index, serverNodes) {
   index = _index;
-  client = new ElasticSearchClient(serverOpts);
+
+  client = new Client({ nodes: serverNodes.nodes });
   log().info(
     {
       config: {
         index: _index,
-        serverOpts
+        serverOpts: serverNodes
       }
     },
     'Refreshed search configuration.'
@@ -54,25 +82,28 @@ const refreshSearchConfiguration = function(_index, serverOpts) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const createIndex = function(indexName, settings, callback) {
-  indexExists(indexName, (err, exists) => {
-    if (err) {
-      return callback(err);
-    }
-
-    if (exists) {
-      return callback();
-    }
+const createIndex = function(index, settings, callback) {
+  indexExists(index, (err, indexExists) => {
+    if (err) return callback(err);
+    if (indexExists) return callback(null, true);
 
     log().info(
       {
-        indexName,
+        indexName: index,
         indexSettings: settings
       },
       'Creating new search index.'
     );
 
-    _exec('createIndex', client.createIndex(indexName, settings, null), callback);
+    const body = { settings };
+
+    return client.indices.create(
+      {
+        index,
+        body
+      },
+      callback
+    );
   });
 };
 
@@ -83,18 +114,21 @@ const createIndex = function(indexName, settings, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const deleteIndex = function(indexName, callback) {
-  indexExists(indexName, (err, exists) => {
-    if (err) {
-      return callback(err);
+const deleteIndex = function(index, callback) {
+  indexExists(index, (err, indexExists) => {
+    if (err) return callback(err);
+
+    if (indexExists) {
+      log().info('Deleting index "%s"...', index);
+      return client.indices.delete(
+        {
+          index
+        },
+        callback
+      );
     }
 
-    if (exists) {
-      log().info('Deleting index "%s"', indexName);
-      _exec('deleteIndex', client.deleteIndex(indexName, null), callback);
-    } else {
-      return callback();
-    }
+    return callback();
   });
 };
 
@@ -106,23 +140,18 @@ const deleteIndex = function(indexName, callback) {
  * @param  {Object}      callback.err    An error that occurred, if any
  * @param  {Boolean}     callback.exists Whether or not the index exists
  */
-const indexExists = function(indexName, callback) {
-  const retryCallback = err => {
-    if (err && err.error === 'IndexMissingException[[' + indexName + '] missing]') {
-      return callback(null, false);
+const indexExists = function(index, callback) {
+  return client.indices.exists(
+    {
+      index
+    },
+    (err, queryResult) => {
+      if (err) return callback(err);
+
+      const result = returned200(queryResult);
+      return callback(null, result);
     }
-
-    if (err) {
-      const timeout = 5;
-      log().error('Error connecting to elasticsearch, retrying in ' + timeout + 's...');
-
-      return setTimeout(indexExists, timeout * 1000, indexName, callback);
-    }
-
-    return callback(null, true);
-  };
-
-  _exec('indexStatus', client.status(indexName, null), retryCallback);
+  );
 };
 
 /**
@@ -131,13 +160,36 @@ const indexExists = function(indexName, callback) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const refresh = function(callback) {
-  _exec('refresh', client.refresh(index, null), callback);
+const refresh = callback => {
+  // _exec('refresh', client.refresh(index, null), callback);
+  return client.indices.refresh(
+    {
+      index
+    },
+    callback
+  );
 };
 
 /**
- * Create a type mapping that can be searched. The type mappings use the elastic search type mapping specification, as described
- * in the ElasticSearch documentation: http://www.elasticsearch.org/guide/reference/api/admin-indices-put-mapping.html
+ * Create a type mapping that can be searched. The type mappings use the elastic search type
+ * mapping specification, as described in the ElasticSearch documentation:
+ * http://www.elasticsearch.org/guide/reference/api/admin-indices-put-mapping.html
+ *
+ * Also, this operation seems to be idempotent... so we don't have to check for previous mappings
+ * 
+ * Typical body sent is:
+ * 
+ * ```
+ * {
+      "properties": {
+        "type": { "type": "keyword" },
+        "name": { "type": "text" },
+        "user_name": { "type": "keyword" },
+        "email": { "type": "keyword" },
+        "content": { "type": "text" },
+        "tweeted_at": { "type": "date" }
+      }
+  }```
  *
  * @param  {String}    typeName            The name of the type. Should be unique across the application.
  * @param  {Object}    fieldProperties     The field schema properties for the type, as per ElasticSearch mapping spec.
@@ -147,35 +199,80 @@ const refresh = function(callback) {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const putMapping = function(typeName, fieldProperties, opts, callback) {
+const putMapping = function(properties, opts, callback) {
   opts = opts || {};
-  opts._source = opts._source !== true;
+  // opts._source = opts._source !== true;
 
-  mappingExists(typeName, (err, exists) => {
-    if (err) {
-      return callback(err);
-    }
+  /**
+   * TODO for some reason I have to do this, fuck it
+   */
+  indexExists(index, (err, exists) => {
+    if (err) return callback(err);
+    if (not(exists)) return callback();
 
-    if (exists) {
-      return callback();
-    }
+    /**
+     * We're using a custom implementation of type since ES7+ is typeless
+     * Type here can be one of the following:
+     * - Resource
+     * - Resource members
+     * - Resource memberships
+     * - Discussion message
+     * - Content body
+     * - Content comment
+     * - Folder message
+     * - Resource followers
+     * - Resource following
+     * - Meeting jitsi message
+     */
+    properties.type = { type: 'keyword' };
 
-    const data = {};
-    data[typeName] = {
-      _source: {
-        enabled: opts._source
-      },
-      properties: fieldProperties
+    // This must be done because this is Module Object, whatever that is
+    properties = mergeAll([properties, {}]);
+    const body = {
+      properties
     };
 
-    if (opts._parent) {
-      data[typeName]._parent = { type: opts._parent };
-    }
+    log().info({ typeData: body }, 'Creating new search type mapping');
 
-    log().info({ typeData: data }, 'Creating new search type mapping');
+    client.indices.putMapping(
+      {
+        index,
+        body
+      },
+      err => {
+        if (err) return callback(err);
 
-    return _exec('putMapping', client.putMapping(index, typeName, data), callback);
+        return callback();
+      }
+    );
   });
+};
+
+// TODO JsDoc
+const mapChildrenToParent = function(parentName, childrenName, callback) {
+  if (isEmpty(childrenName)) return callback();
+
+  const relations = assoc(parentName, childrenName, {});
+  const body = {
+    properties: {
+      _parent: {
+        type: 'join',
+        relations
+      }
+    }
+  };
+
+  client.indices.putMapping(
+    {
+      index,
+      body
+    },
+    err => {
+      if (err) return callback(err);
+
+      return callback();
+    }
+  );
 };
 
 /**
@@ -185,14 +282,19 @@ const putMapping = function(typeName, fieldProperties, opts, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const mappingExists = function(typeName, callback) {
-  _exec('getMapping', client.getMapping(index, typeName, null), (err, data) => {
-    if (err) {
-      return callback(err);
-    }
+const mappingExists = function(property, callback) {
+  client.indices.getMapping(
+    {
+      index
+    },
+    (err, result) => {
+      if (err) return callback(err);
 
-    return callback(null, !_.isEmpty(data));
-  });
+      const mappingExists = compose(Boolean, prop(property), path(['body', index, 'mappings', 'properties']))(result);
+
+      return callback(null, mappingExists);
+    }
+  );
 };
 
 /**
@@ -204,9 +306,20 @@ const mappingExists = function(typeName, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {Object}    callback.data   The response of the query
  */
-const search = function(query, options, callback) {
-  log().trace({ query }, 'Querying elastic search');
-  return _exec('search', client.search(index, query, options), callback);
+const search = function(body, options, callback) {
+  log().trace({ query: body }, 'Querying elastic search');
+
+  const { storedFields, from, size } = options;
+  return client.search(
+    {
+      index,
+      body,
+      storedFields,
+      from,
+      size
+    },
+    callback
+  );
 };
 
 /**
@@ -219,32 +332,119 @@ const search = function(query, options, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const runIndex = function(typeName, id, doc, options, callback) {
-  log().trace({ typeName, id, document: doc, options }, 'Indexing a document');
-  return _exec('index', client.index(index, typeName, doc, id, options), callback);
+const runIndex = function(typeName, id, body, options, callback) {
+  log().trace({ id, document: body, options }, 'Indexing a document');
+
+  // Because ES7.x is typeless
+  // body.type = typeName;
+  // body.type = body._type;
+  // delete body._type;
+  const { routing } = options;
+
+  return client.index({ id, index, body, routing }, (err, indexedData) => {
+    if (err) return callback(err);
+
+    return callback(null, indexedData);
+  });
 };
 
 /**
  * Index a bulk number of documents in ElasticSearch.
  *
- * @param  {Object[]}  operations      An array of ordered operations, as per the ElasticSearch Bulk API specification
+ * @param  {Object[]}  operationsToRun      An array of ordered operations, as per the ElasticSearch Bulk API specification
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const bulk = function(operations, callback) {
-  let numOps = 0;
+const bulk = (operationsToRun, callback) => {
+  let numberOfOperations = 0;
+
+  const transformOperations = eachOperation => {
+    const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
+    const justOneOperation = compose(isOne, length, keys)(eachOperation);
+
+    if (and(justOneOperation, operationFields)) {
+      numberOfOperations = inc(numberOfOperations);
+      eachOperation = assocPath([firstKeyOf(eachOperation), '_index'], index, eachOperation);
+    }
+
+    return eachOperation;
+  };
+
+  operationsToRun = map(transformOperations, operationsToRun);
+  operationsToRun = insertRoutingIntoActionPairs(operationsToRun);
+
+  /*
   for (const meta of operations) {
     const keys = _.keys(meta);
     // Verify this is a metadata line, then apply the index
+
     if (keys.length === 1 && (meta.create || meta.index || meta.delete)) {
-      numOps++;
+      numberOfOperations++;
       const opName = keys[0];
       meta[opName]._index = index;
     }
-  }
+  } */
 
-  log().trace({ operations }, 'Performing a bulk set of %s operations.', numOps);
-  return _exec('bulk', client.bulk(operations, null), callback);
+  log().trace({ operations: operationsToRun }, 'Performing a bulk set of %s operations.', numberOfOperations);
+
+  return client.bulk(
+    {
+      index,
+      body: operationsToRun
+    },
+    (err, bulkResponse) => {
+      if (err) return callback(err);
+
+      if (bulkResponse.errors) {
+        const erroredDocuments = [];
+        /**
+         * The items array has the same order of the dataset we just indexed.
+         * The presence of the `error` key indicates that the operation
+         * that we did for the document has failed.
+         */
+        bulkResponse.items.forEach((action, i) => {
+          const operation = Object.keys(action)[0];
+          if (action[operation].error) {
+            erroredDocuments.push({
+              /**
+               * If the status is 429 it means that you can retry the document,
+               *  otherwise it's very likely a mapping error, and you should
+               *  fix the document before to try it again.
+               */
+              status: action[operation].status,
+              error: action[operation].error,
+              operation: operationsToRun[i * 2],
+              document: operationsToRun[i * 2 + 1]
+            });
+          }
+        });
+        // TODO not sure this is how to error log, check it out
+        log().error({}, erroredDocuments);
+        // TODO probably return callback(err) here? try it out when tests are passing
+      }
+
+      return callback();
+    }
+  );
+};
+
+/**
+ * TODO jsdoc here
+ */
+const insertRoutingIntoActionPairs = operationsToRun => {
+  const parentIdPath = ['_parent', 'parent'];
+  const getParentPath = path(parentIdPath);
+  const actionPairs = filter(path(['_parent']));
+  const dataPairs = reject(path(['_parent']));
+
+  const parentIds = compose(map(getParentPath), actionPairs)(operationsToRun);
+
+  forEach(eachOperation => {
+    const routingId = parentIds.shift();
+    eachOperation.index.routing = routingId;
+  }, dataPairs(operationsToRun));
+
+  return operationsToRun;
 };
 
 /**
@@ -257,7 +457,14 @@ const bulk = function(operations, callback) {
  */
 const del = function(typeName, id, callback) {
   log().trace({ typeName, documentId: id }, 'Deleting an index document.');
-  return _exec('delete', client.deleteDocument(index, typeName, id, null), callback);
+
+  return client.delete(
+    {
+      id,
+      index
+    },
+    callback
+  );
 };
 
 /**
@@ -269,9 +476,17 @@ const del = function(typeName, id, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteByQuery = function(typeName, query, options, callback) {
-  log().trace({ typeName, query, options }, 'Deleting search documents by query');
-  return _exec('deleteByQuery', client.deleteByQuery(index, typeName, query, options), callback);
+const deleteByQuery = function(type, query, options, callback) {
+  log().trace({ typeName: type, query, options }, 'Deleting search documents by query');
+
+  return client.deleteByQuery(
+    {
+      index,
+      type,
+      q: query
+    },
+    callback
+  );
 };
 
 /**
@@ -351,5 +566,6 @@ export {
   runIndex,
   bulk,
   del,
-  deleteByQuery
+  deleteByQuery,
+  mapChildrenToParent
 };

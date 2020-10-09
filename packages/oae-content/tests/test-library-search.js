@@ -13,27 +13,42 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
+import { of, prop } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const { searchRefreshed, searchAll } = SearchTestsUtil;
+const { createComment, createLink } = RestAPI.Content;
+const { generateTestUsers, createTenantAdminRestContext, createTenantRestContext } = TestsUtil;
+const { createMessage, createDiscussion } = RestAPI.Discussions;
+const { search } = RestAPI.Search;
+const { shareContent } = RestAPI.Content;
+
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 const LOGGED_IN = 'loggedin';
 
+const NO_FOLDERS = [];
+const NO_MANAGERS = [];
+const NO_VIEWERS = [];
+
+const resultsWithin = prop('results');
+
 describe('Library Search', () => {
   // REST contexts we can use to do REST requests
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
-  let gtAdminRestContext = null;
+  let asCambridgeAnonymousUser = null;
+  let asCambridgeTenantAdmin = null;
+  let asGeorgiaTechTenantAdmin = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asGeorgiaTechTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+
     return callback();
   });
 
@@ -41,76 +56,63 @@ describe('Library Search', () => {
    * Test that verifies that comments are included when searching through libraries
    */
   it('verify comments are included when searching through libraries', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simon) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.isNotOk(err);
+
+      const { 0: simon } = users;
+      const asSimon = simon.restContext;
+
       // Create content with a comment on it
-      RestAPI.Content.createLink(
-        simon.restContext,
+      createLink(
+        asSimon,
         {
           displayName: 'Apereo Website',
           description: 'The website of the Apereo Foundation',
           visibility: PUBLIC,
           link: 'http://www.apereo.org',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, content) => {
-          assert.ok(!err);
-          RestAPI.Content.createComment(simon.restContext, content.id, 'abcdefghi', null, (err, comment) => {
-            assert.ok(!err);
+          assert.isNotOk(err);
 
-            // Keep in mind that messages are analyzed with an edgengram analyzer with its
-            // minimum set to 5. As tokenisation is letter based, we can't really generate
-            // a test string or use an md5 hash as those are probably not going to contain
-            // substrings of 5 characters
-            SearchTestsUtil.searchAll(
-              simon.restContext,
-              'content-library',
-              [simon.user.id],
-              { q: 'abcdefghijklmn' },
-              (err, results) => {
-                assert.ok(!err);
-                assert.ok(_.find(results.results, { id: content.id }));
+          createComment(asSimon, content.id, 'abcdefghi', null, (err, comment) => {
+            assert.isNotOk(err);
 
-                // Create a discussion with a message on it
-                RestAPI.Discussions.createDiscussion(
-                  simon.restContext,
-                  'A talk',
-                  'about the moon',
-                  'public',
-                  [],
-                  [],
-                  (err, discussion) => {
-                    assert.ok(!err);
-                    RestAPI.Discussions.createMessage(
-                      simon.restContext,
-                      discussion.id,
-                      'stuvwxyz',
-                      null,
-                      (err, message) => {
-                        assert.ok(!err);
+            /**
+             * Keep in mind that messages are analyzed with an edgengram analyzer with its
+             * minimum set to 5. As tokenisation is letter based, we can't really generate
+             * a test string or use an md5 hash as those are probably not going to contain
+             * substrings of 5 characters
+             */
+            searchAll(asSimon, 'content-library', of(simon.user.id), { q: 'abcdefghijklmn' }, (err, results) => {
+              assert.isNotOk(err);
 
-                        // Keep in mind that messages are analyzed with an edgengram analyzer with its
-                        // minimum set to 5. As tokenisation is letter based, we can't really generate
-                        // a test string or use an md5 hash as those are probably not going to contain
-                        // substrings of 5 characters
-                        SearchTestsUtil.searchAll(
-                          simon.restContext,
-                          'discussion-library',
-                          [simon.user.id],
-                          { q: 'stuvwxyz' },
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.ok(_.find(results.results, { id: discussion.id }));
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+              assert.ok(_.find(results.results, { id: content.id }));
+
+              // Create a discussion with a message on it
+              createDiscussion(asSimon, 'A talk', 'about the moon', 'public', [], [], (err, discussion) => {
+                assert.isNotOk(err);
+
+                createMessage(asSimon, discussion.id, 'stuvwxyz', null, (err /* , message */) => {
+                  assert.isNotOk(err);
+
+                  /**
+                   * Keep in mind that messages are analyzed with an edgengram analyzer with its
+                   * minimum set to 5. As tokenisation is letter based, we can't really generate
+                   * a test string or use an md5 hash as those are probably not going to contain
+                   * substrings of 5 characters
+                   */
+                  searchAll(asSimon, 'discussion-library', [simon.user.id], { q: 'stuvwxyz' }, (err, results) => {
+                    assert.isNotOk(err);
+                    assert.ok(_.find(results.results, { id: discussion.id }));
+
+                    return callback();
+                  });
+                });
+              });
+            });
           });
         }
       );
@@ -122,11 +124,11 @@ describe('Library Search', () => {
      * Test that verifies only valid principal ids return results
      */
     it('verify the principal id gets validated', callback => {
-      SearchTestsUtil.searchAll(camAdminRestContext, 'content-library', [''], null, (err, results) => {
+      searchAll(asCambridgeTenantAdmin, 'content-library', [''], null, (err, results) => {
         assert.strictEqual(err.code, 400);
         assert.ok(!results);
 
-        SearchTestsUtil.searchAll(camAdminRestContext, 'content-library', ['invalid-user-id'], null, (err, results) => {
+        searchAll(asCambridgeTenantAdmin, 'content-library', ['invalid-user-id'], null, (err, results) => {
           assert.strictEqual(err.code, 400);
           assert.ok(!results);
 
@@ -139,12 +141,16 @@ describe('Library Search', () => {
      * Test that verifies all users can search public user library items
      */
     it('verify all users see public user library item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, doer, jack, jane) => {
-        assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.isNotOk(err);
+        const { 0: doer, 1: jack, 2: jane } = users;
 
-          RestAPI.Content.createLink(
+        generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
+          assert.isNotOk(err);
+
+          const { 0: darthVader } = users;
+
+          createLink(
             doer.restContext,
             {
               displayName: 'Apereo Website',
@@ -158,34 +164,36 @@ describe('Library Search', () => {
             (err, content) => {
               assert.ok(!err);
 
-              RestAPI.Content.shareContent(doer.restContext, content.id, [jack.user.id], err => {
-                assert.ok(!err);
+              shareContent(doer.restContext, content.id, [jack.user.id], err => {
+                assert.isNotOk(err);
 
                 // Verify anonymous can see the content item
-                SearchTestsUtil.searchAll(
-                  anonymousRestContext,
-                  'content-library',
-                  [jack.user.id],
-                  null,
-                  (err, results) => {
+                searchAll(asCambridgeAnonymousUser, 'content-library', [jack.user.id], null, (err, results) => {
+                  assert.ok(!err);
+                  assert.strictEqual(results.total, 1);
+                  assert.strictEqual(results.results[0].id, content.id);
+
+                  // Verify tenant admin can see the content item
+                  searchAll(asCambridgeTenantAdmin, 'content-library', [jack.user.id], null, (err, results) => {
                     assert.ok(!err);
                     assert.strictEqual(results.total, 1);
                     assert.strictEqual(results.results[0].id, content.id);
 
-                    // Verify tenant admin can see the content item
-                    SearchTestsUtil.searchAll(
-                      camAdminRestContext,
-                      'content-library',
-                      [jack.user.id],
-                      null,
-                      (err, results) => {
+                    // Verify the target user can see the content item
+                    searchAll(jack.restContext, 'content-library', [jack.user.id], null, (err, results) => {
+                      assert.ok(!err);
+                      assert.strictEqual(results.total, 1);
+                      assert.strictEqual(results.results[0].id, content.id);
+
+                      // Verify a different loggedin user can see the content item
+                      searchAll(jane.restContext, 'content-library', [jack.user.id], null, (err, results) => {
                         assert.ok(!err);
                         assert.strictEqual(results.total, 1);
                         assert.strictEqual(results.results[0].id, content.id);
 
-                        // Verify the target user can see the content item
+                        // Verify the cross-tenant user can see the content item
                         SearchTestsUtil.searchAll(
-                          jack.restContext,
+                          darthVader.restContext,
                           'content-library',
                           [jack.user.id],
                           null,
@@ -193,39 +201,13 @@ describe('Library Search', () => {
                             assert.ok(!err);
                             assert.strictEqual(results.total, 1);
                             assert.strictEqual(results.results[0].id, content.id);
-
-                            // Verify a different loggedin user can see the content item
-                            SearchTestsUtil.searchAll(
-                              jane.restContext,
-                              'content-library',
-                              [jack.user.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 1);
-                                assert.strictEqual(results.results[0].id, content.id);
-
-                                // Verify the cross-tenant user can see the content item
-                                SearchTestsUtil.searchAll(
-                                  darthVader.restContext,
-                                  'content-library',
-                                  [jack.user.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 1);
-                                    assert.strictEqual(results.results[0].id, content.id);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
+                            return callback();
                           }
                         );
-                      }
-                    );
-                  }
-                );
+                      });
+                    });
+                  });
+                });
               });
             }
           );
@@ -237,10 +219,13 @@ describe('Library Search', () => {
      * Test that verifies that anonymous and cross-tenant users cannot search loggedin user library items.
      */
     it('verify anonymous and cross-tenant user cannot see loggedin user library items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, doer, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
+        const { 0: doer, 1: jack, 2: jane } = users;
+
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
           assert.ok(!err);
+          const { 0: darthVader } = users;
 
           // Create the content item as 'loggedin'
           RestAPI.Content.createLink(
@@ -262,7 +247,7 @@ describe('Library Search', () => {
 
                 // Verify anonymous cannot see it
                 SearchTestsUtil.searchAll(
-                  anonymousRestContext,
+                  asCambridgeAnonymousUser,
                   'content-library',
                   [jack.user.id],
                   null,
@@ -273,7 +258,7 @@ describe('Library Search', () => {
 
                     // Verify tenant admin can see it
                     SearchTestsUtil.searchAll(
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
                       'content-library',
                       [jack.user.id],
                       null,
@@ -336,10 +321,13 @@ describe('Library Search', () => {
      * Test that verifies only admin and the user themselves can search private user library items.
      */
     it('verify only self and admin can see private user library items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, doer, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
+        const { 0: doer, 1: jack, 2: jane } = users;
+
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
           assert.ok(!err);
+          const { 0: darthVader } = users;
 
           // Create the private content item
           RestAPI.Content.createLink(
@@ -361,7 +349,7 @@ describe('Library Search', () => {
 
                 // Verify anonymous cannot search it
                 SearchTestsUtil.searchAll(
-                  anonymousRestContext,
+                  asCambridgeAnonymousUser,
                   'content-library',
                   [jack.user.id],
                   null,
@@ -372,7 +360,7 @@ describe('Library Search', () => {
 
                     // Verify tenant admin can search it
                     SearchTestsUtil.searchAll(
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
                       'content-library',
                       [jack.user.id],
                       null,
@@ -437,10 +425,13 @@ describe('Library Search', () => {
      * Test that verifies all users can see public group library items.
      */
     it('verify all users see public group library items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, doer, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
         assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
+        const { 0: doer, 1: jack, 2: jane } = users;
+
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
           assert.ok(!err);
+          const { 0: darthVader } = users;
 
           RestAPI.Group.createGroup(
             doer.restContext,
@@ -473,7 +464,7 @@ describe('Library Search', () => {
 
                     // Verify anonymous can see it
                     SearchTestsUtil.searchAll(
-                      anonymousRestContext,
+                      asCambridgeAnonymousUser,
                       'content-library',
                       [group.id],
                       null,
@@ -484,7 +475,7 @@ describe('Library Search', () => {
 
                         // Verify tenant admin can see it
                         SearchTestsUtil.searchAll(
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
                           'content-library',
                           [group.id],
                           null,
@@ -549,10 +540,13 @@ describe('Library Search', () => {
      * Test that verifies that anonymous and cross-tenant users cannot search loggedin group library items.
      */
     it('verify anonymous and cross-tenant users cannot see loggedin group library items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, doer, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
         assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 1, (err, users, darthVader) => {
+        const { 0: doer, 1: jack, 2: jane } = users;
+
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
           assert.ok(!err);
+          const { 0: darthVader } = users;
 
           RestAPI.Group.createGroup(
             doer.restContext,
@@ -585,7 +579,7 @@ describe('Library Search', () => {
 
                     // Verify anonymous cannot see it
                     SearchTestsUtil.searchAll(
-                      anonymousRestContext,
+                      asCambridgeAnonymousUser,
                       'content-library',
                       [group.id],
                       null,
@@ -596,7 +590,7 @@ describe('Library Search', () => {
 
                         // Verify tenant admin can see it
                         SearchTestsUtil.searchAll(
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
                           'content-library',
                           [group.id],
                           null,
@@ -662,10 +656,14 @@ describe('Library Search', () => {
      * belong to a different tenant.
      */
     it('verify only member and admin users can see private group library items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, doer, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
-        TestsUtil.generateTestUsers(gtAdminRestContext, 2, (err, users, darthVader, sith) => {
+        const { 0: doer, 1: jack, 2: jane } = users;
+
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 2, (err, users) => {
           assert.ok(!err);
+
+          const { 0: darthVader, 1: sith } = users;
 
           RestAPI.Group.createGroup(
             doer.restContext,
@@ -698,7 +696,7 @@ describe('Library Search', () => {
 
                     // Verify anonymous cannot see the private content item
                     SearchTestsUtil.searchAll(
-                      anonymousRestContext,
+                      asCambridgeAnonymousUser,
                       'content-library',
                       [group.id],
                       null,
@@ -709,7 +707,7 @@ describe('Library Search', () => {
 
                         // Verify cam admin can see the private content item
                         SearchTestsUtil.searchAll(
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
                           'content-library',
                           [group.id],
                           null,
@@ -789,10 +787,11 @@ describe('Library Search', () => {
      * Test that verifies paging of library search works correctly
      */
     it('verify paging the library search feed works correctly', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, doer) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+        const { 0: doer } = users;
 
-        RestAPI.Content.createLink(
+        createLink(
           doer.restContext,
           {
             displayName: 'Apereo Website',
@@ -806,7 +805,7 @@ describe('Library Search', () => {
           (err, content) => {
             assert.ok(!err);
 
-            RestAPI.Content.createLink(
+            createLink(
               doer.restContext,
               {
                 displayName: 'Google Website',
@@ -820,7 +819,7 @@ describe('Library Search', () => {
               (err, content) => {
                 assert.ok(!err);
 
-                SearchTestsUtil.searchRefreshed(
+                searchRefreshed(
                   doer.restContext,
                   'content-library',
                   [doer.user.id],
@@ -836,8 +835,11 @@ describe('Library Search', () => {
                     assert.ok(firstId);
                     assert.ok(secondId);
 
-                    // Verify the first item comes on the first page. We don't need to refresh this search because we haven't indexed anything since the previous search
-                    RestAPI.Search.search(
+                    /**
+                     * Verify the first item comes on the first page.
+                     * We don't need to refresh this search because we haven't indexed anything since the previous search
+                     */
+                    search(
                       doer.restContext,
                       'content-library',
                       [doer.user.id],
@@ -849,7 +851,7 @@ describe('Library Search', () => {
                         assert.strictEqual(results.results[0].id, firstId);
 
                         // Verify the second item comes on the first page.
-                        RestAPI.Search.search(
+                        search(
                           doer.restContext,
                           'content-library',
                           [doer.user.id],
@@ -859,6 +861,7 @@ describe('Library Search', () => {
                             assert.ok(results.results);
                             assert.strictEqual(results.results.length, 1);
                             assert.strictEqual(results.results[0].id, secondId);
+
                             return callback();
                           }
                         );

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import _, { map } from 'underscore';
 
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util';
@@ -74,9 +74,10 @@ const createMessageSearchDocuments = function(name, resourceId, messages) {
       return !message.deleted;
     })
     .map(message => {
+      // TODO experiment because of discussion_message_ schema not being body otherwise it conflicts with contentBodySchema's name
       return SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
-        body: message.body
+        discussion_message_body: message.body
       });
     })
     .value();

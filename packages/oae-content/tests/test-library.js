@@ -23,6 +23,8 @@ import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+import { map, path } from 'ramda';
+
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 const LOGGED_IN = 'loggedin';
@@ -447,16 +449,22 @@ describe('Content Libraries', () => {
   it('verify a user can remove content from a group library by virtue of his group ancestry', callback => {
     TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
       assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
-      const { 1: simon } = _.values(users);
-      const { 2: bert } = _.values(users);
+
+      const { 0: nicolaas, 1: simon, 2: bert } = users;
 
       // Create three nested, groups.
-      TestsUtil.generateTestGroups(nicolaas.restContext, 3, (group, parent, grandParent) => {
-        const groupIds = [grandParent.group.id, parent.group.id, group.group.id];
+      TestsUtil.generateTestGroups(nicolaas.restContext, 3, (err, groups) => {
+        assert.ok(!err);
+        const { 0: parent, 1: grandParent, 2: group } = groups;
+        const groupIds = map(path(['group', 'id']), groups);
+        // [grandParent.group.id, parent.group.id, group.group.id];
+        // const groupIds = [grandParent.group.id, parent.group.id, group.group.id];
+
         TestsUtil.generateGroupHierarchy(nicolaas.restContext, groupIds, 'manager', () => {
-          // Make Simon a manager of the 'group' group (ie: the farthest one down)
-          // That should make him a manager of all the groups above this one as well.
+          /**
+           * Make Simon a manager of the 'group' group (ie: the farthest one down)
+           * That should make him a manager of all the groups above this one as well.
+           */
           const permissions = {};
           permissions[simon.user.id] = 'manager';
           RestAPI.Group.setGroupMembers(nicolaas.restContext, group.group.id, permissions, err => {

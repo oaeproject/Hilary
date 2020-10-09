@@ -43,10 +43,10 @@ const LOGGED_IN = 'loggedin';
 
 describe('Content Activity', () => {
   // Rest contexts that can be used for performing REST requests
-  let anonymousCamRestContext = null;
-  let camAdminRestContext = null;
-  let anonymousGtRestContext = null;
-  let globalAdminRestContext = null;
+  let asCambridgeAnonymousUser = null;
+  let asCambridgeTenantAdmin = null;
+  let asGeorgiaTechAnonymousUser = null;
+  let asGlobalAdmin = null;
 
   let suitableFiles = null;
   let suitableSizes = null;
@@ -56,10 +56,10 @@ describe('Content Activity', () => {
    */
   before(callback => {
     // Prepare the rest contexts that can be used for performing REST requests
-    anonymousGtRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host);
-    anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asGeorgiaTechAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host);
+    asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
 
     // An object that adheres to the RestAPI.Content.setPreviewItems.files parameter.
     // We need 4 different files here as request.js mixes up the filenames.
@@ -100,35 +100,38 @@ describe('Content Activity', () => {
    */
   const _setup = function(callback) {
     // Generate some users
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      7,
-      (err, users, simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (err, users) => {
+      assert.ok(!err);
 
-        // Generate some groups
-        TestsUtil.generateTestGroups(simong.restContext, 2, (groupA, groupB) => {
-          // Add regular members in both groups
-          const groupAmembers = {};
-          groupAmembers[groupMemberA.user.id] = 'member';
-          RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
+      const { 0: simong, 1: nico, 2: bert, 3: stuart, 4: stephen, 5: groupMemberA, 6: groupMemberB } = users;
+
+      // Generate some groups
+      TestsUtil.generateTestGroups(simong.restContext, 2, (err, groups) => {
+        assert.ok(!err);
+        // Add regular members in both groups
+        const groupAmembers = {};
+        const { 0: groupA, 1: groupB } = groups;
+
+        groupAmembers[groupMemberA.user.id] = 'member';
+
+        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
+          assert.ok(!err);
+          const groupBmembers = {};
+          groupBmembers[groupMemberB.user.id] = 'member';
+
+          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
             assert.ok(!err);
-            const groupBmembers = {};
-            groupBmembers[groupMemberB.user.id] = 'member';
-            RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
+
+            // Nico follows simong
+            RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
               assert.ok(!err);
 
-              // Nico follows simong
-              RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
-                assert.ok(!err);
-
-                return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
-              });
+              return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
             });
           });
         });
-      }
-    );
+      });
+    });
   };
 
   /*!
@@ -186,12 +189,14 @@ describe('Content Activity', () => {
      * Test that verifies a content resource routes activities to its members when created, updated and shared
      */
     it('verify routing to content members', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, managerGroupMember) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane, 2: managerGroupMember } = users;
 
         // Create the group that will be a viewer of the content
         RestAPI.Group.createGroup(
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
           'Viewer Group displayName',
           'Viewer Group Description',
           'public',
@@ -203,7 +208,7 @@ describe('Content Activity', () => {
 
             // Create a group that will be a manager of the content
             RestAPI.Group.createGroup(
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
               'Manager Group displayName',
               'Manager Group Description',
               'public',
@@ -216,7 +221,7 @@ describe('Content Activity', () => {
                 // ManagerGroupMember should be a member of the manager group to verify indirect group member routing
                 const membership = {};
                 membership[managerGroupMember.user.id] = 'manager';
-                RestAPI.Group.setGroupMembers(camAdminRestContext, managerGroup.id, membership, err => {
+                RestAPI.Group.setGroupMembers(asCambridgeTenantAdmin, managerGroup.id, membership, err => {
                   assert.ok(!err);
 
                   // Create a content item with manager group and viewer group as members.
@@ -259,7 +264,7 @@ describe('Content Activity', () => {
 
                                 // Verify the manager group received the create, share and update as they are a content member
                                 ActivityTestsUtil.collectAndGetActivityStream(
-                                  camAdminRestContext,
+                                  asCambridgeTenantAdmin,
                                   managerGroup.id,
                                   null,
                                   (err, activityStream) => {
@@ -270,7 +275,7 @@ describe('Content Activity', () => {
 
                                     // Verify the viewer group received only the create and update. only managers care about the sharing of the "object"
                                     ActivityTestsUtil.collectAndGetActivityStream(
-                                      camAdminRestContext,
+                                      asCambridgeTenantAdmin,
                                       viewerGroup.id,
                                       null,
                                       (err, activityStream) => {
@@ -283,7 +288,7 @@ describe('Content Activity', () => {
 
                                         // Verify the manager group *member* got the same activities as the manager group, as they are a member
                                         ActivityTestsUtil.collectAndGetActivityStream(
-                                          camAdminRestContext,
+                                          asCambridgeTenantAdmin,
                                           managerGroupMember.user.id,
                                           null,
                                           (err, activityStream) => {
@@ -324,12 +329,14 @@ describe('Content Activity', () => {
      * when non-manager), the content item is still propagated to the route appropriately.
      */
     it('verify content propagation to non-route activity feeds', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a private content item
         RestAPI.Content.createLink(
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
           {
             displayName: 'Google',
             description: 'Google',
@@ -345,11 +352,11 @@ describe('Content Activity', () => {
             // Share the content item with Jack. Jack will get the activity in his feed because he is the target, but he will not be in
             // the routes of the content item because he is not a manager. Despite this, we need to verify that Jack has the full content
             // item propagated to him as he does have access to it.
-            RestAPI.Content.shareContent(camAdminRestContext, link.id, [jack.user.id], err => {
+            RestAPI.Content.shareContent(asCambridgeTenantAdmin, link.id, [jack.user.id], err => {
               assert.ok(!err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 jack.user.id,
                 null,
                 (err, activityStream) => {
@@ -378,8 +385,10 @@ describe('Content Activity', () => {
      * Test that verifies a comment activity is routed to recent commenters of a content item.
      */
     it('verify comment activity is routed to the recent commenters of a content item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, mrvisser, bert) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simong, 1: mrvisser, 2: bert } = users;
 
         // Create a content item to be commented on
         RestAPI.Content.createLink(
@@ -442,8 +451,10 @@ describe('Content Activity', () => {
      * access to the content item (e.g., it becomes private after they commented).
      */
     it('verify a comment activity is not routed to a recent commenter if they no longer have access to the content item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, mrvisser, bert) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simong, 1: mrvisser, 2: bert } = users;
 
         // Create a content item to be commented on, bert is a member
         RestAPI.Content.createLink(
@@ -513,8 +524,10 @@ describe('Content Activity', () => {
      * Test that verifies that profile picture URLs in the comments in the activity stream are non-expiring.
      */
     it('verify a comment activity has a non-expiring profile picture URL', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, mrvisser) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simong, 1: mrvisser } = users;
 
         /**
          * Return a profile picture stream
@@ -583,8 +596,10 @@ describe('Content Activity', () => {
      * does not get persisted in activity streams
      */
     it('verify that collaborative document content is not persisted to cassandra', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simon, branden, nico) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simon, 1: branden, 2: nico } = users;
 
         // Create a collaborative document with branden as a manager
         RestAPI.Content.createCollabDoc(
@@ -717,8 +732,10 @@ describe('Content Activity', () => {
      * Verifies that a notification gets sent out to all the managers of a collaborative document.
      */
     it('verify that publishing a collaborative document generates a notification', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simon, branden, nico) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simon, 1: branden, 2: nico } = users;
 
         // Create a collaborative document where both Simon and Branden are managers and Nico as a viewer
         RestAPI.Content.createCollabDoc(
@@ -816,7 +833,7 @@ describe('Content Activity', () => {
      * Test that verifies that an activity is generated regardless of whether there was an update to a is collaborative document since the last revision
      */
     it('verify an activity is generated regardless of whether there was an update to a is collaborative document since the last revision', callback => {
-      ContentTestUtil.createCollabDoc(camAdminRestContext, 2, 2, (err, collabdocData) => {
+      ContentTestUtil.createCollabDoc(asCambridgeTenantAdmin, 2, 2, (err, collabdocData) => {
         const [contentObj, users, simon, nico] = collabdocData;
         // Set some text in the pad
         const etherpadClient = Etherpad.getClient(contentObj.id);
@@ -875,13 +892,18 @@ describe('Content Activity', () => {
      * Verifies that a notification gets sent out to all the managers of a piece of content when restoring an older version.
      */
     it('verify that restoring a piece of content generates a notification', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
-        const simonCtx = _.values(users)[0].restContext;
-        const brandenCtx = _.values(users)[1].restContext;
-        const brandenId = _.keys(users)[1];
-        const nicoCtx = _.values(users)[2].restContext;
-        const nicoId = _.keys(users)[2];
+
+        const { 0: simon, 1: branden, 2: nico } = users;
+
+        const simonCtx = simon.restContext;
+
+        const brandenCtx = branden.restContext;
+        const brandenId = branden.user.id;
+
+        const nicoCtx = nico.restContext;
+        const nicoId = nico.user.id;
 
         // Create a file where both Simon and Branden are managers and Nico as a viewer
         const name = TestsUtil.generateTestUserId('file');
@@ -988,8 +1010,10 @@ describe('Content Activity', () => {
      * Test that verifies that content-share or content-add-to-library activities are routed to the content's activity stream
      */
     it('verify content-share or content-add-to-library activities are not routed to the content activity stream', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, nico, bert, stuart) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simon, 1: nico, 2: bert, 3: stuart } = users;
 
         RestAPI.Content.createLink(
           simon.restContext,
@@ -1069,8 +1093,10 @@ describe('Content Activity', () => {
      * Test that verifies that a comment activity is routed to the managers and recent contributers their notification stream of a private content item
      */
     it('verify comment activity is routed to the managers and recent contributers notification stream of a private content item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simon, nico, bert, stuart) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simon, 1: nico, 2: bert, 3: stuart } = users;
 
         RestAPI.Content.createLink(
           simon.restContext,
@@ -1185,8 +1211,10 @@ describe('Content Activity', () => {
         assert.ok(entity.id.includes(contentId));
       };
 
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Generate an activity with the content
         RestAPI.Content.createLink(
@@ -1217,7 +1245,7 @@ describe('Content Activity', () => {
 
                 // Get the global admin context on the camtest tenant
                 RestAPI.Admin.loginOnTenant(
-                  globalAdminRestContext,
+                  asGlobalAdmin,
                   global.oaeTests.tenants.localhost.alias,
                   null,
                   (err, globalTenantAdminRestContext) => {
@@ -1330,7 +1358,7 @@ describe('Content Activity', () => {
                                                 'http://localhost'
                                               );
                                               RestUtil.performRestRequest(
-                                                anonymousGtRestContext,
+                                                asGeorgiaTechAnonymousUser,
                                                 signedDownloadUrl.pathname,
                                                 'GET',
                                                 TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
@@ -1340,7 +1368,7 @@ describe('Content Activity', () => {
 
                                                   signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
                                                   RestUtil.performRestRequest(
-                                                    anonymousGtRestContext,
+                                                    asGeorgiaTechAnonymousUser,
                                                     signedDownloadUrl.pathname,
                                                     'GET',
                                                     TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
@@ -1360,7 +1388,7 @@ describe('Content Activity', () => {
                                                         'http://localhost'
                                                       );
                                                       RestUtil.performRestRequest(
-                                                        anonymousGtRestContext,
+                                                        asGeorgiaTechAnonymousUser,
                                                         signedDownloadUrl.pathname,
                                                         'GET',
                                                         TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
@@ -1373,7 +1401,7 @@ describe('Content Activity', () => {
                                                             'http://localhost'
                                                           );
                                                           RestUtil.performRestRequest(
-                                                            anonymousGtRestContext,
+                                                            asGeorgiaTechAnonymousUser,
                                                             signedDownloadUrl.pathname,
                                                             'GET',
                                                             TestsUtil.objectifySearchParams(
@@ -1418,8 +1446,10 @@ describe('Content Activity', () => {
      * Test that verifies the properties of a comment entity
      */
     it('verify the comment entity model contains the correct comment information', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Generate an activity with the content
         RestAPI.Content.createLink(
@@ -1690,8 +1720,10 @@ describe('Content Activity', () => {
      * Test that verifies that a content-create and content-update activity are generated when a content item is created and updated.
      */
     it('verify content-create and content-update activities are posted when content is created and updated', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Generate an activity with the content
         RestAPI.Content.createLink(
@@ -1736,9 +1768,10 @@ describe('Content Activity', () => {
      * Test to verify the revision id gets updated in the activity when a new revision is posted
      */
     it('verify content-update activities have updated previews', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
 
+        const { 0: jack } = users;
         RestAPI.Content.createFile(
           jack.restContext,
           {
@@ -1790,11 +1823,13 @@ describe('Content Activity', () => {
      * Test that verifies that a content-share activity is generated when a content item is shared.
      */
     it('verify a content-share activity is generated when a content item is shared', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
 
+        const { 0: jack } = users;
+
         RestAPI.Content.createLink(
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
           {
             displayName: 'Google',
             description: 'Google',
@@ -1808,11 +1843,11 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Try and generate a share activity
-            RestAPI.Content.shareContent(camAdminRestContext, link.id, [jack.user.id], err => {
+            RestAPI.Content.shareContent(asCambridgeTenantAdmin, link.id, [jack.user.id], err => {
               assert.ok(!err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 jack.user.id,
                 null,
                 (err, activityStream) => {
@@ -1833,8 +1868,10 @@ describe('Content Activity', () => {
      * Test that verifies that when a user's role is updated, a content-update-member-role activity is generated.
      */
     it('verify a content-update-member-role activity is generated when a user role is updated on a content item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane } = users;
 
         // Create a link whose member we can promote to manager
         RestAPI.Content.createLink(
@@ -1885,8 +1922,10 @@ describe('Content Activity', () => {
      * Test that verifies that a content-revision activity is generated when a content item's body has been updated / uploaded.
      */
     it("verify a content-revision activity is generated when a content item's body has been updated", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a revisable content item
         RestAPI.Content.createFile(
@@ -1914,7 +1953,7 @@ describe('Content Activity', () => {
 
                 // Verify the revision activity was created for jack
                 ActivityTestsUtil.collectAndGetActivityStream(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   jack.user.id,
                   null,
                   (err, activityStream) => {
@@ -1940,11 +1979,13 @@ describe('Content Activity', () => {
      * Test that verifies that a content-add-to-library activity is generated when a user adds a content item to their own library
      */
     it('verify a content-add-to-library activity is generated when a user adds a content item to their own library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
 
+        const { 0: jack } = users;
+
         RestAPI.Content.createLink(
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
           {
             displayName: 'Google',
             description: 'Google',
@@ -1962,7 +2003,7 @@ describe('Content Activity', () => {
               assert.ok(!err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 jack.user.id,
                 null,
                 (err, activityStream) => {
@@ -1983,11 +2024,13 @@ describe('Content Activity', () => {
      * Test that verifies that a content-update-visibility activity is generated when a content's visibility is updated
      */
     it("verify a content-update-visibility activity is generated when a content item's visibility is updated", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
 
+        const { 0: jack } = users;
+
         RestAPI.Content.createLink(
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
           {
             displayName: 'Google',
             description: 'Google',
@@ -2001,11 +2044,11 @@ describe('Content Activity', () => {
             assert.ok(!err);
 
             // Jack adds the content item to his own library
-            RestAPI.Content.updateContent(camAdminRestContext, link.id, { visibility: 'private' }, err => {
+            RestAPI.Content.updateContent(asCambridgeTenantAdmin, link.id, { visibility: 'private' }, err => {
               assert.ok(!err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 jack.user.id,
                 null,
                 (err, activityStream) => {
@@ -2038,8 +2081,10 @@ describe('Content Activity', () => {
      * aggregated into a collection.
      */
     it('verify content-create activities are pivoted by actor', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -2112,8 +2157,10 @@ describe('Content Activity', () => {
      * deleted properly
      */
     it('verify when a content-create activity is redelivered, it deletes the previous one', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -2606,16 +2653,18 @@ describe('Content Activity', () => {
       });
     });
 
-    /// /////////////////
-    // CONTENT UPDATE //
-    /// /////////////////
+    /**
+     * CONTENT UPDATE
+     */
 
     /**
      * Test that verifies when a content item is updated multiple times, the actors that updated it are aggregated into a collection.
      */
     it('verify content-update activities are pivoted by object', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -2641,7 +2690,7 @@ describe('Content Activity', () => {
                 assert.ok(!err);
 
                 // Update it with a different user, this should be a second entry in the collection
-                RestAPI.Content.updateContent(camAdminRestContext, googleLink.id, { displayName: 'Google' }, err => {
+                RestAPI.Content.updateContent(asCambridgeTenantAdmin, googleLink.id, { displayName: 'Google' }, err => {
                   assert.ok(!err);
 
                   // Verify we get the 2 actors in the stream
@@ -2671,8 +2720,10 @@ describe('Content Activity', () => {
      * timestamp.
      */
     it('verify duplicate content-update activities are re-released with a more recent date, with no aggregations', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -2837,8 +2888,10 @@ describe('Content Activity', () => {
      * activity feed. Instead, the activity should be updated and reposted as a recent item.
      */
     it('verify duplicate content-update-visibility activities are not duplicated in the feed', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -3002,8 +3055,10 @@ describe('Content Activity', () => {
      * for display.
      */
     it('verify that content-comment activity aggregates both actor and object entities while pivoting on target', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, jack) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -3025,7 +3080,7 @@ describe('Content Activity', () => {
               assert.ok(!err);
 
               // Post a comment as the cambridge admin, we have now aggregated a 2nd comment posting on the same content item
-              RestAPI.Content.createComment(camAdminRestContext, link.id, 'Test Comment B', null, err => {
+              RestAPI.Content.createComment(asCambridgeTenantAdmin, link.id, 'Test Comment B', null, err => {
                 assert.ok(!err);
 
                 // Verify that both actors (camadmin and jack) and both objects (both comments) are available in the activity
@@ -3100,8 +3155,10 @@ describe('Content Activity', () => {
      * activity feed.
      */
     it('verify duplicate content-share activities do not result in redundant activities', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, jack, jane) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane } = users;
 
         // Create a google link
         RestAPI.Content.createLink(
@@ -3258,8 +3315,10 @@ describe('Content Activity', () => {
      * from the activity bucket.
      */
     it('verify content-share activities aggregate and are branched properly when all collected at once', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, branden) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane, 2: branden } = users;
 
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
@@ -3335,8 +3394,10 @@ describe('Content Activity', () => {
      * currently exists in the activity stream.
      */
     it('verify content-share activities aggregate and are branched properly when collected after first share', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, branden) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane, 2: branden } = users;
 
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
@@ -3422,8 +3483,10 @@ describe('Content Activity', () => {
      * in the feed before a third is collected.
      */
     it('verify content-share activities aggregate and are branched properly when collected before last share', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, branden) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: jack, 1: jane, 2: branden } = users;
 
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
@@ -3504,9 +3567,10 @@ describe('Content Activity', () => {
      * and delivered to the feed one by one.
      */
     it('verify content-share activities aggregate and are branched properly when collected after each share', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, jack, jane, branden) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
 
+        const { 0: jack, 1: jane, 2: branden } = users;
         // Create a google link and yahoo link to be shared around
         RestAPI.Content.createLink(
           jack.restContext,
@@ -3603,8 +3667,10 @@ describe('Content Activity', () => {
      * scrubbed.
      */
     it('verify content-comment email and privacy', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, simong, nicolaas) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.ok(!err);
+
+        const { 0: mrvisser, 1: simong, 2: nicolaas } = users;
 
         const simongUpdate = {
           visibility: 'private',
@@ -3698,8 +3764,10 @@ describe('Content Activity', () => {
      * appropriately scrubbed.
      */
     it('verify content-create email and privacy', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: mrvisser, 1: simong } = users;
 
         // Simon is private and mrvisser is public
         const simongUpdate = {
@@ -3758,8 +3826,10 @@ describe('Content Activity', () => {
      * appropriately scrubbed.
      */
     it('verify content-share email and privacy', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: mrvisser, 1: simong } = users;
 
         // Simon is private and mrvisser is public
         const simongUpdate = {

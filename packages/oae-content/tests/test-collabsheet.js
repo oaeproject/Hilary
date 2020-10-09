@@ -51,7 +51,8 @@ describe('Collaborative spreadsheets', function() {
   it('verify basic parameter validation when joining a collaborative spreadsheet', function(callback) {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, function(err, users) {
       assert.ok(!err);
-      const ctx = _.values(users)[0].restContext;
+      const { 0: johnDoe } = users;
+      const ctx = johnDoe.restContext;
 
       // Check that we can't join a content item that's not collaborative
       RestAPI.Content.createLink(
@@ -104,9 +105,11 @@ describe('Collaborative spreadsheets', function() {
   it('verify joining a room respects the content permissions', function(callback) {
     TestsUtil.generateTestUsers(camAdminRestContext, 3, function(err, users) {
       assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
-      const brandenCtx = _.values(users)[1].restContext;
-      const stuartCtx = _.values(users)[2].restContext;
+
+      const { 0: simon, 1: branden, 2: stuart } = users;
+      const simonCtx = simon.restContext;
+      const brandenCtx = branden.restContext;
+      const stuartCtx = stuart.restContext;
 
       // Simon creates a collaborative spreadsheet that's private
       const name = TestsUtil.generateTestUserId();
@@ -127,7 +130,7 @@ describe('Collaborative spreadsheets', function() {
 
             // Share it with branden, viewers still can't edit(=join) though
             const members = {};
-            members[_.keys(users)[1]] = 'viewer';
+            members[branden.user.id] = 'viewer';
             RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
               assert.ok(!err);
 
@@ -137,7 +140,7 @@ describe('Collaborative spreadsheets', function() {
                 assert.ok(!data);
 
                 // Now that we make Branden a manager, he should be able to join
-                members[_.keys(users)[1]] = 'manager';
+                members[branden.user.id] = 'manager';
                 RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
                   assert.ok(!err);
 
@@ -147,7 +150,7 @@ describe('Collaborative spreadsheets', function() {
                     assert.ok(data);
 
                     // Add Stuart as an editor, he should be able to join
-                    members[_.keys(users)[2]] = 'editor';
+                    members[stuart.user.id] = 'editor';
                     RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
                       assert.ok(!err);
 
@@ -175,7 +178,8 @@ describe('Collaborative spreadsheets', function() {
   it('verify that ethercalc related properties cannot be set on the content object', function(callback) {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, function(err, users) {
       assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
+      const { 0: simon } = users;
+      const simonCtx = simon.restContext;
 
       const name = TestsUtil.generateTestUserId('collabsheet');
       RestAPI.Content.createCollabsheet(simonCtx, name, 'description', 'public', [], [], [], [], function(

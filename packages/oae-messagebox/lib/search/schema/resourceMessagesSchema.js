@@ -14,8 +14,10 @@
  */
 
 /**
- * Create the schema for a document that indexes resource messages information. This document is intended to be a child document,
- * whose parent is the central resource document. This relationship allows for a resource's messages index to be updated without
+ * Create the schema for a document that indexes resource messages information.
+ * This document is intended to be a child document,
+ * whose parent is the central resource document. This relationship allows for a
+ * resource's messages index to be updated without
  * having to re-index anything else about the resource (e.g., members, basic profile, etc...)
  *
  * @return {Object}     schema          The messages child document schema
@@ -23,11 +25,9 @@
  */
 
 /* eslint-disable unicorn/filename-case, camelcase */
-const discussion_message_body = {
+export const discussion_message_body = {
   type: 'text',
   store: 'false',
   index: 'true',
   analyzer: 'message'
 };
-
-export { discussion_message_body };

@@ -270,7 +270,7 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
   _.each(docs, (doc, docId) => {
     // TODO check this out
     try {
-      doc.fields._extra = JSON.parse(doc.fields._extra);
+      doc.fields._extra[0] = JSON.parse(doc.fields._extra[0]);
     } catch (error) {
       // TODO log something here
     }
@@ -280,10 +280,10 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
 
     // Build the transformed result document from the ElasticSearch document
     const result = { id: docId };
-    _.each(doc.fields, (value, name) => {
+    _.each(doc.fields, (value, key) => {
       // Apply the scalar values wrapped in each ElasticSearch document
       // to the transformed search document
-      result[name] = _.first(value);
+      result[key] = head(value);
     });
     // const result = mergeDeepWith(concat, { id: docId }, doc.fields);
 

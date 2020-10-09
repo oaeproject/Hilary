@@ -113,8 +113,10 @@ describe('Search', () => {
     // When the queue is empty, we create a piece of content for which we can generate preview items.
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
       MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
-        TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response, creator) => {
+        TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
           assert.ok(!err);
+
+          const { 0: creator } = response;
 
           RestAPI.Content.createFile(
             creator.restContext,
@@ -157,8 +159,10 @@ describe('Search', () => {
      * item.
      */
     it('verify indexing without full content item', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, doer) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: doer } = users;
 
         RestAPI.Content.createLink(
           doer.restContext,
@@ -237,8 +241,10 @@ describe('Search', () => {
      * Verify that the mime property only returns on search results of type 'file'.
      */
     it('verify mime type', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, doer) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: doer } = users;
 
         // Make sure links don't have mime field
         let description = TestsUtil.generateTestUserId('mimetype-test');
@@ -331,6 +337,7 @@ describe('Search', () => {
 
             _createContentAndWait(pdfStream, (creator, content) => {
               // Verify we can find the content from the PDF in general searches
+
               SearchTestsUtil.searchAll(
                 creator.restContext,
                 'general',

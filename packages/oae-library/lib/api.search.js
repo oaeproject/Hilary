@@ -27,6 +27,8 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as LibraryAPI from 'oae-library';
 
+const { filterOr, filterAnd, filterTerm, filterTerms, createHasChildQuery } = SearchUtil;
+
 /**
  * Register a search that searches through a user or group library.
  *
@@ -113,13 +115,15 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
           // If we're searching for content items we also try to match on content comments and bodies
           if (_.contains(resourceTypes, 'content')) {
             query.bool.should.push(
+              // TODO it's this one!!!! doc doc doc and link it to resourceMessagesSchema file please
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_COMMENT,
-                SearchUtil.createQueryStringQuery(opts.q, ['body']),
+                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
                 'max'
               )
             );
             query.bool.should.push(
+              // TODO Do I need to change this ['content_body'] as well???
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_BODY,
                 SearchUtil.createQueryStringQuery(opts.q, ['content_body']),
@@ -133,7 +137,7 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
             query.bool.should.push(
               SearchUtil.createHasChildQuery(
                 DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-                SearchUtil.createQueryStringQuery(opts.q, ['body']),
+                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
                 'max'
               )
             );
@@ -156,8 +160,9 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
 };
 
 /**
- * Provides a sane default privacy filter for searching libraries. This logic mimicks the library visibility logic
- * such that if a library is requested, only the appropriate items in the visibility bucket are returned
+ * Provides a sane default privacy filter for searching libraries.
+ * This logic mimicks the library visibility logic such that if a library is requested,
+ * only the appropriate items in the visibility bucket are returned
  *
  * @param  {String[]}   resourceTypes           The types of resources to filter by
  * @param  {String}     visibility              The target library visibility to filter as per AuthzConstants#visibility
@@ -175,7 +180,7 @@ const _defaultLibraryFilter = function(resourceTypes, visibility, association) {
   return function(ctx, libraryOwner, opts, callback) {
     // Only look for resources that are in the user's library
     const baseFilter = SearchUtil.filterAnd(
-      SearchUtil.filterTerm('_type', SearchConstants.search.MAPPING_RESOURCE),
+      SearchUtil.filterTerm('type', SearchConstants.search.MAPPING_RESOURCE),
       SearchUtil.filterTerms('resourceType', resourceTypes),
       SearchUtil.createHasChildQuery(
         association.name,

@@ -844,8 +844,10 @@ describe('Content', () => {
      * Test that verifies that comments contain user profile pictures
      */
     it('verify comments contain user profile pictures', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, bert, nicolaas) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: bert, 1: nicolaas } = users;
 
         /**
          * Return a profile picture stream
@@ -5549,8 +5551,10 @@ describe('Content', () => {
      * as a member
      */
     it('verify setting permissions with validated user id adds it to their library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUserInfo, targetUserInfo) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: creatingUserInfo, 1: targetUserInfo } = users;
 
         // Create a content item on which to set roles
         const randomString = TestsUtil.generateRandomText(1);
@@ -5587,93 +5591,91 @@ describe('Content', () => {
      * adds it to their library
      */
     it('verify setting permissions with an email associated to a unique email account adds it to their library', callback => {
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        4,
-        (err, users, creatingUserInfo, targetUserInfoA, targetUserInfoB1, targetUserInfoB2) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
+        assert.ok(!err);
 
-          // Create a content item on which to set roles
-          const randomString = TestsUtil.generateRandomText(1);
-          ContentTestUtil.assertCreateLinkSucceeds(
-            creatingUserInfo.restContext,
-            randomString,
-            randomString,
-            PUBLIC,
-            'http://www.oaeproject.org',
-            [],
-            [],
-            [],
-            content => {
-              // Set the roles of the content item
-              let roleChanges = _.object([[targetUserInfoA.user.email, 'manager']]);
-              // RestCtx, contentId, updatedMembers, callback
-              RestAPI.Content.updateMembers(creatingUserInfo.restContext, content.id, roleChanges, err => {
-                assert.ok(!err);
+        const { 0: creatingUserInfo, 1: targetUserInfoA, 2: targetUserInfoB1, 3: targetUserInfoB2 } = users;
 
-                // Ensure the invitations list is empty
-                AuthzTestUtil.assertGetInvitationsSucceeds(
-                  creatingUserInfo.restContext,
-                  'content',
-                  content.id,
-                  result => {
-                    assert.ok(result);
-                    assert.ok(_.isArray(result.results));
-                    assert.ok(_.isEmpty(result.results));
+        // Create a content item on which to set roles
+        const randomString = TestsUtil.generateRandomText(1);
+        ContentTestUtil.assertCreateLinkSucceeds(
+          creatingUserInfo.restContext,
+          randomString,
+          randomString,
+          PUBLIC,
+          'http://www.oaeproject.org',
+          [],
+          [],
+          [],
+          content => {
+            // Set the roles of the content item
+            let roleChanges = _.object([[targetUserInfoA.user.email, 'manager']]);
+            // RestCtx, contentId, updatedMembers, callback
+            RestAPI.Content.updateMembers(creatingUserInfo.restContext, content.id, roleChanges, err => {
+              assert.ok(!err);
 
-                    // Ensure the members library of the content item contains the target user
-                    ContentTestUtil.getAllContentMembers(creatingUserInfo.restContext, content.id, null, members => {
-                      const targetMember = _.find(members, member => {
-                        return member.profile.id === targetUserInfoA.user.id;
-                      });
-                      assert.ok(targetMember);
+              // Ensure the invitations list is empty
+              AuthzTestUtil.assertGetInvitationsSucceeds(
+                creatingUserInfo.restContext,
+                'content',
+                content.id,
+                result => {
+                  assert.ok(result);
+                  assert.ok(_.isArray(result.results));
+                  assert.ok(_.isEmpty(result.results));
 
-                      // Ensure the target user's content library contains the content item
-                      ContentTestUtil.assertGetAllContentLibrarySucceeds(
-                        targetUserInfoA.restContext,
-                        targetUserInfoA.user.id,
-                        null,
-                        contentItems => {
-                          assert.ok(_.findWhere(contentItems, { id: content.id }));
-
-                          // Update the B target users to have the same emails
-                          PrincipalsTestUtil.assertUpdateUserSucceeds(
-                            targetUserInfoB2.restContext,
-                            targetUserInfoB2.user.id,
-                            { email: targetUserInfoB1.user.email },
-                            (updatedUser, token) => {
-                              PrincipalsTestUtil.assertVerifyEmailSucceeds(
-                                targetUserInfoB2.restContext,
-                                targetUserInfoB2.user.id,
-                                token,
-                                () => {
-                                  // Perform a regular email invitation with the same email,
-                                  // ensuring it is the invitations list that updates, not the
-                                  // members
-                                  roleChanges = _.object([[targetUserInfoB1.user.email, 'manager']]);
-                                  ContentTestUtil.assertUpdateContentMembersSucceeds(
-                                    creatingUserInfo.restContext,
-                                    creatingUserInfo.restContext,
-                                    content.id,
-                                    roleChanges,
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                  // Ensure the members library of the content item contains the target user
+                  ContentTestUtil.getAllContentMembers(creatingUserInfo.restContext, content.id, null, members => {
+                    const targetMember = _.find(members, member => {
+                      return member.profile.id === targetUserInfoA.user.id;
                     });
-                  }
-                );
-              });
-            }
-          );
-        }
-      );
+                    assert.ok(targetMember);
+
+                    // Ensure the target user's content library contains the content item
+                    ContentTestUtil.assertGetAllContentLibrarySucceeds(
+                      targetUserInfoA.restContext,
+                      targetUserInfoA.user.id,
+                      null,
+                      contentItems => {
+                        assert.ok(_.findWhere(contentItems, { id: content.id }));
+
+                        // Update the B target users to have the same emails
+                        PrincipalsTestUtil.assertUpdateUserSucceeds(
+                          targetUserInfoB2.restContext,
+                          targetUserInfoB2.user.id,
+                          { email: targetUserInfoB1.user.email },
+                          (updatedUser, token) => {
+                            PrincipalsTestUtil.assertVerifyEmailSucceeds(
+                              targetUserInfoB2.restContext,
+                              targetUserInfoB2.user.id,
+                              token,
+                              () => {
+                                // Perform a regular email invitation with the same email,
+                                // ensuring it is the invitations list that updates, not the
+                                // members
+                                roleChanges = _.object([[targetUserInfoB1.user.email, 'manager']]);
+                                ContentTestUtil.assertUpdateContentMembersSucceeds(
+                                  creatingUserInfo.restContext,
+                                  creatingUserInfo.restContext,
+                                  content.id,
+                                  roleChanges,
+                                  () => {
+                                    return callback();
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  });
+                }
+              );
+            });
+          }
+        );
+      });
     });
   });
 

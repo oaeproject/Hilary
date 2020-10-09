@@ -315,7 +315,7 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
   _.each(docs, (doc, docId) => {
     // TODO take care of this
     try {
-      doc.fields._extra = JSON.parse(doc.fields._extra);
+      doc.fields._extra[0] = JSON.parse(doc.fields._extra[0]);
     } catch (error) {
       // TODO log here something
     }
@@ -330,8 +330,8 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
 
     // Apply the scalar values wrapped in each ElasticSearch document
     // to the transformed search document
-    _.each(doc.fields, (value, name) => {
-      result[name] = _.first(value);
+    _.each(doc.fields, (value, key) => {
+      result[key] = head(value);
     });
     // result = mergeDeepWith(concat, result, doc.fields);
 

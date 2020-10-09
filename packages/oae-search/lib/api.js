@@ -19,9 +19,11 @@ import { logger } from 'oae-logger';
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
+import { map, path, gt, length, equals, defaultTo, forEach, assoc, assocPath } from 'ramda';
+
 import { Validator as validator } from 'oae-util/lib/validator';
 const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
-import { gt, length, equals, defaultTo, forEach, assoc, assocPath } from 'ramda';
+
 import { SearchConstants } from 'oae-search/lib/constants';
 import { SearchResult } from 'oae-search/lib/model';
 
@@ -354,17 +356,30 @@ const search = function(ctx, searchType, opts, callback) {
       }
 
       // We pull the '_extra' field out and parse it into JSON
+      const hitsPath = ['body', 'hits', 'hits'];
+      const extraFields = path(['fields', '_extra']);
+      const hitsWithin = path(hitsPath);
+      /*
+      assocPath(
+        hitsPath,
+        map(eachHit => {
+          return map(eachField => JSON.parse(eachField), extraFields(eachHit));
+        }, hitsWithin(elasticSearchResponse)),
+        elasticSearchResponse
+      );
+      */
+
       _.each(elasticSearchResponse.body.hits.hits, hit => {
         try {
-          // TODO this must be wrong surely? it's not even an array.
           hit.fields._extra[0] = JSON.parse(hit.fields._extra[0]);
+          // hit.fields._extra = JSON.parse(hit.fields._extra[0]);
         } catch (error) {
           log().warn({ err: error, hit }, 'Failed to parse _extra field of search document into JSON. Ignoring');
         }
       });
 
       transformSearchResults(ctx, searchDocumentTransformers, elasticSearchResponse, (err, transformedResults) => {
-        if (err) callback(err);
+        if (err) return callback(err);
 
         // Ensure we scrub any `_extra` field from all results
         _.each(transformedResults.results, doc => {
@@ -492,6 +507,7 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
          * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
          */
         // TODO move this somewhere up
+        // TODO there are constants for all of these, we should use them
         const resourceChildren = [
           'discussion_message',
           'resource_members',

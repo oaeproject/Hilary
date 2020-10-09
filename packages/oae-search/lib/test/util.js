@@ -189,7 +189,7 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
     // opts.limit = 1;
     opts.size = 1;
     searchRefreshed(restCtx, searchType, params, opts, (err, result) => {
-      if (err) callback(err);
+      if (err) return callback(err);
 
       // const totalResults = path(['total', 'value'], result);
       const totalResults = prop('total', result);

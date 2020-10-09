@@ -45,7 +45,6 @@ const removeFalsy = reject(isNil);
 
 import {
   prop,
-  head,
   assoc,
   isNil,
   and,
@@ -55,6 +54,7 @@ import {
   path,
   compose,
   defaultTo,
+  head,
   forEachObjIndexed,
   mergeDeepLeft
 } from 'ramda';
@@ -212,9 +212,9 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
   );
 });
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produce the necessary content comment search documents.
@@ -519,16 +519,18 @@ const _transformContentDocuments = function(ctx, docs, callback) {
   forEachObjIndexed((doc, docId) => {
     // TODO this is to merge the `lastModified` attribute to the `_source` field but it's already there
     // TODO make sure we really (still) need this
-    const pickFields = pick(['mime', 'lastModified']);
+    // const pickFields = pick(['mime', 'lastModified']);
     const getExtra = path(['fields', '_extra']);
-    // const extraFields = compose(pickFields, defaultToEmptyObject, JSON.parse, head, getExtra)(doc);
+    const extraFields = compose(defaultToEmptyObject, head, getExtra)(doc);
     // let result = mergeAll([doc.fields, { id: docId }, extraFields]);
+    let result = mergeAll([{ id: docId }, extraFields]);
 
-    let result = mergeAll([doc.fields, { id: docId }]);
-    _.each(doc.fields, (value, name) => {
+    // let result = mergeAll([doc.fields, { id: docId }]);
+    // TODO redo this using map and assoc
+    _.each(doc.fields, (value, key) => {
       // Apply the scalar values wrapped in each ElasticSearch document
       // to the transformed search document
-      result[name] = _.first(value);
+      result[key] = head(value);
     });
 
     // Add the full tenant object and profile path

@@ -45,8 +45,10 @@ describe('Content Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, branden) => {
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 0: simong, 1: branden } = users;
 
         RestAPI.User.getMe(simong.restContext, (err, simonFull) => {
           assert.ok(!err);
@@ -160,8 +162,10 @@ describe('Content Push', () => {
      * @throws {Error}                          If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, branden, simon) => {
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
         assert.ok(!err);
+
+        const { 1: simon, 0: branden } = users;
 
         const contexts = {
           branden,

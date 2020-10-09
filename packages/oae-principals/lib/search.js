@@ -314,7 +314,8 @@ const _transformUserDocuments = function(ctx, docs, callback) {
     // TODO clean and ramdify
     const displayName = head(doc.fields.displayName);
     const email = head(defaultTo([], doc.fields.email));
-    const extra = head(defaultTo({}, doc.fields._extra));
+    // const extra = head(defaultTo({}, doc.fields._extra));
+    const extra = defaultTo({}, doc.fields._extra);
     const tenantAlias = head(doc.fields.tenantAlias);
     const thumbnailUrl = head(defaultTo([], doc.fields.thumbnailUrl));
     const visibility = head(doc.fields.visibility);

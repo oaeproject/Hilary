@@ -70,7 +70,9 @@ describe('Collaborative documents', () => {
   it('verify basic parameter validation when joining a collaborative document', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
       assert.ok(!err);
-      const ctx = _.values(users)[0].restContext;
+
+      const { 0: johnDoe } = users;
+      const ctx = johnDoe.restContext;
 
       // Check that we can't join a content item that's not collaborative
       RestAPI.Content.createLink(
@@ -185,52 +187,57 @@ describe('Collaborative documents', () => {
   it('verify joining a pad respects the content permissions', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
       assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
-      const brandenCtx = _.values(users)[1].restContext;
-      const stuartCtx = _.values(users)[2].restContext;
+
+      const { 0: simon, 1: branden, 2: stuart } = users;
+      const asSimon = simon.restContext;
+      const asBranden = branden.restContext;
+      const asStuart = stuart.restContext;
 
       // Simon creates a collaborative document that's private
       const name = TestsUtil.generateTestUserId();
-      RestAPI.Content.createCollabDoc(simonCtx, name, 'description', 'private', [], [], [], [], (err, contentObj) => {
+      RestAPI.Content.createCollabDoc(asSimon, name, 'description', 'private', [], [], [], [], (err, contentObj) => {
         assert.ok(!err);
 
-        RestAPI.Content.joinCollabDoc(simonCtx, contentObj.id, (err, data) => {
+        RestAPI.Content.joinCollabDoc(asSimon, contentObj.id, (err, data) => {
           assert.ok(!err);
           assert.ok(data);
 
           // Branden has no access yet, so joining should result in a 401
-          RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+          RestAPI.Content.joinCollabDoc(asBranden, contentObj.id, (err, data) => {
             assert.strictEqual(err.code, 401);
             assert.ok(!data);
 
             // Share it with branden, viewers still can't edit(=join) though
             const members = {};
-            members[_.keys(users)[1]] = 'viewer';
-            RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+            members[branden.user.id] = 'viewer';
+            // members[_.keys(users)[1]] = 'viewer';
+            RestAPI.Content.updateMembers(asSimon, contentObj.id, members, err => {
               assert.ok(!err);
 
               // Branden can see the document, but he cannot join in and start editing it
-              RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+              RestAPI.Content.joinCollabDoc(asBranden, contentObj.id, (err, data) => {
                 assert.strictEqual(err.code, 401);
                 assert.ok(!data);
 
                 // Now that we make Branden a manager, he should be able to join
-                members[_.keys(users)[1]] = 'manager';
-                RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+                // members[_.keys(users)[1]] = 'manager';
+                members[branden.user.id] = 'manager';
+                RestAPI.Content.updateMembers(asSimon, contentObj.id, members, err => {
                   assert.ok(!err);
 
                   // Branden should now be able to access it
-                  RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, (err, data) => {
+                  RestAPI.Content.joinCollabDoc(asBranden, contentObj.id, (err, data) => {
                     assert.ok(!err);
                     assert.ok(data);
 
                     // Add Stuart as an editor, he should be able to join
-                    members[_.keys(users)[2]] = 'editor';
-                    RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, err => {
+                    // members[_.keys(users)[2]] = 'editor';
+                    members[stuart.user.id] = 'editor';
+                    RestAPI.Content.updateMembers(asSimon, contentObj.id, members, err => {
                       assert.ok(!err);
 
                       // Stuart should now be able to access it
-                      RestAPI.Content.joinCollabDoc(stuartCtx, contentObj.id, (err, data) => {
+                      RestAPI.Content.joinCollabDoc(asStuart, contentObj.id, (err, data) => {
                         assert.ok(!err);
                         assert.ok(data);
 
@@ -473,8 +480,10 @@ describe('Collaborative documents', () => {
   it('verify that restoring collaborative documents is access scoped', callback => {
     ContentTestUtil.createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
       const [contentObj, users, simon] = collabdocData;
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, branden) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
         assert.ok(!err);
+
+        const { 0: branden } = users;
 
         const texts = ['Any sufficiently advanced technology is indistinguishable from magic.'];
         editAndPublish(simon, contentObj, texts, () => {
@@ -526,18 +535,22 @@ describe('Collaborative documents', () => {
   it('verify that etherpad related properties cannot be set on the content object', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
       assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
+      const { 0: simon } = users;
+      const simonCtx = simon.restContext;
 
       const name = TestsUtil.generateTestUserId('collabdoc');
+
       RestAPI.Content.createCollabDoc(simonCtx, name, 'description', 'public', [], [], [], [], (err, contentObj) => {
         assert.ok(!err);
 
         // Try updating any of the etherpad properties
         RestAPI.Content.updateContent(simonCtx, contentObj.id, { etherpadGroupId: 'bleh' }, err => {
           assert.strictEqual(err.code, 400);
+
           RestAPI.Content.updateContent(simonCtx, contentObj.id, { etherpadPadId: 'bleh' }, err => {
             assert.strictEqual(err.code, 400);
             // Update a regular property
+
             RestAPI.Content.updateContent(
               simonCtx,
               contentObj.id,

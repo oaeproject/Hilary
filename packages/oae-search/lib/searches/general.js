@@ -183,13 +183,19 @@ const _search_new = function(ctx, opts, callback) {
  * @api private
  */
 const _createQuery = function(ctx, opts) {
-  if (opts.q === SearchConstants.query.ALL) {
-    return createQueryStringQuery(opts.q);
-  }
-
   const includeContent = _includesResourceType(opts, 'content');
   const includeDiscussion = _includesResourceType(opts, 'discussion');
   const includeFolder = _includesResourceType(opts, 'folder');
+
+  if (opts.q === SearchConstants.query.ALL) {
+    // return createQueryStringQuery(opts.q);
+    // TODO not sure this produces the exact same results
+    // but apparently ES no longer supports query_string syntax along with bool type query
+    // so all in all I'm adding a should with a query_string in it
+    // oae-content tests pass
+    // oae-search tests pass
+    return { bool: { should: [createQueryStringQuery(opts.q)], minimum_should_match: 1 } };
+  }
 
   /**
    * If we will be including results that match child documents, we'll want to
@@ -206,9 +212,10 @@ const _createQuery = function(ctx, opts) {
   // For content items, include their comments and body text
   if (includeContent) {
     query.bool.should.push(
+      // TODO state here the association with resourceMessagesSchema
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
-        createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(opts.q, ['discussion_message_body']),
         'max'
       )
     );
@@ -225,10 +232,11 @@ const _createQuery = function(ctx, opts) {
 
   // For discussions, include their messages
   if (includeDiscussion) {
+    // TODO state here the association with resourceMessagesSchema
     query.bool.should.push(
       SearchUtil.createHasChildQuery(
         DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-        createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(opts.q, ['discussion_message_body']),
         'max'
       )
     );

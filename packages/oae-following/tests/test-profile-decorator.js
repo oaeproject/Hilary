@@ -14,7 +14,6 @@
  */
 
 import assert from 'assert';
-import _ from 'underscore';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';

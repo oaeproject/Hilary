@@ -95,7 +95,7 @@ LibraryAPI.Search.registerLibrarySearch('memberships-library', ['group'], {
         return callback(
           null,
           SearchUtil.filterAnd(
-            SearchUtil.filterTerm('_type', SearchConstants.search.MAPPING_RESOURCE),
+            SearchUtil.filterTerm('type', SearchConstants.search.MAPPING_RESOURCE),
             SearchUtil.filterTerms('resourceType', ['group']),
             SearchUtil.filterIds(groupIds)
           )

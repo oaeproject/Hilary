@@ -33,7 +33,7 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import { PrincipalsConstants } from 'oae-principals/lib/constants';
 import { User } from 'oae-principals/lib/model';
 
-import { head, defaultTo, concat, mergeDeepWith } from 'ramda';
+import { head, defaultTo } from 'ramda';
 
 const log = logger('principals-search');
 
@@ -315,7 +315,7 @@ const _transformUserDocuments = function(ctx, docs, callback) {
     const displayName = head(doc.fields.displayName);
     const email = head(defaultTo([], doc.fields.email));
     // const extra = head(defaultTo({}, doc.fields._extra));
-    const extra = defaultTo({}, doc.fields._extra);
+    const extra = defaultTo({}, head(doc.fields._extra));
     const tenantAlias = head(doc.fields.tenantAlias);
     const thumbnailUrl = head(defaultTo([], doc.fields.thumbnailUrl));
     const visibility = head(doc.fields.visibility);
@@ -388,7 +388,7 @@ const _transformGroupDocuments = function(ctx, docs, callback) {
     try {
       doc.fields._extra = JSON.parse(doc.fields._extra);
     } catch (error) {
-      // TODO do something here, this try catch is mine
+      log().warn('Error trying to parse JSON: ' + error);
     }
 
     // Extract the extra object from the search document

@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util';
+
+import { forEach, keys } from 'ramda';
 
 describe('Authz-Roles', () => {
   const PrincipalTypes = { USER: 'u', GROUP: 'g' };
@@ -82,7 +83,7 @@ describe('Authz-Roles', () => {
 
   describe('#getAllRoles()', () => {
     it('verify invalid principal id error', callback => {
-      AuthzAPI.getAllRoles('not an id', 'c:cam:Foo.docx', (err, roles) => {
+      AuthzAPI.getAllRoles('not an id', 'c:cam:Foo.docx', (err /* , roles */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
         callback();
@@ -90,7 +91,7 @@ describe('Authz-Roles', () => {
     });
 
     it('verify non-principal id error', callback => {
-      AuthzAPI.getAllRoles('c:cam:mrvisser', 'c:cam:Foo.docx', (err, roles) => {
+      AuthzAPI.getAllRoles('c:cam:mrvisser', 'c:cam:Foo.docx', (err /* , roles */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
         callback();
@@ -98,7 +99,7 @@ describe('Authz-Roles', () => {
     });
 
     it('verify invalid resource id error', callback => {
-      AuthzAPI.getAllRoles('u:cam:mrvisser', 'not an id', (err, roles) => {
+      AuthzAPI.getAllRoles('u:cam:mrvisser', 'not an id', (err /* , roles */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
         callback();
@@ -109,7 +110,7 @@ describe('Authz-Roles', () => {
       const userId = AuthzUtil.toId('u', 'gar-empty', 'mrvisser');
       const resourceId = AuthzUtil.toId('c', 'gar-empty', 'SomeContent');
       AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.strictEqual(roles.length, 0);
         callback();
       });
@@ -119,9 +120,9 @@ describe('Authz-Roles', () => {
       const userId = AuthzUtil.toId('u', 'gar-direct', 'mrvisser');
       const resourceId = AuthzUtil.toId('c', 'gar-direct', 'SomeContent');
       AuthzAPI.updateRoles(resourceId, makeChange(userId, 'viewer'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(roles.length, 1);
           assert.strictEqual(roles[0], 'viewer');
           callback();
@@ -135,11 +136,11 @@ describe('Authz-Roles', () => {
       const resourceId = AuthzUtil.toId('c', 'gar-indirect-one', 'SomeContent');
 
       AuthzAPI.updateRoles(groupId, makeChange(userId, 'member'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.updateRoles(resourceId, makeChange(groupId, 'viewer'), err => {
-          assert.ok(!err);
+          assert.notExists(err);
           AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(roles.length, 1);
             assert.strictEqual(roles[0], 'viewer');
             callback();
@@ -154,17 +155,17 @@ describe('Authz-Roles', () => {
       const resourceId = AuthzUtil.toId('c', 'gar-indirect-one', 'SomeContent');
 
       AuthzAPI.updateRoles(groupId, makeChange(userId, 'member'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         const changes = {};
         changes[groupId] = 'viewer';
         changes[userId] = 'editor';
         AuthzAPI.updateRoles(resourceId, changes, err => {
-          assert.ok(!err);
+          assert.notExists(err);
           AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(roles.length, 2);
-            assert.ok(roles.indexOf('viewer') !== -1);
-            assert.ok(roles.indexOf('editor') !== -1);
+            assert.ok(roles.includes('viewer'));
+            assert.ok(roles.includes('editor'));
             callback();
           });
         });
@@ -178,18 +179,18 @@ describe('Authz-Roles', () => {
       const resourceId = AuthzUtil.toId('c', 'ia-multi', 'SomeContent');
 
       AuthzAPI.updateRoles(groupId1, makeChange(userId, 'member'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.updateRoles(groupId2, makeChange(userId, 'member'), err => {
-          assert.ok(!err);
+          assert.notExists(err);
           AuthzAPI.updateRoles(resourceId, makeChange(groupId1, 'viewer'), err => {
-            assert.ok(!err);
+            assert.notExists(err);
             AuthzAPI.updateRoles(resourceId, makeChange(groupId2, 'manager'), err => {
-              assert.ok(!err);
+              assert.notExists(err);
               AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(roles.length, 2);
-                assert.ok(roles.indexOf('viewer') !== -1);
-                assert.ok(roles.indexOf('manager') !== -1);
+                assert.ok(roles.includes('viewer'));
+                assert.ok(roles.includes('manager'));
                 callback();
               });
             });
@@ -205,25 +206,25 @@ describe('Authz-Roles', () => {
       const userId = AuthzUtil.toId('u', 'ia-circ', 'mrvisser');
       const resourceId = AuthzUtil.toId('c', 'ia-circ', 'SomeContent');
       AuthzAPI.updateRoles(groupId1, makeChange(userId, 'member'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.updateRoles(groupId2, makeChange(groupId1, 'member'), err => {
-          assert.ok(!err);
+          assert.notExists(err);
           AuthzAPI.updateRoles(groupId3, makeChange(groupId2, 'member'), err => {
-            assert.ok(!err);
+            assert.notExists(err);
             AuthzAPI.updateRoles(groupId1, makeChange(groupId3, 'member'), err => {
-              assert.ok(!err);
+              assert.notExists(err);
               AuthzAPI.updateRoles(resourceId, makeChange(groupId1, 'viewer'), err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 AuthzAPI.updateRoles(resourceId, makeChange(groupId2, 'manager'), err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   AuthzAPI.updateRoles(resourceId, makeChange(groupId3, 'editor'), err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     AuthzAPI.getAllRoles(userId, resourceId, (err, roles) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.strictEqual(roles.length, 3);
-                      assert.ok(roles.indexOf('viewer') !== -1);
-                      assert.ok(roles.indexOf('manager') !== -1);
-                      assert.ok(roles.indexOf('editor') !== -1);
+                      assert.ok(roles.includes('viewer'));
+                      assert.ok(roles.includes('manager'));
+                      assert.ok(roles.includes('editor'));
                       callback();
                     });
                   });
@@ -245,25 +246,25 @@ describe('Authz-Roles', () => {
       );
 
       AuthzAPI.updateRoles(resourceId, makeChange(principalIdA, 'manager'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify tenant B user does not have a direct or indirect role on that content
         AuthzAPI.getAllRoles(principalIdB, resourceId, (err, roles) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(roles.length, 0);
 
           // Add 'viewer' for security context B
           AuthzAPI.updateRoles(resourceId, makeChange(principalIdB, 'viewer'), err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure user from tenant A is still manager, not viewer
             AuthzAPI.hasRole(principalIdA, resourceId, 'manager', (err, hasRole) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(hasRole);
 
               // Ensure user from context B is a viewer, not manager
               AuthzAPI.hasRole(principalIdB, resourceId, 'viewer', (err, hasRole) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(hasRole);
                 callback();
               });
@@ -278,8 +279,8 @@ describe('Authz-Roles', () => {
     it('verify negative check without any roles', callback => {
       const principalId = AuthzUtil.toId(PrincipalTypes.USER, 'testHasRoleWithout', 'mrvisser');
       AuthzAPI.hasRole(principalId, 'c:cam:nonExistent', 'manager', (err, hasRole) => {
-        assert.ok(!err);
-        assert.ok(!hasRole);
+        assert.notExists(err);
+        assert.isNotOk(hasRole);
         callback();
       });
     });
@@ -290,11 +291,11 @@ describe('Authz-Roles', () => {
 
       // Add the 'manager' role
       AuthzAPI.updateRoles(resourceId, makeChange(principalId, 'manager'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify that hasRole reports that the user has the manager role
         AuthzAPI.hasRole(principalId, resourceId, 'manager', (err, hasRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasRole);
           callback();
         });
@@ -306,21 +307,21 @@ describe('Authz-Roles', () => {
       const resourceId = AuthzUtil.toId(ResourceTypes.CONTENT, 'testHasRole', 'testHasRoleContent');
       // Add the 'manager' role
       AuthzAPI.updateRoles(resourceId, makeChange(principalId, 'manager'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify that hasRole reports that the user has the manager role
         AuthzAPI.hasRole(principalId, resourceId, 'manager', (err, hasRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasRole);
 
           // Remove the role from the user
           AuthzAPI.updateRoles(resourceId, makeChange(principalId, false), err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Verify that the user no longer has the role
             AuthzAPI.hasRole(principalId, resourceId, 'manager', (err, hasRole) => {
-              assert.ok(!err);
-              assert.ok(!hasRole);
+              assert.notExists(err);
+              assert.isNotOk(hasRole);
               callback();
             });
           });
@@ -336,14 +337,14 @@ describe('Authz-Roles', () => {
 
       // 1. set role to viewer and sanity check
       AuthzAPI.updateRoles(resourceId, makeChange(principalId, 'viewer'), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.hasRole(principalId, resourceId, 'viewer', (err, hasRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasRole);
           AuthzAPI.updateRoles(resourceId, makeChange(principalId, 'manager'), err => {
-            assert.ok(!err);
+            assert.notExists(err);
             AuthzAPI.hasRole(principalId, resourceId, 'manager', (err, hasRole) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(hasRole);
               callback();
             });
@@ -377,25 +378,25 @@ describe('Authz-Roles', () => {
       let roles = {};
       roles[principalId1] = 'manager';
       AuthzAPI.updateRoles(resourceId1, roles, err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.hasRole(principalId1, resourceId1, 'manager', (err, hasRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasRole);
           AuthzAPI.hasRole(principalId2, resourceId1, 'manager', (err, hasRole) => {
-            assert.ok(!err);
-            assert.ok(!hasRole);
+            assert.notExists(err);
+            assert.isNotOk(hasRole);
 
             // Make 2 users a manager
             roles = {};
             roles[principalId1] = 'manager';
             roles[principalId2] = 'manager';
             AuthzAPI.updateRoles(resourceId2, roles, err => {
-              assert.ok(!err);
+              assert.notExists(err);
               AuthzAPI.hasRole(principalId1, resourceId2, 'manager', (err, hasRole) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(hasRole);
                 AuthzAPI.hasRole(principalId2, resourceId2, 'manager', (err, hasRole) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(hasRole);
 
                   // Make 2 users a manager, 1 a member
@@ -404,39 +405,39 @@ describe('Authz-Roles', () => {
                   roles[principalId2] = 'manager';
                   roles[principalId3] = 'member';
                   AuthzAPI.updateRoles(resourceId3, roles, err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     AuthzAPI.hasRole(principalId1, resourceId3, 'manager', (err, hasRole) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.ok(hasRole);
                       AuthzAPI.hasRole(principalId2, resourceId3, 'manager', (err, hasRole) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.ok(hasRole);
                         AuthzAPI.hasRole(principalId3, resourceId3, 'member', (err, hasRole) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.ok(hasRole);
                           AuthzAPI.hasRole(principalId4, resourceId3, 'member', (err, hasRole) => {
-                            assert.ok(!err);
-                            assert.ok(!hasRole);
+                            assert.notExists(err);
+                            assert.isNotOk(hasRole);
 
                             // Try to remove 1 role
                             roles = {};
                             roles[principalId3] = false;
                             AuthzAPI.updateRoles(resourceId3, roles, err => {
-                              assert.ok(!err);
+                              assert.notExists(err);
                               AuthzAPI.hasRole(
                                 principalId1,
                                 resourceId3,
                                 'manager',
                                 (err, hasRole) => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
                                   assert.ok(hasRole);
                                   AuthzAPI.hasRole(
                                     principalId3,
                                     resourceId3,
                                     'member',
                                     (err, hasRole) => {
-                                      assert.ok(!err);
-                                      assert.ok(!hasRole);
+                                      assert.notExists(err);
+                                      assert.isNotOk(hasRole);
 
                                       // Try to remove 2 roles and add 1 at the same time
                                       roles = {};
@@ -444,27 +445,27 @@ describe('Authz-Roles', () => {
                                       roles[principalId2] = false;
                                       roles[principalId3] = 'manager';
                                       AuthzAPI.updateRoles(resourceId3, roles, err => {
-                                        assert.ok(!err);
+                                        assert.notExists(err);
                                         AuthzAPI.hasRole(
                                           principalId1,
                                           resourceId3,
                                           'manager',
                                           (err, hasRole) => {
-                                            assert.ok(!err);
-                                            assert.ok(!hasRole);
+                                            assert.notExists(err);
+                                            assert.isNotOk(hasRole);
                                             AuthzAPI.hasRole(
                                               principalId2,
                                               resourceId3,
                                               'member',
                                               (err, hasRole) => {
-                                                assert.ok(!err);
-                                                assert.ok(!hasRole);
+                                                assert.notExists(err);
+                                                assert.isNotOk(hasRole);
                                                 AuthzAPI.hasRole(
                                                   principalId3,
                                                   resourceId3,
                                                   'manager',
                                                   (err, hasRole) => {
-                                                    assert.ok(!err);
+                                                    assert.notExists(err);
                                                     assert.ok(hasRole);
                                                     callback();
                                                   }
@@ -560,39 +561,44 @@ describe('Authz-Roles', () => {
                     [principalId1, principalId2],
                     ResourceTypes.CONTENT,
                     (err, entries) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
-                      // Simong is a member of 350, mrvisser is a member of 300, but 50 of those overlap, so should be 600 unique entries
-                      assert.strictEqual(_.keys(entries).length, 2);
-                      assert.strictEqual(_.keys(entries[principalId1]).length, 300);
-                      assert.strictEqual(_.keys(entries[principalId2]).length, 350);
+                      /**
+                       * Simong is a member of 350, mrvisser is a member of 300,
+                       * but 50 of those overlap, so should be 600 unique entries
+                       */
+                      assert.lengthOf(keys(entries), 2);
+                      assert.lengthOf(keys(entries[principalId1]), 300);
+                      assert.lengthOf(keys(entries[principalId2]), 350);
 
-                      // Verify that mrvisser is a viewer of all items, and that simong is a
-                      // manager of all items
-                      _.each(entries[principalId1], (role, resourceId) => {
+                      /**
+                       * Verify that mrvisser is a viewer of all items, and that simong is a
+                       * manager of all items
+                       */
+                      forEach((role /* , resourceId */) => {
                         assert.strictEqual(role, 'viewer');
-                      });
+                      }, entries[principalId1]);
 
-                      _.each(entries[principalId2], (role, resourceId) => {
+                      forEach((role /* , resourceId */) => {
                         assert.strictEqual(role, 'manager');
-                      });
+                      }, entries[principalId2]);
 
                       // Make sure they work individually
                       AuthzAPI.getRolesForPrincipalsAndResourceType(
                         [principalId1],
                         ResourceTypes.CONTENT,
                         (err, entries) => {
-                          assert.ok(!err);
-                          assert.strictEqual(_.keys(entries).length, 1);
-                          assert.strictEqual(_.keys(entries[principalId1]).length, 300);
+                          assert.notExists(err);
+                          assert.lengthOf(keys(entries), 1);
+                          assert.lengthOf(keys(entries[principalId1]), 300);
 
                           AuthzAPI.getRolesForPrincipalsAndResourceType(
                             [principalId2],
                             ResourceTypes.CONTENT,
                             (err, entries) => {
-                              assert.ok(!err);
-                              assert.strictEqual(_.keys(entries).length, 1);
-                              assert.strictEqual(_.keys(entries[principalId2]).length, 350);
+                              assert.notExists(err);
+                              assert.lengthOf(keys(entries), 1);
+                              assert.lengthOf(keys(entries[principalId2]), 350);
 
                               return callback();
                             }
@@ -621,14 +627,14 @@ describe('Authz-Roles', () => {
         ResourceTypes.CONTENT,
         (err, entries) => {
           assert.ok(err);
-          assert.ok(!entries);
+          assert.isNotOk(entries);
           // Try it with no resource type
           AuthzAPI.getRolesForPrincipalsAndResourceType(
             [principalId1],
             undefined,
             (err, entries) => {
               assert.ok(err);
-              assert.ok(!entries);
+              assert.isNotOk(entries);
               callback();
             }
           );

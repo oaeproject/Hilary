@@ -15,8 +15,7 @@
 
 /* eslint-disable camelcase */
 
-import _ from 'underscore';
-import { of, reject, isNil, pluck, prop, map, path, mergeAll, compose } from 'ramda';
+import { reject, isNil, pluck, path, mergeAll } from 'ramda';
 
 import * as OaeUtil from 'oae-util/lib/util';
 import * as SearchUtil from 'oae-search/lib/util';
@@ -70,8 +69,8 @@ const queryBuilder = function(ctx, opts, callback) {
   // Ensure the email address being searched is lower case so it is case insensitive
   const email = opts.q.toLowerCase();
 
-  const filterResources = SearchUtil.filterResources(['user']);
-  const filterInteractingTenants = SearchUtil.filterInteractingTenants(ctx.user().tenant.alias);
+  // const filterResources = SearchUtil.filterResources(['user']);
+  // const filterInteractingTenants = SearchUtil.filterInteractingTenants(ctx.user().tenant.alias);
 
   /**
    * When searching for users by email, we can ignore profile visibility in lieu of an email
@@ -79,9 +78,9 @@ const queryBuilder = function(ctx, opts, callback) {
    * however we enable the ability for a user to share with that profile if they know the email
    * address
    */
-  const query = SearchUtil.createEmailQuery(email);
-  const queryOpts = _.extend({}, opts, { minScore: 0 });
-  const filter = SearchUtil.filterAnd(filterResources, filterInteractingTenants);
+  // const query = SearchUtil.createEmailQuery(email);
+  // const queryOpts = _.extend({}, opts, { minScore: 0 });
+  // const filter = SearchUtil.filterAnd(filterResources, filterInteractingTenants);
 
   /**
    *  aux functions

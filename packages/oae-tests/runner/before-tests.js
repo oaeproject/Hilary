@@ -56,7 +56,7 @@ before(function(callback) {
 beforeEach(function(callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
   flush(err => {
-    if (err) callback(err);
+    if (err) return callback(err);
     return callback();
   });
 });

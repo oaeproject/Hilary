@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import temp from 'temp';
-import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
@@ -27,7 +26,6 @@ import { Context } from 'oae-context';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import { RestContext } from 'oae-rest/lib/model';
 import * as RestUtil from 'oae-rest/lib/util';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import * as MQ from 'oae-util/lib/mq';
@@ -35,55 +33,144 @@ import * as TestsUtil from 'oae-tests';
 import * as ContentAPI from 'oae-content';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
 import * as ContentUtil from 'oae-content/lib/internal/util';
+import {
+  filter,
+  omit,
+  map,
+  find,
+  path as getPath,
+  not,
+  compose,
+  equals,
+  assoc,
+  values,
+  forEach,
+  prop,
+  nth,
+  length,
+  keys,
+  fromPairs,
+  mergeAll
+} from 'ramda';
 
+const {
+  createTenantRestContext,
+  generateRandomText,
+  createTenantAdminRestContext,
+  createGlobalAdminRestContext,
+  generateTestUserId,
+  generateTestEmailAddress,
+  generateTestUsers,
+  objectifySearchParams
+} = TestsUtil;
+
+const {
+  assertUpdateContentMembersFails,
+  assertGetContentMembersFails,
+  assertGetContentMembersSucceeds,
+  assertShareContentSucceeds,
+  assertCreateLinkSucceeds,
+  assertUpdateContentMembersSucceeds,
+  getAllContentMembers,
+  assertGetAllContentLibrarySucceeds
+} = ContentTestUtil;
+const { assertVerifyEmailSucceeds, assertUpdateUserSucceeds } = PrincipalsTestUtil;
+const { performRestRequest } = RestUtil;
+const { getSignedDownloadUrl } = ContentUtil;
+const { getTenant } = TenantsAPI;
+const { getMe, createUser, updateUser, uploadPicture } = RestAPI.User;
+const { getAllRoles } = AuthzAPI;
+const { createRoleChange, assertGetInvitationsSucceeds } = AuthzTestUtil;
+
+const {
+  getContent,
+  createFile,
+  getLibrary,
+  deleteComment,
+  createCollabDoc,
+  createCollabsheet,
+  updateMembers,
+  download,
+  shareContent,
+  updateContent,
+  getComments,
+  updateFileBody,
+  getRevisions,
+  getRevision,
+  restoreRevision,
+  createComment,
+  deleteContent,
+  createLink
+} = RestAPI.Content;
+const { createGroup } = RestAPI.Group;
+const { unsubscribe, subscribe } = MQ;
+
+const NO_MANAGERS = [];
+const NO_EDITORS = [];
+const NO_FOLDERS = [];
+const NO_VIEWERS = [];
+const NO_MEMBERS = [];
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 const LOGGEDIN = 'loggedin';
+const PASSWORD = 'password';
+const JOINABLE = 'yes';
+const CONTENT = 'content';
+const VIEWER = 'viewer';
+const MANAGER = 'manager';
+
+const OAE_TEAM = 'oae-team';
+const UI_TEAM = 'ui-team';
+const BACKEND_TEAM = 'backend-team';
 
 describe('Content', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
-  let anonymousRestContext = null;
+  let asCambridgeAnonymousUser = null;
   // Rest contexts that can be used every time we need to make a request as a tenant admin
-  let camAdminRestContext = null;
-  let gtAdminRestContext = null;
+
+  let asCambridgeTenantAdmin = null;
   // Rest context that can be used every time we need to make a request as a global admin
-  let globalAdminRestContext = null;
+
+  let asGlobalAdmin = null;
 
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
   before(callback => {
     // Fill up anonymous rest context
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    // Fill up tenant admin rest contexts
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    // Fill up global admin rest context
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
 
-    // Log in the tenant admin so his cookie jar is set up appropriately. This is because TestsUtil.generateTestUsers
-    // will concurrently try and create users, which causes race conditions when trying to authenticate the rest
-    // context.
-    RestAPI.User.getMe(camAdminRestContext, (err, meObj) => {
-      assert.ok(!err);
+    // Fill up tenant admin rest contexts
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+
+    // Fill up global admin rest context
+    asGlobalAdmin = createGlobalAdminRestContext();
+
+    /**
+     * Log in the tenant admin so his cookie jar is set up appropriately. This is because generateTestUsers
+     * will concurrently try and create users, which causes race conditions when trying to authenticate the rest
+     * context.
+     */
+    getMe(asCambridgeTenantAdmin, (err /* , me */) => {
+      assert.notExists(err);
 
       // Unbind the current handler, if any
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-        assert.ok(!err);
+      unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+        assert.notExists(err);
 
         /*!
          * Task handler that will just drain the queue.
          *
          * @see MQ#bind
          */
-        const _handleTaskDrain = function(data, mqCallback) {
+        const _handleTaskDrain = (data, mqCallback) => {
           // Simply callback, which acknowledges the message without doing anything.
           mqCallback();
         };
 
         // Drain the queue
-        MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleTaskDrain, err => {
-          assert.ok(!err);
+        subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleTaskDrain, err => {
+          assert.notExists(err);
           callback();
         });
       });
@@ -107,39 +194,35 @@ describe('Content', () => {
    */
   const setUpUsers = function(callback) {
     const contexts = {};
-    const createUser = function(identifier, visibility, displayName) {
-      const userId = TestsUtil.generateTestUserId(identifier);
-      const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      RestAPI.User.createUser(
-        camAdminRestContext,
-        userId,
-        'password',
-        displayName,
-        email,
-        { visibility },
-        (err, createdUser) => {
-          if (err) {
-            assert.fail('Could not create test user');
-          }
 
-          contexts[identifier] = {
-            user: createdUser,
-            restContext: TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host, userId, 'password')
-          };
-          if (_.keys(contexts).length === 7) {
-            callback(contexts);
-          }
+    const _createUser = function(identifier, visibility, displayName) {
+      const userId = generateTestUserId(identifier);
+      const email = generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
+
+      createUser(asCambridgeTenantAdmin, userId, PASSWORD, displayName, email, { visibility }, (err, createdUser) => {
+        if (err) {
+          assert.fail('Could not create test user');
         }
-      );
+
+        contexts[identifier] = {
+          user: createdUser,
+          restContext: createTenantRestContext(global.oaeTests.tenants.cam.host, userId, PASSWORD)
+        };
+
+        const allSet = compose(equals(7), length, keys)(contexts);
+        if (allSet) {
+          callback(contexts);
+        }
+      });
     };
 
-    createUser('nicolaas', PUBLIC, 'Nicolaas Matthijs');
-    createUser('simon', LOGGEDIN, 'Simon Gaeremynck');
-    createUser('bert', PRIVATE, 'Bert Pareyn');
-    createUser('branden', PRIVATE, 'Branden Visser');
-    createUser('anthony', PUBLIC, 'Anthony Whyte');
-    createUser('stuart', PUBLIC, 'Stuart Freeman');
-    createUser('ian', PUBLIC, 'Ian Dolphin');
+    _createUser('nicolaas', PUBLIC, 'Nicolaas Matthijs');
+    _createUser('simon', LOGGEDIN, 'Simon Gaeremynck');
+    _createUser('bert', PRIVATE, 'Bert Pareyn');
+    _createUser('branden', PRIVATE, 'Branden Visser');
+    _createUser('anthony', PUBLIC, 'Anthony Whyte');
+    _createUser('stuart', PUBLIC, 'Stuart Freeman');
+    _createUser('ian', PUBLIC, 'Ian Dolphin');
   };
 
   /**
@@ -150,50 +233,53 @@ describe('Content', () => {
    * @param  {Object}              callback.groups    JSON Object where the keys are the group identifiers and the values are the
    *                                                  actual group object
    */
-  const setUpGroups = function(contexts, callback) {
-    const groups = {};
-    // Create UI Dev Group
-    // Make Bert a member
-    RestAPI.Group.createGroup(
-      contexts.bert.restContext,
+  const setUpGroups = (contexts, callback) => {
+    const asBert = contexts.bert.restContext;
+    const asBranden = contexts.branden.restContext;
+    const asAnthony = contexts.anthony.restContext;
+    const { simon, nicolaas, stuart } = contexts;
+
+    // Create UI Dev Group and make Bert a member
+    createGroup(
+      asBert,
       'UI Dev Team',
       'UI Dev Group',
       PUBLIC,
-      'yes',
-      [],
-      [contexts.nicolaas.user.id],
-      (err, groupObj) => {
-        assert.ok(!err);
-        groups['ui-team'] = groupObj;
-        // Create Back-end Dev Group
-        // Make Simon a member
-        let simonMember = {};
-        simonMember = 'member';
-        RestAPI.Group.createGroup(
-          contexts.branden.restContext,
+      JOINABLE,
+      NO_MANAGERS,
+      [nicolaas.user.id],
+      (err, designTeam) => {
+        assert.notExists(err);
+
+        // Create Back-end Dev Group and make Simon a member
+        createGroup(
+          asBranden,
           'Back-end Dev Team',
           'Back-end Dev Group',
           PUBLIC,
-          'yes',
-          [],
-          [contexts.simon.user.id],
-          (err, groupObj) => {
-            assert.ok(!err);
-            groups['backend-team'] = groupObj;
+          JOINABLE,
+          NO_MANAGERS,
+          [simon.user.id],
+          (err, backendTeam) => {
+            assert.notExists(err);
 
-            // Create OAE Team Group
-            // Make Stuart, UI Dev Group and Back-end Dev Group all members
-            RestAPI.Group.createGroup(
-              contexts.anthony.restContext,
+            // Create OAE Team Group and make Stuart, UI Dev Group and Back-end Dev Group all members
+            createGroup(
+              asAnthony,
               'OAE Team',
               'OAE Team Group',
               PUBLIC,
-              'yes',
-              [],
-              [groups['ui-team'].id, groups['backend-team'].id, contexts.stuart.user.id],
-              (err, groupObj) => {
-                assert.ok(!err);
-                groups['oae-team'] = groupObj;
+              JOINABLE,
+              NO_MANAGERS,
+              [designTeam.id, backendTeam.id, stuart.user.id],
+              (err, projectTeam) => {
+                assert.notExists(err);
+
+                const addProjectTeam = assoc(OAE_TEAM, projectTeam);
+                const addDesignTeam = assoc(UI_TEAM, designTeam);
+                const addBackendTeam = assoc(BACKEND_TEAM, backendTeam);
+                const groups = compose(addProjectTeam, addDesignTeam, addBackendTeam)({});
+
                 return callback(groups);
               }
             );
@@ -227,12 +313,12 @@ describe('Content', () => {
     callback
   ) {
     // Check whether the content can be retrieved
-    RestAPI.Content.getContent(restCtx, contentObj.id, (err, retrievedContent) => {
+    getContent(restCtx, contentObj.id, (err, retrievedContent) => {
       if (expectAccess) {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(retrievedContent.id);
-        assert.ok(_.isObject(contentObj.tenant));
-        assert.strictEqual(_.keys(retrievedContent.tenant).length, 3);
+        assert.isObject(contentObj.tenant);
+        assert.lengthOf(keys(retrievedContent.tenant), 3);
         assert.strictEqual(retrievedContent.tenant.alias, contentObj.tenant.alias);
         assert.strictEqual(retrievedContent.tenant.displayName, contentObj.tenant.displayName);
         assert.strictEqual(retrievedContent.visibility, contentObj.visibility);
@@ -242,32 +328,32 @@ describe('Content', () => {
         assert.strictEqual(retrievedContent.createdBy.id, contentObj.createdBy);
         assert.strictEqual(retrievedContent.created, contentObj.created);
         assert.ok(retrievedContent.lastModified);
-        assert.strictEqual(retrievedContent.resourceType, 'content');
+        assert.strictEqual(retrievedContent.resourceType, CONTENT);
         assert.strictEqual(
           retrievedContent.profilePath,
-          '/content/' + contentObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(contentObj.id).resourceId
+          `/content/${contentObj.tenant.alias}/${AuthzUtil.getResourceFromId(contentObj.id).resourceId}`
         );
         // Check if the canManage check is appropriate
         assert.strictEqual(retrievedContent.isManager, expectManager);
         assert.strictEqual(retrievedContent.canShare, expectCanShare);
       } else {
-        assert.ok(err);
-        assert.ok(!retrievedContent);
+        assert.exists(err);
+        assert.isNotOk(retrievedContent);
       }
 
       // Check if the item comes back in the library
-      RestAPI.Content.getLibrary(restCtx, libraryToCheck, null, 10, (err, contentItems) => {
+      getLibrary(restCtx, libraryToCheck, null, 10, (err, contentItems) => {
         // If no logged in user is provided, we expect an error
         if (libraryToCheck) {
-          assert.ok(!err);
+          assert.notExists(err);
           if (expectInLibrary) {
-            assert.strictEqual(contentItems.results.length, 1);
+            assert.lengthOf(contentItems.results, 1);
             assert.strictEqual(contentItems.results[0].id, contentObj.id);
           } else {
-            assert.strictEqual(contentItems.results.length, 0);
+            assert.lengthOf(contentItems.results, 0);
           }
         } else {
-          assert.ok(err);
+          assert.exists(err);
         }
 
         callback();
@@ -280,20 +366,14 @@ describe('Content', () => {
    *
    * @return {Stream}     A stream that points to an OAE animation thumbnail that can be uploaded.
    */
-  const getFileStream = function() {
-    const file = path.join(__dirname, '/data/oae-video.png');
-    return fs.createReadStream(file);
-  };
+  const getFileStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-video.png'));
 
   /**
    * Utility method that returns a stream that points to the OAE logo.
    *
    * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
    */
-  const getOAELogoStream = function() {
-    const file = path.join(__dirname, '/data/oae-logo.png');
-    return fs.createReadStream(file);
-  };
+  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.png'));
 
   describe('Get content', () => {
     /**
@@ -302,40 +382,44 @@ describe('Content', () => {
      */
     it('verify get content', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
             // Try with a missing ID (send a space as otherwise it won't even hit the endpoint)
-            RestAPI.Content.getContent(contexts.nicolaas.restContext, ' ', (err, retrievedContentObj) => {
+            getContent(asNico, ' ', (err, retrievedContentObj) => {
               assert.strictEqual(err.code, 400);
-              assert.ok(!retrievedContentObj);
+              assert.isNotOk(retrievedContentObj);
 
               // Try with an invalid ID.
-              RestAPI.Content.getContent(contexts.nicolaas.restContext, 'invalid-id', (err, retrievedContentObj) => {
+              getContent(asNico, 'invalid-id', (err, retrievedContentObj) => {
                 assert.strictEqual(err.code, 400);
-                assert.ok(!retrievedContentObj);
+                assert.isNotOk(retrievedContentObj);
 
                 // Get the created piece of content
-                RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, retrievedContentObj) => {
-                  assert.ok(!err);
+                getContent(asNico, contentObj.id, (err, retrievedContentObj) => {
+                  assert.notExists(err);
                   assert.strictEqual(retrievedContentObj.id, contentObj.id);
 
                   // Call the ContentAPI directly to trigger some validation errors
                   ContentAPI.getContent(null, null, err => {
                     assert.strictEqual(err.code, 400);
+
                     ContentAPI.getContent(null, 'invalid-id', err => {
                       assert.strictEqual(err.code, 400);
                       callback();
@@ -351,9 +435,11 @@ describe('Content', () => {
   });
 
   describe('Download content', () => {
-    // In order to test download URL expiry, sometimes we overload
-    // `Date.now`. This method ensures after each test it gets reset
-    // to the proper function
+    /**
+     * In order to test download URL expiry, sometimes we overload
+     * `Date.now`. This method ensures after each test it gets reset
+     * to the proper function
+     */
     const originalDateNow = Date.now;
     afterEach(callback => {
       Date.now = originalDateNow;
@@ -366,72 +452,69 @@ describe('Content', () => {
      */
     it('verify download content', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
             // Verify that the download link gets added to a content object.
-            RestAPI.Content.getContent(contexts.nicolaas.restContext, contentObj.id, (err, contentObj) => {
-              assert.ok(!err);
+            getContent(asNico, contentObj.id, (err, contentObj) => {
+              assert.notExists(err);
               assert.strictEqual(
                 contentObj.downloadPath,
-                '/api/content/' + contentObj.id + '/download/' + contentObj.latestRevisionId
+                `/api/content/${contentObj.id}/download/${contentObj.latestRevisionId}`
               );
 
-              // Download it
-              // The App servers don't really stream anything
-              // In the tests we're using local storage, so this should result in a 204 (empty body) with the link in the x-accel-redirect header
+              /**
+               * Download it
+               * The App servers don't really stream anything
+               * In the tests we're using local storage, so this should result in a 204 (empty body) with the link in the x-accel-redirect header
+               */
               let path = temp.path();
-              RestAPI.Content.download(contexts.nicolaas.restContext, contentObj.id, null, path, (err, response) => {
-                assert.ok(!err);
-                const headerKeys = _.keys(response.headers);
-                assert.ok(headerKeys.includes('x-accel-redirect'));
-                assert.ok(headerKeys.includes('x-sendfile'));
-                assert.ok(headerKeys.includes('x-lighttpd-send-file'));
+              download(asNico, contentObj.id, null, path, (err, response) => {
+                assert.notExists(err);
+
+                const headerKeys = keys(response.headers);
+                assert.exists(headerKeys.includes('x-accel-redirect'));
+                assert.exists(headerKeys.includes('x-sendfile'));
+                assert.exists(headerKeys.includes('x-lighttpd-send-file'));
 
                 // Try downloading it as Simon
-                RestAPI.Content.download(contexts.simon.restContext, contentObj.id, null, path, (err, body) => {
+                download(asSimon, contentObj.id, null, path, (err /* , body */) => {
                   assert.strictEqual(err.code, 401);
 
                   // Share it.
-                  RestAPI.Content.shareContent(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    [contexts.simon.user.id],
-                    err => {
-                      assert.ok(!err);
+                  shareContent(asNico, contentObj.id, [contexts.simon.user.id], err => {
+                    assert.notExists(err);
 
-                      // Simon should now be able to fetch it
-                      path = temp.path();
-                      RestAPI.Content.download(
-                        contexts.simon.restContext,
-                        contentObj.id,
-                        null,
-                        path,
-                        (err, response) => {
-                          assert.ok(!err);
-                          const headerKeys = _.keys(response.headers);
-                          assert.ok(headerKeys.includes('x-accel-redirect'));
-                          assert.ok(headerKeys.includes('x-sendfile'));
-                          assert.ok(headerKeys.includes('x-lighttpd-send-file'));
+                    // Simon should now be able to fetch it
+                    path = temp.path();
+                    download(asSimon, contentObj.id, null, path, (err, response) => {
+                      assert.notExists(err);
 
-                          callback();
-                        }
-                      );
-                    }
-                  );
+                      const headerKeys = keys(response.headers);
+                      assert.exists(headerKeys.includes('x-accel-redirect'));
+                      assert.exists(headerKeys.includes('x-sendfile'));
+                      assert.exists(headerKeys.includes('x-lighttpd-send-file'));
+
+                      callback();
+                    });
+                  });
                 });
               });
             });
@@ -446,66 +529,53 @@ describe('Content', () => {
      */
     it('verify versioned download content', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
             // Create a new version
-            RestAPI.Content.updateFileBody(contexts.nicolaas.restContext, contentObj.id, getOAELogoStream, err => {
-              assert.ok(!err);
+            updateFileBody(asNico, contentObj.id, getOAELogoStream, err => {
+              assert.notExists(err);
 
-              RestAPI.Content.getRevisions(
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                null,
-                null,
-                (err, revisions) => {
-                  assert.ok(!err);
-                  assert.strictEqual(revisions.results.length, 2);
+              getRevisions(asNico, contentObj.id, null, null, (err, revisions) => {
+                assert.notExists(err);
+                assert.lengthOf(revisions.results, 2);
 
-                  // Download the latest version
-                  let path = temp.path();
-                  RestAPI.Content.download(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    null,
-                    path,
-                    (err, response) => {
-                      assert.ok(!err);
-                      assert.strictEqual(response.statusCode, 204);
-                      const url = response.headers['x-accel-redirect'];
+                // Download the latest version
+                let path = temp.path();
+                download(asNico, contentObj.id, null, path, (err, response) => {
+                  assert.notExists(err);
 
-                      // Download the oldest version
-                      path = temp.path();
-                      RestAPI.Content.download(
-                        contexts.nicolaas.restContext,
-                        contentObj.id,
-                        revisions.results[1].revisionId,
-                        path,
-                        (err, response) => {
-                          assert.ok(!err);
-                          assert.strictEqual(response.statusCode, 204);
-                          const oldUrl = response.headers['x-accel-redirect'];
-                          assert.notStrictEqual(url, oldUrl);
-                          callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                  assert.strictEqual(response.statusCode, 204);
+                  const url = response.headers['x-accel-redirect'];
+
+                  // Download the oldest version
+                  path = temp.path();
+                  download(asNico, contentObj.id, revisions.results[1].revisionId, path, (err, response) => {
+                    assert.notExists(err);
+
+                    assert.strictEqual(response.statusCode, 204);
+                    const oldUrl = response.headers['x-accel-redirect'];
+                    assert.notStrictEqual(url, oldUrl);
+                    callback();
+                  });
+                });
+              });
             });
           }
         );
@@ -517,34 +587,39 @@ describe('Content', () => {
      */
     it('verify uri contains no invalid characters', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
-            RestAPI.Content.getRevisions(contexts.nicolaas.restContext, contentObj.id, null, null, (err, revisions) => {
-              assert.ok(!err);
-              assert.strictEqual(revisions.results.length, 1);
+            getRevisions(asNico, contentObj.id, null, null, (err, revisions) => {
+              assert.notExists(err);
+              assert.lengthOf(revisions.results, 1);
 
-              // The uri that sits on the revision looks like:
-              // local:c/camtest/eJ/kG/Lh/-z/eJkGLh-z/rev-camtest-eygkzIhWz/oae-video.png
-              // We only need to test the part after the (first colon)
+              /**
+               * The uri that sits on the revision looks like:
+               * local:c/camtest/eJ/kG/Lh/-z/eJkGLh-z/rev-camtest-eygkzIhWz/oae-video.png
+               * We only need to test the part after the (first colon)
+               */
               const uri = revisions.results[0].uri
                 .split(':')
                 .slice(1)
                 .join(':');
-              assert.ok(!/[^-_0-9A-Za-z/.]/.test(uri));
+              assert.isNotOk(/[^-_0-9A-Za-z/.]/.test(uri));
               callback();
             });
           }
@@ -557,123 +632,134 @@ describe('Content', () => {
      */
     it('verify validation of signed urls', callback => {
       setUpUsers(contexts => {
+        const { simon, branden } = contexts;
+        const asBranden = branden.restContext;
+        const asSimon = simon.restContext;
+
         // Generate a signed download url for Branden
-        const tenant = TenantsAPI.getTenant(contexts.branden.user.tenant.alias);
-        const signedDownloadUrl = ContentUtil.getSignedDownloadUrl(
+        const tenant = getTenant(contexts.branden.user.tenant.alias);
+        const signedDownloadUrl = getSignedDownloadUrl(
           new Context(tenant, contexts.branden.user),
           'local:2012/12/06/file.doc'
         );
         const parsedUrl = new URL(signedDownloadUrl, 'http://localhost');
 
         // Branden should be able to download it because he is super awesome and important (In this case, downloading = 204)
-        RestUtil.performRestRequest(
-          contexts.branden.restContext,
+        performRestRequest(
+          asBranden,
           '/api/download/signed',
           'GET',
-          TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+          objectifySearchParams(parsedUrl.searchParams),
           (err, body, response) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(response.statusCode, 204);
 
             // Simon should be able to download the content item using the same signature
-            RestUtil.performRestRequest(
-              contexts.simon.restContext,
+            performRestRequest(
+              asSimon,
               '/api/download/signed',
               'GET',
               TestsUtil.objectifySearchParams(parsedUrl.searchParams),
-              (err, body, response) => {
-                assert.ok(!err);
+              (err /* , body, response */) => {
+                assert.notExists(err);
 
                 // Global admin should be able to download the content item using the same signature
-                RestUtil.performRestRequest(
-                  globalAdminRestContext,
+                performRestRequest(
+                  asGlobalAdmin,
                   '/api/download/signed',
                   'GET',
-                  TestsUtil.objectifySearchParams(parsedUrl.searchParams),
-                  (err, body, response) => {
-                    assert.ok(!err);
+                  objectifySearchParams(parsedUrl.searchParams),
+                  (err /* , body, response */) => {
+                    assert.notExists(err);
 
                     // An anonymous user can download it using the same signature as well
-                    RestUtil.performRestRequest(
-                      anonymousRestContext,
+                    performRestRequest(
+                      asCambridgeAnonymousUser,
                       '/api/download/signed',
                       'GET',
-                      TestsUtil.objectifySearchParams(parsedUrl.searchParams),
-                      (err, body, response) => {
-                        assert.ok(!err);
+                      objectifySearchParams(parsedUrl.searchParams),
+                      (err /* , body, response */) => {
+                        assert.notExists(err);
 
                         // Missing uri
-                        RestUtil.performRestRequest(
-                          contexts.branden.restContext,
+                        performRestRequest(
+                          asBranden,
                           '/api/download/signed',
                           'GET',
-                          _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'uri'),
-                          (err, body, request) => {
+                          omit(['uri'], objectifySearchParams(parsedUrl.searchParams)),
+                          (err /* , body, request */) => {
                             assert.strictEqual(err.code, 401);
 
                             // Different uri has an invalid signature
-                            RestUtil.performRestRequest(
-                              contexts.branden.restContext,
+                            performRestRequest(
+                              asBranden,
                               '/api/download/signed',
                               'GET',
-                              _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
-                                uri: 'blahblahblah'
-                              }),
-                              (err, body, request) => {
+                              mergeAll([
+                                objectifySearchParams(parsedUrl.searchParams),
+                                {
+                                  uri: 'blahblahblah'
+                                }
+                              ]),
+                              (err /* , body, request */) => {
                                 assert.strictEqual(err.code, 401);
 
                                 // Missing signature parameter
-                                RestUtil.performRestRequest(
-                                  contexts.branden.restContext,
+                                performRestRequest(
+                                  asBranden,
                                   '/api/download/signed',
                                   'GET',
-                                  _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'signature'),
-                                  (err, body, request) => {
+                                  omit(['signature'], objectifySearchParams(parsedUrl.searchParams)),
+                                  (err /* , body, request */) => {
                                     assert.strictEqual(err.code, 401);
 
                                     // Different signature should fail assertion
-                                    RestUtil.performRestRequest(
-                                      contexts.branden.restContext,
+                                    performRestRequest(
+                                      asBranden,
                                       '/api/download/signed',
                                       'GET',
-                                      _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
-                                        signature: 'ATTACK LOL!!'
-                                      }),
-                                      (err, body, request) => {
+                                      mergeAll([
+                                        objectifySearchParams(parsedUrl.searchParams),
+                                        {
+                                          signature: 'ATTACK LOL!!'
+                                        }
+                                      ]),
+                                      (err /* , body, request */) => {
                                         assert.strictEqual(err.code, 401);
 
                                         // Missing expires parameter
-                                        RestUtil.performRestRequest(
-                                          contexts.branden.restContext,
+                                        performRestRequest(
+                                          asBranden,
                                           '/api/download/signed',
                                           'GET',
-                                          _.omit(TestsUtil.objectifySearchParams(parsedUrl.searchParams), 'expires'),
-                                          (err, body, request) => {
+                                          omit(['expires'], objectifySearchParams(parsedUrl.searchParams)),
+                                          (err /* , body, request */) => {
                                             assert.strictEqual(err.code, 401);
 
                                             // Missing signature parameter
-                                            RestUtil.performRestRequest(
-                                              contexts.branden.restContext,
+                                            performRestRequest(
+                                              asBranden,
                                               '/api/download/signed',
                                               'GET',
-                                              _.extend({}, TestsUtil.objectifySearchParams(parsedUrl.searchParams), {
-                                                expires: 2345678901
-                                              }),
-                                              (err, body, request) => {
+                                              mergeAll([
+                                                objectifySearchParams(parsedUrl.searchParams),
+                                                {
+                                                  expires: 2345678901
+                                                }
+                                              ]),
+                                              (err /* , body, request */) => {
                                                 assert.strictEqual(err.code, 401);
 
                                                 // Jump into a time machine to see if the signature is valid in 15d. It should have expired
                                                 const now = Date.now();
-                                                Date.now = function() {
-                                                  return now + 15 * 24 * 60 * 60 * 1000;
-                                                };
+                                                Date.now = () => now + 15 * 24 * 60 * 60 * 1000;
 
-                                                RestUtil.performRestRequest(
-                                                  contexts.branden.restContext,
+                                                performRestRequest(
+                                                  asBranden,
                                                   '/api/download/signed',
                                                   'GET',
-                                                  TestsUtil.objectifySearchParams(parsedUrl.searchParams),
-                                                  (err, body, response) => {
+                                                  objectifySearchParams(parsedUrl.searchParams),
+                                                  (err /* , body, response * */) => {
                                                     assert.strictEqual(err.code, 401);
                                                     return callback();
                                                   }
@@ -714,46 +800,39 @@ describe('Content', () => {
      */
     const createComments = function(contexts, contentId, numComments, replyTo, callback) {
       let done = 0;
-      contexts = _.toArray(contexts);
+      const contextValues = values(contexts);
 
       /**
        * Returns a random user REST Context from the contexts passed in to `createComments`
        * @return {RestContext}    REST Context object for a user
        */
-      const getRandomCommenter = function() {
-        return contexts[Math.floor(Math.random() * contexts.length)].restContext;
-      };
+      const asRandomCommenter = () => contextValues[Math.floor(Math.random() * length(contextValues))].restContext;
 
       /**
        * Verifies that the comment was created successfully and triggers the creation of another comment if necessary.
        * @param  {Object}   err   Error object indicating that the comment was successfully created or not.
        */
       const commentCreated = function(err, comment) {
-        assert.ok(!err);
-        assert.ok(comment);
-        if (done === numComments) {
+        assert.notExists(err);
+        assert.exists(comment);
+
+        const enoughCommentsCreated = equals(done, numComments);
+        if (enoughCommentsCreated) {
           callback();
         } else {
           done++;
-          createComment();
+          _createComment();
         }
       };
 
       /**
        * Posts a comment on a specified contentId and uses a random commenter and comment
        */
-      const createComment = function() {
-        RestAPI.Content.createComment(
-          getRandomCommenter(),
-          contentId,
-          util.format('Comment #%s', done),
-          replyTo,
-          commentCreated
-        );
-      };
+      const _createComment = () =>
+        createComment(asRandomCommenter(), contentId, util.format('Comment #%s', done), replyTo, commentCreated);
 
       done++;
-      createComment();
+      _createComment();
     };
 
     /**
@@ -761,37 +840,40 @@ describe('Content', () => {
      */
     it('verify create comment', callback => {
       setUpUsers(contexts => {
+        const { bert } = contexts;
+        const asBert = bert.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.bert.restContext,
+        createLink(
+          asBert,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
             // Get the created piece of content
-            RestAPI.Content.getContent(contexts.bert.restContext, contentObj.id, (err, retrievedContentObj) => {
-              assert.ok(!err);
+            getContent(asBert, contentObj.id, (err, retrievedContentObj) => {
+              assert.notExists(err);
               assert.strictEqual(retrievedContentObj.id, contentObj.id);
 
               // Create 10 comments
               createComments(contexts, contentObj.id, 10, null, () => {
                 // Create one more and verify that it comes back as the first comment in the list
-                RestAPI.Content.createComment(
-                  contexts.bert.restContext,
+                createComment(
+                  asBert,
                   contentObj.id,
                   'This comment should be on top of the list',
                   null,
                   (err, comment) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(comment.createdBy.publicAlias, 'Bert Pareyn');
                     assert.strictEqual(comment.level, 0);
                     assert.strictEqual(comment.body, 'This comment should be on top of the list');
@@ -801,34 +883,29 @@ describe('Content', () => {
                     assert.ok(comment.created);
 
                     // Make sure there is NOT an error if "" is sent instead of undefined
-                    RestAPI.Content.createComment(
-                      contexts.bert.restContext,
+                    createComment(
+                      asBert,
                       contentObj.id,
                       'This comment should be on top of the list',
                       '',
                       (err, comment) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Get the comments and verify that the item on top of the list is the correct one
-                        RestAPI.Content.getComments(
-                          contexts.bert.restContext,
-                          contentObj.id,
-                          null,
-                          10,
-                          (err, comments) => {
-                            assert.ok(!err);
+                        getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                          assert.notExists(err);
 
-                            assert.strictEqual(comments.results.length, 10);
-                            assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
-                            assert.strictEqual(comments.results[0].level, 0);
-                            assert.strictEqual(comments.results[0].body, 'This comment should be on top of the list');
-                            assert.strictEqual(comment.messageBoxId, contentObj.id);
-                            assert.strictEqual(comment.threadKey, comment.created + '|');
-                            assert.ok(comment.id);
-                            assert.ok(comment.created);
-                            callback();
-                          }
-                        );
+                          assert.lengthOf(comments.results, 10);
+                          assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
+                          assert.strictEqual(comments.results[0].level, 0);
+                          assert.strictEqual(comments.results[0].body, 'This comment should be on top of the list');
+                          assert.strictEqual(comment.messageBoxId, contentObj.id);
+                          assert.strictEqual(comment.threadKey, comment.created + '|');
+                          assert.ok(comment.id);
+                          assert.ok(comment.created);
+
+                          callback();
+                        });
                       }
                     );
                   }
@@ -844,44 +921,43 @@ describe('Content', () => {
      * Test that verifies that comments contain user profile pictures
      */
     it('verify comments contain user profile pictures', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
         const { 0: bert, 1: nicolaas } = users;
+        const asBert = bert.restContext;
+        const asNico = nicolaas.restContext;
 
         /**
          * Return a profile picture stream
          *
          * @return {Stream}     A stream containing an profile picture
          */
-        const getPictureStream = function() {
-          const file = path.join(__dirname, '/data/profilepic.jpg');
-          return fs.createReadStream(file);
-        };
+        const getPictureStream = () => fs.createReadStream(path.join(__dirname, '/data/profilepic.jpg'));
 
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 250, height: 250 };
-        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, err => {
-          assert.ok(!err);
+        uploadPicture(asBert, bert.user.id, getPictureStream, cropArea, err => {
+          assert.notExists(err);
 
           // Create a piece of content that we can comment on and share it with a user that has no profile picture
-          RestAPI.Content.createLink(
-            bert.restContext,
+          createLink(
+            asBert,
             {
               displayName: 'displayName',
               description: 'description',
               visibility: PUBLIC,
               link: 'http://www.oaeproject.org',
-              managers: [],
+              managers: NO_MANAGERS,
               viewers: [nicolaas.user.id],
-              folders: []
+              folders: NO_FOLDERS
             },
             (err, contentObj) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Add a comment to the piece of content as a user with a profile picture
-              RestAPI.Content.createComment(bert.restContext, contentObj.id, 'Bleh', null, (err, comment) => {
-                assert.ok(!err);
+              createComment(asBert, contentObj.id, 'Bleh', null, (err, comment) => {
+                assert.notExists(err);
 
                 // Assert that the picture URLs are present
                 assert.ok(comment.createdBy);
@@ -891,78 +967,70 @@ describe('Content', () => {
                 assert.ok(comment.createdBy.picture.large);
 
                 // Assert that this works for replies as well
-                RestAPI.Content.createComment(
-                  bert.restContext,
-                  contentObj.id,
-                  'Blah',
-                  comment.created,
-                  (err, reply) => {
-                    assert.ok(!err);
+                createComment(asBert, contentObj.id, 'Blah', comment.created, (err, reply) => {
+                  assert.notExists(err);
 
-                    // Assert that the picture URLs are present
-                    assert.ok(reply.createdBy);
-                    assert.ok(reply.createdBy.picture);
-                    assert.ok(reply.createdBy.picture.small);
-                    assert.ok(reply.createdBy.picture.medium);
-                    assert.ok(reply.createdBy.picture.large);
+                  // Assert that the picture URLs are present
+                  assert.ok(reply.createdBy);
+                  assert.ok(reply.createdBy.picture);
+                  assert.ok(reply.createdBy.picture.small);
+                  assert.ok(reply.createdBy.picture.medium);
+                  assert.ok(reply.createdBy.picture.large);
 
-                    // Add a comment to the piece of content as a user with no profile picture
-                    RestAPI.Content.createComment(nicolaas.restContext, contentObj.id, 'Blih', null, (err, comment) => {
-                      assert.ok(!err);
+                  // Add a comment to the piece of content as a user with no profile picture
+                  createComment(asNico, contentObj.id, 'Blih', null, (err, comment) => {
+                    assert.notExists(err);
+
+                    // Assert that no picture URLs are present
+                    assert.ok(comment.createdBy);
+                    assert.ok(comment.createdBy.picture);
+                    assert.isNotOk(comment.createdBy.picture.small);
+                    assert.isNotOk(comment.createdBy.picture.medium);
+                    assert.isNotOk(comment.createdBy.picture.large);
+
+                    // Assert that this works for replies as well
+                    createComment(asNico, contentObj.id, 'Bluh', comment.created, (err, reply) => {
+                      assert.notExists(err);
 
                       // Assert that no picture URLs are present
-                      assert.ok(comment.createdBy);
-                      assert.ok(comment.createdBy.picture);
-                      assert.ok(!comment.createdBy.picture.small);
-                      assert.ok(!comment.createdBy.picture.medium);
-                      assert.ok(!comment.createdBy.picture.large);
+                      assert.ok(reply.createdBy);
+                      assert.ok(reply.createdBy.picture);
+                      assert.isNotOk(reply.createdBy.picture.small);
+                      assert.isNotOk(reply.createdBy.picture.medium);
+                      assert.isNotOk(reply.createdBy.picture.large);
 
-                      // Assert that this works for replies as well
-                      RestAPI.Content.createComment(
-                        nicolaas.restContext,
-                        contentObj.id,
-                        'Bluh',
-                        comment.created,
-                        (err, reply) => {
-                          assert.ok(!err);
+                      // Assert the profile picture urls are present when retrieven a list of comments
+                      getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                        assert.notExists(err);
+                        assert.lengthOf(comments.results, 4);
 
-                          // Assert that no picture URLs are present
-                          assert.ok(reply.createdBy);
-                          assert.ok(reply.createdBy.picture);
-                          assert.ok(!reply.createdBy.picture.small);
-                          assert.ok(!reply.createdBy.picture.medium);
-                          assert.ok(!reply.createdBy.picture.large);
+                        forEach(comment => {
+                          assert.ok(comment.createdBy);
+                          assert.ok(comment.createdBy.picture);
 
-                          // Assert the profile picture urls are present when retrieven a list of comments
-                          RestAPI.Content.getComments(bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                            assert.ok(!err);
-                            assert.strictEqual(comments.results.length, 4);
-                            _.each(comments.results, comment => {
-                              assert.ok(comment.createdBy);
-                              assert.ok(comment.createdBy.picture);
-                              // Verify that the comments have a picture for the user that
-                              // has a profile picture
-                              if (comment.createdBy.id === bert.user.id) {
-                                assert.ok(comment.createdBy.picture.small);
-                                assert.ok(comment.createdBy.picture.medium);
-                                assert.ok(comment.createdBy.picture.large);
-                                // Verify that the comments don't have a picture for the user
-                                // without a profile picture
-                              } else if (comment.createdBy.id === nicolaas.user.id) {
-                                assert.ok(!comment.createdBy.picture.small);
-                                assert.ok(!comment.createdBy.picture.medium);
-                                assert.ok(!comment.createdBy.picture.large);
-                              } else {
-                                assert.fail('Unexpected user in comments');
-                              }
-                            });
-                            return callback();
-                          });
-                        }
-                      );
+                          // Verify that the comments have a picture for the user that has a profile picture
+                          const bertCommented = equals(comment.createdBy.id, bert.user.id);
+                          const nicoCommented = equals(comment.createdBy.id, nicolaas.user.id);
+
+                          if (bertCommented) {
+                            assert.ok(comment.createdBy.picture.small);
+                            assert.ok(comment.createdBy.picture.medium);
+                            assert.ok(comment.createdBy.picture.large);
+                            // Verify that the comments don't have a picture for the user without a profile picture
+                          } else if (nicoCommented) {
+                            assert.isNotOk(comment.createdBy.picture.small);
+                            assert.isNotOk(comment.createdBy.picture.medium);
+                            assert.isNotOk(comment.createdBy.picture.large);
+                          } else {
+                            assert.fail('Unexpected user in comments');
+                          }
+                        }, comments.results);
+
+                        return callback();
+                      });
                     });
-                  }
-                );
+                  });
+                });
               });
             }
           );
@@ -974,54 +1042,60 @@ describe('Content', () => {
      * Test that will create a reply to a comment on content (thread)
      */
     it('verify reply to comment (threaded)', callback => {
+      const getLevel = (comments, x) => compose(prop('level'), nth(x), prop('results'))(comments);
+
       setUpUsers(contexts => {
+        const { bert } = contexts;
+        const asBert = bert.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.bert.restContext,
+        createLink(
+          asBert,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
             // Get the created piece of content
-            RestAPI.Content.getContent(contexts.bert.restContext, contentObj.id, (err, retrievedContentObj) => {
-              assert.ok(!err);
+            getContent(asBert, contentObj.id, (err, retrievedContentObj) => {
+              assert.notExists(err);
               assert.strictEqual(retrievedContentObj.id, contentObj.id);
 
               // Create a comment on the content item
-              RestAPI.Content.createComment(
-                contexts.bert.restContext,
+              createComment(
+                asBert,
                 contentObj.id,
                 'This comment should be second in the list',
                 null,
                 (err, comment0) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(comment0);
 
                   const secondInListCreated = comment0.created;
 
                   // Get the comments to verify that it's been placed correctly
-                  RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                    assert.ok(!err);
-                    assert.strictEqual(comments.results.length, 1);
+                  getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                    assert.notExists(err);
+                    assert.lengthOf(comments.results, 1);
+
                     assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
 
                     // Add a reply to the comment
-                    RestAPI.Content.createComment(
-                      contexts.bert.restContext,
+                    createComment(
+                      asBert,
                       contentObj.id,
                       'Reply to second comment in the list',
                       comments.results[0].created,
                       (err, comment1) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.strictEqual(comment1.createdBy.publicAlias, 'Bert Pareyn');
                         assert.strictEqual(comment1.level, 1);
                         assert.strictEqual(comment1.body, 'Reply to second comment in the list');
@@ -1030,172 +1104,159 @@ describe('Content', () => {
                         assert.ok(comment1.id);
                         assert.ok(comment1.created);
 
-                        RestAPI.Content.getComments(
-                          contexts.bert.restContext,
-                          contentObj.id,
-                          null,
-                          10,
-                          (err, comments) => {
-                            assert.ok(!err);
-                            assert.strictEqual(comments.results[0].level, 0);
-                            assert.strictEqual(comments.results[1].level, 1);
+                        getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                          assert.notExists(err);
 
-                            // Add a reply to the first reply
-                            RestAPI.Content.createComment(
-                              contexts.bert.restContext,
-                              contentObj.id,
-                              'A reply to the reply on the second comment in the list',
-                              comments.results[1].created,
-                              (err, comment2) => {
-                                assert.ok(!err);
-                                assert.ok(comment2);
+                          assert.strictEqual(getLevel(comments, 0), 0);
+                          assert.strictEqual(getLevel(comments, 1), 1);
 
-                                // Add a second comment to the content item
-                                RestAPI.Content.createComment(
-                                  contexts.bert.restContext,
-                                  contentObj.id,
-                                  'This comment should be first in the list',
-                                  null,
-                                  (err, comment3) => {
-                                    assert.ok(!err);
-                                    assert.ok(comment3);
+                          // Add a reply to the first reply
+                          createComment(
+                            asBert,
+                            contentObj.id,
+                            'A reply to the reply on the second comment in the list',
+                            comments.results[1].created,
+                            (err, comment2) => {
+                              assert.notExists(err);
+                              assert.ok(comment2);
 
-                                    RestAPI.Content.getComments(
-                                      contexts.bert.restContext,
-                                      contentObj.id,
+                              // Add a second comment to the content item
+                              createComment(
+                                asBert,
+                                contentObj.id,
+                                'This comment should be first in the list',
+                                null,
+                                (err, comment3) => {
+                                  assert.notExists(err);
+                                  assert.ok(comment3);
+
+                                  getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                    assert.notExists(err);
+
+                                    // Check level of the replies
+                                    assert.strictEqual(getLevel(comments, 0), 0); // Last level 0 comment made
+                                    assert.strictEqual(comments.results[0].id, comment3.id);
+
+                                    assert.strictEqual(getLevel(comments, 1), 0); // First level 0 comment made
+                                    assert.strictEqual(comments.results[1].id, comment0.id);
+
+                                    assert.strictEqual(getLevel(comments, 2), 1); // First reply to first comment made
+                                    assert.strictEqual(comments.results[2].id, comment1.id);
+
+                                    assert.strictEqual(getLevel(comments, 3), 2); // Reply to the reply
+                                    assert.strictEqual(comments.results[3].id, comment2.id);
+
+                                    // Check that replies to a comment reference the correct comment
+                                    assert.strictEqual(comments.results[1].created, comments.results[2].replyTo);
+                                    assert.strictEqual(comments.results[2].created, comments.results[3].replyTo);
+
+                                    // Try to post a reply without a content ID
+                                    createComment(
+                                      asBert,
                                       null,
-                                      10,
-                                      (err, comments) => {
-                                        assert.ok(!err);
+                                      'This is an updated comment',
+                                      '1231654351',
+                                      (err, comment) => {
+                                        assert.ok(err);
+                                        assert.isNotOk(comment);
 
-                                        // Check level of the replies
-                                        assert.strictEqual(comments.results[0].level, 0); // Last level 0 comment made
-                                        assert.strictEqual(comments.results[0].id, comment3.id);
-                                        assert.strictEqual(comments.results[1].level, 0); // First level 0 comment made
-                                        assert.strictEqual(comments.results[1].id, comment0.id);
-                                        assert.strictEqual(comments.results[2].level, 1); // First reply to first comment made
-                                        assert.strictEqual(comments.results[2].id, comment1.id);
-                                        assert.strictEqual(comments.results[3].level, 2); // Reply to the reply
-                                        assert.strictEqual(comments.results[3].id, comment2.id);
+                                        // Verify that paging results the order of threaded comments
+                                        createLink(
+                                          asBert,
+                                          {
+                                            displayName: 'Test Content',
+                                            description: 'Test content description',
+                                            visibility: PUBLIC,
+                                            link: 'http://www.oaeproject.org/',
+                                            managers: NO_MANAGERS,
+                                            viewers: NO_VIEWERS,
+                                            folders: NO_FOLDERS
+                                          },
+                                          (err, contentObj) => {
+                                            assert.notExists(err);
+                                            assert.ok(contentObj.id);
 
-                                        // Check that replies to a comment reference the correct comment
-                                        assert.strictEqual(comments.results[1].created, comments.results[2].replyTo);
-                                        assert.strictEqual(comments.results[2].created, comments.results[3].replyTo);
+                                            // Create 10 top-level (level === 0) comments
+                                            createComments(contexts, contentObj.id, 10, null, () => {
+                                              getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                                assert.notExists(err);
+                                                assert.lengthOf(comments.results, 10);
 
-                                        // Try to post a reply without a content ID
-                                        RestAPI.Content.createComment(
-                                          contexts.bert.restContext,
-                                          null,
-                                          'This is an updated comment',
-                                          '1231654351',
-                                          (err, comment) => {
-                                            assert.ok(err);
-                                            assert.ok(!comment);
+                                                // Create 10 replies to the 6th comment returned in the previous comments
+                                                createComments(
+                                                  contexts,
+                                                  contentObj.id,
+                                                  10,
+                                                  comments.results[5].created,
+                                                  () => {
+                                                    // Verify the depth/level of the first set of 10 comments
+                                                    getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                                      assert.notExists(err);
 
-                                            // Verify that paging results the order of threaded comments
-                                            RestAPI.Content.createLink(
-                                              contexts.bert.restContext,
-                                              {
-                                                displayName: 'Test Content',
-                                                description: 'Test content description',
-                                                visibility: PUBLIC,
-                                                link: 'http://www.oaeproject.org/',
-                                                managers: [],
-                                                viewers: [],
-                                                folders: []
-                                              },
-                                              (err, contentObj) => {
-                                                assert.ok(!err);
-                                                assert.ok(contentObj.id);
+                                                      const getLevel = x =>
+                                                        compose(prop('level'), nth(x), prop('results'))(comments);
 
-                                                // Create 10 top-level (level === 0) comments
-                                                createComments(contexts, contentObj.id, 10, null, () => {
-                                                  RestAPI.Content.getComments(
-                                                    contexts.bert.restContext,
-                                                    contentObj.id,
-                                                    null,
-                                                    10,
-                                                    (err, comments) => {
-                                                      assert.ok(!err);
-                                                      assert.strictEqual(comments.results.length, 10);
+                                                      assert.lengthOf(comments.results, 10);
 
-                                                      // Create 10 replies to the 6th comment returned in the previous comments
-                                                      createComments(
-                                                        contexts,
+                                                      // First 6 comments are level 0 comments
+                                                      assert.strictEqual(getLevel(0), 0);
+                                                      assert.strictEqual(getLevel(1), 0);
+                                                      assert.strictEqual(getLevel(2), 0);
+                                                      assert.strictEqual(getLevel(3), 0);
+                                                      assert.strictEqual(getLevel(4), 0);
+                                                      assert.strictEqual(getLevel(5), 0);
+
+                                                      // 7, 8 and 9 are level-1 replies (as they are replies to comments.results[5])
+                                                      assert.strictEqual(getLevel(6), 1);
+                                                      assert.strictEqual(getLevel(7), 1);
+                                                      assert.strictEqual(getLevel(8), 1);
+                                                      assert.strictEqual(getLevel(9), 1);
+
+                                                      // Verify the depth/level of the second set of 10 comments
+                                                      getComments(
+                                                        asBert,
                                                         contentObj.id,
+                                                        comments.nextToken,
                                                         10,
-                                                        comments.results[5].created,
-                                                        () => {
-                                                          // Verify the depth/level of the first set of 10 comments
-                                                          RestAPI.Content.getComments(
-                                                            contexts.bert.restContext,
-                                                            contentObj.id,
-                                                            null,
-                                                            10,
-                                                            (err, comments) => {
-                                                              assert.ok(!err);
-                                                              assert.strictEqual(comments.results.length, 10);
+                                                        (err, comments) => {
+                                                          assert.notExists(err);
 
-                                                              // First 6 comments are level 0 comments
-                                                              assert.strictEqual(comments.results[0].level, 0);
-                                                              assert.strictEqual(comments.results[1].level, 0);
-                                                              assert.strictEqual(comments.results[2].level, 0);
-                                                              assert.strictEqual(comments.results[3].level, 0);
-                                                              assert.strictEqual(comments.results[4].level, 0);
-                                                              assert.strictEqual(comments.results[5].level, 0);
+                                                          const getLevel = x =>
+                                                            compose(prop('level'), nth(x), prop('results'))(comments);
+                                                          assert.lengthOf(comments.results, 10);
 
-                                                              // 7, 8 and 9 are level-1 replies (as they are replies to comments.results[5])
-                                                              assert.strictEqual(comments.results[6].level, 1);
-                                                              assert.strictEqual(comments.results[7].level, 1);
-                                                              assert.strictEqual(comments.results[8].level, 1);
-                                                              assert.strictEqual(comments.results[9].level, 1);
+                                                          // Comments 0-5 in the list should all be level 1 (replies to the previous comment)
+                                                          assert.strictEqual(getLevel(0), 1);
+                                                          assert.strictEqual(getLevel(1), 1);
+                                                          assert.strictEqual(getLevel(2), 1);
+                                                          assert.strictEqual(getLevel(3), 1);
+                                                          assert.strictEqual(getLevel(4), 1);
+                                                          assert.strictEqual(getLevel(5), 1);
 
-                                                              // Verify the depth/level of the second set of 10 comments
-                                                              RestAPI.Content.getComments(
-                                                                contexts.bert.restContext,
-                                                                contentObj.id,
-                                                                comments.nextToken,
-                                                                10,
-                                                                (err, comments) => {
-                                                                  assert.ok(!err);
-                                                                  assert.strictEqual(comments.results.length, 10);
+                                                          // Original level 0 comments continue from here on
+                                                          assert.strictEqual(getLevel(6), 0);
+                                                          assert.strictEqual(getLevel(7), 0);
+                                                          assert.strictEqual(getLevel(8), 0);
+                                                          assert.strictEqual(getLevel(9), 0);
 
-                                                                  // Comments 0-5 in the list should all be level 1 (replies to the previous comment)
-                                                                  assert.strictEqual(comments.results[0].level, 1);
-                                                                  assert.strictEqual(comments.results[1].level, 1);
-                                                                  assert.strictEqual(comments.results[2].level, 1);
-                                                                  assert.strictEqual(comments.results[3].level, 1);
-                                                                  assert.strictEqual(comments.results[4].level, 1);
-                                                                  assert.strictEqual(comments.results[5].level, 1);
-
-                                                                  // Original level 0 comments continue from here on
-                                                                  assert.strictEqual(comments.results[6].level, 0);
-                                                                  assert.strictEqual(comments.results[7].level, 0);
-                                                                  assert.strictEqual(comments.results[8].level, 0);
-                                                                  assert.strictEqual(comments.results[9].level, 0);
-
-                                                                  return callback();
-                                                                }
-                                                              );
-                                                            }
-                                                          );
+                                                          return callback();
                                                         }
                                                       );
-                                                    }
-                                                  );
-                                                });
-                                              }
-                                            );
+                                                    });
+                                                  }
+                                                );
+                                              });
+                                            });
                                           }
                                         );
                                       }
                                     );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                                  });
+                                }
+                              );
+                            }
+                          );
+                        });
                       }
                     );
                   });
@@ -1212,62 +1273,62 @@ describe('Content', () => {
      */
     it('verify retrieve comments', callback => {
       setUpUsers(contexts => {
+        const { bert } = contexts;
+        const asBert = bert.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.bert.restContext,
+        createLink(
+          asBert,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
-            assert.ok(contentObj);
+            assert.notExists(err);
+            assert.exists(contentObj);
 
             // Get the created piece of content
-            RestAPI.Content.getContent(contexts.bert.restContext, contentObj.id, (err, retrievedContentObj) => {
-              assert.ok(!err);
+            getContent(asBert, contentObj.id, (err, retrievedContentObj) => {
+              assert.notExists(err);
               assert.strictEqual(retrievedContentObj.id, contentObj.id);
 
               // Create one more and verify that it comes back as the first comment in the list
-              RestAPI.Content.createComment(
-                contexts.bert.restContext,
+              createComment(
+                asBert,
                 contentObj.id,
                 'This comment should be on top of the list',
                 null,
                 (err, comment) => {
-                  assert.ok(!err);
-                  assert.ok(comment);
+                  assert.notExists(err);
+                  assert.exists(comment);
 
                   // Get the comments and verify that the item on top of the list is the correct one
-                  RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                    assert.ok(!err);
-                    assert.strictEqual(comments.results.length, 1);
+                  getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                    assert.notExists(err);
+
+                    assert.lengthOf(comments.results, 1);
                     assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
 
                     // Try to get the comments for a content item without specifying the content ID
-                    RestAPI.Content.getComments(contexts.bert.restContext, null, null, 10, (err, comments) => {
+                    getComments(asBert, null, null, 10, (err /* , comments */) => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 404);
 
-                      RestAPI.Content.getComments(contexts.bert.restContext, ' ', null, 10, (err, comments) => {
+                      getComments(asBert, ' ', null, 10, (err /* , comments */) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
-                        RestAPI.Content.getComments(
-                          contexts.bert.restContext,
-                          'invalid-id',
-                          null,
-                          10,
-                          (err, comments) => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
-                            callback();
-                          }
-                        );
+
+                        getComments(asBert, 'invalid-id', null, 10, (err /* , comments */) => {
+                          assert.ok(err);
+                          assert.strictEqual(err.code, 400);
+
+                          callback();
+                        });
                       });
                     });
                   });
@@ -1283,42 +1344,47 @@ describe('Content', () => {
      * Test that verifies that comments can be paged through
      */
     it('verify retrieve comments paging', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        const ctx = _.values(users)[0].restContext;
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: someUser } = users;
+        const asSomeUser = someUser.restContext;
 
-        RestAPI.Content.createLink(
-          ctx,
+        createLink(
+          asSomeUser,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Create 8 comments
-            createComments(_.values(users), contentObj.id, 8, null, () => {
+            createComments(values(users), contentObj.id, 8, null, () => {
               // Get the first 3 comments
-              RestAPI.Content.getComments(ctx, contentObj.id, null, 3, (err, comments) => {
-                assert.ok(!err);
+              getComments(asSomeUser, contentObj.id, null, 3, (err, comments) => {
+                assert.notExists(err);
+
                 assert.strictEqual(comments.nextToken, comments.results[2].threadKey);
-                assert.strictEqual(comments.results.length, 3);
+                assert.lengthOf(comments.results, 3);
 
                 // Get the next 3 comments
-                RestAPI.Content.getComments(ctx, contentObj.id, comments.nextToken, 3, (err, comments) => {
-                  assert.ok(!err);
+                getComments(asSomeUser, contentObj.id, comments.nextToken, 3, (err, comments) => {
+                  assert.notExists(err);
+
                   assert.strictEqual(comments.nextToken, comments.results[2].threadKey);
-                  assert.strictEqual(comments.results.length, 3);
+                  assert.lengthOf(comments.results, 3);
 
                   // Get the last 2 comments
-                  RestAPI.Content.getComments(ctx, contentObj.id, comments.nextToken, 3, (err, comments) => {
-                    assert.ok(!err);
-                    assert.ok(!comments.nextToken);
-                    assert.strictEqual(comments.results.length, 2);
+                  getComments(asSomeUser, contentObj.id, comments.nextToken, 3, (err, comments) => {
+                    assert.notExists(err);
+
+                    assert.isNotOk(comments.nextToken);
+                    assert.lengthOf(comments.results, 2);
                     callback();
                   });
                 });
@@ -1334,170 +1400,143 @@ describe('Content', () => {
      */
     it('verify delete comment', callback => {
       setUpUsers(contexts => {
+        const { bert } = contexts;
+        const asBert = bert.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.bert.restContext,
+        createLink(
+          asBert,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
             // Get the created piece of content
-            RestAPI.Content.getContent(contexts.bert.restContext, contentObj.id, (err, retrievedContentObj) => {
-              assert.ok(!err);
+            getContent(asBert, contentObj.id, (err, retrievedContentObj) => {
+              assert.notExists(err);
               assert.strictEqual(retrievedContentObj.id, contentObj.id);
 
               // Create a comment
-              RestAPI.Content.createComment(
-                contexts.bert.restContext,
-                contentObj.id,
-                'This comment will be deleted.',
-                null,
-                (err, comment) => {
-                  assert.ok(!err);
-                  assert.ok(comment);
+              createComment(asBert, contentObj.id, 'This comment will be deleted.', null, (err, comment) => {
+                assert.notExists(err);
+                assert.exists(comment);
 
-                  // Get the comments and verify that the new comment was created
-                  RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                    assert.ok(!err);
-                    assert.strictEqual(comments.results.length, 1);
-                    assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
+                // Get the comments and verify that the new comment was created
+                getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                  assert.notExists(err);
 
-                    RestAPI.Content.createComment(
-                      contexts.bert.restContext,
-                      contentObj.id,
-                      'This is a reply on the comment that will be deleted.',
-                      comments.results[0].created,
-                      (err, comment) => {
-                        assert.ok(!err);
-                        assert.ok(comment);
+                  assert.lengthOf(comments.results, 1);
+                  assert.strictEqual(comments.results[0].createdBy.publicAlias, 'Bert Pareyn');
 
-                        // Delete the comment
-                        RestAPI.Content.deleteComment(
-                          contexts.bert.restContext,
-                          contentObj.id,
-                          comments.results[0].created,
-                          (err, softDeleted) => {
-                            assert.ok(!err);
-                            assert.ok(softDeleted.deleted);
-                            assert.ok(!softDeleted.body);
+                  createComment(
+                    asBert,
+                    contentObj.id,
+                    'This is a reply on the comment that will be deleted.',
+                    comments.results[0].created,
+                    (err, comment) => {
+                      assert.notExists(err);
+                      assert.ok(comment);
 
-                            // Check that the first comment was not deleted because there was a reply, instead it's marked as deleted
-                            RestAPI.Content.getComments(
-                              contexts.bert.restContext,
-                              contentObj.id,
-                              null,
-                              10,
-                              (err, comments) => {
-                                assert.ok(!err);
-                                assert.strictEqual(comments.results.length, 2);
-                                assert.ok(comments.results[0].deleted);
+                      // Delete the comment
+                      deleteComment(asBert, contentObj.id, comments.results[0].created, (err, softDeleted) => {
+                        assert.notExists(err);
+                        assert.ok(softDeleted.deleted);
+                        assert.isNotOk(softDeleted.body);
 
-                                // Create a reply on the reply
-                                RestAPI.Content.createComment(
-                                  contexts.bert.restContext,
-                                  contentObj.id,
-                                  'This is a reply on the reply on a comment that will be deleted.',
-                                  comments.results[1].created,
-                                  (err, comment) => {
-                                    assert.ok(!err);
-                                    assert.ok(comment);
+                        // Check that the first comment was not deleted because there was a reply, instead it's marked as deleted
+                        getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                          assert.notExists(err);
 
-                                    // Delete reply on comment
-                                    RestAPI.Content.deleteComment(
-                                      contexts.bert.restContext,
-                                      contentObj.id,
-                                      comments.results[1].created,
-                                      (err, softDeleted) => {
-                                        assert.ok(!err);
-                                        assert.ok(softDeleted.deleted);
-                                        assert.ok(!softDeleted.body);
+                          assert.lengthOf(comments.results, 2);
+                          assert.ok(comments.results[0].deleted);
 
-                                        // Check that the first reply was not deleted because there was a reply, instead it's marked as deleted
-                                        RestAPI.Content.getComments(
-                                          contexts.bert.restContext,
-                                          contentObj.id,
-                                          null,
-                                          10,
-                                          (err, comments) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(comments.results.length, 3);
-                                            assert.ok(comments.results[1].deleted);
-                                            assert.strictEqual(comments.results[1].contentId, undefined);
-                                            assert.strictEqual(comments.results[1].createdBy, undefined);
-                                            assert.ok(comments.results[1].created);
-                                            assert.strictEqual(comments.results[1].body, undefined);
-                                            assert.strictEqual(comments.results[1].level, 1);
-                                            assert.strictEqual(comments.results[1].id, comments.results[1].id);
+                          // Create a reply on the reply
+                          createComment(
+                            asBert,
+                            contentObj.id,
+                            'This is a reply on the reply on a comment that will be deleted.',
+                            comments.results[1].created,
+                            (err, comment) => {
+                              assert.notExists(err);
+                              assert.ok(comment);
 
-                                            // Delete reply on reply
-                                            RestAPI.Content.deleteComment(
-                                              contexts.bert.restContext,
-                                              contentObj.id,
-                                              comments.results[2].created,
-                                              (err, softDeleted) => {
-                                                assert.ok(!err);
-                                                assert.ok(!softDeleted);
+                              // Delete reply on comment
+                              deleteComment(asBert, contentObj.id, comments.results[1].created, (err, softDeleted) => {
+                                assert.notExists(err);
+                                assert.ok(softDeleted.deleted);
+                                assert.isNotOk(softDeleted.body);
 
-                                                // Delete reply on comment
-                                                RestAPI.Content.deleteComment(
-                                                  contexts.bert.restContext,
-                                                  contentObj.id,
-                                                  comments.results[1].created,
-                                                  (err, softDeleted) => {
-                                                    assert.ok(!err);
-                                                    assert.ok(!softDeleted);
+                                // Check that the first reply was not deleted because there was a reply, instead it's marked as deleted
+                                getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                  assert.notExists(err);
+                                  assert.lengthOf(comments.results, 3);
 
-                                                    // Delete original comment
-                                                    RestAPI.Content.deleteComment(
-                                                      contexts.bert.restContext,
-                                                      contentObj.id,
-                                                      comments.results[0].created,
-                                                      (err, softDeleted) => {
-                                                        assert.ok(!err);
-                                                        assert.ok(!softDeleted);
+                                  assert.ok(comments.results[1].deleted);
+                                  assert.strictEqual(comments.results[1].contentId, undefined);
+                                  assert.strictEqual(comments.results[1].createdBy, undefined);
+                                  assert.ok(comments.results[1].created);
+                                  assert.strictEqual(comments.results[1].body, undefined);
+                                  assert.strictEqual(comments.results[1].level, 1);
+                                  assert.strictEqual(comments.results[1].id, comments.results[1].id);
 
-                                                        // Verify that all comments were deleted
-                                                        RestAPI.Content.getComments(
-                                                          contexts.bert.restContext,
-                                                          contentObj.id,
-                                                          null,
-                                                          10,
-                                                          (err, comments) => {
-                                                            assert.ok(!err);
-                                                            assert.strictEqual(comments.results.length, 0);
-                                                            callback();
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  });
-                }
-              );
+                                  // Delete reply on reply
+                                  deleteComment(
+                                    asBert,
+                                    contentObj.id,
+                                    comments.results[2].created,
+                                    (err, softDeleted) => {
+                                      assert.notExists(err);
+                                      assert.isNotOk(softDeleted);
+
+                                      // Delete reply on comment
+                                      deleteComment(
+                                        asBert,
+                                        contentObj.id,
+                                        comments.results[1].created,
+                                        (err, softDeleted) => {
+                                          assert.notExists(err);
+                                          assert.isNotOk(softDeleted);
+
+                                          // Delete original comment
+                                          deleteComment(
+                                            asBert,
+                                            contentObj.id,
+                                            comments.results[0].created,
+                                            (err, softDeleted) => {
+                                              assert.notExists(err);
+                                              assert.isNotOk(softDeleted);
+
+                                              // Verify that all comments were deleted
+                                              getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                                assert.notExists(err);
+                                                assert.lengthOf(comments.results, 0);
+
+                                                callback();
+                                              });
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                });
+                              });
+                            }
+                          );
+                        });
+                      });
+                    }
+                  );
+                });
+              });
             });
           }
         );
@@ -1509,183 +1548,127 @@ describe('Content', () => {
      */
     it('verify delete comment permissions', callback => {
       setUpUsers(contexts => {
+        const { simon, nicolaas } = contexts;
+        const asSimon = simon.restContext;
+        const asNico = nicolaas.restContext;
+
         // Create a first piece of content where simon has full access
-        RestAPI.Content.createLink(
-          contexts.simon.restContext,
+        createLink(
+          asSimon,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, publicContentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(publicContentObj);
+
             // Create a second piece of content where simon is a member
-            RestAPI.Content.createLink(
-              contexts.nicolaas.restContext,
+            createLink(
+              asNico,
               {
                 displayName: 'Test Content 2',
                 description: 'Test content description 2',
                 visibility: PRIVATE,
                 link: 'http://www.oaeproject.org/',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [contexts.simon.user.id],
-                folders: []
+                folders: NO_FOLDERS
               },
               (err, privateContentObj) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(privateContentObj);
+
                 // Create 2 comments as simon on the private link
-                RestAPI.Content.createComment(
-                  contexts.simon.restContext,
-                  privateContentObj.id,
-                  'This is a first comment.',
-                  null,
-                  (err, comment) => {
-                    assert.ok(!err);
+                createComment(asSimon, privateContentObj.id, 'This is a first comment.', null, (err, comment) => {
+                  assert.notExists(err);
+                  assert.ok(comment);
+
+                  createComment(asSimon, privateContentObj.id, 'This is a second comment.', null, (err, comment) => {
+                    assert.notExists(err);
                     assert.ok(comment);
 
-                    RestAPI.Content.createComment(
-                      contexts.simon.restContext,
-                      privateContentObj.id,
-                      'This is a second comment.',
-                      null,
-                      (err, comment) => {
-                        assert.ok(!err);
-                        assert.ok(comment);
+                    // Get the comments to verify they were created successfully
+                    getComments(asSimon, privateContentObj.id, null, 10, (err, comments) => {
+                      assert.notExists(err);
+                      assert.lengthOf(comments.results, 2);
 
-                        // Get the comments to verify they were created successfully
-                        RestAPI.Content.getComments(
-                          contexts.simon.restContext,
-                          privateContentObj.id,
-                          null,
-                          10,
-                          (err, comments) => {
-                            assert.ok(!err);
-                            assert.strictEqual(comments.results.length, 2);
+                      const comment1 = comments.results[1];
+                      const comment2 = comments.results[0];
 
-                            const comment1 = comments.results[1];
-                            const comment2 = comments.results[0];
+                      assert.strictEqual(comment2.createdBy.id, simon.user.id);
+                      assert.strictEqual(comment2.body, 'This is a second comment.');
+                      assert.strictEqual(comment1.createdBy.id, simon.user.id);
+                      assert.strictEqual(comment1.body, 'This is a first comment.');
 
-                            assert.strictEqual(comment2.createdBy.id, contexts.simon.user.id);
-                            assert.strictEqual(comment2.body, 'This is a second comment.');
-                            assert.strictEqual(comment1.createdBy.id, contexts.simon.user.id);
-                            assert.strictEqual(comment1.body, 'This is a first comment.');
+                      // Try to delete a comment
+                      deleteComment(asSimon, privateContentObj.id, comment2.created, (err, softDeleted) => {
+                        assert.notExists(err);
+                        assert.isNotOk(softDeleted);
 
-                            // Try to delete a comment
-                            RestAPI.Content.deleteComment(
-                              contexts.simon.restContext,
-                              privateContentObj.id,
-                              comment2.created,
-                              (err, softDeleted) => {
-                                assert.ok(!err);
-                                assert.ok(!softDeleted);
+                        // Verify that the comment has been deleted
+                        getComments(asSimon, privateContentObj.id, null, 10, (err, comments) => {
+                          assert.notExists(err);
+                          assert.lengthOf(comments.results, 1);
+                          assert.strictEqual(comments.results[0].id, comment1.id);
 
-                                // Verify that the comment has been deleted
-                                RestAPI.Content.getComments(
-                                  contexts.simon.restContext,
-                                  privateContentObj.id,
-                                  null,
-                                  10,
-                                  (err, comments) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(comments.results.length, 1);
-                                    assert.strictEqual(comments.results[0].id, comment1.id);
+                          // Remove simon as a member from the private content
+                          const permissions = {};
+                          permissions[simon.user.id] = false;
 
-                                    // Remove simon as a member from the private content
-                                    const permissions = {};
-                                    permissions[contexts.simon.user.id] = false;
-                                    RestAPI.Content.updateMembers(
-                                      contexts.nicolaas.restContext,
-                                      privateContentObj.id,
-                                      permissions,
-                                      err => {
-                                        assert.ok(!err);
+                          updateMembers(asNico, privateContentObj.id, permissions, err => {
+                            assert.notExists(err);
 
-                                        // Try to delete the comment on the private content item
-                                        RestAPI.Content.deleteComment(
-                                          contexts.simon.restContext,
-                                          publicContentObj.id,
-                                          comment1.created,
-                                          (err, softDeleted) => {
-                                            assert.ok(err);
-                                            assert.strictEqual(err.code, 404);
-                                            assert.ok(!softDeleted);
+                            // Try to delete the comment on the private content item
+                            deleteComment(asSimon, publicContentObj.id, comment1.created, (err, softDeleted) => {
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 404);
+                              assert.isNotOk(softDeleted);
 
-                                            // Get the comment to verify that it wasn't deleted
-                                            RestAPI.Content.getComments(
-                                              contexts.nicolaas.restContext,
-                                              privateContentObj.id,
-                                              null,
-                                              10,
-                                              (err, comments) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(comments.results.length, 1);
-                                                assert.strictEqual(comments.results[0].id, comment1.id);
-                                                assert.strictEqual(
-                                                  comments.results[0].createdBy.id,
-                                                  contexts.simon.user.id
-                                                );
-                                                assert.strictEqual(
-                                                  comments.results[0].body,
-                                                  'This is a first comment.'
-                                                );
+                              // Get the comment to verify that it wasn't deleted
+                              getComments(asNico, privateContentObj.id, null, 10, (err, comments) => {
+                                assert.notExists(err);
+                                assert.lengthOf(comments.results, 1);
+                                assert.strictEqual(comments.results[0].id, comment1.id);
+                                assert.strictEqual(comments.results[0].createdBy.id, simon.user.id);
+                                assert.strictEqual(comments.results[0].body, 'This is a first comment.');
 
-                                                // Try to reply to the comment on the private content item
-                                                RestAPI.Content.createComment(
-                                                  contexts.simon.restContext,
-                                                  publicContentObj.id,
-                                                  "This reply on the comment shouldn't be accepted",
-                                                  comment1.created,
-                                                  (err, comment) => {
-                                                    assert.ok(err);
-                                                    assert.strictEqual(err.code, 400);
-                                                    assert.ok(!comment);
+                                // Try to reply to the comment on the private content item
+                                createComment(
+                                  asSimon,
+                                  publicContentObj.id,
+                                  "This reply on the comment shouldn't be accepted",
+                                  comment1.created,
+                                  (err, comment) => {
+                                    assert.ok(err);
+                                    assert.strictEqual(err.code, 400);
+                                    assert.isNotOk(comment);
 
-                                                    // Get the comment to verify that it wasn't created
-                                                    RestAPI.Content.getComments(
-                                                      contexts.nicolaas.restContext,
-                                                      privateContentObj.id,
-                                                      null,
-                                                      10,
-                                                      (err, comments) => {
-                                                        assert.ok(!err);
-                                                        assert.strictEqual(comments.results.length, 1);
-                                                        assert.strictEqual(comments.results[0].id, comment1.id);
-                                                        assert.strictEqual(
-                                                          comments.results[0].createdBy.id,
-                                                          contexts.simon.user.id
-                                                        );
-                                                        assert.strictEqual(
-                                                          comments.results[0].body,
-                                                          'This is a first comment.'
-                                                        );
+                                    // Get the comment to verify that it wasn't created
+                                    getComments(asNico, privateContentObj.id, null, 10, (err, comments) => {
+                                      assert.notExists(err);
+                                      assert.lengthOf(comments.results, 1);
+                                      assert.strictEqual(comments.results[0].id, comment1.id);
+                                      assert.strictEqual(comments.results[0].createdBy.id, simon.user.id);
+                                      assert.strictEqual(comments.results[0].body, 'This is a first comment.');
 
-                                                        callback();
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
+                                      callback();
+                                    });
                                   }
                                 );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                              });
+                            });
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
               }
             );
           }
@@ -1698,41 +1681,43 @@ describe('Content', () => {
      */
     it('verify delete comment validation', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, bert } = contexts;
+        const asBert = bert.restContext;
+        const asNico = nicolaas.restContext;
+
         // Create a public piece of content
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
+
             // Create a comment as bert
-            RestAPI.Content.createComment(
-              contexts.bert.restContext,
-              contentObj.id,
-              'This is a comment.',
-              null,
-              (err, comment) => {
-                assert.ok(!err);
-                assert.ok(comment);
-                // Get the comment verify that it was created successfully
-                RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                  assert.ok(!err);
-                  assert.strictEqual(comments.results.length, 1);
-                  assert.strictEqual(comments.results[0].createdBy.id, contexts.bert.user.id);
-                  assert.strictEqual(comments.results[0].body, 'This is a comment.');
-                  const commentId = comments.results[0].id;
-                  callback();
-                });
-              }
-            );
+            createComment(asBert, contentObj.id, 'This is a comment.', null, (err, comment) => {
+              assert.notExists(err);
+              assert.ok(comment);
+
+              // Get the comment verify that it was created successfully
+              getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                assert.notExists(err);
+
+                assert.lengthOf(comments.results, 1);
+                assert.strictEqual(comments.results[0].createdBy.id, contexts.bert.user.id);
+                assert.strictEqual(comments.results[0].body, 'This is a comment.');
+                assert.exists(comments.results[0].id);
+
+                callback();
+              });
+            });
           }
         );
       });
@@ -1748,7 +1733,7 @@ describe('Content', () => {
      * @param  {function}  callback.err     Error object coming out of the tests
      */
     const testDeleteCommentPermissions = function(contexts, visibility, expectedDelete, callback) {
-      const { bert, nicolaas, simon } = contexts;
+      const { bert, simon } = contexts;
 
       /**
        * Function that creates a piece of content, comments on the content, verifies that the comment exists and deletes the comment before executing a callback.
@@ -1773,89 +1758,117 @@ describe('Content', () => {
         expectedDelete,
         callback
       ) {
-        RestAPI.Content.createLink(
-          linkContext.restContext,
+        const asUserWhoCreatesLink = linkContext.restContext;
+        const asUserWhoComments = commentContext.restContext;
+        const asUserWhoDeletes = deleteContext.restContext;
+        createLink(
+          asUserWhoCreatesLink,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility,
             link: 'http://www.oaeproject.org/',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: members,
-            folders: []
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
-            RestAPI.Content.createComment(
-              commentContext.restContext,
-              contentObj.id,
-              'Comment to check access',
-              null,
-              (err, comment) => {
-                if (expectedDelete) {
-                  assert.ok(!err);
-                  assert.ok(comment);
-                } else {
-                  assert.ok(err);
-                  assert.ok(!comment);
-                  return callback(err);
-                }
-
-                RestAPI.Content.getComments(linkContext.restContext, contentObj.id, null, 10, (err, comments) => {
-                  assert.ok(!err);
-                  assert.strictEqual(comments.results[0].level, 0);
-                  assert.strictEqual(comments.results[0].body, 'Comment to check access');
-                  assert.strictEqual(comments.results[0].createdBy.id, commentContext.user.id);
-
-                  RestAPI.Content.deleteComment(
-                    deleteContext.restContext || deleteContext,
-                    contentObj.id,
-                    comments.results[0].created,
-                    callback
-                  );
-                });
+            createComment(asUserWhoComments, contentObj.id, 'Comment to check access', null, (err, comment) => {
+              if (expectedDelete) {
+                assert.notExists(err);
+                assert.ok(comment);
+              } else {
+                assert.ok(err);
+                assert.isNotOk(comment);
+                return callback(err);
               }
-            );
+
+              getComments(asUserWhoCreatesLink, contentObj.id, null, 10, (err, comments) => {
+                assert.notExists(err);
+                assert.strictEqual(comments.results[0].level, 0);
+                assert.strictEqual(comments.results[0].body, 'Comment to check access');
+                assert.strictEqual(comments.results[0].createdBy.id, commentContext.user.id);
+
+                deleteComment(asUserWhoDeletes || deleteContext, contentObj.id, comments.results[0].created, callback);
+              });
+            });
           }
         );
       };
 
       // Delete own comment as manager on piece of content (--> success)
-      _canDelete(bert, bert, bert, visibility, [], [], true, err => {
-        assert.ok(!err);
+      _canDelete(bert, bert, bert, visibility, NO_MANAGERS, NO_MEMBERS, true, err => {
+        assert.notExists(err);
         // Delete other's comment as manager on piece of content (--> success)
-        _canDelete(bert, simon, bert, visibility, [], [contexts.simon.user.id], true, (err, softDeleted) => {
-          assert.ok(!err);
-          assert.ok(!softDeleted);
+        _canDelete(bert, simon, bert, visibility, NO_MANAGERS, [contexts.simon.user.id], true, (err, softDeleted) => {
+          assert.notExists(err);
+          assert.isNotOk(softDeleted);
           // Delete own comment as member on piece of content (--> success)
-          _canDelete(bert, simon, simon, visibility, [], [contexts.simon.user.id], true, (err, softDeleted) => {
-            assert.ok(!err);
-            assert.ok(!softDeleted);
-            // Delete other's comment as member on piece of content (--> fail)
-            _canDelete(bert, bert, simon, visibility, [], [contexts.simon.user.id], true, (err, softDeleted) => {
-              assert.ok(err);
-              assert.ok(!softDeleted);
-              // Delete own comment as logged in on piece of content (--> success)
-              _canDelete(bert, simon, simon, visibility, [], [], expectedDelete, (err, softDeleted) => {
-                if (expectedDelete) {
-                  assert.ok(!err);
-                  assert.ok(!softDeleted, true);
-                } else {
+          _canDelete(
+            bert,
+            simon,
+            simon,
+            visibility,
+            NO_MANAGERS,
+            [contexts.simon.user.id],
+            true,
+            (err, softDeleted) => {
+              assert.notExists(err);
+              assert.isNotOk(softDeleted);
+              // Delete other's comment as member on piece of content (--> fail)
+              _canDelete(
+                bert,
+                bert,
+                simon,
+                visibility,
+                NO_MANAGERS,
+                [contexts.simon.user.id],
+                true,
+                (err, softDeleted) => {
                   assert.ok(err);
-                  assert.ok(!softDeleted);
-                }
+                  assert.isNotOk(softDeleted);
+                  // Delete own comment as logged in on piece of content (--> success)
+                  _canDelete(
+                    bert,
+                    simon,
+                    simon,
+                    visibility,
+                    NO_MANAGERS,
+                    NO_MEMBERS,
+                    expectedDelete,
+                    (err, softDeleted) => {
+                      if (expectedDelete) {
+                        assert.notExists(err);
+                      } else {
+                        assert.ok(err);
+                      }
 
-                // Delete comment as anonymous on piece of content (--> fail)
-                _canDelete(bert, bert, anonymousRestContext, visibility, [], [], true, (err, softDeleted) => {
-                  assert.ok(err);
-                  assert.ok(!softDeleted);
-                  callback();
-                });
-              });
-            });
-          });
+                      assert.isNotOk(softDeleted);
+
+                      // Delete comment as anonymous on piece of content (--> fail)
+                      _canDelete(
+                        bert,
+                        bert,
+                        asCambridgeAnonymousUser,
+                        visibility,
+                        NO_MANAGERS,
+                        NO_MEMBERS,
+                        true,
+                        (err, softDeleted) => {
+                          assert.ok(err);
+                          assert.isNotOk(softDeleted);
+                          callback();
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     };
@@ -1892,129 +1905,97 @@ describe('Content', () => {
      */
     it('verify create comment validation', callback => {
       setUpUsers(contexts => {
+        const { bert } = contexts;
+        const asBert = bert.restContext;
+
         // Create a piece of content
-        RestAPI.Content.createLink(
-          contexts.bert.restContext,
+        createLink(
+          asBert,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
             // Try to create a comment without a contentId
-            RestAPI.Content.createComment(
-              contexts.bert.restContext,
-              null,
-              'This comment should be on top of the list',
-              null,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 404);
-                assert.ok(!comment);
+            createComment(asBert, null, 'This comment should be on top of the list', null, (err, comment) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 404);
+              assert.isNotOk(comment);
 
-                // Verify that the comment wasn't created
-                RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 10, (err, comments) => {
-                  assert.ok(!err);
-                  assert.strictEqual(comments.results.length, 0);
+              // Verify that the comment wasn't created
+              getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                assert.notExists(err);
+                assert.isEmpty(comments.results);
 
-                  // Try to create a comment without a comment
-                  RestAPI.Content.createComment(
-                    contexts.bert.restContext,
-                    contentObj.id,
-                    null,
-                    null,
-                    (err, comment) => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
-                      assert.ok(!comment);
+                // Try to create a comment without a comment
+                createComment(asBert, contentObj.id, null, null, (err, comment) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
+                  assert.isNotOk(comment);
 
-                      // Verify that the comment wasn't created
-                      RestAPI.Content.getComments(
-                        contexts.bert.restContext,
-                        contentObj.id,
-                        null,
-                        10,
-                        (err, comments) => {
-                          assert.ok(!err);
-                          assert.strictEqual(comments.results.length, 0);
+                  // Verify that the comment wasn't created
+                  getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                    assert.notExists(err);
+                    assert.isEmpty(comments.results);
 
-                          // Try to create a comment without a valid replyTo
-                          RestAPI.Content.createComment(
-                            contexts.bert.restContext,
+                    // Try to create a comment without a valid replyTo
+                    createComment(
+                      asBert,
+                      contentObj.id,
+                      'This comment should be on top of the list',
+                      'NotAnInteger',
+                      (err, comment) => {
+                        assert.ok(err); // Invalid reply-to timestamp provided
+                        assert.strictEqual(err.code, 400);
+                        assert.isNotOk(comment);
+
+                        // Verify that the comment wasn't created
+                        getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                          assert.notExists(err);
+                          assert.isEmpty(comments.results);
+
+                          // Try to create a comment as an anonymous user
+                          createComment(
+                            asCambridgeAnonymousUser,
                             contentObj.id,
                             'This comment should be on top of the list',
-                            'NotAnInteger',
+                            null,
                             (err, comment) => {
-                              assert.ok(err); // Invalid reply-to timestamp provided
-                              assert.strictEqual(err.code, 400);
-                              assert.ok(!comment);
+                              assert.ok(err);
+                              assert.strictEqual(err.code, 401);
+                              assert.isNotOk(comment);
 
                               // Verify that the comment wasn't created
-                              RestAPI.Content.getComments(
-                                contexts.bert.restContext,
-                                contentObj.id,
-                                null,
-                                10,
-                                (err, comments) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(comments.results.length, 0);
+                              getComments(asBert, contentObj.id, null, 10, (err, comments) => {
+                                assert.notExists(err);
+                                assert.isEmpty(comments.results);
 
-                                  // Try to create a comment as an anonymous user
-                                  RestAPI.Content.createComment(
-                                    anonymousRestContext,
-                                    contentObj.id,
-                                    'This comment should be on top of the list',
-                                    null,
-                                    (err, comment) => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 401);
-                                      assert.ok(!comment);
-                                      // Verify that the comment wasn't created
-                                      RestAPI.Content.getComments(
-                                        contexts.bert.restContext,
-                                        contentObj.id,
-                                        null,
-                                        10,
-                                        (err, comments) => {
-                                          assert.ok(!err);
-                                          assert.strictEqual(comments.results.length, 0);
-
-                                          // Create a comment that is larger than the allowed maximum size
-                                          const commentBody = TestsUtil.generateRandomText(10000);
-                                          RestAPI.Content.createComment(
-                                            contexts.bert.restContext,
-                                            contentObj.id,
-                                            commentBody,
-                                            null,
-                                            (err, comment) => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 400);
-                                              assert.ok(!comment);
-                                              callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
+                                // Create a comment that is larger than the allowed maximum size
+                                const commentBody = generateRandomText(10000);
+                                createComment(asBert, contentObj.id, commentBody, null, (err, comment) => {
+                                  assert.ok(err);
+                                  assert.strictEqual(err.code, 400);
+                                  assert.isNotOk(comment);
+                                  callback();
+                                });
+                              });
                             }
                           );
-                        }
-                      );
-                    }
-                  );
+                        });
+                      }
+                    );
+                  });
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2029,121 +2010,91 @@ describe('Content', () => {
      * @param  {Function}    callback                 Standard callback function
      */
     const testCommentPermissions = function(contexts, visibility, expectLoggedInComment, callback) {
+      const { bert, nicolaas, simon } = contexts;
+      const asBert = bert.restContext;
+      const asSimon = simon.restContext;
+      const asNico = nicolaas.restContext;
+
       // Create content with specified visibility
-      RestAPI.Content.createLink(
-        contexts.bert.restContext,
+      createLink(
+        asBert,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility,
           link: 'http://www.oaeproject.org/',
-          managers: [],
+          managers: NO_MANAGERS,
           viewers: [contexts.nicolaas.user.id],
-          folders: []
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj.id);
 
           // Try to comment as manager
-          RestAPI.Content.createComment(
-            contexts.bert.restContext,
-            contentObj.id,
-            'Try to comment as manager',
-            null,
-            (err, comment) => {
-              assert.ok(!err);
-              assert.ok(comment);
-              // Verify that the comment was placed as a manager
-              RestAPI.Content.getComments(contexts.bert.restContext, contentObj.id, null, 1, (err, comments) => {
-                assert.ok(!err);
-                assert.strictEqual(comments.results[0].body, 'Try to comment as manager');
+          createComment(asBert, contentObj.id, 'Try to comment as manager', null, (err, comment) => {
+            assert.notExists(err);
+            assert.ok(comment);
 
-                // Try to comment as member
-                RestAPI.Content.createComment(
-                  contexts.nicolaas.restContext,
-                  contentObj.id,
-                  'Try to comment as member',
-                  null,
-                  (err, comment) => {
-                    assert.ok(!err);
-                    assert.ok(comment);
-                    // Verify that the comment was placed as a member
-                    RestAPI.Content.getComments(
-                      contexts.nicolaas.restContext,
-                      contentObj.id,
-                      null,
-                      1,
-                      (err, comments) => {
-                        assert.ok(!err);
-                        assert.strictEqual(comments.results[0].body, 'Try to comment as member');
+            // Verify that the comment was placed as a manager
+            getComments(asBert, contentObj.id, null, 1, (err, comments) => {
+              assert.notExists(err);
+              assert.strictEqual(comments.results[0].body, 'Try to comment as manager');
 
-                        // Try to comment as logged in user
-                        RestAPI.Content.createComment(
-                          contexts.simon.restContext,
-                          contentObj.id,
-                          'Try to comment as logged in user',
-                          null,
-                          (err, comment) => {
-                            if (expectLoggedInComment) {
-                              assert.ok(!err);
-                              assert.ok(comment);
-                            } else {
-                              assert.ok(err);
-                              assert.ok(!comment);
-                            }
+              // Try to comment as member
+              createComment(asNico, contentObj.id, 'Try to comment as member', null, (err, comment) => {
+                assert.notExists(err);
+                assert.ok(comment);
 
-                            // Verify that the comment was placed as a logged in user
-                            RestAPI.Content.getComments(
-                              contexts.simon.restContext,
-                              contentObj.id,
-                              null,
-                              1,
-                              (err, comments) => {
-                                if (expectLoggedInComment) {
-                                  assert.ok(!err);
-                                  assert.strictEqual(comments.results[0].body, 'Try to comment as logged in user');
-                                } else {
-                                  assert.ok(err);
-                                }
+                // Verify that the comment was placed as a member
+                getComments(asNico, contentObj.id, null, 1, (err, comments) => {
+                  assert.notExists(err);
+                  assert.strictEqual(comments.results[0].body, 'Try to comment as member');
 
-                                // Try to comment as anonymous user
-                                RestAPI.Content.createComment(
-                                  anonymousRestContext,
-                                  contentObj.id,
-                                  'Try to comment as an anonymous user',
-                                  null,
-                                  (err, comment) => {
-                                    assert.ok(err);
-                                    assert.ok(!comment);
-                                    // Verify that the comment was placed as an anonymous
-                                    RestAPI.Content.getComments(
-                                      contexts.bert.restContext,
-                                      contentObj.id,
-                                      null,
-                                      1,
-                                      (err, comments) => {
-                                        assert.ok(!err);
-                                        assert.notStrictEqual(
-                                          comments.results[0].body,
-                                          'Try to comment as an anonymous user'
-                                        );
-                                        callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                  // Try to comment as logged in user
+                  createComment(asSimon, contentObj.id, 'Try to comment as logged in user', null, (err, comment) => {
+                    if (expectLoggedInComment) {
+                      assert.notExists(err);
+                      assert.ok(comment);
+                    } else {
+                      assert.ok(err);
+                      assert.isNotOk(comment);
+                    }
+
+                    // Verify that the comment was placed as a logged in user
+                    getComments(asSimon, contentObj.id, null, 1, (err, comments) => {
+                      if (expectLoggedInComment) {
+                        assert.notExists(err);
+                        assert.strictEqual(comments.results[0].body, 'Try to comment as logged in user');
+                      } else {
+                        assert.ok(err);
                       }
-                    );
-                  }
-                );
+
+                      // Try to comment as anonymous user
+                      createComment(
+                        asCambridgeAnonymousUser,
+                        contentObj.id,
+                        'Try to comment as an anonymous user',
+                        null,
+                        (err, comment) => {
+                          assert.ok(err);
+                          assert.isNotOk(comment);
+
+                          // Verify that the comment was placed as an anonymous
+                          getComments(asBert, contentObj.id, null, 1, (err, comments) => {
+                            assert.notExists(err);
+                            assert.notStrictEqual(comments.results[0].body, 'Try to comment as an anonymous user');
+
+                            callback();
+                          });
+                        }
+                      );
+                    });
+                  });
+                });
               });
-            }
-          );
+            });
+          });
         }
       );
     };
@@ -2181,10 +2132,12 @@ describe('Content', () => {
      * Test that verifies we can't create content of an unknown resourceSubType
      */
     it('verify cannot create content of unknown resourceSubType', callback => {
-      // There is no oae-rest method we can call that allows us to create content of a non-standard
-      // resourceSubType. We can use the rest utility to do REST requests directly.
-      RestUtil.performRestRequest(
-        camAdminRestContext,
+      /**
+       * There is no oae-rest method we can call that allows us to create content of a non-standard
+       * resourceSubType. We can use the rest utility to do REST requests directly.
+       */
+      performRestRequest(
+        asCambridgeTenantAdmin,
         '/api/content/create',
         'POST',
         { resourceSubType: 'unicorns' },
@@ -2200,105 +2153,108 @@ describe('Content', () => {
      */
     it('verify create link', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create one as anon user
-        RestAPI.Content.createLink(
-          anonymousRestContext,
+        createLink(
+          asCambridgeAnonymousUser,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
             assert.ok(err);
-            assert.ok(!contentObj);
+            assert.isNotOk(contentObj);
 
             // Create one with all required fields
-            RestAPI.Content.createLink(
-              contexts.nicolaas.restContext,
+            createLink(
+              asNico,
               {
                 displayName: 'Test Content 2',
                 description: 'Test content description 2',
                 visibility: PUBLIC,
                 link: 'http://www.oaeproject.org/',
-                managers: [],
-                viewers: [],
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, contentObj, response) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(contentObj.id);
 
                 // Verify the backend is returning appliation/json
                 assert.ok(response.headers['content-type'].startsWith('application/json'));
 
                 // Create one without description
-                RestAPI.Content.createLink(
-                  contexts.nicolaas.restContext,
+                createLink(
+                  asNico,
                   {
                     displayName: 'Test Content 3',
                     description: null,
                     visibility: PUBLIC,
                     link: 'http://www.oaeproject.org/',
-                    managers: [],
-                    viewers: [],
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
                   (err, contentObj) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(contentObj.id);
 
                     // Create one with description that's longer than the allowed maximum size
-                    const longDescription = TestsUtil.generateRandomText(1000);
-                    RestAPI.Content.createLink(
-                      contexts.nicolaas.restContext,
+                    const longDescription = generateRandomText(1000);
+                    createLink(
+                      asNico,
                       {
                         displayName: 'Test Content 4',
                         description: longDescription,
                         visibility: PUBLIC,
                         link: null,
-                        managers: [],
-                        viewers: [],
-                        folders: []
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
                       },
                       (err, contentObj) => {
                         assert.ok(err);
-                        assert.ok(!contentObj);
+                        assert.isNotOk(contentObj);
 
                         // Create one without URL
-                        RestAPI.Content.createLink(
-                          contexts.nicolaas.restContext,
+                        createLink(
+                          asNico,
                           {
                             displayName: 'Test Content 4',
                             description: 'Test content description 4',
                             visibility: PUBLIC,
                             link: null,
-                            managers: [],
-                            viewers: [],
-                            folders: []
+                            managers: NO_MANAGERS,
+                            viewers: NO_VIEWERS,
+                            folders: NO_FOLDERS
                           },
                           (err, contentObj) => {
                             assert.ok(err);
-                            assert.ok(!contentObj);
+                            assert.isNotOk(contentObj);
 
                             // Create one without a valid URL
-                            RestAPI.Content.createLink(
-                              contexts.nicolaas.restContext,
+                            createLink(
+                              asNico,
                               {
                                 displayName: 'Test Content 5',
                                 description: 'Test content description 5',
                                 visibility: PUBLIC,
                                 link: 'Just a string',
-                                managers: [],
-                                viewers: [],
-                                folders: []
+                                managers: NO_MANAGERS,
+                                viewers: NO_VIEWERS,
+                                folders: NO_FOLDERS
                               },
                               (err, contentObj) => {
                                 assert.ok(err);
-                                assert.ok(!contentObj);
+                                assert.isNotOk(contentObj);
 
                                 // Create one with a URL that's longer than the allowed maximum size
                                 let longUrl = 'http://www.oaeproject.org/';
@@ -2306,131 +2262,124 @@ describe('Content', () => {
                                   longUrl += 'a';
                                 }
 
-                                RestAPI.Content.createLink(
-                                  contexts.nicolaas.restContext,
+                                createLink(
+                                  asNico,
                                   {
                                     displayName: 'Test Content 5',
                                     description: 'Test content description 5',
                                     visibility: PUBLIC,
                                     link: longUrl,
-                                    managers: [],
-                                    viewers: [],
-                                    folders: []
+                                    managers: NO_MANAGERS,
+                                    viewers: NO_VIEWERS,
+                                    folders: NO_FOLDERS
                                   },
                                   (err, contentObj) => {
                                     assert.ok(err);
                                     assert.strictEqual(err.code, 400);
-                                    assert.ok(!contentObj);
+                                    assert.isNotOk(contentObj);
 
                                     // Create one without displayName
-                                    RestAPI.Content.createLink(
-                                      contexts.nicolaas.restContext,
+                                    createLink(
+                                      asNico,
                                       {
                                         displayName: null,
                                         description: 'Test content description 6',
                                         visibility: PUBLIC,
                                         link: 'http://www.oaeproject.org/',
-                                        managers: [],
-                                        viewers: [],
-                                        folders: []
+                                        managers: NO_MANAGERS,
+                                        viewers: NO_VIEWERS,
+                                        folders: NO_FOLDERS
                                       },
                                       (err, contentObj) => {
                                         assert.ok(err);
-                                        assert.ok(!contentObj);
+                                        assert.isNotOk(contentObj);
 
                                         // Create one with an displayName that's longer than the allowed maximum size
-                                        const longDisplayName = TestsUtil.generateRandomText(100);
-                                        RestAPI.Content.createLink(
-                                          contexts.nicolaas.restContext,
+                                        const longDisplayName = generateRandomText(100);
+                                        createLink(
+                                          asNico,
                                           {
                                             displayName: longDisplayName,
                                             description: 'Test content description 6',
                                             visibility: PUBLIC,
                                             link: 'http://www.oaeproject.org/',
-                                            managers: [],
-                                            viewers: [],
-                                            folders: []
+                                            managers: NO_MANAGERS,
+                                            viewers: NO_VIEWERS,
+                                            folders: NO_FOLDERS
                                           },
                                           (err, contentObj) => {
                                             assert.ok(err);
                                             assert.strictEqual(err.code, 400);
-                                            assert.ok(err.msg.indexOf('1000') > 0);
-                                            assert.ok(!contentObj);
+                                            assert.include(err.msg, '1000');
+                                            assert.isNotOk(contentObj);
 
                                             // Create one without visibility
-                                            RestAPI.Content.createLink(
-                                              contexts.nicolaas.restContext,
+                                            createLink(
+                                              asNico,
                                               {
                                                 displayName: 'Test Content 7',
                                                 description: 'Test content description 7',
                                                 visibility: null,
                                                 link: 'http://www.oaeproject.org/',
-                                                managers: [],
-                                                viewers: [],
-                                                folders: []
+                                                managers: NO_MANAGERS,
+                                                viewers: NO_VIEWERS,
+                                                folders: NO_FOLDERS
                                               },
                                               (err, contentObj) => {
-                                                assert.ok(!err);
+                                                assert.notExists(err);
                                                 assert.ok(contentObj.id);
 
                                                 // Check if the visibility has been set to public (default)
-                                                RestAPI.Content.getContent(
-                                                  contexts.nicolaas.restContext,
-                                                  contentObj.id,
-                                                  (err, contentObj) => {
-                                                    assert.ok(!err);
-                                                    assert.strictEqual(contentObj.visibility, PUBLIC);
-                                                    assert.ok(!contentObj.downloadPath);
+                                                getContent(asNico, contentObj.id, (err, contentObj) => {
+                                                  assert.notExists(err);
+                                                  assert.strictEqual(contentObj.visibility, PUBLIC);
+                                                  assert.isNotOk(contentObj.downloadPath);
 
-                                                    // Verify that an empty description is allowed
-                                                    RestAPI.Content.createLink(
-                                                      contexts.nicolaas.restContext,
-                                                      {
-                                                        displayName: 'Test Content 7',
-                                                        description: '',
-                                                        visibility: null,
-                                                        link: 'http://www.oaeproject.org/',
-                                                        managers: [],
-                                                        viewers: [],
-                                                        folders: []
-                                                      },
-                                                      (err, contentObj) => {
-                                                        assert.ok(!err);
-                                                        assert.ok(contentObj.id);
+                                                  // Verify that an empty description is allowed
+                                                  createLink(
+                                                    asNico,
+                                                    {
+                                                      displayName: 'Test Content 7',
+                                                      description: '',
+                                                      visibility: null,
+                                                      link: 'http://www.oaeproject.org/',
+                                                      managers: NO_MANAGERS,
+                                                      viewers: NO_VIEWERS,
+                                                      folders: NO_FOLDERS
+                                                    },
+                                                    (err, contentObj) => {
+                                                      assert.notExists(err);
+                                                      assert.ok(contentObj.id);
 
-                                                        // Verify that a protocol is added if missing
-                                                        RestAPI.Content.createLink(
-                                                          contexts.nicolaas.restContext,
-                                                          {
-                                                            displayName: 'Test Content 8',
-                                                            description: 'Test content description 8',
-                                                            visibility: PUBLIC,
-                                                            link: 'www.oaeproject.org',
-                                                            managers: [],
-                                                            viewers: [],
-                                                            folders: []
-                                                          },
-                                                          (err, contentObj, response) => {
-                                                            assert.ok(!err);
-                                                            assert.ok(contentObj.id);
-                                                            RestAPI.Content.getContent(
-                                                              contexts.nicolaas.restContext,
-                                                              contentObj.id,
-                                                              (err, contentObj) => {
-                                                                assert.ok(!err);
-                                                                assert.strictEqual(
-                                                                  contentObj.link,
-                                                                  'http://www.oaeproject.org'
-                                                                );
-                                                                callback();
-                                                              }
+                                                      // Verify that a protocol is added if missing
+                                                      createLink(
+                                                        asNico,
+                                                        {
+                                                          displayName: 'Test Content 8',
+                                                          description: 'Test content description 8',
+                                                          visibility: PUBLIC,
+                                                          link: 'www.oaeproject.org',
+                                                          managers: NO_MANAGERS,
+                                                          viewers: NO_VIEWERS,
+                                                          folders: NO_FOLDERS
+                                                        },
+                                                        (err, contentObj /* , response */) => {
+                                                          assert.notExists(err);
+                                                          assert.ok(contentObj.id);
+
+                                                          getContent(asNico, contentObj.id, (err, contentObj) => {
+                                                            assert.notExists(err);
+                                                            assert.strictEqual(
+                                                              contentObj.link,
+                                                              'http://www.oaeproject.org'
                                                             );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
+                                                            callback();
+                                                          });
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                });
                                               }
                                             );
                                           }
@@ -2459,36 +2408,39 @@ describe('Content', () => {
      */
     it('verify create file', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create one as anon user
-        RestAPI.Content.createFile(
-          anonymousRestContext,
+        createFile(
+          asCambridgeAnonymousUser,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
             assert.strictEqual(err.code, 401);
-            assert.ok(!contentObj);
+            assert.isNotOk(contentObj);
 
             // Create one with all required fields
-            RestAPI.Content.createFile(
-              contexts.nicolaas.restContext,
+            createFile(
+              asNico,
               {
                 displayName: 'Test Content 2',
                 description: 'Test content description 2',
                 visibility: PUBLIC,
                 file: getFileStream,
-                managers: [],
-                viewers: [],
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, contentObj, response) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(contentObj.id);
                 assert.strictEqual(contentObj.filename, 'oae-video.png');
                 assert.strictEqual(contentObj.mime, 'image/png');
@@ -2497,141 +2449,136 @@ describe('Content', () => {
                 assert.strictEqual(response.headers['content-type'], 'text/plain; charset=utf-8');
 
                 // Create one without description
-                RestAPI.Content.createFile(
-                  contexts.nicolaas.restContext,
+                createFile(
+                  asNico,
                   {
                     displayName: 'Test Content 3',
                     description: null,
                     visibility: PUBLIC,
                     file: getFileStream,
-                    managers: [],
-                    viewers: [],
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
                   (err, contentObj) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(contentObj.id);
 
                     // Create one with a description that's longer than the allowed maximum size
-                    const longDescription = TestsUtil.generateRandomText(1000);
-                    RestAPI.Content.createFile(
-                      contexts.nicolaas.restContext,
+                    const longDescription = generateRandomText(1000);
+                    createFile(
+                      asNico,
                       {
                         displayName: 'Test content',
                         description: longDescription,
                         visibility: PUBLIC,
                         file: getFileStream,
-                        managers: [],
-                        viewers: [],
-                        folders: []
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
                       },
                       (err, contentObj) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
-                        assert.ok(err.msg.indexOf('10000') > 0);
-                        assert.ok(!contentObj);
+                        assert.include(err.msg, '10000');
+                        assert.isNotOk(contentObj);
 
                         // Create one without title
-                        RestAPI.Content.createFile(
-                          contexts.nicolaas.restContext,
+                        createFile(
+                          asNico,
                           {
                             displayName: null,
                             description: 'Test content description 4',
                             visibility: PUBLIC,
                             file: getFileStream,
-                            managers: [],
-                            viewers: [],
-                            folders: []
+                            managers: NO_MANAGERS,
+                            viewers: NO_VIEWERS,
+                            folders: NO_FOLDERS
                           },
                           (err, contentObj) => {
                             assert.strictEqual(err.code, 400);
-                            assert.ok(!contentObj);
+                            assert.isNotOk(contentObj);
 
                             // Create one with a displayName that's longer than the allowed maximum size
-                            const longDisplayName = TestsUtil.generateRandomText(100);
-                            RestAPI.Content.createFile(
-                              contexts.nicolaas.restContext,
+                            const longDisplayName = generateRandomText(100);
+                            createFile(
+                              asNico,
                               {
                                 displayName: longDisplayName,
                                 description: 'Test content description 4',
                                 visibility: PUBLIC,
                                 file: getFileStream,
-                                managers: [],
-                                viewers: [],
-                                folders: []
+                                managers: NO_MANAGERS,
+                                viewers: NO_VIEWERS,
+                                folders: NO_FOLDERS
                               },
                               (err, contentObj) => {
                                 assert.ok(err);
                                 assert.strictEqual(err.code, 400);
-                                assert.ok(err.msg.indexOf('1000') > 0);
-                                assert.ok(!contentObj);
+                                assert.include(err.msg, '1000');
+                                assert.isNotOk(contentObj);
 
                                 // Create one without a file body.
-                                RestAPI.Content.createFile(
-                                  contexts.nicolaas.restContext,
+                                createFile(
+                                  asNico,
                                   {
                                     displayName: 'Test Content 4',
                                     description: 'Test content description 4',
                                     visibility: PUBLIC,
                                     file: null,
-                                    managers: [],
-                                    viewers: [],
-                                    folders: []
+                                    managers: NO_MANAGERS,
+                                    viewers: NO_VIEWERS,
+                                    folders: NO_FOLDERS
                                   },
                                   (err, contentObj) => {
                                     assert.strictEqual(err.code, 400);
-                                    assert.ok(!contentObj);
+                                    assert.isNotOk(contentObj);
 
                                     // Create one without visibility
-                                    RestAPI.Content.createFile(
-                                      contexts.nicolaas.restContext,
+                                    createFile(
+                                      asNico,
                                       {
                                         displayName: 'Test Content 5',
                                         description: 'Test content description 6',
                                         visibility: null,
                                         file: getFileStream,
-                                        managers: [],
-                                        viewers: [],
-                                        folders: []
+                                        managers: NO_MANAGERS,
+                                        viewers: NO_VIEWERS,
+                                        folders: NO_FOLDERS
                                       },
                                       (err, contentObj) => {
-                                        assert.ok(!err);
+                                        assert.notExists(err);
                                         assert.ok(contentObj.id);
-                                        // Check if the visibility has been set to public (default)
-                                        RestAPI.Content.getContent(
-                                          contexts.nicolaas.restContext,
-                                          contentObj.id,
-                                          (err, contentObj) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(contentObj.visibility, PUBLIC);
-                                            assert.strictEqual(
-                                              contentObj.downloadPath,
-                                              '/api/content/' +
-                                                contentObj.id +
-                                                '/download/' +
-                                                contentObj.latestRevisionId
-                                            );
 
-                                            // Verify that an empty description is accepted
-                                            RestAPI.Content.createFile(
-                                              contexts.nicolaas.restContext,
-                                              {
-                                                displayName: 'Test Content 5',
-                                                description: '',
-                                                visibility: PUBLIC,
-                                                file: getFileStream,
-                                                managers: [],
-                                                viewers: [],
-                                                folders: []
-                                              },
-                                              (err, contentObj) => {
-                                                assert.ok(!err);
-                                                assert.ok(contentObj.id);
-                                                callback();
-                                              }
-                                            );
-                                          }
-                                        );
+                                        // Check if the visibility has been set to public (default)
+                                        getContent(asNico, contentObj.id, (err, contentObj) => {
+                                          assert.notExists(err);
+                                          assert.strictEqual(contentObj.visibility, PUBLIC);
+                                          assert.strictEqual(
+                                            contentObj.downloadPath,
+                                            `/api/content/${contentObj.id}/download/${contentObj.latestRevisionId}`
+                                          );
+
+                                          // Verify that an empty description is accepted
+                                          createFile(
+                                            asNico,
+                                            {
+                                              displayName: 'Test Content 5',
+                                              description: '',
+                                              visibility: PUBLIC,
+                                              file: getFileStream,
+                                              managers: NO_MANAGERS,
+                                              viewers: NO_VIEWERS,
+                                              folders: NO_FOLDERS
+                                            },
+                                            (err, contentObj) => {
+                                              assert.notExists(err);
+                                              assert.ok(contentObj.id);
+
+                                              callback();
+                                            }
+                                          );
+                                        });
                                       }
                                     );
                                   }
@@ -2656,139 +2603,139 @@ describe('Content', () => {
      */
     it('verify create collaborative document', callback => {
       setUpUsers(contexts => {
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create one as anon user
-        RestAPI.Content.createCollabDoc(
-          anonymousRestContext,
+        createCollabDoc(
+          asCambridgeAnonymousUser,
           'Test Content 1',
           'Test content description 1',
           PUBLIC,
-          [],
-          [],
-          [],
-          [],
+          NO_MANAGERS,
+          NO_EDITORS,
+          NO_VIEWERS,
+          NO_FOLDERS,
           (err, contentObj) => {
             assert.ok(err);
-            assert.ok(!contentObj);
+            assert.isNotOk(contentObj);
 
             // Create one with all required fields
-            RestAPI.Content.createCollabDoc(
-              contexts.nicolaas.restContext,
+            createCollabDoc(
+              asNico,
               'Test Content 2',
               'Test content description 2',
               PUBLIC,
-              [],
-              [],
-              [],
-              [],
+              NO_MANAGERS,
+              NO_EDITORS,
+              NO_VIEWERS,
+              NO_FOLDERS,
               (err, contentObj, response) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(contentObj.id);
 
                 // Verify the backend is returning appliation/json
                 assert.ok(response.headers['content-type'].startsWith('application/json'));
 
                 // Create one without description
-                RestAPI.Content.createCollabDoc(
-                  contexts.nicolaas.restContext,
+                createCollabDoc(
+                  asNico,
                   'Test Content 3',
                   null,
                   PUBLIC,
-                  [],
-                  [],
-                  [],
-                  [],
+                  NO_MANAGERS,
+                  NO_EDITORS,
+                  NO_VIEWERS,
+                  NO_FOLDERS,
                   (err, contentObj) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(contentObj.id);
 
                     // Create one with a description that's longer than the allowed maximum size
-                    const longDescription = TestsUtil.generateRandomText(1000);
-                    RestAPI.Content.createCollabDoc(
-                      contexts.nicolaas.restContext,
+                    const longDescription = generateRandomText(1000);
+                    createCollabDoc(
+                      asNico,
                       'Test content',
                       longDescription,
                       PUBLIC,
-                      [],
-                      [],
-                      [],
-                      [],
+                      NO_MANAGERS,
+                      NO_EDITORS,
+                      NO_VIEWERS,
+                      NO_FOLDERS,
                       (err, contentObj) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 400);
-                        assert.ok(err.msg.indexOf('10000') > 0);
-                        assert.ok(!contentObj);
+                        assert.include(err.msg, '10000');
+                        assert.isNotOk(contentObj);
 
                         // Create one without title
-                        RestAPI.Content.createCollabDoc(
-                          contexts.nicolaas.restContext,
+                        createCollabDoc(
+                          asNico,
                           null,
                           'Test content description 4',
                           PUBLIC,
-                          [],
-                          [],
-                          [],
-                          [],
+                          NO_MANAGERS,
+                          NO_EDITORS,
+                          NO_VIEWERS,
+                          NO_FOLDERS,
                           (err, contentObj) => {
                             assert.ok(err);
-                            assert.ok(!contentObj);
+                            assert.isNotOk(contentObj);
 
                             // Create one with a displayName that's longer than the allowed maximum size
-                            const longDisplayName = TestsUtil.generateRandomText(100);
-                            RestAPI.Content.createCollabDoc(
-                              contexts.nicolaas.restContext,
+                            const longDisplayName = generateRandomText(100);
+                            createCollabDoc(
+                              asNico,
                               longDisplayName,
                               'descripton',
                               PUBLIC,
-                              [],
-                              [],
-                              [],
-                              [],
+                              NO_MANAGERS,
+                              NO_EDITORS,
+                              NO_VIEWERS,
+                              NO_FOLDERS,
                               (err, contentObj) => {
                                 assert.ok(err);
                                 assert.strictEqual(err.code, 400);
-                                assert.ok(err.msg.indexOf('1000') > 0);
-                                assert.ok(!contentObj);
+                                assert.include(err.msg, '1000');
+                                assert.isNotOk(contentObj);
 
                                 // Create one without permission
-                                RestAPI.Content.createCollabDoc(
-                                  contexts.nicolaas.restContext,
+                                createCollabDoc(
+                                  asNico,
                                   'Test Content 5',
                                   'Test content description 5',
                                   null,
-                                  [],
-                                  [],
-                                  [],
-                                  [],
+                                  NO_MANAGERS,
+                                  NO_EDITORS,
+                                  NO_VIEWERS,
+                                  NO_FOLDERS,
                                   (err, contentObj) => {
-                                    assert.ok(!err);
+                                    assert.notExists(err);
                                     assert.ok(contentObj.id);
-                                    // Check if the permission has been set to private (default)
-                                    RestAPI.Content.getContent(
-                                      contexts.nicolaas.restContext,
-                                      contentObj.id,
-                                      (err, contentObj) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(contentObj.visibility, PRIVATE);
-                                        assert.ok(!contentObj.downloadPath);
 
-                                        // Verify that an empty description is accepted
-                                        RestAPI.Content.createCollabDoc(
-                                          contexts.nicolaas.restContext,
-                                          'Test Content 5',
-                                          '',
-                                          PUBLIC,
-                                          [],
-                                          [],
-                                          [],
-                                          [],
-                                          (err, contentObj) => {
-                                            assert.ok(!err);
-                                            assert.ok(contentObj.id);
-                                            callback();
-                                          }
-                                        );
-                                      }
-                                    );
+                                    // Check if the permission has been set to private (default)
+                                    getContent(asNico, contentObj.id, (err, contentObj) => {
+                                      assert.notExists(err);
+                                      assert.strictEqual(contentObj.visibility, PRIVATE);
+                                      assert.isNotOk(contentObj.downloadPath);
+
+                                      // Verify that an empty description is accepted
+                                      createCollabDoc(
+                                        asNico,
+                                        'Test Content 5',
+                                        '',
+                                        PUBLIC,
+                                        NO_MANAGERS,
+                                        NO_EDITORS,
+                                        NO_VIEWERS,
+                                        NO_FOLDERS,
+                                        (err, contentObj) => {
+                                          assert.notExists(err);
+                                          assert.ok(contentObj.id);
+                                          callback();
+                                        }
+                                      );
+                                    });
                                   }
                                 );
                               }
@@ -2812,57 +2759,43 @@ describe('Content', () => {
      */
     it('verify create public content item', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create a public content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as a different logged in user
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as a different logged in user
+              checkPieceOfContent(asSimon, nicolaas.user.id, contentObj, true, false, true, true, () => {
+                // Get the piece of content as an anonymous user
                 checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.nicolaas.user.id,
+                  asCambridgeAnonymousUser,
+                  nicolaas.user.id,
                   contentObj,
                   true,
                   false,
                   true,
-                  true,
-                  () => {
-                    // Get the piece of content as an anonymous user
-                    checkPieceOfContent(
-                      anonymousRestContext,
-                      contexts.nicolaas.user.id,
-                      contentObj,
-                      true,
-                      false,
-                      true,
-                      false,
-                      callback
-                    );
-                  }
+                  false,
+                  callback
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2874,57 +2807,43 @@ describe('Content', () => {
      */
     it('verify create logged in content item', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create a logged in content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: LOGGEDIN,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as a different logged in user
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as a different logged in user
+              checkPieceOfContent(asSimon, nicolaas.user.id, contentObj, true, false, true, true, () => {
+                // Get the piece of content as an anonymous user
                 checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.nicolaas.user.id,
+                  asCambridgeAnonymousUser,
+                  nicolaas.user.id,
                   contentObj,
-                  true,
                   false,
-                  true,
-                  true,
-                  () => {
-                    // Get the piece of content as an anonymous user
-                    checkPieceOfContent(
-                      anonymousRestContext,
-                      contexts.nicolaas.user.id,
-                      contentObj,
-                      false,
-                      false,
-                      false,
-                      false,
-                      callback
-                    );
-                  }
+                  false,
+                  false,
+                  false,
+                  callback
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2936,57 +2855,43 @@ describe('Content', () => {
      */
     it('verify create private content item', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create a private content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as a different logged in user
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as a different logged in user
+              checkPieceOfContent(asSimon, nicolaas.user.id, contentObj, false, false, false, false, () => {
+                // Get the piece of content as an anonymous user
                 checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.nicolaas.user.id,
+                  asCambridgeAnonymousUser,
+                  nicolaas.user.id,
                   contentObj,
                   false,
                   false,
                   false,
                   false,
-                  () => {
-                    // Get the piece of content as an anonymous user
-                    checkPieceOfContent(
-                      anonymousRestContext,
-                      contexts.nicolaas.user.id,
-                      contentObj,
-                      false,
-                      false,
-                      false,
-                      false,
-                      callback
-                    );
-                  }
+                  callback
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2999,81 +2904,51 @@ describe('Content', () => {
      */
     it('verify create content with default members link', callback => {
       setUpUsers(contexts => {
+        const { bert, stuart, nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+        const asStuart = stuart.restContext;
+        const asBert = bert.restContext;
+
         // Create a private content item and share with 2 people
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             link: 'http://www.oaeproject.org/',
-            managers: [contexts.simon.user.id],
-            viewers: [contexts.stuart.user.id],
-            folders: []
+            managers: [simon.user.id],
+            viewers: [stuart.user.id],
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as another manager
-                checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.simon.user.id,
-                  contentObj,
-                  true,
-                  true,
-                  true,
-                  true,
-                  () => {
-                    // Get the piece of content as a viewer
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as another manager
+              checkPieceOfContent(asSimon, simon.user.id, contentObj, true, true, true, true, () => {
+                // Get the piece of content as a viewer
+                checkPieceOfContent(asStuart, stuart.user.id, contentObj, true, false, true, false, () => {
+                  // Get the piece of content as a non-member
+                  checkPieceOfContent(asBert, bert.user.id, contentObj, false, false, false, false, () => {
+                    // Get the piece of content as an anonymous user
                     checkPieceOfContent(
-                      contexts.stuart.restContext,
-                      contexts.stuart.user.id,
+                      asCambridgeAnonymousUser,
+                      nicolaas.user.id,
                       contentObj,
-                      true,
                       false,
-                      true,
                       false,
-                      () => {
-                        // Get the piece of content as a non-member
-                        checkPieceOfContent(
-                          contexts.bert.restContext,
-                          contexts.bert.user.id,
-                          contentObj,
-                          false,
-                          false,
-                          false,
-                          false,
-                          () => {
-                            // Get the piece of content as an anonymous user
-                            checkPieceOfContent(
-                              anonymousRestContext,
-                              contexts.nicolaas.user.id,
-                              contentObj,
-                              false,
-                              false,
-                              false,
-                              false,
-                              callback
-                            );
-                          }
-                        );
-                      }
+                      false,
+                      false,
+                      callback
                     );
-                  }
-                );
-              }
-            );
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3086,81 +2961,51 @@ describe('Content', () => {
      */
     it('verify create content with default members file', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, branden, stuart, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+        const asBranden = branden.restContext;
+        const asStuart = stuart.restContext;
+
         // Create a private content item and share with 2 people
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 2',
             description: 'Test content description 2',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [contexts.simon.user.id],
-            viewers: [contexts.stuart.user.id],
-            folders: []
+            managers: [simon.user.id],
+            viewers: [stuart.user.id],
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as another manager
-                checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.simon.user.id,
-                  contentObj,
-                  true,
-                  true,
-                  true,
-                  true,
-                  () => {
-                    // Get the piece of content as a viewer
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as another manager
+              checkPieceOfContent(asSimon, simon.user.id, contentObj, true, true, true, true, () => {
+                // Get the piece of content as a viewer
+                checkPieceOfContent(asStuart, stuart.user.id, contentObj, true, false, true, false, () => {
+                  // Get the piece of content as a non-member
+                  checkPieceOfContent(asBranden, branden.user.id, contentObj, false, false, false, false, () => {
+                    // Get the piece of content as an anonymous user
                     checkPieceOfContent(
-                      contexts.stuart.restContext,
-                      contexts.stuart.user.id,
+                      asCambridgeAnonymousUser,
+                      nicolaas.user.id,
                       contentObj,
-                      true,
                       false,
-                      true,
                       false,
-                      () => {
-                        // Get the piece of content as a non-member
-                        checkPieceOfContent(
-                          contexts.branden.restContext,
-                          contexts.branden.user.id,
-                          contentObj,
-                          false,
-                          false,
-                          false,
-                          false,
-                          () => {
-                            // Get the piece of content as an anonymous user
-                            checkPieceOfContent(
-                              anonymousRestContext,
-                              contexts.nicolaas.user.id,
-                              contentObj,
-                              false,
-                              false,
-                              false,
-                              false,
-                              callback
-                            );
-                          }
-                        );
-                      }
+                      false,
+                      false,
+                      callback
                     );
-                  }
-                );
-              }
-            );
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3173,79 +3018,49 @@ describe('Content', () => {
      */
     it('verify create content with default members collaborative document', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, branden, stuart, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+        const asBranden = branden.restContext;
+        const asStuart = stuart.restContext;
+
         // Create a private content item and share with 2 people
-        RestAPI.Content.createCollabDoc(
-          contexts.nicolaas.restContext,
+        createCollabDoc(
+          asNico,
           'Test Content 2',
           'Test content description 2',
           PRIVATE,
-          [contexts.simon.user.id],
-          [],
-          [contexts.stuart.user.id],
-          [],
+          [simon.user.id],
+          NO_EDITORS,
+          [stuart.user.id],
+          NO_FOLDERS,
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the piece of content as the person who created the content
-            checkPieceOfContent(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.user.id,
-              contentObj,
-              true,
-              true,
-              true,
-              true,
-              () => {
-                // Get the piece of content as another manager
-                checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.simon.user.id,
-                  contentObj,
-                  true,
-                  true,
-                  true,
-                  true,
-                  () => {
-                    // Get the piece of content as a viewer
+            checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+              // Get the piece of content as another manager
+              checkPieceOfContent(asSimon, simon.user.id, contentObj, true, true, true, true, () => {
+                // Get the piece of content as a viewer
+                checkPieceOfContent(asStuart, stuart.user.id, contentObj, true, false, true, false, () => {
+                  // Get the piece of content as a non-member
+                  checkPieceOfContent(asBranden, branden.user.id, contentObj, false, false, false, false, () => {
+                    // Get the piece of content as an anonymous user
                     checkPieceOfContent(
-                      contexts.stuart.restContext,
-                      contexts.stuart.user.id,
+                      asCambridgeAnonymousUser,
+                      nicolaas.user.id,
                       contentObj,
-                      true,
                       false,
-                      true,
                       false,
-                      () => {
-                        // Get the piece of content as a non-member
-                        checkPieceOfContent(
-                          contexts.branden.restContext,
-                          contexts.branden.user.id,
-                          contentObj,
-                          false,
-                          false,
-                          false,
-                          false,
-                          () => {
-                            // Get the piece of content as an anonymous user
-                            checkPieceOfContent(
-                              anonymousRestContext,
-                              contexts.nicolaas.user.id,
-                              contentObj,
-                              false,
-                              false,
-                              false,
-                              false,
-                              callback
-                            );
-                          }
-                        );
-                      }
+                      false,
+                      false,
+                      callback
                     );
-                  }
-                );
-              }
-            );
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3255,26 +3070,28 @@ describe('Content', () => {
      * Test that verifies that you cannot create a piece of content when trying to add a private user as a member
      */
     it('verify create content with a private user as another member', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
-        const nico = _.values(users)[0];
-        const bert = _.values(users)[1];
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
-          assert.ok(!err);
+        const { 0: homer, 1: marge } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-          RestAPI.Content.createLink(
-            nico.restContext,
+        updateUser(asMarge, marge.user.id, { visibility: PRIVATE }, err => {
+          assert.notExists(err);
+
+          createLink(
+            asHomer,
             {
               displayName: 'Test Content',
               description: 'Test content description',
               visibility: PUBLIC,
               link: 'http://www.oaeproject.org/',
-              managers: [bert.user.id],
-              viewers: [],
-              folders: []
+              managers: [marge.user.id],
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
-            (err, contentObj) => {
+            (err /* , contentObj */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
               callback();
@@ -3288,34 +3105,35 @@ describe('Content', () => {
      * Test that verifies that you cannot create a piece of content when trying to add a private group as a member
      */
     it('verify create content with a private group as another member', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
-        const nico = _.values(users)[0];
-        const bert = _.values(users)[1];
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-        RestAPI.Group.createGroup(
-          bert.restContext,
+        createGroup(
+          asMarge,
           'Group title',
           'Group description',
           PRIVATE,
           undefined,
-          [],
-          [],
+          NO_MANAGERS,
+          NO_MEMBERS,
           (err, groupObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
-            RestAPI.Content.createLink(
-              nico.restContext,
+            createLink(
+              asHomer,
               {
                 displayName: 'Test Content',
                 description: 'Test content description',
                 visibility: PUBLIC,
                 link: 'http://www.oaeproject.org/',
                 managers: [groupObj.id],
-                viewers: [],
-                folders: []
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
-              (err, contentObj) => {
+              (err /* , contentObj */) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 401);
                 callback();
@@ -3340,24 +3158,28 @@ describe('Content', () => {
      * @param  {Function}           callback            Standard callback function
      */
     const checkNameAndDescription = function(contexts, contentId, expectedName, expectedDescription, callback) {
+      const { nicolaas, simon } = contexts;
+      const asNico = nicolaas.restContext;
+      const asSimon = simon.restContext;
+
       // Check as user 0
-      RestAPI.Content.getContent(contexts.nicolaas.restContext, contentId, (err, contentObj) => {
-        assert.ok(!err);
+      getContent(asNico, contentId, (err, contentObj) => {
+        assert.notExists(err);
         assert.strictEqual(contentObj.id, contentId);
         assert.strictEqual(contentObj.displayName, expectedName);
         assert.strictEqual(contentObj.description, expectedDescription);
-        assert.strictEqual(contentObj.resourceType, 'content');
+        assert.strictEqual(contentObj.resourceType, CONTENT);
         assert.strictEqual(
           contentObj.profilePath,
-          '/content/' + contentObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(contentId).resourceId
+          `/content/${contentObj.tenant.alias}/${AuthzUtil.getResourceFromId(contentId).resourceId}`
         );
         // Check as user 1
-        RestAPI.Content.getContent(contexts.simon.restContext, contentId, (err, contentObj) => {
-          assert.ok(!err);
+        getContent(asSimon, contentId, (err, contentObj) => {
+          assert.notExists(err);
           assert.strictEqual(contentObj.id, contentId);
           assert.strictEqual(contentObj.displayName, expectedName);
           assert.strictEqual(contentObj.description, expectedDescription);
-          assert.strictEqual(contentObj.resourceType, 'content');
+          assert.strictEqual(contentObj.resourceType, CONTENT);
           assert.strictEqual(
             contentObj.profilePath,
             '/content/' + contentObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(contentId).resourceId
@@ -3376,200 +3198,198 @@ describe('Content', () => {
     it('verify update content profile', callback => {
       // Create a piece of content
       setUpUsers(contexts => {
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
+
             // Share it with someone
-            RestAPI.Content.shareContent(
-              contexts.nicolaas.restContext,
-              contentObj.id,
-              [contexts.simon.user.id],
-              err => {
-                assert.ok(!err);
+            shareContent(asNico, contentObj.id, [contexts.simon.user.id], err => {
+              assert.notExists(err);
 
-                // Invalid content metadata update (empty)
-                RestAPI.Content.updateContent(contexts.nicolaas.restContext, contentObj.id, {}, err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
+              // Invalid content metadata update (empty)
+              updateContent(asNico, contentObj.id, {}, err => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
 
-                  // Invalid content metadata update (unexisting field)
-                  RestAPI.Content.updateContent(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    { displayName: 'New Test Content 1', nonExisting: 'Non-existing field' },
-                    err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
+                // Invalid content metadata update (unexisting field)
+                updateContent(
+                  asNico,
+                  contentObj.id,
+                  { displayName: 'New Test Content 1', nonExisting: 'Non-existing field' },
+                  err => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 400);
 
-                      // Check name and description are still correct
-                      checkNameAndDescription(
-                        contexts,
-                        contentObj.id,
-                        'Test Content 1',
-                        'Test content description 1',
-                        () => {
-                          // Change the name
-                          RestAPI.Content.updateContent(
-                            contexts.nicolaas.restContext,
-                            contentObj.id,
-                            { displayName: 'New Test Content 1' },
-                            (err, updatedContentObj) => {
-                              assert.ok(!err);
-                              assert.strictEqual(updatedContentObj.displayName, 'New Test Content 1');
-                              assert.ok(updatedContentObj.isManager);
-                              assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
-                              assert.ok(!updatedContentObj.downloadPath);
-                              // Check the new name comes back
-                              checkNameAndDescription(
-                                contexts,
-                                contentObj.id,
-                                'New Test Content 1',
-                                'Test content description 1',
-                                () => {
-                                  // Change the description
-                                  RestAPI.Content.updateContent(
-                                    contexts.nicolaas.restContext,
-                                    contentObj.id,
-                                    { description: 'New test content description 1' },
-                                    (err, updatedContentObj) => {
-                                      assert.ok(!err);
-                                      assert.strictEqual(
-                                        updatedContentObj.description,
-                                        'New test content description 1'
-                                      );
-                                      assert.ok(updatedContentObj.isManager);
-                                      assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
-                                      assert.ok(!updatedContentObj.downloadPath);
-                                      // Check the new description comes back
-                                      checkNameAndDescription(
-                                        contexts,
-                                        contentObj.id,
-                                        'New Test Content 1',
-                                        'New test content description 1',
-                                        () => {
-                                          // Change both at same time
-                                          RestAPI.Content.updateContent(
-                                            contexts.nicolaas.restContext,
-                                            contentObj.id,
-                                            {
-                                              displayName: 'New Test Content 2',
-                                              description: 'New test content description 2'
-                                            },
-                                            (err, updatedContentObj) => {
-                                              assert.ok(!err);
-                                              assert.strictEqual(updatedContentObj.displayName, 'New Test Content 2');
-                                              assert.strictEqual(
-                                                updatedContentObj.description,
-                                                'New test content description 2'
-                                              );
-                                              assert.ok(updatedContentObj.isManager);
-                                              assert.strictEqual(
-                                                updatedContentObj.createdBy.id,
-                                                contexts.nicolaas.user.id
-                                              );
-                                              assert.ok(!updatedContentObj.downloadPath);
-                                              // Check the new name and description come back
-                                              checkNameAndDescription(
-                                                contexts,
-                                                contentObj.id,
-                                                'New Test Content 2',
-                                                'New test content description 2',
-                                                () => {
-                                                  // Try updating it as non-manager of the content
-                                                  RestAPI.Content.updateContent(
-                                                    contexts.simon.restContext,
-                                                    contentObj.id,
-                                                    { displayName: 'New Test Content 3' },
-                                                    err => {
-                                                      assert.ok(err);
-                                                      assert.strictEqual(err.code, 401);
+                    // Check name and description are still correct
+                    checkNameAndDescription(
+                      contexts,
+                      contentObj.id,
+                      'Test Content 1',
+                      'Test content description 1',
+                      () => {
+                        // Change the name
+                        updateContent(
+                          asNico,
+                          contentObj.id,
+                          { displayName: 'New Test Content 1' },
+                          (err, updatedContentObj) => {
+                            assert.notExists(err);
+                            assert.strictEqual(updatedContentObj.displayName, 'New Test Content 1');
+                            assert.ok(updatedContentObj.isManager);
+                            assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
+                            assert.isNotOk(updatedContentObj.downloadPath);
 
-                                                      // Check that the old values are still in place
-                                                      checkNameAndDescription(
-                                                        contexts,
-                                                        contentObj.id,
-                                                        'New Test Content 2',
-                                                        'New test content description 2',
-                                                        () => {
-                                                          // Try updating it with a displayName that's longer than the allowed maximum size
-                                                          const longDisplayName = TestsUtil.generateRandomText(100);
-                                                          RestAPI.Content.updateContent(
-                                                            contexts.nicolaas.restContext,
-                                                            contentObj.id,
-                                                            { displayName: longDisplayName },
-                                                            err => {
-                                                              assert.ok(err);
-                                                              assert.strictEqual(err.code, 400);
-                                                              assert.ok(err.msg.indexOf('1000') > 0);
+                            // Check the new name comes back
+                            checkNameAndDescription(
+                              contexts,
+                              contentObj.id,
+                              'New Test Content 1',
+                              'Test content description 1',
+                              () => {
+                                // Change the description
+                                updateContent(
+                                  asNico,
+                                  contentObj.id,
+                                  { description: 'New test content description 1' },
+                                  (err, updatedContentObj) => {
+                                    assert.notExists(err);
+                                    assert.strictEqual(updatedContentObj.description, 'New test content description 1');
+                                    assert.ok(updatedContentObj.isManager);
+                                    assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
+                                    assert.isNotOk(updatedContentObj.downloadPath);
 
-                                                              // Try updating it with a description that's longer than the allowed maximum size
-                                                              const longDescription = TestsUtil.generateRandomText(
-                                                                1000
-                                                              );
-                                                              RestAPI.Content.updateContent(
-                                                                contexts.nicolaas.restContext,
-                                                                contentObj.id,
-                                                                { description: longDescription },
-                                                                err => {
-                                                                  assert.ok(err);
-                                                                  assert.strictEqual(err.code, 400);
-                                                                  assert.ok(err.msg.indexOf('10000') > 0);
+                                    // Check the new description comes back
+                                    checkNameAndDescription(
+                                      contexts,
+                                      contentObj.id,
+                                      'New Test Content 1',
+                                      'New test content description 1',
+                                      () => {
+                                        // Change both at same time
+                                        updateContent(
+                                          asNico,
+                                          contentObj.id,
+                                          {
+                                            displayName: 'New Test Content 2',
+                                            description: 'New test content description 2'
+                                          },
+                                          (err, updatedContentObj) => {
+                                            assert.notExists(err);
+                                            assert.strictEqual(updatedContentObj.displayName, 'New Test Content 2');
+                                            assert.strictEqual(
+                                              updatedContentObj.description,
+                                              'New test content description 2'
+                                            );
+                                            assert.ok(updatedContentObj.isManager);
+                                            assert.strictEqual(
+                                              updatedContentObj.createdBy.id,
+                                              contexts.nicolaas.user.id
+                                            );
+                                            assert.isNotOk(updatedContentObj.downloadPath);
 
-                                                                  // Verify that an empty description is accepted
-                                                                  RestAPI.Content.updateContent(
-                                                                    contexts.nicolaas.restContext,
-                                                                    contentObj.id,
-                                                                    { description: '' },
-                                                                    err => {
-                                                                      assert.ok(!err);
+                                            // Check the new name and description come back
+                                            checkNameAndDescription(
+                                              contexts,
+                                              contentObj.id,
+                                              'New Test Content 2',
+                                              'New test content description 2',
+                                              () => {
+                                                // Try updating it as non-manager of the content
+                                                updateContent(
+                                                  asSimon,
+                                                  contentObj.id,
+                                                  { displayName: 'New Test Content 3' },
+                                                  err => {
+                                                    assert.ok(err);
+                                                    assert.strictEqual(err.code, 401);
 
-                                                                      checkNameAndDescription(
-                                                                        contexts,
-                                                                        contentObj.id,
-                                                                        'New Test Content 2',
-                                                                        '',
-                                                                        callback
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                });
-              }
-            );
+                                                    // Check that the old values are still in place
+                                                    checkNameAndDescription(
+                                                      contexts,
+                                                      contentObj.id,
+                                                      'New Test Content 2',
+                                                      'New test content description 2',
+                                                      () => {
+                                                        // Try updating it with a displayName that's longer than the allowed maximum size
+                                                        const longDisplayName = generateRandomText(100);
+                                                        updateContent(
+                                                          asNico,
+                                                          contentObj.id,
+                                                          { displayName: longDisplayName },
+                                                          err => {
+                                                            assert.ok(err);
+                                                            assert.strictEqual(err.code, 400);
+                                                            assert.include(err.msg, '1000');
+
+                                                            // Try updating it with a description that's longer than the allowed maximum size
+                                                            const longDescription = generateRandomText(1000);
+                                                            updateContent(
+                                                              asNico,
+                                                              contentObj.id,
+                                                              { description: longDescription },
+                                                              err => {
+                                                                assert.ok(err);
+                                                                assert.strictEqual(err.code, 400);
+                                                                assert.include(err.msg, '10000');
+
+                                                                // Verify that an empty description is accepted
+                                                                updateContent(
+                                                                  asNico,
+                                                                  contentObj.id,
+                                                                  { description: '' },
+                                                                  err => {
+                                                                    assert.notExists(err);
+
+                                                                    checkNameAndDescription(
+                                                                      contexts,
+                                                                      contentObj.id,
+                                                                      'New Test Content 2',
+                                                                      '',
+                                                                      callback
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
+            });
           }
         );
       });
@@ -3585,110 +3405,96 @@ describe('Content', () => {
      * @param  {Function}           callback                Standard callback function
      */
     const checkAccessAndLibrary = function(contexts, contentId, expectLoggedInAccess, expectAnonAccess, callback) {
+      const { nicolaas, bert, simon } = contexts;
+      const asNico = nicolaas.restContext;
+      const asSimon = simon.restContext;
+      const asBert = bert.restContext;
+
       // Check for the content manager
-      RestAPI.Content.getContent(contexts.nicolaas.restContext, contentId, (err, contentObj) => {
-        assert.ok(!err);
+      getContent(asNico, contentId, (err, contentObj) => {
+        assert.notExists(err);
         assert.ok(contentObj);
+
         // Check that it's part of the content manager's library
-        RestAPI.Content.getLibrary(contexts.nicolaas.restContext, contexts.nicolaas.user.id, null, 10, (err, items) => {
-          assert.ok(!err);
-          assert.strictEqual(items.results.length, 1);
+        getLibrary(asNico, nicolaas.user.id, null, 10, (err, items) => {
+          assert.notExists(err);
+          assert.lengthOf(items.results, 1);
           assert.strictEqual(items.results[0].id, contentId);
 
           // Check for the content viewer
-          RestAPI.Content.getContent(contexts.simon.restContext, contentId, (err, contentObj) => {
-            assert.ok(!err);
+          getContent(asSimon, contentId, (err, contentObj) => {
+            assert.notExists(err);
             assert.ok(contentObj);
+
             // Check that it is part of his library
-            RestAPI.Content.getLibrary(contexts.simon.restContext, contexts.simon.user.id, null, 10, (err, items) => {
-              assert.ok(!err);
-              assert.strictEqual(items.results.length, 1);
+            getLibrary(asSimon, simon.user.id, null, 10, (err, items) => {
+              assert.notExists(err);
+              assert.lengthOf(items.results, 1);
               assert.strictEqual(items.results[0].id, contentId);
+
               // Check that it is visible in the manager's library
-              RestAPI.Content.getLibrary(
-                contexts.simon.restContext,
-                contexts.nicolaas.user.id,
-                null,
-                10,
-                (err, items) => {
-                  assert.ok(!err);
+              getLibrary(asSimon, nicolaas.user.id, null, 10, (err, items) => {
+                assert.notExists(err);
+
+                if (expectLoggedInAccess) {
+                  assert.lengthOf(items.results, 1);
+                  assert.strictEqual(items.results[0].id, contentId);
+                } else {
+                  assert.lengthOf(items.results, 0);
+                }
+
+                // Check for the logged in user that's not a viewer
+                getContent(asBert, contentId, (err, contentObj) => {
                   if (expectLoggedInAccess) {
-                    assert.strictEqual(items.results.length, 1);
-                    assert.strictEqual(items.results[0].id, contentId);
+                    assert.notExists(err);
+                    assert.ok(contentObj);
                   } else {
-                    assert.strictEqual(items.results.length, 0);
+                    assert.ok(err);
+                    assert.isNotOk(contentObj);
                   }
 
-                  // Check for the logged in user that's not a viewer
-                  RestAPI.Content.getContent(contexts.bert.restContext, contentId, (err, contentObj) => {
-                    if (expectLoggedInAccess) {
-                      assert.ok(!err);
-                      assert.ok(contentObj);
-                    } else {
-                      assert.ok(err);
-                      assert.ok(!contentObj);
-                    }
+                  // Check that it isn't part of his library
+                  getLibrary(asBert, bert.user.id, null, 10, (err, items) => {
+                    assert.notExists(err);
+                    assert.lengthOf(items.results, 0);
 
-                    // Check that it isn't part of his library
-                    RestAPI.Content.getLibrary(
-                      contexts.bert.restContext,
-                      contexts.bert.user.id,
-                      null,
-                      10,
-                      (err, items) => {
-                        assert.ok(!err);
-                        assert.strictEqual(items.results.length, 0);
-                        // Check that it is visible in the manager's library
-                        RestAPI.Content.getLibrary(
-                          contexts.bert.restContext,
-                          contexts.nicolaas.user.id,
-                          null,
-                          10,
-                          (err, items) => {
-                            assert.ok(!err);
-                            if (expectLoggedInAccess) {
-                              assert.strictEqual(items.results.length, 1);
-                              assert.strictEqual(items.results[0].id, contentId);
-                            } else {
-                              assert.strictEqual(items.results.length, 0);
-                            }
-
-                            // Check for the anonymous user
-                            RestAPI.Content.getContent(anonymousRestContext, contentId, (err, contentObj) => {
-                              if (expectAnonAccess) {
-                                assert.ok(!err);
-                                assert.ok(contentObj);
-                              } else {
-                                assert.ok(err);
-                                assert.ok(!contentObj);
-                              }
-
-                              // Check that it is visible in the manager's library
-                              RestAPI.Content.getLibrary(
-                                anonymousRestContext,
-                                contexts.nicolaas.user.id,
-                                null,
-                                10,
-                                (err, items) => {
-                                  assert.ok(!err);
-                                  if (expectAnonAccess) {
-                                    assert.strictEqual(items.results.length, 1);
-                                    assert.strictEqual(items.results[0].id, contentId);
-                                  } else {
-                                    assert.strictEqual(items.results.length, 0);
-                                  }
-
-                                  callback();
-                                }
-                              );
-                            });
-                          }
-                        );
+                    // Check that it is visible in the manager's library
+                    getLibrary(asBert, nicolaas.user.id, null, 10, (err, items) => {
+                      assert.notExists(err);
+                      if (expectLoggedInAccess) {
+                        assert.lengthOf(items.results, 1);
+                        assert.strictEqual(items.results[0].id, contentId);
+                      } else {
+                        assert.lengthOf(items.results, 0);
                       }
-                    );
+
+                      // Check for the anonymous user
+                      getContent(asCambridgeAnonymousUser, contentId, (err, contentObj) => {
+                        if (expectAnonAccess) {
+                          assert.notExists(err);
+                          assert.ok(contentObj);
+                        } else {
+                          assert.ok(err);
+                          assert.isNotOk(contentObj);
+                        }
+
+                        // Check that it is visible in the manager's library
+                        getLibrary(asCambridgeAnonymousUser, nicolaas.user.id, null, 10, (err, items) => {
+                          assert.notExists(err);
+                          if (expectAnonAccess) {
+                            assert.lengthOf(items.results, 1);
+                            assert.strictEqual(items.results[0].id, contentId);
+                          } else {
+                            assert.lengthOf(items.results, 0);
+                          }
+
+                          callback();
+                        });
+                      });
+                    });
                   });
-                }
-              );
+                });
+              });
             });
           });
         });
@@ -3704,97 +3510,72 @@ describe('Content', () => {
     it('verify update content visibility', callback => {
       // Create a piece of content
       setUpUsers(contexts => {
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
-            // Share the content with one viewer
-            RestAPI.Content.shareContent(
-              contexts.nicolaas.restContext,
-              contentObj.id,
-              [contexts.simon.user.id],
-              err => {
-                assert.ok(!err);
 
-                // Check that all of these can get the content as expected, check library presence as expected
-                checkAccessAndLibrary(contexts, contentObj.id, true, true, () => {
-                  // Try an invalid update
-                  RestAPI.Content.updateContent(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    { visibility: null },
-                    err => {
+            // Share the content with one viewer
+            shareContent(asNico, contentObj.id, [simon.user.id], err => {
+              assert.notExists(err);
+
+              // Check that all of these can get the content as expected, check library presence as expected
+              checkAccessAndLibrary(contexts, contentObj.id, true, true, () => {
+                // Try an invalid update
+                updateContent(asNico, contentObj.id, { visibility: null }, err => {
+                  assert.ok(err);
+
+                  // Check that the access remains unchanged
+                  checkAccessAndLibrary(contexts, contentObj.id, true, true, () => {
+                    // Try an unknown visibility update
+                    updateContent(asNico, contentObj.id, { visibility: 'unknown-option' }, err => {
                       assert.ok(err);
 
                       // Check that the access remains unchanged
                       checkAccessAndLibrary(contexts, contentObj.id, true, true, () => {
-                        // Try an unknown visibility update
-                        RestAPI.Content.updateContent(
-                          contexts.nicolaas.restContext,
-                          contentObj.id,
-                          { visibility: 'unknown-option' },
-                          err => {
-                            assert.ok(err);
+                        // Make the content logged in only
+                        updateContent(asNico, contentObj.id, { visibility: LOGGEDIN }, err => {
+                          assert.notExists(err);
 
-                            // Check that the access remains unchanged
-                            checkAccessAndLibrary(contexts, contentObj.id, true, true, () => {
-                              // Make the content logged in only
-                              RestAPI.Content.updateContent(
-                                contexts.nicolaas.restContext,
-                                contentObj.id,
-                                { visibility: LOGGEDIN },
-                                err => {
-                                  assert.ok(!err);
+                          // Check that everyone can get the content as expected, check library presence as expected
+                          checkAccessAndLibrary(contexts, contentObj.id, true, false, () => {
+                            // Make the content private
+                            updateContent(asNico, contentObj.id, { visibility: PRIVATE }, err => {
+                              assert.notExists(err);
+
+                              // Check that everyone can get the content as expected, check library presence as expected
+                              checkAccessAndLibrary(contexts, contentObj.id, false, false, () => {
+                                // Try update as non-manager
+                                updateContent(asSimon, contentObj.id, { visibility: PUBLIC }, err => {
+                                  assert.ok(err);
 
                                   // Check that everyone can get the content as expected, check library presence as expected
-                                  checkAccessAndLibrary(contexts, contentObj.id, true, false, () => {
-                                    // Make the content private
-                                    RestAPI.Content.updateContent(
-                                      contexts.nicolaas.restContext,
-                                      contentObj.id,
-                                      { visibility: PRIVATE },
-                                      err => {
-                                        assert.ok(!err);
-
-                                        // Check that everyone can get the content as expected, check library presence as expected
-                                        checkAccessAndLibrary(contexts, contentObj.id, false, false, () => {
-                                          // Try update as non-manager
-                                          RestAPI.Content.updateContent(
-                                            contexts.simon.restContext,
-                                            contentObj.id,
-                                            { visibility: PUBLIC },
-                                            err => {
-                                              assert.ok(err);
-
-                                              // Check that everyone can get the content as expected, check library presence as expected
-                                              checkAccessAndLibrary(contexts, contentObj.id, false, false, callback);
-                                            }
-                                          );
-                                        });
-                                      }
-                                    );
-                                  });
-                                }
-                              );
+                                  checkAccessAndLibrary(contexts, contentObj.id, false, false, callback);
+                                });
+                              });
                             });
-                          }
-                        );
+                          });
+                        });
                       });
-                    }
-                  );
+                    });
+                  });
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -3804,84 +3585,63 @@ describe('Content', () => {
      * Test that verifies that links can be successfully updated
      */
     it('verify link update validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        const nicolaas = _.values(users)[0];
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer } = users;
+        const asHomer = homer.restContext;
 
-        RestAPI.Content.createLink(
-          nicolaas.restContext,
+        createLink(
+          asHomer,
           {
             displayName: 'display name',
             description: 'description',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Sanity check updates
             const newLink = 'http://www.google.com';
-            RestAPI.Content.updateContent(
-              nicolaas.restContext,
-              contentObj.id,
-              { link: newLink },
-              (err, updatedContentObj) => {
-                assert.ok(!err);
-                assert.strictEqual(updatedContentObj.link, newLink);
+            updateContent(asHomer, contentObj.id, { link: newLink }, (err, updatedContentObj) => {
+              assert.notExists(err);
+              assert.strictEqual(updatedContentObj.link, newLink);
 
-                // Test invalid links
-                RestAPI.Content.updateContent(
-                  nicolaas.restContext,
-                  contentObj.id,
-                  { link: 'invalid link' },
-                  (err, updatedContentObj) => {
+              // Test invalid links
+              updateContent(asHomer, contentObj.id, { link: 'invalid link' }, (err /* , updatedContentObj */) => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
+
+                // Empty link
+                updateContent(asHomer, contentObj.id, { link: '' }, (err /* , updatedContentObj */) => {
+                  assert.ok(err);
+                  assert.strictEqual(err.code, 400);
+
+                  // Super long link
+                  let longUrl = 'http://www.oaeproject.org/';
+                  for (let i = 0; i < 2500; i++) {
+                    longUrl += 'a';
+                  }
+
+                  updateContent(asHomer, contentObj.id, { link: longUrl }, (err /* , updatedContentObj */) => {
                     assert.ok(err);
                     assert.strictEqual(err.code, 400);
 
-                    // Empty link
-                    RestAPI.Content.updateContent(
-                      nicolaas.restContext,
-                      contentObj.id,
-                      { link: '' },
-                      (err, updatedContentObj) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                    // Sanity check that it's still pointing to google
+                    getContent(asHomer, contentObj.id, (err, retrievedContentObj) => {
+                      assert.notExists(err);
+                      assert.strictEqual(retrievedContentObj.link, newLink);
 
-                        // Super long link
-                        let longUrl = 'http://www.oaeproject.org/';
-                        for (let i = 0; i < 2500; i++) {
-                          longUrl += 'a';
-                        }
-
-                        RestAPI.Content.updateContent(
-                          nicolaas.restContext,
-                          contentObj.id,
-                          { link: longUrl },
-                          (err, updatedContentObj) => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
-
-                            // Sanity check that it's still pointing to google
-                            RestAPI.Content.getContent(
-                              nicolaas.restContext,
-                              contentObj.id,
-                              (err, retrievedContentObj) => {
-                                assert.ok(!err);
-                                assert.strictEqual(retrievedContentObj.link, newLink);
-                                callback();
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                      callback();
+                    });
+                  });
+                });
+              });
+            });
           }
         );
       });
@@ -3892,54 +3652,54 @@ describe('Content', () => {
      */
     it('verify the link property cannot be updated on non-link content items', callback => {
       setUpUsers(contexts => {
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        const { nicolaas: homer } = contexts;
+        const asHomer = homer.restContext;
+
+        createFile(
+          asHomer,
           {
             displayName: 'Test Content 2',
             description: 'Test content description 2',
             visibility: PUBLIC,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
-            RestAPI.Content.updateContent(
-              contexts.nicolaas.restContext,
-              contentObj.id,
-              { link: 'http://www.google.com' },
-              (err, updatedContentObj) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
 
-                RestAPI.Content.createCollabDoc(
-                  contexts.nicolaas.restContext,
-                  'Test Content 1',
-                  'Test content description 1',
-                  PUBLIC,
-                  [],
-                  [],
-                  [],
-                  [],
-                  (err, contentObj) => {
-                    assert.ok(!err);
-                    assert.ok(contentObj);
-                    RestAPI.Content.updateContent(
-                      contexts.nicolaas.restContext,
-                      contentObj.id,
-                      { link: 'http://www.google.com' },
-                      (err, updatedContentObj) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
-                        callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+            updateContent(asHomer, contentObj.id, { link: 'http://www.google.com' }, (
+              err /* , updatedContentObj */
+            ) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
+
+              createCollabDoc(
+                asHomer,
+                'Test Content 1',
+                'Test content description 1',
+                PUBLIC,
+                NO_MANAGERS,
+                NO_EDITORS,
+                NO_VIEWERS,
+                NO_FOLDERS,
+                (err, contentObj) => {
+                  assert.notExists(err);
+                  assert.ok(contentObj);
+
+                  updateContent(asHomer, contentObj.id, { link: 'http://www.google.com' }, (
+                    err /* , updatedContentObj */
+                  ) => {
+                    assert.ok(err);
+                    assert.strictEqual(err.code, 400);
+
+                    callback();
+                  });
+                }
+              );
+            });
           }
         );
       });
@@ -3950,121 +3710,85 @@ describe('Content', () => {
      */
     it('verify file update validation', callback => {
       setUpUsers(contexts => {
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 2',
             description: 'Test content description 2',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
-            RestAPI.Content.updateFileBody(contexts.nicolaas.restContext, contentObj.id, getOAELogoStream, err => {
+            updateFileBody(asNico, contentObj.id, getOAELogoStream, err => {
               assert.strictEqual(err.code, 400);
 
-              RestAPI.Content.createFile(
-                contexts.nicolaas.restContext,
+              createFile(
+                asNico,
                 {
                   displayName: 'Test Content 2',
                   description: 'Test content description 2',
                   visibility: PUBLIC,
                   file: getFileStream,
-                  managers: [],
-                  viewers: [],
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, contentObj) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(contentObj.id);
 
                   // Try to update without uploading anything
-                  RestAPI.Content.updateFileBody(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    null,
-                    (err, revision) => {
+                  updateFileBody(asNico, contentObj.id, null, (err, revision) => {
+                    assert.strictEqual(err.code, 400);
+                    assert.isNotOk(revision);
+
+                    // Try to update by passing a string
+                    updateFileBody(asNico, contentObj.id, 'haha, no actual file body', err => {
                       assert.strictEqual(err.code, 400);
-                      assert.ok(!revision);
 
-                      // Try to update by passing a string
-                      RestAPI.Content.updateFileBody(
-                        contexts.nicolaas.restContext,
-                        contentObj.id,
-                        'haha, no actual file body',
-                        err => {
-                          assert.strictEqual(err.code, 400);
+                      // Try to update something with an invalid ID
+                      updateFileBody(asNico, 'invalid-id', getOAELogoStream, err => {
+                        assert.strictEqual(err.code, 400);
 
-                          // Try to update something with an invalid ID
-                          RestAPI.Content.updateFileBody(
-                            contexts.nicolaas.restContext,
-                            'invalid-id',
-                            getOAELogoStream,
-                            err => {
-                              assert.strictEqual(err.code, 400);
+                        // Try updating as a non-related person
+                        updateFileBody(asSimon, contentObj.id, getOAELogoStream, err => {
+                          assert.strictEqual(err.code, 401);
 
-                              // Try updating as a non-related person
-                              RestAPI.Content.updateFileBody(
-                                contexts.simon.restContext,
-                                contentObj.id,
-                                getOAELogoStream,
-                                err => {
-                                  assert.strictEqual(err.code, 401);
+                          shareContent(asNico, contentObj.id, [simon.user.id], err => {
+                            assert.notExists(err);
 
-                                  RestAPI.Content.shareContent(
-                                    contexts.nicolaas.restContext,
-                                    contentObj.id,
-                                    [contexts.simon.user.id],
-                                    err => {
-                                      assert.ok(!err);
+                            // Try updating as a non-manager
+                            updateFileBody(asSimon, contentObj.id, getOAELogoStream, err => {
+                              assert.strictEqual(err.code, 401);
 
-                                      // Try updating as a non-manager
-                                      RestAPI.Content.updateFileBody(
-                                        contexts.simon.restContext,
-                                        contentObj.id,
-                                        getOAELogoStream,
-                                        err => {
-                                          assert.strictEqual(err.code, 401);
+                              // Make Simon a manager
+                              const permissions = {};
+                              permissions[simon.user.id] = MANAGER;
+                              updateMembers(asNico, contentObj.id, permissions, err => {
+                                assert.notExists(err);
 
-                                          // Make Simon a manager
-                                          const permissions = {};
-                                          permissions[contexts.simon.user.id] = 'manager';
-                                          RestAPI.Content.updateMembers(
-                                            contexts.nicolaas.restContext,
-                                            contentObj.id,
-                                            permissions,
-                                            err => {
-                                              assert.ok(!err);
-
-                                              // Ensure that the original owner can still update
-                                              RestAPI.Content.updateFileBody(
-                                                contexts.nicolaas.restContext,
-                                                contentObj.id,
-                                                getOAELogoStream,
-                                                err => {
-                                                  assert.ok(!err);
-                                                  callback();
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
+                                // Ensure that the original owner can still update
+                                updateFileBody(asNico, contentObj.id, getOAELogoStream, err => {
+                                  assert.notExists(err);
+                                  callback();
+                                });
+                              });
+                            });
+                          });
+                        });
+                      });
+                    });
+                  });
                 }
               );
             });
@@ -4078,26 +3802,29 @@ describe('Content', () => {
      */
     it('verify file update', callback => {
       setUpUsers(contexts => {
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 2',
             description: 'Test content description 2',
             visibility: PUBLIC,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get all the revisions
-            RestAPI.Content.getRevisions(contexts.nicolaas.restContext, contentObj.id, null, null, (err, revisions) => {
-              assert.ok(!err);
-              assert.ok(Array.isArray(revisions.results));
-              assert.strictEqual(revisions.results.length, 1);
+            getRevisions(asNico, contentObj.id, null, null, (err, revisions) => {
+              assert.notExists(err);
+              assert.isArray(revisions.results);
+              assert.lengthOf(revisions.results, 1);
 
               // Verify the revision object
               assert.strictEqual(revisions.results[0].createdBy.displayName, 'Nicolaas Matthijs');
@@ -4109,89 +3836,64 @@ describe('Content', () => {
                   '/' +
                   AuthzUtil.getResourceFromId(revisions.results[0].createdBy.id).resourceId
               );
-              RestAPI.Content.getRevision(
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                revisions.results[0].revisionId,
-                (err, revision) => {
-                  assert.ok(!err);
+              getRevision(asNico, contentObj.id, revisions.results[0].revisionId, (err, revision) => {
+                assert.notExists(err);
 
-                  assert.strictEqual(revision.filename, 'oae-video.png');
-                  assert.strictEqual(revision.mime, 'image/png');
+                assert.strictEqual(revision.filename, 'oae-video.png');
+                assert.strictEqual(revision.mime, 'image/png');
 
-                  // Upload a new version
-                  RestAPI.Content.updateFileBody(
-                    contexts.nicolaas.restContext,
-                    contentObj.id,
-                    getOAELogoStream,
-                    (err, updatedContentObj, response) => {
-                      assert.ok(!err);
-                      assert.ok(updatedContentObj);
+                // Upload a new version
+                updateFileBody(asNico, contentObj.id, getOAELogoStream, (err, updatedContentObj, response) => {
+                  assert.notExists(err);
+                  assert.ok(updatedContentObj);
 
-                      // Verify the previews object has been reset
-                      assert.strictEqual(updatedContentObj.previews.status, 'pending');
-                      assert.strictEqual(_.keys(updatedContentObj.previews).length, 1);
+                  // Verify the previews object has been reset
+                  assert.strictEqual(updatedContentObj.previews.status, 'pending');
+                  assert.lengthOf(keys(updatedContentObj.previews), 1);
 
-                      // Verify the file information has changed
-                      assert.notStrictEqual(contentObj.size, updatedContentObj.size);
-                      assert.notStrictEqual(contentObj.filename, updatedContentObj.filename);
-                      assert.notStrictEqual(contentObj.uri, updatedContentObj.uri);
-                      assert.notStrictEqual(contentObj.downloadPath, updatedContentObj.downloadPath);
-                      assert.notStrictEqual(contentObj.latestRevisionId, updatedContentObj.latestRevisionId);
-                      assert.notStrictEqual(contentObj.lastModified, updatedContentObj.lastModified);
+                  // Verify the file information has changed
+                  assert.notStrictEqual(contentObj.size, updatedContentObj.size);
+                  assert.notStrictEqual(contentObj.filename, updatedContentObj.filename);
+                  assert.notStrictEqual(contentObj.uri, updatedContentObj.uri);
+                  assert.notStrictEqual(contentObj.downloadPath, updatedContentObj.downloadPath);
+                  assert.notStrictEqual(contentObj.latestRevisionId, updatedContentObj.latestRevisionId);
+                  assert.notStrictEqual(contentObj.lastModified, updatedContentObj.lastModified);
 
-                      // Verify the backend is returning text/plain as IE9 doesn't support application/json on upload
-                      assert.strictEqual(response.headers['content-type'], 'text/plain; charset=utf-8');
+                  // Verify the backend is returning text/plain as IE9 doesn't support application/json on upload
+                  assert.strictEqual(response.headers['content-type'], 'text/plain; charset=utf-8');
 
-                      // Verify we're returning a full content profile
-                      assert.ok(updatedContentObj.isManager);
-                      assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
-                      assert.strictEqual(updatedContentObj.createdBy.displayName, contexts.nicolaas.user.displayName);
-                      assert.strictEqual(updatedContentObj.createdBy.profilePath, contexts.nicolaas.user.profilePath);
+                  // Verify we're returning a full content profile
+                  assert.ok(updatedContentObj.isManager);
+                  assert.strictEqual(updatedContentObj.createdBy.id, contexts.nicolaas.user.id);
+                  assert.strictEqual(updatedContentObj.createdBy.displayName, contexts.nicolaas.user.displayName);
+                  assert.strictEqual(updatedContentObj.createdBy.profilePath, contexts.nicolaas.user.profilePath);
 
-                      // Get all the revisions
-                      RestAPI.Content.getRevisions(
-                        contexts.nicolaas.restContext,
-                        contentObj.id,
-                        null,
-                        null,
-                        (err, revisions) => {
-                          assert.ok(!err);
-                          assert.ok(Array.isArray(revisions.results));
-                          assert.strictEqual(revisions.results.length, 2);
+                  // Get all the revisions
+                  getRevisions(asNico, contentObj.id, null, null, (err, revisions) => {
+                    assert.notExists(err);
+                    assert.isArray(revisions.results);
+                    assert.lengthOf(revisions.results, 2);
 
-                          // Revisions should be sorted as the most recent one first
-                          RestAPI.Content.getRevision(
-                            contexts.nicolaas.restContext,
-                            contentObj.id,
-                            revisions.results[0].revisionId,
-                            (err, revision) => {
-                              assert.ok(!err);
-                              assert.strictEqual(revision.revisionId, updatedContentObj.latestRevisionId);
-                              assert.strictEqual(revision.filename, 'oae-logo.png');
-                              assert.strictEqual(revision.mime, 'image/png');
-                              assert.strictEqual(revision.downloadPath, updatedContentObj.downloadPath);
+                    // Revisions should be sorted as the most recent one first
+                    getRevision(asNico, contentObj.id, revisions.results[0].revisionId, (err, revision) => {
+                      assert.notExists(err);
+                      assert.strictEqual(revision.revisionId, updatedContentObj.latestRevisionId);
+                      assert.strictEqual(revision.filename, 'oae-logo.png');
+                      assert.strictEqual(revision.mime, 'image/png');
+                      assert.strictEqual(revision.downloadPath, updatedContentObj.downloadPath);
 
-                              // Get the profile for a content item and ensure the most recent file properties are present
-                              RestAPI.Content.getContent(
-                                contexts.nicolaas.restContext,
-                                contentObj.id,
-                                (err, contentObj) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(contentObj.filename, 'oae-logo.png');
-                                  assert.strictEqual(contentObj.mime, 'image/png');
+                      // Get the profile for a content item and ensure the most recent file properties are present
+                      getContent(asNico, contentObj.id, (err, contentObj) => {
+                        assert.notExists(err);
+                        assert.strictEqual(contentObj.filename, 'oae-logo.png');
+                        assert.strictEqual(contentObj.mime, 'image/png');
 
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                        return callback();
+                      });
+                    });
+                  });
+                });
+              });
             });
           }
         );
@@ -4205,92 +3907,74 @@ describe('Content', () => {
      */
     it('verify revision permissions', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create some content with a couple of revisions
-        RestAPI.Content.createFile(
-          contexts.simon.restContext,
+        createFile(
+          asSimon,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentSimon) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentSimon);
 
-            RestAPI.Content.updateFileBody(contexts.simon.restContext, contentSimon.id, getOAELogoStream, err => {
-              assert.ok(!err);
+            updateFileBody(asSimon, contentSimon.id, getOAELogoStream, err => {
+              assert.notExists(err);
 
-              RestAPI.Content.getRevisions(
-                contexts.simon.restContext,
-                contentSimon.id,
-                null,
-                null,
-                (err, revisionsSimon) => {
-                  assert.ok(!err);
-                  assert.strictEqual(revisionsSimon.results.length, 2);
+              getRevisions(asSimon, contentSimon.id, null, null, (err, revisionsSimon) => {
+                assert.notExists(err);
+                assert.lengthOf(revisionsSimon.results, 2);
 
-                  // First of all, Nico shouldn't be able to see the revisions
-                  RestAPI.Content.getRevisions(
-                    contexts.nicolaas.restContext,
-                    contentSimon.id,
-                    null,
-                    null,
-                    (err, revisions) => {
-                      assert.strictEqual(err.code, 401);
-                      assert.ok(!revisions);
+                // First of all, Nico shouldn't be able to see the revisions
+                getRevisions(asNico, contentSimon.id, null, null, (err, revisions) => {
+                  assert.strictEqual(err.code, 401);
+                  assert.isNotOk(revisions);
 
-                      // He also can't download them
-                      let path = temp.path();
-                      RestAPI.Content.download(
-                        contexts.nicolaas.restContext,
-                        contentSimon.id,
-                        revisionsSimon.results[1].revisionId,
-                        path,
-                        (err, body) => {
-                          assert.strictEqual(err.code, 401);
-                          assert.ok(!body);
+                  // He also can't download them
+                  let path = temp.path();
+                  download(asNico, contentSimon.id, revisionsSimon.results[1].revisionId, path, (err, body) => {
+                    assert.strictEqual(err.code, 401);
+                    assert.isNotOk(body);
 
-                          // Nico creates a piece of content
-                          RestAPI.Content.createLink(
-                            contexts.nicolaas.restContext,
-                            {
-                              displayName: 'Apereo Foundation',
-                              description: 'The Apereo Foundation',
-                              visibility: PRIVATE,
-                              link: 'http://www.apereo.org/',
-                              managers: [],
-                              viewers: [],
-                              folders: []
-                            },
-                            (err, contentNico) => {
-                              assert.ok(!err);
+                    // Nico creates a piece of content
+                    createLink(
+                      asNico,
+                      {
+                        displayName: 'Apereo Foundation',
+                        description: 'The Apereo Foundation',
+                        visibility: PRIVATE,
+                        link: 'http://www.apereo.org/',
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
+                      },
+                      (err, contentNico) => {
+                        assert.notExists(err);
 
-                              // Nico should not be able to download a revision of Simon's file
-                              // by using one of his own content ID's and one of simon's revision ID he got (somehow)
-                              path = temp.path();
-                              RestAPI.Content.download(
-                                contexts.nicolaas.restContext,
-                                contentNico.id,
-                                revisionsSimon.results[1].revisionId,
-                                path,
-                                (err, body) => {
-                                  assert.strictEqual(err.code, 400);
-                                  assert.ok(!body);
-                                  callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                        /**
+                         *  Nico should not be able to download a revision of Simon's file
+                         *  by using one of his own content ID's and one of simon's revision ID he got (somehow)
+                         */
+                        path = temp.path();
+                        download(asNico, contentNico.id, revisionsSimon.results[1].revisionId, path, (err, body) => {
+                          assert.strictEqual(err.code, 400);
+                          assert.isNotOk(body);
+                          callback();
+                        });
+                      }
+                    );
+                  });
+                });
+              });
             });
           }
         );
@@ -4302,51 +3986,42 @@ describe('Content', () => {
      */
     it('verify revision parameter validation', callback => {
       setUpUsers(contexts => {
+        const { simon } = contexts;
+        const asSimon = simon.restContext;
+
         // Create some content with a couple of revisions
-        RestAPI.Content.createFile(
-          contexts.simon.restContext,
+        createFile(
+          asSimon,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
-            RestAPI.Content.updateFileBody(contexts.simon.restContext, contentObj.id, getOAELogoStream, err => {
-              assert.ok(!err);
+            updateFileBody(asSimon, contentObj.id, getOAELogoStream, err => {
+              assert.notExists(err);
 
               // Try to get the revisions with a faulty contentId
-              RestAPI.Content.getRevisions(contexts.simon.restContext, 'not-a-content-id', null, null, err => {
+              getRevisions(asSimon, 'not-a-content-id', null, null, err => {
                 assert.strictEqual(err.code, 400);
 
                 // Get them and try downloading with a faulty revisionId.
-                RestAPI.Content.getRevisions(
-                  contexts.simon.restContext,
-                  contentObj.id,
-                  null,
-                  null,
-                  (err, revisions) => {
-                    assert.ok(!err);
+                getRevisions(asSimon, contentObj.id, null, null, (err /* , revisions */) => {
+                  assert.notExists(err);
 
-                    const path = temp.path();
-                    RestAPI.Content.download(
-                      contexts.simon.restContext,
-                      contentObj.id,
-                      'not-a-revision-id',
-                      path,
-                      (err, response) => {
-                        assert.strictEqual(err.code, 400);
-                        callback();
-                      }
-                    );
-                  }
-                );
+                  const path = temp.path();
+                  download(asSimon, contentObj.id, 'not-a-revision-id', path, (err /* , response */) => {
+                    assert.strictEqual(err.code, 400);
+                    callback();
+                  });
+                });
               });
             });
           }
@@ -4359,76 +4034,70 @@ describe('Content', () => {
      */
     it('verify limiting revisions retrievals', callback => {
       setUpUsers(contexts => {
+        const { simon } = contexts;
+        const asSimon = simon.restContext;
+
         // Create some content with a couple of revisions
-        RestAPI.Content.createFile(
-          contexts.simon.restContext,
+        createFile(
+          asSimon,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
             // Create 30 revisions
             const createdRevisions = [];
-            const createRevisions = function(callback) {
-              RestAPI.Content.updateFileBody(
-                contexts.simon.restContext,
-                contentObj.id,
-                getOAELogoStream,
-                (err, revision) => {
-                  assert.ok(!err);
-                  createdRevisions.push(revision);
-                  if (createdRevisions.length === 30) {
-                    return callback(createdRevisions);
-                  }
+            const createRevisions = callback => {
+              updateFileBody(asSimon, contentObj.id, getOAELogoStream, (err, revision) => {
+                assert.notExists(err);
+                createdRevisions.push(revision);
 
-                  createRevisions(callback);
+                const areThere30Revisions = compose(equals(30), length)(createdRevisions);
+                if (areThere30Revisions) {
+                  return callback(createdRevisions);
                 }
-              );
+
+                createRevisions(callback);
+              });
             };
 
-            createRevisions(createdRevisions => {
+            createRevisions((/* createdRevisions */) => {
               // Try to get a negative amount of revisions, it should return 1 item
-              RestAPI.Content.getRevisions(contexts.simon.restContext, contentObj.id, null, -100, (err, revisions) => {
-                assert.ok(!err);
-                assert.strictEqual(revisions.results.length, 1);
+              getRevisions(asSimon, contentObj.id, null, -100, (err, revisions) => {
+                assert.notExists(err);
+                assert.lengthOf(revisions.results, 1);
 
                 // Fetching a 100 revisions should result in an upper bound of 25
-                RestAPI.Content.getRevisions(contexts.simon.restContext, contentObj.id, null, 100, (err, revisions) => {
-                  assert.ok(!err);
-                  assert.strictEqual(revisions.results.length, 25);
+                getRevisions(asSimon, contentObj.id, null, 100, (err, revisions) => {
+                  assert.notExists(err);
+                  assert.lengthOf(revisions.results, 25);
 
                   // Assert paging.
-                  RestAPI.Content.getRevisions(contexts.simon.restContext, contentObj.id, null, 5, (err, firstPage) => {
-                    assert.ok(!err);
-                    assert.strictEqual(firstPage.results.length, 5);
+                  getRevisions(asSimon, contentObj.id, null, 5, (err, firstPage) => {
+                    assert.notExists(err);
+                    assert.lengthOf(firstPage.results, 5);
                     assert.strictEqual(firstPage.nextToken, firstPage.results[4].created);
 
-                    RestAPI.Content.getRevisions(
-                      contexts.simon.restContext,
-                      contentObj.id,
-                      firstPage.nextToken,
-                      5,
-                      (err, secondPage) => {
-                        assert.ok(!err);
-                        assert.strictEqual(secondPage.results.length, 5);
+                    getRevisions(asSimon, contentObj.id, firstPage.nextToken, 5, (err, secondPage) => {
+                      assert.notExists(err);
+                      assert.lengthOf(secondPage.results, 5);
 
-                        // Ensure that there are no duplicates in the revision pages.
-                        _.each(secondPage.results, secondPageRevision => {
-                          _.each(firstPage.results, firstPageRevision => {
-                            assert.notStrictEqual(firstPageRevision.revisionId, secondPageRevision.revisionId);
-                          });
-                        });
-                        callback();
-                      }
-                    );
+                      // Ensure that there are no duplicates in the revision pages.
+                      forEach(secondPageRevision => {
+                        forEach(firstPageRevision => {
+                          assert.notStrictEqual(firstPageRevision.revisionId, secondPageRevision.revisionId);
+                        }, firstPage.results);
+                      }, secondPage.results);
+                      callback();
+                    });
                   });
                 });
               });
@@ -4443,61 +4112,54 @@ describe('Content', () => {
      */
     it('verify revision restoration', callback => {
       setUpUsers(contexts => {
+        const { simon } = contexts;
+        const asSimon = simon.restContext;
+
         // Create some content with a couple of revisions
-        RestAPI.Content.createFile(
-          contexts.simon.restContext,
+        createFile(
+          asSimon,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj);
 
-            RestAPI.Content.updateFileBody(contexts.simon.restContext, contentObj.id, getOAELogoStream, err => {
-              assert.ok(!err);
+            updateFileBody(asSimon, contentObj.id, getOAELogoStream, err => {
+              assert.notExists(err);
 
               // Get the revisions and restore the first one.
-              RestAPI.Content.getRevisions(contexts.simon.restContext, contentObj.id, null, null, (err, revisions) => {
-                assert.ok(!err);
+              getRevisions(asSimon, contentObj.id, null, null, (err, revisions) => {
+                assert.notExists(err);
 
                 // Get the url for the 'latest' version of the file
                 const path = temp.path();
-                RestAPI.Content.download(contexts.simon.restContext, contentObj.id, null, path, (err, response) => {
-                  assert.ok(!err);
+                download(asSimon, contentObj.id, null, path, (err, response) => {
+                  assert.notExists(err);
                   assert.strictEqual(response.statusCode, 204);
                   const url = response.headers['x-accel-redirect'];
 
                   // Now restore the original file.
-                  RestAPI.Content.restoreRevision(
-                    contexts.simon.restContext,
-                    contentObj.id,
-                    revisions.results[1].revisionId,
-                    (err, revisionObj) => {
-                      assert.ok(!err);
-                      assert.ok(revisionObj);
+                  restoreRevision(asSimon, contentObj.id, revisions.results[1].revisionId, (err, revisionObj) => {
+                    assert.notExists(err);
+                    assert.ok(revisionObj);
 
-                      // Get the url for the 'new latest' version of the file.
-                      RestAPI.Content.download(
-                        contexts.simon.restContext,
-                        contentObj.id,
-                        null,
-                        path,
-                        (err, response) => {
-                          assert.ok(!err);
-                          assert.strictEqual(response.statusCode, 204);
-                          const latestUrl = response.headers['x-accel-redirect'];
-                          assert.notStrictEqual(url, latestUrl);
-                          callback();
-                        }
-                      );
-                    }
-                  );
+                    // Get the url for the 'new latest' version of the file.
+                    download(asSimon, contentObj.id, null, path, (err, response) => {
+                      assert.notExists(err);
+                      assert.strictEqual(response.statusCode, 204);
+                      const latestUrl = response.headers['x-accel-redirect'];
+                      assert.notStrictEqual(url, latestUrl);
+
+                      callback();
+                    });
+                  });
                 });
               });
             });
@@ -4519,226 +4181,167 @@ describe('Content', () => {
      * @param  {Function(content)}  callback            Standard callback function
      */
     const prepareDelete = function(contexts, privacy, callback) {
+      const { nicolaas, ian, anthony, stuart, simon } = contexts;
+      const asNico = nicolaas.restContext;
+      const asIan = ian.restContext;
+      const asAnthony = anthony.restContext;
+
+      const asSimon = simon.restContext;
+      const asStuart = stuart.restContext;
+
       // Create a content item
-      RestAPI.Content.createLink(
-        contexts.nicolaas.restContext,
+      createLink(
+        asNico,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility: privacy,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj.id);
+
           // Get the piece of content as the creator
-          checkPieceOfContent(
-            contexts.nicolaas.restContext,
-            contexts.nicolaas.user.id,
-            contentObj,
-            true,
-            true,
-            true,
-            true,
-            () => {
-              // Make a user a manager and make a user a member
-              const permissions = {};
-              permissions[contexts.simon.user.id] = 'manager';
-              permissions[contexts.ian.user.id] = 'viewer';
-              RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
-                assert.ok(!err);
-                checkPieceOfContent(
-                  contexts.simon.restContext,
-                  contexts.simon.user.id,
-                  contentObj,
-                  true,
-                  true,
-                  true,
-                  true,
-                  () => {
+          checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+            // Make a user a manager and make a user a member
+            const permissions = {};
+            permissions[simon.user.id] = MANAGER;
+            permissions[ian.user.id] = VIEWER;
+            updateMembers(asNico, contentObj.id, permissions, err => {
+              assert.notExists(err);
+              checkPieceOfContent(asSimon, simon.user.id, contentObj, true, true, true, true, () => {
+                checkPieceOfContent(asIan, ian.user.id, contentObj, true, false, true, privacy !== PRIVATE, () => {
+                  // Share the content with another user
+                  shareContent(asSimon, contentObj.id, [stuart.user.id], err => {
+                    assert.notExists(err);
                     checkPieceOfContent(
-                      contexts.ian.restContext,
-                      contexts.ian.user.id,
+                      asStuart,
+                      stuart.user.id,
                       contentObj,
                       true,
                       false,
                       true,
                       privacy !== PRIVATE,
                       () => {
-                        // Share the content with another user
-                        RestAPI.Content.shareContent(
-                          contexts.simon.restContext,
-                          contentObj.id,
-                          [contexts.stuart.user.id],
-                          err => {
-                            assert.ok(!err);
-                            checkPieceOfContent(
-                              contexts.stuart.restContext,
-                              contexts.stuart.user.id,
-                              contentObj,
-                              true,
-                              false,
-                              true,
-                              privacy !== PRIVATE,
-                              () => {
-                                // Try to delete the content as an anonymous user
-                                RestAPI.Content.deleteContent(anonymousRestContext, contentObj.id, err => {
+                        // Try to delete the content as an anonymous user
+                        deleteContent(asCambridgeAnonymousUser, contentObj.id, err => {
+                          assert.ok(err);
+                          // Check that it is still around
+                          checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+                            // Try to delete the content as a logged in user
+                            deleteContent(asAnthony, contentObj.id, err => {
+                              assert.ok(err);
+                              // Check that it is still around
+                              checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+                                // Try to delete the content as a content member
+                                deleteContent(asStuart, contentObj.id, err => {
                                   assert.ok(err);
                                   // Check that it is still around
                                   checkPieceOfContent(
-                                    contexts.nicolaas.restContext,
-                                    contexts.nicolaas.user.id,
+                                    asNico,
+                                    nicolaas.user.id,
                                     contentObj,
                                     true,
                                     true,
                                     true,
                                     true,
                                     () => {
-                                      // Try to delete the content as a logged in user
-                                      RestAPI.Content.deleteContent(
-                                        contexts.anthony.restContext,
-                                        contentObj.id,
-                                        err => {
-                                          assert.ok(err);
-                                          // Check that it is still around
-                                          checkPieceOfContent(
-                                            contexts.nicolaas.restContext,
-                                            contexts.nicolaas.user.id,
-                                            contentObj,
-                                            true,
-                                            true,
-                                            true,
-                                            true,
-                                            () => {
-                                              // Try to delete the content as a content member
-                                              RestAPI.Content.deleteContent(
-                                                contexts.stuart.restContext,
-                                                contentObj.id,
-                                                err => {
-                                                  assert.ok(err);
-                                                  // Check that it is still around
-                                                  checkPieceOfContent(
-                                                    contexts.nicolaas.restContext,
-                                                    contexts.nicolaas.user.id,
-                                                    contentObj,
-                                                    true,
-                                                    true,
-                                                    true,
-                                                    true,
-                                                    () => {
-                                                      // Try to delete the content as a content manager
-                                                      RestAPI.Content.deleteContent(
-                                                        contexts.nicolaas.restContext,
-                                                        contentObj.id,
-                                                        err => {
-                                                          assert.ok(!err);
-                                                          // Check to see if the manager, a member, a logged in user and the anonymous user still have access
-                                                          checkPieceOfContent(
-                                                            contexts.nicolaas.restContext,
-                                                            contexts.nicolaas.user.id,
-                                                            contentObj,
-                                                            false,
-                                                            false,
-                                                            false,
-                                                            false,
-                                                            () => {
-                                                              checkPieceOfContent(
-                                                                contexts.ian.restContext,
-                                                                contexts.ian.user.id,
-                                                                contentObj,
-                                                                false,
-                                                                false,
-                                                                false,
-                                                                false,
-                                                                () => {
-                                                                  checkPieceOfContent(
-                                                                    contexts.anthony.restContext,
-                                                                    contexts.anthony.user.id,
-                                                                    contentObj,
-                                                                    false,
-                                                                    false,
-                                                                    false,
-                                                                    false,
-                                                                    () => {
-                                                                      checkPieceOfContent(
-                                                                        anonymousRestContext,
-                                                                        contexts.nicolaas.user.id,
-                                                                        contentObj,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        () => {
-                                                                          // Check roles api for the role on the content for a manager, a member and a logged in user
-                                                                          AuthzAPI.getAllRoles(
-                                                                            contexts.nicolaas.user.id,
-                                                                            contentObj.id,
-                                                                            (err, roles) => {
-                                                                              assert.strictEqual(roles.length, 0);
-                                                                              AuthzAPI.getAllRoles(
-                                                                                contexts.ian.user.id,
-                                                                                contentObj.id,
-                                                                                (err, roles) => {
-                                                                                  assert.strictEqual(roles.length, 0);
-                                                                                  AuthzAPI.getAllRoles(
-                                                                                    contexts.anthony.user.id,
-                                                                                    contentObj.id,
-                                                                                    (err, roles) => {
-                                                                                      assert.strictEqual(
-                                                                                        roles.length,
-                                                                                        0
-                                                                                      );
+                                      // Try to delete the content as a content manager
+                                      deleteContent(asNico, contentObj.id, err => {
+                                        assert.notExists(err);
+                                        // Check to see if the manager, a member, a logged in user and the anonymous user still have access
+                                        checkPieceOfContent(
+                                          asNico,
+                                          nicolaas.user.id,
+                                          contentObj,
+                                          false,
+                                          false,
+                                          false,
+                                          false,
+                                          () => {
+                                            checkPieceOfContent(
+                                              asIan,
+                                              ian.user.id,
+                                              contentObj,
+                                              false,
+                                              false,
+                                              false,
+                                              false,
+                                              () => {
+                                                checkPieceOfContent(
+                                                  asAnthony,
+                                                  anthony.user.id,
+                                                  contentObj,
+                                                  false,
+                                                  false,
+                                                  false,
+                                                  false,
+                                                  () => {
+                                                    checkPieceOfContent(
+                                                      asCambridgeAnonymousUser,
+                                                      nicolaas.user.id,
+                                                      contentObj,
+                                                      false,
+                                                      false,
+                                                      false,
+                                                      false,
+                                                      () => {
+                                                        // Check roles api for the role on the content for a manager, a member and a logged in user
+                                                        getAllRoles(nicolaas.user.id, contentObj.id, (err, roles) => {
+                                                          assert.notExists(err);
+                                                          assert.isEmpty(roles);
 
-                                                                                      // Ensure list of members is no longer accessible
-                                                                                      return ContentTestUtil.assertGetContentMembersFails(
-                                                                                        contexts.nicolaas.restContext,
-                                                                                        contentObj.id,
-                                                                                        null,
-                                                                                        null,
-                                                                                        404,
-                                                                                        callback
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
+                                                          getAllRoles(ian.user.id, contentObj.id, (err, roles) => {
+                                                            assert.notExists(err);
+                                                            assert.isEmpty(roles);
+
+                                                            getAllRoles(
+                                                              anthony.user.id,
+                                                              contentObj.id,
+                                                              (err, roles) => {
+                                                                assert.notExists(err);
+                                                                assert.isEmpty(roles);
+
+                                                                // Ensure list of members is no longer accessible
+                                                                return ContentTestUtil.assertGetContentMembersFails(
+                                                                  asNico,
+                                                                  contentObj.id,
+                                                                  null,
+                                                                  null,
+                                                                  404,
+                                                                  callback
+                                                                );
+                                                              }
+                                                            );
+                                                          });
+                                                        });
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      });
                                     }
                                   );
                                 });
-                              }
-                            );
-                          }
-                        );
+                              });
+                            });
+                          });
+                        });
                       }
                     );
-                  }
-                );
+                  });
+                });
               });
-            }
-          );
+            });
+          });
         }
       );
     };
@@ -4775,39 +4378,37 @@ describe('Content', () => {
      */
     it('verify file delete', callback => {
       setUpUsers(contexts => {
-        RestAPI.Content.createFile(
-          contexts.nicolaas.restContext,
+        const { nicolaas } = contexts;
+        const asNico = nicolaas.restContext;
+
+        createFile(
+          asNico,
           {
             displayName: 'Test Content 2',
             description: 'Test content description 2',
             visibility: PUBLIC,
             file: getFileStream,
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Get the last revision.
-            RestAPI.Content.getRevisions(contexts.nicolaas.restContext, contentObj.id, null, 1000, (err, revisions) => {
-              assert.ok(!err);
+            getRevisions(asNico, contentObj.id, null, 1000, (err /* , revisions */) => {
+              assert.notExists(err);
 
-              RestAPI.Content.deleteContent(contexts.nicolaas.restContext, contentObj.id, err => {
-                assert.ok(!err);
+              deleteContent(asNico, contentObj.id, err => {
+                assert.notExists(err);
 
                 // Get the last revision.
-                RestAPI.Content.getRevisions(
-                  contexts.nicolaas.restContext,
-                  contentObj.id,
-                  null,
-                  1000,
-                  (err, revisions) => {
-                    assert.strictEqual(err.code, 404);
-                    callback();
-                  }
-                );
+                getRevisions(asNico, contentObj.id, null, 1000, (err /* , revisions */) => {
+                  assert.strictEqual(err.code, 404);
+
+                  callback();
+                });
               });
             });
           }
@@ -4821,38 +4422,43 @@ describe('Content', () => {
    */
   it("verify collabdoc or collabsheet editors can't delete", callback => {
     setUpUsers(contexts => {
-      RestAPI.Content.createCollabDoc(
-        contexts.nicolaas.restContext,
+      const { nicolaas, stuart } = contexts;
+      const asNico = nicolaas.restContext;
+      const asStuart = stuart.restContext;
+
+      createCollabDoc(
+        asNico,
         'Test CollabDoc',
         'Doc description',
         PUBLIC,
-        [],
-        [contexts.stuart.user.id],
-        [],
-        [],
+        NO_MANAGERS,
+        [stuart.user.id],
+        NO_VIEWERS,
+        NO_FOLDERS,
         (err, contentObj) => {
-          assert.ok(!err);
-          RestAPI.Content.deleteContent(contexts.stuart.restContext, contentObj.id, err => {
+          assert.notExists(err);
+          deleteContent(asStuart, contentObj.id, err => {
             assert.strictEqual(err.code, 401);
 
-            RestAPI.Content.deleteContent(contexts.nicolaas.restContext, contentObj.id, err => {
-              assert.ok(!err);
-              RestAPI.Content.createCollabsheet(
-                contexts.nicolaas.restContext,
+            deleteContent(asNico, contentObj.id, err => {
+              assert.notExists(err);
+
+              createCollabsheet(
+                asNico,
                 'Test collabsheet',
                 'Description',
                 PUBLIC,
-                [],
+                NO_MANAGERS,
                 [contexts.stuart.user.id],
-                [],
-                [],
-                function(err, contentObj) {
-                  assert.ok(!err);
-                  RestAPI.Content.deleteContent(contexts.stuart.restContext, contentObj.id, function(err) {
+                NO_VIEWERS,
+                NO_FOLDERS,
+                (err, contentObj) => {
+                  assert.notExists(err);
+                  deleteContent(asStuart, contentObj.id, err => {
                     assert.strictEqual(err.code, 401);
 
-                    RestAPI.Content.deleteContent(contexts.nicolaas.restContext, contentObj.id, function(err) {
-                      assert.ok(!err);
+                    deleteContent(asNico, contentObj.id, err => {
+                      assert.notExists(err);
                       return callback();
                     });
                   });
@@ -4877,46 +4483,35 @@ describe('Content', () => {
      * @param  {Content}            callback.content    Content object that has been created as part of this test
      */
     const setUpContentPermissions = function(contexts, privacy, callback) {
+      const { nicolaas, stuart } = contexts;
+      const asNico = nicolaas.restContext;
+
       // Create a public content item
-      RestAPI.Content.createLink(
-        contexts.nicolaas.restContext,
+      createLink(
+        asNico,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility: privacy,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj.id);
 
           // Get the piece of content as the person who created the content
-          checkPieceOfContent(
-            contexts.nicolaas.restContext,
-            contexts.nicolaas.user.id,
-            contentObj,
-            true,
-            true,
-            true,
-            true,
-            () => {
-              // Make another user viewer of the content
-              const permissions = {};
-              permissions[contexts.stuart.user.id] = 'viewer';
-              return ContentTestUtil.assertUpdateContentMembersSucceeds(
-                contexts.nicolaas.restContext,
-                contexts.nicolaas.restContext,
-                contentObj.id,
-                permissions,
-                () => {
-                  return callback(contentObj);
-                }
-              );
-            }
-          );
+          checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, true, true, true, () => {
+            // Make another user viewer of the content
+            const permissions = {};
+            permissions[stuart.user.id] = VIEWER;
+
+            return assertUpdateContentMembersSucceeds(asNico, asNico, contentObj.id, permissions, () => {
+              return callback(contentObj);
+            });
+          });
         }
       );
     };
@@ -4926,30 +4521,24 @@ describe('Content', () => {
      */
     it('verify public content permissions', callback => {
       setUpUsers(contexts => {
+        const { branden, nicolaas } = contexts;
+        const asBranden = branden.restContext;
+
         setUpContentPermissions(contexts, PUBLIC, contentObj => {
           // Get the piece of content as a non-associated user
-          checkPieceOfContent(
-            contexts.branden.restContext,
-            contexts.branden.user.id,
-            contentObj,
-            true,
-            false,
-            false,
-            true,
-            () => {
-              // Get the piece of content as an anonymous user
-              checkPieceOfContent(
-                anonymousRestContext,
-                contexts.nicolaas.user.id,
-                contentObj,
-                true,
-                false,
-                true,
-                false,
-                callback
-              );
-            }
-          );
+          checkPieceOfContent(asBranden, branden.user.id, contentObj, true, false, false, true, () => {
+            // Get the piece of content as an anonymous user
+            checkPieceOfContent(
+              asCambridgeAnonymousUser,
+              nicolaas.user.id,
+              contentObj,
+              true,
+              false,
+              true,
+              false,
+              callback
+            );
+          });
         });
       });
     });
@@ -4959,30 +4548,24 @@ describe('Content', () => {
      */
     it('verify logged in content permissions', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, branden } = contexts;
+        const asBranden = branden.restContext;
+
         setUpContentPermissions(contexts, LOGGEDIN, contentObj => {
           // Get the piece of content as a non-associated user
-          checkPieceOfContent(
-            contexts.branden.restContext,
-            contexts.branden.user.id,
-            contentObj,
-            true,
-            false,
-            false,
-            true,
-            () => {
-              // Get the piece of content as an anonymous user
-              checkPieceOfContent(
-                anonymousRestContext,
-                contexts.nicolaas.user.id,
-                contentObj,
-                false,
-                false,
-                false,
-                false,
-                callback
-              );
-            }
-          );
+          checkPieceOfContent(asBranden, branden.user.id, contentObj, true, false, false, true, () => {
+            // Get the piece of content as an anonymous user
+            checkPieceOfContent(
+              asCambridgeAnonymousUser,
+              nicolaas.user.id,
+              contentObj,
+              false,
+              false,
+              false,
+              false,
+              callback
+            );
+          });
         });
       });
     });
@@ -4992,30 +4575,24 @@ describe('Content', () => {
      */
     it('verify private content permissions', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, branden } = contexts;
+        const asBranden = branden.restContext;
+
         setUpContentPermissions(contexts, PRIVATE, contentObj => {
           // Get the piece of content as a non-associated user
-          checkPieceOfContent(
-            contexts.branden.restContext,
-            contexts.branden.user.id,
-            contentObj,
-            false,
-            false,
-            false,
-            false,
-            () => {
-              // Get the piece of content as an anonymous user
-              checkPieceOfContent(
-                anonymousRestContext,
-                contexts.nicolaas.user.id,
-                contentObj,
-                false,
-                false,
-                false,
-                false,
-                callback
-              );
-            }
-          );
+          checkPieceOfContent(asBranden, branden.user.id, contentObj, false, false, false, false, () => {
+            // Get the piece of content as an anonymous user
+            checkPieceOfContent(
+              asCambridgeAnonymousUser,
+              nicolaas.user.id,
+              contentObj,
+              false,
+              false,
+              false,
+              false,
+              callback
+            );
+          });
         });
       });
     });
@@ -5026,63 +4603,50 @@ describe('Content', () => {
      */
     it('verify multiple content permissions', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, ian, anthony, stuart, simon } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create a content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Set permission on multiple people at the same time (managers and members)
             let permissions = {};
-            permissions[contexts.simon.user.id] = 'manager';
-            permissions[contexts.stuart.user.id] = 'viewer';
-            permissions[contexts.ian.user.id] = 'viewer';
-            ContentTestUtil.assertUpdateContentMembersSucceeds(
-              contexts.nicolaas.restContext,
-              contexts.nicolaas.restContext,
-              contentObj.id,
-              permissions,
-              () => {
-                // Set permission on multiple people at same time, some remove role
+            permissions[simon.user.id] = MANAGER;
+            permissions[stuart.user.id] = VIEWER;
+            permissions[ian.user.id] = VIEWER;
+
+            assertUpdateContentMembersSucceeds(asNico, asNico, contentObj.id, permissions, () => {
+              // Set permission on multiple people at same time, some remove role
+              permissions = {};
+              permissions[simon.user.id] = false;
+              permissions[stuart.user.id] = false;
+              permissions[anthony.user.id] = VIEWER;
+
+              assertUpdateContentMembersSucceeds(asNico, asNico, contentObj.id, permissions, () => {
+                // Set permission on multiple people at same time (managers and members), some invalid
                 permissions = {};
-                permissions[contexts.simon.user.id] = false;
-                permissions[contexts.stuart.user.id] = false;
-                permissions[contexts.anthony.user.id] = 'viewer';
-                ContentTestUtil.assertUpdateContentMembersSucceeds(
-                  contexts.nicolaas.restContext,
-                  contexts.nicolaas.restContext,
-                  contentObj.id,
-                  permissions,
-                  () => {
-                    // Set permission on multiple people at same time (managers and members), some invalid
-                    permissions = {};
-                    permissions[contexts.simon.user.id] = 'manager';
-                    permissions[contexts.stuart.user.id] = 'viewer';
-                    permissions['u:cam:non-existing-user'] = 'viewer';
-                    ContentTestUtil.assertUpdateContentMembersFails(
-                      contexts.nicolaas.restContext,
-                      contexts.nicolaas.restContext,
-                      contentObj.id,
-                      permissions,
-                      400,
-                      () => {
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                permissions[simon.user.id] = MANAGER;
+                permissions[stuart.user.id] = VIEWER;
+                permissions['u:cam:non-existing-user'] = VIEWER;
+
+                assertUpdateContentMembersFails(asNico, asNico, contentObj.id, permissions, 400, () => {
+                  return callback();
+                });
+              });
+            });
           }
         );
       });
@@ -5093,58 +4657,62 @@ describe('Content', () => {
      */
     it('verify removal of all managers is not possible', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, ian, stuart, simon } = contexts;
+        const asNico = nicolaas.restContext;
+
         // Create a content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(contentObj.id);
 
             // Set permission on multiple people at the same time (managers and members)
             let permissions = {};
-            permissions[contexts.simon.user.id] = 'manager';
-            permissions[contexts.stuart.user.id] = 'viewer';
-            permissions[contexts.ian.user.id] = 'viewer';
-            RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
-              assert.ok(!err);
+            permissions[simon.user.id] = MANAGER;
+            permissions[stuart.user.id] = VIEWER;
+            permissions[ian.user.id] = VIEWER;
+
+            updateMembers(asNico, contentObj.id, permissions, err => {
+              assert.notExists(err);
 
               // Removing all the managers should not be allowed
               permissions = {};
-              permissions[contexts.simon.user.id] = false;
-              permissions[contexts.nicolaas.user.id] = false;
-              RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+              permissions[simon.user.id] = false;
+              permissions[nicolaas.user.id] = false;
+              updateMembers(asNico, contentObj.id, permissions, err => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 400);
 
                 // Making both of them viewer should not work either.
                 permissions = {};
-                permissions[contexts.simon.user.id] = 'viewer';
-                permissions[contexts.nicolaas.user.id] = 'viewer';
-                RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+                permissions[simon.user.id] = VIEWER;
+                permissions[nicolaas.user.id] = VIEWER;
+                updateMembers(asNico, contentObj.id, permissions, err => {
                   assert.strictEqual(err.code, 400);
 
                   // Removing everyone should not be possible
                   permissions = {};
-                  permissions[contexts.simon.user.id] = false;
-                  permissions[contexts.nicolaas.user.id] = false;
-                  permissions[contexts.stuart.user.id] = false;
-                  permissions[contexts.ian.user.id] = false;
-                  RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+                  permissions[simon.user.id] = false;
+                  permissions[nicolaas.user.id] = false;
+                  permissions[stuart.user.id] = false;
+                  permissions[ian.user.id] = false;
+                  updateMembers(asNico, contentObj.id, permissions, err => {
                     assert.strictEqual(err.code, 400);
 
                     permissions = {};
-                    permissions[contexts.simon.user.id] = 'viewer';
-                    permissions[contexts.nicolaas.user.id] = false;
-                    RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+                    permissions[simon.user.id] = VIEWER;
+                    permissions[nicolaas.user.id] = false;
+                    updateMembers(asNico, contentObj.id, permissions, err => {
                       assert.strictEqual(err.code, 400);
                       callback();
                     });
@@ -5163,83 +4731,72 @@ describe('Content', () => {
      */
     it('verify validation on setting content permissions', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon } = contexts;
+        const asNico = nicolaas.restContext;
+        const asSimon = simon.restContext;
+
         // Create a content item
-        RestAPI.Content.createLink(
-          contexts.nicolaas.restContext,
+        createLink(
+          asNico,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
-            const validPermissions = AuthzTestUtil.createRoleChange([contexts.simon.user.id], 'manager');
+            const validPermissions = createRoleChange([simon.user.id], MANAGER);
 
             // Invalid content id
-            RestAPI.Content.updateMembers(contexts.nicolaas.restContext, 'invalidContentId', validPermissions, err => {
+            updateMembers(asNico, 'invalidContentId', validPermissions, err => {
               assert.strictEqual(err.code, 400);
 
               // Missing role changes
-              RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, {}, err => {
+              updateMembers(asNico, contentObj.id, {}, err => {
                 assert.strictEqual(err.code, 400);
 
                 // Invalid principal
-                RestAPI.Content.updateMembers(
-                  contexts.nicolaas.restContext,
-                  contentObj.id,
-                  { 'invalid-id': 'manager' },
-                  err => {
+                updateMembers(asNico, contentObj.id, { 'invalid-id': MANAGER }, err => {
+                  assert.strictEqual(err.code, 400);
+
+                  // Invalid role change
+                  let permissions = createRoleChange([simon.user.id], 'totally-wrong-role');
+                  updateMembers(asNico, contentObj.id, permissions, err => {
                     assert.strictEqual(err.code, 400);
 
-                    // Invalid role change
-                    let permissions = AuthzTestUtil.createRoleChange([contexts.simon.user.id], 'totally-wrong-role');
-                    RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+                    // The value `true` is not a valid role change either
+                    permissions = createRoleChange([simon.user.id], true);
+                    updateMembers(asNico, contentObj.id, permissions, err => {
                       assert.strictEqual(err.code, 400);
 
-                      // The value `true` is not a valid role change either
-                      permissions = AuthzTestUtil.createRoleChange([contexts.simon.user.id], true);
-                      RestAPI.Content.updateMembers(contexts.nicolaas.restContext, contentObj.id, permissions, err => {
+                      // The value `editor` is only valid on collabdocs
+                      permissions = createRoleChange([simon.user.id], 'editor');
+                      updateMembers(asNico, contentObj.id, permissions, err => {
                         assert.strictEqual(err.code, 400);
 
-                        // The value `editor` is only valid on collabdocs
-                        permissions = AuthzTestUtil.createRoleChange([contexts.simon.user.id], 'editor');
-                        RestAPI.Content.updateMembers(
-                          contexts.nicolaas.restContext,
-                          contentObj.id,
-                          permissions,
-                          err => {
-                            assert.strictEqual(err.code, 400);
-
-                            // Sanity check
-                            RestAPI.Content.updateMembers(
-                              contexts.nicolaas.restContext,
-                              contentObj.id,
-                              validPermissions,
-                              err => {
-                                assert.ok(!err);
-                                RestAPI.Content.updateContent(
-                                  contexts.simon.restContext,
-                                  contentObj.id,
-                                  { displayName: 'Sweet stuff' },
-                                  (err, updatedContentObj) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(updatedContentObj.displayName, 'Sweet stuff');
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                        // Sanity check
+                        updateMembers(asNico, contentObj.id, validPermissions, err => {
+                          assert.notExists(err);
+                          updateContent(
+                            asSimon,
+                            contentObj.id,
+                            { displayName: 'Sweet stuff' },
+                            (err, updatedContentObj) => {
+                              assert.notExists(err);
+                              assert.strictEqual(updatedContentObj.displayName, 'Sweet stuff');
+                              return callback();
+                            }
+                          );
+                        });
                       });
                     });
-                  }
-                );
+                  });
+                });
               });
             });
           }
@@ -5251,31 +4808,33 @@ describe('Content', () => {
      * Test that verifies that you cannot add a private user as a member
      */
     it('verify adding a private user as a member is not possible', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
-        const nico = _.values(users)[0];
-        const bert = _.values(users)[1];
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
-          assert.ok(!err);
+        const { 0: homer, 1: marge } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-          RestAPI.Content.createLink(
-            nico.restContext,
+        updateUser(asMarge, marge.user.id, { visibility: PRIVATE }, err => {
+          assert.notExists(err);
+
+          createLink(
+            asHomer,
             {
               displayName: 'Test Content',
               description: 'Test content description',
               visibility: PUBLIC,
               link: 'http://www.google.com',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, contentObj) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               const update = {};
-              update[bert.user.id] = 'manager';
-              RestAPI.Content.updateMembers(nico.restContext, contentObj.id, update, err => {
+              update[marge.user.id] = MANAGER;
+              updateMembers(asHomer, contentObj.id, update, err => {
                 assert.strictEqual(err.code, 401);
                 callback();
               });
@@ -5289,39 +4848,41 @@ describe('Content', () => {
      * Test that verifies that you cannot add a private group as a member
      */
     it('verify adding a private group as a member is not possible', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
-        const nico = _.values(users)[0];
-        const bert = _.values(users)[1];
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.Group.createGroup(
-          bert.restContext,
+        const { 0: nico, 1: bert } = users;
+        const asBert = bert.restContext;
+        const asNico = nico.restContext;
+
+        createGroup(
+          asBert,
           'Group title',
           'Group description',
           PRIVATE,
           undefined,
-          [],
-          [],
+          NO_MANAGERS,
+          NO_MEMBERS,
           (err, groupObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
-            RestAPI.Content.createLink(
-              nico.restContext,
+            createLink(
+              asNico,
               {
                 displayName: 'Test Content',
                 description: 'Test content description',
                 visibility: PUBLIC,
                 link: 'http://www.google.com',
-                managers: [],
-                viewers: [],
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, contentObj) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 const update = {};
-                update[groupObj.id] = 'manager';
-                RestAPI.Content.updateMembers(nico.restContext, contentObj.id, update, err => {
+                update[groupObj.id] = MANAGER;
+                updateMembers(asNico, contentObj.id, update, err => {
                   assert.strictEqual(err.code, 401);
                   callback();
                 });
@@ -5336,48 +4897,39 @@ describe('Content', () => {
      * Test that verifies that content members can be removed/updated even if their visibility setting is private
      */
     it('verify private users can be updated/removed as content members', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
-        const nico = _.values(users)[0];
-        const bert = _.values(users)[1];
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.Content.createLink(
-          nico.restContext,
+        const { 0: nico, 1: bert } = users;
+        const asNico = nico.restContext;
+        const asBert = bert.restContext;
+
+        createLink(
+          asNico,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility: PUBLIC,
             link: 'http://www.google.com',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: [bert.user.id],
-            folders: []
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
-            RestAPI.User.updateUser(bert.restContext, bert.user.id, { visibility: PRIVATE }, err => {
-              assert.ok(!err);
+            updateUser(asBert, bert.user.id, { visibility: PRIVATE }, err => {
+              assert.notExists(err);
 
               // Changing the role of a private user (that was already a member) should work
               const update = {};
-              update[bert.user.id] = 'manager';
-              ContentTestUtil.assertUpdateContentMembersSucceeds(
-                nico.restContext,
-                nico.restContext,
-                contentObj.id,
-                update,
-                () => {
-                  // Removing a private user (that was already a member) should work
-                  update[bert.user.id] = false;
-                  return ContentTestUtil.assertUpdateContentMembersSucceeds(
-                    nico.restContext,
-                    nico.restContext,
-                    contentObj.id,
-                    update,
-                    callback
-                  );
-                }
-              );
+              update[bert.user.id] = MANAGER;
+
+              assertUpdateContentMembersSucceeds(asNico, asNico, contentObj.id, update, () => {
+                // Removing a private user (that was already a member) should work
+                update[bert.user.id] = false;
+                return assertUpdateContentMembersSucceeds(asNico, asNico, contentObj.id, update, callback);
+              });
             });
           }
         );
@@ -5388,49 +4940,46 @@ describe('Content', () => {
      * Test that verifies that content member listings can be paged
      */
     it('verify getting content members paging', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 10, (err, users) => {
-        assert.ok(!err);
-        const simon = _.values(users)[0];
+      generateTestUsers(asCambridgeTenantAdmin, 10, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simon } = users;
+        const asSimon = simon.restContext;
 
         // Get the user ids for the users we'll add as members
-        const members = _.filter(_.values(users), user => {
-          return user.user.id !== simon.user.id;
-        });
-        const memberIds = [];
-        _.each(members, user => {
-          memberIds.push(user.user.id);
-        });
+        const members = filter(
+          user => compose(not, equals(user.user.id), getPath(['user', 'id']))(simon),
+          values(users)
+        );
+
+        const viewers = map(getPath(['user', 'id']), members);
 
         // Create a piece of content with 10 members (including the content creator)
-        RestAPI.Content.createLink(
-          simon.restContext,
+        createLink(
+          asSimon,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: memberIds,
-            folders: []
+            managers: NO_MANAGERS,
+            viewers,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure paging by 3 results in 4 requests, totalling 10 total members
-            ContentTestUtil.getAllContentMembers(
-              simon.restContext,
-              contentObj.id,
-              { batchSize: 3 },
-              (members, responses) => {
-                assert.strictEqual(members.length, 10);
-                assert.strictEqual(responses.length, 4);
-                assert.strictEqual(responses[0].results.length, 3);
-                assert.strictEqual(responses[1].results.length, 3);
-                assert.strictEqual(responses[2].results.length, 3);
-                assert.strictEqual(responses[3].results.length, 1);
-                return callback();
-              }
-            );
+            ContentTestUtil.getAllContentMembers(asSimon, contentObj.id, { batchSize: 3 }, (members, responses) => {
+              assert.lengthOf(members, 10);
+              assert.lengthOf(responses, 4);
+              assert.lengthOf(responses[0].results, 3);
+              assert.lengthOf(responses[1].results, 3);
+              assert.lengthOf(responses[2].results, 3);
+              assert.lengthOf(responses[3].results, 1);
+
+              return callback();
+            });
           }
         );
       });
@@ -5440,30 +4989,31 @@ describe('Content', () => {
      * Test that verifies that request parameters get validated when retrieving the members on a piece of content
      */
     it('verify getting content members validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.ok(!err);
-        const ctx = _.values(users)[0].restContext;
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: someUser } = users;
+        const asSomeUser = someUser.restContext;
 
-        RestAPI.Content.createLink(
-          ctx,
+        createLink(
+          asSomeUser,
           {
             displayName: 'Test Content',
             description: 'Test content description',
             visibility: PUBLIC,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure invalid content ids result in 400 response
-            ContentTestUtil.assertGetContentMembersFails(ctx, ' ', null, null, 400, () => {
-              ContentTestUtil.assertGetContentMembersFails(ctx, 'invalid-id', null, null, 400, () => {
+            assertGetContentMembersFails(asSomeUser, ' ', null, null, 400, () => {
+              assertGetContentMembersFails(asSomeUser, 'invalid-id', null, null, 400, () => {
                 // Sanity check the base parameters results in success
-                ContentTestUtil.assertGetContentMembersSucceeds(ctx, contentObj.id, null, null, members => {
-                  assert.strictEqual(members.results.length, 1);
+                assertGetContentMembersSucceeds(asSomeUser, contentObj.id, null, null, members => {
+                  assert.lengthOf(members.results, 1);
                   return callback();
                 });
               });
@@ -5478,69 +5028,48 @@ describe('Content', () => {
      */
     it("verify collabdoc or collabsheets editors can't change permissions", callback => {
       setUpUsers(contexts => {
-        RestAPI.Content.createCollabDoc(
-          contexts.nicolaas.restContext,
+        const { anthony, nicolaas, stuart } = contexts;
+        const asNico = nicolaas.restContext;
+        const asStuart = stuart.restContext;
+
+        createCollabDoc(
+          asNico,
           'Test CollabDoc',
           'Doc description',
           PUBLIC,
-          [],
+          NO_MANAGERS,
           [contexts.stuart.user.id],
-          [],
-          [],
+          NO_VIEWERS,
+          NO_FOLDERS,
           (err, contentObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
             const members = {};
-            members[contexts.anthony.user.id] = 'viewer';
+            members[anthony.user.id] = VIEWER;
             // Editor can't add new members
-            ContentTestUtil.assertUpdateContentMembersFails(
-              contexts.nicolaas.restContext,
-              contexts.stuart.restContext,
-              contentObj.id,
-              members,
-              401,
-              () => {
-                ContentTestUtil.assertShareContentSucceeds(
-                  contexts.nicolaas.restContext,
-                  contexts.stuart.restContext,
-                  contentObj.id,
-                  _.keys(members),
-                  function() {
-                    // Make sure same is true for collaborative spreadsheets
-                    RestAPI.Content.createCollabsheet(
-                      contexts.stuart.restContext,
-                      'Test collabsheet',
-                      'Sheet description',
-                      PUBLIC,
-                      [],
-                      [contexts.nicolaas.user.id],
-                      [],
-                      [],
-                      function(err, contentObj) {
-                        assert.ok(!err);
-                        const members = {};
-                        members[contexts.anthony.user.id] = 'viewer';
-                        ContentTestUtil.assertUpdateContentMembersFails(
-                          contexts.stuart.restContext,
-                          contexts.nicolaas.restContext,
-                          contentObj.id,
-                          members,
-                          401,
-                          function() {
-                            ContentTestUtil.assertShareContentSucceeds(
-                              contexts.stuart.restContext,
-                              contexts.nicolaas.restContext,
-                              contentObj.id,
-                              _.keys(members),
-                              callback
-                            );
-                          }
-                        );
-                      }
-                    );
+            assertUpdateContentMembersFails(asNico, asStuart, contentObj.id, members, 401, () => {
+              assertShareContentSucceeds(asNico, asStuart, contentObj.id, keys(members), () => {
+                // Make sure same is true for collaborative spreadsheets
+                createCollabsheet(
+                  asStuart,
+                  'Test collabsheet',
+                  'Sheet description',
+                  PUBLIC,
+                  NO_MANAGERS,
+                  [contexts.nicolaas.user.id],
+                  NO_VIEWERS,
+                  NO_FOLDERS,
+                  (err, contentObj) => {
+                    assert.notExists(err);
+                    const members = {};
+                    members[anthony.user.id] = VIEWER;
+
+                    assertUpdateContentMembersFails(asStuart, asNico, contentObj.id, members, 401, () => {
+                      assertShareContentSucceeds(asStuart, asNico, contentObj.id, keys(members), callback);
+                    });
                   }
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -5551,36 +5080,29 @@ describe('Content', () => {
      * as a member
      */
     it('verify setting permissions with validated user id adds it to their library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        const { 0: creatingUserInfo, 1: targetUserInfo } = users;
+        const { 0: creatingUser, 1: targetUser } = users;
+        const asCreatingUser = creatingUser.restContext;
 
         // Create a content item on which to set roles
-        const randomString = TestsUtil.generateRandomText(1);
-        ContentTestUtil.assertCreateLinkSucceeds(
-          creatingUserInfo.restContext,
+        const randomString = generateRandomText(1);
+        assertCreateLinkSucceeds(
+          asCreatingUser,
           randomString,
           randomString,
           PUBLIC,
           'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          NO_MANAGERS,
+          NO_VIEWERS,
+          NO_FOLDERS,
           content => {
             // Set the roles of the content item
-            const roleChanges = _.object([
-              [util.format('%s:%s', targetUserInfo.user.email, targetUserInfo.user.id), 'manager']
-            ]);
-            ContentTestUtil.assertUpdateContentMembersSucceeds(
-              creatingUserInfo.restContext,
-              creatingUserInfo.restContext,
-              content.id,
-              roleChanges,
-              () => {
-                return callback();
-              }
-            );
+            const roleChanges = fromPairs([[util.format('%s:%s', targetUser.user.email, targetUser.user.id), MANAGER]]);
+            assertUpdateContentMembersSucceeds(asCreatingUser, asCreatingUser, content.id, roleChanges, () => {
+              return callback();
+            });
           }
         );
       });
@@ -5591,87 +5113,74 @@ describe('Content', () => {
      * adds it to their library
      */
     it('verify setting permissions with an email associated to a unique email account adds it to their library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
-        assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
+        assert.notExists(err);
 
-        const { 0: creatingUserInfo, 1: targetUserInfoA, 2: targetUserInfoB1, 3: targetUserInfoB2 } = users;
+        const { 0: creatingUser, 1: targetUserA, 2: targetUserB1, 3: targetUserB2 } = users;
+        const asCreatingUser = creatingUser.restContext;
+        const asTargetUserA = targetUserA.restContext;
+        const asTargetUserB2 = targetUserB2.restContext;
 
         // Create a content item on which to set roles
-        const randomString = TestsUtil.generateRandomText(1);
-        ContentTestUtil.assertCreateLinkSucceeds(
-          creatingUserInfo.restContext,
+        const randomString = generateRandomText(1);
+        assertCreateLinkSucceeds(
+          asCreatingUser,
           randomString,
           randomString,
           PUBLIC,
           'http://www.oaeproject.org',
-          [],
-          [],
-          [],
+          NO_MANAGERS,
+          NO_VIEWERS,
+          NO_FOLDERS,
           content => {
             // Set the roles of the content item
-            let roleChanges = _.object([[targetUserInfoA.user.email, 'manager']]);
+            let roleChanges = fromPairs([[targetUserA.user.email, MANAGER]]);
             // RestCtx, contentId, updatedMembers, callback
-            RestAPI.Content.updateMembers(creatingUserInfo.restContext, content.id, roleChanges, err => {
-              assert.ok(!err);
+            updateMembers(asCreatingUser, content.id, roleChanges, err => {
+              assert.notExists(err);
 
               // Ensure the invitations list is empty
-              AuthzTestUtil.assertGetInvitationsSucceeds(
-                creatingUserInfo.restContext,
-                'content',
-                content.id,
-                result => {
-                  assert.ok(result);
-                  assert.ok(_.isArray(result.results));
-                  assert.ok(_.isEmpty(result.results));
+              assertGetInvitationsSucceeds(asCreatingUser, CONTENT, content.id, result => {
+                assert.ok(result);
+                assert.isArray(result.results);
+                assert.isEmpty(result.results);
 
-                  // Ensure the members library of the content item contains the target user
-                  ContentTestUtil.getAllContentMembers(creatingUserInfo.restContext, content.id, null, members => {
-                    const targetMember = _.find(members, member => {
-                      return member.profile.id === targetUserInfoA.user.id;
-                    });
-                    assert.ok(targetMember);
+                // Ensure the members library of the content item contains the target user
+                getAllContentMembers(asCreatingUser, content.id, null, members => {
+                  const targetMember = find(member => equals(member.profile.id, targetUserA.user.id), members);
+                  assert.ok(targetMember);
 
-                    // Ensure the target user's content library contains the content item
-                    ContentTestUtil.assertGetAllContentLibrarySucceeds(
-                      targetUserInfoA.restContext,
-                      targetUserInfoA.user.id,
-                      null,
-                      contentItems => {
-                        assert.ok(_.findWhere(contentItems, { id: content.id }));
+                  // Ensure the target user's content library contains the content item
+                  assertGetAllContentLibrarySucceeds(asTargetUserA, targetUserA.user.id, null, contentItems => {
+                    assert.ok(find(compose(equals(content.id), prop('id')), contentItems));
 
-                        // Update the B target users to have the same emails
-                        PrincipalsTestUtil.assertUpdateUserSucceeds(
-                          targetUserInfoB2.restContext,
-                          targetUserInfoB2.user.id,
-                          { email: targetUserInfoB1.user.email },
-                          (updatedUser, token) => {
-                            PrincipalsTestUtil.assertVerifyEmailSucceeds(
-                              targetUserInfoB2.restContext,
-                              targetUserInfoB2.user.id,
-                              token,
-                              () => {
-                                // Perform a regular email invitation with the same email,
-                                // ensuring it is the invitations list that updates, not the
-                                // members
-                                roleChanges = _.object([[targetUserInfoB1.user.email, 'manager']]);
-                                ContentTestUtil.assertUpdateContentMembersSucceeds(
-                                  creatingUserInfo.restContext,
-                                  creatingUserInfo.restContext,
-                                  content.id,
-                                  roleChanges,
-                                  () => {
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
+                    // Update the B target users to have the same emails
+                    assertUpdateUserSucceeds(
+                      asTargetUserB2,
+                      targetUserB2.user.id,
+                      { email: targetUserB1.user.email },
+                      (updatedUser, token) => {
+                        assertVerifyEmailSucceeds(asTargetUserB2, targetUserB2.user.id, token, () => {
+                          /**
+                           * Perform a regular email invitation with the same email,
+                           *  ensuring it is the invitations list that updates, not the members
+                           */
+                          roleChanges = fromPairs([[targetUserB1.user.email, MANAGER]]);
+                          assertUpdateContentMembersSucceeds(
+                            asCreatingUser,
+                            asCreatingUser,
+                            content.id,
+                            roleChanges,
+                            () => {
+                              return callback();
+                            }
+                          );
+                        });
                       }
                     );
                   });
-                }
-              );
+                });
+              });
             });
           }
         );
@@ -5692,19 +5201,19 @@ describe('Content', () => {
      */
     const prepareSharing = function(contexts, privacy, callback) {
       // Create a content item
-      RestAPI.Content.createLink(
+      createLink(
         contexts.nicolaas.restContext,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility: privacy,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj.id);
           // Get the piece of content as the creator
           checkPieceOfContent(
@@ -5750,9 +5259,9 @@ describe('Content', () => {
       expectCanShare,
       callback
     ) {
-      RestAPI.Content.shareContent(sharer.restContext, contentObj.id, [shareWith.user.id], err => {
+      shareContent(sharer.restContext, contentObj.id, [shareWith.user.id], err => {
         if (expectShare) {
-          assert.ok(!err);
+          assert.notExists(err);
         } else {
           assert.ok(err);
         }
@@ -5768,8 +5277,8 @@ describe('Content', () => {
           () => {
             RestAPI.Content.getMembers(shareWith.restContext, contentObj.id, null, null, (err, members) => {
               if (expectedMembers) {
-                assert.ok(!err);
-                assert.strictEqual(members.results.length, _.keys(expectedMembers).length);
+                assert.notExists(err);
+                assert.strictEqual(members.results.length, keys(expectedMembers).length);
                 for (let m = 0; m < members.results.length; m++) {
                   assert.strictEqual(members.results[m].role, expectedMembers[members.results[m].profile.id]);
                 }
@@ -5795,8 +5304,8 @@ describe('Content', () => {
         prepareSharing(contexts, PUBLIC, contentObj => {
           // Share as content owner
           const expectedMembers = {};
-          expectedMembers[contexts.nicolaas.user.id] = 'manager';
-          expectedMembers[contexts.simon.user.id] = 'viewer';
+          expectedMembers[contexts.nicolaas.user.id] = MANAGER;
+          expectedMembers[contexts.simon.user.id] = VIEWER;
           testSharing(
             contentObj,
             contexts.nicolaas,
@@ -5809,7 +5318,7 @@ describe('Content', () => {
             true,
             () => {
               // Share as content member
-              expectedMembers[contexts.anthony.user.id] = 'viewer';
+              expectedMembers[contexts.anthony.user.id] = VIEWER;
               testSharing(
                 contentObj,
                 contexts.simon,
@@ -5822,7 +5331,7 @@ describe('Content', () => {
                 true,
                 () => {
                   // Share as other user, add to own library
-                  expectedMembers[contexts.stuart.user.id] = 'viewer';
+                  expectedMembers[contexts.stuart.user.id] = VIEWER;
                   testSharing(
                     contentObj,
                     contexts.anthony,
@@ -5849,7 +5358,7 @@ describe('Content', () => {
                           // Share as anonymous
                           testSharing(
                             contentObj,
-                            { restContext: anonymousRestContext },
+                            { restContext: asCambridgeAnonymousUser },
                             contexts.ian,
                             false,
                             true,
@@ -5878,82 +5387,40 @@ describe('Content', () => {
      */
     it('verify logged in sharing', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, stuart, simon, anthony, ian } = contexts;
+
         // Create a loggedin content item
         prepareSharing(contexts, LOGGEDIN, contentObj => {
           // Share as content owner
           const expectedMembers = {};
-          expectedMembers[contexts.nicolaas.user.id] = 'manager';
-          expectedMembers[contexts.simon.user.id] = 'viewer';
-          testSharing(
-            contentObj,
-            contexts.nicolaas,
-            contexts.simon,
-            true,
-            true,
-            false,
-            true,
-            expectedMembers,
-            true,
-            () => {
-              // Share as content member
-              expectedMembers[contexts.anthony.user.id] = 'viewer';
-              testSharing(
-                contentObj,
-                contexts.simon,
-                contexts.anthony,
-                true,
-                true,
-                false,
-                true,
-                expectedMembers,
-                true,
-                () => {
-                  // Share as other user, add to own library
-                  expectedMembers[contexts.stuart.user.id] = 'viewer';
+          expectedMembers[nicolaas.user.id] = MANAGER;
+          expectedMembers[simon.user.id] = VIEWER;
+          testSharing(contentObj, nicolaas, simon, true, true, false, true, expectedMembers, true, () => {
+            // Share as content member
+            expectedMembers[anthony.user.id] = VIEWER;
+            testSharing(contentObj, simon, anthony, true, true, false, true, expectedMembers, true, () => {
+              // Share as other user, add to own library
+              expectedMembers[stuart.user.id] = VIEWER;
+              testSharing(contentObj, stuart, stuart, true, true, false, true, expectedMembers, true, () => {
+                // Share with the content manager, making sure that he's still the content manager after sharing
+                testSharing(contentObj, stuart, nicolaas, true, true, true, true, expectedMembers, true, () => {
+                  // Share as anonymous
                   testSharing(
                     contentObj,
-                    contexts.stuart,
-                    contexts.stuart,
-                    true,
-                    true,
+                    { restContext: asCambridgeAnonymousUser },
+                    ian,
                     false,
                     true,
+                    false,
+                    false,
                     expectedMembers,
                     true,
-                    () => {
-                      // Share with the content manager, making sure that he's still the content manager after sharing
-                      testSharing(
-                        contentObj,
-                        contexts.stuart,
-                        contexts.nicolaas,
-                        true,
-                        true,
-                        true,
-                        true,
-                        expectedMembers,
-                        true,
-                        () => {
-                          // Share as anonymous
-                          testSharing(
-                            contentObj,
-                            { restContext: anonymousRestContext },
-                            contexts.ian,
-                            false,
-                            true,
-                            false,
-                            false,
-                            expectedMembers,
-                            true,
-                            callback
-                          );
-                        }
-                      );
-                    }
+                    callback
                   );
-                }
-              );
-            }
-          );
+                });
+              });
+            });
+          });
         });
       });
     });
@@ -5965,69 +5432,38 @@ describe('Content', () => {
      */
     it('verify private sharing', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon, anthony, ian, stuart } = contexts;
+
         // Create a private content item
         prepareSharing(contexts, PRIVATE, contentObj => {
           // Share as content owner
           const expectedMembers = {};
-          expectedMembers[contexts.nicolaas.user.id] = 'manager';
-          expectedMembers[contexts.simon.user.id] = 'viewer';
-          testSharing(
-            contentObj,
-            contexts.nicolaas,
-            contexts.simon,
-            true,
-            true,
-            false,
-            true,
-            expectedMembers,
-            false,
-            () => {
-              // Share as content member
-              testSharing(contentObj, contexts.simon, contexts.anthony, false, false, false, false, null, false, () => {
-                // Share as other user, add to own library
-                testSharing(
-                  contentObj,
-                  contexts.stuart,
-                  contexts.stuart,
-                  false,
-                  false,
-                  false,
-                  false,
-                  null,
-                  false,
-                  () => {
-                    // Share with the content manager, making sure that he's still the content manager after sharing
-                    testSharing(
-                      contentObj,
-                      contexts.simon,
-                      contexts.nicolaas,
-                      false,
-                      true,
-                      true,
-                      true,
-                      expectedMembers,
-                      true,
-                      () => {
-                        // Share as anonymous
-                        testSharing(
-                          contentObj,
-                          { restContext: anonymousRestContext },
-                          contexts.ian,
-                          false,
-                          false,
-                          false,
-                          false,
-                          null,
-                          false,
-                          callback
-                        );
-                      }
-                    );
-                  }
-                );
+          expectedMembers[nicolaas.user.id] = MANAGER;
+          expectedMembers[simon.user.id] = VIEWER;
+          testSharing(contentObj, nicolaas, simon, true, true, false, true, expectedMembers, false, () => {
+            // Share as content member
+            testSharing(contentObj, simon, anthony, false, false, false, false, null, false, () => {
+              // Share as other user, add to own library
+              testSharing(contentObj, stuart, stuart, false, false, false, false, null, false, () => {
+                // Share with the content manager, making sure that he's still the content manager after sharing
+                testSharing(contentObj, simon, nicolaas, false, true, true, true, expectedMembers, true, () => {
+                  // Share as anonymous
+                  testSharing(
+                    contentObj,
+                    { restContext: asCambridgeAnonymousUser },
+                    ian,
+                    false,
+                    false,
+                    false,
+                    false,
+                    null,
+                    false,
+                    callback
+                  );
+                });
               });
-            }
-          );
+            });
+          });
         });
       });
     });
@@ -6038,41 +5474,36 @@ describe('Content', () => {
      */
     it('verify multiple sharing', callback => {
       setUpUsers(contexts => {
+        const { nicolaas, simon, anthony, stuart, ian } = contexts;
+        const asSimon = simon.restContext;
+        const asIan = ian.restContext;
+        const asStuart = stuart.restContext;
+        const asAnthony = anthony.restContext;
+
         // Create a piece of content
         prepareSharing(contexts, PRIVATE, contentObj => {
           // Share with multiple people at the same time
-          let toShare = [contexts.simon.user.id, contexts.ian.user.id, contexts.stuart.user.id];
-          RestAPI.Content.shareContent(contexts.nicolaas.restContext, contentObj.id, toShare, err => {
-            assert.ok(!err);
+          let toShare = [simon.user.id, ian.user.id, stuart.user.id];
+          shareContent(nicolaas.restContext, contentObj.id, toShare, err => {
+            assert.notExists(err);
 
             // Check that these people have access
-            checkPieceOfContent(
-              contexts.simon.restContext,
-              contexts.simon.user.id,
-              contentObj,
-              true,
-              false,
-              true,
-              false,
-              () => {
-                checkPieceOfContent(
-                  contexts.ian.restContext,
-                  contexts.ian.user.id,
-                  contentObj,
-                  true,
-                  false,
-                  true,
-                  false,
-                  () => {
-                    checkPieceOfContent(
-                      contexts.stuart.restContext,
-                      contexts.stuart.user.id,
-                      contentObj,
-                      true,
-                      false,
-                      true,
-                      false,
-                      () => {
+            checkPieceOfContent(asSimon, simon.user.id, contentObj, true, false, true, false, () => {
+              checkPieceOfContent(asIan, ian.user.id, contentObj, true, false, true, false, () => {
+                checkPieceOfContent(asStuart, stuart.user.id, contentObj, true, false, true, false, () => {
+                  checkPieceOfContent(
+                    asAnthony,
+                    contexts.anthony.user.id,
+                    contentObj,
+                    false,
+                    false,
+                    false,
+                    false,
+                    () => {
+                      // Share with multiple people, of which some are invalid users
+                      toShare = [contexts.anthony.user.id, 'u:cam:nonExistingUser'];
+                      shareContent(contexts.nicolaas.restContext, contentObj.id, toShare, err => {
+                        assert.ok(err);
                         checkPieceOfContent(
                           contexts.anthony.restContext,
                           contexts.anthony.user.id,
@@ -6081,30 +5512,14 @@ describe('Content', () => {
                           false,
                           false,
                           false,
-                          () => {
-                            // Share with multiple people, of which some are invalid users
-                            toShare = [contexts.anthony.user.id, 'u:cam:nonExistingUser'];
-                            RestAPI.Content.shareContent(contexts.nicolaas.restContext, contentObj.id, toShare, err => {
-                              assert.ok(err);
-                              checkPieceOfContent(
-                                contexts.anthony.restContext,
-                                contexts.anthony.user.id,
-                                contentObj,
-                                false,
-                                false,
-                                false,
-                                false,
-                                callback
-                              );
-                            });
-                          }
+                          callback
                         );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                      });
+                    }
+                  );
+                });
+              });
+            });
           });
         });
       });
@@ -6116,38 +5531,30 @@ describe('Content', () => {
      */
     it('verify sharing adds users to content members library', callback => {
       // Create users to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
-        users = _.values(users);
-        const actor = users[0];
-        const memberIds = _.chain(users)
-          .pluck('user')
-          .pluck('id')
-          .value()
-          .slice(1);
+      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: actor } = users;
+        const asActor = actor.restContext;
+        const memberIds = map(getPath(['user', 'id']), values(users)).slice(1);
 
         // Create a content item to share
-        RestAPI.Content.createLink(
-          actor.restContext,
+        createLink(
+          asActor,
           {
             displayName: 'Test Content 1',
             description: 'Test content description 1',
             visibility: PRIVATE,
             link: 'http://www.oaeproject.org/',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, link) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure sharing the content item is successful
-            return ContentTestUtil.assertShareContentSucceeds(
-              actor.restContext,
-              actor.restContext,
-              link.id,
-              memberIds,
-              callback
-            );
+            return assertShareContentSucceeds(asActor, asActor, link.id, memberIds, callback);
           }
         );
       });
@@ -6188,307 +5595,215 @@ describe('Content', () => {
      * @param  {Function}           callback            Standard callback function
      */
     const testGroupAccess = function(contexts, groups, privacy, callback) {
+      const { anthony, nicolaas, bert, stuart, branden, simon } = contexts;
+      const asAnthony = anthony.restContext;
+      const asBert = bert.restContext;
+      const asNico = nicolaas.restContext;
+      const asSimon = simon.restContext;
+      const asStuart = stuart.restContext;
+      const asBranden = branden.restContext;
+
+      const aintPrivate = compose(not, equals(PRIVATE))(privacy);
+
       // Anthony creates a content item
-      RestAPI.Content.createLink(
-        contexts.anthony.restContext,
+      createLink(
+        asAnthony,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility: privacy,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj.id);
 
           // Set permissions on content --> Make UI dev team member, make Simon a member
           let permissions = {};
-          permissions[groups['ui-team'].id] = 'viewer';
-          permissions[contexts.simon.user.id] = 'viewer';
-          RestAPI.Content.updateMembers(contexts.anthony.restContext, contentObj.id, permissions, err => {
-            assert.ok(!err);
+          permissions[groups[UI_TEAM].id] = VIEWER;
+          permissions[simon.user.id] = VIEWER;
+          updateMembers(asAnthony, contentObj.id, permissions, err => {
+            assert.notExists(err);
             // Check that UI Dev Team, Bert, Nico and Simon have member access
-            checkPieceOfContent(
-              contexts.bert.restContext,
-              groups['ui-team'].id,
-              contentObj,
-              true,
-              false,
-              true,
-              privacy !== PRIVATE,
-              () => {
-                checkPieceOfContent(
-                  contexts.nicolaas.restContext,
-                  contexts.nicolaas.user.id,
-                  contentObj,
-                  true,
-                  false,
-                  false,
-                  privacy !== PRIVATE,
-                  () => {
-                    checkPieceOfContent(
-                      contexts.bert.restContext,
-                      contexts.bert.user.id,
-                      contentObj,
-                      true,
-                      false,
-                      false,
-                      privacy !== PRIVATE,
-                      () => {
-                        // Check that it shows in UI Dev Team's library
-                        RestAPI.Content.getLibrary(
-                          contexts.nicolaas.restContext,
-                          groups['ui-team'].id,
-                          null,
-                          10,
-                          (err, contentItems) => {
-                            assert.ok(!err);
-                            assert.strictEqual(contentItems.results.length, 1);
-                            assert.strictEqual(contentItems.results[0].id, contentObj.id);
-                            // Check that it shows in Simon's library
-                            RestAPI.Content.getLibrary(
-                              contexts.simon.restContext,
-                              contexts.simon.user.id,
-                              null,
-                              10,
-                              (err, contentItems) => {
-                                assert.ok(!err);
-                                assert.strictEqual(contentItems.results.length, 1);
-                                assert.strictEqual(contentItems.results[0].id, contentObj.id);
-                                // Check that it doesn't show in Nico's library
-                                RestAPI.Content.getLibrary(
-                                  contexts.nicolaas.restContext,
-                                  contexts.nicolaas.user.id,
-                                  null,
-                                  10,
-                                  (err, contentItems) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(contentItems.results.length, 0);
-                                    // Check that it doesn't show in Bert's library
-                                    RestAPI.Content.getLibrary(
-                                      contexts.bert.restContext,
-                                      contexts.bert.user.id,
-                                      null,
-                                      10,
-                                      (err, contentItems) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(contentItems.results.length, 0);
-                                        // Check that it doesn't show in OAE Team's and Back-end team's library
-                                        RestAPI.Content.getLibrary(
-                                          contexts.anthony.restContext,
-                                          groups['backend-team'].id,
-                                          null,
-                                          10,
-                                          (err, contentItems) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(contentItems.results.length, 0);
-                                            RestAPI.Content.getLibrary(
-                                              contexts.anthony.restContext,
-                                              groups['oae-team'].id,
-                                              null,
-                                              10,
-                                              (err, contentItems) => {
-                                                assert.ok(!err);
-                                                assert.strictEqual(contentItems.results.length, 0);
-                                                // Check that Stuart doesn't have access
-                                                checkPieceOfContent(
-                                                  contexts.stuart.restContext,
-                                                  contexts.stuart.user.id,
-                                                  contentObj,
-                                                  privacy !== PRIVATE,
-                                                  false,
-                                                  false,
-                                                  privacy !== PRIVATE,
-                                                  () => {
-                                                    // Check that Branden doesn't have access
-                                                    checkPieceOfContent(
-                                                      contexts.branden.restContext,
-                                                      contexts.branden.user.id,
-                                                      contentObj,
-                                                      privacy !== PRIVATE,
-                                                      false,
-                                                      false,
-                                                      privacy !== PRIVATE,
-                                                      () => {
-                                                        // Share with the OAE Team group
-                                                        RestAPI.Content.shareContent(
-                                                          contexts.anthony.restContext,
-                                                          contentObj.id,
-                                                          [groups['oae-team'].id],
-                                                          err => {
-                                                            // Check that Stuart has access
-                                                            checkPieceOfContent(
-                                                              contexts.stuart.restContext,
-                                                              contexts.stuart.user.id,
-                                                              contentObj,
-                                                              true,
-                                                              false,
-                                                              false,
-                                                              privacy !== PRIVATE,
-                                                              () => {
-                                                                // Check that Branden has access
+            checkPieceOfContent(asBert, groups[UI_TEAM].id, contentObj, true, false, true, aintPrivate, () => {
+              checkPieceOfContent(asNico, nicolaas.user.id, contentObj, true, false, false, aintPrivate, () => {
+                checkPieceOfContent(asBert, bert.user.id, contentObj, true, false, false, aintPrivate, () => {
+                  // Check that it shows in UI Dev Team's library
+                  getLibrary(asNico, groups[UI_TEAM].id, null, 10, (err, contentItems) => {
+                    assert.notExists(err);
+                    assert.lengthOf(contentItems.results, 1);
+                    assert.strictEqual(contentItems.results[0].id, contentObj.id);
+                    // Check that it shows in Simon's library
+                    getLibrary(asSimon, simon.user.id, null, 10, (err, contentItems) => {
+                      assert.notExists(err);
+                      assert.lengthOf(contentItems.results, 1);
+                      assert.strictEqual(contentItems.results[0].id, contentObj.id);
+                      // Check that it doesn't show in Nico's library
+                      getLibrary(asNico, nicolaas.user.id, null, 10, (err, contentItems) => {
+                        assert.notExists(err);
+                        assert.isEmpty(contentItems.results);
+                        // Check that it doesn't show in Bert's library
+                        getLibrary(asBert, bert.user.id, null, 10, (err, contentItems) => {
+                          assert.notExists(err);
+                          assert.isEmpty(contentItems.results);
+                          // Check that it doesn't show in OAE Team's and Back-end team's library
+                          getLibrary(asAnthony, groups[BACKEND_TEAM].id, null, 10, (err, contentItems) => {
+                            assert.notExists(err);
+                            assert.isEmpty(contentItems.results);
+                            getLibrary(asAnthony, groups[OAE_TEAM].id, null, 10, (err, contentItems) => {
+                              assert.notExists(err);
+                              assert.isEmpty(contentItems.results);
+                              // Check that Stuart doesn't have access
+                              checkPieceOfContent(
+                                asStuart,
+                                stuart.user.id,
+                                contentObj,
+                                aintPrivate,
+                                false,
+                                false,
+                                aintPrivate,
+                                () => {
+                                  // Check that Branden doesn't have access
+                                  checkPieceOfContent(
+                                    asBranden,
+                                    branden.user.id,
+                                    contentObj,
+                                    aintPrivate,
+                                    false,
+                                    false,
+                                    aintPrivate,
+                                    () => {
+                                      // Share with the OAE Team group
+                                      shareContent(asAnthony, contentObj.id, [groups[OAE_TEAM].id], err => {
+                                        assert.notExists(err);
+                                        // Check that Stuart has access
+                                        checkPieceOfContent(
+                                          asStuart,
+                                          stuart.user.id,
+                                          contentObj,
+                                          true,
+                                          false,
+                                          false,
+                                          aintPrivate,
+                                          () => {
+                                            // Check that Branden has access
+                                            checkPieceOfContent(
+                                              asBranden,
+                                              branden.user.id,
+                                              contentObj,
+                                              true,
+                                              false,
+                                              false,
+                                              aintPrivate,
+                                              () => {
+                                                // Check that it shows in OAE Team and UI Dev team's library and not in the Back-End Team's library
+                                                getLibrary(
+                                                  asAnthony,
+                                                  groups[OAE_TEAM].id,
+                                                  null,
+                                                  10,
+                                                  (err, contentItems) => {
+                                                    assert.notExists(err);
+                                                    assert.lengthOf(contentItems.results, 1);
+                                                    assert.strictEqual(contentItems.results[0].id, contentObj.id);
+                                                    getLibrary(
+                                                      asNico,
+                                                      groups[UI_TEAM].id,
+                                                      null,
+                                                      10,
+                                                      (err, contentItems) => {
+                                                        assert.notExists(err);
+                                                        assert.lengthOf(contentItems.results, 1);
+                                                        assert.strictEqual(contentItems.results[0].id, contentObj.id);
+                                                        getLibrary(
+                                                          asSimon,
+                                                          groups[BACKEND_TEAM].id,
+                                                          null,
+                                                          10,
+                                                          (err, contentItems) => {
+                                                            assert.notExists(err);
+                                                            assert.isEmpty(contentItems.results);
+
+                                                            // Make Back-end team manager
+                                                            permissions = {};
+                                                            permissions[groups[BACKEND_TEAM].id] = MANAGER;
+                                                            updateMembers(
+                                                              asAnthony,
+                                                              contentObj.id,
+                                                              permissions,
+                                                              err => {
+                                                                assert.notExists(err);
+                                                                // Check that Simon and Branden are manager, check that Stuart is not a manager
                                                                 checkPieceOfContent(
-                                                                  contexts.branden.restContext,
-                                                                  contexts.branden.user.id,
+                                                                  asSimon,
+                                                                  simon.user.id,
                                                                   contentObj,
                                                                   true,
-                                                                  false,
-                                                                  false,
-                                                                  privacy !== PRIVATE,
+                                                                  true,
+                                                                  true,
+                                                                  true,
                                                                   () => {
-                                                                    // Check that it shows in OAE Team and UI Dev team's library and not in the Back-End Team's library
-                                                                    RestAPI.Content.getLibrary(
-                                                                      contexts.anthony.restContext,
-                                                                      groups['oae-team'].id,
-                                                                      null,
-                                                                      10,
-                                                                      (err, contentItems) => {
-                                                                        assert.ok(!err);
-                                                                        assert.strictEqual(
-                                                                          contentItems.results.length,
-                                                                          1
-                                                                        );
-                                                                        assert.strictEqual(
-                                                                          contentItems.results[0].id,
-                                                                          contentObj.id
-                                                                        );
-                                                                        RestAPI.Content.getLibrary(
-                                                                          contexts.nicolaas.restContext,
-                                                                          groups['ui-team'].id,
-                                                                          null,
-                                                                          10,
-                                                                          (err, contentItems) => {
-                                                                            assert.ok(!err);
-                                                                            assert.strictEqual(
-                                                                              contentItems.results.length,
-                                                                              1
-                                                                            );
-                                                                            assert.strictEqual(
-                                                                              contentItems.results[0].id,
-                                                                              contentObj.id
-                                                                            );
-                                                                            RestAPI.Content.getLibrary(
-                                                                              contexts.simon.restContext,
-                                                                              groups['backend-team'].id,
-                                                                              null,
-                                                                              10,
-                                                                              (err, contentItems) => {
-                                                                                assert.ok(!err);
-                                                                                assert.strictEqual(
-                                                                                  contentItems.results.length,
-                                                                                  0
-                                                                                );
-
-                                                                                // Make Back-end team manager
-                                                                                permissions = {};
-                                                                                permissions[groups['backend-team'].id] =
-                                                                                  'manager';
-                                                                                RestAPI.Content.updateMembers(
-                                                                                  contexts.anthony.restContext,
-                                                                                  contentObj.id,
-                                                                                  permissions,
-                                                                                  err => {
-                                                                                    assert.ok(!err);
-                                                                                    // Check that Simon and Branden are manager, check that Stuart is not a manager
+                                                                    checkPieceOfContent(
+                                                                      asBranden,
+                                                                      branden.user.id,
+                                                                      contentObj,
+                                                                      true,
+                                                                      true,
+                                                                      false,
+                                                                      true,
+                                                                      () => {
+                                                                        checkPieceOfContent(
+                                                                          asStuart,
+                                                                          stuart.user.id,
+                                                                          contentObj,
+                                                                          true,
+                                                                          false,
+                                                                          false,
+                                                                          aintPrivate,
+                                                                          () => {
+                                                                            // Remove permission for Back-end team manager and OAE Team
+                                                                            permissions = {};
+                                                                            permissions[
+                                                                              groups[BACKEND_TEAM].id
+                                                                            ] = false;
+                                                                            permissions[groups[OAE_TEAM].id] = false;
+                                                                            updateMembers(
+                                                                              asAnthony,
+                                                                              contentObj.id,
+                                                                              permissions,
+                                                                              err => {
+                                                                                assert.notExists(err);
+                                                                                // Check that Branden no longer has access, but Simon and Nico still do
+                                                                                checkPieceOfContent(
+                                                                                  asNico,
+                                                                                  nicolaas.user.id,
+                                                                                  contentObj,
+                                                                                  true,
+                                                                                  false,
+                                                                                  false,
+                                                                                  aintPrivate,
+                                                                                  () => {
                                                                                     checkPieceOfContent(
-                                                                                      contexts.simon.restContext,
-                                                                                      contexts.simon.user.id,
+                                                                                      asSimon,
+                                                                                      simon.user.id,
                                                                                       contentObj,
                                                                                       true,
+                                                                                      false,
                                                                                       true,
-                                                                                      true,
-                                                                                      true,
+                                                                                      aintPrivate,
                                                                                       () => {
                                                                                         checkPieceOfContent(
-                                                                                          contexts.branden.restContext,
-                                                                                          contexts.branden.user.id,
+                                                                                          asBranden,
+                                                                                          branden.user.id,
                                                                                           contentObj,
-                                                                                          true,
-                                                                                          true,
+                                                                                          aintPrivate,
                                                                                           false,
-                                                                                          true,
-                                                                                          () => {
-                                                                                            checkPieceOfContent(
-                                                                                              contexts.stuart
-                                                                                                .restContext,
-                                                                                              contexts.stuart.user.id,
-                                                                                              contentObj,
-                                                                                              true,
-                                                                                              false,
-                                                                                              false,
-                                                                                              privacy !== PRIVATE,
-                                                                                              () => {
-                                                                                                // Remove permission for Back-end team manager and OAE Team
-                                                                                                permissions = {};
-                                                                                                permissions[
-                                                                                                  groups[
-                                                                                                    'backend-team'
-                                                                                                  ].id
-                                                                                                ] = false;
-                                                                                                permissions[
-                                                                                                  groups['oae-team'].id
-                                                                                                ] = false;
-                                                                                                RestAPI.Content.updateMembers(
-                                                                                                  contexts.anthony
-                                                                                                    .restContext,
-                                                                                                  contentObj.id,
-                                                                                                  permissions,
-                                                                                                  err => {
-                                                                                                    assert.ok(!err);
-                                                                                                    // Check that Branden no longer has access, but Simon and Nico still do
-                                                                                                    checkPieceOfContent(
-                                                                                                      contexts.nicolaas
-                                                                                                        .restContext,
-                                                                                                      contexts.nicolaas
-                                                                                                        .user.id,
-                                                                                                      contentObj,
-                                                                                                      true,
-                                                                                                      false,
-                                                                                                      false,
-                                                                                                      privacy !==
-                                                                                                        PRIVATE,
-                                                                                                      () => {
-                                                                                                        checkPieceOfContent(
-                                                                                                          contexts.simon
-                                                                                                            .restContext,
-                                                                                                          contexts.simon
-                                                                                                            .user.id,
-                                                                                                          contentObj,
-                                                                                                          true,
-                                                                                                          false,
-                                                                                                          true,
-                                                                                                          privacy !==
-                                                                                                            PRIVATE,
-                                                                                                          () => {
-                                                                                                            checkPieceOfContent(
-                                                                                                              contexts
-                                                                                                                .branden
-                                                                                                                .restContext,
-                                                                                                              contexts
-                                                                                                                .branden
-                                                                                                                .user
-                                                                                                                .id,
-                                                                                                              contentObj,
-                                                                                                              privacy !==
-                                                                                                                PRIVATE,
-                                                                                                              false,
-                                                                                                              false,
-                                                                                                              privacy !==
-                                                                                                                PRIVATE,
-                                                                                                              callback
-                                                                                                            );
-                                                                                                          }
-                                                                                                        );
-                                                                                                      }
-                                                                                                    );
-                                                                                                  }
-                                                                                                );
-                                                                                              }
-                                                                                            );
-                                                                                          }
+                                                                                          false,
+                                                                                          aintPrivate,
+                                                                                          callback
                                                                                         );
                                                                                       }
                                                                                     );
@@ -6514,20 +5829,20 @@ describe('Content', () => {
                                             );
                                           }
                                         );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                                      });
+                                    }
+                                  );
+                                }
+                              );
+                            });
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
           });
         }
       );

@@ -310,7 +310,6 @@ const _setupTenantAdmin = function(tenant, callback) {
  * @param  {Object}         [callback.user2]    Another user that was created
  * @param  {Object}         [callback....]      Each user that was generated as new callback arguments
  */
-// TODO make the createdGroups an optional parameter with args...
 const generateTestUsers = (restCtx, numberOfUsers, ...args) => {
   const callback = last(args);
   const createdUsers = compose(defaultTo([]), head, dropLast(1))(args);
@@ -318,9 +317,6 @@ const generateTestUsers = (restCtx, numberOfUsers, ...args) => {
 
   if (isZero(numberOfUsers)) {
     whenIndexingComplete(() => {
-      // TODO this used to be the case... but why?
-      // createdUsers = _.indexBy(createdUsers, user => user.user.id);
-
       return callback(null, createdUsers);
     });
   } else {

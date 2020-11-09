@@ -31,28 +31,21 @@ import { Validator as validator } from 'oae-util/lib/validator';
 import {
   mergeDeepWith,
   concat,
-  flatten,
   equals,
-  map,
   not,
   reject,
   isNil,
-  assoc,
-  length,
   keys,
   prop,
   isEmpty,
   path,
   defaultTo,
   compose,
+  length,
   values,
   pluck,
-  head,
-  forEach,
-  assocPath,
-  insertAll
+  head
 } from 'ramda';
-import { resourceType } from './schema/resourceSchema';
 
 const { isObject, unless } = validator;
 const { defaultToEmptyArray, defaultToEmptyObject } = validator;
@@ -190,7 +183,6 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
   // Aggregate all the documents to be keyed by type
   const docsByType = {};
   const docIdOrdering = {};
-  const index = 0;
   // hits = prop('hits', hits);
 
   /*
@@ -406,12 +398,12 @@ const createBulkIndexOperations = function(docs) {
     }
 
     // This is important because _type no longer works in ES7+
-    doc.type = doc._type || SearchConstants.search.MAPPING_RESOURCE;
+    doc.type = doc.type || SearchConstants.search.MAPPING_RESOURCE;
     doc._parent.name = doc.type;
 
     // These meta attributes have been promoted and shouldn't be on the core doc anymore
     delete doc.id;
-    delete doc._type;
+    // delete doc._type;
     // delete doc._parent;
 
     cmds.push(meta);
@@ -948,7 +940,7 @@ const createQueryStringQuery = function(q, fields, boost) {
     }
 
     // TODO experiment for now
-    query = {};
+    // query = {};
   } else {
     // Build a query that will do a full-text search on the "q" fields, giving favour to matches on the title
     query = {
@@ -1046,7 +1038,7 @@ const createMoreLikeThisQuery = function(val, fields) {
 const createChildSearchDocument = function(type, resourceId, fields) {
   return _.extend({}, fields, {
     id: getChildSearchDocumentId(type, resourceId, fields.id),
-    _type: type,
+    type,
     _parent: resourceId
   });
 };

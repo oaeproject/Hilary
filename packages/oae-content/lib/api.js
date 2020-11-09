@@ -1051,7 +1051,7 @@ const ethercalcPublish = function(data, callback) {
   }, callback);
 
   ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, (err, hasEdited) => {
-    if (err) callback(err);
+    if (err) return callback(err);
 
     // No edits have been made
     if (not(hasEdited)) return callback();

@@ -50,7 +50,6 @@ import {
   and,
   reject,
   mergeAll,
-  pick,
   path,
   compose,
   defaultTo,

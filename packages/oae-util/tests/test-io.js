@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +22,7 @@ import * as IO from 'oae-util/lib/io';
 const datadir = path.join(__dirname, '/data/');
 
 describe('IO', () => {
-  describe('#copyFile()', callback => {
+  describe('#copyFile()', () => {
     /**
      * Test that verifies that copyFiles creates a new file with the same contents as the original
      */
@@ -36,12 +36,12 @@ describe('IO', () => {
         assert.strictEqual(err.code, 'ENOENT');
 
         IO.copyFile(sourceFile, destFile, err => {
-          assert.ok(!err);
+          assert.notExists(err);
           // Verify that the source and dest files contain the same data
           fs.readFile(sourceFile, 'utf8', (err, sourceText) => {
-            assert.ok(!err);
+            assert.notExists(err);
             fs.readFile(destFile, 'utf8', (err, destText) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(sourceText, destText);
               callback();
             });
@@ -51,7 +51,7 @@ describe('IO', () => {
     });
   });
 
-  describe('#moveFile()', callback => {
+  describe('#moveFile()', () => {
     /**
      * Test that verifies that moveFile renames a file
      */
@@ -59,7 +59,7 @@ describe('IO', () => {
       const sourceFile = datadir + 'refreshments.txt';
       const destFile = datadir + 'refreshments-banditos.txt';
       IO.moveFile(sourceFile, destFile, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify that the source file is removed
         fs.stat(sourceFile, err => {
@@ -67,9 +67,9 @@ describe('IO', () => {
 
           // Verify that the source and dest files contain the same data
           fs.readFile(datadir + 'banditos.txt', 'utf8', (err, sourceText) => {
-            assert.ok(!err);
+            assert.notExists(err);
             fs.readFile(destFile, 'utf8', (err, destText) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(sourceText, destText);
               fs.unlink(destFile, callback);
             });
@@ -88,6 +88,7 @@ describe('IO', () => {
 
       // Register our pre-destroy listener.
       stream.on('error', err => {
+        assert.notExists(err);
         assert.fail('This listener should have been removed.');
       });
       stream.on('close', () => {
@@ -98,7 +99,7 @@ describe('IO', () => {
       IO.destroyStream(stream);
 
       // Register a new error listener as the the test would otherwise fail.
-      stream.on('error', err => {});
+      stream.on('error', () => {});
       stream.emit('error');
       stream.emit('close');
     });
@@ -110,16 +111,16 @@ describe('IO', () => {
      */
     it('verify files and folder can be checked', callback => {
       IO.exists(__filename, (err, exists) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.strictEqual(exists, true);
 
         IO.exists(__dirname, (err, exists) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(exists, true);
 
           // eslint-disable-next-line no-path-concat
           IO.exists(__filename + 'non-existing-file', (err, exists) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(exists, false);
 
             return callback();

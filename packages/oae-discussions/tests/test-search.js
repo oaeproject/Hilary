@@ -14,23 +14,22 @@
  */
 
 /* esling-disable no-unused-vars */
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+import { find, equals, propSatisfies } from 'ramda';
+
 describe('Discussion Search', () => {
   // REST contexts we can use to do REST requests
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
+  let asCambridgeAdminUser = null;
 
-  before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    callback();
+  before(done => {
+    asCambridgeAdminUser = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    done();
   });
 
   /**
@@ -40,20 +39,17 @@ describe('Discussion Search', () => {
    * @param  {String}     discussionId    The id of the discussion we should look for.
    * @return {Document}                   The discussion with id `discussionId` (or null if it could not be found).
    */
-  const _getDocument = function(results, discussionId) {
-    return _.find(results, result => {
-      return result.id === discussionId;
-    });
-  };
+  const _getDocument = (results, discussionId) => find(propSatisfies(equals(discussionId), 'id'), results);
 
   describe('Indexing', () => {
     /**
      * A test that verifies a discussion item is indexable and searchable.
      */
     it('verify indexing of a discussion', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        user = _.values(user)[0];
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: user } = users;
 
         const randomText = TestsUtil.generateRandomText(5);
         RestAPI.Discussions.createDiscussion(
@@ -64,7 +60,7 @@ describe('Discussion Search', () => {
           null,
           null,
           (err, discussion) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             SearchTestsUtil.searchAll(
               user.restContext,
@@ -72,7 +68,7 @@ describe('Discussion Search', () => {
               null,
               { resourceTypes: 'discussion', q: randomText },
               (err, results) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 const doc = _getDocument(results.results, discussion.id);
                 assert.ok(doc);
@@ -97,12 +93,14 @@ describe('Discussion Search', () => {
      * Verifies that updating a discussion, updates the search index
      */
     it('verify updating the metadata for a discussion, updates the index', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        user = _.values(user)[0];
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: user } = users;
 
         const randomText1 = TestsUtil.generateRandomText(5);
         const randomText2 = TestsUtil.generateRandomText(5);
+
         RestAPI.Discussions.createDiscussion(
           user.restContext,
           randomText1,
@@ -111,14 +109,14 @@ describe('Discussion Search', () => {
           null,
           null,
           (err, discussion) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             RestAPI.Discussions.updateDiscussion(
               user.restContext,
               discussion.id,
               { displayName: randomText2, description: randomText2 },
               err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 SearchTestsUtil.searchAll(
                   user.restContext,
@@ -126,7 +124,7 @@ describe('Discussion Search', () => {
                   null,
                   { resourceTypes: 'discussion', q: randomText2 },
                   (err, results) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     const doc = _getDocument(results.results, discussion.id);
                     assert.ok(doc);
                     assert.strictEqual(doc.displayName, randomText2);

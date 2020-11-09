@@ -13,17 +13,20 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as redis from 'oae-util/lib/redis';
 
+const { getVersion } = RestAPI.Version;
+
 const PATH = 'path';
 const PACKAGE_JSON = 'package.json';
 
-describe('Git information', function() {
+const { createTenantRestContext } = TestsUtil;
+
+describe('Git information', () => {
   before(done => {
     redis.flush(done);
   });
@@ -31,17 +34,12 @@ describe('Git information', function() {
   /**
    * Test that verifies that the git information is returned
    */
-  it('verify that the submodules exist and are up to date', function(callback) {
+  it('verify that the submodules exist and are up to date', callback => {
     // Create various rest contexts
-    const adminTenantRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    const anonTenantRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    TestsUtil.generateTestUsers(adminTenantRestContext, 1, function(err, users, user) {
-      assert.ok(!err);
-      const userTenantRestContext = user.restContext;
+    const asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
 
-      // Verify the version information on regular tenancies
-      _verifyVersionInformation(anonTenantRestContext, callback);
-    });
+    // Verify the version information on regular tenancies
+    _verifyVersionInformation(asCambridgeAnonymousUser, callback);
   });
 
   /*!
@@ -52,24 +50,25 @@ describe('Git information', function() {
    * @throws {AssertionError}                     Thrown if any assertions fail
    */
   function _verifyVersionInformation(restContext, callback) {
-    RestAPI.Version.getVersion(restContext, function(err, gitRepoInformation) {
-      assert.ok(!err);
+    getVersion(restContext, (err, gitRepoInformation) => {
+      assert.notExists(err);
 
       const repoInfo = fromJS(gitRepoInformation);
 
       const hilaryInfo = repoInfo.get('Hilary');
-      assert.ok(_.isObject(hilaryInfo));
-      assert.ok(_.isString(hilaryInfo.get('lastCommitId')));
-      assert.ok(_.isString(hilaryInfo.get('lastCommitDate')));
-      assert.ok(_.isString(hilaryInfo.get('latestTag')));
+      assert.isObject(hilaryInfo);
+      assert.isString(hilaryInfo.get('lastCommitId'));
+      assert.isString(hilaryInfo.get('lastCommitDate'));
+      assert.isString(hilaryInfo.get('latestTag'));
 
       const submodules = hilaryInfo.get('submodules');
-      assert.ok(_.isObject(submodules));
+      assert.isObject(submodules);
       assert.strictEqual(submodules.size, 3);
 
       // oae-rest submodule
       let submoduleName = 'oae-rest';
       let submodulePath = submodules.get(submoduleName).get(PATH);
+
       assert.strictEqual(submodulePath.size, 1);
       assert.ok(
         submodulePath
@@ -118,7 +117,7 @@ describe('Git information', function() {
           .includes(submoduleName)
       );
 
-      callback();
+      return callback();
     });
   }
 });

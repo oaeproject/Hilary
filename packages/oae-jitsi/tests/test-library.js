@@ -1,18 +1,18 @@
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
+import { forEach, filter, propSatisfies, equals } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 describe('Meeting libraries', () => {
-  let camAnonymousRestCtx = null;
-  let camAdminRestCtx = null;
-  let gtAdminRestCtx = null;
+  let asCambridgeAnonymousUser = null;
+  let asCambridgeTenantAdmin = null;
+  let asGeorgiaTenantAdmin = null;
 
   beforeEach(() => {
-    camAnonymousRestCtx = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestCtx = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestCtx = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asGeorgiaTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
   });
 
   /**
@@ -29,9 +29,10 @@ describe('Meeting libraries', () => {
   const createUserAndLibrary = function(restCtx, userVisibility, callback) {
     // Create an user with the proper visibility
     TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
-      const user = _.values(users)[0];
+      assert.notExists(err);
+      const { 0: user } = users;
       RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Fill up the user library with 3 meeting items
         RestAPI.MeetingsJitsi.createMeeting(
@@ -44,7 +45,7 @@ describe('Meeting libraries', () => {
           null,
           null,
           (err, privateMeeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             RestAPI.MeetingsJitsi.createMeeting(
               user.restContext,
@@ -56,7 +57,7 @@ describe('Meeting libraries', () => {
               null,
               null,
               (err, loggedinMeeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 RestAPI.MeetingsJitsi.createMeeting(
                   user.restContext,
@@ -68,7 +69,7 @@ describe('Meeting libraries', () => {
                   null,
                   null,
                   (err, publicMeeting) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     return callback(user, privateMeeting, loggedinMeeting, publicMeeting);
                   }
@@ -94,7 +95,7 @@ describe('Meeting libraries', () => {
    */
   const createGroupAndLibrary = function(restCtx, groupVisibility, callback) {
     RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (err, group) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Fill up the group library with 3 meeting items
       RestAPI.MeetingsJitsi.createMeeting(
@@ -107,7 +108,7 @@ describe('Meeting libraries', () => {
         [group.id],
         null,
         (err, privateMeeting) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           RestAPI.MeetingsJitsi.createMeeting(
             restCtx,
@@ -119,7 +120,7 @@ describe('Meeting libraries', () => {
             [group.id],
             null,
             (err, loggedinMeeting) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               RestAPI.MeetingsJitsi.createMeeting(
                 restCtx,
@@ -131,7 +132,7 @@ describe('Meeting libraries', () => {
                 [group.id],
                 null,
                 (err, publicMeeting) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   return callback(group, privateMeeting, loggedinMeeting, publicMeeting);
                 }
@@ -155,17 +156,13 @@ describe('Meeting libraries', () => {
   const checkLibrary = function(restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
     RestAPI.MeetingsJitsi.getMeetingsLibrary(restCtx, libraryOwnerId, (err, items) => {
       if (expectAccess) {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Make sure only the exptected items are returned
         assert.strictEqual(items.results.length, expectedItems.length);
-        _.each(expectedItems, expectedMeeting => {
-          assert.ok(
-            _.filter(items.results, meeting => {
-              return meeting.id === expectedMeeting.id;
-            })
-          );
-        });
+        forEach(expectedMeeting => {
+          assert.ok(filter(propSatisfies(equals(expectedMeeting.id), 'id'), items.results));
+        }, expectedItems);
       } else {
         assert.strictEqual(err.code, 401);
         assert.ok(!items);
@@ -179,40 +176,52 @@ describe('Meeting libraries', () => {
     const users = {};
 
     beforeEach(callback => {
-      createUserAndLibrary(camAdminRestCtx, 'private', (user, privateMeeting, loggedinMeeting, publicMeeting) => {
-        users.private = {
-          user,
-          privateMeeting,
-          loggedinMeeting,
-          publicMeeting
-        };
-
-        createUserAndLibrary(camAdminRestCtx, 'loggedin', (user, privateMeeting, loggedinMeeting, publicMeeting) => {
-          users.loggedin = {
+      createUserAndLibrary(
+        asCambridgeTenantAdmin,
+        'private',
+        (user, privateMeeting, loggedinMeeting, publicMeeting) => {
+          users.private = {
             user,
             privateMeeting,
             loggedinMeeting,
             publicMeeting
           };
 
-          createUserAndLibrary(camAdminRestCtx, 'public', (user, privateMeeting, loggedinMeeting, publicMeeting) => {
-            users.public = {
-              user,
-              privateMeeting,
-              loggedinMeeting,
-              publicMeeting
-            };
+          createUserAndLibrary(
+            asCambridgeTenantAdmin,
+            'loggedin',
+            (user, privateMeeting, loggedinMeeting, publicMeeting) => {
+              users.loggedin = {
+                user,
+                privateMeeting,
+                loggedinMeeting,
+                publicMeeting
+              };
 
-            return callback();
-          });
-        });
-      });
+              createUserAndLibrary(
+                asCambridgeTenantAdmin,
+                'public',
+                (user, privateMeeting, loggedinMeeting, publicMeeting) => {
+                  users.public = {
+                    user,
+                    privateMeeting,
+                    loggedinMeeting,
+                    publicMeeting
+                  };
+
+                  return callback();
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     it('should only send the public stream of public users for an anonymous user', callback => {
-      checkLibrary(camAnonymousRestCtx, users.public.user.user.id, true, [users.public.publicMeeting], () => {
-        checkLibrary(camAnonymousRestCtx, users.loggedin.user.user.id, false, [], () => {
-          checkLibrary(camAnonymousRestCtx, users.private.user.user.id, false, [], () => {
+      checkLibrary(asCambridgeAnonymousUser, users.public.user.user.id, true, [users.public.publicMeeting], () => {
+        checkLibrary(asCambridgeAnonymousUser, users.loggedin.user.user.id, false, [], () => {
+          checkLibrary(asCambridgeAnonymousUser, users.private.user.user.id, false, [], () => {
             return callback();
           });
         });
@@ -220,8 +229,9 @@ describe('Meeting libraries', () => {
     });
 
     it('should only send the loggedin stream of public and loggedin users for a loggedin user on the same tenant', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, myUsers) => {
-        const anotherUser = _.values(myUsers)[0];
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, myUsers) => {
+        assert.notExists(err);
+        const { 0: anotherUser } = myUsers;
 
         checkLibrary(
           anotherUser.restContext,
@@ -246,8 +256,9 @@ describe('Meeting libraries', () => {
     });
 
     it('should only send the public stream of public users for a loggedin user on *another* tenant', callback => {
-      TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, myUsers) => {
-        const otherTenantUser = _.values(myUsers)[0];
+      TestsUtil.generateTestUsers(asGeorgiaTenantAdmin, 1, (err, myUsers) => {
+        assert.notExists(err);
+        const { 0: otherTenantUser } = myUsers;
 
         checkLibrary(otherTenantUser.restContext, users.public.user.user.id, true, [users.public.publicMeeting], () => {
           checkLibrary(otherTenantUser.restContext, users.loggedin.user.user.id, false, [], () => {
@@ -288,8 +299,9 @@ describe('Meeting libraries', () => {
     });
 
     it('should properly add the meeting to the user meeting library when the user gains access to the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users, mrvisser, nicolaas) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: nicolaas } = users;
 
         // Create a meeting as mrvisser
         RestAPI.MeetingsJitsi.createMeeting(
@@ -302,31 +314,31 @@ describe('Meeting libraries', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Seed mrvisser's and nicolaas's meeting libraries to ensure it does not get built from scratch
             RestAPI.MeetingsJitsi.getMeetingsLibrary(mrvisser.restContext, mrvisser.user.id, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               RestAPI.MeetingsJitsi.getMeetingsLibrary(nicolaas.restContext, nicolaas.user.id, err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Make nicolaas a member of the meeting
                 const updates = {};
                 updates[nicolaas.user.id] = 'member';
 
                 RestAPI.MeetingsJitsi.updateMembers(mrvisser.restContext, meeting.id, updates, err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Ensure the meeting is still in mrvisser's and nicolaas's meeting libraries
                   RestAPI.MeetingsJitsi.getMeetingsLibrary(mrvisser.restContext, mrvisser.user.id, (err, result) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     let libraryEntry = result.results[0];
                     assert.ok(libraryEntry);
                     assert.strictEqual(libraryEntry.id, meeting.id);
 
                     RestAPI.MeetingsJitsi.getMeetingsLibrary(nicolaas.restContext, nicolaas.user.id, (err, result) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       libraryEntry = result.results[0];
                       assert.ok(libraryEntry);
                       assert.strictEqual(libraryEntry.id, meeting.id);
@@ -347,40 +359,52 @@ describe('Meeting libraries', () => {
     const groups = {};
 
     beforeEach(callback => {
-      createGroupAndLibrary(camAdminRestCtx, 'private', (group, privateMeeting, loggedinMeeting, publicMeeting) => {
-        groups.private = {
-          group,
-          privateMeeting,
-          loggedinMeeting,
-          publicMeeting
-        };
-
-        createGroupAndLibrary(camAdminRestCtx, 'loggedin', (group, privateMeeting, loggedinMeeting, publicMeeting) => {
-          groups.loggedin = {
+      createGroupAndLibrary(
+        asCambridgeTenantAdmin,
+        'private',
+        (group, privateMeeting, loggedinMeeting, publicMeeting) => {
+          groups.private = {
             group,
             privateMeeting,
             loggedinMeeting,
             publicMeeting
           };
 
-          createGroupAndLibrary(camAdminRestCtx, 'public', (group, privateMeeting, loggedinMeeting, publicMeeting) => {
-            groups.public = {
-              group,
-              privateMeeting,
-              loggedinMeeting,
-              publicMeeting
-            };
+          createGroupAndLibrary(
+            asCambridgeTenantAdmin,
+            'loggedin',
+            (group, privateMeeting, loggedinMeeting, publicMeeting) => {
+              groups.loggedin = {
+                group,
+                privateMeeting,
+                loggedinMeeting,
+                publicMeeting
+              };
 
-            return callback();
-          });
-        });
-      });
+              createGroupAndLibrary(
+                asCambridgeTenantAdmin,
+                'public',
+                (group, privateMeeting, loggedinMeeting, publicMeeting) => {
+                  groups.public = {
+                    group,
+                    privateMeeting,
+                    loggedinMeeting,
+                    publicMeeting
+                  };
+
+                  return callback();
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     it('should only send the public stream of public groups for an anonymous user', callback => {
-      checkLibrary(camAnonymousRestCtx, groups.public.group.id, true, [groups.public.publicMeeting], () => {
-        checkLibrary(camAnonymousRestCtx, groups.loggedin.group.id, false, [], () => {
-          checkLibrary(camAnonymousRestCtx, groups.private.group.id, false, [], () => {
+      checkLibrary(asCambridgeAnonymousUser, groups.public.group.id, true, [groups.public.publicMeeting], () => {
+        checkLibrary(asCambridgeAnonymousUser, groups.loggedin.group.id, false, [], () => {
+          checkLibrary(asCambridgeAnonymousUser, groups.private.group.id, false, [], () => {
             return callback();
           });
         });
@@ -388,10 +412,10 @@ describe('Meeting libraries', () => {
     });
 
     it('should only send the loggedin stream of public and loggedin groups for a loggedin user on the same tenant', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: anotherUser } = users;
 
-        const anotherUser = _.values(users)[0];
         checkLibrary(
           anotherUser.restContext,
           groups.public.group.id,
@@ -415,10 +439,10 @@ describe('Meeting libraries', () => {
     });
 
     it('should only send the public stream of public groups for a loggedin user on *another* tenant', callback => {
-      TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: anotherTenantUser } = users;
 
-        const anotherTenantUser = _.values(users)[0];
         checkLibrary(anotherTenantUser.restContext, groups.public.group.id, true, [groups.public.publicMeeting], () => {
           checkLibrary(anotherTenantUser.restContext, groups.loggedin.group.id, false, [], () => {
             checkLibrary(anotherTenantUser.restContext, groups.private.group.id, false, [], () => {
@@ -431,19 +455,19 @@ describe('Meeting libraries', () => {
 
     it('should send all the meeting library items for a member of the group', callback => {
       checkLibrary(
-        camAdminRestCtx,
+        asCambridgeTenantAdmin,
         groups.public.group.id,
         true,
         [groups.public.publicMeeting, groups.public.loggedinMeeting, groups.public.privateMeeting],
         () => {
           checkLibrary(
-            camAdminRestCtx,
+            asCambridgeTenantAdmin,
             groups.loggedin.group.id,
             true,
             [groups.loggedin.publicMeeting, groups.loggedin.loggedinMeeting, groups.loggedin.privateMeeting],
             () => {
               checkLibrary(
-                camAdminRestCtx,
+                asCambridgeTenantAdmin,
                 groups.private.group.id,
                 true,
                 [groups.private.publicMeeting, groups.private.loggedinMeeting, groups.private.privateMeeting],
@@ -458,8 +482,9 @@ describe('Meeting libraries', () => {
     });
 
     it('should add the meeting to the group meeting library when the group has been added to the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
 
         // Create a group to play with
         RestAPI.Group.createGroup(
@@ -471,6 +496,7 @@ describe('Meeting libraries', () => {
           [],
           [],
           (err, group) => {
+            assert.notExists(err);
             // Create a meeting as mrvisser
             RestAPI.MeetingsJitsi.createMeeting(
               mrvisser.restContext,
@@ -482,34 +508,34 @@ describe('Meeting libraries', () => {
               null,
               null,
               (err, meeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Seed mrvisser's and the group's meeting libraries to ensure it does not get built from scratch
                 RestAPI.MeetingsJitsi.getMeetingsLibrary(mrvisser.restContext, mrvisser.user.id, err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   RestAPI.MeetingsJitsi.getMeetingsLibrary(mrvisser.restContext, group.id, err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Make the group a member of the meeting
                     const updates = {};
                     updates[group.id] = 'member';
 
                     RestAPI.MeetingsJitsi.updateMembers(mrvisser.restContext, meeting.id, updates, err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Ensure the meeting is still in mrvisser's and the group's meeting libraries
                       RestAPI.MeetingsJitsi.getMeetingsLibrary(
                         mrvisser.restContext,
                         mrvisser.user.id,
                         (err, result) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           let libraryEntry = result.results[0];
                           assert.ok(libraryEntry);
                           assert.strictEqual(libraryEntry.id, meeting.id);
 
                           RestAPI.MeetingsJitsi.getMeetingsLibrary(mrvisser.restContext, group.id, (err, result) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             libraryEntry = result.results[0];
                             assert.ok(libraryEntry);
                             assert.strictEqual(libraryEntry.id, meeting.id);

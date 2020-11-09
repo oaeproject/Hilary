@@ -38,6 +38,7 @@ const getAlias = prop('alias');
 const resultsWithin = prop('results');
 const getDisplayName = prop('displayName');
 const getHost = prop('host');
+const aliasIsTheSameAsTenants = compose(propEq(ALIAS), getAlias);
 
 describe('Tenants Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -64,6 +65,7 @@ describe('Tenants Search', () => {
   it('verify tenants search works on the global admin server', callback => {
     assertSearchSucceeds(asGlobalAdmin, TENANTS, NO_PARAMS, { q: 'Some querystring' }, result => {
       _assertEmptyTenantsSearchResult(result);
+
       return callback();
     });
   });
@@ -98,11 +100,16 @@ describe('Tenants Search', () => {
               NO_PARAMS,
               { q: toLower(someAlias) },
               result => {
+                const firstResultFrom = compose(head, resultsWithin);
+                const getAliasFromFirstResult = compose(getAlias, firstResultFrom);
+                const getDisplayNameFromFirstResult = compose(getDisplayName, firstResultFrom);
+                const getHostFromFirstResult = compose(getHost, firstResultFrom);
+
                 // Ensure we get the tenant in all searches now
                 assert.strictEqual(result.total, 1);
-                assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
-                assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
-                assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
+                assert.strictEqual(getAliasFromFirstResult(result), someAlias);
+                assert.strictEqual(getDisplayNameFromFirstResult(result), displayName);
+                assert.strictEqual(getHostFromFirstResult(result), toLower(someHost));
 
                 assertSearchSucceeds(
                   asCambridgeAnonymousUser,
@@ -111,9 +118,9 @@ describe('Tenants Search', () => {
                   { q: toLower(displayName) },
                   result => {
                     assert.strictEqual(result.total, 1);
-                    assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
-                    assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
-                    assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
+                    assert.strictEqual(getAliasFromFirstResult(result), someAlias);
+                    assert.strictEqual(getDisplayNameFromFirstResult(result), displayName);
+                    assert.strictEqual(getHostFromFirstResult(result), toLower(someHost));
 
                     assertSearchSucceeds(
                       asCambridgeAnonymousUser,
@@ -122,9 +129,10 @@ describe('Tenants Search', () => {
                       { q: toLower(someHost) },
                       result => {
                         assert.strictEqual(result.total, 1);
-                        assert.strictEqual(compose(getAlias, head, resultsWithin)(result), someAlias);
-                        assert.strictEqual(compose(getDisplayName, head, resultsWithin)(result), displayName);
-                        assert.strictEqual(compose(getHost, head, resultsWithin)(result), toLower(someHost));
+                        assert.strictEqual(getAliasFromFirstResult(result), someAlias);
+                        assert.strictEqual(getDisplayNameFromFirstResult(result), displayName);
+                        assert.strictEqual(getHostFromFirstResult(result), toLower(someHost));
+
                         return callback();
                       }
                     );
@@ -146,18 +154,17 @@ describe('Tenants Search', () => {
       const alias = compose(slice(0, 3), toLower, getAlias)(tenant);
       const displayName = compose(slice(0, 3), toLower, getDisplayName)(tenant);
       const host = tenant.host.toLowerCase().slice(0, 3);
-      // TODO use this
-      const aliasIsTheSameAsTenants = propEq(ALIAS, getAlias(tenant));
 
       // Take just the first 3 characters of each field and ensure we get the tenant
       assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: alias }, result => {
-        assert.ok(find(aliasIsTheSameAsTenants, resultsWithin(result)));
+        assert.ok(find(aliasIsTheSameAsTenants(tenant), resultsWithin(result)));
 
         assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: displayName }, result => {
-          assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
+          assert.ok(find(aliasIsTheSameAsTenants(tenant), resultsWithin(result)));
 
           assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: host }, result => {
-            assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
+            assert.ok(find(aliasIsTheSameAsTenants(tenant), resultsWithin(result)));
+
             return callback();
           });
         });
@@ -173,7 +180,7 @@ describe('Tenants Search', () => {
     generateTestTenants(asGlobalAdmin, 1, tenant => {
       // Ensure the tenant can be found in search
       assertSearchSucceeds(asCambridgeAnonymousUser, TENANTS, NO_PARAMS, { q: getAlias(tenant) }, result => {
-        assert.ok(find(propEq(ALIAS, getAlias(tenant)), resultsWithin(result)));
+        assert.ok(find(aliasIsTheSameAsTenants(tenant), resultsWithin(result)));
 
         // Stop the tenant and ensure it no longer appears
         stopTenantAndWait(asGlobalAdmin, getAlias(tenant), () => {

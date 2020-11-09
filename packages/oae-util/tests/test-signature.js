@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
 import * as Signature from 'oae-util/lib/signature';
 
-// Keep track of the node Date.now function since we will
-// override it at times in tests to mock a future date
+// Keep track of the node Date.now function since we will override it at times in tests to mock a future date
 const _originalDateNow = Date.now;
 
 describe('Signature', () => {
@@ -34,7 +33,7 @@ describe('Signature', () => {
      */
     it('verify signature cannot be verified with different data', callback => {
       const signature = Signature.sign({ '0': 'zero', '1': 'one' });
-      assert.ok(!Signature.verify({ '0': 'one', '1': 'zero' }, signature));
+      assert.isNotOk(Signature.verify({ '0': 'one', '1': 'zero' }, signature));
       assert.ok(Signature.verify({ '0': 'zero', '1': 'one' }, signature));
       return callback();
     });
@@ -55,30 +54,32 @@ describe('Signature', () => {
      * objects
      */
     it('verify signing cannot be tampered with different permutations of similar data objects', callback => {
-      assert.ok(!Signature.verify({ '': '', a: '' }, Signature.sign({ a: '' })));
-      assert.ok(!Signature.verify({ abc: 'def' }, Signature.sign({ abcd: 'ef' })));
-      assert.ok(!Signature.verify({ abc: 'def' }, Signature.sign({ '': 'abcdef' })));
+      assert.isNotOk(Signature.verify({ '': '', a: '' }, Signature.sign({ a: '' })));
+      assert.isNotOk(Signature.verify({ abc: 'def' }, Signature.sign({ abcd: 'ef' })));
+      assert.isNotOk(Signature.verify({ abc: 'def' }, Signature.sign({ '': 'abcdef' })));
 
-      // Note: Signatures that contain permutations of only the \0 character can collide. This is
-      // known and is based on an assumption that no meaningful data will be accessible using only
-      // these characters. This is an example of a unit test that fails exploiting this:
-      // assert.ok(!Signature.verify({'\0\0\0': ''}, Signature.sign({'\0\0': '\0'})));
+      /**
+       * Note: Signatures that contain permutations of only the \0 character can collide.
+       * This is known and is based on an assumption that no meaningful data will be accessible using only
+       * these characters. This is an example of a unit test that fails exploiting this:
+       * assert.ok(!Signature.verify({'\0\0\0': ''}, Signature.sign({'\0\0': '\0'})));
+       */
 
       return callback();
     });
   });
 
-  describe('Expiring Signatures', callback => {
+  describe('Expiring Signatures', () => {
     /**
      * Test that verifies the expiring signature can be verified and cannot be tampered with
      */
     it('verify expiring signature cannot be verified with different data or expires timestamp', callback => {
       const signatureData = Signature.createExpiringSignature({ '0': 'zero', '1': 'one' });
-      assert.ok(
-        !Signature.verifyExpiringSignature({ '0': 'one', '1': 'zero' }, signatureData.expires, signatureData.signature)
+      assert.isNotOk(
+        Signature.verifyExpiringSignature({ '0': 'one', '1': 'zero' }, signatureData.expires, signatureData.signature)
       );
-      assert.ok(
-        !Signature.verifyExpiringSignature(
+      assert.isNotOk(
+        Signature.verifyExpiringSignature(
           { '0': 'zero', '1': 'one' },
           signatureData.expires + 1,
           signatureData.signature
@@ -114,7 +115,7 @@ describe('Signature', () => {
         return now + 12 * 1000;
       };
 
-      assert.ok(!Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature));
+      assert.isNotOk(Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature));
 
       return callback();
     });

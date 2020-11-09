@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import _ from 'underscore';
+
+import { pluck, forEach } from 'ramda';
 
 import * as OaeServer from 'oae-util/lib/server';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
@@ -42,22 +43,22 @@ describe('OAE Server', () => {
      * Verifies CSRF validation with invalid hosts and safe paths
      */
     it('verify CSRF validation with invalid hosts and safe paths', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        user = user[_.keys(user)[0]];
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: user } = users;
 
         // Ensure we can authenticate
         RestAPI.User.getMe(user.restContext, (err, me) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(user.user.id, me.id);
 
           // Sanity check we can sign out
           RestAPI.Authentication.logout(user.restContext, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Verify we are anonymous
             RestAPI.User.getMe(user.restContext, (err, me) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(!me.id);
               assert.ok(me.anon);
 
@@ -70,18 +71,18 @@ describe('OAE Server', () => {
                 user.restContext.username,
                 user.restContext.userPassword,
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Verify we are authenticated
                   RestAPI.User.getMe(user.restContext, (err, me) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(user.user.id, me.id);
 
                     // Spoof the referer
                     user.restContext.refererHeader = 'http://www.google.com';
 
                     // Verify CSRF validation catches this request
-                    RestAPI.Authentication.logout(user.restContext, (err, data) => {
+                    RestAPI.Authentication.logout(user.restContext, (err /* , data */) => {
                       assert.ok(err);
                       assert.strictEqual(err.code, 500);
                       assert.strictEqual(err.msg.indexOf('CSRF'), 0);
@@ -90,14 +91,14 @@ describe('OAE Server', () => {
                       user.restContext.refererHeader = '';
 
                       // Verify CSRF validation says no dice
-                      RestAPI.Authentication.logout(user.restContext, (err, data) => {
+                      RestAPI.Authentication.logout(user.restContext, (err /* , data */) => {
                         assert.ok(err);
                         assert.strictEqual(err.code, 500);
                         assert.strictEqual(err.msg.indexOf('CSRF'), 0);
 
                         // Verify we are still authenticated (this is a GET request, CSRF validation will not happen here with our spoofed referer)
                         RestAPI.User.getMe(user.restContext, (err, me) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.strictEqual(user.user.id, me.id);
 
                           // Make the logout API path safe from CSRF validation
@@ -105,11 +106,11 @@ describe('OAE Server', () => {
 
                           // Sanity check we can now sign out, even with an invalid referer
                           RestAPI.Authentication.logout(user.restContext, err => {
-                            assert.ok(!err);
+                            assert.notExists(err);
 
                             // Verify we are now anonymous
                             RestAPI.User.getMe(user.restContext, (err, me) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
                               assert.ok(!me.id);
                               assert.ok(me.anon);
                               callback();
@@ -144,8 +145,8 @@ describe('OAE Server', () => {
     it('verify multiple files can be uploaded in the same request parameter', callback => {
       TestsUtil.createTestServer((app, server, port) => {
         app.post('/testUploadFiles', (request, response) => {
-          assert.ok(_.isArray(request.files.testFiles));
-          assert.strictEqual(request.files.testFiles.length, 2);
+          assert.isArray(request.files.testFiles);
+          assert.lengthOf(request.files.testFiles, 2);
           assert.strictEqual(request.files.testFiles[0].name, 'banditos.txt');
           assert.strictEqual(request.files.testFiles[1].name, 'banditos.txt');
 
@@ -164,8 +165,9 @@ describe('OAE Server', () => {
      * Verify that a fixed cookie name is used
      */
     it('verify a fixed cookie name is used', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
 
         // Ensure the user is authenticated
         PrincipalsTestUtil.assertGetMeSucceeds(simong.restContext, me => {
@@ -173,19 +175,19 @@ describe('OAE Server', () => {
 
           // Get the cookies from the cookie har
           const cookies = simong.restContext.cookieJar.getCookies('http://localhost');
-          const cookieNames = _.pluck(cookies, 'key');
+          const cookieNames = pluck('key', cookies);
 
           // When setting up the tests, we configured the cookie name to a specific value.
           // Ensure that this value is used. This tests regressions in the cookie-session
           // middleware
-          assert.ok(_.contains(cookieNames, TestsUtil.CONFIG_COOKIE_NAME));
+          assert.include(cookieNames, TestsUtil.CONFIG_COOKIE_NAME);
 
           // Rename the cookie to something else
-          _.each(cookies, cookie => {
+          forEach(cookie => {
             if (cookie.key === TestsUtil.CONFIG_COOKIE_NAME) {
               cookie.key = 'somethingElse';
             }
-          });
+          }, cookies);
 
           // Ensure the user is anonymous
           PrincipalsTestUtil.assertGetMeSucceeds(simong.restContext, me => {

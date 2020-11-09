@@ -13,11 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import { Locale } from 'locale';
-
 import { User } from 'oae-principals/lib/model';
-
 import { Context } from 'oae-context';
 
 describe('Context', () => {
@@ -28,11 +26,13 @@ describe('Context', () => {
     const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
     const imposter = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:simong', 'simong', 'simon@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', null, imposter);
+
     assert.deepStrictEqual(ctx.tenant(), global.oaeTests.tenants.cam);
     assert.deepStrictEqual(ctx.user(), user);
     assert.strictEqual(ctx.authenticationStrategy(), 'twitter');
-    assert.strictEqual(ctx.locale(), null);
     assert.deepStrictEqual(ctx.imposter(), imposter);
+    assert.isNull(ctx.locale());
+
     return callback();
   });
 
@@ -42,6 +42,7 @@ describe('Context', () => {
   it('verify the locale setter can handle defaulted locales', callback => {
     const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', 'en_UK');
+
     assert.deepStrictEqual(ctx.tenant(), global.oaeTests.tenants.cam);
     assert.deepStrictEqual(ctx.user(), user);
 

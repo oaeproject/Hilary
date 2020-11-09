@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import _ from 'underscore';
 import shell from 'shelljs';
 import { equals } from 'ramda';
 

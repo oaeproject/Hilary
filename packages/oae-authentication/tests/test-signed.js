@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import url from 'url';
+import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 
@@ -26,7 +25,6 @@ const _originalDateNow = Date.now;
 
 describe('Authentication', () => {
   // Rest contexts that can be used to perform requests
-  let anonymousTenantRestContext = null;
   let anonymousGlobalRestContext = null;
   let globalAdminRestContext = null;
   let camAdminRestContext = null;
@@ -38,9 +36,6 @@ describe('Authentication', () => {
    */
   before(() => {
     // Instantiate the rest contexts we'll use for these tests
-    anonymousTenantRestContext = TestsUtil.createTenantRestContext(
-      global.oaeTests.tenants.localhost.host
-    );
     anonymousGlobalRestContext = TestsUtil.createGlobalRestContext();
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -76,10 +71,10 @@ describe('Authentication', () => {
         hostHeader: parsedUrl.host
       });
       RestAPI.Admin.doSignedAuthentication(restCtx, body, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         RestAPI.User.getMe(restCtx, (err, me) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           if (isLoggedIn) {
             assert.ok(!me.anon);
@@ -105,8 +100,9 @@ describe('Authentication', () => {
        */
       it('verify only global administrators can request a signed tenant authentication', callback => {
         // Generate a regular user we'll use to try and get a signed tenant authentication request
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser } = users;
 
           // Verify anonymous cannot request signed authentication
           RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
@@ -144,7 +140,7 @@ describe('Authentication', () => {
                         globalAdminRestContext,
                         'localhost',
                         (err, requestInfo) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.ok(requestInfo);
                           return callback();
                         }
@@ -185,7 +181,7 @@ describe('Authentication', () => {
                   globalAdminRestContext,
                   'localhost',
                   (err, requestInfo) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(requestInfo);
                     return callback();
                   }
@@ -203,8 +199,9 @@ describe('Authentication', () => {
        */
       it('verify users can only become users from tenants on which they are administrators', callback => {
         // Generate a regular user we'll impersonate, and one that will try and impersonate someone
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, nico) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser, 1: nico } = users;
 
           // Verify anonymous global user cannot request signed authentication for mrvisser
           RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
@@ -248,7 +245,7 @@ describe('Authentication', () => {
                             nico.user.id,
                             true,
                             err => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Verify a tenant administrator cannot impersonate another tenant administrator
                               RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
@@ -264,7 +261,7 @@ describe('Authentication', () => {
                                     globalAdminRestContext,
                                     nico.user.id,
                                     (err, requestInfo) => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       assert.ok(requestInfo);
                                       assert.strictEqual(
                                         requestInfo.body.becomeUserId,
@@ -276,7 +273,7 @@ describe('Authentication', () => {
                                         globalAdminRestContext,
                                         mrvisser.user.id,
                                         (err, requestInfo) => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
                                           assert.ok(requestInfo);
                                           assert.strictEqual(
                                             requestInfo.body.becomeUserId,
@@ -288,7 +285,7 @@ describe('Authentication', () => {
                                             nico.restContext,
                                             mrvisser.user.id,
                                             (err, requestInfo) => {
-                                              assert.ok(!err);
+                                              assert.notExists(err);
                                               assert.ok(requestInfo);
                                               assert.strictEqual(
                                                 requestInfo.body.becomeUserId,
@@ -321,8 +318,9 @@ describe('Authentication', () => {
        */
       it('verify parameter validation', callback => {
         // Generate a test user to sanity check getting a become user authentication request
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser } = users;
 
           // Ensure `becomeUserId` is required
           RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
@@ -363,7 +361,7 @@ describe('Authentication', () => {
                             globalAdminRestContext,
                             mrvisser.user.id,
                             (err, requestInfo) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
                               assert.ok(requestInfo);
                               assert.strictEqual(requestInfo.body.becomeUserId, mrvisser.user.id);
                               return callback();
@@ -385,19 +383,20 @@ describe('Authentication', () => {
        */
       it('verify imposter cannot get another signed become user request', callback => {
         // Generate a test user to try and become
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simon) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser, 1: simon } = users;
 
           // Make simon a tenant administrator so he can become mrvisser
           RestAPI.User.setTenantAdmin(camAdminRestContext, simon.user.id, true, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Sanity check that simon can get a signed request to become mrvisser
             RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
               simon.restContext,
               mrvisser.user.id,
               (err, requestInfo) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(requestInfo);
 
                 // Imposter simon as a the global admin
@@ -406,11 +405,11 @@ describe('Authentication', () => {
                   simon.user.id,
                   'http://' + global.oaeTests.tenants.localhost.host,
                   (err, globalAdminImposteringSimonRestContext) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Ensure it is indeed an impostering context
                     RestAPI.User.getMe(globalAdminImposteringSimonRestContext, (err, me) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.ok(me);
                       assert.strictEqual(me.id, simon.user.id);
                       assert.ok(me.imposter);
@@ -442,10 +441,10 @@ describe('Authentication', () => {
        */
       it('verify login on tenant works', callback => {
         RestAPI.Admin.loginOnTenant(globalAdminRestContext, 'localhost', null, (err, restCtx) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           RestAPI.User.getMe(restCtx, (err, user) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(!user.anon);
             assert.ok(user.isGlobalAdmin, 'The user should still be a global administrator');
             return callback();
@@ -461,7 +460,7 @@ describe('Authentication', () => {
           globalAdminRestContext,
           'localhost',
           (err, requestInfo) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure that authentication with this request data works
             _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, true, () => {
@@ -523,7 +522,7 @@ describe('Authentication', () => {
           globalAdminRestContext,
           'localhost',
           (err, requestInfo) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Skip the time ahead by 5 minutes to ensure the token is no longer valid
             const now = Date.now();
@@ -548,8 +547,9 @@ describe('Authentication', () => {
        */
       it('verify login as user creates an impersonating request context', callback => {
         // Generate a test user to imposter
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser } = users;
 
           // Cam admin will imposter mrvisser
           RestAPI.Admin.loginAsUser(
@@ -557,11 +557,11 @@ describe('Authentication', () => {
             mrvisser.user.id,
             util.format('http://%s', global.oaeTests.tenants.localhost.host),
             (err, impersonatingMrvisserRestCtx) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure we are authenticated as mrvisser and impostering
               RestAPI.User.getMe(impersonatingMrvisserRestCtx, (err, me) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(me);
                 assert.strictEqual(me.id, mrvisser.user.id);
                 assert.ok(me.imposter);
@@ -577,15 +577,16 @@ describe('Authentication', () => {
        */
       it('verify parameter validation', callback => {
         // Generate a test user to try and imposter
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simon) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser, 1: simon } = users;
 
           // Generate a signed request to become mrvisser
           RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
             camAdminRestContext,
             mrvisser.user.id,
             (err, requestInfo) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure the request data can be used to authentication when the body is untampered with
               _performSignedAuthenticationRequest(requestInfo.url, requestInfo.body, true, () => {
@@ -658,14 +659,15 @@ describe('Authentication', () => {
        * Test that verifies the signed authentication request expires after 5 minutes
        */
       it('verify signed become user login request expires', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: mrvisser } = users;
 
           RestAPI.Admin.getSignedBecomeUserAuthenticationRequestInfo(
             camAdminRestContext,
             mrvisser.user.id,
             (err, requestInfo) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Skip the time ahead by 5 minutes to ensure the token is no longer valid
               const now = Date.now();

@@ -52,7 +52,7 @@ export default function(ctx, opts, callback) {
   opts.scope = _resolveScope(ctx, opts.scope);
 
   // The query and filter objects for the Query DSL
-  const query = SearchUtil.createQueryStringQuery(opts.q);
+  const query = { bool: { should: [SearchUtil.createQueryStringQuery(opts.q)] } };
   const filterResources = SearchUtil.filterResources(opts.resourceTypes, SearchConstants.deleted.ONLY);
 
   // Apply the scope and access filters for the deleted search

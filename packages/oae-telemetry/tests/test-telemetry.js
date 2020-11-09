@@ -13,12 +13,17 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TelemetryAPI from 'oae-telemetry';
 import * as TestsUtil from 'oae-tests';
+
+const { generateTestUsers } = TestsUtil;
+const { getTelemetryData: requestTelemetryData } = RestAPI.Telemetry;
+const { getTelemetryData, reset, init } = TelemetryAPI;
+
+import { assoc } from 'ramda';
 
 describe('Telemetry', () => {
   /*!
@@ -26,18 +31,21 @@ describe('Telemetry', () => {
    *
    * @param  {Object}     config  The configuration object with which to create an enabled telemetry config
    */
-  const _createConfig = function(config) {
-    return _.extend({ enabled: true }, config);
+  const _createConfig = config => {
+    return assoc('enabled', true, config);
   };
 
   let Telemetry = null;
 
   // Rest context that can be used every time we need to make a request as an anonymous user on the Cambridge tenant
   let anonymousCamRestContext = null;
+
   // Rest context that can be used every time we need to make a request as an anonymous user on the global admin tenant
   let anonymousGlobalRestContext = null;
+
   // Rest context that can be used every time we need to make a request as a tenant admin
   let camAdminRestContext = null;
+
   // Rest context that can be used every time we need to make a request as a global admin
   let globalAdminRestContext = null;
 
@@ -47,12 +55,16 @@ describe('Telemetry', () => {
   before(callback => {
     // Fill up the anonymous cam rest context
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+
     // Fill up the anonymous global rest context
     anonymousGlobalRestContext = TestsUtil.createGlobalRestContext();
+
     // Fill up tenant admin rest context
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+
     // Fill up the global admin rest context
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+
     return callback();
   });
 
@@ -61,11 +73,12 @@ describe('Telemetry', () => {
    */
   beforeEach(callback => {
     // Reset the telemetry configuration before each telemetry test
-    TelemetryAPI.init(_createConfig(), () => {
+    init(_createConfig(), () => {
       // *Force* a reset of all telemetry values, even if it is not time to do so
-      TelemetryAPI.reset(err => {
-        assert.ok(!err);
+      reset(err => {
+        assert.notExists(err);
         Telemetry = TelemetryAPI.telemetry('tests');
+
         return callback();
       });
     });
@@ -77,10 +90,12 @@ describe('Telemetry', () => {
      * it resets the data for the next publishing cycle.
      */
     it('verify publish interval publishes the proper data while reset clears the data', callback => {
-      // Configure the telemetry API such that on the first second we get a publish, then in the second second we
-      // get a reset, then in the 3rd we get another publish
-      TelemetryAPI.init(_createConfig({ publishInterval: 1, resetInterval: 2 }), err => {
-        assert.ok(!err);
+      /**
+       * Configure the telemetry API such that on the first second we get a publish, then in the second second we
+       * get a reset, then in the 3rd we get another publish
+       */
+      init(_createConfig({ publishInterval: 1, resetInterval: 2 }), err => {
+        assert.notExists(err);
 
         // Note that if this takes longer than one second our test fails intermittently :( I'm not sure we can avoid this
         // without disrupting the test
@@ -91,7 +106,7 @@ describe('Telemetry', () => {
         // Wait 1s for the publish event to verify the published data
         TelemetryAPI.emitter.once('publish', data => {
           assert.strictEqual(data.tests.incr, 10);
-          assert.strictEqual(data.tests.append.length, 2);
+          assert.lengthOf(data.tests.append, 2);
           assert.strictEqual(data.tests.append[0], 50);
           assert.strictEqual(data.tests.append[1], 30);
 
@@ -118,9 +133,10 @@ describe('Telemetry', () => {
      */
     it('verify it increases by one', callback => {
       Telemetry.incr('incr', 1);
-      TelemetryAPI.getTelemetryData((err, data) => {
-        assert.ok(!err);
+      getTelemetryData((err, data) => {
+        assert.notExists(err);
         assert.strictEqual(data.tests.incr, 1);
+
         return callback();
       });
     });
@@ -130,9 +146,11 @@ describe('Telemetry', () => {
      */
     it('verify multiple increases', callback => {
       Telemetry.incr('incr', 10);
-      TelemetryAPI.getTelemetryData((err, data) => {
-        assert.ok(!err);
+
+      getTelemetryData((err, data) => {
+        assert.notExists(err);
         assert.strictEqual(data.tests.incr, 10);
+
         return callback();
       });
     });
@@ -145,16 +163,21 @@ describe('Telemetry', () => {
     it('verify it appends data to a list', callback => {
       Telemetry.append('append', 10);
 
-      TelemetryAPI.getTelemetryData((err, data) => {
-        assert.ok(!err);
-        assert.strictEqual(data.tests.append.length, 1);
+      getTelemetryData((err, data) => {
+        assert.notExists(err);
+
+        assert.lengthOf(data.tests.append, 1);
         assert.strictEqual(data.tests.append[0], 10);
 
         Telemetry.append('append', 5);
-        TelemetryAPI.getTelemetryData((err, data) => {
-          assert.strictEqual(data.tests.append.length, 2);
+
+        getTelemetryData((err, data) => {
+          assert.notExists(err);
+
+          assert.lengthOf(data.tests.append, 2);
           assert.strictEqual(data.tests.append[0], 10);
           assert.strictEqual(data.tests.append[1], 5);
+
           return callback();
         });
       });
@@ -166,33 +189,35 @@ describe('Telemetry', () => {
      * Test that verifies that only a global admin can request the telemetry data
      */
     it('verify that only a global admin can request the telemetry data', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, john) => {
-        assert.ok(!err);
+      generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: john } = users;
 
         // Request the telemetry data using an anonymous tenant user
-        RestAPI.Telemetry.getTelemetryData(anonymousCamRestContext, (err, res) => {
+        requestTelemetryData(anonymousCamRestContext, (err /* , res */) => {
           assert.ok(err);
           assert.strictEqual(err.code, 404);
 
           // Request the telemetry data using an anonymous global user
-          RestAPI.Telemetry.getTelemetryData(anonymousGlobalRestContext, (err, res) => {
+          requestTelemetryData(anonymousGlobalRestContext, (err /* , res */) => {
             assert.ok(err);
             assert.strictEqual(err.code, 401);
             assert.strictEqual(err.msg, 'Only global administrators are allowed to retrieve telemetry data');
 
             // Request the telemetry data using a tenant user
-            RestAPI.Telemetry.getTelemetryData(john.restContext, (err, res) => {
+            requestTelemetryData(john.restContext, (err /* , res */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 404);
 
               // Request the telemetry data using a tenant admin
-              RestAPI.Telemetry.getTelemetryData(camAdminRestContext, (err, res) => {
+              requestTelemetryData(camAdminRestContext, (err /* , res */) => {
                 assert.ok(err);
                 assert.strictEqual(err.code, 404);
 
                 // Request the telemetry data using a global admin
-                RestAPI.Telemetry.getTelemetryData(globalAdminRestContext, (err, res) => {
-                  assert.ok(!err);
+                requestTelemetryData(globalAdminRestContext, (err /* , res */) => {
+                  assert.notExists(err);
+
                   return callback();
                 });
               });

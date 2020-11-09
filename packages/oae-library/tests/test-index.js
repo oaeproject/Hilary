@@ -13,10 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
+import { not } from 'ramda';
 
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as LibraryAPI from 'oae-library';
+
+const { generateRandomText } = TestsUtil;
+const testName = generateRandomText();
+
+const { purge, list, registerLibraryIndex, isStale } = LibraryAPI.Index;
+
+const PUBLIC = 'public';
+const LOGGEDIN = 'loggedin';
+const PRIVATE = 'private';
+const SOME_LIBRARY = 'somelibrary';
 
 describe('Library Indexing', () => {
   describe('#registerLibraryIndex', () => {
@@ -24,11 +35,10 @@ describe('Library Indexing', () => {
      * Test that verifies we cannot register two library indexes of the same name
      */
     it('verify cannot register two library indexes of the same name', callback => {
-      const testName = TestsUtil.generateRandomText();
-      LibraryAPI.Index.registerLibraryIndex(testName, { pageResources() {} });
+      registerLibraryIndex(testName, { pageResources() {} });
 
       assert.throws(() => {
-        LibraryAPI.Index.registerLibraryIndex(testName, { pageResources() {} });
+        registerLibraryIndex(testName, { pageResources() {} });
       });
 
       return callback();
@@ -39,7 +49,7 @@ describe('Library Indexing', () => {
      */
     it('verify cannot register a library index that has no ability to page resources', callback => {
       assert.throws(() => {
-        LibraryAPI.Index.registerLibraryIndex(TestsUtil.generateRandomText(), {});
+        registerLibraryIndex(generateRandomText(), {});
       });
 
       return callback();
@@ -70,26 +80,27 @@ describe('Library Indexing', () => {
         };
       };
 
-      const testName = TestsUtil.generateRandomText();
-      LibraryAPI.Index.registerLibraryIndex(testName, {
+      const testName = generateRandomText();
+
+      registerLibraryIndex(testName, {
         pageResources(libraryId, start, limit, callback) {
           // Just return a static set of resources
           let resources = null;
-          if (!start) {
+          if (not(start)) {
             resources = [
               {
                 rank: 1,
-                resource: _resource('a', 'oae', 'private'),
+                resource: _resource('a', 'oae', PRIVATE),
                 value: 1
               },
               {
                 rank: 2,
-                resource: _resource('b', 'oae', 'loggedin'),
+                resource: _resource('b', 'oae', LOGGEDIN),
                 value: ['a', 'b', 'c']
               },
               {
                 rank: 3,
-                resource: _resource('c', 'oae', 'public')
+                resource: _resource('c', 'oae', PUBLIC)
               }
             ];
           }
@@ -99,49 +110,56 @@ describe('Library Indexing', () => {
       });
 
       // Ensure that some arbitrary library in this index is currently stale
-      LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
-        assert.ok(!err);
-        assert.strictEqual(isStale, true);
-        LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
-          assert.ok(!err);
-          assert.strictEqual(isStale, true);
-          LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
-            assert.ok(!err);
-            assert.strictEqual(isStale, true);
+      isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
+        assert.notExists(err);
+        assert.strictEqual(isItStale, true);
+
+        isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
+          assert.notExists(err);
+          assert.strictEqual(isItStale, true);
+
+          isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
+            assert.notExists(err);
+            assert.strictEqual(isItStale, true);
 
             // Query the index and make sure we get the items
-            LibraryAPI.Index.list(testName, 'somelibrary', 'private', { limit: 10 }, (err, entries) => {
-              assert.ok(!err);
-              assert.strictEqual(entries.length, 3);
+            list(testName, SOME_LIBRARY, PRIVATE, { limit: 10 }, (err, entries) => {
+              assert.notExists(err);
+
+              assert.lengthOf(entries, 3);
               assert.deepStrictEqual(entries[0], { resourceId: 'c', value: 1 });
               assert.deepStrictEqual(entries[1], { resourceId: 'b', value: ['a', 'b', 'c'] });
               assert.deepStrictEqual(entries[2], { resourceId: 'a', value: 1 });
 
               // Ensure that each library index list is no longer stale
-              LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
-                assert.ok(!err);
-                assert.strictEqual(isStale, false);
-                LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
-                  assert.ok(!err);
-                  assert.strictEqual(isStale, false);
-                  LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
-                    assert.ok(!err);
-                    assert.strictEqual(isStale, false);
+              isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
+                assert.notExists(err);
+                assert.strictEqual(isItStale, false);
+
+                isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
+                  assert.notExists(err);
+                  assert.strictEqual(isItStale, false);
+
+                  isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
+                    assert.notExists(err);
+                    assert.strictEqual(isItStale, false);
 
                     // Purge the full library
-                    LibraryAPI.Index.purge(testName, 'somelibrary', err => {
-                      assert.ok(!err);
+                    purge(testName, SOME_LIBRARY, err => {
+                      assert.notExists(err);
 
                       // Ensure that each library index list is stale once again
-                      LibraryAPI.Index.isStale(testName, 'somelibrary', 'private', (err, isStale) => {
-                        assert.ok(!err);
-                        assert.strictEqual(isStale, true);
-                        LibraryAPI.Index.isStale(testName, 'somelibrary', 'loggedin', (err, isStale) => {
-                          assert.ok(!err);
-                          assert.strictEqual(isStale, true);
-                          LibraryAPI.Index.isStale(testName, 'somelibrary', 'public', (err, isStale) => {
-                            assert.ok(!err);
-                            assert.strictEqual(isStale, true);
+                      isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
+                        assert.notExists(err);
+                        assert.strictEqual(isItStale, true);
+
+                        isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
+                          assert.notExists(err);
+                          assert.strictEqual(isItStale, true);
+
+                          isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
+                            assert.notExists(err);
+                            assert.strictEqual(isItStale, true);
 
                             return callback();
                           });

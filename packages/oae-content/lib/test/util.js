@@ -19,7 +19,7 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 import async from 'async';
 
-import { map, path, prop } from 'ramda';
+import { map, path } from 'ramda';
 
 import { setSheetContents, getJSON } from 'oae-content/lib/internal/ethercalc';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
@@ -907,7 +907,7 @@ const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers,
             });
           },
           err => {
-            if (err) callback(err);
+            if (err) return callback(err);
             return callback(null, _.union([content, users], userValues));
           }
         );
@@ -960,7 +960,7 @@ const createCollabsheetForUser = function(creator, callback) {
       assert.ok(!err);
 
       RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err /* data */) {
-        if (err) callback(err);
+        if (err) return callback(err);
 
         assert.ok(!err);
         return callback(null, contentObj);

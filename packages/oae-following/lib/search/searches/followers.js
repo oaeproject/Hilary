@@ -76,7 +76,7 @@ export default function(ctx, opts, callback) {
  */
 const _search = function(ctx, opts, callback) {
   // The query object for the Query DSL
-  const query = SearchUtil.createQueryStringQuery(opts.q);
+  const query = { bool: { should: [SearchUtil.createQueryStringQuery(opts.q)] } };
 
   // The filter object for the Query DSL
   const filter = SearchUtil.filterAnd(

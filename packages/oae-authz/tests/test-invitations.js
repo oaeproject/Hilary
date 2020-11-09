@@ -13,9 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as assert from 'assert';
-import fs from 'fs';
-import url from 'url';
+import { assert } from 'chai';
 import util from 'util';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
@@ -45,9 +43,7 @@ describe('Invitations', () => {
   let camAdminRestContext = null;
   let globalAdminRestContext = null;
 
-  const _randomString = function() {
-    return TestsUtil.generateRandomText(1);
-  };
+  const _randomString = () => TestsUtil.generateRandomText(1);
 
   /*!
    * This is a wrapper of `_.partial` that allows you to specify an argless function as a
@@ -119,7 +115,13 @@ describe('Invitations', () => {
       setRolesSucceeds: ContentTestUtil.assertUpdateContentMembersSucceeds,
       setRolesFails: ContentTestUtil.assertUpdateContentMembersFails,
       getMembersSucceeds: _partialWithFns(ContentTestUtil.getAllContentMembers, _, _, null, _),
-      getLibrarySucceeds: _partialWithFns(ContentTestUtil.assertGetAllContentLibrarySucceeds, _, _, null, _),
+      getLibrarySucceeds: _partialWithFns(
+        ContentTestUtil.assertGetAllContentLibrarySucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
       deleteSucceeds(adminRestContext, deleterRestContext, contentId, callback) {
         ContentTestUtil.assertDeleteContentSucceeds(deleterRestContext, contentId, callback);
       }
@@ -150,10 +152,26 @@ describe('Invitations', () => {
       shareFails: DiscussionsTestUtil.assertShareDiscussionFails,
       setRolesSucceeds: DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds,
       setRolesFails: DiscussionsTestUtil.assertUpdateDiscussionMembersFails,
-      getMembersSucceeds: _partialWithFns(DiscussionsTestUtil.getAllDiscussionMembers, _, _, null, _),
-      getLibrarySucceeds: _partialWithFns(DiscussionsTestUtil.assertGetAllDiscussionsLibrarySucceeds, _, _, null, _),
+      getMembersSucceeds: _partialWithFns(
+        DiscussionsTestUtil.getAllDiscussionMembers,
+        _,
+        _,
+        null,
+        _
+      ),
+      getLibrarySucceeds: _partialWithFns(
+        DiscussionsTestUtil.assertGetAllDiscussionsLibrarySucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
       deleteSucceeds(adminRestContext, deleterRestContext, discussionId, callback) {
-        DiscussionsTestUtil.assertDeleteDiscussionSucceeds(deleterRestContext, discussionId, callback);
+        DiscussionsTestUtil.assertDeleteDiscussionSucceeds(
+          deleterRestContext,
+          discussionId,
+          callback
+        );
       }
     },
     folder: {
@@ -182,8 +200,20 @@ describe('Invitations', () => {
       shareFails: FoldersTestUtil.assertShareFolderFails,
       setRolesSucceeds: FoldersTestUtil.assertUpdateFolderMembersSucceeds,
       setRolesFails: FoldersTestUtil.assertUpdateFolderMembersFails,
-      getMembersSucceeds: _partialWithFns(FoldersTestUtil.assertGetAllFolderMembersSucceeds, _, _, null, _),
-      getLibrarySucceeds: _partialWithFns(FoldersTestUtil.assertGetAllFoldersLibrarySucceeds, _, _, null, _),
+      getMembersSucceeds: _partialWithFns(
+        FoldersTestUtil.assertGetAllFolderMembersSucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
+      getLibrarySucceeds: _partialWithFns(
+        FoldersTestUtil.assertGetAllFoldersLibrarySucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
       deleteSucceeds(adminRestContext, deleterRestContext, folderId, callback) {
         FoldersTestUtil.assertDeleteFolderSucceeds(deleterRestContext, folderId, true, callback);
       }
@@ -214,8 +244,20 @@ describe('Invitations', () => {
       ),
       setRolesSucceeds: PrincipalsTestUtil.assertSetGroupMembersSucceeds,
       setRolesFails: PrincipalsTestUtil.assertSetGroupMembersFails,
-      getMembersSucceeds: _partialWithFns(PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds, _, _, null, _),
-      getLibrarySucceeds: _partialWithFns(PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds, _, _, null, _),
+      getMembersSucceeds: _partialWithFns(
+        PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
+      getLibrarySucceeds: _partialWithFns(
+        PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds,
+        _,
+        _,
+        null,
+        _
+      ),
       deleteSucceeds: PrincipalsTestUtil.assertDeleteGroupSucceeds,
       restoreSucceeds: PrincipalsTestUtil.assertRestoreGroupSucceeds
     }
@@ -669,8 +711,9 @@ describe('Invitations', () => {
      * Test that verifies the invitation email can be resent
      */
     it('verify it resends an aggregated email for each resource type', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: creatingUser, 1: acceptingUser } = users;
 
         // Create one of each resource type with the creating user
         const email = _emailForTenant(global.oaeTests.tenants.cam);
@@ -684,9 +727,15 @@ describe('Invitations', () => {
               .size()
               .after(() => {
                 const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-                _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () => {
-                  return callback();
-                });
+                _assertAcceptEmailInvitation(
+                  creatingUser,
+                  acceptingUser,
+                  resources,
+                  assertions,
+                  () => {
+                    return callback();
+                  }
+                );
               })
               .value();
 
@@ -714,35 +763,44 @@ describe('Invitations', () => {
      */
     it('verify email invitation links to the proper tenant based on email domain', callback => {
       const fns = resourceFns.content;
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: user } = users;
 
         const cambridgeEmail = _emailForTenant(global.oaeTests.tenants.cam);
         const guestEmail = _emailForDomain(TenantsTestUtil.generateTestTenantHost());
-        fns.createSucceeds(user.restContext, 'public', [cambridgeEmail], [guestEmail], resource => {
-          EmailTestUtil.collectAndFetchAllEmails(messages => {
-            // There should be 2 emails, one for cambridgeEmail and one for guestEmail
-            assert.strictEqual(messages.length, 2);
+        fns.createSucceeds(
+          user.restContext,
+          'public',
+          [cambridgeEmail],
+          [guestEmail],
+          (/* resource */) => {
+            EmailTestUtil.collectAndFetchAllEmails(messages => {
+              // There should be 2 emails, one for cambridgeEmail and one for guestEmail
+              assert.strictEqual(messages.length, 2);
 
-            const cambridgeMessage = _.find(messages, message => {
-              return message.to[0].address === cambridgeEmail.toLowerCase();
+              const cambridgeMessage = _.find(messages, message => {
+                return message.to[0].address === cambridgeEmail.toLowerCase();
+              });
+
+              const guestMessage = _.find(messages, message => {
+                return message.to[0].address === guestEmail.toLowerCase();
+              });
+
+              // Grab the invitation link from the messages
+              const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(
+                cambridgeMessage
+              );
+              const guestInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(guestMessage);
+
+              // Ensure the links are to the proper tenancy
+              assert.strictEqual(cambridgeInvitationUrl.host, global.oaeTests.tenants.cam.host);
+              assert.strictEqual(guestInvitationUrl.host, TenantsAPI.getTenant('guest').host);
+
+              return callback();
             });
-
-            const guestMessage = _.find(messages, message => {
-              return message.to[0].address === guestEmail.toLowerCase();
-            });
-
-            // Grab the invitation link from the messages
-            const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(cambridgeMessage);
-            const guestInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(guestMessage);
-
-            // Ensure the links are to the proper tenancy
-            assert.strictEqual(cambridgeInvitationUrl.host, global.oaeTests.tenants.cam.host);
-            assert.strictEqual(guestInvitationUrl.host, TenantsAPI.getTenant('guest').host);
-
-            return callback();
-          });
-        });
+          }
+        );
       });
     });
 
@@ -754,39 +812,52 @@ describe('Invitations', () => {
       const fns = resourceFns.content;
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.ok(!err);
-        TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users, user) => {
-          assert.ok(!err);
+      TestsUtil.createTenantWithAdmin(
+        tenantAlias,
+        tenantHost,
+        (err, tenant, tenantAdminRestContext) => {
+          assert.notExists(err);
+          TestsUtil.generateTestUsers(tenantAdminRestContext, 1, (err, users) => {
+            assert.notExists(err);
+            const { 0: user } = users;
 
-          // Use an email that differs from the tenant email domain
-          // only by case
-          const matchingEmailDomain = tenantHost.toUpperCase();
-          const matchingEmail = _emailForDomain(matchingEmailDomain);
-          fns.createSucceeds(user.restContext, 'public', [matchingEmail], [], resource => {
-            EmailTestUtil.collectAndFetchAllEmails(messages => {
-              assert.strictEqual(messages.length, 1);
+            /**
+             * Use an email that differs from the tenant email domain only by case
+             */
+            const matchingEmailDomain = tenantHost.toUpperCase();
+            const matchingEmail = _emailForDomain(matchingEmailDomain);
+            fns.createSucceeds(
+              user.restContext,
+              'public',
+              [matchingEmail],
+              [],
+              (/* resource */) => {
+                EmailTestUtil.collectAndFetchAllEmails(messages => {
+                  assert.lengthOf(messages, 1);
 
-              const message = _.first(messages);
-              const toEmail = message.to[0].address;
-              const invitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(message);
+                  const message = _.first(messages);
+                  const toEmail = message.to[0].address;
+                  const invitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(message);
 
-              assert.strictEqual(toEmail, matchingEmail.toLowerCase());
-              assert.strictEqual(invitationUrl.host, tenant.host);
+                  assert.strictEqual(toEmail, matchingEmail.toLowerCase());
+                  assert.strictEqual(invitationUrl.host, tenant.host);
 
-              return callback();
-            });
+                  return callback();
+                });
+              }
+            );
           });
-        });
-      });
+        }
+      );
     });
 
     /**
      * Test that verifies it sends an aggregated email for all resource types
      */
     it('verify it sends an aggregated email for each resource type', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: creatingUser, 1: acceptingUser } = users;
 
         // Generate the email to invite and ensure we start with an empty email queue
         const email = _emailForTenant(global.oaeTests.tenants.cam);
@@ -1096,206 +1167,293 @@ describe('Invitations', () => {
 
   const _testInvitationAcceptAdaptedActivities = function(resourceType, assertions, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      3,
-      (err, users, inviterUserInfo, invitedUserInfo, otherUserInfo) => {
-        assert.ok(!err);
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: inviterUserInfo, 1: invitedUserInfo, 2: otherUserInfo } = users;
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
 
-        const resources = [];
+      const resources = [];
 
-        // Share 1 of this resource and accept the invitation, while asserting the "accept invitation" activity summary
-        fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource1 => {
-          resources.push(resource1);
+      // Share 1 of this resource and accept the invitation, while asserting the "accept invitation" activity summary
+      fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource1 => {
+        resources.push(resource1);
 
-          let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-          _assertAcceptEmailInvitation(inviterUserInfo, invitedUserInfo, [resource1], emailAssertions, () => {
-            _assertAdaptedActivities(inviterUserInfo, invitedUserInfo, otherUserInfo, resources, assertions, () => {
-              // Share a 2nd of this resource and accept the invitation, while asserting the "accept invitation" for the 2 items in the aggregated feed
-              fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource2 => {
-                resources.push(resource2);
+        let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
+        _assertAcceptEmailInvitation(
+          inviterUserInfo,
+          invitedUserInfo,
+          [resource1],
+          emailAssertions,
+          () => {
+            _assertAdaptedActivities(
+              inviterUserInfo,
+              invitedUserInfo,
+              otherUserInfo,
+              resources,
+              assertions,
+              () => {
+                // Share a 2nd of this resource and accept the invitation, while asserting the "accept invitation" for the 2 items in the aggregated feed
+                fns.createSucceeds(
+                  inviterUserInfo.restContext,
+                  'private',
+                  [email],
+                  [],
+                  resource2 => {
+                    resources.push(resource2);
 
-                emailAssertions = { role: 'manager', membersSize: 2, librarySize: 2 };
-                _assertAcceptEmailInvitation(inviterUserInfo, invitedUserInfo, [resource2], emailAssertions, () => {
-                  _assertAdaptedActivities(
-                    inviterUserInfo,
-                    invitedUserInfo,
-                    otherUserInfo,
-                    resources,
-                    assertions,
-                    () => {
-                      // Share a 3rd of this resource and accept the invitation, while asserting the "accept invitation" for the 3 items in the aggregated feed
-                      fns.createSucceeds(inviterUserInfo.restContext, 'private', [email], [], resource3 => {
-                        resources.push(resource3);
-
-                        emailAssertions = {
-                          role: 'manager',
-                          membersSize: 2,
-                          librarySize: 3
-                        };
-                        _assertAcceptEmailInvitation(
+                    emailAssertions = { role: 'manager', membersSize: 2, librarySize: 2 };
+                    _assertAcceptEmailInvitation(
+                      inviterUserInfo,
+                      invitedUserInfo,
+                      [resource2],
+                      emailAssertions,
+                      () => {
+                        _assertAdaptedActivities(
                           inviterUserInfo,
                           invitedUserInfo,
-                          [resource3],
-                          emailAssertions,
+                          otherUserInfo,
+                          resources,
+                          assertions,
                           () => {
-                            _assertAdaptedActivities(
-                              inviterUserInfo,
-                              invitedUserInfo,
-                              otherUserInfo,
-                              resources,
-                              assertions,
-                              () => {
-                                // If we don't want to check that the resource received activities, then we're done
-                                if (!assertions.resourceActivity) {
-                                  return callback();
-                                }
+                            // Share a 3rd of this resource and accept the invitation, while asserting the "accept invitation" for the 3 items in the aggregated feed
+                            fns.createSucceeds(
+                              inviterUserInfo.restContext,
+                              'private',
+                              [email],
+                              [],
+                              resource3 => {
+                                resources.push(resource3);
 
-                                // Ensure the resource received an activity as well
-                                ActivityTestUtil.collectAndGetActivityStream(
-                                  inviterUserInfo.restContext,
-                                  resource1.id,
-                                  null,
-                                  (err, result) => {
-                                    assert.ok(!err);
-                                    assert.ok(result);
-                                    assert.ok(_.isArray(result.items));
+                                emailAssertions = {
+                                  role: 'manager',
+                                  membersSize: 2,
+                                  librarySize: 3
+                                };
+                                _assertAcceptEmailInvitation(
+                                  inviterUserInfo,
+                                  invitedUserInfo,
+                                  [resource3],
+                                  emailAssertions,
+                                  () => {
+                                    _assertAdaptedActivities(
+                                      inviterUserInfo,
+                                      invitedUserInfo,
+                                      otherUserInfo,
+                                      resources,
+                                      assertions,
+                                      () => {
+                                        // If we don't want to check that the resource received activities, then we're done
+                                        if (!assertions.resourceActivity) {
+                                          return callback();
+                                        }
 
-                                    // Has a create activity and an invitation accept activity
-                                    assert.strictEqual(result.items.length, 2);
+                                        // Ensure the resource received an activity as well
+                                        ActivityTestUtil.collectAndGetActivityStream(
+                                          inviterUserInfo.restContext,
+                                          resource1.id,
+                                          null,
+                                          (err, result) => {
+                                            assert.notExists(err);
+                                            assert.ok(result);
+                                            assert.ok(_.isArray(result.items));
 
-                                    const activity = result.items[0];
-                                    assert.strictEqual(activity.actor['oae:id'], invitedUserInfo.user.id);
-                                    assert.strictEqual(activity.object['oae:id'], inviterUserInfo.user.id);
-                                    assert.strictEqual(activity.target['oae:id'], resource1.id);
+                                            // Has a create activity and an invitation accept activity
+                                            assert.strictEqual(result.items.length, 2);
 
-                                    return callback();
+                                            const activity = result.items[0];
+                                            assert.strictEqual(
+                                              activity.actor['oae:id'],
+                                              invitedUserInfo.user.id
+                                            );
+                                            assert.strictEqual(
+                                              activity.object['oae:id'],
+                                              inviterUserInfo.user.id
+                                            );
+                                            assert.strictEqual(
+                                              activity.target['oae:id'],
+                                              resource1.id
+                                            );
+
+                                            return callback();
+                                          }
+                                        );
+                                      }
+                                    );
                                   }
                                 );
                               }
                             );
                           }
                         );
-                      });
-                    }
-                  );
-                });
-              });
-            });
-          });
-        });
-      }
-    );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+    });
   };
 
   const _testInvitationAcceptEmailSummary = function(resourceType, assertions, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, sharingUserInfo, acceptingUserInfo) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: sharingUserInfo, 1: acceptingUserInfo } = users;
       const email = _emailForTenant(global.oaeTests.tenants.cam);
 
-      // Share 1 of this resource and accept the invitation, while getting the
-      // "accept invitation" activity email sent to the sharer
+      /**
+       * Share 1 of this resource and accept the invitation, while getting the
+       * "accept invitation" activity email sent to the sharer
+       */
       fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceA => {
         let emailAssertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-        _assertAcceptEmailInvitation(sharingUserInfo, acceptingUserInfo, [resourceA], emailAssertions, message => {
-          const activities = ActivityTestUtil.parseActivityHtml(message.html);
-          assert.strictEqual(activities.length, 1);
+        _assertAcceptEmailInvitation(
+          sharingUserInfo,
+          acceptingUserInfo,
+          [resourceA],
+          emailAssertions,
+          message => {
+            const activities = ActivityTestUtil.parseActivityHtml(message.html);
+            assert.strictEqual(activities.length, 1);
 
-          _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceA);
-          _.each(assertions.oneResourceSummaryMatch, oneResourceSummaryMatch => {
-            _assertContains(activities[0].summary.html, oneResourceSummaryMatch);
-          });
+            _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceA);
+            _.each(assertions.oneResourceSummaryMatch, oneResourceSummaryMatch => {
+              _assertContains(activities[0].summary.html, oneResourceSummaryMatch);
+            });
 
-          // Share 2 of this resource and accept the invitation, while getting the
-          // "accept invitation" activity email sent to the sharer
-          fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceB1 => {
-            fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceB2 => {
-              emailAssertions = { role: 'manager', membersSize: 2, librarySize: 3 };
-              _assertAcceptEmailInvitation(
-                sharingUserInfo,
-                acceptingUserInfo,
-                [resourceB1, resourceB2],
-                emailAssertions,
-                message => {
-                  const activities = ActivityTestUtil.parseActivityHtml(message.html);
-                  assert.strictEqual(activities.length, 1);
+            /**
+             * Share 2 of this resource and accept the invitation, while getting the
+             * "accept invitation" activity email sent to the sharer
+             */
+            fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceB1 => {
+              fns.createSucceeds(
+                sharingUserInfo.restContext,
+                'private',
+                [email],
+                [],
+                resourceB2 => {
+                  emailAssertions = { role: 'manager', membersSize: 2, librarySize: 3 };
+                  _assertAcceptEmailInvitation(
+                    sharingUserInfo,
+                    acceptingUserInfo,
+                    [resourceB1, resourceB2],
+                    emailAssertions,
+                    message => {
+                      const activities = ActivityTestUtil.parseActivityHtml(message.html);
+                      assert.strictEqual(activities.length, 1);
 
-                  _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceB1);
-                  _assertAcceptInvitationContainsResourceHtml(activities[0].summary.html, resourceB2);
-                  _.each(assertions.twoResourceSummaryMatch, twoResourceSummaryMatch => {
-                    _assertContains(activities[0].summary.html, twoResourceSummaryMatch);
-                  });
-
-                  // Share 3 of this resource and accept the invitation, while getting the
-                  // "accept invitation" activity email sent to the sharer
-                  fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC1 => {
-                    fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC2 => {
-                      fns.createSucceeds(sharingUserInfo.restContext, 'private', [email], [], resourceC3 => {
-                        const resourceCs = [resourceC1, resourceC2, resourceC3];
-                        emailAssertions = {
-                          role: 'manager',
-                          membersSize: 2,
-                          librarySize: 6
-                        };
-                        _assertAcceptEmailInvitation(
-                          sharingUserInfo,
-                          acceptingUserInfo,
-                          resourceCs,
-                          emailAssertions,
-                          message => {
-                            const activities = ActivityTestUtil.parseActivityHtml(message.html);
-                            assert.strictEqual(activities.length, 1);
-
-                            // Ensure the summary has at exactly one of the resources
-                            const numMatchesDisplayName = _.chain(resourceCs)
-                              .pluck('displayName')
-                              .filter(displayName => {
-                                return activities[0].summary.html.indexOf(displayName) !== -1;
-                              })
-                              .size()
-                              .value();
-                            const numMatchesProfilePath = _.chain(resourceCs)
-                              .pluck('profilePath')
-                              .filter(profilePath => {
-                                return activities[0].summary.html.indexOf(profilePath) !== -1;
-                              })
-                              .size()
-                              .value();
-
-                            assert.strictEqual(numMatchesDisplayName, 1);
-                            assert.strictEqual(numMatchesProfilePath, 1);
-
-                            _.each(assertions.threeResourceSummaryMatch, threeResourceSummaryMatch => {
-                              _assertContains(activities[0].summary.html, threeResourceSummaryMatch);
-                            });
-                            _assertContains(activities[0].summary.html, 'and 2 others');
-
-                            return callback();
-                          }
-                        );
+                      _assertAcceptInvitationContainsResourceHtml(
+                        activities[0].summary.html,
+                        resourceB1
+                      );
+                      _assertAcceptInvitationContainsResourceHtml(
+                        activities[0].summary.html,
+                        resourceB2
+                      );
+                      _.each(assertions.twoResourceSummaryMatch, twoResourceSummaryMatch => {
+                        _assertContains(activities[0].summary.html, twoResourceSummaryMatch);
                       });
-                    });
-                  });
+
+                      // Share 3 of this resource and accept the invitation, while getting the
+                      // "accept invitation" activity email sent to the sharer
+                      fns.createSucceeds(
+                        sharingUserInfo.restContext,
+                        'private',
+                        [email],
+                        [],
+                        resourceC1 => {
+                          fns.createSucceeds(
+                            sharingUserInfo.restContext,
+                            'private',
+                            [email],
+                            [],
+                            resourceC2 => {
+                              fns.createSucceeds(
+                                sharingUserInfo.restContext,
+                                'private',
+                                [email],
+                                [],
+                                resourceC3 => {
+                                  const resourceCs = [resourceC1, resourceC2, resourceC3];
+                                  emailAssertions = {
+                                    role: 'manager',
+                                    membersSize: 2,
+                                    librarySize: 6
+                                  };
+                                  _assertAcceptEmailInvitation(
+                                    sharingUserInfo,
+                                    acceptingUserInfo,
+                                    resourceCs,
+                                    emailAssertions,
+                                    message => {
+                                      const activities = ActivityTestUtil.parseActivityHtml(
+                                        message.html
+                                      );
+                                      assert.strictEqual(activities.length, 1);
+
+                                      // Ensure the summary has at exactly one of the resources
+                                      const numMatchesDisplayName = _.chain(resourceCs)
+                                        .pluck('displayName')
+                                        .filter(displayName => {
+                                          return activities[0].summary.html.includes(displayName);
+                                        })
+                                        .size()
+                                        .value();
+                                      const numMatchesProfilePath = _.chain(resourceCs)
+                                        .pluck('profilePath')
+                                        .filter(profilePath => {
+                                          return activities[0].summary.html.includes(profilePath);
+                                        })
+                                        .size()
+                                        .value();
+
+                                      assert.strictEqual(numMatchesDisplayName, 1);
+                                      assert.strictEqual(numMatchesProfilePath, 1);
+
+                                      _.each(
+                                        assertions.threeResourceSummaryMatch,
+                                        threeResourceSummaryMatch => {
+                                          _assertContains(
+                                            activities[0].summary.html,
+                                            threeResourceSummaryMatch
+                                          );
+                                        }
+                                      );
+                                      _assertContains(activities[0].summary.html, 'and 2 others');
+
+                                      return callback();
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
                 }
               );
             });
-          });
-        });
+          }
+        );
       });
     });
   };
 
   const _testInvitationEmailHtmlTargets = function(resourceType, assertions, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, sharingUser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: sharingUser } = users;
       const email = _emailForTenant(global.oaeTests.tenants.cam);
 
       // Single resource summary
       fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceA => {
-        assert.ok(!err);
+        assert.notExists(err);
         EmailTestUtil.collectAndFetchAllEmails(messages => {
           assert.strictEqual(messages.length, 1);
 
@@ -1321,37 +1479,54 @@ describe('Invitations', () => {
                 // 3 content items summary
                 fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC1 => {
                   fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC2 => {
-                    fns.createSucceeds(sharingUser.restContext, 'public', [email], [], resourceC3 => {
-                      EmailTestUtil.collectAndFetchAllEmails(messages => {
-                        assert.strictEqual(messages.length, 1);
+                    fns.createSucceeds(
+                      sharingUser.restContext,
+                      'public',
+                      [email],
+                      [],
+                      resourceC3 => {
+                        EmailTestUtil.collectAndFetchAllEmails(messages => {
+                          assert.strictEqual(messages.length, 1);
 
-                        const activities = ActivityTestUtil.parseActivityHtml(messages[0].html);
-                        assert.strictEqual(activities.length, 1);
+                          const activities = ActivityTestUtil.parseActivityHtml(messages[0].html);
+                          assert.strictEqual(activities.length, 1);
 
-                        // Ensure the summary has at exactly one of the resources
-                        const numMatchesDisplayName = _.chain([resourceC1, resourceC2, resourceC3])
-                          .pluck('displayName')
-                          .filter(displayName => {
-                            return activities[0].summary.html.indexOf(displayName) !== -1;
-                          })
-                          .size()
-                          .value();
-                        const numMatchesProfilePath = _.chain([resourceC1, resourceC2, resourceC3])
-                          .pluck('profilePath')
-                          .filter(profilePath => {
-                            return activities[0].summary.html.indexOf(profilePath) !== -1;
-                          })
-                          .size()
-                          .value();
+                          // Ensure the summary has at exactly one of the resources
+                          const numMatchesDisplayName = _.chain([
+                            resourceC1,
+                            resourceC2,
+                            resourceC3
+                          ])
+                            .pluck('displayName')
+                            .filter(displayName => {
+                              return activities[0].summary.html.includes(displayName);
+                            })
+                            .size()
+                            .value();
+                          const numMatchesProfilePath = _.chain([
+                            resourceC1,
+                            resourceC2,
+                            resourceC3
+                          ])
+                            .pluck('profilePath')
+                            .filter(profilePath => {
+                              return activities[0].summary.html.includes(profilePath);
+                            })
+                            .size()
+                            .value();
 
-                        assert.strictEqual(numMatchesDisplayName, 1);
-                        assert.strictEqual(numMatchesProfilePath, 0);
-                        _assertContains(activities[0].summary.html, assertions.threeResourceSummaryMatch);
-                        _assertContains(activities[0].summary.html, 'and 2 others');
+                          assert.strictEqual(numMatchesDisplayName, 1);
+                          assert.strictEqual(numMatchesProfilePath, 0);
+                          _assertContains(
+                            activities[0].summary.html,
+                            assertions.threeResourceSummaryMatch
+                          );
+                          _assertContains(activities[0].summary.html, 'and 2 others');
 
-                        return callback();
-                      });
-                    });
+                          return callback();
+                        });
+                      }
+                    );
                   });
                 });
               });
@@ -1365,86 +1540,141 @@ describe('Invitations', () => {
   const _testInvitationEmailSubject = function(resourceType, resourceType2, callback) {
     const fns = resourceFns[resourceType];
     const fns2 = resourceFns[resourceType2];
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      5,
-      (err, users, targetUser, sharingUser1, sharingUser2, sharingUser3, sharingUser4) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 5, (err, users) => {
+      assert.notExists(err);
+      const { 1: sharingUser1, 2: sharingUser2, 3: sharingUser3 } = users;
 
-        // Verify that with 1 activity, the subject is what we would expect from the
-        // activity summary
-        const email = _emailForTenant(global.oaeTests.tenants.cam);
-        fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceA1 => {
-          fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceA2 => {
-            EmailTestUtil.collectAndFetchAllEmails(messages => {
-              assert.strictEqual(messages.length, 1);
+      // Verify that with 1 activity, the subject is what we would expect from the activity summary
+      const email = _emailForTenant(global.oaeTests.tenants.cam);
+      fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceA1 => {
+        fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceA2 => {
+          EmailTestUtil.collectAndFetchAllEmails(messages => {
+            assert.strictEqual(messages.length, 1);
 
-              const { subject } = messages[0];
-              assert.notStrictEqual(subject.indexOf(sharingUser1.user.displayName), -1);
-              assert.notStrictEqual(subject.indexOf(resourceA1.displayName), -1);
-              assert.notStrictEqual(subject.indexOf(resourceA2.displayName), -1);
+            const { subject } = messages[0];
+            assert.notStrictEqual(subject.indexOf(sharingUser1.user.displayName), -1);
+            assert.notStrictEqual(subject.indexOf(resourceA1.displayName), -1);
+            assert.notStrictEqual(subject.indexOf(resourceA2.displayName), -1);
 
-              // Verify that with 2 activities and 1 actor, the subject is a
-              // little more generic, but includes the name of the actor
-              fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceA1 => {
-                fns2.createSucceeds(sharingUser1.restContext, 'public', [], [email], resourceA2 => {
-                  EmailTestUtil.collectAndFetchAllEmails(messages => {
-                    assert.strictEqual(messages.length, 1);
+            /**
+             * Verify that with 2 activities and 1 actor, the subject is a little more generic,
+             * but includes the name of the actor
+             */
+            fns.createSucceeds(
+              sharingUser1.restContext,
+              'public',
+              [email],
+              [],
+              (/* resourceA1 */) => {
+                fns2.createSucceeds(
+                  sharingUser1.restContext,
+                  'public',
+                  [],
+                  [email],
+                  (/* resourceA2 */) => {
+                    EmailTestUtil.collectAndFetchAllEmails(messages => {
+                      assert.lengthOf(messages, 1);
 
-                    const { subject } = messages[0];
-                    assert.strictEqual(
-                      subject,
-                      util.format('%s has invited you to collaborate', sharingUser1.user.displayName)
-                    );
+                      const { subject } = messages[0];
+                      assert.strictEqual(
+                        subject,
+                        util.format(
+                          '%s has invited you to collaborate',
+                          sharingUser1.user.displayName
+                        )
+                      );
 
-                    // Verify that with 2 activities and 2 actors, the
-                    // subject includes the name of both
-                    fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceB1 => {
-                      fns.createSucceeds(sharingUser2.restContext, 'public', [], [email], resourceB2 => {
-                        EmailTestUtil.collectAndFetchAllEmails(messages => {
-                          assert.strictEqual(messages.length, 1);
+                      // Verify that with 2 activities and 2 actors, the subject includes the name of both
+                      fns.createSucceeds(
+                        sharingUser1.restContext,
+                        'public',
+                        [email],
+                        [],
+                        (/* resourceB1 */) => {
+                          fns.createSucceeds(
+                            sharingUser2.restContext,
+                            'public',
+                            [],
+                            [email],
+                            (/* resourceB2 */) => {
+                              EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                assert.strictEqual(messages.length, 1);
 
-                          const { subject } = messages[0];
-                          assert.notStrictEqual(subject.indexOf(sharingUser1.user.displayName), -1);
-                          assert.notStrictEqual(subject.indexOf(sharingUser2.user.displayName), -1);
+                                const { subject } = messages[0];
+                                assert.notStrictEqual(
+                                  subject.indexOf(sharingUser1.user.displayName),
+                                  -1
+                                );
+                                assert.notStrictEqual(
+                                  subject.indexOf(sharingUser2.user.displayName),
+                                  -1
+                                );
 
-                          // Verify that with 3 activities and 3 actors, the
-                          // subject shows 1 of the actors and indicates there
-                          // are 2 others
-                          fns.createSucceeds(sharingUser1.restContext, 'public', [email], [], resourceB1 => {
-                            fns.createSucceeds(sharingUser2.restContext, 'public', [], [email], resourceB2 => {
-                              fns.createSucceeds(sharingUser3.restContext, 'public', [], [email], resourceB2 => {
-                                EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                  assert.strictEqual(messages.length, 1);
+                                // Verify that with 3 activities and 3 actors, the
+                                // subject shows 1 of the actors and indicates there
+                                // are 2 others
+                                fns.createSucceeds(
+                                  sharingUser1.restContext,
+                                  'public',
+                                  [email],
+                                  [],
+                                  (/* resourceB1 */) => {
+                                    fns.createSucceeds(
+                                      sharingUser2.restContext,
+                                      'public',
+                                      [],
+                                      [email],
+                                      (/* resourceB2 */) => {
+                                        fns.createSucceeds(
+                                          sharingUser3.restContext,
+                                          'public',
+                                          [],
+                                          [email],
+                                          (/* resourceB2 */) => {
+                                            EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                              assert.lengthOf(messages, 1);
 
-                                  const { subject } = messages[0];
+                                              const { subject } = messages[0];
 
-                                  const numMatches = _.chain([sharingUser1, sharingUser2, sharingUser3])
-                                    .pluck('user')
-                                    .pluck('displayName')
-                                    .filter(displayName => {
-                                      return subject.indexOf(displayName) !== -1;
-                                    })
-                                    .size()
-                                    .value();
-                                  assert.strictEqual(numMatches, 1);
-                                  assert.notStrictEqual(subject.indexOf('and 2 others'), -1);
-                                  return callback();
-                                });
+                                              const numMatches = _.chain([
+                                                sharingUser1,
+                                                sharingUser2,
+                                                sharingUser3
+                                              ])
+                                                .pluck('user')
+                                                .pluck('displayName')
+                                                .filter(displayName => {
+                                                  return subject.includes(displayName);
+                                                })
+                                                .size()
+                                                .value();
+                                              assert.strictEqual(numMatches, 1);
+                                              assert.notStrictEqual(
+                                                subject.indexOf('and 2 others'),
+                                                -1
+                                              );
+                                              return callback();
+                                            });
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
                               });
-                            });
-                          });
-                        });
-                      });
+                            }
+                          );
+                        }
+                      );
                     });
-                  });
-                });
-              });
-            });
+                  }
+                );
+              }
+            );
           });
         });
-      }
-    );
+      });
+    });
   };
 
   /*!
@@ -1486,8 +1716,9 @@ describe('Invitations', () => {
 
     // Create a resource with an email invited into it
     let email = _emailForTenant(global.oaeTests.tenants.cam);
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUserInfo, acceptingUserInfo) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: creatingUserInfo, 1: acceptingUserInfo } = users;
 
       // Create the resource, sending an invite to the target user
       fns.createSucceeds(creatingUserInfo.restContext, 'public', [email], [], resource => {
@@ -1507,16 +1738,24 @@ describe('Invitations', () => {
           fns.deleteSucceeds(camAdminRestContext, creatingUserInfo.restContext, resource.id, () => {
             // Now accept the invitation, ensuring no resources are reported as being
             // added
-            AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUserInfo.restContext, token, result => {
-              assert.strictEqual(result.email, email);
-              assert.strictEqual(result.resources.length, 0);
+            AuthzTestUtil.assertAcceptInvitationSucceeds(
+              acceptingUserInfo.restContext,
+              token,
+              result => {
+                assert.strictEqual(result.email, email);
+                assert.strictEqual(result.resources.length, 0);
 
-              // Ensure nothing went into the user's library
-              fns.getLibrarySucceeds(acceptingUserInfo.restContext, acceptingUserInfo.user.id, libraryItems => {
-                assert.strictEqual(libraryItems.length, 0);
-                return callback(creatingUserInfo, acceptingUserInfo, resource);
-              });
-            });
+                // Ensure nothing went into the user's library
+                fns.getLibrarySucceeds(
+                  acceptingUserInfo.restContext,
+                  acceptingUserInfo.user.id,
+                  libraryItems => {
+                    assert.strictEqual(libraryItems.length, 0);
+                    return callback(creatingUserInfo, acceptingUserInfo, resource);
+                  }
+                );
+              }
+            );
           });
         });
       });
@@ -1534,45 +1773,52 @@ describe('Invitations', () => {
    * @throws {AssertionError}                 Thrown if any of the assertions fail
    */
   const _testActivityVisibilityForAccept = function(visibility, callback) {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUserInfo, acceptingUserInfo) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: creatingUserInfo, 1: acceptingUserInfo } = users;
 
       const email = _emailForTenant(global.oaeTests.tenants.cam);
       _createOneOfEachResourceType(creatingUserInfo, visibility, [email], [], resources => {
         const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-        _assertAcceptEmailInvitation(creatingUserInfo, acceptingUserInfo, resources, assertions, () => {
-          ActivityTestUtil.collectAndGetActivityStream(
-            acceptingUserInfo.restContext,
-            acceptingUserInfo.user.id,
-            null,
-            (err, result) => {
-              assert.ok(!err);
+        _assertAcceptEmailInvitation(
+          creatingUserInfo,
+          acceptingUserInfo,
+          resources,
+          assertions,
+          () => {
+            ActivityTestUtil.collectAndGetActivityStream(
+              acceptingUserInfo.restContext,
+              acceptingUserInfo.user.id,
+              null,
+              (err, result) => {
+                assert.notExists(err);
 
-              const activities = result.items;
+                const activities = result.items;
 
-              // Ensure we have one accept activity for each resource
-              assert.strictEqual(activities.length, _.size(resourceAcceptActivityInfo));
-              _.each(resources, resource => {
-                // eslint-disable-next-line no-unused-expressions
-                resourceAcceptActivityInfo[resource.resourceType];
-                const matchingActivities = _.filter(activities, activity => {
-                  return (
-                    activity['oae:activityType'] === 'invitation-accept' &&
-                    activity.verb === 'accept' &&
-                    activity.actor['oae:id'] === acceptingUserInfo.user.id &&
-                    activity.object['oae:id'] === creatingUserInfo.user.id &&
-                    activity.target['oae:id'] === resource.id
-                  );
+                // Ensure we have one accept activity for each resource
+                assert.strictEqual(activities.length, _.size(resourceAcceptActivityInfo));
+                _.each(resources, resource => {
+                  // eslint-disable-next-line no-unused-expressions
+                  resourceAcceptActivityInfo[resource.resourceType];
+                  const matchingActivities = _.filter(activities, activity => {
+                    return (
+                      activity['oae:activityType'] === 'invitation-accept' &&
+                      activity.verb === 'accept' &&
+                      activity.actor['oae:id'] === acceptingUserInfo.user.id &&
+                      activity.object['oae:id'] === creatingUserInfo.user.id &&
+                      activity.target['oae:id'] === resource.id
+                    );
+                  });
+
+                  assert.ok(matchingActivities);
+                  assert.strictEqual(matchingActivities.length, 1);
                 });
 
-                assert.ok(matchingActivities);
-                assert.strictEqual(matchingActivities.length, 1);
-              });
-
-              return callback();
-            }
-          );
-        });
+                return callback();
+              }
+            );
+          }
+        );
       });
     });
   };
@@ -1589,8 +1835,9 @@ describe('Invitations', () => {
    */
   const _testInvitationEmailVisibilityForCreate = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: creatingUser, 1: acceptingUser } = users;
 
       const email = _emailForTenant(global.oaeTests.tenants.cam);
       fns.createSucceeds(creatingUser.restContext, 'public', [email], [], resource1 => {
@@ -1624,8 +1871,9 @@ describe('Invitations', () => {
    */
   const _testInvitationEmailVisibilityForSetRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: creatingUser, 1: acceptingUser } = users;
 
       const email = _emailForTenant(global.oaeTests.tenants.cam);
 
@@ -1636,29 +1884,41 @@ describe('Invitations', () => {
             const roleChange = _.object([[email, 'manager']]);
 
             // Set the accepting user as a manager on all 3 using set roles
-            fns.setRolesSucceeds(creatingUser.restContext, creatingUser.restContext, resource1.id, roleChange, () => {
-              fns.setRolesSucceeds(creatingUser.restContext, creatingUser.restContext, resource2.id, roleChange, () => {
+            fns.setRolesSucceeds(
+              creatingUser.restContext,
+              creatingUser.restContext,
+              resource1.id,
+              roleChange,
+              () => {
                 fns.setRolesSucceeds(
                   creatingUser.restContext,
                   creatingUser.restContext,
-                  resource3.id,
+                  resource2.id,
                   roleChange,
                   () => {
-                    // Ensure the user can accept the email invitation
-                    const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
-                    _assertAcceptEmailInvitation(
-                      creatingUser,
-                      acceptingUser,
-                      [resource1, resource2, resource3],
-                      assertions,
+                    fns.setRolesSucceeds(
+                      creatingUser.restContext,
+                      creatingUser.restContext,
+                      resource3.id,
+                      roleChange,
                       () => {
-                        return callback();
+                        // Ensure the user can accept the email invitation
+                        const assertions = { role: 'manager', membersSize: 2, librarySize: 3 };
+                        _assertAcceptEmailInvitation(
+                          creatingUser,
+                          acceptingUser,
+                          [resource1, resource2, resource3],
+                          assertions,
+                          () => {
+                            return callback();
+                          }
+                        );
                       }
                     );
                   }
                 );
-              });
-            });
+              }
+            );
           });
         });
       });
@@ -1679,8 +1939,9 @@ describe('Invitations', () => {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, creatingUser, acceptingUser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: creatingUser, 1: acceptingUser } = users;
 
       const email = _emailForTenant(global.oaeTests.tenants.cam);
 
@@ -1689,23 +1950,41 @@ describe('Invitations', () => {
         fns.createSucceeds(creatingUser.restContext, 'loggedin', [], [], resource2 => {
           fns.createSucceeds(creatingUser.restContext, 'private', [], [], resource3 => {
             // Share with each resource
-            fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource1.id, [email], () => {
-              fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource2.id, [email], () => {
-                fns.shareSucceeds(creatingUser.restContext, creatingUser.restContext, resource3.id, [email], () => {
-                  // Ensure the user can accept the email invitation
-                  const assertions = { role: memberRole, membersSize: 2, librarySize: 3 };
-                  _assertAcceptEmailInvitation(
-                    creatingUser,
-                    acceptingUser,
-                    [resource1, resource2, resource3],
-                    assertions,
-                    () => {
-                      return callback();
-                    }
-                  );
-                });
-              });
-            });
+            fns.shareSucceeds(
+              creatingUser.restContext,
+              creatingUser.restContext,
+              resource1.id,
+              [email],
+              () => {
+                fns.shareSucceeds(
+                  creatingUser.restContext,
+                  creatingUser.restContext,
+                  resource2.id,
+                  [email],
+                  () => {
+                    fns.shareSucceeds(
+                      creatingUser.restContext,
+                      creatingUser.restContext,
+                      resource3.id,
+                      [email],
+                      () => {
+                        // Ensure the user can accept the email invitation
+                        const assertions = { role: memberRole, membersSize: 2, librarySize: 3 };
+                        _assertAcceptEmailInvitation(
+                          creatingUser,
+                          acceptingUser,
+                          [resource1, resource2, resource3],
+                          assertions,
+                          () => {
+                            return callback();
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
           });
         });
       });
@@ -1724,8 +2003,9 @@ describe('Invitations', () => {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, userManager, userViewer) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0, 1: userManager, 2: userViewer } = users;
 
       const managerEmail = _emailForTenant(global.oaeTests.tenants.cam);
       const viewerEmail = _emailForTenant(global.oaeTests.tenants.cam);
@@ -1790,8 +2070,9 @@ describe('Invitations', () => {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(camAdminRestContext, 6, (err, users, user0, user1, user2, user3, user4, user5) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 6, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0, 1: user1, 2: user2, 4: user4, 5: user5 } = users;
 
       const email1 = _emailForTenant(global.oaeTests.tenants.cam);
       const email2 = _emailForTenant(global.oaeTests.tenants.cam);
@@ -1814,42 +2095,70 @@ describe('Invitations', () => {
             roles[user1.user.id] = false;
             fns.setRolesSucceeds(user0.restContext, user0.restContext, resource.id, roles, () => {
               // Ensure email2 can still be accepted and makes user2 a manager
-              AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user2.restContext, email2, () => {
-                _assertRole(user0, user2, resource, { role: 'manager' }, () => {
-                  // Accept the "member" role invitation for email3 as user2, ensuring their role
-                  // on the resource does not get demoted to the "member" role
-                  AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user2.restContext, email3, () => {
-                    _assertRole(user0, user2, resource, { role: 'manager' }, () => {
-                      // Delete user1 from the system, and ensure the user they
-                      // invited can still accept their invitation
-                      PrincipalsTestUtil.assertDeleteUserSucceeds(
-                        camAdminRestContext,
-                        camAdminRestContext,
-                        user1.user.id,
-                        () => {
-                          // Accept the invitation for email4 and ensure it succeeds despite the fact that
-                          // the user that invited them was deleted
-                          AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user4.restContext, email4, () => {
-                            _assertRole(user0, user4, resource, { role: memberRole }, () => {
-                              // Remove the invitation for email5, ensuring an invitation for email5 can still
-                              // be accepted, but it doesn't grant any access to the resource
-                              roles = {};
-                              roles[email5] = false;
-                              fns.setRolesSucceeds(user0.restContext, user0.restContext, resource.id, roles, () => {
-                                AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(user5.restContext, email5, () => {
-                                  _assertRole(user0, user5, resource, { role: false }, () => {
-                                    return callback();
+              AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+                user2.restContext,
+                email2,
+                () => {
+                  _assertRole(user0, user2, resource, { role: 'manager' }, () => {
+                    // Accept the "member" role invitation for email3 as user2, ensuring their role
+                    // on the resource does not get demoted to the "member" role
+                    AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+                      user2.restContext,
+                      email3,
+                      () => {
+                        _assertRole(user0, user2, resource, { role: 'manager' }, () => {
+                          // Delete user1 from the system, and ensure the user they
+                          // invited can still accept their invitation
+                          PrincipalsTestUtil.assertDeleteUserSucceeds(
+                            camAdminRestContext,
+                            camAdminRestContext,
+                            user1.user.id,
+                            () => {
+                              // Accept the invitation for email4 and ensure it succeeds despite the fact that
+                              // the user that invited them was deleted
+                              AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+                                user4.restContext,
+                                email4,
+                                () => {
+                                  _assertRole(user0, user4, resource, { role: memberRole }, () => {
+                                    // Remove the invitation for email5, ensuring an invitation for email5 can still
+                                    // be accepted, but it doesn't grant any access to the resource
+                                    roles = {};
+                                    roles[email5] = false;
+                                    fns.setRolesSucceeds(
+                                      user0.restContext,
+                                      user0.restContext,
+                                      resource.id,
+                                      roles,
+                                      () => {
+                                        AuthzTestUtil.assertAcceptInvitationForEmailSucceeds(
+                                          user5.restContext,
+                                          email5,
+                                          () => {
+                                            _assertRole(
+                                              user0,
+                                              user5,
+                                              resource,
+                                              { role: false },
+                                              () => {
+                                                return callback();
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
                                   });
-                                });
-                              });
-                            });
-                          });
-                        }
-                      );
-                    });
+                                }
+                              );
+                            }
+                          );
+                        });
+                      }
+                    );
                   });
-                });
-              });
+                }
+              );
             });
           });
         });
@@ -1866,45 +2175,66 @@ describe('Invitations', () => {
    */
   const _testInvitationAcceptValidation = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, acceptingUser, sneakyUser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0, 1: acceptingUser, 2: sneakyUser } = users;
 
       let email = _emailForTenant(global.oaeTests.tenants.cam);
 
       // Token is required
       AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, null, 400, () => {
         // Token must exist
-        AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, 'nonexistingtoken', 404, () => {
-          // Create a resource with an invitation
-          fns.createSucceeds(user0.restContext, 'public', [email], [], resource => {
-            // Lower-case the email now so we can work with the data layer, where the
-            // email should have been lower-cased
-            email = email.toLowerCase();
+        AuthzTestUtil.assertAcceptInvitationFails(
+          sneakyUser.restContext,
+          'nonexistingtoken',
+          404,
+          () => {
+            // Create a resource with an invitation
+            fns.createSucceeds(user0.restContext, 'public', [email], [], resource => {
+              // Lower-case the email now so we can work with the data layer, where the
+              // email should have been lower-cased
+              email = email.toLowerCase();
 
-            AuthzInvitationsDAO.getTokensByEmails([email], (err, tokensByEmail) => {
-              assert.ok(!err);
+              AuthzInvitationsDAO.getTokensByEmails([email], (err, tokensByEmail) => {
+                assert.notExists(err);
 
-              const token = tokensByEmail[email];
+                const token = tokensByEmail[email];
 
-              // User must be logged in to accept
-              AuthzTestUtil.assertAcceptInvitationFails(anonymousRestContext, token, 401, () => {
-                // Sanity check we can accept with this token as authenticated user
-                AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUser.restContext, token, () => {
-                  // Ensure re-accepting this token as a sneaky user that intercepted it fails
-                  AuthzTestUtil.assertAcceptInvitationFails(sneakyUser.restContext, token, 404, () => {
-                    // Ensure the accepting user became a manager of the resource
-                    _assertRole(user0, acceptingUser, resource, { role: 'manager' }, () => {
-                      // Ensure the sneaky user does not have the resource
-                      _assertRole(user0, sneakyUser, resource, { role: false, membersSize: 2 }, () => {
-                        return callback();
-                      });
-                    });
-                  });
+                // User must be logged in to accept
+                AuthzTestUtil.assertAcceptInvitationFails(anonymousRestContext, token, 401, () => {
+                  // Sanity check we can accept with this token as authenticated user
+                  AuthzTestUtil.assertAcceptInvitationSucceeds(
+                    acceptingUser.restContext,
+                    token,
+                    () => {
+                      // Ensure re-accepting this token as a sneaky user that intercepted it fails
+                      AuthzTestUtil.assertAcceptInvitationFails(
+                        sneakyUser.restContext,
+                        token,
+                        404,
+                        () => {
+                          // Ensure the accepting user became a manager of the resource
+                          _assertRole(user0, acceptingUser, resource, { role: 'manager' }, () => {
+                            // Ensure the sneaky user does not have the resource
+                            _assertRole(
+                              user0,
+                              sneakyUser,
+                              resource,
+                              { role: false, membersSize: 2 },
+                              () => {
+                                return callback();
+                              }
+                            );
+                          });
+                        }
+                      );
+                    }
+                  );
                 });
               });
             });
-          });
-        });
+          }
+        );
       });
     });
   };
@@ -1919,8 +2249,9 @@ describe('Invitations', () => {
    */
   const _testInvitationsForCreate = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user0, userManager, userViewer) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0, 1: userManager, 2: userViewer } = users;
 
       // Ensure a simple create mixed with a couple member users succeeds
       fns.createSucceeds(
@@ -1928,7 +2259,7 @@ describe('Invitations', () => {
         'public',
         ['manager@oae.local', userManager.user.id],
         [userViewer.user.id, 'viewer@oae.local'],
-        resource => {
+        (/* resource */) => {
           return callback();
         }
       );
@@ -1945,15 +2276,22 @@ describe('Invitations', () => {
    */
   const _testInvitationsValidationForCreate = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0 } = users;
 
       // Ensure variations of email addresses fail
-      fns.createFails(user0.restContext, 'public', ['invalid@email'], [], 400, resource => {
+      fns.createFails(user0.restContext, 'public', ['invalid@email'], [], 400, (/* resource */) => {
         // Sanity check can be created with valid email
-        fns.createSucceeds(user0.restContext, 'public', ['manager@oae.local'], [], resource => {
-          return callback();
-        });
+        fns.createSucceeds(
+          user0.restContext,
+          'public',
+          ['manager@oae.local'],
+          [],
+          (/* resource */) => {
+            return callback();
+          }
+        );
       });
     });
   };
@@ -1976,7 +2314,7 @@ describe('Invitations', () => {
         [_emailForTenantInfo(publicTenant0)],
         [],
         401,
-        resource => {
+        (/* resource */) => {
           // Ensure cannot create content associated to a private tenant
           fns.createFails(
             publicTenant0.publicUser.restContext,
@@ -1984,21 +2322,21 @@ describe('Invitations', () => {
             [_emailForTenantInfo(privateTenant0)],
             [],
             401,
-            resource => {
+            (/* resource */) => {
               // Sanity check we can create content on our own private tenant
               fns.createSucceeds(
                 privateTenant0.publicUser.restContext,
                 'public',
                 [_emailForTenantInfo(privateTenant0)],
                 [],
-                resource => {
+                (/* resource */) => {
                   // Ensure a user can create a loggedin item and share it with an email of a user from another tenant
                   fns.createSucceeds(
                     publicTenant0.publicUser.restContext,
                     'loggedin',
                     [_emailForTenantInfo(publicTenant1)],
                     [],
-                    resource => {
+                    (/* resource */) => {
                       // Ensure a user can create content and invite guests that end up on the guest tenant
                       fns.createSucceeds(
                         publicTenant0.publicUser.restContext,
@@ -2022,26 +2360,26 @@ describe('Invitations', () => {
                                   [_emailForTenantInfo(publicTenant0)],
                                   [],
                                   401,
-                                  resource => {
+                                  (/* resource */) => {
                                     fns.createFails(
                                       publicTenant0.publicUser.restContext,
                                       'public',
                                       [_emailForTenantInfo(privateTenant0)],
                                       [],
                                       401,
-                                      resource => {
+                                      (/* resource */) => {
                                         fns.createSucceeds(
                                           privateTenant0.publicUser.restContext,
                                           'public',
                                           [_emailForTenantInfo(privateTenant0)],
                                           [],
-                                          resource => {
+                                          (/* resource */) => {
                                             fns.createSucceeds(
                                               publicTenant0.publicUser.restContext,
                                               'loggedin',
                                               [_emailForTenantInfo(publicTenant1)],
                                               [],
-                                              resource => {
+                                              (/* resource */) => {
                                                 return callback();
                                               }
                                             );
@@ -2077,8 +2415,9 @@ describe('Invitations', () => {
    */
   const _testInvitationsForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, userSharer, user0, user1) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: userSharer, 1: user0, 2: user1 } = users;
       fns.createSucceeds(userSharer.restContext, 'public', ['email1@oae.local'], [], resource => {
         // Ensure a simple share works as expected. It should add the new email (email2) and
         // not demote the existing email (email1)
@@ -2105,16 +2444,30 @@ describe('Invitations', () => {
    */
   const _testInvitationsValidationForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0 } = users;
       fns.createSucceeds(user0.restContext, 'public', [], [], resource => {
         // Ensure cannot share with a variation of an email address
-        fns.shareFails(user0.restContext, user0.restContext, resource.id, ['email1@oae'], 400, () => {
-          // Sanity check share succeeds
-          fns.shareSucceeds(user0.restContext, user0.restContext, resource.id, ['email1@oae.local'], () => {
-            return callback();
-          });
-        });
+        fns.shareFails(
+          user0.restContext,
+          user0.restContext,
+          resource.id,
+          ['email1@oae'],
+          400,
+          () => {
+            // Sanity check share succeeds
+            fns.shareSucceeds(
+              user0.restContext,
+              user0.restContext,
+              resource.id,
+              ['email1@oae.local'],
+              () => {
+                return callback();
+              }
+            );
+          }
+        );
       });
     });
   };
@@ -2130,13 +2483,37 @@ describe('Invitations', () => {
   const _testInvitationsAuthorizationForShare = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
-      _testInvitationsAuthorizationForPublicShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
-        _testInvitationsAuthorizationForLoggedinShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
-          _testInvitationsAuthorizationForPrivateShare(fns, publicTenant0, publicTenant1, privateTenant0, () => {
-            _testInvitationsAuthorizationForNoGuestsShare(fns, publicTenant0, publicTenant1, privateTenant0, callback);
-          });
-        });
-      });
+      _testInvitationsAuthorizationForPublicShare(
+        fns,
+        publicTenant0,
+        publicTenant1,
+        privateTenant0,
+        () => {
+          _testInvitationsAuthorizationForLoggedinShare(
+            fns,
+            publicTenant0,
+            publicTenant1,
+            privateTenant0,
+            () => {
+              _testInvitationsAuthorizationForPrivateShare(
+                fns,
+                publicTenant0,
+                publicTenant1,
+                privateTenant0,
+                () => {
+                  _testInvitationsAuthorizationForNoGuestsShare(
+                    fns,
+                    publicTenant0,
+                    publicTenant1,
+                    privateTenant0,
+                    callback
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   };
 
@@ -2537,8 +2914,9 @@ describe('Invitations', () => {
     const fns = resourceFns[resourceType];
     const memberRole = resourceMemberRoles[resourceType];
 
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, userSetRoles, user0, user1) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: userSetRoles, 1: user0, 2: user1 } = users;
       fns.createSucceeds(userSetRoles.restContext, 'public', ['email1@oae.local'], [], resource => {
         // Ensure a simple set roles works as expected. email1 should be demoted to the
         // member role, and email2 should be added as a manager
@@ -2549,13 +2927,25 @@ describe('Invitations', () => {
         roles['email2@oae.local'] = 'manager';
 
         // Set the roles for both members and invitations
-        fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource.id, roles, () => {
-          // Now remove them all, ensuring the states are updated appropriately
-          const rolesRemove = AuthzTestUtil.createRoleChange(_.keys(roles), false);
-          fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource.id, rolesRemove, () => {
-            return callback();
-          });
-        });
+        fns.setRolesSucceeds(
+          userSetRoles.restContext,
+          userSetRoles.restContext,
+          resource.id,
+          roles,
+          () => {
+            // Now remove them all, ensuring the states are updated appropriately
+            const rolesRemove = AuthzTestUtil.createRoleChange(_.keys(roles), false);
+            fns.setRolesSucceeds(
+              userSetRoles.restContext,
+              userSetRoles.restContext,
+              resource.id,
+              rolesRemove,
+              () => {
+                return callback();
+              }
+            );
+          }
+        );
       });
     });
   };
@@ -2575,22 +2965,35 @@ describe('Invitations', () => {
 
     const email = TestsUtil.generateTestEmailAddress();
 
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, userSetRoles, userAccept) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: userSetRoles, 1: userAccept } = users;
 
       // Create 2 resources with the email address invited
       fns.createSucceeds(userSetRoles.restContext, 'public', [], [email], resource1 => {
         fns.createSucceeds(userSetRoles.restContext, 'public', [], [email], resource2 => {
           // Remove the email from one of the resources
           const roles = _.oaeObj(email, false);
-          fns.setRolesSucceeds(userSetRoles.restContext, userSetRoles.restContext, resource1.id, roles, () => {
-            // Accept the email invitation as the invited email user, ensuring they get access
-            // to just the one resource (resource2)
-            const assertions = { role: memberRole, membersSize: 2, librarySize: 1 };
-            _assertAcceptEmailInvitation(userSetRoles, userAccept, [resource2], assertions, () => {
-              return callback();
-            });
-          });
+          fns.setRolesSucceeds(
+            userSetRoles.restContext,
+            userSetRoles.restContext,
+            resource1.id,
+            roles,
+            () => {
+              // Accept the email invitation as the invited email user, ensuring they get access
+              // to just the one resource (resource2)
+              const assertions = { role: memberRole, membersSize: 2, librarySize: 1 };
+              _assertAcceptEmailInvitation(
+                userSetRoles,
+                userAccept,
+                [resource2],
+                assertions,
+                () => {
+                  return callback();
+                }
+              );
+            }
+          );
         });
       });
     });
@@ -2606,32 +3009,40 @@ describe('Invitations', () => {
    */
   const _testInvitationsValidationForSetRoles = function(resourceType, callback) {
     const fns = resourceFns[resourceType];
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user0) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: user0 } = users;
       fns.createSucceeds(user0.restContext, 'public', [], [], resource => {
         // Ensure invalid email is rejected
-        fns.setRolesFails(user0.restContext, user0.restContext, resource.id, { 'email1@oae': 'manager' }, 400, () => {
-          // Ensure invalid role for email is rejected
-          fns.setRolesFails(
-            user0.restContext,
-            user0.restContext,
-            resource.id,
-            { 'email1@oae.local': 'invalidrole' },
-            400,
-            () => {
-              // Sanity check we can set roles with a valid role
-              fns.setRolesSucceeds(
-                user0.restContext,
-                user0.restContext,
-                resource.id,
-                { 'email1@oae.local': 'manager' },
-                () => {
-                  return callback();
-                }
-              );
-            }
+        fns.setRolesFails(
+          user0.restContext,
+          user0.restContext,
+          resource.id,
+          { 'email1@oae': 'manager' },
+          400,
+          () => {
+            // Ensure invalid role for email is rejected
+            fns.setRolesFails(
+              user0.restContext,
+              user0.restContext,
+              resource.id,
+              { 'email1@oae.local': 'invalidrole' },
+              400,
+              () => {
+                // Sanity check we can set roles with a valid role
+                fns.setRolesSucceeds(
+                  user0.restContext,
+                  user0.restContext,
+                  resource.id,
+                  { 'email1@oae.local': 'manager' },
+                  () => {
+                    return callback();
+                  }
+                );
+              }
             );
-        });
+          }
+        );
       });
     });
   };
@@ -2672,72 +3083,78 @@ describe('Invitations', () => {
             rolesExternalPrivateTenant[_emailForTenantInfo(privateTenant0)] = memberRole;
 
             // Ensure manager can set invitation roles for all emails they can interact with
-            fns.setRolesSucceeds(managerUser.restContext, managerUser.restContext, resource.id, rolesSameTenant, () => {
-              fns.setRolesSucceeds(
-                managerUser.restContext,
-                managerUser.restContext,
-                resource.id,
-                rolesExternalPublicTenant,
-                () => {
-                  fns.setRolesSucceeds(
-                    managerUser.restContext,
-                    managerUser.restContext,
-                    resource.id,
-                    rolesGuestTenant,
-                    () => {
-                      fns.setRolesFails(
-                        managerUser.restContext,
-                        managerUser.restContext,
-                        resource.id,
-                        rolesExternalPrivateTenant,
-                        401,
-                        () => {
-                          // Ensure a user on a tenant that has disabled inviting guests
-                          // cannot invite guests that end up on the guest tenant
-                          _disableInvitingGuests(publicTenant0.tenant.alias, () => {
-                            fns.setRolesSucceeds(
-                              managerUser.restContext,
-                              managerUser.restContext,
-                              resource.id,
-                              rolesSameTenant,
-                              () => {
-                                fns.setRolesSucceeds(
-                                  managerUser.restContext,
-                                  managerUser.restContext,
-                                  resource.id,
-                                  rolesExternalPublicTenant,
-                                  () => {
-                                    fns.setRolesFails(
-                                      managerUser.restContext,
-                                      managerUser.restContext,
-                                      resource.id,
-                                      rolesGuestTenant,
-                                      401,
-                                      () => {
-                                        fns.setRolesFails(
-                                          managerUser.restContext,
-                                          managerUser.restContext,
-                                          resource.id,
-                                          rolesExternalPrivateTenant,
-                                          401,
-                                          () => {
-                                            return callback();
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          });
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
+            fns.setRolesSucceeds(
+              managerUser.restContext,
+              managerUser.restContext,
+              resource.id,
+              rolesSameTenant,
+              () => {
+                fns.setRolesSucceeds(
+                  managerUser.restContext,
+                  managerUser.restContext,
+                  resource.id,
+                  rolesExternalPublicTenant,
+                  () => {
+                    fns.setRolesSucceeds(
+                      managerUser.restContext,
+                      managerUser.restContext,
+                      resource.id,
+                      rolesGuestTenant,
+                      () => {
+                        fns.setRolesFails(
+                          managerUser.restContext,
+                          managerUser.restContext,
+                          resource.id,
+                          rolesExternalPrivateTenant,
+                          401,
+                          () => {
+                            // Ensure a user on a tenant that has disabled inviting guests
+                            // cannot invite guests that end up on the guest tenant
+                            _disableInvitingGuests(publicTenant0.tenant.alias, () => {
+                              fns.setRolesSucceeds(
+                                managerUser.restContext,
+                                managerUser.restContext,
+                                resource.id,
+                                rolesSameTenant,
+                                () => {
+                                  fns.setRolesSucceeds(
+                                    managerUser.restContext,
+                                    managerUser.restContext,
+                                    resource.id,
+                                    rolesExternalPublicTenant,
+                                    () => {
+                                      fns.setRolesFails(
+                                        managerUser.restContext,
+                                        managerUser.restContext,
+                                        resource.id,
+                                        rolesGuestTenant,
+                                        401,
+                                        () => {
+                                          fns.setRolesFails(
+                                            managerUser.restContext,
+                                            managerUser.restContext,
+                                            resource.id,
+                                            rolesExternalPrivateTenant,
+                                            401,
+                                            () => {
+                                              return callback();
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            });
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -2757,7 +3174,7 @@ describe('Invitations', () => {
       tenantAlias,
       { 'oae-tenants/guests/allow': false },
       err => {
-        assert.ok(!err);
+        assert.notExists(err);
         return callback();
       }
     );
@@ -2780,7 +3197,7 @@ describe('Invitations', () => {
       inviterUserInfo.user.id,
       null,
       (err, result) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         const activity = _.first(result.items);
         inviterUserInfo = _withAdaptedInfo(inviterUserInfo, activity);
@@ -2789,7 +3206,12 @@ describe('Invitations', () => {
           contextId: _.first(resources).id
         });
 
-        _assertStandardInvitationAcceptSummaries(inviterUserInfo, invitedUserInfo, otherUserInfo, resources);
+        _assertStandardInvitationAcceptSummaries(
+          inviterUserInfo,
+          invitedUserInfo,
+          otherUserInfo,
+          resources
+        );
 
         // Check the resource-specific summary match against this number of resources
         const match = assertions.matches[resources.length - 1];
@@ -2806,8 +3228,8 @@ describe('Invitations', () => {
     inviterUserInfo,
     invitedUserInfo,
     otherUserInfo,
-    resources,
-    opts
+    resources
+    /* , opts */
   ) {
     _assertNotContains(inviterUserInfo.summary, 'You ');
     _assertContains(inviterUserInfo.summary, invitedUserInfo.user.displayName);
@@ -2872,12 +3294,12 @@ describe('Invitations', () => {
       const numMatches = _.chain(resources)
         .filter(resource => {
           return (
-            inviterUserInfo.summary.indexOf(resource.displayName) !== -1 &&
-            inviterUserInfo.summary.indexOf(resource.profilePath) !== -1 &&
-            invitedUserInfo.summary.indexOf(resource.displayName) !== -1 &&
-            invitedUserInfo.summary.indexOf(resource.profilePath) !== -1 &&
-            otherUserInfo.summary.indexOf(resource.displayName) !== -1 &&
-            otherUserInfo.summary.indexOf(resource.profilePath) !== -1
+            inviterUserInfo.summary.includes(resource.displayName) &&
+            inviterUserInfo.summary.includes(resource.profilePath) &&
+            invitedUserInfo.summary.includes(resource.displayName) &&
+            invitedUserInfo.summary.includes(resource.profilePath) &&
+            otherUserInfo.summary.includes(resource.displayName) &&
+            otherUserInfo.summary.includes(resource.profilePath)
           );
         })
         .size()
@@ -2909,7 +3331,13 @@ describe('Invitations', () => {
    * @param  {Function}       callback                Invoked when the test is complete
    * @throws {AssertionError}                         Thrown if any of the assertions fail
    */
-  const _assertAcceptEmailInvitation = function(invitingUserInfo, acceptingUserInfo, resources, assertions, callback) {
+  const _assertAcceptEmailInvitation = function(
+    invitingUserInfo,
+    acceptingUserInfo,
+    resources,
+    assertions,
+    callback
+  ) {
     // Receive the email invitation, ensuring we only have 1
     EmailTestUtil.collectAndFetchAllEmails(messages => {
       assert.strictEqual(_.size(messages), 1);
@@ -2936,11 +3364,6 @@ describe('Invitations', () => {
         'http://localhost'
       ).searchParams.get('invitationToken');
       AuthzTestUtil.assertAcceptInvitationSucceeds(acceptingUserInfo.restContext, token, () => {
-        // Ensure the user has the specified role on all the resources
-        const _done = _.chain(resources)
-          .size()
-          .after(callback)
-          .value();
         _assertRole(invitingUserInfo, acceptingUserInfo, resources, assertions, () => {
           // Collect the accept email and respond with it
           EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -3022,9 +3445,16 @@ describe('Invitations', () => {
           : SearchTestUtil.assertSearchNotContains;
 
         const libraryName = resourceLibraryInfo[resource.resourceType];
-        searchAssertFn(memberUserInfo.restContext, libraryName, [memberUserInfo.user.id], null, [resource.id], () => {
-          return _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback);
-        });
+        searchAssertFn(
+          memberUserInfo.restContext,
+          libraryName,
+          [memberUserInfo.user.id],
+          null,
+          [resource.id],
+          () => {
+            return _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback);
+          }
+        );
       });
     });
   };
@@ -3096,7 +3526,13 @@ describe('Invitations', () => {
    * @param  {Resource[]}     callback.resources  The created resources
    * @throws {AssertionError}                     Thrown if any of the assertions fail
    */
-  const _createOneOfEachResourceType = function(creatingUserInfo, visibility, managerIds, memberIds, callback) {
+  const _createOneOfEachResourceType = function(
+    creatingUserInfo,
+    visibility,
+    managerIds,
+    memberIds,
+    callback
+  ) {
     // Create a resource of each known type, aggregating them into the `createResults`
     // object
     const resources = [];
@@ -3109,12 +3545,18 @@ describe('Invitations', () => {
 
     // Perform all the creates and kick off the assertions on the created resources
     // and invitations
-    PrincipalsTestUtil.assertGetMeSucceeds(creatingUserInfo.restContext, me => {
+    PrincipalsTestUtil.assertGetMeSucceeds(creatingUserInfo.restContext, (/* me */) => {
       _.each(resourceFns, fns => {
-        fns.createSucceeds(creatingUserInfo.restContext, visibility, managerIds, memberIds, resource => {
-          resources.push(resource);
-          return _done();
-        });
+        fns.createSucceeds(
+          creatingUserInfo.restContext,
+          visibility,
+          managerIds,
+          memberIds,
+          resource => {
+            resources.push(resource);
+            return _done();
+          }
+        );
       });
     });
   };
@@ -3141,15 +3583,6 @@ describe('Invitations', () => {
       previewItems,
       summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
     });
-  };
-
-  /**
-   * Utility method that returns a stream that points to the OAE logo.
-   *
-   * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
-   */
-  const _getOAELogoStream = function() {
-    return fs.createReadStream(util.format('%s/data/oae-logo.png', __dirname));
   };
 
   /*!

@@ -39,7 +39,7 @@ const {
   createQuery
 } = SearchUtil;
 
-import { compose, prop, last, path, head, nth, of, is, isEmpty } from 'ramda';
+import { compose, prop, last, path, head, nth, of } from 'ramda';
 
 const TYPE = 'type';
 const SCORE_TYPE = 'scoreType';
@@ -48,15 +48,17 @@ const RESOURCE = 'resource';
 const CONTENT = 'content';
 const DELETED = 'deleted';
 const VALUE = 'value';
+const KEY = 'key';
 const NOT_VALID = 'not-valid';
 const INVALID = 'invalid';
 const CATS = 'cats';
 const DOGS = 'dogs';
-const isObject = is(Object);
 
 const mustConditions = path(['bool', 'must']);
 const mustNotConditions = path(['bool', 'must_not']);
+const shouldConditions = path(['bool', 'should']);
 
+const getKey = path(['terms', KEY]);
 const termType = path(['term', 'type']);
 const existsField = path(['exists', 'field']);
 const termsResourceType = path(['terms', 'resourceType']);
@@ -68,16 +70,16 @@ describe('Search Util', () => {
      */
     it('verify unspecified query params', callback => {
       let params = getSearchParams();
-      assert.ok(isObject(params));
-      assert.ok(isEmpty(params));
+      assert.isObject(params);
+      assert.isEmpty(params);
 
       params = getSearchParams(null);
-      assert.ok(isObject(params));
-      assert.ok(isEmpty(params));
+      assert.isObject(params);
+      assert.isEmpty(params);
 
       params = getSearchParams({});
-      assert.ok(isObject(params));
-      assert.ok(isEmpty(params));
+      assert.isObject(params);
+      assert.isEmpty(params);
 
       return callback();
     });
@@ -101,6 +103,7 @@ describe('Search Util', () => {
       assert.strictEqual(params.limit, 'limitVal');
       assert.strictEqual(params.sort, 'sortVal');
       assert.strictEqual(params.rogue, undefined);
+
       return callback();
     });
 
@@ -115,6 +118,7 @@ describe('Search Util', () => {
       assert.strictEqual(params.limit, undefined);
       assert.strictEqual(params.sort, undefined);
       assert.strictEqual(params.rogue, undefined);
+
       return callback();
     });
   });
@@ -125,11 +129,11 @@ describe('Search Util', () => {
      */
     it('verify one param', callback => {
       const filter = filterOr({ param: 'Arbitrary object should be returned' });
-      const should = path(['bool', 'should'], filter);
 
-      assert.ok(filter);
-      assert.notExists(should);
+      assert.exists(filter);
+      assert.notExists(shouldConditions(filter));
       assert.strictEqual(filter.param, 'Arbitrary object should be returned');
+
       return callback();
     });
 
@@ -141,12 +145,12 @@ describe('Search Util', () => {
         { one: 'Arbitrary object should be returned' },
         { other: 'Arbitrary object should be returned' }
       );
-      const should = path(['bool', 'should'], filter);
 
-      assert.ok(filter);
-      assert.ok(should);
-      assert.strictEqual(head(should).one, 'Arbitrary object should be returned');
-      assert.strictEqual(last(should).other, 'Arbitrary object should be returned');
+      assert.exists(filter);
+      assert.ok(shouldConditions(filter));
+      assert.strictEqual(head(shouldConditions(filter)).one, 'Arbitrary object should be returned');
+      assert.strictEqual(last(shouldConditions(filter)).other, 'Arbitrary object should be returned');
+
       return callback();
     });
 
@@ -156,13 +160,13 @@ describe('Search Util', () => {
      */
     it('verify mixed null params', callback => {
       const filter = filterOr(null, { key: VALUE }, undefined, { key: VALUE });
-      const should = path(['bool', 'should'], filter);
 
-      assert.ok(filter);
-      assert.ok(should);
-      assert.lengthOf(should, 2);
-      assert.strictEqual(head(should).key, VALUE);
-      assert.strictEqual(last(should).key, VALUE);
+      assert.exists(filter);
+      assert.exists(shouldConditions(filter));
+      assert.lengthOf(shouldConditions(filter), 2);
+      assert.strictEqual(head(shouldConditions(filter)).key, VALUE);
+      assert.strictEqual(last(shouldConditions(filter)).key, VALUE);
+
       return callback();
     });
 
@@ -171,6 +175,7 @@ describe('Search Util', () => {
      */
     it('verify empty params', callback => {
       assert.notExists(filterOr());
+
       return callback();
     });
   });
@@ -181,11 +186,11 @@ describe('Search Util', () => {
      */
     it('verify one param', callback => {
       const filter = filterAnd({ param: 'Arbitrary object should be returned' });
-      const must = path(['bool', 'must'], filter);
 
-      assert.ok(filter);
-      assert.notExists(must);
+      assert.exists(filter);
+      assert.notExists(mustConditions(filter));
       assert.strictEqual(filter.param, 'Arbitrary object should be returned');
+
       return callback();
     });
 
@@ -197,12 +202,12 @@ describe('Search Util', () => {
         { one: 'Arbitrary object should be returned' },
         { other: 'Arbitrary object should be returned' }
       );
-      const must = path(['bool', 'must'], filter);
 
-      assert.ok(filter);
-      assert.ok(must);
-      assert.strictEqual(head(must).one, 'Arbitrary object should be returned');
-      assert.strictEqual(last(must).other, 'Arbitrary object should be returned');
+      assert.exists(filter);
+      assert.exists(mustConditions(filter));
+      assert.strictEqual(head(mustConditions(filter)).one, 'Arbitrary object should be returned');
+      assert.strictEqual(last(mustConditions(filter)).other, 'Arbitrary object should be returned');
+
       return callback();
     });
 
@@ -212,13 +217,13 @@ describe('Search Util', () => {
      */
     it('verify mixed null params', callback => {
       const filter = filterAnd(null, { key: VALUE }, undefined, { key: VALUE });
-      const must = path(['bool', 'must'], filter);
 
       assert.ok(filter);
-      assert.ok(must);
-      assert.lengthOf(must, 2);
-      assert.strictEqual(head(must).key, VALUE);
-      assert.strictEqual(last(must).key, VALUE);
+      assert.ok(mustConditions(filter));
+      assert.lengthOf(mustConditions(filter), 2);
+      assert.strictEqual(head(mustConditions(filter)).key, VALUE);
+      assert.strictEqual(last(mustConditions(filter)).key, VALUE);
+
       return callback();
     });
 
@@ -227,6 +232,7 @@ describe('Search Util', () => {
      */
     it('verify empty params', callback => {
       assert.notExists(filterAnd());
+
       return callback();
     });
   });
@@ -237,12 +243,12 @@ describe('Search Util', () => {
      */
     it('verify a not filter', callback => {
       const filter = filterNot({ key: VALUE });
-      // const mustNot = path(['bool', 'must_not'], filter);
       const mustNot = prop('must_not', filter);
 
-      assert.ok(filter);
-      assert.ok(mustNot);
+      assert.exists(filter);
+      assert.exists(mustNot);
       assert.strictEqual(mustNot.key, VALUE);
+
       return callback();
     });
 
@@ -251,6 +257,7 @@ describe('Search Util', () => {
      */
     it('verify falsey not filter', callback => {
       assert.notExists(filterNot());
+
       return callback();
     });
   });
@@ -260,13 +267,12 @@ describe('Search Util', () => {
      * Test that verifies a single parameter filter object is returned in the filter
      */
     it('verify one term', callback => {
-      const filter = filterTerms('key', ['value']);
-      const getKey = path(['terms', 'key']);
+      const filter = filterTerms(KEY, [VALUE]);
 
       assert.ok(filter);
       assert.ok(filter.terms);
       assert.lengthOf(getKey(filter), 1);
-      assert.strictEqual(head(getKey(filter)), 'value');
+      assert.strictEqual(head(getKey(filter)), VALUE);
 
       return callback();
     });
@@ -275,10 +281,10 @@ describe('Search Util', () => {
      * Test that verifies filter terms with unspecified terms array returns a falsey result
      */
     it('verify unspecified term values', callback => {
-      const filter = filterTerms('key');
-      const getKey = path(['terms', 'key']);
+      const filter = filterTerms(KEY);
 
       assert.isNotOk(getKey(filter));
+
       return callback();
     });
 
@@ -286,7 +292,8 @@ describe('Search Util', () => {
      * Test that verifies filter terms with empty terms array returns a falsey result
      */
     it('verify empty term values', callback => {
-      assert.isNotOk(filterTerms('key', []));
+      assert.isNotOk(filterTerms(KEY, []));
+
       return callback();
     });
 
@@ -295,7 +302,7 @@ describe('Search Util', () => {
      * returning the object as-is in the terms filter
      */
     it('verify object for values returns object verbatim', callback => {
-      const filter = filterTerms('key', {
+      const filter = filterTerms(KEY, {
         index: 'test-index',
         type: 'test-type',
         id: 'test-id',
@@ -303,14 +310,22 @@ describe('Search Util', () => {
         routing: 'test-routing'
       });
 
-      assert.ok(filter);
-      assert.ok(filter.terms);
-      assert.ok(filter.terms.key);
-      assert.strictEqual(filter.terms.key.index, 'test-index');
-      assert.strictEqual(filter.terms.key.type, 'test-type');
-      assert.strictEqual(filter.terms.key.id, 'test-id');
-      assert.strictEqual(filter.terms.key.path, 'test-path');
-      assert.strictEqual(filter.terms.key.routing, 'test-routing');
+      const filterTermsKey = path(['terms', 'key'], filter);
+      const getIndex = prop('index', filterTermsKey);
+      const getType = prop('type', filterTermsKey);
+      const getId = prop('id', filterTermsKey);
+      const getPath = prop('path', filterTermsKey);
+      const getRouting = prop('routing', filterTermsKey);
+
+      assert.exists(filter);
+      assert.exists(filter.terms);
+      assert.exists(filter.terms.key);
+      assert.strictEqual(getIndex, 'test-index');
+      assert.strictEqual(getType, 'test-type');
+      assert.strictEqual(getId, 'test-id');
+      assert.strictEqual(getPath, 'test-path');
+      assert.strictEqual(getRouting, 'test-routing');
+
       return callback();
     });
   });
@@ -320,10 +335,11 @@ describe('Search Util', () => {
      * Test that verifies a single parameter filter object is returned in the filter
      */
     it('verify with a term', callback => {
-      const filter = filterTerm('key', 'value');
-      assert.ok(filter);
-      assert.ok(filter.term);
-      assert.strictEqual(filter.term.key, 'value');
+      const filter = filterTerm(KEY, VALUE);
+
+      assert.exists(filter);
+      assert.exists(filter.term);
+      assert.strictEqual(filter.term.key, VALUE);
 
       return callback();
     });
@@ -332,11 +348,14 @@ describe('Search Util', () => {
      * Test that verifies filter terms with unspecified terms array returns a falsey result
      */
     it('verify unspecified term value', callback => {
-      assert.isNotOk(filterTerm('key'));
+      assert.isNotOk(filterTerm(KEY));
+
       return callback();
     });
   });
 
+  const getTermTypeOnMustConditions = compose(termType, head, mustConditions);
+  const getExistsFieldOnMustNotConditions = compose(existsField, head, mustNotConditions);
   describe('#filterResources', () => {
     /**
      * Test that verifies creating a resources filter
@@ -346,34 +365,38 @@ describe('Search Util', () => {
       const filterUnspecifiedResources = filterResources();
       assert.lengthOf(mustConditions(filterUnspecifiedResources), 2);
       assert.lengthOf(mustNotConditions(filterUnspecifiedResources), 1);
-      assert.strictEqual(RESOURCE, compose(termType, head, mustConditions)(filterUnspecifiedResources));
-      assert.strictEqual(DELETED, compose(existsField, head, mustNotConditions)(filterUnspecifiedResources));
+
+      assert.strictEqual(RESOURCE, getTermTypeOnMustConditions(filterUnspecifiedResources));
+      assert.strictEqual(DELETED, getExistsFieldOnMustNotConditions(filterUnspecifiedResources));
 
       // Ensure empty resource types searches all
       const filterEmptyResources = filterResources([]);
       assert.lengthOf(mustConditions(filterEmptyResources), 1);
       assert.lengthOf(mustNotConditions(filterEmptyResources), 1);
-      assert.strictEqual(RESOURCE, compose(termType, head, mustConditions)(filterEmptyResources));
-      assert.strictEqual(DELETED, compose(existsField, head, mustNotConditions)(filterEmptyResources));
+
+      assert.strictEqual(RESOURCE, getTermTypeOnMustConditions(filterEmptyResources));
+      assert.strictEqual(DELETED, getExistsFieldOnMustNotConditions(filterEmptyResources));
 
       // Sanity check with one resource type
       const filterOneResource = filterResources(of(CONTENT));
       assert.lengthOf(mustConditions(filterOneResource), 2);
       assert.lengthOf(mustNotConditions(filterOneResource), 1);
-      assert.strictEqual(RESOURCE, compose(termType, head, mustConditions)(filterOneResource));
+
+      assert.strictEqual(RESOURCE, getTermTypeOnMustConditions(filterOneResource));
       assert.strictEqual(CONTENT, compose(head, termsResourceType, nth(1), mustConditions)(filterOneResource));
-      assert.strictEqual(DELETED, compose(existsField, head, mustNotConditions)(filterOneResource));
+      assert.strictEqual(DELETED, getExistsFieldOnMustNotConditions(filterOneResource));
 
       const filterAllDeletedResources = filterResources(null, SearchConstants.deleted);
       assert.lengthOf(mustConditions(filterAllDeletedResources), 2);
       assert.lengthOf(mustNotConditions(filterAllDeletedResources), 1);
+
       assert.isNotOk(compose(termsResourceType, nth(1), mustConditions)(filterAllDeletedResources));
-      assert.strictEqual(RESOURCE, compose(termType, head, mustConditions)(filterAllDeletedResources));
-      assert.strictEqual(DELETED, compose(existsField, nth(0), mustNotConditions)(filterAllDeletedResources));
+      assert.strictEqual(RESOURCE, getTermTypeOnMustConditions(filterAllDeletedResources));
+      assert.strictEqual(DELETED, getExistsFieldOnMustNotConditions(filterAllDeletedResources));
 
       const filterAllDeletedAndExistingResources = filterResources(null, SearchConstants.deleted.BOTH);
       assert.lengthOf(mustConditions(filterAllDeletedAndExistingResources), 2);
-      assert.strictEqual(RESOURCE, compose(termType, head, mustConditions)(filterAllDeletedAndExistingResources));
+      assert.strictEqual(RESOURCE, getTermTypeOnMustConditions(filterAllDeletedAndExistingResources));
 
       return callback();
     });
@@ -391,6 +414,7 @@ describe('Search Util', () => {
         filterExplicitAccess(new Context(global.oaeTests.tenants.cam), (err, filter) => {
           assert.isNotOk(err);
           assert.isNotOk(filter);
+
           return callback();
         });
       });
@@ -430,6 +454,7 @@ describe('Search Util', () => {
       assert.throws(() => {
         createQuery(null);
       });
+
       return callback();
     });
   });
@@ -448,6 +473,7 @@ describe('Search Util', () => {
       assert.strictEqual(getQueryParam(null, null), SearchConstants.query.ALL);
       assert.strictEqual(getQueryParam(undefined, CATS), CATS);
       assert.strictEqual(getQueryParam(), SearchConstants.query.ALL);
+
       return callback();
     });
 
@@ -469,6 +495,7 @@ describe('Search Util', () => {
       assert.strictEqual(getSortDirParam(oneValidType), oneValidType);
       assert.strictEqual(getSortDirParam(undefined, oneValidType), oneValidType);
       assert.strictEqual(getSortDirParam(), SearchConstants.sort.direction.ASC);
+
       return callback();
     });
 
@@ -496,6 +523,7 @@ describe('Search Util', () => {
         getScopeParam(SearchConstants.general.SCOPE_MY, tenantAlias),
         SearchConstants.general.SCOPE_MY
       );
+
       return callback();
     });
   });

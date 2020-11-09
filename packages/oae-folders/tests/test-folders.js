@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import util from 'util';
-import path from 'path';
+import Path from 'path';
 import _ from 'underscore';
+import { find, head, path, forEach, values, reject, isNil, map, last } from 'ramda';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
@@ -33,24 +34,26 @@ import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 
+const NO_MANAGERS = [];
+const NO_VIEWERS = [];
+const NO_FOLDERS = [];
+
 describe('Folders', () => {
-  let globalAdminRestContext = null;
-  let camAdminRestContext = null;
-  let camAnonymousRestContext = null;
-  let gtAdminRestContext = null;
-  let gtAnonymousRestContext = null;
+  let asGlobalAdmin = null;
+  let asCambridgeTenantAdmin = null;
+  let asCambridgeAnonymousUser = null;
+  let asGeorgiaTenantAdmin = null;
 
   /*!
    * Set up all the REST contexts for admin and anonymous users with which we
    * will invoke requests
    */
-  before(callback => {
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    camAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    gtAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host);
-    callback();
+  before(done => {
+    asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asGeorgiaTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    done();
   });
 
   /*!
@@ -58,8 +61,8 @@ describe('Folders', () => {
    */
   afterEach(callback => {
     // Ensure the default folder visibility always starts fresh
-    ConfigTestUtil.clearConfigAndWait(globalAdminRestContext, null, ['oae-folders/visibility/folder'], err => {
-      assert.ok(!err);
+    ConfigTestUtil.clearConfigAndWait(asGlobalAdmin, null, ['oae-folders/visibility/folder'], err => {
+      assert.notExists(err);
       return callback();
     });
   });
@@ -95,18 +98,16 @@ describe('Folders', () => {
    *
    * @return {Stream}     A stream that points to a text file that can be uploaded
    */
-  const _getFileStream = function() {
-    const file = path.join(__dirname, '/data/file.txt');
-    return fs.createReadStream(file);
-  };
+  const _getFileStream = () => fs.createReadStream(Path.join(__dirname, '/data/file.txt'));
 
   describe('Create Folder', () => {
     /**
      * Test that verifies creation of a folder
      */
     it('verify folder creation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, stuartf, sathomas) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: stuartf, 2: sathomas } = users;
 
         FoldersTestUtil.assertCreateFolderSucceeds(
           mrvisser.restContext,
@@ -187,8 +188,9 @@ describe('Folders', () => {
      * Test that verifies the validation of creating a folder
      */
     it('verify folder creation validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, stuartf, sathomas) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: stuartf, 2: sathomas } = users;
 
         // Ensure displayName is required
         FoldersTestUtil.assertCreateFolderFails(
@@ -357,10 +359,14 @@ describe('Folders', () => {
      * Test that verifies the authorization of creating a folder and associating it with users
      */
     it('verify folder creation authorization', callback => {
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
+      FoldersTestUtil.setupMultiTenantPrivacyEntities((
+        publicTenant,
+        publicTenant1,
+        privateTenant /* , privateTenant1 */
+      ) => {
         // Ensure an anonymous user cannot create a folder
         FoldersTestUtil.assertCreateFolderFails(
-          camAnonymousRestContext,
+          asCambridgeAnonymousUser,
           'test',
           'test',
           'private',
@@ -661,21 +667,23 @@ describe('Folders', () => {
      * Test that verifies the visibility of a folder defaults to the tenant configuration
      */
     it('verify folder visibility defaults to the configured tenant default', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: mrvisser } = users;
 
         // Ensure a folder created without a visibility defaults to public
         RestAPI.Folders.createFolder(mrvisser.restContext, 'test', 'test', null, null, null, (err, createdFolder) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(createdFolder.visibility, 'public');
 
           // Set the default privacy to private
           ConfigTestUtil.updateConfigAndWait(
-            globalAdminRestContext,
+            asGlobalAdmin,
             null,
             { 'oae-folders/visibility/folder': 'private' },
             err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure a folder created without a visibility now defaults to private
               RestAPI.Folders.createFolder(
@@ -686,7 +694,7 @@ describe('Folders', () => {
                 null,
                 null,
                 (err, createdFolder) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(createdFolder.visibility, 'private');
                   return callback();
                 }
@@ -709,7 +717,7 @@ describe('Folders', () => {
      */
     const createAndVerifyManager = function(user, managers, viewers, expectedManager, callback) {
       RestAPI.Folders.createFolder(user.restContext, 'test', 'test', null, managers, viewers, (err, folder) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         FoldersTestUtil.getAllFolderMembers(user.restContext, folder.id, null, members => {
           if (expectedManager) {
@@ -728,72 +736,78 @@ describe('Folders', () => {
      * Test that verifies that the folder creator is only made an explicit manager if he cannot manage the folder indirectly
      */
     it('verify the creator is only made a manager when he cannot manage indirectly', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, stuart) => {
-        assert.ok(!err);
-        TestsUtil.generateTestGroups(simong.restContext, 1, simongGroup => {
-          TestsUtil.generateTestGroups(
-            nico.restContext,
-            6,
-            (nicoGroup1, nicoGroup2, nicoGroup3, nicoGroup4, nicoGroup5, nicoGroup6) => {
-              TestsUtil.generateGroupHierarchy(
-                nico.restContext,
-                [nicoGroup1.group.id, nicoGroup2.group.id, nicoGroup3.group.id],
-                'member',
-                () => {
-                  TestsUtil.generateGroupHierarchy(
-                    nico.restContext,
-                    [nicoGroup4.group.id, nicoGroup5.group.id, nicoGroup6.group.id],
-                    'manager',
-                    () => {
-                      const roleChange = AuthzTestUtil.createRoleChange([stuart.user.id], 'member');
-                      RestAPI.Group.setGroupMembers(nico.restContext, nicoGroup3.group.id, roleChange, err => {
-                        assert.ok(!err);
-                        const roleChange = AuthzTestUtil.createRoleChange([stuart.user.id], 'manager');
-                        RestAPI.Group.setGroupMembers(nico.restContext, nicoGroup6.group.id, roleChange, err => {
-                          assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico, 2: stuart } = users;
 
-                          createAndVerifyManager(simong, null, null, true, () => {
-                            createAndVerifyManager(simong, [nico.user.id], null, true, () => {
-                              createAndVerifyManager(simong, null, [simongGroup.group.id], true, () => {
-                                createAndVerifyManager(simong, [simongGroup.group.id], null, false, () => {
-                                  createAndVerifyManager(
-                                    simong,
-                                    [simongGroup.group.id, nicoGroup1.group.id],
-                                    null,
-                                    false,
-                                    () => {
-                                      // Verify a mix of users and groups that Simon can't manage
-                                      createAndVerifyManager(
-                                        simong,
-                                        [nico.user.id, simongGroup.group.id, nicoGroup1.group.id],
-                                        null,
-                                        false,
-                                        () => {
-                                          // Stuart is an indirect member of group 1, he should be
-                                          // made a manager of the folder as he cannot manage nicoGroup1
-                                          createAndVerifyManager(stuart, [nicoGroup1.group.id], null, true, () => {
-                                            // Stuart is an indirect manager of group 4, he should not be made
-                                            // a manager of the folder as he can manage nicoGroup4 (indirectly)
-                                            createAndVerifyManager(stuart, [nicoGroup4.group.id], null, false, () => {
-                                              return callback();
-                                            });
+        TestsUtil.generateTestGroups(simong.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+
+          const { 0: simongGroup } = groups;
+
+          TestsUtil.generateTestGroups(nico.restContext, 6, (err, groups) => {
+            assert.notExists(err);
+
+            const { 0: nicoGroup1, 1: nicoGroup2, 2: nicoGroup3, 3: nicoGroup4, 4: nicoGroup5, 5: nicoGroup6 } = groups;
+
+            TestsUtil.generateGroupHierarchy(
+              nico.restContext,
+              [nicoGroup1.group.id, nicoGroup2.group.id, nicoGroup3.group.id],
+              'member',
+              () => {
+                TestsUtil.generateGroupHierarchy(
+                  nico.restContext,
+                  [nicoGroup4.group.id, nicoGroup5.group.id, nicoGroup6.group.id],
+                  'manager',
+                  () => {
+                    const roleChange = AuthzTestUtil.createRoleChange([stuart.user.id], 'member');
+                    RestAPI.Group.setGroupMembers(nico.restContext, nicoGroup3.group.id, roleChange, err => {
+                      assert.notExists(err);
+                      const roleChange = AuthzTestUtil.createRoleChange([stuart.user.id], 'manager');
+                      RestAPI.Group.setGroupMembers(nico.restContext, nicoGroup6.group.id, roleChange, err => {
+                        assert.notExists(err);
+
+                        createAndVerifyManager(simong, null, null, true, () => {
+                          createAndVerifyManager(simong, [nico.user.id], null, true, () => {
+                            createAndVerifyManager(simong, null, [simongGroup.group.id], true, () => {
+                              createAndVerifyManager(simong, [simongGroup.group.id], null, false, () => {
+                                createAndVerifyManager(
+                                  simong,
+                                  [simongGroup.group.id, nicoGroup1.group.id],
+                                  null,
+                                  false,
+                                  () => {
+                                    // Verify a mix of users and groups that Simon can't manage
+                                    createAndVerifyManager(
+                                      simong,
+                                      [nico.user.id, simongGroup.group.id, nicoGroup1.group.id],
+                                      null,
+                                      false,
+                                      () => {
+                                        // Stuart is an indirect member of group 1, he should be
+                                        // made a manager of the folder as he cannot manage nicoGroup1
+                                        createAndVerifyManager(stuart, [nicoGroup1.group.id], null, true, () => {
+                                          // Stuart is an indirect manager of group 4, he should not be made
+                                          // a manager of the folder as he can manage nicoGroup4 (indirectly)
+                                          createAndVerifyManager(stuart, [nicoGroup4.group.id], null, false, () => {
+                                            return callback();
                                           });
-                                        }
-                                      );
-                                    }
-                                  );
-                                });
+                                        });
+                                      }
+                                    );
+                                  }
+                                );
                               });
                             });
                           });
                         });
                       });
-                    }
-                  );
-                }
-              );
-            }
-          );
+                    });
+                  }
+                );
+              }
+            );
+          });
         });
       });
     });
@@ -804,8 +818,10 @@ describe('Folders', () => {
      * Test that verifies the parameters are validated
      */
     it('verify parameter validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong } = users;
 
         // Create a folder
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -895,8 +911,10 @@ describe('Folders', () => {
      * Test that verifies only managers can update a folder
      */
     it('verify update folder authorization', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong, 1: nico, 2: bert } = users;
 
         // Create a folder and make Nico a member of it
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -909,7 +927,7 @@ describe('Folders', () => {
           folder => {
             // Anonymous users cannot update folders
             FoldersTestUtil.assertUpdateFolderFails(
-              camAnonymousRestContext,
+              asCambridgeAnonymousUser,
               folder.id,
               { visibility: 'private' },
               401,
@@ -930,7 +948,7 @@ describe('Folders', () => {
                       () => {
                         // Tenant admins from other tenants cannot update the folder
                         FoldersTestUtil.assertUpdateFolderFails(
-                          gtAdminRestContext,
+                          asGeorgiaTenantAdmin,
                           folder.id,
                           { visibility: 'private' },
                           401,
@@ -957,8 +975,10 @@ describe('Folders', () => {
      * Test that verifies only managers can update a folder
      */
     it('verify update folder content visibility authorization', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong, 1: nico, 2: bert } = users;
 
         // Create a folder and make Nico a member of it
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -971,7 +991,7 @@ describe('Folders', () => {
           folder => {
             // Anonymous users cannot update folders
             FoldersTestUtil.assertUpdateFolderContentVisibilityFails(
-              camAnonymousRestContext,
+              asCambridgeAnonymousUser,
               folder.id,
               'private',
               401,
@@ -992,7 +1012,7 @@ describe('Folders', () => {
                       () => {
                         // Tenant admins from other tenants cannot update the folder
                         FoldersTestUtil.assertUpdateFolderContentVisibilityFails(
-                          gtAdminRestContext,
+                          asGeorgiaTenantAdmin,
                           folder.id,
                           'private',
                           401,
@@ -1019,8 +1039,10 @@ describe('Folders', () => {
      * Test that verifies that updating a folder's visibility updates the member folder libraries
      */
     it("verify updating a folder's visibility updates the folder libraries", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong, 1: bert } = users;
 
         // Create a folder
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1033,7 +1055,7 @@ describe('Folders', () => {
           folder => {
             // When Bert lists the folder library for Simon, he can see the folder
             FoldersTestUtil.assertGetFoldersLibrarySucceeds(
-              camAnonymousRestContext,
+              asCambridgeAnonymousUser,
               simong.user.id,
               null,
               null,
@@ -1062,7 +1084,7 @@ describe('Folders', () => {
                           folder => {
                             // Anonymous users cannot see the folder anymore
                             FoldersTestUtil.assertGetFoldersLibrarySucceeds(
-                              camAnonymousRestContext,
+                              asCambridgeAnonymousUser,
                               simong.user.id,
                               null,
                               null,
@@ -1088,10 +1110,10 @@ describe('Folders', () => {
                                           simong.restContext,
                                           folder.id,
                                           { visibility: 'private' },
-                                          folder => {
+                                          (/* folder */) => {
                                             // Bert can no longer see the folder
                                             FoldersTestUtil.assertGetFoldersLibrarySucceeds(
-                                              camAnonymousRestContext,
+                                              asCambridgeAnonymousUser,
                                               simong.user.id,
                                               null,
                                               null,
@@ -1144,8 +1166,10 @@ describe('Folders', () => {
      * Test that verifies authorization of updating a folder
      */
     it("verify a folder's metadata can be updated", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong } = users;
 
         // Create a folder
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1163,7 +1187,7 @@ describe('Folders', () => {
               visibility: 'private'
             };
             RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, folder) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(folder);
               assert.strictEqual(folder.displayName, updates.displayName);
               assert.strictEqual(folder.description, updates.description);
@@ -1193,8 +1217,10 @@ describe('Folders', () => {
      * Test that verifies that updating a folder's visibility can update the content inside the folder
      */
     it("verify updating a folder's content items", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong, 1: nico } = users;
 
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -1212,12 +1238,12 @@ describe('Folders', () => {
                 description: 'test',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: null,
-                viewers: null,
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, simonsLink) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 RestAPI.Content.createLink(
                   nico.restContext,
                   {
@@ -1225,12 +1251,12 @@ describe('Folders', () => {
                     description: 'test',
                     visibility: PUBLIC,
                     link: 'http://www.google.ca',
-                    managers: null,
-                    viewers: null,
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
                   (err, nicosLink) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Simon adds the two items to the folder
                     FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -1241,7 +1267,7 @@ describe('Folders', () => {
                         // Change the visibility of the folder to loggedin AND change the content items
                         const updates = { visibility: 'loggedin' };
                         RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, folder) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.ok(folder);
 
                           // Sanity-check the full folder profile was returned
@@ -1257,7 +1283,7 @@ describe('Folders', () => {
                             folder.id,
                             'loggedin',
                             (err, data) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Only 1 item should've failed
                               assert.strictEqual(data.failedContent.length, 1);
@@ -1268,12 +1294,12 @@ describe('Folders', () => {
 
                               // Assert that simonsLink's visibility changed
                               RestAPI.Content.getContent(simong.restContext, simonsLink.id, (err, content) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
                                 assert.strictEqual(content.visibility, 'loggedin');
 
                                 // Assert that nicosLink's visibility did not change
                                 RestAPI.Content.getContent(simong.restContext, nicosLink.id, (err, content) => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
                                   assert.strictEqual(content.visibility, 'public');
 
                                   FoldersTestUtil.assertFolderEquals(
@@ -1306,8 +1332,11 @@ describe('Folders', () => {
      * Test that verifies validation of getting a folder
      */
     it('verify get folder validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: mrvisser } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Ensure fetching using an invalid id results in an error
           FoldersTestUtil.assertGetFolderFails(mrvisser.restContext, 'invalidid', 400, () => {
@@ -1335,6 +1364,7 @@ describe('Folders', () => {
           publicTenant.privateFolder.id,
           [publicTenant.privateUser],
           err => {
+            assert.notExists(err);
             // Make the public user from a different tenant a member of a loggedin and private folder
             FoldersTestUtil.assertShareFolderSucceeds(
               publicTenant1.adminRestContext,
@@ -1342,12 +1372,14 @@ describe('Folders', () => {
               publicTenant1.loggedinFolder.id,
               [publicTenant.publicUser],
               err => {
+                assert.notExists(err);
                 FoldersTestUtil.assertShareFolderSucceeds(
                   publicTenant1.adminRestContext,
                   publicTenant1.adminRestContext,
                   publicTenant1.privateFolder.id,
                   [publicTenant.publicUser],
                   err => {
+                    assert.notExists(err);
                     // Ensure user from same tenant can see public, loggedin but only private folders to which they have explicit access
                     FoldersTestUtil.assertGetFolderSucceeds(
                       publicTenant.publicUser.restContext,
@@ -1423,7 +1455,7 @@ describe('Folders', () => {
     it('verify get folder scrubs creator user', callback => {
       // Setup multi-tenant privacy entities without folders or content. We only need
       // multi-tenant privacy users for this test
-      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1) => {
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant /* , publicTenant1 */) => {
         // Create a public folder as the private user
         FoldersTestUtil.assertCreateFolderSucceeds(
           publicTenant.privateUser.restContext,
@@ -1619,9 +1651,10 @@ describe('Folders', () => {
      * Test that verifies validation of deleting a folder
      */
     it('verify delete folder validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
-        FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
+        FoldersTestUtil.generateTestFolders(simong.restContext, 1, (/* folder */) => {
           // Ensure deleting using an invalid id results in an error
           FoldersTestUtil.assertDeleteFolderFails(simong.restContext, 'invalidid', 400, () => {
             // Ensure deleting using a non-existing id results in a 404
@@ -1647,8 +1680,9 @@ describe('Folders', () => {
      * Test that verifies authorization of deleting a folder
      */
     it('verify delete folder authorization', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico, 2: bert } = users;
 
         // Create a folder and make Nico a member of it
         FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1660,13 +1694,13 @@ describe('Folders', () => {
           [nico],
           folder => {
             // Anonymous users cannot delete folders
-            FoldersTestUtil.assertDeleteFolderFails(camAnonymousRestContext, folder.id, 401, () => {
+            FoldersTestUtil.assertDeleteFolderFails(asCambridgeAnonymousUser, folder.id, 401, () => {
               // Unrelated users cannot delete folders
               FoldersTestUtil.assertDeleteFolderFails(bert.restContext, folder.id, 401, () => {
                 // Members cannot delete folders
                 FoldersTestUtil.assertDeleteFolderFails(nico.restContext, folder.id, 401, () => {
                   // Tenant admins from other tenants cannot delete the folder
-                  FoldersTestUtil.assertDeleteFolderFails(gtAdminRestContext, folder.id, 401, () => {
+                  FoldersTestUtil.assertDeleteFolderFails(asGeorgiaTenantAdmin, folder.id, 401, () => {
                     // Sanity-check it was not removed
                     FoldersTestUtil.assertGetFoldersLibrarySucceeds(
                       simong.restContext,
@@ -1712,7 +1746,7 @@ describe('Folders', () => {
       const done = _.after(contentIds.length, callback);
       _.each(contentIds, contentId => {
         AuthzAPI.getAuthzMembers(contentId, null, 10, (err, members) => {
-          assert.ok(!err);
+          assert.notExists(err);
           const principalIds = _.pluck(members, 'id');
           assert.strictEqual(principalIds.length, expectedMembers.length);
           _.each(principalIds, principalId => {
@@ -1728,8 +1762,9 @@ describe('Folders', () => {
      * Test that verifies that when a folder gets deleted the authz membership on all the content items gets adjusted
      */
     it('verify delete folder removes the folder authz group from the content items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
 
         // Generate a test folder
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
@@ -1757,8 +1792,9 @@ describe('Folders', () => {
      * Test that verifies that the delete folder operation can remove content items
      */
     it('verify delete folder can remove content items', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
 
         // Generate a test folder
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
@@ -1777,7 +1813,7 @@ describe('Folders', () => {
                 () => {
                   // Delete the folder and the content in it
                   RestAPI.Folders.deleteFolder(simong.restContext, folder.id, true, (err, data) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // All failed content should be Nico's
                     assert.strictEqual(data.failedContent.length, nicosContentIds.length);
@@ -1850,8 +1886,11 @@ describe('Folders', () => {
      * Test that verifies sharing a folder with a manager does not demote them to viewer
      */
     it('verify sharing does not demote a member from manager to viewer', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: mrvisser, 1: simong } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Simon shares the folder with a manager
           FoldersTestUtil.assertShareFolderSucceeds(
@@ -1876,59 +1915,61 @@ describe('Folders', () => {
      */
     it('verify sharing validation', callback => {
       // Generate a user and a folder to test sharing with
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
-        FoldersTestUtil.generateTestFolders(camAdminRestContext, 1, folder => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
+        FoldersTestUtil.generateTestFolders(asCambridgeTenantAdmin, 1, folder => {
           // Ensure a valid folder id must be provided
           FoldersTestUtil.assertShareFolderFails(
-            camAdminRestContext,
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
+            asCambridgeTenantAdmin,
             'notavalidid',
             [mrvisser.user.id],
             400,
             () => {
               // Ensure an existing folder id must be provided
               FoldersTestUtil.assertShareFolderFails(
-                camAdminRestContext,
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
+                asCambridgeTenantAdmin,
                 'x:oaetest:nonexistingid',
                 [mrvisser.user.id],
                 404,
                 () => {
                   // Ensure a valid target principal id must be provided
                   FoldersTestUtil.assertShareFolderFails(
-                    camAdminRestContext,
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
                     folder.id,
                     ['notavalidid'],
                     400,
                     () => {
                       FoldersTestUtil.assertShareFolderFails(
-                        camAdminRestContext,
-                        camAdminRestContext,
+                        asCambridgeTenantAdmin,
+                        asCambridgeTenantAdmin,
                         folder.id,
                         ['c:oaetest:notaprincipalid'],
                         400,
                         () => {
                           // Ensure an existing target principal id must be provided
                           FoldersTestUtil.assertShareFolderFails(
-                            camAdminRestContext,
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
+                            asCambridgeTenantAdmin,
                             folder.id,
                             ['u:oaetest:nonexistingid'],
                             400,
                             () => {
                               FoldersTestUtil.assertShareFolderFails(
-                                camAdminRestContext,
-                                camAdminRestContext,
+                                asCambridgeTenantAdmin,
+                                asCambridgeTenantAdmin,
                                 folder.id,
                                 ['g:oaetest:nonexistingid'],
                                 400,
                                 () => {
                                   // Sanity check we can share with the base input
                                   return FoldersTestUtil.assertShareFolderSucceeds(
-                                    camAdminRestContext,
-                                    camAdminRestContext,
+                                    asCambridgeTenantAdmin,
+                                    asCambridgeTenantAdmin,
                                     folder.id,
                                     [mrvisser],
                                     callback
@@ -1954,20 +1995,22 @@ describe('Folders', () => {
      */
     it('verify anonymous user cannot share', callback => {
       // Generate a user and folder to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        assert.ok(!err);
-        FoldersTestUtil.generateTestFolders(camAdminRestContext, 1, folder => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: simong } = users;
+
+        FoldersTestUtil.generateTestFolders(asCambridgeTenantAdmin, 1, folder => {
           // Ensure anonymous cannot share with Simong
           FoldersTestUtil.assertShareFolderFails(
-            camAdminRestContext,
-            camAnonymousRestContext,
+            asCambridgeTenantAdmin,
+            asCambridgeAnonymousUser,
             folder.id,
             [simong.user.id],
             401,
             () => {
               // Sanity check mrvisser can share with Simong
               return FoldersTestUtil.assertShareFolderSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 mrvisser.restContext,
                 folder.id,
                 [simong],
@@ -2080,7 +2123,7 @@ describe('Folders', () => {
      * Test that verifies authorization of sharing a folder for a regular (non-member) user of a different tenant
      */
     it('verify sharing authorization for a cross-tenant user', callback => {
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant) => {
+      FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1 /* , privateTenant */) => {
         // Ensure regular cross-tenant user can only share public folders of another tenant
         FoldersTestUtil.assertShareFolderSucceeds(
           publicTenant.adminRestContext,
@@ -2314,31 +2357,25 @@ describe('Folders', () => {
      * Test that verifies getting the members of a folder will return all viewers and managers of the folder
      */
     it('verify get folder members gets all viewers and managers', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 16, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 16, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
-          users = _.values(users);
+          users = values(users);
 
           const managerUsers = users.slice(0, 8);
-          const viewerUsers = users.slice(8);
-
           const memberUpdates = {};
           const expectedMembership = {};
-          _.each(managerUsers, managerUser => {
+          forEach(managerUser => {
             expectedMembership[managerUser.user.id] = 'manager';
             memberUpdates[managerUser.user.id] = _.extend({}, managerUser, { role: 'manager' });
-          });
-
-          const viewerMemberUpdates = {};
-          _.each(viewerUsers, viewerUser => {
-            expectedMembership[viewerUser.user.id] = 'viewer';
-            memberUpdates[viewerUser.user.id] = _.extend({}, viewerUser, { role: 'viewer' });
-          });
+          }, managerUsers);
 
           // Apply the roles
           FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-            camAdminRestContext,
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
+            asCambridgeTenantAdmin,
             folder.id,
             memberUpdates,
             () => {
@@ -2359,17 +2396,19 @@ describe('Folders', () => {
      * Test that verifies validation of getting folder members
      */
     it('verify get folder members validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 16, (err, users, mrvisser) => {
-        assert.ok(!err);
-        FoldersTestUtil.generateTestFolders(camAdminRestContext, 1, folder => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 16, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
+        FoldersTestUtil.generateTestFolders(asCambridgeTenantAdmin, 1, folder => {
           const memberUpdates = {};
-          _.each(users, (user, userId) => {
-            memberUpdates[userId] = _.extend({}, user, { role: 'viewer' });
+          _.each(users, eachUser => {
+            memberUpdates[eachUser.user.id] = _.extend({}, eachUser, { role: 'viewer' });
           });
 
           FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-            camAdminRestContext,
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
+            asCambridgeTenantAdmin,
             folder.id,
             memberUpdates,
             () => {
@@ -2608,14 +2647,16 @@ describe('Folders', () => {
      * Test that verififes paging through the list of folder members
      */
     it('verify get folder members paging', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 16, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 16, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Make all 16 users (except mrvisser, of course) a viewer
           const memberUpdates = {};
-          _.each(users, (user, userId) => {
-            if (userId !== mrvisser.user.id) {
-              memberUpdates[userId] = _.extend({}, user, { role: 'viewer' });
+          _.each(users, eachUser => {
+            if (eachUser.user.id !== mrvisser.user.id) {
+              memberUpdates[eachUser.user.id] = _.extend({}, eachUser, { role: 'viewer' });
             }
           });
 
@@ -2635,7 +2676,7 @@ describe('Folders', () => {
 
                   // Ensure all members came from the users folder and that they all have the proper role
                   _.each(members, member => {
-                    assert.ok(users[member.profile.id]);
+                    assert.ok(find(eachUser => eachUser.user.id === member.profile.id, users));
                     if (member.profile.id === mrvisser.user.id) {
                       assert.strictEqual(member.role, 'manager');
                     } else {
@@ -2662,7 +2703,7 @@ describe('Folders', () => {
 
                       // Ensure all members came from the users folder and that they all have the proper role
                       _.each(members, member => {
-                        assert.ok(users[member.profile.id]);
+                        assert.ok(find(eachUser => eachUser.user.id === member.profile.id, users));
                         if (member.profile.id === mrvisser.user.id) {
                           assert.strictEqual(member.role, 'manager');
                         } else {
@@ -2693,7 +2734,7 @@ describe('Folders', () => {
 
                           // Ensure all members came from the users folder and that they all have the proper role
                           _.each(members, member => {
-                            assert.ok(users[member.profile.id]);
+                            assert.ok(find(eachUser => eachUser.user.id === member.profile.id, users));
                             if (member.profile.id === mrvisser.user.id) {
                               assert.strictEqual(member.role, 'manager');
                             } else {
@@ -2762,8 +2803,10 @@ describe('Folders', () => {
      */
     it('verify viewers and managers can be set on and removed from a folder', callback => {
       // Create test users and a folder to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: bert } = users;
+
         FoldersTestUtil.assertCreateFolderSucceeds(
           mrvisser.restContext,
           'test',
@@ -2836,13 +2879,15 @@ describe('Folders', () => {
      */
     it('verify a folder cannot be left with no managers', callback => {
       // Create test users and a folder to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 5, (err, users, mrvisser, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 5, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: bert } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Try and make all the users viewer, including the creator mrvisser
           const memberUpdates = {};
-          _.each(users, (user, userId) => {
-            memberUpdates[userId] = 'viewer';
+          _.each(users, eachUser => {
+            memberUpdates[eachUser.user.id] = 'viewer';
           });
 
           FoldersTestUtil.assertUpdateFolderMembersFails(
@@ -2856,14 +2901,14 @@ describe('Folders', () => {
 
               // Build an update that sets bert as manager and mrvisser as viewer
               const memberUpdateInfos = {};
-              _.each(users, (user, userId) => {
-                memberUpdateInfos[userId] = _.extend({}, user, { role: 'viewer' });
+              _.each(users, eachUser => {
+                memberUpdateInfos[eachUser.user.id] = _.extend({}, eachUser, { role: 'viewer' });
               });
               memberUpdateInfos[bert.user.id].role = 'manager';
 
               // Ensure mrvisser can still update the members, and changing bert to manager while demoting himself is fair game
               FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 mrvisser.restContext,
                 folder.id,
                 memberUpdateInfos,
@@ -2889,8 +2934,10 @@ describe('Folders', () => {
      * Test that verifies a viewer cannot promote themselves to manager
      */
     it('verify a viewer cannot promote themselves to manager', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: bert } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Make Bert a member
           FoldersTestUtil.assertUpdateFolderMembersSucceeds(
@@ -2919,8 +2966,9 @@ describe('Folders', () => {
      */
     it('verify set folder members validation', callback => {
       // Generate a test user and folder for testing validation
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: bert } = users;
 
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Ensure folder id must be a valid resource id
@@ -3008,13 +3056,15 @@ describe('Folders', () => {
      */
     it('verify an anonymous user cannot set folder members', callback => {
       // Generate a test user and folder to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, bert) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: bert } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Ensure anonymous cannot set the members
           FoldersTestUtil.assertUpdateFolderMembersFails(
             mrvisser.restContext,
-            camAnonymousRestContext,
+            asCambridgeAnonymousUser,
             folder.id,
             _memberUpdate(bert.user.id),
             401,
@@ -3505,8 +3555,9 @@ describe('Folders', () => {
      */
     it('verify get folders library validation', callback => {
       // Generate a user and give them more than 25 folders in their folders library
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 30, () => {
           // Ensure we must provide a valid and existing principal id
           FoldersTestUtil.assertGetFoldersLibraryFails(mrvisser.restContext, 'notavalidid', null, 15, 400, () => {
@@ -3587,8 +3638,9 @@ describe('Folders', () => {
      */
     it('verify get folders library paging', callback => {
       // Generate a user and give them enough folders in their library to page through
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 16, () => {
           // Page items by 1 and ensure we get them all with the correct number of requests
           FoldersTestUtil.getAllFoldersInLibrary(
@@ -3662,8 +3714,9 @@ describe('Folders', () => {
      * does not get triggered due to timeconstraints in the tests
      */
     it('verify updating folder libraries', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
 
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -3683,7 +3736,7 @@ describe('Folders', () => {
 
                 // Trigger a manual update
                 FoldersFolderLibrary.update([simong.user.id, nico.user.id], folder, null, (err, newFolder) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.notStrictEqual(folder.lastModified, newFolder.lastModified);
 
                   // Assert the folders are still in the libraries
@@ -3724,8 +3777,10 @@ describe('Folders', () => {
      */
     it('verify get managed folders', callback => {
       // Generate 2 test users who each have a set of folders
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
+
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, simonsFolder => {
           FoldersTestUtil.generateTestFolders(nico.restContext, 1, nicosFolder => {
             // Nico makes Simon a viewer on his folder
@@ -3737,7 +3792,7 @@ describe('Folders', () => {
               () => {
                 // Only Simon's own folder should be returned as that's the only one he can manage
                 RestAPI.Folders.getManagedFolders(simong.restContext, (err, folders) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(folders.results.length, 1);
                   assert.strictEqual(folders.results[0].id, simonsFolder.id);
 
@@ -3750,7 +3805,7 @@ describe('Folders', () => {
                     () => {
                       // Simon is now a manager of both folders
                       RestAPI.Folders.getManagedFolders(simong.restContext, (err, folders) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.strictEqual(folders.results.length, 2);
                         assert.ok(_.findWhere(folders.results, { id: simonsFolder.id }));
                         assert.ok(_.findWhere(folders.results, { id: nicosFolder.id }));
@@ -3759,7 +3814,7 @@ describe('Folders', () => {
                         FoldersTestUtil.assertDeleteFolderSucceeds(simong.restContext, simonsFolder.id, false, () => {
                           // Only Nico's folder should remain
                           RestAPI.Folders.getManagedFolders(simong.restContext, (err, folders) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(folders.results.length, 1);
                             assert.strictEqual(folders.results[0].id, nicosFolder.id);
                             return callback();
@@ -3781,7 +3836,7 @@ describe('Folders', () => {
      */
     it('verify get managed folders validation', callback => {
       // Anonymous users cannot list their managed folders
-      RestAPI.Folders.getManagedFolders(camAnonymousRestContext, (err, folders) => {
+      RestAPI.Folders.getManagedFolders(asCambridgeAnonymousUser, (err /* , folders */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 401);
         return callback();
@@ -3794,8 +3849,9 @@ describe('Folders', () => {
      * Test that verifies that the parameters are validated when removing a folder from a library
      */
     it('verify remove folder from library validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
           // Invalid principal id
           FoldersTestUtil.assertRemoveFolderFromLibraryFails(
@@ -3839,14 +3895,19 @@ describe('Folders', () => {
      */
     it('verify remove folder from library authorization', callback => {
       // Create some test users and a group
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, bert) => {
-        assert.ok(!err);
-        TestsUtil.generateTestGroups(simong.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico, 2: bert } = users;
+
+        TestsUtil.generateTestGroups(simong.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+
+          let { 0: group } = groups;
           group = group.group;
           const groupUpdates = {};
           groupUpdates[bert.user.id] = 'member';
           RestAPI.Group.setGroupMembers(simong.restContext, group.id, groupUpdates, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Greate a test folder that both simon and the group manage
             FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
@@ -3901,13 +3962,13 @@ describe('Folders', () => {
                                         () => {
                                           // Tenant admins from other tenants cannot remove the folder from the principals their library
                                           FoldersTestUtil.assertRemoveFolderFromLibraryFails(
-                                            gtAdminRestContext,
+                                            asGeorgiaTenantAdmin,
                                             simong.user.id,
                                             folder.id,
                                             401,
                                             () => {
                                               FoldersTestUtil.assertRemoveFolderFromLibraryFails(
-                                                gtAdminRestContext,
+                                                asGeorgiaTenantAdmin,
                                                 group.id,
                                                 folder.id,
                                                 401,
@@ -3939,8 +4000,9 @@ describe('Folders', () => {
      * Test that removing a folder from a library revokes access to all the content that was inside the folder
      */
     it('verify removing a folder from a library revokes access to all the content that was inside the folder', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
 
         // Generate a test folder that both Simon and Nico manage
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
@@ -3960,16 +4022,16 @@ describe('Folders', () => {
                   description: 'test',
                   visibility: PRIVATE,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: null,
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(nico.restContext, folder.id, [link.id], () => {
                     // Simon should now be able to access the private item
                     RestAPI.Content.getContent(simong.restContext, link.id, (err, content) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.strictEqual(content.id, link.id);
 
                       // Simon removes the folder from his library
@@ -3979,7 +4041,7 @@ describe('Folders', () => {
                         folder.id,
                         () => {
                           // Simon should no longer be able to access the private content item
-                          RestAPI.Content.getContent(simong.restContext, link.id, (err, content) => {
+                          RestAPI.Content.getContent(simong.restContext, link.id, (err /* , content */) => {
                             assert.strictEqual(err.code, 401);
                             return callback();
                           });
@@ -3999,8 +4061,9 @@ describe('Folders', () => {
      * Test that verifies that a folder cannot end up with 0 managers
      */
     it('verify a folder cannot end up with 0 managers', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
 
         // Generate a test folder that only Simon manages
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, folder => {
@@ -4023,23 +4086,24 @@ describe('Folders', () => {
      */
     it('verify adding a single item to a folder', callback => {
       // Generate a user and give them a folder
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Create a content item that mrvisser will add to his folder
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test',
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure Mrvisser can add the item to his folder
               return FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -4059,75 +4123,76 @@ describe('Folders', () => {
      */
     it('verify adding multiple items to a folder', callback => {
       // Generate a user and give them a folder
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Create 5 content items to add to the folder
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test',
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link1) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createLink(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 {
                   displayName: 'test',
                   description: 'test',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: null,
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link2) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
                     {
                       displayName: 'test',
                       description: 'test',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: null,
-                      viewers: null,
-                      folders: []
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
+                      folders: NO_FOLDERS
                     },
                     (err, link3) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       RestAPI.Content.createLink(
-                        camAdminRestContext,
+                        asCambridgeTenantAdmin,
                         {
                           displayName: 'test',
                           description: 'test',
                           visibility: PUBLIC,
                           link: 'http://www.google.ca',
-                          managers: null,
-                          viewers: null,
-                          folders: []
+                          managers: NO_MANAGERS,
+                          viewers: NO_VIEWERS,
+                          folders: NO_FOLDERS
                         },
                         (err, link4) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           RestAPI.Content.createLink(
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
                             {
                               displayName: 'test',
                               description: 'test',
                               visibility: PUBLIC,
                               link: 'http://www.google.ca',
-                              managers: null,
-                              viewers: null,
-                              folders: []
+                              managers: NO_MANAGERS,
+                              viewers: NO_VIEWERS,
+                              folders: NO_FOLDERS
                             },
                             (err, link5) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Ensure Mrvisser can add all the items to his folder
                               return FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -4156,7 +4221,7 @@ describe('Folders', () => {
     it('verify only administrators and managers of folders can add content items to them', callback => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1) => {
         RestAPI.User.getMe(publicTenant.adminRestContext, (err, publicTenantAdminMe) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Ensure anonymous, regular user, admin from another tenant all cannot add a content item to the folder
           FoldersTestUtil.assertAddContentItemsToFolderFails(
@@ -4239,7 +4304,7 @@ describe('Folders', () => {
     it('verify add items to folder authorization for an administrator', callback => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant) => {
         RestAPI.User.getMe(publicTenant.adminRestContext, (err, publicTenantAdminMe) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Admin removes themself from managing each folder while adding a user. This is
           // to ensure the test is accurate by admin having no explicit manage access
@@ -4470,7 +4535,7 @@ describe('Folders', () => {
                                                           publicTenant.privateContent.id,
                                                           contentMemberUpdate,
                                                           err => {
-                                                            assert.ok(!err);
+                                                            assert.notExists(err);
                                                             FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
                                                               publicTenant.publicUser.restContext,
                                                               publicTenant.publicFolder.id,
@@ -4587,22 +4652,23 @@ describe('Folders', () => {
      */
     it('verify folders propagate user permission to content items that belong to them', callback => {
       // Create mrvisser, a folder that he manages, and a private content item that he does not have access to
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test',
               description: 'test',
               visibility: PRIVATE,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Sanity check that mrvisser has no access to the content item
               RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
@@ -4610,28 +4676,33 @@ describe('Folders', () => {
                 assert.strictEqual(err.code, 401);
 
                 // Add the link to the folder
-                FoldersTestUtil.assertAddContentItemsToFolderSucceeds(camAdminRestContext, folder.id, [link.id], () => {
-                  // Ensure that Mrvisser now has access to view the link
-                  RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
-                    assert.ok(!err);
+                FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
+                  asCambridgeTenantAdmin,
+                  folder.id,
+                  [link.id],
+                  () => {
+                    // Ensure that Mrvisser now has access to view the link
+                    RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
+                      assert.notExists(err);
 
-                    // Remove the content item from the folder
-                    FoldersTestUtil.assertRemoveContentItemsFromFolderSucceeds(
-                      camAdminRestContext,
-                      folder.id,
-                      [link.id],
-                      () => {
-                        // Ensure that Mrvisser lost his access to view the link
-                        RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 401);
+                      // Remove the content item from the folder
+                      FoldersTestUtil.assertRemoveContentItemsFromFolderSucceeds(
+                        asCambridgeTenantAdmin,
+                        folder.id,
+                        [link.id],
+                        () => {
+                          // Ensure that Mrvisser lost his access to view the link
+                          RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
+                            assert.ok(err);
+                            assert.strictEqual(err.code, 401);
 
-                          return callback();
-                        });
-                      }
-                    );
-                  });
-                });
+                            return callback();
+                          });
+                        }
+                      );
+                    });
+                  }
+                );
               });
             }
           );
@@ -4644,46 +4715,50 @@ describe('Folders', () => {
      */
     it('verify folders propagate group permission to content items that belong to them', callback => {
       // Generate 2 test users and folder. mrvisser will be given access to the private link via a group and folder permissions chain
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        assert.ok(!err);
-        FoldersTestUtil.generateTestFolders(camAdminRestContext, 1, folder => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser, 1: simong } = users;
+        FoldersTestUtil.generateTestFolders(asCambridgeTenantAdmin, 1, folder => {
           // Create the private link to which will give mrvisser access VIA group and folder permissions chain
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test',
               description: 'test',
               visibility: PRIVATE,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Generate an hierarchy of groups through which access will be propagated down to the user
-              TestsUtil.generateTestGroups(camAdminRestContext, 3, (group1, group2, group3) => {
+              TestsUtil.generateTestGroups(asCambridgeTenantAdmin, 3, (err, groups) => {
+                assert.notExists(err);
+                const { 0: group1, 1: group2, 2: group3 } = groups;
+
                 TestsUtil.generateGroupHierarchy(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   [group1.group.id, group2.group.id, group3.group.id, mrvisser.user.id],
                   'member',
                   err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Add simong to the parent group to sanity check permissions will not propagate the wrong way through groups
                     RestAPI.Group.setGroupMembers(
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
                       group1.group.id,
                       _memberUpdate(simong.user.id, 'member'),
                       err => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Add group2 as a member of the folder. This implies that group1 and it's members (the parent of group2) will not receive
                         // access when the link is added to the folder
                         FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-                          camAdminRestContext,
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
+                          asCambridgeTenantAdmin,
                           folder.id,
                           _memberUpdate(group2),
                           () => {
@@ -4698,13 +4773,13 @@ describe('Folders', () => {
 
                                 // Finally add the link to the folder
                                 FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
-                                  camAdminRestContext,
+                                  asCambridgeTenantAdmin,
                                   folder.id,
                                   [link.id],
                                   () => {
                                     // Ensure mrvisser now has access by permission chain: link -> folder -> group1 -> group2 -> group3 -> mrvisser
                                     RestAPI.Content.getContent(mrvisser.restContext, link.id, err => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
 
                                       // Sanity check that the reverse chain did not propagate access to simong
                                       RestAPI.Content.getContent(simong.restContext, link.id, err => {
@@ -4713,7 +4788,7 @@ describe('Folders', () => {
 
                                         // Remove the link from the folder
                                         FoldersTestUtil.assertRemoveContentItemsFromFolderSucceeds(
-                                          camAdminRestContext,
+                                          asCambridgeTenantAdmin,
                                           folder.id,
                                           [link.id],
                                           () => {
@@ -4752,23 +4827,25 @@ describe('Folders', () => {
      */
     it('verify removing a single item from a folder', callback => {
       // Generate a user and give them a folder
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Create a content item that mrvisser will add to his folder
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test',
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure Mrvisser can add the item to his folder
               FoldersTestUtil.assertAddContentItemsToFolderSucceeds(mrvisser.restContext, folder.id, [link.id], () => {
@@ -4791,75 +4868,77 @@ describe('Folders', () => {
      */
     it('verify removing multiple items from a folder', callback => {
       // Generate a user and give them a folder
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
+
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 1, folder => {
           // Create 5 content items to add to the folder
           RestAPI.Content.createLink(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             {
               displayName: 'test1',
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link1) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createLink(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 {
                   displayName: 'test2',
                   description: 'test',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: null,
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link2) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
                     {
                       displayName: 'test3',
                       description: 'test',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: null,
-                      viewers: null,
-                      folders: []
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
+                      folders: NO_FOLDERS
                     },
                     (err, link3) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       RestAPI.Content.createLink(
-                        camAdminRestContext,
+                        asCambridgeTenantAdmin,
                         {
                           displayName: 'test4',
                           description: 'test',
                           visibility: PUBLIC,
                           link: 'http://www.google.ca',
-                          managers: null,
-                          viewers: null,
-                          folders: []
+                          managers: NO_MANAGERS,
+                          viewers: NO_VIEWERS,
+                          folders: NO_FOLDERS
                         },
                         (err, link4) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           RestAPI.Content.createLink(
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
                             {
                               displayName: 'test5',
                               description: 'test',
                               visibility: PUBLIC,
                               link: 'http://www.google.ca',
-                              managers: null,
-                              viewers: null,
-                              folders: []
+                              managers: NO_MANAGERS,
+                              viewers: NO_VIEWERS,
+                              folders: NO_FOLDERS
                             },
                             (err, link5) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Ensure Mrvisser can add all the items to his folder
                               FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -4874,18 +4953,15 @@ describe('Folders', () => {
                                     [link1.id, link2.id],
                                     () => {
                                       // Ensure that the other 3 items are still there
-                                      FoldersTestUtil.getAllFolderContentItems(
-                                        mrvisser.restContext,
-                                        folder.id,
-                                        null,
-                                        (contentItems, responses) => {
-                                          assert.strictEqual(contentItems.length, 3);
-                                          assert.ok(_.findWhere(contentItems, { id: link3.id }));
-                                          assert.ok(_.findWhere(contentItems, { id: link4.id }));
-                                          assert.ok(_.findWhere(contentItems, { id: link5.id }));
-                                          return callback();
-                                        }
-                                      );
+                                      FoldersTestUtil.getAllFolderContentItems(mrvisser.restContext, folder.id, null, (
+                                        contentItems /* , responses */
+                                      ) => {
+                                        assert.lengthOf(contentItems, 3);
+                                        assert.ok(_.findWhere(contentItems, { id: link3.id }));
+                                        assert.ok(_.findWhere(contentItems, { id: link4.id }));
+                                        assert.ok(_.findWhere(contentItems, { id: link5.id }));
+                                        return callback();
+                                      });
                                     }
                                   );
                                 }
@@ -4910,7 +4986,7 @@ describe('Folders', () => {
     it('verify only administrators and managers of folders can remove content items from a folder', callback => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1) => {
         RestAPI.User.getMe(publicTenant.adminRestContext, (err, publicTenantAdminMe) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Stick the all the content items from the public tenant in the private folder
           FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -5009,8 +5085,10 @@ describe('Folders', () => {
          Test that verifies the authorization of listing a folder's content library
          */
     it('verify get folder content library authorization', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
+
         FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
           // Create some content and add it to the folder
           RestAPI.Content.createLink(
@@ -5020,12 +5098,12 @@ describe('Folders', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: [],
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
               folders: [folder.id]
             },
             (err, link1) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createLink(
                 simong.restContext,
                 {
@@ -5033,12 +5111,12 @@ describe('Folders', () => {
                   description: 'test',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: [],
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
                   folders: [folder.id]
                 },
                 (err, link2) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
                     simong.restContext,
                     {
@@ -5046,16 +5124,16 @@ describe('Folders', () => {
                       description: 'test',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: null,
-                      viewers: [],
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
                       folders: [folder.id]
                     },
                     (err, link3) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Only Simon and the cambridge tenant admin should be able to view the folder's content library
                       FoldersTestUtil.assertGetFolderContentLibraryFails(
-                        camAnonymousRestContext,
+                        asCambridgeAnonymousUser,
                         folder.id,
                         null,
                         null,
@@ -5069,7 +5147,7 @@ describe('Folders', () => {
                             401,
                             () => {
                               FoldersTestUtil.assertGetFolderContentLibraryFails(
-                                gtAdminRestContext,
+                                asGeorgiaTenantAdmin,
                                 folder.id,
                                 null,
                                 null,
@@ -5081,7 +5159,7 @@ describe('Folders', () => {
                                     [link1.id, link2.id, link3.id],
                                     () => {
                                       FoldersTestUtil.assertFolderEquals(
-                                        camAdminRestContext,
+                                        asCambridgeTenantAdmin,
                                         folder.id,
                                         [link1.id, link2.id, link3.id],
                                         callback
@@ -5109,14 +5187,14 @@ describe('Folders', () => {
      */
     it('verify get folder content validation', callback => {
       FoldersTestUtil.assertGetFolderContentLibraryFails(
-        camAnonymousRestContext,
+        asCambridgeAnonymousUser,
         'not a folder id',
         null,
         null,
         400,
         () => {
           FoldersTestUtil.assertGetFolderContentLibraryFails(
-            camAnonymousRestContext,
+            asCambridgeAnonymousUser,
             'f:camtest:notexisting',
             null,
             null,
@@ -5136,8 +5214,9 @@ describe('Folders', () => {
      */
     it('verify folder ids can be specified when creating content', callback => {
       // Create a test user with which to do stuff
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
 
         // Create a few folders to which we'll add some content items
         FoldersTestUtil.generateTestFolders(simong.restContext, 3, (folder1, folder2, folder3) => {
@@ -5151,12 +5230,12 @@ describe('Folders', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: [],
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
               folders: folderIds
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createCollabDoc(
                 simong.restContext,
                 'test',
@@ -5167,7 +5246,7 @@ describe('Folders', () => {
                 [],
                 folderIds,
                 (err, collabDoc) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createFile(
                     simong.restContext,
                     {
@@ -5175,12 +5254,12 @@ describe('Folders', () => {
                       description: 'test',
                       PUBLIC,
                       file: _getFileStream,
-                      managers: null,
-                      viewers: [],
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
                       folders: folderIds
                     },
                     (err, file) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Assert that each folder contains all the content items
                       const contentIds = [link.id, collabDoc.id, file.id];
@@ -5204,8 +5283,9 @@ describe('Folders', () => {
      */
     it('verify a content item that belongs to folders and has groups as members can list their members', callback => {
       // Create a test user with which to do stuff
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: mrvisser } = users;
 
         // Create a few folders that a content item will be added to
         FoldersTestUtil.generateTestFolders(mrvisser.restContext, 3, function(...args) {
@@ -5213,30 +5293,35 @@ describe('Folders', () => {
 
           // Create a few groups that will be added as a member of the content item
           TestsUtil.generateTestGroups(mrvisser.restContext, 3, function(...args) {
+            assert.ok(!head(args));
+
+            const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
+            /*
             const groupIds = _.chain(args)
               .pluck('group')
               .pluck('id')
               .value();
+              */
 
             // Create a content item to add to the folders
             RestAPI.Content.createLink(
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
               {
                 displayName: 'test',
                 description: 'test',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: null,
+                managers: NO_MANAGERS,
                 viewers: groupIds,
-                folders: []
+                folders: NO_FOLDERS
               },
               (err, link) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 FoldersTestUtil.assertAddContentItemToFoldersSucceeds(mrvisser.restContext, folderIds, link.id, () => {
                   // Ensure we can get the members of the content item
-                  RestAPI.Content.getMembers(mrvisser.restContext, link.id, null, null, (err, result) => {
-                    assert.ok(!err);
+                  RestAPI.Content.getMembers(mrvisser.restContext, link.id, null, null, (err /* , result */) => {
+                    assert.notExists(err);
                     return callback();
                   });
                 });
@@ -5252,8 +5337,9 @@ describe('Folders', () => {
      */
     it('verify content visibility updates rebuild folder libraries', callback => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1) => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: simong } = users;
 
           // Create a content item to add to the folder
           RestAPI.Content.createLink(
@@ -5263,12 +5349,12 @@ describe('Folders', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Add simon as member to the collection
               const memberUpdates = {};
@@ -5278,6 +5364,7 @@ describe('Folders', () => {
                 publicTenant.publicFolder.id,
                 memberUpdates,
                 err => {
+                  assert.notExists(err);
                   // Add the link to the public folder
                   FoldersTestUtil.assertAddContentItemToFoldersSucceeds(
                     publicTenant.adminRestContext,
@@ -5296,7 +5383,7 @@ describe('Folders', () => {
                             [link.id],
                             () => {
                               FoldersTestUtil.assertFolderEquals(
-                                camAnonymousRestContext,
+                                asCambridgeAnonymousUser,
                                 publicTenant.publicFolder.id,
                                 [link.id],
                                 () => {
@@ -5311,7 +5398,7 @@ describe('Folders', () => {
                                         link.id,
                                         { visibility: 'loggedin' },
                                         err => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
                                           FoldersLibrary.whenAllPurged(() => {
                                             // The users from the other tenant can no longer see the content item
                                             FoldersTestUtil.assertFolderEquals(
@@ -5325,7 +5412,7 @@ describe('Folders', () => {
                                                   [],
                                                   () => {
                                                     FoldersTestUtil.assertFolderEquals(
-                                                      camAnonymousRestContext,
+                                                      asCambridgeAnonymousUser,
                                                       publicTenant.publicFolder.id,
                                                       [],
                                                       () => {
@@ -5340,7 +5427,7 @@ describe('Folders', () => {
                                                               link.id,
                                                               { visibility: 'private' },
                                                               err => {
-                                                                assert.ok(!err);
+                                                                assert.notExists(err);
                                                                 FoldersLibrary.whenAllPurged(() => {
                                                                   // Only members of the folder can see the link in the folder
                                                                   FoldersTestUtil.assertFolderEquals(
@@ -5354,7 +5441,7 @@ describe('Folders', () => {
                                                                         [],
                                                                         () => {
                                                                           FoldersTestUtil.assertFolderEquals(
-                                                                            camAnonymousRestContext,
+                                                                            asCambridgeAnonymousUser,
                                                                             publicTenant.publicFolder.id,
                                                                             [],
                                                                             () => {
@@ -5410,8 +5497,9 @@ describe('Folders', () => {
      */
     it('verify removing a content item from the system removes it from the folders', callback => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1) => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: simong } = users;
 
           // Create a content item to add to the folder
           RestAPI.Content.createLink(
@@ -5421,12 +5509,12 @@ describe('Folders', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Add simon as member to the collection
               const memberUpdates = {};
@@ -5436,6 +5524,7 @@ describe('Folders', () => {
                 publicTenant.publicFolder.id,
                 memberUpdates,
                 err => {
+                  assert.notExists(err);
                   // Add the link to the public folder
                   FoldersTestUtil.assertAddContentItemToFoldersSucceeds(
                     publicTenant.adminRestContext,
@@ -5454,7 +5543,7 @@ describe('Folders', () => {
                             [link.id],
                             () => {
                               FoldersTestUtil.assertFolderEquals(
-                                camAnonymousRestContext,
+                                asCambridgeAnonymousUser,
                                 publicTenant.publicFolder.id,
                                 [link.id],
                                 () => {
@@ -5465,7 +5554,7 @@ describe('Folders', () => {
                                     () => {
                                       // Delete the link
                                       RestAPI.Content.deleteContent(publicTenant.adminRestContext, link.id, err => {
-                                        assert.ok(!err);
+                                        assert.notExists(err);
 
                                         FoldersLibrary.whenAllPurged(() => {
                                           // It should be removed from all the libraries
@@ -5480,7 +5569,7 @@ describe('Folders', () => {
                                                 [],
                                                 () => {
                                                   FoldersTestUtil.assertFolderEquals(
-                                                    camAnonymousRestContext,
+                                                    asCambridgeAnonymousUser,
                                                     publicTenant.publicFolder.id,
                                                     [],
                                                     () => {
@@ -5495,7 +5584,7 @@ describe('Folders', () => {
                                                             'public',
                                                             {},
                                                             (err, contentIds, nextToken) => {
-                                                              assert.ok(!err);
+                                                              assert.notExists(err);
                                                               assert.strictEqual(contentIds.length, 0);
                                                               assert.ok(!nextToken);
                                                               return callback();

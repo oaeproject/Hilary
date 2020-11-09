@@ -13,24 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+import { forEach, length, keys } from 'ramda';
+
 describe('Principals DAO', () => {
-  // Rest contexts that will be used for requests
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
@@ -41,40 +39,42 @@ describe('Principals DAO', () => {
      */
     it('verify updating email address retains duplicate email mappings', callback => {
       // Create 2 users whose email address will be the same
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        assert.ok(!err);
-        const { email } = mrvisser.user;
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        // Change Simon's email to be the same as mrvisser
+        const { 0: homer, 1: marge } = users;
+        const { email } = homer.user;
+
+        // Change Marge's email to be the same as Homer
         PrincipalsTestUtil.assertUpdateUserSucceeds(
-          simong.restContext,
-          simong.user.id,
+          marge.restContext,
+          marge.user.id,
           { email },
           (simong1, emailToken) => {
-            PrincipalsTestUtil.assertVerifyEmailSucceeds(simong.restContext, simong.user.id, emailToken, () => {
+            PrincipalsTestUtil.assertVerifyEmailSucceeds(marge.restContext, marge.user.id, emailToken, () => {
               // Ensure both users are represented in the user email mapping for the email
               PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 const ids = userIdsByEmail[email];
-                assert.ok(_.isArray(ids));
-                assert.strictEqual(_.size(ids), 2);
-                assert.ok(_.contains(ids, mrvisser.user.id));
-                assert.ok(_.contains(ids, simong.user.id));
+                assert.isArray(ids);
+                assert.lengthOf(ids, 2);
+                assert.include(ids, homer.user.id);
+                assert.include(ids, marge.user.id);
 
-                // Now change simong's email to something else using the DAO
+                // Now change marge's email to something else using the DAO
                 const email1 = TestsUtil.generateTestEmailAddress().toLowerCase();
-                PrincipalsDAO.updatePrincipal(simong.user.id, { email: email1 }, err => {
-                  assert.ok(!err);
+                PrincipalsDAO.updatePrincipal(marge.user.id, { email: email1 }, err => {
+                  assert.notExists(err);
 
-                  // Ensure mrvisser's email entry still has him mapped
+                  // Ensure homer's email entry still has him mapped
                   PrincipalsDAO.getUserIdsByEmails([email], (err, userIdsByEmail) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     const ids = userIdsByEmail[email];
-                    assert.ok(_.isArray(ids));
-                    assert.strictEqual(_.size(ids), 1);
-                    assert.strictEqual(ids[0], mrvisser.user.id);
+                    assert.isArray(ids);
+                    assert.lengthOf(ids, 1);
+                    assert.strictEqual(ids[0], homer.user.id);
                     return callback();
                   });
                 });
@@ -90,16 +90,17 @@ describe('Principals DAO', () => {
      * updatePrincipal.
      */
     it('verify it does not allow setting of restricted fields', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        let { 0: mrvisser } = users;
         mrvisser = mrvisser.user;
 
         // Sanity check valid update first
         PrincipalsDAO.updatePrincipal(mrvisser.id, { publicAlias: 'haha' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           PrincipalsDAO.getPrincipal(mrvisser.id, (err, mrvisserRaw) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(mrvisserRaw.publicAlias, 'haha');
 
             PrincipalsDAO.updatePrincipal(mrvisser.id, { 'admin:tenant': true }, err => {
@@ -131,18 +132,19 @@ describe('Principals DAO', () => {
      */
     it('verify it does not set the lastModified field', callback => {
       // Create a user to update
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        let { 0: mrvisser } = users;
         mrvisser = mrvisser.user;
 
         // Update the user using the DAO directly
         const prevLastModified = mrvisser.lastModified;
         PrincipalsDAO.updatePrincipal(mrvisser.id, { publicAlias: 'haha' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Get the user to ensure their lastModified has not changed
-          PrincipalsDAO.getPrincipal(mrvisser.id, (err, mrvisserRow) => {
-            assert.ok(!err);
+          PrincipalsDAO.getPrincipal(mrvisser.id, (err /* , mrvisserRow */) => {
+            assert.notExists(err);
             assert.strictEqual(prevLastModified, mrvisser.lastModified);
             return callback();
           });
@@ -156,11 +158,11 @@ describe('Principals DAO', () => {
      * Test that verifies the iterateAll functionality of the principal DAO
      */
     it('verify PrincipalsDAO iterateAll functionality', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
 
-        const mrvisser = users[_.keys(users)[0]].user;
-        const mrvisserRestCtx = users[_.keys(users)[0]].restContext;
+        let { 0: mrvisser } = users;
+        mrvisser = mrvisser.user;
         let foundUser = false;
 
         /*!
@@ -168,9 +170,9 @@ describe('Principals DAO', () => {
          */
         const _onEach = function(principalRows, done) {
           // Ensure we only get the principalId of the users
-          _.each(principalRows, principalRow => {
+          forEach(principalRow => {
             assert.strictEqual(
-              _.keys(principalRow).length,
+              length(keys(principalRow)),
               1,
               'Expected to have only one key on the principal row, the principal id'
             );
@@ -180,12 +182,15 @@ describe('Principals DAO', () => {
             if (principalRow.principalId === mrvisser.id) {
               foundUser = true;
             }
-          });
+          }, principalRows);
 
           done();
         };
 
-        // Ensure that passing in `null` will result in only the principalId being returned from the principal rows
+        /**
+         * Ensure that passing in `null` will result in only the principalId
+         * being returned from the principal rows
+         */
         PrincipalsDAO.iterateAll(null, 100, _onEach, err => {
           assert.ok(!err, JSON.stringify(err, null, 4));
           assert.ok(foundUser, 'Expected to find the user we just created');
@@ -197,9 +202,9 @@ describe('Principals DAO', () => {
            */
           const _onEach = function(principalRows, done) {
             // Ensure we only get the principalId and displayName of the principal
-            _.each(principalRows, principalRow => {
+            forEach(principalRow => {
               assert.strictEqual(
-                _.keys(principalRow).length,
+                length(keys(principalRow)),
                 2,
                 'Expected to have only two keys on the principal row, the principal id and displayName'
               );
@@ -211,7 +216,7 @@ describe('Principals DAO', () => {
                 assert.strictEqual(principalRow.displayName, mrvisser.displayName);
                 foundUser = true;
               }
-            });
+            }, principalRows);
 
             done();
           };
@@ -220,7 +225,8 @@ describe('Principals DAO', () => {
           PrincipalsDAO.iterateAll(['principalId', 'displayName'], 100, _onEach, err => {
             assert.ok(!err, JSON.stringify(err, null, 4));
             assert.ok(foundUser, 'Expected to find the user we just created');
-            callback();
+
+            return callback();
           });
         });
       });
@@ -230,64 +236,58 @@ describe('Principals DAO', () => {
      * Test that verifies created user appears in PrincipalsDAO.iterateAll
      */
     it('verify newly created principals are returned in iterateAll', callback => {
-      // Create a user to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        user = _.values(user)[0];
+      // Stores how many principals were in the database before we created a new one
+      let numPrincipalsOrig = 0;
 
-        const testUsername = TestsUtil.generateTestUserId();
-
-        // Stores how many principals were in the database before we created a new one
-        let numPrincipalsOrig = 0;
-
-        // Count how many principals we currently have in the database
-        PrincipalsDAO.iterateAll(
-          null,
-          1000,
-          (principalRows, done) => {
-            if (principalRows) {
-              numPrincipalsOrig += principalRows.length;
-            }
-
-            return done();
-          },
-          err => {
-            assert.ok(!err);
-
-            // Create one new one, and ensure the new number of principals is numPrincipalsOrig + 1
-            TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, createdUser) => {
-              assert.ok(!err);
-
-              let numPrincipalsAfter = 0;
-              let hasNewPrincipal = false;
-
-              // Count the principals we have now, and ensure we iterate over the new user
-              PrincipalsDAO.iterateAll(
-                null,
-                1000,
-                (principalRows, done) => {
-                  if (principalRows) {
-                    numPrincipalsAfter += principalRows.length;
-                    _.each(principalRows, principalRow => {
-                      if (principalRow.principalId === createdUser.user.id) {
-                        hasNewPrincipal = true;
-                      }
-                    });
-                  }
-
-                  return done();
-                },
-                err => {
-                  assert.ok(!err);
-                  assert.strictEqual(numPrincipalsOrig + 1, numPrincipalsAfter);
-                  assert.ok(hasNewPrincipal);
-                  return callback();
-                }
-              );
-            });
+      // Count how many principals we currently have in the database
+      PrincipalsDAO.iterateAll(
+        null,
+        1000,
+        (principalRows, done) => {
+          if (principalRows) {
+            numPrincipalsOrig += principalRows.length;
           }
-        );
-      });
+
+          return done();
+        },
+        err => {
+          assert.notExists(err);
+
+          // Create one new one, and ensure the new number of principals is numPrincipalsOrig + 1
+          TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+            assert.notExists(err);
+
+            const { 0: createdUser } = users;
+
+            let numPrincipalsAfter = 0;
+            let hasNewPrincipal = false;
+
+            // Count the principals we have now, and ensure we iterate over the new user
+            PrincipalsDAO.iterateAll(
+              null,
+              1000,
+              (principalRows, done) => {
+                if (principalRows) {
+                  numPrincipalsAfter += principalRows.length;
+                  forEach(principalRow => {
+                    if (principalRow.principalId === createdUser.user.id) {
+                      hasNewPrincipal = true;
+                    }
+                  }, principalRows);
+                }
+
+                return done();
+              },
+              err => {
+                assert.notExists(err);
+                assert.strictEqual(numPrincipalsOrig + 1, numPrincipalsAfter);
+                assert.ok(hasNewPrincipal);
+                return callback();
+              }
+            );
+          });
+        }
+      );
     });
   });
 });

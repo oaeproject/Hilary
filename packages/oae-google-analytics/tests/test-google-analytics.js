@@ -13,26 +13,35 @@
  * visibilitys and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
+import { path } from 'ramda';
+
+const { generateTestUsers, createTenantRestContext, createTenantAdminRestContext } = TestsUtil;
+const { getTenantConfig } = RestAPI.Config;
+const googleAnalyticsSettings = path(['oae-google-analytics', 'google-analytics']);
+
 describe('Google Analytics', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
-  let anonymousRestContext = null;
+  let asCambridgeAnonymousUser = null;
+
   // Rest context that can be used every time we need to make a request as a tenant admin
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /**
    * Function that initializes the REST contexts
    */
   before(callback => {
     // Fill up the rest context for the anonymous user
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+
     // Fill up the rest context for the admin tenant
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    callback();
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+
+    return callback();
   });
 
   /**
@@ -40,36 +49,41 @@ describe('Google Analytics', () => {
    */
   it('verify the config feed contains Google Analytics config values', callback => {
     // Create a regular user
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, john) => {
-      assert.ok(!err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: johnDoe } = users;
 
       // Check that the Google Analytics config values are available in the config feed for a regular user
-      RestAPI.Config.getTenantConfig(john.restContext, null, (err, config) => {
-        assert.ok(!err);
-        assert.ok(config);
-        assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalEnabled, false);
-        assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalTrackingId, '');
-        assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantEnabled, false);
-        assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantTrackingId, '');
+      getTenantConfig(johnDoe.restContext, null, (err, config) => {
+        assert.notExists(err);
+        assert.exists(config);
+
+        assert.isFalse(googleAnalyticsSettings(config).globalEnabled);
+        assert.isEmpty(googleAnalyticsSettings(config).globalTrackingId);
+        assert.isFalse(googleAnalyticsSettings(config).tenantEnabled);
+        assert.isEmpty(googleAnalyticsSettings(config).tenantTrackingId);
 
         // Check that the Google Analytics config values are available in the config feed for a tenant admin
-        RestAPI.Config.getTenantConfig(camAdminRestContext, null, (err, config) => {
-          assert.ok(!err);
-          assert.ok(config);
-          assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalEnabled, false);
-          assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalTrackingId, '');
-          assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantEnabled, false);
-          assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantTrackingId, '');
+        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
+          assert.notExists(err);
+          assert.exists(config);
+
+          assert.isFalse(googleAnalyticsSettings(config).globalEnabled);
+          assert.isEmpty(googleAnalyticsSettings(config).globalTrackingId);
+          assert.isFalse(googleAnalyticsSettings(config).tenantEnabled);
+          assert.isEmpty(googleAnalyticsSettings(config).tenantTrackingId);
 
           // Check that the Google Analytics config values are available in the config feed for an anonymous user
-          RestAPI.Config.getTenantConfig(anonymousRestContext, null, (err, config) => {
-            assert.ok(!err);
-            assert.ok(config);
-            assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalEnabled, false);
-            assert.strictEqual(config['oae-google-analytics']['google-analytics'].globalTrackingId, '');
-            assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantEnabled, false);
-            assert.strictEqual(config['oae-google-analytics']['google-analytics'].tenantTrackingId, '');
-            callback();
+          getTenantConfig(asCambridgeAnonymousUser, null, (err, config) => {
+            assert.notExists(err);
+            assert.exists(config);
+
+            assert.isFalse(googleAnalyticsSettings(config).globalEnabled);
+            assert.isEmpty(googleAnalyticsSettings(config).globalTrackingId);
+            assert.isFalse(googleAnalyticsSettings(config).tenantEnabled);
+            assert.isEmpty(googleAnalyticsSettings(config).tenantTrackingId);
+
+            return callback();
           });
         });
       });

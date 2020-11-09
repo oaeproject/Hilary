@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as MqTestsUtil from 'oae-util/lib/test/mq-util';

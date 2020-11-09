@@ -8,6 +8,12 @@ aliases:
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
     working_directory: ~/Hilary
+  - &setup_custom_hosts
+    run:
+      name: Setup customs hosts
+      command: |
+        printf "127.0.0.1 cambridge.oae.com" >> /etc/hosts
+        printf "127.0.0.1 gt.oae.com" >> /etc/hosts
   - &install_system_dependencies
     run:
       name: Install system dependencies
@@ -116,6 +122,7 @@ jobs:
     steps:
       - setup_remote_docker
       - *install_system_dependencies
+      - *setup_custom_hosts
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
@@ -136,6 +143,7 @@ jobs:
     steps:
       - setup_remote_docker
       - *install_system_dependencies
+      - *setup_custom_hosts
       - checkout
       - run: git submodule sync
       - run: git submodule update --init

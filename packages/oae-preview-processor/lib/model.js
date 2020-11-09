@@ -156,7 +156,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {Function}   callback        Standard callback function
    * @param  {Object}     callback.err    An error that occurred, if any
    */
-  that.getContentData = function(callback) {
+  that.getContentData = callback => {
     RestAPI.Content.getContent(that.tenantRestContext, contentId, (err, content) => {
       if (err) {
         log().error({ err, contentId }, 'Could not get the content profile.');
@@ -175,7 +175,7 @@ const PreviewContext = function(config, contentId, revisionId) {
         // Stick the revision on the context.
         that.revision = revision;
 
-        callback();
+        return callback();
       });
     });
   };

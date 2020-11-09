@@ -27,8 +27,6 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as LibraryAPI from 'oae-library';
 
-const { filterOr, filterAnd, filterTerm, filterTerms, createHasChildQuery } = SearchUtil;
-
 /**
  * Register a search that searches through a user or group library.
  *

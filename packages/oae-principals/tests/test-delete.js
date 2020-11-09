@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
+
+import { isNil, reject, map, path, last } from 'ramda';
 
 import * as FollowingTestUtil from 'oae-following/lib/test/util';
 import * as Redis from 'oae-util/lib/redis';
@@ -27,26 +29,26 @@ import * as DisableUsersMigration from '../../../etc/migration/disable_users_fro
 
 describe('Principals Delete and Restore', () => {
   // Rest context that can be used to perform requests as different types of users
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
-  let gtAdminRestContext = null;
-  let globalAdminRestContext = null;
-  let globalAdminOnTenantRestContext = null;
+  let asCambridgeAnonymousUser = null;
+  let asCambridgeTenantAdmin = null;
+  let asGeorgiaTechTenantAdmin = null;
+  let asGlobalAdmin = null;
+  let asGlobalAdminOnLocalhost = null;
 
   /**
    * Function that will create a user that will be used inside of the tests
    */
   before(callback => {
     // Create all the REST contexts before each test
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asGeorgiaTechTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
 
     // Log the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
-    RestAPI.Admin.loginOnTenant(globalAdminRestContext, 'localhost', null, (err, ctx) => {
-      assert.ok(!err);
-      globalAdminOnTenantRestContext = ctx;
+    RestAPI.Admin.loginOnTenant(asGlobalAdmin, 'localhost', null, (err, ctx) => {
+      assert.notExists(err);
+      asGlobalAdminOnLocalhost = ctx;
       return callback();
     });
   });
@@ -95,18 +97,10 @@ describe('Principals Delete and Restore', () => {
      * Test that verifies that only functions can be registered to handle deletes and restores
      */
     it('verify registering non-function delete and restore handlers fails', callback => {
-      assert.throws(() => {
-        PrincipalsDelete.registerGroupDeleteHandler('test-throws-nonfunction');
-      });
-      assert.throws(() => {
-        PrincipalsDelete.registerGroupDeleteHandler('test-throws-nonfunction', 'not-a-function');
-      });
-      assert.throws(() => {
-        PrincipalsDelete.registerGroupRestoreHandler('test-throws-nonfunction');
-      });
-      assert.throws(() => {
-        PrincipalsDelete.registerGroupRestoreHandler('test-throws-nonfunction', 'not-a-function');
-      });
+      assert.throws(() => PrincipalsDelete.registerGroupDeleteHandler('test-throws-nonfunction'));
+      assert.throws(() => PrincipalsDelete.registerGroupDeleteHandler('test-throws-nonfunction', 'not-a-function'));
+      assert.throws(() => PrincipalsDelete.registerGroupRestoreHandler('test-throws-nonfunction'));
+      assert.throws(() => PrincipalsDelete.registerGroupRestoreHandler('test-throws-nonfunction', 'not-a-function'));
       return callback();
     });
   });
@@ -117,8 +111,12 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify validation of deleting a group', callback => {
       // Create a user and a group with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           // Ensure combinations of invalid group ids result in a 400
           PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'not-an-id', 400, () => {
             PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'u:oae:not-a-group-id', 400, () => {
@@ -126,7 +124,7 @@ describe('Principals Delete and Restore', () => {
               PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'g:cam:non-existing-group', 404, () => {
                 // Sanity check that we can delete a group
                 return PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   manager.restContext,
                   group.group.id,
                   callback
@@ -143,25 +141,41 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify validation of restoring a group', callback => {
       // Create a user and a delteed group with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Ensure combinations of invalid group ids result in a 400
-            PrincipalsTestUtil.assertRestoreGroupFails(camAdminRestContext, 'not-an-id', 400, () => {
-              PrincipalsTestUtil.assertRestoreGroupFails(camAdminRestContext, 'u:oae:not-a-group-id', 400, () => {
-                // Ensure we can't restore a group that never existed
-                PrincipalsTestUtil.assertRestoreGroupFails(camAdminRestContext, 'g:cam:non-existing-group', 404, () => {
-                  // Sanity check that we can restore the group with the administrator
-                  return PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
-                    group.group.id,
-                    callback
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
+
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Ensure combinations of invalid group ids result in a 400
+              PrincipalsTestUtil.assertRestoreGroupFails(asCambridgeTenantAdmin, 'not-an-id', 400, () => {
+                PrincipalsTestUtil.assertRestoreGroupFails(asCambridgeTenantAdmin, 'u:oae:not-a-group-id', 400, () => {
+                  // Ensure we can't restore a group that never existed
+                  PrincipalsTestUtil.assertRestoreGroupFails(
+                    asCambridgeTenantAdmin,
+                    'g:cam:non-existing-group',
+                    404,
+                    () => {
+                      // Sanity check that we can restore the group with the administrator
+                      return PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                        asCambridgeTenantAdmin,
+                        asCambridgeTenantAdmin,
+                        group.group.id,
+                        callback
+                      );
+                    }
                   );
                 });
               });
-            });
-          });
+            }
+          );
         });
       });
     });
@@ -171,7 +185,9 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify validation of deleting a user', callback => {
       // Create a user with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: user } = users;
         // Ensure combinations of invalid user ids result in a 400
         PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'not-an-id', 400, () => {
           PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'g:oae:not-a-user-id', 400, () => {
@@ -179,7 +195,7 @@ describe('Principals Delete and Restore', () => {
             PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'u:cam:non-existing-user', 404, () => {
               // Sanity check that we can delete a user
               return PrincipalsTestUtil.assertDeleteUserSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 user.restContext,
                 user.user.id,
                 callback
@@ -195,21 +211,33 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify validation of restoring a user', callback => {
       // Create a deleted user with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
-        PrincipalsTestUtil.assertDeleteUserSucceeds(camAdminRestContext, camAdminRestContext, user.user.id, () => {
-          // Ensure combinations of invalid user ids result in a 400
-          PrincipalsTestUtil.assertRestoreUserFails(camAdminRestContext, 'not-an-id', 400, () => {
-            PrincipalsTestUtil.assertRestoreUserFails(camAdminRestContext, 'g:oae:not-a-user-id', 400, () => {
-              // Ensure we can't restore a user that never existed
-              PrincipalsTestUtil.assertRestoreUserFails(camAdminRestContext, 'u:cam:non-existing-user', 404, () => {
-                // Sanity check that we can restore the user with the administrator
-                PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, user.user.id, () => {
-                  return callback();
-                });
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: user } = users;
+        PrincipalsTestUtil.assertDeleteUserSucceeds(
+          asCambridgeTenantAdmin,
+          asCambridgeTenantAdmin,
+          user.user.id,
+          () => {
+            // Ensure combinations of invalid user ids result in a 400
+            PrincipalsTestUtil.assertRestoreUserFails(asCambridgeTenantAdmin, 'not-an-id', 400, () => {
+              PrincipalsTestUtil.assertRestoreUserFails(asCambridgeTenantAdmin, 'g:oae:not-a-user-id', 400, () => {
+                // Ensure we can't restore a user that never existed
+                PrincipalsTestUtil.assertRestoreUserFails(
+                  asCambridgeTenantAdmin,
+                  'u:cam:non-existing-user',
+                  404,
+                  () => {
+                    // Sanity check that we can restore the user with the administrator
+                    PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user.user.id, () => {
+                      return callback();
+                    });
+                  }
+                );
               });
             });
-          });
-        });
+          }
+        );
       });
     });
   });
@@ -260,29 +288,31 @@ describe('Principals Delete and Restore', () => {
                               publicTenant1.publicGroup.id,
                               permissionChanges,
                               err => {
-                                assert.ok(!err);
+                                assert.notExists(err);
                                 RestAPI.Group.setGroupMembers(
                                   publicTenant1.adminRestContext,
                                   publicTenant1.loggedinNotJoinableGroup.id,
                                   permissionChanges,
                                   err => {
+                                    assert.notExists(err);
                                     RestAPI.Group.setGroupMembers(
                                       publicTenant1.adminRestContext,
                                       publicTenant1.loggedinJoinableGroup.id,
                                       permissionChanges,
                                       err => {
-                                        assert.ok(!err);
+                                        assert.notExists(err);
                                         RestAPI.Group.setGroupMembers(
                                           publicTenant1.adminRestContext,
                                           publicTenant1.privateNotJoinableGroup.id,
                                           permissionChanges,
                                           err => {
+                                            assert.notExists(err);
                                             RestAPI.Group.setGroupMembers(
                                               publicTenant1.adminRestContext,
                                               publicTenant1.privateJoinableGroup.id,
                                               permissionChanges,
                                               err => {
-                                                assert.ok(!err);
+                                                assert.notExists(err);
 
                                                 // Sanity check that manager, tenant admin and global admin can delete groups
                                                 PrincipalsTestUtil.assertDeleteGroupSucceeds(
@@ -302,12 +332,12 @@ describe('Principals Delete and Restore', () => {
                                                           () => {
                                                             PrincipalsTestUtil.assertDeleteGroupSucceeds(
                                                               publicTenant1.adminRestContext,
-                                                              globalAdminOnTenantRestContext,
+                                                              asGlobalAdminOnLocalhost,
                                                               publicTenant1.privateNotJoinableGroup.id,
                                                               () => {
                                                                 return PrincipalsTestUtil.assertDeleteGroupSucceeds(
                                                                   publicTenant1.adminRestContext,
-                                                                  globalAdminOnTenantRestContext,
+                                                                  asGlobalAdminOnLocalhost,
                                                                   publicTenant1.privateJoinableGroup.id,
                                                                   callback
                                                                 );
@@ -347,40 +377,49 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify only administrators can restore a group', callback => {
       // Create a user and a group with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           // Delete the group
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Ensure restoring as the manager, tenant admin of another tenant, and anonymous user all fail with 401
-            PrincipalsTestUtil.assertRestoreGroupFails(manager.restContext, group.group.id, 401, () => {
-              PrincipalsTestUtil.assertRestoreGroupFails(gtAdminRestContext, group.group.id, 401, () => {
-                PrincipalsTestUtil.assertRestoreGroupFails(anonymousRestContext, group.group.id, 401, () => {
-                  // Ensure restoring as tenant admin succeeds
-                  PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
-                    group.group.id,
-                    () => {
-                      // Delete the group again and ensure global admin can restore the group
-                      PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                        camAdminRestContext,
-                        manager.restContext,
-                        group.group.id,
-                        () => {
-                          return PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                            camAdminRestContext,
-                            globalAdminOnTenantRestContext,
-                            group.group.id,
-                            callback
-                          );
-                        }
-                      );
-                    }
-                  );
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Ensure restoring as the manager, tenant admin of another tenant, and anonymous user all fail with 401
+              PrincipalsTestUtil.assertRestoreGroupFails(manager.restContext, group.group.id, 401, () => {
+                PrincipalsTestUtil.assertRestoreGroupFails(asGeorgiaTechTenantAdmin, group.group.id, 401, () => {
+                  PrincipalsTestUtil.assertRestoreGroupFails(asCambridgeAnonymousUser, group.group.id, 401, () => {
+                    // Ensure restoring as tenant admin succeeds
+                    PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                      asCambridgeTenantAdmin,
+                      asCambridgeTenantAdmin,
+                      group.group.id,
+                      () => {
+                        // Delete the group again and ensure global admin can restore the group
+                        PrincipalsTestUtil.assertDeleteGroupSucceeds(
+                          asCambridgeTenantAdmin,
+                          manager.restContext,
+                          group.group.id,
+                          () => {
+                            return PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                              asCambridgeTenantAdmin,
+                              asGlobalAdminOnLocalhost,
+                              group.group.id,
+                              callback
+                            );
+                          }
+                        );
+                      }
+                    );
+                  });
                 });
               });
-            });
-          });
+            }
+          );
         });
       });
     });
@@ -390,11 +429,13 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify authorization of deleting a user', callback => {
       // Create a user with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user1, user2, user3) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: user1, 1: user2, 2: user3 } = users;
         // Anonymous, regular user and admin from another tenant cannot delete this user
-        PrincipalsTestUtil.assertDeleteUserFails(anonymousRestContext, user1.user.id, 401, () => {
+        PrincipalsTestUtil.assertDeleteUserFails(asCambridgeAnonymousUser, user1.user.id, 401, () => {
           PrincipalsTestUtil.assertDeleteUserFails(user2.restContext, user1.user.id, 401, () => {
-            PrincipalsTestUtil.assertDeleteUserFails(gtAdminRestContext, user1.user.id, 401, () => {
+            PrincipalsTestUtil.assertDeleteUserFails(asGeorgiaTechTenantAdmin, user1.user.id, 401, () => {
               // Ensure user1 still exists and is not marked deleted
               PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, user1AfterFailedDeletes => {
                 assert.strictEqual(user1AfterFailedDeletes.id, user1.user.id);
@@ -402,17 +443,17 @@ describe('Principals Delete and Restore', () => {
 
                 // An admin and the user themself can delete the user
                 PrincipalsTestUtil.assertDeleteUserSucceeds(
-                  camAdminRestContext,
-                  globalAdminRestContext,
+                  asCambridgeTenantAdmin,
+                  asGlobalAdmin,
                   user1.user.id,
                   () => {
                     PrincipalsTestUtil.assertDeleteUserSucceeds(
-                      camAdminRestContext,
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
+                      asCambridgeTenantAdmin,
                       user2.user.id,
                       () => {
                         PrincipalsTestUtil.assertDeleteUserSucceeds(
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
                           user3.restContext,
                           user3.user.id,
                           () => {
@@ -435,26 +476,38 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify authorization of restoring a user', callback => {
       // Create 2 deleted users with which we'll test
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1, user2) => {
-        PrincipalsTestUtil.assertDeleteUserSucceeds(camAdminRestContext, camAdminRestContext, user1.user.id, () => {
-          PrincipalsTestUtil.assertDeleteUserSucceeds(camAdminRestContext, camAdminRestContext, user2.user.id, () => {
-            // Anonymous, the user themself, another user and admin from another tenant cannot restore this user
-            PrincipalsTestUtil.assertRestoreUserFails(anonymousRestContext, user1.user.id, 401, () => {
-              PrincipalsTestUtil.assertRestoreUserFails(user1.restContext, user1.user.id, 401, () => {
-                PrincipalsTestUtil.assertRestoreUserFails(user2.restContext, user1.user.id, 401, () => {
-                  PrincipalsTestUtil.assertRestoreUserFails(gtAdminRestContext, user1.user.id, 401, () => {
-                    // Ensure the global admin and admin of the same tenant can restore the user
-                    PrincipalsTestUtil.assertRestoreUserSucceeds(globalAdminRestContext, user1.user.id, () => {
-                      PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, user2.user.id, () => {
-                        return callback();
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: user1, 1: user2 } = users;
+        PrincipalsTestUtil.assertDeleteUserSucceeds(
+          asCambridgeTenantAdmin,
+          asCambridgeTenantAdmin,
+          user1.user.id,
+          () => {
+            PrincipalsTestUtil.assertDeleteUserSucceeds(
+              asCambridgeTenantAdmin,
+              asCambridgeTenantAdmin,
+              user2.user.id,
+              () => {
+                // Anonymous, the user themself, another user and admin from another tenant cannot restore this user
+                PrincipalsTestUtil.assertRestoreUserFails(asCambridgeAnonymousUser, user1.user.id, 401, () => {
+                  PrincipalsTestUtil.assertRestoreUserFails(user1.restContext, user1.user.id, 401, () => {
+                    PrincipalsTestUtil.assertRestoreUserFails(user2.restContext, user1.user.id, 401, () => {
+                      PrincipalsTestUtil.assertRestoreUserFails(asGeorgiaTechTenantAdmin, user1.user.id, 401, () => {
+                        // Ensure the global admin and admin of the same tenant can restore the user
+                        PrincipalsTestUtil.assertRestoreUserSucceeds(asGlobalAdmin, user1.user.id, () => {
+                          PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user2.user.id, () => {
+                            return callback();
+                          });
+                        });
                       });
                     });
                   });
                 });
-              });
-            });
-          });
-        });
+              }
+            );
+          }
+        );
       });
     });
   });
@@ -466,39 +519,48 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring groups removes and restores access to its full group profile', callback => {
       // Create a user and group that will be deleted and restored
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert(!err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert(!err);
+          const { 0: group } = groups;
           // Delete the group, ensuring the side-effects (including 404 on group profile) succeeds
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Restore the group, ensuring the side-effects (including successful access of group profile) succeeds
-            PrincipalsTestUtil.assertRestoreGroupSucceeds(
-              camAdminRestContext,
-              camAdminRestContext,
-              group.group.id,
-              () => {
-                // Ensure the manager user can still access the group as well, and many of the profile fields
-                // are retained
-                const expectedFields = _.pick(
-                  group.group,
-                  'id',
-                  'visibility',
-                  'displayName',
-                  'description',
-                  'joinable',
-                  'created'
-                );
-                PrincipalsTestUtil.assertGetGroupSucceeds(
-                  manager.restContext,
-                  group.group.id,
-                  expectedFields,
-                  restoredGroup => {
-                    assert.strictEqual(group.group.createdBy.id, restoredGroup.createdBy.id);
-                    return callback();
-                  }
-                );
-              }
-            );
-          });
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Restore the group, ensuring the side-effects (including successful access of group profile) succeeds
+              PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                asCambridgeTenantAdmin,
+                asCambridgeTenantAdmin,
+                group.group.id,
+                () => {
+                  // Ensure the manager user can still access the group as well, and many of the profile fields
+                  // are retained
+                  const expectedFields = _.pick(
+                    group.group,
+                    'id',
+                    'visibility',
+                    'displayName',
+                    'description',
+                    'joinable',
+                    'created'
+                  );
+                  PrincipalsTestUtil.assertGetGroupSucceeds(
+                    manager.restContext,
+                    group.group.id,
+                    expectedFields,
+                    restoredGroup => {
+                      assert.strictEqual(group.group.createdBy.id, restoredGroup.createdBy.id);
+                      return callback();
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });
@@ -533,36 +595,45 @@ describe('Principals Delete and Restore', () => {
       );
 
       // Create a user and group that will be deleted and restored
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           // Delete the group
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Invoke the delete again, ensuring we re-invoke the handlers
-            RestAPI.Group.deleteGroup(camAdminRestContext, group.group.id, err => {
-              assert.ok(!err);
-              PrincipalsDelete.whenDeletesComplete(() => {
-                assert.strictEqual(deleteHandlerCount, 2);
-                assert.strictEqual(restoreHandlerCount, 0);
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Invoke the delete again, ensuring we re-invoke the handlers
+              RestAPI.Group.deleteGroup(asCambridgeTenantAdmin, group.group.id, err => {
+                assert.notExists(err);
+                PrincipalsDelete.whenDeletesComplete(() => {
+                  assert.strictEqual(deleteHandlerCount, 2);
+                  assert.strictEqual(restoreHandlerCount, 0);
 
-                // Restore the group
-                PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                  camAdminRestContext,
-                  camAdminRestContext,
-                  group.group.id,
-                  () => {
-                    RestAPI.Group.restoreGroup(camAdminRestContext, group.group.id, err => {
-                      assert.ok(!err);
-                      PrincipalsDelete.whenDeletesComplete(() => {
-                        assert.strictEqual(deleteHandlerCount, 2);
-                        assert.strictEqual(restoreHandlerCount, 2);
-                        return callback();
+                  // Restore the group
+                  PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
+                    group.group.id,
+                    () => {
+                      RestAPI.Group.restoreGroup(asCambridgeTenantAdmin, group.group.id, err => {
+                        assert.notExists(err);
+                        PrincipalsDelete.whenDeletesComplete(() => {
+                          assert.strictEqual(deleteHandlerCount, 2);
+                          assert.strictEqual(restoreHandlerCount, 2);
+                          return callback();
+                        });
                       });
-                    });
-                  }
-                );
+                    }
+                  );
+                });
               });
-            });
-          });
+            }
+          );
         });
       });
     });
@@ -573,46 +644,55 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring groups removes and restores access to its members list', callback => {
       // Create a user and a deleted group to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Ensure getting the group members fails with a 404
-            PrincipalsTestUtil.assertGetMembersLibraryFails(
-              camAdminRestContext,
-              group.group.id,
-              null,
-              null,
-              404,
-              () => {
-                PrincipalsTestUtil.assertGetMembersLibraryFails(
-                  manager.restContext,
-                  group.group.id,
-                  null,
-                  null,
-                  404,
-                  () => {
-                    // Restore the group
-                    PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                      camAdminRestContext,
-                      camAdminRestContext,
-                      group.group.id,
-                      () => {
-                        // Ensure the members list is as expected from before it was deleted
-                        PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                          manager.restContext,
-                          group.group.id,
-                          [manager.user.id],
-                          members => {
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Ensure getting the group members fails with a 404
+              PrincipalsTestUtil.assertGetMembersLibraryFails(
+                asCambridgeTenantAdmin,
+                group.group.id,
+                null,
+                null,
+                404,
+                () => {
+                  PrincipalsTestUtil.assertGetMembersLibraryFails(
+                    manager.restContext,
+                    group.group.id,
+                    null,
+                    null,
+                    404,
+                    () => {
+                      // Restore the group
+                      PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                        asCambridgeTenantAdmin,
+                        asCambridgeTenantAdmin,
+                        group.group.id,
+                        () => {
+                          // Ensure the members list is as expected from before it was deleted
+                          PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                            manager.restContext,
+                            group.group.id,
+                            [manager.user.id],
+                            (/* members */) => {
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });
@@ -623,44 +703,53 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring groups removes and restores access to updates', callback => {
       // Create a user and a deleted group to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
-          PrincipalsTestUtil.assertDeleteGroupSucceeds(camAdminRestContext, manager.restContext, group.group.id, () => {
-            // Ensure updating the group fails with a 404
-            PrincipalsTestUtil.assertUpdateGroupFails(
-              camAdminRestContext,
-              group.group.id,
-              { displayName: 'Another Display Name' },
-              404,
-              () => {
-                PrincipalsTestUtil.assertUpdateGroupFails(
-                  manager.restContext,
-                  group.group.id,
-                  { displayName: 'Another Display Name' },
-                  404,
-                  () => {
-                    // Restore the group
-                    PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                      camAdminRestContext,
-                      camAdminRestContext,
-                      group.group.id,
-                      () => {
-                        // Ensure the group can now be updated
-                        PrincipalsTestUtil.assertUpdateGroupSucceeds(
-                          manager.restContext,
-                          group.group.id,
-                          { displayName: 'Another Display Name' },
-                          group => {
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
+          PrincipalsTestUtil.assertDeleteGroupSucceeds(
+            asCambridgeTenantAdmin,
+            manager.restContext,
+            group.group.id,
+            () => {
+              // Ensure updating the group fails with a 404
+              PrincipalsTestUtil.assertUpdateGroupFails(
+                asCambridgeTenantAdmin,
+                group.group.id,
+                { displayName: 'Another Display Name' },
+                404,
+                () => {
+                  PrincipalsTestUtil.assertUpdateGroupFails(
+                    manager.restContext,
+                    group.group.id,
+                    { displayName: 'Another Display Name' },
+                    404,
+                    () => {
+                      // Restore the group
+                      PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                        asCambridgeTenantAdmin,
+                        asCambridgeTenantAdmin,
+                        group.group.id,
+                        () => {
+                          // Ensure the group can now be updated
+                          PrincipalsTestUtil.assertUpdateGroupSucceeds(
+                            manager.restContext,
+                            group.group.id,
+                            { displayName: 'Another Display Name' },
+                            (/* group */) => {
+                              return callback();
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });
@@ -672,21 +761,25 @@ describe('Principals Delete and Restore', () => {
     it('verify deleting and restoring groups removes and restores access to its memberships library', callback => {
       // Create a deleted group (childGroup) who has one group in its memberships library to
       // test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 2, (childGroup, parentGroup) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 2, (err, groups) => {
+          assert.notExists(err);
+          const { 0: childGroup, 1: parentGroup } = groups;
           TestsUtil.generateGroupHierarchy(
             manager.restContext,
             [parentGroup.group.id, childGroup.group.id],
             'member',
             () => {
               PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 manager.restContext,
                 childGroup.group.id,
                 () => {
                   // Ensure getting the group memberships list fails
                   PrincipalsTestUtil.assertGetMembershipsLibraryFails(
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
                     childGroup.group.id,
                     null,
                     null,
@@ -701,8 +794,8 @@ describe('Principals Delete and Restore', () => {
                         () => {
                           // Restore the group
                           PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                            camAdminRestContext,
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
+                            asCambridgeTenantAdmin,
                             childGroup.group.id,
                             () => {
                               // Ensure the memberships library is restored to its expected result
@@ -733,8 +826,12 @@ describe('Principals Delete and Restore', () => {
     it('verify deleting and restoring groups removes and restores access to updating group members', callback => {
       // Create a deleted group (parentGroup) who has one group in its memberships library to
       // test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-        TestsUtil.generateTestGroups(manager.restContext, 2, (childGroup, parentGroup) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert(!err);
+        const { 0: manager, 1: member } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 2, (err, groups) => {
+          assert(!err);
+          const { 0: childGroup, 1: parentGroup } = groups;
           // Add a group and a user as members of the parentGroup
           const permissionChanges = {};
           permissionChanges[member.user.id] = 'manager';
@@ -747,7 +844,7 @@ describe('Principals Delete and Restore', () => {
             () => {
               // Delete the group so we can ensure updates to members no longer succeed
               PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 manager.restContext,
                 parentGroup.group.id,
                 () => {
@@ -758,7 +855,7 @@ describe('Principals Delete and Restore', () => {
                   // Ensure setting the group members fails
                   PrincipalsTestUtil.assertSetGroupMembersFails(
                     manager.restContext,
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
                     parentGroup.group.id,
                     permissionChanges,
                     404,
@@ -772,8 +869,8 @@ describe('Principals Delete and Restore', () => {
                         () => {
                           // Restore the group
                           PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                            camAdminRestContext,
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
+                            asCambridgeTenantAdmin,
                             parentGroup.group.id,
                             () => {
                               // Ensure we can now update the members list
@@ -782,7 +879,7 @@ describe('Principals Delete and Restore', () => {
                                 manager.restContext,
                                 parentGroup.group.id,
                                 permissionChanges,
-                                members => {
+                                (/* members */) => {
                                   return callback();
                                 }
                               );
@@ -806,12 +903,16 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring groups removes and restores access to leaving the group', callback => {
       // Create a deleted group who has one user in its memberships library to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager, 1: member } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           TestsUtil.generateGroupHierarchy(manager.restContext, [group.group.id, member.user.id], 'member', () => {
             // Delete the group
             PrincipalsTestUtil.assertDeleteGroupSucceeds(
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
               manager.restContext,
               group.group.id,
               () => {
@@ -819,8 +920,8 @@ describe('Principals Delete and Restore', () => {
                 PrincipalsTestUtil.assertLeaveGroupFails(member.restContext, group.group.id, 404, () => {
                   // Restore the group
                   PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
                     group.group.id,
                     () => {
                       // Ensure the user can now leave the group
@@ -846,11 +947,15 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring groups removes and restores access to joining the group', callback => {
       // Create a deleted, joinable group to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-        TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: manager, 1: member } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           PrincipalsTestUtil.assertUpdateGroupSucceeds(manager.restContext, group.group.id, { joinable: 'yes' }, () => {
             PrincipalsTestUtil.assertDeleteGroupSucceeds(
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
               manager.restContext,
               group.group.id,
               () => {
@@ -858,8 +963,8 @@ describe('Principals Delete and Restore', () => {
                 PrincipalsTestUtil.assertJoinGroupFails(member.restContext, group.group.id, 404, () => {
                   // Restore the group
                   PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
                     group.group.id,
                     () => {
                       // Ensure the user can now join the group
@@ -885,37 +990,57 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring users removes and restores access to its full user profile and me feed', callback => {
       // Create a user and group that will be deleted and restored
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1, user2) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: user1, 1: user2 } = users;
         // Delete the user as admin, ensuring it results in a 404 on the profile
-        PrincipalsTestUtil.assertDeleteUserSucceeds(camAdminRestContext, camAdminRestContext, user1.user.id, () => {
-          // Delete the user as the user themself, ensuring it results in a 404 and a lost session
-          PrincipalsTestUtil.assertDeleteUserSucceeds(camAdminRestContext, user2.restContext, user2.user.id, () => {
-            // Restore both users, ensuring their profiles become accessible
-            PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, user1.user.id, user1AfterRestore => {
-              PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, user2.user.id, user2AfterRestore => {
-                // Ensure their sessions and me feeds reactivate
-                PrincipalsTestUtil.assertGetMeSucceeds(user1.restContext, me => {
-                  assert.ok(!me.anon);
-                  assert.strictEqual(me.id, user1.user.id);
+        PrincipalsTestUtil.assertDeleteUserSucceeds(
+          asCambridgeTenantAdmin,
+          asCambridgeTenantAdmin,
+          user1.user.id,
+          () => {
+            // Delete the user as the user themself, ensuring it results in a 404 and a lost session
+            PrincipalsTestUtil.assertDeleteUserSucceeds(
+              asCambridgeTenantAdmin,
+              user2.restContext,
+              user2.user.id,
+              () => {
+                // Restore both users, ensuring their profiles become accessible
+                PrincipalsTestUtil.assertRestoreUserSucceeds(
+                  asCambridgeTenantAdmin,
+                  user1.user.id,
+                  (/* user1AfterRestore */) => {
+                    PrincipalsTestUtil.assertRestoreUserSucceeds(
+                      asCambridgeTenantAdmin,
+                      user2.user.id,
+                      (/* user2AfterRestore */) => {
+                        // Ensure their sessions and me feeds reactivate
+                        PrincipalsTestUtil.assertGetMeSucceeds(user1.restContext, me => {
+                          assert.isNotOk(me.anon);
+                          assert.strictEqual(me.id, user1.user.id);
 
-                  // Re-authenticate user2's session, ensuring it is restored. Note that we have to do this with
-                  // user2 because they made a request while they were deleted, so express cleared their
-                  // session. We didn't have to do that as user1 because they never made a request as a deleted
-                  // user
-                  const { host } = global.oaeTests.tenants.cam;
-                  const { username } = user2.restContext;
-                  const password = user2.restContext.userPassword;
-                  const user2RestContext = TestsUtil.createTenantRestContext(host, username, password);
-                  PrincipalsTestUtil.assertGetMeSucceeds(user2RestContext, me => {
-                    assert.ok(!me.anon);
-                    assert.strictEqual(me.id, user2.user.id);
-                    return callback();
-                  });
-                });
-              });
-            });
-          });
-        });
+                          // Re-authenticate user2's session, ensuring it is restored. Note that we have to do this with
+                          // user2 because they made a request while they were deleted, so express cleared their
+                          // session. We didn't have to do that as user1 because they never made a request as a deleted
+                          // user
+                          const { host } = global.oaeTests.tenants.cam;
+                          const { username } = user2.restContext;
+                          const password = user2.restContext.userPassword;
+                          const user2RestContext = TestsUtil.createTenantRestContext(host, username, password);
+                          PrincipalsTestUtil.assertGetMeSucceeds(user2RestContext, me => {
+                            assert.ok(!me.anon);
+                            assert.strictEqual(me.id, user2.user.id);
+                            return callback();
+                          });
+                        });
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
   });
@@ -927,31 +1052,36 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring a user leaves them in members lists but marked as deleted', callback => {
       // Generate users and a group to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1, user2) => {
-        assert.ok(!err);
-        TestsUtil.generateTestGroups(camAdminRestContext, 1, group => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: user1, 1: user2 } = users;
+        TestsUtil.generateTestGroups(asCambridgeTenantAdmin, 1, (err, groups) => {
+          assert.notExists(err);
+          const { 0: group } = groups;
           // Change user1's publicAlias
-          RestAPI.User.updateUser(user1.restContext, user1.user.id, { publicAlias: 'Clark Kent' }, (err, user) => {
-            assert.ok(!err);
+          RestAPI.User.updateUser(user1.restContext, user1.user.id, { publicAlias: 'Clark Kent' }, (
+            err /* , user */
+          ) => {
+            assert.notExists(err);
 
             // Add the user to the group members library
             const roleChanges = {};
             roleChanges[user1.user.id] = 'member';
             PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-              camAdminRestContext,
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
+              asCambridgeTenantAdmin,
               group.group.id,
               roleChanges,
               () => {
                 // Delete the user
                 PrincipalsTestUtil.assertDeleteUserSucceeds(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   user1.restContext,
                   user1.user.id,
                   () => {
                     // Get the members library for the group, ensuring the user is still there and marked as deleted
                     PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
                       group.group.id,
                       null,
                       null,
@@ -976,10 +1106,10 @@ describe('Principals Delete and Restore', () => {
                             assert.ok(_.isNumber(userEntry.deleted));
 
                             // Restore the user
-                            PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, user1.user.id, () => {
+                            PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user1.user.id, () => {
                               // Get the members library for the group, ensuring the user is still there and no longer marked as deleted
                               PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                                camAdminRestContext,
+                                asCambridgeTenantAdmin,
                                 group.group.id,
                                 null,
                                 null,
@@ -1013,24 +1143,25 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring a user removes and restores access to its memberships feed', callback => {
       // Generate a deleted user to test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user, userToDelete) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: user, 1: userToDelete } = users;
 
         PrincipalsTestUtil.assertDeleteUserSucceeds(
-          camAdminRestContext,
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
+          asCambridgeTenantAdmin,
           userToDelete.user.id,
           () => {
             // Ensure that the memberships library of the user cannot be accessed
             PrincipalsTestUtil.assertGetMembershipsLibraryFails(
-              camAdminRestContext,
+              asCambridgeTenantAdmin,
               userToDelete.user.id,
               null,
               null,
               404,
               () => {
                 // Restore the user, ensuring access to their memberships library is restored
-                PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, userToDelete.user.id, () => {
+                PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                   // Ensure access to the user's membership library is restored
                   PrincipalsTestUtil.assertGetMembershipsLibrarySucceeds(
                     user.restContext,
@@ -1054,24 +1185,29 @@ describe('Principals Delete and Restore', () => {
      * memberships associations from memberships libraries
      */
     it('verify deleting and restoring a group removes and restores indirect memberships from memberships libraries', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        const { 0: user } = users;
+        assert.notExists(err);
 
-        TestsUtil.generateTestGroups(camAdminRestContext, 4, (...args) => {
-          const groups = Array.prototype.slice.call(args);
+        TestsUtil.generateTestGroups(asCambridgeTenantAdmin, 4, (...args) => {
+          // const groups = Array.prototype.slice.call(args);
+          /*
           const groupIds = _.chain(groups)
             .pluck('group')
             .pluck('id')
             .value();
+            */
+          const groups = last(args);
+          const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
           const principalIds = groupIds.concat(user.user.id);
 
           // Create the group hierarchy and ensure it is as expected
-          TestsUtil.generateGroupHierarchy(camAdminRestContext, principalIds, 'member', () => {
+          TestsUtil.generateGroupHierarchy(asCambridgeTenantAdmin, principalIds, 'member', () => {
             PrincipalsTestUtil.assertMembershipsLibraryEquals(user.restContext, user.user.id, groupIds, () => {
               // Delete the group that is directly the parent of the user. This should erase the user's
               // entire memberships library, not just the direct group itself
               PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 _.last(groups).restContext,
                 _.last(groupIds),
                 () => {
@@ -1080,8 +1216,8 @@ describe('Principals Delete and Restore', () => {
                     // Restore the group, and ensure the entire hierarchy is restored into the user's
                     // memberships library
                     PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                      camAdminRestContext,
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
+                      asCambridgeTenantAdmin,
                       _.last(groupIds),
                       () => {
                         // Ensure the user's memberships library now has all original groups we created
@@ -1107,15 +1243,19 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify a deleted group can show in a group members feed', callback => {
       // Create a group that has a deleted group as a member
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-        TestsUtil.generateTestGroups(manager.restContext, 2, (childGroup, parentGroup) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert(!err);
+        const { 0: manager } = users;
+        TestsUtil.generateTestGroups(manager.restContext, 2, (err, groups) => {
+          assert(!err);
+          const { 0: childGroup, 1: parentGroup } = groups;
           TestsUtil.generateGroupHierarchy(
             manager.restContext,
             [parentGroup.group.id, childGroup.group.id],
             'member',
             () => {
               PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 manager.restContext,
                 childGroup.group.id,
                 () => {
@@ -1141,8 +1281,8 @@ describe('Principals Delete and Restore', () => {
                       // Restore the group and ensure it appears without the deleted flag
                       // in the group members list
                       PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                        camAdminRestContext,
-                        camAdminRestContext,
+                        asCambridgeTenantAdmin,
+                        asCambridgeTenantAdmin,
                         childGroup.group.id,
                         () => {
                           // Ensure the group is still there in the members list, but now
@@ -1185,17 +1325,20 @@ describe('Principals Delete and Restore', () => {
      * their following and followers lists
      */
     it('verify deleting and restoring a user removes and restores access to their following and followers lists', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user, userToDelete) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: user, 1: userToDelete } = users;
         // Delete the user
         PrincipalsTestUtil.assertDeleteUserSucceeds(
-          camAdminRestContext,
-          camAdminRestContext,
+          asCambridgeTenantAdmin,
+          asCambridgeTenantAdmin,
           userToDelete.user.id,
           () => {
             // Ensure there is no access to their following or followers feed
             FollowingTestUtil.assertNoFollowFeedAccess(user.restContext, [userToDelete.user.id], 404, () => {
               // Restore the user
-              PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, userToDelete.user.id, () => {
+              PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                 // Ensure access is restored to the following and followers feed
                 FollowingTestUtil.assertHasFollowFeedAccess(user.restContext, [userToDelete.user.id], () => {
                   return callback();
@@ -1213,7 +1356,9 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring a user removes and restores them in followers lists', callback => {
       // Create a user (userToFollow) that is followed by a bunch of other users
-      TestsUtil.generateTestUsers(camAdminRestContext, 10, (err, users, userToFollow, userToDelete0, userToDelete1) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 10, (err, users) => {
+        assert.notExists(err);
+        const { 0: userToFollow, 1: userToDelete0, 2: userToDelete1 } = users;
         const followerUserInfos = [userToDelete0, userToDelete1];
         FollowingTestUtil.followByAll(userToFollow.user.id, followerUserInfos, () => {
           // Ensure that all users appear in the userToFollow's followers list
@@ -1230,13 +1375,13 @@ describe('Principals Delete and Restore', () => {
             () => {
               // Delete 2 of the users, ensuring they are no longer in the userToFollow's followers list
               PrincipalsTestUtil.assertDeleteUserSucceeds(
-                camAdminRestContext,
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
+                asCambridgeTenantAdmin,
                 userToDelete0.user.id,
                 () => {
                   PrincipalsTestUtil.assertDeleteUserSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
                     userToDelete1.user.id,
                     () => {
                       FollowingTestUtil.assertGetAllFollowersEquals(
@@ -1247,11 +1392,11 @@ describe('Principals Delete and Restore', () => {
                         () => {
                           // Restore the 2 users, ensuring the re-appear in the userToFollow's followers list
                           PrincipalsTestUtil.assertRestoreUserSucceeds(
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
                             userToDelete0.user.id,
                             () => {
                               PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                camAdminRestContext,
+                                asCambridgeTenantAdmin,
                                 userToDelete1.user.id,
                                 () => {
                                   FollowingTestUtil.assertGetAllFollowersEquals(
@@ -1285,74 +1430,72 @@ describe('Principals Delete and Restore', () => {
      */
     it('verify deleting and restoring a user removes and restores them in following lists', callback => {
       // Create a user (userFollowing) that follows a bunch of other users
-      TestsUtil.generateTestUsers(
-        camAdminRestContext,
-        10,
-        (err, users, userFollowing, userToDelete0, userToDelete1) => {
-          const followingUserInfos = [userToDelete0, userToDelete1];
-          const followingUserIds = _.chain(followingUserInfos)
-            .pluck('user')
-            .pluck('id')
-            .value();
-          const followingUserIdsAfterDelete = _.without(followingUserIds, userToDelete0.user.id, userToDelete1.user.id);
-          FollowingTestUtil.followAll(userFollowing.restContext, followingUserIds, () => {
-            // Ensure the userFollowing sees all the user they follow in their following list
-            FollowingTestUtil.assertGetAllFollowingEquals(
-              userFollowing.restContext,
-              userFollowing.user.id,
-              { batchSize: 1 },
-              followingUserIds,
-              () => {
-                // Delete 2 of the users, ensuring they are no longer in the userFollowing's following list
-                PrincipalsTestUtil.assertDeleteUserSucceeds(
-                  camAdminRestContext,
-                  camAdminRestContext,
-                  userToDelete0.user.id,
-                  () => {
-                    PrincipalsTestUtil.assertDeleteUserSucceeds(
-                      camAdminRestContext,
-                      camAdminRestContext,
-                      userToDelete1.user.id,
-                      () => {
-                        FollowingTestUtil.assertGetAllFollowingEquals(
-                          userFollowing.restContext,
-                          userFollowing.user.id,
-                          { batchSize: 1 },
-                          followingUserIdsAfterDelete,
-                          () => {
-                            // Restore the 2 users, ensuring they re-appear in the userFollowing's following list
-                            PrincipalsTestUtil.assertRestoreUserSucceeds(
-                              camAdminRestContext,
-                              userToDelete0.user.id,
-                              () => {
-                                PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                  camAdminRestContext,
-                                  userToDelete1.user.id,
-                                  () => {
-                                    FollowingTestUtil.assertGetAllFollowingEquals(
-                                      userFollowing.restContext,
-                                      userFollowing.user.id,
-                                      { batchSize: 1 },
-                                      followingUserIds,
-                                      () => {
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
-        }
-      );
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 10, (err, users) => {
+        assert.notExists(err);
+        const { 0: userFollowing, 1: userToDelete0, 2: userToDelete1 } = users;
+        const followingUserInfos = [userToDelete0, userToDelete1];
+        const followingUserIds = _.chain(followingUserInfos)
+          .pluck('user')
+          .pluck('id')
+          .value();
+        const followingUserIdsAfterDelete = _.without(followingUserIds, userToDelete0.user.id, userToDelete1.user.id);
+        FollowingTestUtil.followAll(userFollowing.restContext, followingUserIds, () => {
+          // Ensure the userFollowing sees all the user they follow in their following list
+          FollowingTestUtil.assertGetAllFollowingEquals(
+            userFollowing.restContext,
+            userFollowing.user.id,
+            { batchSize: 1 },
+            followingUserIds,
+            () => {
+              // Delete 2 of the users, ensuring they are no longer in the userFollowing's following list
+              PrincipalsTestUtil.assertDeleteUserSucceeds(
+                asCambridgeTenantAdmin,
+                asCambridgeTenantAdmin,
+                userToDelete0.user.id,
+                () => {
+                  PrincipalsTestUtil.assertDeleteUserSucceeds(
+                    asCambridgeTenantAdmin,
+                    asCambridgeTenantAdmin,
+                    userToDelete1.user.id,
+                    () => {
+                      FollowingTestUtil.assertGetAllFollowingEquals(
+                        userFollowing.restContext,
+                        userFollowing.user.id,
+                        { batchSize: 1 },
+                        followingUserIdsAfterDelete,
+                        () => {
+                          // Restore the 2 users, ensuring they re-appear in the userFollowing's following list
+                          PrincipalsTestUtil.assertRestoreUserSucceeds(
+                            asCambridgeTenantAdmin,
+                            userToDelete0.user.id,
+                            () => {
+                              PrincipalsTestUtil.assertRestoreUserSucceeds(
+                                asCambridgeTenantAdmin,
+                                userToDelete1.user.id,
+                                () => {
+                                  FollowingTestUtil.assertGetAllFollowingEquals(
+                                    userFollowing.restContext,
+                                    userFollowing.user.id,
+                                    { batchSize: 1 },
+                                    followingUserIds,
+                                    () => {
+                                      return callback();
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        });
+      });
     });
   });
 
@@ -1364,8 +1507,13 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a group removes it and adds it back in general search', callback => {
         // Create a group to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-          TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: manager } = users;
+
+          TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group } = groups;
             // Ensure we can search for it
             SearchTestUtil.assertSearchContains(
               manager.restContext,
@@ -1373,10 +1521,10 @@ describe('Principals Delete and Restore', () => {
               null,
               { q: group.group.displayName },
               [group.group.id],
-              response => {
+              (/* response */) => {
                 // Delete the group
                 PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   manager.restContext,
                   group.group.id,
                   () => {
@@ -1387,11 +1535,11 @@ describe('Principals Delete and Restore', () => {
                       null,
                       { q: group.group.displayName },
                       [group.group.id],
-                      response => {
+                      (/* response */) => {
                         // Restore the group
                         PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                          camAdminRestContext,
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
+                          asCambridgeTenantAdmin,
                           group.group.id,
                           () => {
                             // Ensure we can search for it again
@@ -1401,7 +1549,7 @@ describe('Principals Delete and Restore', () => {
                               null,
                               { q: group.group.displayName },
                               [group.group.id],
-                              response => {
+                              (/* response */) => {
                                 return callback();
                               }
                             );
@@ -1423,7 +1571,9 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a user removes them and adds them back in general search', callback => {
         // Create a group to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, userSearcher, userDeleted) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: userSearcher, 1: userDeleted } = users;
           // Ensure we can search for it
           SearchTestUtil.assertSearchContains(
             userSearcher.restContext,
@@ -1431,10 +1581,10 @@ describe('Principals Delete and Restore', () => {
             null,
             { q: userDeleted.displayName },
             [userDeleted.user.id],
-            response => {
+            (/* response */) => {
               // Delete the group
               PrincipalsTestUtil.assertDeleteUserSucceeds(
-                camAdminRestContext,
+                asCambridgeTenantAdmin,
                 userDeleted.restContext,
                 userDeleted.user.id,
                 () => {
@@ -1445,9 +1595,9 @@ describe('Principals Delete and Restore', () => {
                     null,
                     { q: userDeleted.user.displayName },
                     [userDeleted.user.id],
-                    response => {
+                    (/* response */) => {
                       // Restore the group
-                      PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, userDeleted.user.id, () => {
+                      PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userDeleted.user.id, () => {
                         // Ensure we can search for it again
                         SearchTestUtil.assertSearchContains(
                           userSearcher.restContext,
@@ -1455,7 +1605,7 @@ describe('Principals Delete and Restore', () => {
                           null,
                           { q: userDeleted.user.displayName },
                           [userDeleted.user.id],
-                          response => {
+                          (/* response */) => {
                             return callback();
                           }
                         );
@@ -1477,18 +1627,24 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a group removes and adds access to its memberships search', callback => {
         // Create a user and group to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-          TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: manager } = users;
+
+          TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group } = groups;
+
             // Ensure the memberships library can be searched
             SearchTestUtil.assertSearchSucceeds(
               manager.restContext,
               'memberships-library',
               [group.group.id],
               null,
-              response => {
+              (/* response */) => {
                 // Delete the group
                 PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   manager.restContext,
                   group.group.id,
                   () => {
@@ -1502,8 +1658,8 @@ describe('Principals Delete and Restore', () => {
                       () => {
                         // Restore the group
                         PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                          camAdminRestContext,
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
+                          asCambridgeTenantAdmin,
                           group.group.id,
                           () => {
                             // Ensure the memberships search succeeds again
@@ -1512,7 +1668,7 @@ describe('Principals Delete and Restore', () => {
                               'memberships-library',
                               [group.group.id],
                               null,
-                              response => {
+                              (/* response */) => {
                                 return callback();
                               }
                             );
@@ -1534,10 +1690,13 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a user removes and adds access to its memberships search', callback => {
         // Create a user to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user, userToDelete) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: user, 1: userToDelete } = users;
           // Delete the user
           PrincipalsTestUtil.assertDeleteUserSucceeds(
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
             userToDelete.restContext,
             userToDelete.user.id,
             () => {
@@ -1550,14 +1709,14 @@ describe('Principals Delete and Restore', () => {
                 404,
                 () => {
                   // Restore the user
-                  PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, userToDelete.user.id, () => {
+                  PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                     // Ensure the memberships search now succeeds
                     SearchTestUtil.assertSearchSucceeds(
                       user.restContext,
                       'memberships-library',
                       [userToDelete.user.id],
                       null,
-                      response => {
+                      (/* response */) => {
                         return callback();
                       }
                     );
@@ -1575,13 +1734,14 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a group removes and adds indirect groups in memberships search', callback => {
         // Create a group memberships hierarchy to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-          TestsUtil.generateTestGroups(manager.restContext, 4, function(...groups) {
-            const [group1, group2, group3, group4] = groups;
-            const groupIds = _.chain(groups)
-              .pluck('group')
-              .pluck('id')
-              .value();
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: manager, 1: member } = users;
+          TestsUtil.generateTestGroups(manager.restContext, 4, (...args) => {
+            const groups = last(args);
+            const { 1: group2, 3: group4 } = groups;
+
+            const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
             TestsUtil.generateGroupHierarchy(manager.restContext, groupIds.concat(member.user.id), 'member', () => {
               // Ensure our member user can find all the groups in their memberships
               // library search
@@ -1594,7 +1754,7 @@ describe('Principals Delete and Restore', () => {
                 () => {
                   // Delete the group that is a direct parent of the user (group4)
                   PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                    camAdminRestContext,
+                    asCambridgeTenantAdmin,
                     manager.restContext,
                     group4.group.id,
                     () => {
@@ -1608,8 +1768,8 @@ describe('Principals Delete and Restore', () => {
                         () => {
                           // Restore the group and ensure they find them all again
                           PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                            camAdminRestContext,
-                            camAdminRestContext,
+                            asCambridgeTenantAdmin,
+                            asCambridgeTenantAdmin,
                             group4.group.id,
                             () => {
                               SearchTestUtil.assertSearchContains(
@@ -1621,7 +1781,7 @@ describe('Principals Delete and Restore', () => {
                                 () => {
                                   // Delete an intermediary group (group2) and ensure group3 and group4 show up, but not group1
                                   PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                                    camAdminRestContext,
+                                    asCambridgeTenantAdmin,
                                     manager.restContext,
                                     group2.group.id,
                                     () => {
@@ -1667,8 +1827,13 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a group removes and adds access to its members search', callback => {
         // Create a user and group to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, manager) => {
-          TestsUtil.generateTestGroups(manager.restContext, 1, group => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: manager } = users;
+          TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group } = groups;
             // Ensure the memberships library can be searched
             SearchTestUtil.assertSearchContains(
               manager.restContext,
@@ -1676,10 +1841,11 @@ describe('Principals Delete and Restore', () => {
               [group.group.id],
               null,
               [manager.user.id],
-              response => {
+
+              (/* response */) => {
                 // Delete the group
                 PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                  camAdminRestContext,
+                  asCambridgeTenantAdmin,
                   manager.restContext,
                   group.group.id,
                   () => {
@@ -1693,8 +1859,8 @@ describe('Principals Delete and Restore', () => {
                       () => {
                         // Restore the group
                         PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                          camAdminRestContext,
-                          camAdminRestContext,
+                          asCambridgeTenantAdmin,
+                          asCambridgeTenantAdmin,
                           group.group.id,
                           () => {
                             // Ensure the memberships search succeeds again
@@ -1704,7 +1870,7 @@ describe('Principals Delete and Restore', () => {
                               [group.group.id],
                               null,
                               [manager.user.id],
-                              response => {
+                              (/* response */) => {
                                 return callback();
                               }
                             );
@@ -1726,9 +1892,13 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a group results in it still showing up in members search with a deletion indication', callback => {
         // Create a group memberships hierarchy to test with
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, manager, member) => {
-          TestsUtil.generateTestGroups(manager.restContext, 4, function(...groups) {
-            const [parentGroup, childGroup1, childGroup2, childGroup3] = groups;
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: manager, 1: member } = users;
+          TestsUtil.generateTestGroups(manager.restContext, 4, (...args) => {
+            const groups = last(args);
+            const [parentGroup, childGroup1] = groups;
             const memberIds = _.chain(groups)
               .pluck('group')
               .pluck('id')
@@ -1754,10 +1924,10 @@ describe('Principals Delete and Restore', () => {
                   [parentGroup.group.id],
                   null,
                   memberIds,
-                  response => {
+                  (/* response */) => {
                     // Delete the first child group and ensure it can still be found in the members search
                     PrincipalsTestUtil.assertDeleteGroupSucceeds(
-                      camAdminRestContext,
+                      asCambridgeTenantAdmin,
                       manager.restContext,
                       childGroup1.group.id,
                       () => {
@@ -1768,8 +1938,10 @@ describe('Principals Delete and Restore', () => {
                           null,
                           memberIds,
                           response => {
-                            // Ensure the document that represents the deleted group indicates it is deleted with
-                            // no profile path
+                            /**
+                             * Ensure the document that represents the deleted group indicates it
+                             * is deleted with no profile path
+                             */
                             const childGroup1Document = _.findWhere(response.results, {
                               id: childGroup1.group.id
                             });
@@ -1782,11 +1954,14 @@ describe('Principals Delete and Restore', () => {
                                 .value()
                             );
 
-                            // Restore the first child group and ensure it is still in the members search with the deleted indicator removed and its
-                            // `profilePath` property restored
+                            /**
+                             * Restore the first child group and ensure it is still in the members
+                             * search with the deleted indicator removed and its
+                             * `profilePath` property restored
+                             */
                             PrincipalsTestUtil.assertRestoreGroupSucceeds(
-                              camAdminRestContext,
-                              camAdminRestContext,
+                              asCambridgeTenantAdmin,
+                              asCambridgeTenantAdmin,
                               childGroup1.group.id,
                               () => {
                                 SearchTestUtil.assertSearchContains(
@@ -1833,17 +2008,20 @@ describe('Principals Delete and Restore', () => {
        * following and followers search
        */
       it('verify deleting and restoring a user removes and restores access to their following and followers search', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user, userToDelete) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: user, 1: userToDelete } = users;
+
           // Delete the user
           PrincipalsTestUtil.assertDeleteUserSucceeds(
-            camAdminRestContext,
-            camAdminRestContext,
+            asCambridgeTenantAdmin,
+            asCambridgeTenantAdmin,
             userToDelete.user.id,
             () => {
               // Ensure there is no access to their following or followers feed
               FollowingTestUtil.assertNoSearchFeedAccess(user.restContext, [userToDelete.user.id], 404, () => {
                 // Restore the user
-                PrincipalsTestUtil.assertRestoreUserSucceeds(camAdminRestContext, userToDelete.user.id, () => {
+                PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                   // Ensure access is restored to the following and followers feed
                   FollowingTestUtil.assertHasSearchFeedAccess(user.restContext, [userToDelete.user.id], () => {
                     return callback();
@@ -1861,81 +2039,75 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a user removes and restores them in followers search', callback => {
         // Create a user (userToFollow) that is followed by a bunch of other users
-        TestsUtil.generateTestUsers(
-          camAdminRestContext,
-          10,
-          (err, users, userToFollow, userToDelete0, userToDelete1) => {
-            const followerUserInfos = [userToDelete0, userToDelete1];
-            FollowingTestUtil.followByAll(userToFollow.user.id, followerUserInfos, () => {
-              // Ensure that all users appear in the userToFollow's followers list
-              const followerUserIds = _.chain(followerUserInfos)
-                .pluck('user')
-                .pluck('id')
-                .value();
-              const followerUserIdsAfterDelete = _.without(
-                followerUserIds,
-                userToDelete0.user.id,
-                userToDelete1.user.id
-              );
-              SearchTestUtil.assertSearchEquals(
-                userToFollow.restContext,
-                'followers',
-                [userToFollow.user.id],
-                null,
-                followerUserIds,
-                () => {
-                  // Delete 2 of the users, ensuring they are no longer in the userToFollow's followers list
-                  PrincipalsTestUtil.assertDeleteUserSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
-                    userToDelete0.user.id,
-                    () => {
-                      PrincipalsTestUtil.assertDeleteUserSucceeds(
-                        camAdminRestContext,
-                        camAdminRestContext,
-                        userToDelete1.user.id,
-                        () => {
-                          SearchTestUtil.assertSearchEquals(
-                            userToFollow.restContext,
-                            'followers',
-                            [userToFollow.user.id],
-                            null,
-                            followerUserIdsAfterDelete,
-                            () => {
-                              // Restore the 2 users, ensuring the re-appear in the userToFollow's followers list
-                              PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                camAdminRestContext,
-                                userToDelete0.user.id,
-                                () => {
-                                  PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                    camAdminRestContext,
-                                    userToDelete1.user.id,
-                                    () => {
-                                      SearchTestUtil.assertSearchEquals(
-                                        userToFollow.restContext,
-                                        'followers',
-                                        [userToFollow.user.id],
-                                        null,
-                                        followerUserIds,
-                                        () => {
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
-          }
-        );
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 10, (err, users) => {
+          assert.notExists(err);
+          const { 0: userToFollow, 1: userToDelete0, 2: userToDelete1 } = users;
+          const followerUserInfos = [userToDelete0, userToDelete1];
+          FollowingTestUtil.followByAll(userToFollow.user.id, followerUserInfos, () => {
+            // Ensure that all users appear in the userToFollow's followers list
+            const followerUserIds = _.chain(followerUserInfos)
+              .pluck('user')
+              .pluck('id')
+              .value();
+            const followerUserIdsAfterDelete = _.without(followerUserIds, userToDelete0.user.id, userToDelete1.user.id);
+            SearchTestUtil.assertSearchEquals(
+              userToFollow.restContext,
+              'followers',
+              [userToFollow.user.id],
+              null,
+              followerUserIds,
+              () => {
+                // Delete 2 of the users, ensuring they are no longer in the userToFollow's followers list
+                PrincipalsTestUtil.assertDeleteUserSucceeds(
+                  asCambridgeTenantAdmin,
+                  asCambridgeTenantAdmin,
+                  userToDelete0.user.id,
+                  () => {
+                    PrincipalsTestUtil.assertDeleteUserSucceeds(
+                      asCambridgeTenantAdmin,
+                      asCambridgeTenantAdmin,
+                      userToDelete1.user.id,
+                      () => {
+                        SearchTestUtil.assertSearchEquals(
+                          userToFollow.restContext,
+                          'followers',
+                          [userToFollow.user.id],
+                          null,
+                          followerUserIdsAfterDelete,
+                          () => {
+                            // Restore the 2 users, ensuring the re-appear in the userToFollow's followers list
+                            PrincipalsTestUtil.assertRestoreUserSucceeds(
+                              asCambridgeTenantAdmin,
+                              userToDelete0.user.id,
+                              () => {
+                                PrincipalsTestUtil.assertRestoreUserSucceeds(
+                                  asCambridgeTenantAdmin,
+                                  userToDelete1.user.id,
+                                  () => {
+                                    SearchTestUtil.assertSearchEquals(
+                                      userToFollow.restContext,
+                                      'followers',
+                                      [userToFollow.user.id],
+                                      null,
+                                      followerUserIds,
+                                      () => {
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
+        });
       });
 
       /**
@@ -1944,81 +2116,76 @@ describe('Principals Delete and Restore', () => {
        */
       it('verify deleting and restoring a user removes and restores them in following search', callback => {
         // Create a user (userFollowing) that follows a bunch of other users
-        TestsUtil.generateTestUsers(
-          camAdminRestContext,
-          10,
-          (err, users, userFollowing, userToDelete0, userToDelete1) => {
-            const followingUserInfos = [userToDelete0, userToDelete1];
-            const followingUserIds = _.chain(followingUserInfos)
-              .pluck('user')
-              .pluck('id')
-              .value();
-            const followingUserIdsAfterDelete = _.without(
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 10, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: userFollowing, 1: userToDelete0, 2: userToDelete1 } = users;
+          const followingUserInfos = [userToDelete0, userToDelete1];
+          const followingUserIds = _.chain(followingUserInfos)
+            .pluck('user')
+            .pluck('id')
+            .value();
+          const followingUserIdsAfterDelete = _.without(followingUserIds, userToDelete0.user.id, userToDelete1.user.id);
+          FollowingTestUtil.followAll(userFollowing.restContext, followingUserIds, () => {
+            // Ensure the userFollowing sees all the user they follow in their following list
+            SearchTestUtil.assertSearchEquals(
+              userFollowing.restContext,
+              'following',
+              [userFollowing.user.id],
+              null,
               followingUserIds,
-              userToDelete0.user.id,
-              userToDelete1.user.id
+              () => {
+                // Delete 2 of the users, ensuring they are no longer in the userFollowing's following list
+                PrincipalsTestUtil.assertDeleteUserSucceeds(
+                  asCambridgeTenantAdmin,
+                  asCambridgeTenantAdmin,
+                  userToDelete0.user.id,
+                  () => {
+                    PrincipalsTestUtil.assertDeleteUserSucceeds(
+                      asCambridgeTenantAdmin,
+                      asCambridgeTenantAdmin,
+                      userToDelete1.user.id,
+                      () => {
+                        SearchTestUtil.assertSearchEquals(
+                          userFollowing.restContext,
+                          'following',
+                          [userFollowing.user.id],
+                          null,
+                          followingUserIdsAfterDelete,
+                          () => {
+                            // Restore the 2 users, ensuring they re-appear in the userFollowing's following list
+                            PrincipalsTestUtil.assertRestoreUserSucceeds(
+                              asCambridgeTenantAdmin,
+                              userToDelete0.user.id,
+                              () => {
+                                PrincipalsTestUtil.assertRestoreUserSucceeds(
+                                  asCambridgeTenantAdmin,
+                                  userToDelete1.user.id,
+                                  () => {
+                                    SearchTestUtil.assertSearchEquals(
+                                      userFollowing.restContext,
+                                      'following',
+                                      [userFollowing.user.id],
+                                      null,
+                                      followingUserIds,
+                                      () => {
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
             );
-            FollowingTestUtil.followAll(userFollowing.restContext, followingUserIds, () => {
-              // Ensure the userFollowing sees all the user they follow in their following list
-              SearchTestUtil.assertSearchEquals(
-                userFollowing.restContext,
-                'following',
-                [userFollowing.user.id],
-                null,
-                followingUserIds,
-                () => {
-                  // Delete 2 of the users, ensuring they are no longer in the userFollowing's following list
-                  PrincipalsTestUtil.assertDeleteUserSucceeds(
-                    camAdminRestContext,
-                    camAdminRestContext,
-                    userToDelete0.user.id,
-                    () => {
-                      PrincipalsTestUtil.assertDeleteUserSucceeds(
-                        camAdminRestContext,
-                        camAdminRestContext,
-                        userToDelete1.user.id,
-                        () => {
-                          SearchTestUtil.assertSearchEquals(
-                            userFollowing.restContext,
-                            'following',
-                            [userFollowing.user.id],
-                            null,
-                            followingUserIdsAfterDelete,
-                            () => {
-                              // Restore the 2 users, ensuring they re-appear in the userFollowing's following list
-                              PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                camAdminRestContext,
-                                userToDelete0.user.id,
-                                () => {
-                                  PrincipalsTestUtil.assertRestoreUserSucceeds(
-                                    camAdminRestContext,
-                                    userToDelete1.user.id,
-                                    () => {
-                                      SearchTestUtil.assertSearchEquals(
-                                        userFollowing.restContext,
-                                        'following',
-                                        [userFollowing.user.id],
-                                        null,
-                                        followingUserIds,
-                                        () => {
-                                          return callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
-          }
-        );
+          });
+        });
       });
     });
 
@@ -2027,18 +2194,24 @@ describe('Principals Delete and Restore', () => {
        * Test that verifies authorization of the deleted search
        */
       it('verify authorization of deleted search', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1 /* , publicTenant2 */) => {
           // Ensure non-admin users cannot search deleted items
           SearchTestUtil.assertSearchFails(publicTenant1.anonymousRestContext, 'deleted', null, null, 401, () => {
             SearchTestUtil.assertSearchFails(publicTenant1.publicUser.restContext, 'deleted', null, null, 401, () => {
               // Ensure admin users can search deleted items
-              SearchTestUtil.assertSearchSucceeds(publicTenant1.adminRestContext, 'deleted', null, null, response => {
-                SearchTestUtil.assertSearchSucceeds(globalAdminRestContext, 'deleted', null, null, response => {
-                  SearchTestUtil.assertSearchSucceeds(globalAdminRestContext, 'deleted', null, null, response => {
-                    return callback();
+              SearchTestUtil.assertSearchSucceeds(
+                publicTenant1.adminRestContext,
+                'deleted',
+                null,
+                null,
+                (/* response */) => {
+                  SearchTestUtil.assertSearchSucceeds(asGlobalAdmin, 'deleted', null, null, (/* response */) => {
+                    SearchTestUtil.assertSearchSucceeds(asGlobalAdmin, 'deleted', null, null, (/* response */) => {
+                      return callback();
+                    });
                   });
-                });
-              });
+                }
+              );
             });
           });
         });
@@ -2088,22 +2261,22 @@ describe('Principals Delete and Restore', () => {
             publicTenant1.adminRestContext,
             tenant1GroupIds,
             { description },
-            tenant1GroupsUpdated => {
+            (/* tenant1GroupsUpdated */) => {
               PrincipalsTestUtil.assertUpdateGroupsSucceeds(
                 publicTenant2.adminRestContext,
                 tenant2GroupIds,
                 { description },
-                tenant2GroupsUpdated => {
+                (/* tenant2GroupsUpdated */) => {
                   PrincipalsTestUtil.assertUpdateUsersSucceeds(
                     publicTenant1.adminRestContext,
                     tenant1UserIds,
                     { displayName: description },
-                    tenant1UsersUpdated => {
+                    (/* tenant1UsersUpdated */) => {
                       PrincipalsTestUtil.assertUpdateUsersSucceeds(
                         publicTenant2.adminRestContext,
                         tenant2UserIds,
                         { displayName: description },
-                        tenant2UsersUpdated => {
+                        (/* tenant2UsersUpdated */) => {
                           // Delete the groups and users in both of our tenants, LOL!!!
                           PrincipalsTestUtil.assertDeleteGroupsSucceeds(
                             publicTenant1.adminRestContext,
@@ -2127,28 +2300,28 @@ describe('Principals Delete and Restore', () => {
                                         () => {
                                           // Ensure global admin can search all tenant users and groups together with _all/default scope
                                           SearchTestUtil.assertSearchContains(
-                                            globalAdminRestContext,
+                                            asGlobalAdmin,
                                             'deleted',
                                             null,
                                             { q: description },
                                             allGroupIds,
                                             () => {
                                               SearchTestUtil.assertSearchContains(
-                                                globalAdminRestContext,
+                                                asGlobalAdmin,
                                                 'deleted',
                                                 null,
                                                 { q: description, scope: '_all' },
                                                 allGroupIds,
                                                 () => {
                                                   SearchTestUtil.assertSearchContains(
-                                                    globalAdminRestContext,
+                                                    asGlobalAdmin,
                                                     'deleted',
                                                     null,
                                                     { q: description },
                                                     allUserIds,
                                                     () => {
                                                       SearchTestUtil.assertSearchContains(
-                                                        globalAdminRestContext,
+                                                        asGlobalAdmin,
                                                         'deleted',
                                                         null,
                                                         { q: description, scope: '_all' },
@@ -2156,7 +2329,7 @@ describe('Principals Delete and Restore', () => {
                                                         () => {
                                                           // Ensure global admin can search groups and users in tenant1 and tenant2 alone using scope
                                                           SearchTestUtil.assertSearchContains(
-                                                            globalAdminRestContext,
+                                                            asGlobalAdmin,
                                                             'deleted',
                                                             null,
                                                             {
@@ -2166,7 +2339,7 @@ describe('Principals Delete and Restore', () => {
                                                             tenant1GroupIds,
                                                             () => {
                                                               SearchTestUtil.assertSearchNotContains(
-                                                                globalAdminRestContext,
+                                                                asGlobalAdmin,
                                                                 'deleted',
                                                                 null,
                                                                 {
@@ -2176,7 +2349,7 @@ describe('Principals Delete and Restore', () => {
                                                                 tenant2GroupIds,
                                                                 () => {
                                                                   SearchTestUtil.assertSearchContains(
-                                                                    globalAdminRestContext,
+                                                                    asGlobalAdmin,
                                                                     'deleted',
                                                                     null,
                                                                     {
@@ -2186,7 +2359,7 @@ describe('Principals Delete and Restore', () => {
                                                                     tenant2GroupIds,
                                                                     () => {
                                                                       SearchTestUtil.assertSearchNotContains(
-                                                                        globalAdminRestContext,
+                                                                        asGlobalAdmin,
                                                                         'deleted',
                                                                         null,
                                                                         {
@@ -2196,7 +2369,7 @@ describe('Principals Delete and Restore', () => {
                                                                         tenant1GroupIds,
                                                                         () => {
                                                                           SearchTestUtil.assertSearchContains(
-                                                                            globalAdminRestContext,
+                                                                            asGlobalAdmin,
                                                                             'deleted',
                                                                             null,
                                                                             {
@@ -2206,7 +2379,7 @@ describe('Principals Delete and Restore', () => {
                                                                             tenant1UserIds,
                                                                             () => {
                                                                               SearchTestUtil.assertSearchNotContains(
-                                                                                globalAdminRestContext,
+                                                                                asGlobalAdmin,
                                                                                 'deleted',
                                                                                 null,
                                                                                 {
@@ -2216,7 +2389,7 @@ describe('Principals Delete and Restore', () => {
                                                                                 tenant2UserIds,
                                                                                 () => {
                                                                                   SearchTestUtil.assertSearchContains(
-                                                                                    globalAdminRestContext,
+                                                                                    asGlobalAdmin,
                                                                                     'deleted',
                                                                                     null,
                                                                                     {
@@ -2226,7 +2399,7 @@ describe('Principals Delete and Restore', () => {
                                                                                     tenant2UserIds,
                                                                                     () => {
                                                                                       SearchTestUtil.assertSearchNotContains(
-                                                                                        globalAdminRestContext,
+                                                                                        asGlobalAdmin,
                                                                                         'deleted',
                                                                                         null,
                                                                                         {
@@ -2317,30 +2490,28 @@ describe('Principals Delete and Restore', () => {
             .pluck('user')
             .pluck('id')
             .value();
-          const allGroupIds = _.union(tenant1GroupIds, tenant2GroupIds);
-          const allUserIds = _.union(tenant1UserIds, tenant2UserIds);
 
           // Update all groups to have a description that we can search on
           PrincipalsTestUtil.assertUpdateGroupsSucceeds(
             publicTenant1.adminRestContext,
             tenant1GroupIds,
             { description },
-            tenant1GroupsUpdated => {
+            (/* tenant1GroupsUpdated */) => {
               PrincipalsTestUtil.assertUpdateGroupsSucceeds(
                 publicTenant2.adminRestContext,
                 tenant2GroupIds,
                 { description },
-                tenant2GroupsUpdated => {
+                (/* tenant2GroupsUpdated */) => {
                   PrincipalsTestUtil.assertUpdateUsersSucceeds(
                     publicTenant1.adminRestContext,
                     tenant1UserIds,
                     { displayName: description },
-                    tenant1UsersUpdated => {
+                    (/* tenant1UsersUpdated */) => {
                       PrincipalsTestUtil.assertUpdateUsersSucceeds(
                         publicTenant2.adminRestContext,
                         tenant2UserIds,
                         { displayName: description },
-                        tenant2UsersUpdated => {
+                        (/* tenant2UsersUpdated */) => {
                           // Delete the groups and users in both of our tenants, LOL!!!
                           PrincipalsTestUtil.assertDeleteGroupsSucceeds(
                             publicTenant1.adminRestContext,
@@ -2527,48 +2698,46 @@ describe('Principals Delete and Restore', () => {
      * Verifies that the disable users by tenant migration works
      */
     it('verify deleting users by tenancy', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, user1, user2, user3) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: user1, 1: user2, 2: user3 } = users;
         PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
           PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
             PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
               const globalAdminContext = TestsUtil.createGlobalAdminContext();
-              DisableUsersMigration.doMigration(
-                globalAdminContext,
-                global.oaeTests.tenants.cam.alias,
-                true,
-                (err, affectedUsers) => {
-                  assert.ok(!err);
-                  // Update redis and search since we updated outside the scope of the API
-                  Redis.flush(err => {
-                    assert.ok(!err);
-                    PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
-                      PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
-                        PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
-                          DisableUsersMigration.doMigration(
-                            globalAdminContext,
-                            global.oaeTests.tenants.cam.alias,
-                            false,
-                            (err, affectedUsers) => {
-                              assert.ok(!err);
-                              Redis.flush(err => {
-                                assert.ok(!err);
-                                PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
-                                  PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
-                                    PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
-                                      return callback();
-                                    });
+              DisableUsersMigration.doMigration(globalAdminContext, global.oaeTests.tenants.cam.alias, true, (
+                err /* , affectedUsers */
+              ) => {
+                assert.notExists(err);
+                // Update redis and search since we updated outside the scope of the API
+                Redis.flush(err => {
+                  assert.notExists(err);
+                  PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
+                    PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
+                      PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
+                        DisableUsersMigration.doMigration(
+                          globalAdminContext,
+                          global.oaeTests.tenants.cam.alias,
+                          false,
+                          (err /* , affectedUsers */) => {
+                            assert.notExists(err);
+                            Redis.flush(err => {
+                              assert.notExists(err);
+                              PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
+                                PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
+                                  PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
+                                    return callback();
                                   });
                                 });
                               });
-                            }
-                          );
-                        });
+                            });
+                          }
+                        );
                       });
                     });
                   });
-                }
-              );
+                });
+              });
             });
           });
         });

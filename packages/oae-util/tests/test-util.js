@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
-import {toArray, invokeIfNecessary, getNumberParam} from 'oae-util/lib/util';
+import { toArray, invokeIfNecessary, getNumberParam } from 'oae-util/lib/util';
 
 describe('OAE Util', () => {
   describe('#getNumberParam', () => {
@@ -84,30 +84,28 @@ describe('OAE Util', () => {
      * @param  {Object}     toReturn    The value to return in the callback
      * @param  {Function}   callback    Standard callback function
      */
-    const _toInvoke = function(toReturn, callback) {
-      return callback(toReturn);
-    };
+    const _toInvoke = (toReturn, callback) => callback(toReturn);
 
     /**
      * Test that verifies the invokeIfNecessary method does not invoke the given method with a falsey
      * "isNecessary" parameter
      */
-    it('verify the method is not invoked with a falsey isNecessary parameter', callback => {
+    it('verify the method is not invoked with a falsy isNecessary parameter', callback => {
       // Ensure _toInvoke is not called with `false`
       invokeIfNecessary(false, _toInvoke, 'invoked', toReturn => {
-        assert.ok(!toReturn);
+        assert.notExists(toReturn);
 
         // Ensure _toInvoke is not called with `null`
         invokeIfNecessary(null, _toInvoke, 'invoked', toReturn => {
-          assert.ok(!toReturn);
+          assert.notExists(toReturn);
 
           // Ensure _toInvoke is not called with `undefined`
           invokeIfNecessary(undefined, _toInvoke, 'invoked', toReturn => {
-            assert.ok(!toReturn);
+            assert.notExists(toReturn);
 
             // Ensure _toInvoke is not called with the empty string
             invokeIfNecessary('', _toInvoke, 'invoked', toReturn => {
-              assert.ok(!toReturn);
+              assert.notExists(toReturn);
 
               return callback();
             });
@@ -156,17 +154,17 @@ describe('OAE Util', () => {
       };
 
       // Verify that an Array is returned
-      assert.ok(Array.isArray(toArray(testObj)));
-      assert.ok(Array.isArray(toArray(null)));
-      assert.ok(Array.isArray(toArray([])));
-      assert.ok(Array.isArray(toArray('')));
-      assert.ok(Array.isArray(toArray()));
+      assert.isArray(toArray(testObj));
+      assert.isArray(toArray(null));
+      assert.isArray(toArray([]));
+      assert.isArray(toArray(''));
+      assert.isArray(toArray());
 
       // Verify that empty values return empty Arrays
-      assert.strictEqual(toArray(null).length, 0);
-      assert.strictEqual(toArray([]).length, 0);
-      assert.strictEqual(toArray('').length, 0);
-      assert.strictEqual(toArray().length, 0);
+      assert.lengthOf(toArray(null), 0);
+      assert.lengthOf(toArray([]), 0);
+      assert.lengthOf(toArray(''), 0);
+      assert.lengthOf(toArray(), 0);
 
       // Verify that the Object is correctly transformed to an Array
       assert.strictEqual(toArray(testObj)[0], 'value1');

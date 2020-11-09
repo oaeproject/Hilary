@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import nock from 'nock';
 
 import * as RestAPI from 'oae-rest';

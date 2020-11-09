@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import _, { map } from 'underscore';
+import _ from 'underscore';
 
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util';

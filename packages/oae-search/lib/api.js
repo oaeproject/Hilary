@@ -19,7 +19,7 @@ import { logger } from 'oae-logger';
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util';
 
-import { map, path, gt, length, equals, defaultTo, forEach, assoc, assocPath } from 'ramda';
+import { gt, length, equals, defaultTo, forEach, assoc } from 'ramda';
 
 import { Validator as validator } from 'oae-util/lib/validator';
 const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
@@ -312,7 +312,9 @@ const buildIndex = function(destroy, callback) {
     if (err) return callback(err);
 
     // Create the resource document mapping
-    setTimeout(() => _ensureSearchSchema(callback), 2000);
+    // TODO make sure we need this timeout?
+    // setTimeout(() => _ensureSearchSchema(callback), 2000);
+    return _ensureSearchSchema(callback);
   });
 };
 
@@ -356,9 +358,9 @@ const search = function(ctx, searchType, opts, callback) {
       }
 
       // We pull the '_extra' field out and parse it into JSON
-      const hitsPath = ['body', 'hits', 'hits'];
-      const extraFields = path(['fields', '_extra']);
-      const hitsWithin = path(hitsPath);
+      // const hitsPath = ['body', 'hits', 'hits'];
+      // const extraFields = path(['fields', '_extra']);
+      // const hitsWithin = path(hitsPath);
       /*
       assocPath(
         hitsPath,
@@ -808,7 +810,7 @@ const _handleIndexDocumentTask = function(data, callback) {
   // resourceChildren = [];
 
   _produceAllResourceDocuments(resourcesToIndex, (err, resourceDocs) => {
-    if (err) callback(err);
+    if (err) return callback(err);
 
     log().trace({ data, resourceDocs }, 'Produced top-level resource docs');
 
@@ -875,7 +877,8 @@ const _handleIndexDocumentTask = function(data, callback) {
 
         // These properties go in the request metadata, not the actual document
         delete doc.id;
-        if (doc.resourceType === 'user') delete doc._parent;
+        // TODO came up with this for some reason, now some tests do not work without it. Sigh
+        // if (doc.resourceType === 'user') delete doc._parent;
 
         client.runIndex(doc._type, id, doc, opts, err => {
           if (err) {

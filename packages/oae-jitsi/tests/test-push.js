@@ -1,5 +1,4 @@
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -21,17 +20,18 @@ describe('Meeting Push', () => {
 
   describe('Authorization', () => {
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simon, branden) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge } = users;
 
-        RestAPI.User.getMe(simon.restContext, (err, simonFullProfile) => {
-          assert.ok(!err);
+        RestAPI.User.getMe(homer.restContext, (err, homerProfile) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: simonFullProfile.id,
-              tenantAlias: simonFullProfile.tenant.alias,
-              signature: simonFullProfile.signature
+              userId: homerProfile.id,
+              tenantAlias: homerProfile.tenant.alias,
+              signature: homerProfile.signature
             },
             feeds: []
           };
@@ -39,19 +39,19 @@ describe('Meeting Push', () => {
           ActivityTestsUtil.getFullySetupPushClient(data, client => {
             // Create a meeting and gets its full profile so we have a signature that we can use to register for push notifications
             RestAPI.MeetingsJitsi.createMeeting(
-              simon.restContext,
+              homer.restContext,
               'displayName',
               'description',
               false,
               false,
               'public',
-              [branden.user.id],
+              [marge.user.id],
               null,
               (err, meeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
-                RestAPI.MeetingsJitsi.getMeeting(simon.restContext, meeting.id, (err, meeting) => {
-                  assert.ok(!err);
+                RestAPI.MeetingsJitsi.getMeeting(homer.restContext, meeting.id, (err, meeting) => {
+                  assert.notExists(err);
 
                   // Ensure we get a 400 error with an invalid activity stream id
                   client.subscribe(meeting.id, null, meeting.signature, null, err => {
@@ -89,10 +89,10 @@ describe('Meeting Push', () => {
 
                                   // Simon should not be able to use a signature that was generated for Branden
                                   RestAPI.MeetingsJitsi.getMeeting(
-                                    branden.restContext,
+                                    marge.restContext,
                                     meeting.id,
                                     (err, meetingForBranden) => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
 
                                       client.subscribe(
                                         meeting.id,
@@ -104,7 +104,7 @@ describe('Meeting Push', () => {
 
                                           // Sanity check that a valid signature works
                                           client.subscribe(meeting.id, 'activity', meeting.signature, null, err => {
-                                            assert.ok(!err);
+                                            assert.notExists(err);
 
                                             return callback();
                                           });
@@ -141,12 +141,13 @@ describe('Meeting Push', () => {
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, branden, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: branden, 1: simon } = users;
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
         RestAPI.User.getMe(simon.restContext, (err, simonFullProfile) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Create a meeting and get the full profile so we have a signature that we can use to register for push notifications
           RestAPI.MeetingsJitsi.createMeeting(
@@ -159,10 +160,10 @@ describe('Meeting Push', () => {
             [branden.user.id],
             null,
             (err, meeting) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               RestAPI.MeetingsJitsi.getMeeting(simon.restContext, meeting.id, (err, meeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Route and deliver activities
                 ActivityTestsUtil.collectAndGetActivityStream(simon.restContext, null, null, () => {
@@ -211,7 +212,7 @@ describe('Meeting Push', () => {
           meeting.id,
           { displayName: 'my-new-display-name' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
           }
         );
 
@@ -239,7 +240,7 @@ describe('Meeting Push', () => {
           meeting.id,
           { visibility: 'loggedin' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
           }
         );
 
@@ -262,15 +263,11 @@ describe('Meeting Push', () => {
     it('verify a new message triggers a push notification', callback => {
       setupFixture((contexts, meeting, client) => {
         // Create a message
-        RestAPI.MeetingsJitsi.createComment(
-          contexts.branden.restContext,
-          meeting.id,
-          'Hello world !',
-          null,
-          (err, _meetingMessage) => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.MeetingsJitsi.createComment(contexts.branden.restContext, meeting.id, 'Hello world !', null, (
+          err /* , _meetingMessage */
+        ) => {
+          assert.notExists(err);
+        });
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -282,7 +279,7 @@ describe('Meeting Push', () => {
           activity => {
             // Verify that we have access to the message body and createdBy property
             assert.strictEqual(activity.object.body, 'Hello world !');
-            assert.ok(_.isObject(activity.object.createdBy));
+            assert.isObject(activity.object.createdBy);
             assert.strictEqual(activity.object.createdBy.id, contexts.branden.user.id);
 
             return client.close(callback);
@@ -299,18 +296,14 @@ describe('Meeting Push', () => {
           contexts.branden.user.id,
           { visibility: 'private', publicAlias: 'Fifi' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Create a message
-            RestAPI.MeetingsJitsi.createComment(
-              contexts.branden.restContext,
-              meeting.id,
-              'Hello world !',
-              null,
-              (err, _meetingMessage) => {
-                assert.ok(!err);
-              }
-            );
+            RestAPI.MeetingsJitsi.createComment(contexts.branden.restContext, meeting.id, 'Hello world !', null, (
+              err /* , _meetingMessage */
+            ) => {
+              assert.notExists(err);
+            });
 
             ActivityTestsUtil.waitForPushActivity(
               client,
@@ -322,7 +315,7 @@ describe('Meeting Push', () => {
               activity => {
                 // Verify that we have access to the message body and createdBy property
                 assert.strictEqual(activity.object.body, 'Hello world !');
-                assert.ok(_.isObject(activity.object.createdBy));
+                assert.isObject(activity.object.createdBy);
                 assert.strictEqual(activity.object.createdBy.id, contexts.branden.user.id);
                 assert.strictEqual(activity.object.createdBy.visibility, 'private');
                 assert.strictEqual(activity.object.createdBy.displayName, 'Fifi');

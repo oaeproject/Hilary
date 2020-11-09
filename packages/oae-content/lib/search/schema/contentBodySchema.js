@@ -21,8 +21,7 @@
  * @return {Object}     schema          The contentBody child document schema
  *         {String}     schema.body     A free-text string representing the body of the content
  */
-/* eslint-disable unicorn/filename-case, camelcase */
-// export const content_body = {
+/* eslint-disable unicorn/filename-case */
 export const body = {
   type: 'text',
   store: 'false',

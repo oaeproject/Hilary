@@ -826,17 +826,17 @@ const deleteUser = function(ctx, userId, callback) {
  */
 const deleteOrRestoreUsersByTenancy = function(ctx, tenantAlias, disableUsers, callback) {
   getAllUsersForTenant(ctx, tenantAlias, (err, users) => {
-    if (err) callback(err);
+    if (err) return callback(err);
 
     if (disableUsers) {
       _deletePrincipals(users, (err, users) => {
-        if (err) callback(err);
+        if (err) return callback(err);
 
         callback(null, users);
       });
     } else {
       _restorePrincipals(users, (err, users) => {
-        if (err) callback(err);
+        if (err) return callback(err);
 
         callback(null, users);
       });

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import * as Locking from 'oae-util/lib/locking';
 
 describe('Locking', () => {
@@ -25,7 +25,7 @@ describe('Locking', () => {
   it('verify lock acquisition and release', callback => {
     // Get a lock, make sure it works
     Locking.acquire(LOCK_KEY, 5, (err, lock) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(lock);
 
       // Try again, make sure we don't get a token for it
@@ -35,16 +35,16 @@ describe('Locking', () => {
 
         // Release the lock
         Locking.release(lock, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Try again, we should get it this time around
           Locking.acquire(LOCK_KEY, 5, (err, anotherLock) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(anotherLock);
 
             // Release the lock again to continue.
             Locking.release(anotherLock, err => {
-              assert.ok(!err);
+              assert.notExists(err);
               callback();
             });
           });
@@ -92,7 +92,7 @@ describe('Locking', () => {
   it('verify lock release parameter validation', callback => {
     // Get a lock, make sure it works
     Locking.acquire(LOCK_KEY, 5000, (err, lock) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(lock);
 
       // Try with no lock
@@ -101,7 +101,7 @@ describe('Locking', () => {
 
         // Sanity check
         Locking.release(lock, err => {
-          assert.ok(!err);
+          assert.notExists(err);
           callback();
         });
       });
@@ -114,7 +114,7 @@ describe('Locking', () => {
   it('verify a lock expires and stealing an expired lock', callback => {
     // Get a lock, make sure it works
     Locking.acquire(LOCK_KEY, 1, (err, lock) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(lock);
 
       // Try again, make sure we don't get a token for it
@@ -124,7 +124,7 @@ describe('Locking', () => {
 
         // Wait until it expires then try and steal it
         setTimeout(Locking.acquire, 1100, LOCK_KEY, 5, (err, goodLock) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(goodLock);
 
           // Try and release with the wrong lock (expired by now), ensure we get an error
@@ -138,7 +138,7 @@ describe('Locking', () => {
 
               // Release it successfully to continue.
               Locking.release(goodLock, err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 callback();
               });
             });
@@ -154,7 +154,7 @@ describe('Locking', () => {
   it('verify releasing expired lock reports that no lock was released', callback => {
     // Get a lock, make sure it works
     Locking.acquire(LOCK_KEY, 1, (err, lock) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(lock);
 
       // Try again, make sure we don't get a token for it

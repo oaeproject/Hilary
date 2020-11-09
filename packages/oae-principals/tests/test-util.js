@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
@@ -24,25 +23,28 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import { Context } from 'oae-context';
 import { User } from 'oae-principals/lib/model';
 
+import { equals, length, keys } from 'ramda';
+
 describe('Principals', () => {
   // Rest context that can be used every time we need to make a request as a global admin
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
   // Rest context for a user that will be used inside of the tests
-  let johnRestContext = null;
+  let asJonhFromCambridge = null;
 
   /**
    * Function that will fill up the anonymous and the tenant admin context
    */
   before(callback => {
     // Fill up global admin rest context
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Fill up the rest context for our test user
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, john) => {
-      assert.ok(!err);
-      johnRestContext = john.restContext;
-      RestAPI.User.getMe(johnRestContext, err => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: john } = users;
+      asJonhFromCambridge = john.restContext;
+      RestAPI.User.getMe(asJonhFromCambridge, err => {
+        assert.notExists(err);
         return callback();
       });
     });
@@ -61,23 +63,40 @@ describe('Principals', () => {
       const createPrincipal = function(type, identifier, metadata) {
         const principalId = TestsUtil.generateTestUserId(identifier);
         if (type === 'group') {
-          RestAPI.Group.createGroup(johnRestContext, metadata, metadata, 'public', 'yes', [], [], (err, groupObj) => {
-            assert.ok(!err);
-            createdPrincipals[identifier] = groupObj;
-            if (_.keys(createdPrincipals).length === 7) {
-              callback(createdPrincipals);
+          RestAPI.Group.createGroup(
+            asJonhFromCambridge,
+            metadata,
+            metadata,
+            'public',
+            'yes',
+            [],
+            [],
+            (err, groupObj) => {
+              assert.notExists(err);
+              createdPrincipals[identifier] = groupObj;
+              if (equals(7, length(keys(createdPrincipals)))) {
+                callback(createdPrincipals);
+              }
             }
-          });
+          );
         } else {
           const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-          RestAPI.User.createUser(camAdminRestContext, principalId, 'password', metadata, email, {}, (err, userObj) => {
-            assert.ok(!err);
-            const userContext = new Context(global.oaeTests.tenants.cam, userObj);
-            createdPrincipals[identifier] = userContext;
-            if (_.keys(createdPrincipals).length === 7) {
-              callback(createdPrincipals);
+          RestAPI.User.createUser(
+            asCambridgeTenantAdmin,
+            principalId,
+            'password',
+            metadata,
+            email,
+            {},
+            (err, userObj) => {
+              assert.notExists(err);
+              const userContext = new Context(global.oaeTests.tenants.cam, userObj);
+              createdPrincipals[identifier] = userContext;
+              if (equals(7, length(keys(createdPrincipals)))) {
+                callback(createdPrincipals);
+              }
             }
-          });
+          );
         }
       };
 
@@ -100,7 +119,7 @@ describe('Principals', () => {
       createUsersAndGroup(createdPrincipals => {
         // Get an existing user
         PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals.nicolaas.user().id, (err, user) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(user);
           assert.strictEqual(user.id, createdPrincipals.nicolaas.user().id);
           assert.strictEqual(user.displayName, 'Nicolaas Matthijs');
@@ -117,7 +136,7 @@ describe('Principals', () => {
 
             // Get an existing group
             PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals['oae-team'].id, (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(group);
               assert.strictEqual(group.id, createdPrincipals['oae-team'].id);
               assert.strictEqual(group.displayName, 'OAE Team');
@@ -150,9 +169,9 @@ describe('Principals', () => {
           createdPrincipals.nicolaas,
           [createdPrincipals.nicolaas.user().id, createdPrincipals.simon.user().id, createdPrincipals.bert.user().id],
           (err, users) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(users);
-            assert.strictEqual(_.keys(users).length, 3);
+            assert.lengthOf(keys(users), 3);
             assert.strictEqual(users[createdPrincipals.nicolaas.user().id].id, createdPrincipals.nicolaas.user().id);
             assert.strictEqual(users[createdPrincipals.simon.user().id].id, createdPrincipals.simon.user().id);
             assert.strictEqual(users[createdPrincipals.bert.user().id].id, createdPrincipals.bert.user().id);
@@ -162,9 +181,9 @@ describe('Principals', () => {
               createdPrincipals.nicolaas,
               [createdPrincipals['oae-team'].id, createdPrincipals['backend-team'].id],
               (err, groups) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(groups);
-                assert.strictEqual(_.keys(groups).length, 2);
+                assert.lengthOf(keys(groups), 2);
                 assert.strictEqual(groups[createdPrincipals['oae-team'].id].id, createdPrincipals['oae-team'].id);
                 assert.strictEqual(
                   groups[createdPrincipals['backend-team'].id].id,
@@ -182,9 +201,9 @@ describe('Principals', () => {
                     createdPrincipals.branden.user().id
                   ],
                   (err, principals) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(principals);
-                    assert.strictEqual(_.keys(principals).length, 5);
+                    assert.lengthOf(keys(principals), 5);
                     assert.strictEqual(
                       principals[createdPrincipals.nicolaas.user().id].id,
                       createdPrincipals.nicolaas.user().id
@@ -215,16 +234,16 @@ describe('Principals', () => {
                         createdPrincipals.simon.user().id
                       ],
                       (err, users) => {
-                        assert.ok(!err);
-                        assert.strictEqual(_.keys(users).length, 2);
+                        assert.notExists(err);
+                        assert.lengthOf(keys(users), 2);
 
                         // Get existing groups, of which some don't exist
                         PrincipalsUtil.getPrincipals(
                           createdPrincipals.nicolaas,
                           [createdPrincipals['oae-team'].id, 'u:cam:non-existing-group'],
                           (err, groups) => {
-                            assert.ok(!err);
-                            assert.strictEqual(_.keys(groups).length, 1);
+                            assert.notExists(err);
+                            assert.lengthOf(keys(groups), 1);
 
                             // Get existing users/groups, of which some don't exist
                             PrincipalsUtil.getPrincipals(
@@ -237,8 +256,8 @@ describe('Principals', () => {
                                 'u:cam:non-existing-group'
                               ],
                               (err, principals) => {
-                                assert.ok(!err);
-                                assert.strictEqual(_.keys(principals).length, 3);
+                                assert.notExists(err);
+                                assert.lengthOf(keys(principals), 3);
                                 return callback();
                               }
                             );

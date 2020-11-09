@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
+
 import _ from 'underscore';
 
 describe('Globals', () => {
@@ -22,6 +23,7 @@ describe('Globals', () => {
       /**
        * Test that verifies that an object is created from a variety of input
        */
+      // TODO remove this shit
       it('verify an object is created from a variety of input', callback => {
         assert.deepStrictEqual(_.oaeObj(), {});
         assert.deepStrictEqual(_.oaeObj('key0'), { key0: undefined });

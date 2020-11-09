@@ -13,20 +13,37 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
+import { equals } from 'ramda';
 import { ContentConstants } from 'oae-content/lib/constants';
-import { isPrivate } from 'oae-tenants/lib/util';
 
 const PRIVATE = 'private';
+const ACTIVITY = 'activity';
+const MESSAGE = 'message';
+const LOGGEDIN = 'loggedin';
+const NO_VIEWERS = [];
+const NO_FOLDERS = [];
+
+const { waitForPushActivity, collectAndGetActivityStream, getFullySetupPushClient } = ActivityTestsUtil;
+const { createTenantAdminRestContext, generateTestUsers } = TestsUtil;
+const { updateUser, getMe } = RestAPI.User;
+const {
+  createComment,
+  restoreRevision,
+  updateFileBody,
+  createLink,
+  createFile,
+  updateContent,
+  getContent
+} = RestAPI.Content;
 
 describe('Content Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -36,7 +53,7 @@ describe('Content Push', () => {
    * Function that will fill up the tenant admin and anymous rest contexts
    */
   before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
+    localAdminRestContext = createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     callback();
   });
 
@@ -45,86 +62,78 @@ describe('Content Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
+      generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
 
-        const { 0: simong, 1: branden } = users;
+        const { 0: homer, 1: marge } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-        RestAPI.User.getMe(simong.restContext, (err, simonFull) => {
-          assert.ok(!err);
+        getMe(asHomer, (err, homerInfo) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: simonFull.id,
-              tenantAlias: simonFull.tenant.alias,
-              signature: simonFull.signature
+              userId: homerInfo.id,
+              tenantAlias: homerInfo.tenant.alias,
+              signature: homerInfo.signature
             }
           };
 
-          ActivityTestsUtil.getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, client => {
             // Create a content item and get its full profile so we have a signature that we can use to register for push notifications
-            RestAPI.Content.createLink(
-              simong.restContext,
+            createLink(
+              asHomer,
               {
                 displayName: 'content',
                 description: 'A piece of content',
                 visibility: PRIVATE,
                 link: 'http://www.google.com',
-                managers: [branden.user.id],
-                viewers: [],
-                folders: []
+                managers: [marge.user.id],
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, contentObj) => {
-                assert.ok(!err);
-                RestAPI.Content.getContent(simong.restContext, contentObj.id, (err, contentObj) => {
-                  assert.ok(!err);
+                assert.notExists(err);
+                getContent(asHomer, contentObj.id, (err, contentObj) => {
+                  assert.notExists(err);
 
                   // Ensure we get a 400 error with an invalid activity stream id
                   client.subscribe(contentObj.id, null, contentObj.signature, null, err => {
                     assert.strictEqual(err.code, 400);
 
                     // Ensure we get a 400 error with a missing resource id
-                    client.subscribe(null, 'activity', contentObj.signature, null, err => {
+                    client.subscribe(null, ACTIVITY, contentObj.signature, null, err => {
                       assert.strictEqual(err.code, 400);
 
                       // Ensure we get a 400 error with an invalid token
-                      client.subscribe(contentObj.id, 'activity', { signature: 'foo' }, null, err => {
+                      client.subscribe(contentObj.id, ACTIVITY, { signature: 'foo' }, null, err => {
                         assert.strictEqual(err.code, 401);
-                        client.subscribe(contentObj.id, 'activity', { expires: Date.now() + 10000 }, null, err => {
+                        client.subscribe(contentObj.id, ACTIVITY, { expires: Date.now() + 10000 }, null, err => {
                           assert.strictEqual(err.code, 401);
 
                           // Ensure we get a 401 error with an incorrect signature
                           client.subscribe(
                             contentObj.id,
-                            'activity',
+                            ACTIVITY,
                             { expires: Date.now() + 10000, signature: 'foo' },
                             null,
                             err => {
                               assert.strictEqual(err.code, 401);
 
-                              // Simon should not be able to use a signature that was generated for Branden
-                              RestAPI.Content.getContent(
-                                branden.restContext,
-                                contentObj.id,
-                                (err, contentObjForBranden) => {
-                                  assert.ok(!err);
-                                  client.subscribe(
-                                    contentObj.id,
-                                    'activity',
-                                    contentObjForBranden.signature,
-                                    null,
-                                    err => {
-                                      assert.strictEqual(err.code, 401);
+                              // Homer should not be able to use a signature that was generated for Marge
+                              getContent(asMarge, contentObj.id, (err, contentForMarge) => {
+                                assert.notExists(err);
+                                client.subscribe(contentObj.id, ACTIVITY, contentForMarge.signature, null, err => {
+                                  assert.strictEqual(err.code, 401);
 
-                                      // Sanity check a valid signature works
-                                      client.subscribe(contentObj.id, 'activity', contentObj.signature, null, err => {
-                                        assert.ok(!err);
-                                        return callback();
-                                      });
-                                    }
-                                  );
-                                }
-                              );
+                                  // Sanity check a valid signature works
+                                  client.subscribe(contentObj.id, ACTIVITY, contentObj.signature, null, err => {
+                                    assert.notExists(err);
+                                    return callback();
+                                  });
+                                });
+                              });
                             }
                           );
                         });
@@ -146,10 +155,7 @@ describe('Content Push', () => {
      *
      * @return {Stream}     A stream that points to an OAE animation thumbnail that can be uploaded.
      */
-    const getFileStream = function() {
-      const file = path.join(__dirname, '/data/oae-video.png');
-      return fs.createReadStream(file);
-    };
+    const getFileStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-video.png'));
 
     /**
      * Creates 2 users: `Branden` and `Simon` who are both managers of a file. A websocket will be created
@@ -162,71 +168,62 @@ describe('Content Push', () => {
      * @throws {Error}                          If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
-        assert.ok(!err);
+      generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
 
-        const { 1: simon, 0: branden } = users;
-
-        const contexts = {
-          branden,
-          simon
-        };
+        const { 1: homer, 0: marge } = users;
+        const asHomer = homer.restContext;
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
-        RestAPI.User.getMe(contexts.simon.restContext, (err, simonFull) => {
-          assert.ok(!err);
+        getMe(asHomer, (err, homerInfo) => {
+          assert.notExists(err);
 
           // Create a piece of content and get the full content profile so we have a signature that we can use to register for push notifications
-          RestAPI.Content.createFile(
-            contexts.simon.restContext,
+          createFile(
+            asHomer,
             {
               displayName: 'A file',
               description: 'A proper file',
               visibility: PRIVATE,
               file: getFileStream,
-              managers: [contexts.branden.user.id],
-              viewers: [],
-              folders: []
+              managers: [marge.user.id],
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, contentObj) => {
-              assert.ok(!err);
-              RestAPI.Content.getContent(contexts.simon.restContext, contentObj.id, (err, contentObj) => {
-                assert.ok(!err);
+              assert.notExists(err);
+              getContent(asHomer, contentObj.id, (err, contentObj) => {
+                assert.notExists(err);
 
                 // Route and deliver activities
-                ActivityTestsUtil.collectAndGetActivityStream(
-                  contexts.simon.restContext,
-                  null,
-                  null,
-                  (err, activities) => {
-                    assert.ok(!err);
+                collectAndGetActivityStream(asHomer, null, null, (err /* , activities */) => {
+                  assert.notExists(err);
 
-                    // Register for some streams
-                    const data = {
-                      authentication: {
-                        userId: contexts.simon.user.id,
-                        tenantAlias: simonFull.tenant.alias,
-                        signature: simonFull.signature
+                  // Register for some streams
+                  const data = {
+                    authentication: {
+                      userId: homer.user.id,
+                      tenantAlias: homerInfo.tenant.alias,
+                      signature: homerInfo.signature
+                    },
+                    streams: [
+                      {
+                        resourceId: contentObj.id,
+                        streamType: ACTIVITY,
+                        token: contentObj.signature
                       },
-                      streams: [
-                        {
-                          resourceId: contentObj.id,
-                          streamType: 'activity',
-                          token: contentObj.signature
-                        },
-                        {
-                          resourceId: contentObj.id,
-                          streamType: 'message',
-                          token: contentObj.signature
-                        }
-                      ]
-                    };
+                      {
+                        resourceId: contentObj.id,
+                        streamType: MESSAGE,
+                        token: contentObj.signature
+                      }
+                    ]
+                  };
 
-                    ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                      callback(contexts, contentObj, client);
-                    });
-                  }
-                );
+                  getFullySetupPushClient(data, client => {
+                    callback({ marge, homer }, contentObj, client);
+                  });
+                });
               });
             }
           );
@@ -239,21 +236,19 @@ describe('Content Push', () => {
      */
     it('verify content updates trigger a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
-        // Trigger an update
-        RestAPI.Content.updateContent(
-          contexts.branden.restContext,
-          contentObj.id,
-          { displayName: 'Laaike whatevs' },
-          err => {
-            assert.ok(!err);
-          }
-        );
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
 
-        ActivityTestsUtil.waitForPushActivity(
+        // Trigger an update
+        updateContent(asMarge, contentObj.id, { displayName: 'Laaike whatevs' }, err => {
+          assert.notExists(err);
+        });
+
+        waitForPushActivity(
           client,
           ContentConstants.activity.ACTIVITY_CONTENT_UPDATE,
           ActivityConstants.verbs.UPDATE,
-          contexts.branden.user.id,
+          marge.user.id,
           contentObj.id,
           null,
           activity => {
@@ -270,21 +265,24 @@ describe('Content Push', () => {
      */
     it('verify content visibility updates trigger a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
+
         // Trigger an update
-        RestAPI.Content.updateContent(contexts.branden.restContext, contentObj.id, { visibility: 'loggedin' }, err => {
-          assert.ok(!err);
+        updateContent(asMarge, contentObj.id, { visibility: LOGGEDIN }, err => {
+          assert.notExists(err);
         });
 
-        ActivityTestsUtil.waitForPushActivity(
+        waitForPushActivity(
           client,
           ContentConstants.activity.ACTIVITY_CONTENT_UPDATE_VISIBILITY,
           ActivityConstants.verbs.UPDATE,
-          contexts.branden.user.id,
+          marge.user.id,
           contentObj.id,
           null,
           activity => {
             // Verify the updated visibility setting is present on the activity object
-            assert.strictEqual(activity.object.visibility, 'loggedin');
+            assert.strictEqual(activity.object.visibility, LOGGEDIN);
             return client.close(callback);
           }
         );
@@ -296,22 +294,25 @@ describe('Content Push', () => {
      */
     it('verify a new revision triggers a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
+
         // Upload a new revision
-        RestAPI.Content.updateFileBody(contexts.branden.restContext, contentObj.id, getFileStream, err => {
-          assert.ok(!err);
+        updateFileBody(asMarge, contentObj.id, getFileStream, err => {
+          assert.notExists(err);
         });
 
-        ActivityTestsUtil.waitForPushActivity(
+        waitForPushActivity(
           client,
           ContentConstants.activity.ACTIVITY_CONTENT_REVISION,
           ActivityConstants.verbs.UPDATE,
-          contexts.branden.user.id,
+          marge.user.id,
           contentObj.id,
           null,
           activity => {
             // Verify we have the latest revision id available for reloading of any links/images
-            RestAPI.Content.getContent(contexts.branden.restContext, contentObj.id, (err, contentObj) => {
-              assert.ok(!err);
+            getContent(asMarge, contentObj.id, (err, contentObj) => {
+              assert.notExists(err);
               assert.strictEqual(activity.object.latestRevisionId, contentObj.latestRevisionId);
               return client.close(callback);
             });
@@ -325,33 +326,30 @@ describe('Content Push', () => {
      */
     it('verify restoring a revision triggers a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
         const initialRevisionId = contentObj.latestRevisionId;
 
         // Upload a new revision
-        RestAPI.Content.updateFileBody(contexts.branden.restContext, contentObj.id, getFileStream, err => {
-          assert.ok(!err);
+        updateFileBody(asMarge, contentObj.id, getFileStream, err => {
+          assert.notExists(err);
 
           // Restore the previous revision
-          RestAPI.Content.restoreRevision(
-            contexts.branden.restContext,
-            contentObj.id,
-            initialRevisionId,
-            (err, revisionObj) => {
-              assert.ok(!err);
-            }
-          );
+          restoreRevision(asMarge, contentObj.id, initialRevisionId, (err /* , revisionObj */) => {
+            assert.notExists(err);
+          });
 
-          ActivityTestsUtil.waitForPushActivity(
+          waitForPushActivity(
             client,
             ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION,
             ActivityConstants.verbs.UPDATE,
-            contexts.branden.user.id,
+            marge.user.id,
             contentObj.id,
             null,
             activity => {
               // Verify we have the latest revision id available for reloading of any links/images
-              RestAPI.Content.getContent(contexts.branden.restContext, contentObj.id, (err, contentObj) => {
-                assert.ok(!err);
+              getContent(asMarge, contentObj.id, (err, contentObj) => {
+                assert.notExists(err);
                 assert.strictEqual(activity.object.latestRevisionId, contentObj.latestRevisionId);
                 return client.close(callback);
               });
@@ -366,39 +364,42 @@ describe('Content Push', () => {
      */
     it('verify a new comment triggers a push notification', callback => {
       setupFixture((contexts, contentObj, client) => {
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
+
         let comment = null;
         let activity = null;
+        let commentsCreated = 0;
+        const theresTwoOf = equals(2);
 
         /*!
          * Perform the assertions between the activity and comment and finish the test
          */
-        const _assertAndCallback = _.after(2, () => {
-          // Verify that we have access to the message body and createdBy property
-          assert.strictEqual(activity.object[ActivityConstants.properties.OAE_ID], comment.id);
-          assert.strictEqual(activity.object.body, 'Cup a Soup');
-          assert.ok(_.isObject(activity.object.createdBy));
-          assert.strictEqual(activity.object.createdBy.id, contexts.branden.user.id);
-          return client.close(callback);
-        });
+        const _assertAndCallback = () => {
+          commentsCreated++;
+
+          if (theresTwoOf(commentsCreated)) {
+            // Verify that we have access to the message body and createdBy property
+            assert.strictEqual(activity.object[ActivityConstants.properties.OAE_ID], comment.id);
+            assert.strictEqual(activity.object.body, 'Cup a Soup');
+            assert.isObject(activity.object.createdBy);
+            assert.strictEqual(activity.object.createdBy.id, marge.user.id);
+            return client.close(callback);
+          }
+        };
 
         // Create a message
-        RestAPI.Content.createComment(
-          contexts.branden.restContext,
-          contentObj.id,
-          'Cup a Soup',
-          null,
-          (err, _comment) => {
-            assert.ok(!err);
-            comment = _comment;
-            return _assertAndCallback();
-          }
-        );
+        createComment(asMarge, contentObj.id, 'Cup a Soup', null, (err, _comment) => {
+          assert.notExists(err);
+          comment = _comment;
+          return _assertAndCallback();
+        });
 
-        ActivityTestsUtil.waitForPushActivity(
+        waitForPushActivity(
           client,
           ContentConstants.activity.ACTIVITY_CONTENT_COMMENT,
           ActivityConstants.verbs.POST,
-          contexts.branden.user.id,
+          marge.user.id,
           null,
           contentObj.id,
           _activity => {
@@ -414,55 +415,52 @@ describe('Content Push', () => {
      */
     it("verify a comment author's profile gets scrubbed", callback => {
       setupFixture((contexts, contentObj, client) => {
-        RestAPI.User.updateUser(
-          contexts.branden.restContext,
-          contexts.branden.user.id,
-          { visibility: 'private', publicAlias: 'Ma Baker' },
-          err => {
-            assert.ok(!err);
-            let comment = null;
-            let activity = null;
+        const { marge } = contexts;
+        const asMarge = marge.restContext;
+        let commentsCreated = 0;
+        const theresTwoOf = equals(2);
 
-            /*!
-             * Perform the assertions between the activity and comment and finish the test
-             */
-            const _assertAndCallback = _.after(2, () => {
+        updateUser(asMarge, marge.user.id, { visibility: PRIVATE, publicAlias: 'Ma Baker' }, err => {
+          assert.notExists(err);
+          let comment = null;
+          let activity = null;
+
+          /*!
+           * Perform the assertions between the activity and comment and finish the test
+           */
+          const _assertAndCallback = () => {
+            commentsCreated++;
+            if (theresTwoOf(commentsCreated)) {
               // Verify that we have access to the message body and createdBy property
               assert.strictEqual(activity.object[ActivityConstants.properties.OAE_ID], comment.id);
               assert.strictEqual(activity.object.body, 'Cup a Soup');
-              assert.strictEqual(activity.object.createdBy.visibility, 'private');
+              assert.strictEqual(activity.object.createdBy.visibility, PRIVATE);
               assert.strictEqual(activity.object.createdBy.displayName, 'Ma Baker');
               return client.close(callback);
-            });
+            }
+          };
 
-            // Create a message
-            RestAPI.Content.createComment(
-              contexts.branden.restContext,
-              contentObj.id,
-              'Cup a Soup',
-              null,
-              (err, _comment) => {
-                assert.ok(!err);
-                comment = _comment;
-                return _assertAndCallback();
-              }
-            );
+          // Create a message
+          createComment(asMarge, contentObj.id, 'Cup a Soup', null, (err, _comment) => {
+            assert.notExists(err);
+            comment = _comment;
+            return _assertAndCallback();
+          });
 
-            // Wait for the target activity to be fired in the client
-            ActivityTestsUtil.waitForPushActivity(
-              client,
-              ContentConstants.activity.ACTIVITY_CONTENT_COMMENT,
-              ActivityConstants.verbs.POST,
-              contexts.branden.user.id,
-              null,
-              contentObj.id,
-              _activity => {
-                activity = _activity;
-                return _assertAndCallback();
-              }
-            );
-          }
-        );
+          // Wait for the target activity to be fired in the client
+          waitForPushActivity(
+            client,
+            ContentConstants.activity.ACTIVITY_CONTENT_COMMENT,
+            ActivityConstants.verbs.POST,
+            marge.user.id,
+            null,
+            contentObj.id,
+            _activity => {
+              activity = _activity;
+              return _assertAndCallback();
+            }
+          );
+        });
       });
     });
   });

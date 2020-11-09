@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
 import * as Pubsub from 'oae-util/lib/pubsub';
 
 describe('Pubsub', () => {
-  describe('#publish()', callback => {
+  describe('#publish()', () => {
     it('verify missing channel parameter', callback => {
       Pubsub.publish(undefined, 'some message', err => {
         assert.strictEqual(err.code, 400);
@@ -41,7 +41,7 @@ describe('Pubsub', () => {
         callback();
       });
       Pubsub.publish(channel, message, err => {
-        assert.ok(!err);
+        assert.notExists(err);
       });
     });
   });

@@ -1,6 +1,6 @@
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 import async from 'async';
+import { forEach, pipe, pluck } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -17,12 +17,10 @@ describe('Meeting Jitsi', () => {
 
   describe('Create meeting', () => {
     it('should create successfully the meeting with the proper model and associations', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
-        const loulou = _.values(user)[2];
+        const { 0: riri, 1: fifi, 2: loulou } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -45,7 +43,7 @@ describe('Meeting Jitsi', () => {
             return done();
           },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Create one new meeting
             RestAPI.MeetingsJitsi.createMeeting(
@@ -58,7 +56,7 @@ describe('Meeting Jitsi', () => {
               managers,
               members,
               (err, meeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 assert.strictEqual(meeting.createdBy, loulou.user.id);
                 assert.strictEqual(meeting.displayName, displayName);
@@ -70,20 +68,20 @@ describe('Meeting Jitsi', () => {
 
                 // Check the meeting members and their roles
                 RestAPI.MeetingsJitsi.getMembers(loulou.restContext, meeting.id, null, 1000, (err, members) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
-                  const memberIds = _.pluck(_.pluck(members.results, 'profile'), 'id');
+                  const memberIds = pipe(pluck('profile'), pluck('id'))(members.results);
 
-                  assert.strictEqual(memberIds.length, 3);
-                  assert.strictEqual(_.contains(memberIds, riri.user.id), true);
-                  assert.strictEqual(_.contains(memberIds, fifi.user.id), true);
-                  assert.strictEqual(_.contains(memberIds, loulou.user.id), true);
+                  assert.lengthOf(memberIds, 3);
+                  assert.include(memberIds, riri.user.id, true);
+                  assert.include(memberIds, fifi.user.id, true);
+                  assert.include(memberIds, loulou.user.id, true);
 
-                  const roles = _.pluck(members.results, 'role');
+                  const roles = pluck('role', members.results);
 
-                  assert.strictEqual(roles.length, 3);
-                  assert.strictEqual(_.contains(roles, 'manager'), true);
-                  assert.strictEqual(_.contains(roles, 'member'), true);
+                  assert.lengthOf(roles, 3);
+                  assert.include(roles, 'manager', true);
+                  assert.include(roles, 'member', true);
 
                   // Ensure the new number of meetings in db is numMeetingsOrig + 1
                   let numMeetingAfter = 0;
@@ -95,17 +93,17 @@ describe('Meeting Jitsi', () => {
                     (meetingRows, done) => {
                       if (meetingRows) {
                         numMeetingAfter += meetingRows.length;
-                        _.each(meetingRows, meetingRow => {
+                        forEach(meetingRow => {
                           if (meetingRow.id === meeting.id) {
                             hasNewMeeting = true;
                           }
-                        });
+                        }, meetingRows);
                       }
 
                       return done();
                     },
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.strictEqual(numMeetingsOrig + 1, numMeetingAfter);
                       assert.ok(hasNewMeeting);
 
@@ -121,12 +119,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should be successfully added to its members and managers library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
-        const loulou = _.values(user)[2];
+        const { 0: riri, 1: fifi, 2: loulou } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -146,14 +142,14 @@ describe('Meeting Jitsi', () => {
           managers,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             async.series(
               [
                 /* eslint-disable-next-line func-names */
                 function checkRiri(done) {
                   RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(meetings.results.length, 1);
                     assert.strictEqual(meetings.results[0].id, meeting.id);
 
@@ -163,7 +159,7 @@ describe('Meeting Jitsi', () => {
                 /* eslint-disable-next-line func-names */
                 function checkFifi(done) {
                   RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(meetings.results.length, 1);
                     assert.strictEqual(meetings.results[0].id, meeting.id);
 
@@ -173,7 +169,7 @@ describe('Meeting Jitsi', () => {
                 /* eslint-disable-next-line func-names */
                 function checkLoulou(done) {
                   RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(meetings.results.length, 1);
                     assert.strictEqual(meetings.results[0].id, meeting.id);
 
@@ -214,10 +210,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an empty display name', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
 
         const displayName = null;
         const description = 'test-create-description';
@@ -245,10 +241,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a display name longer than the maximum allowed size', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
 
         const displayName = TestsUtil.generateRandomText(100);
         const description = 'test-create-description';
@@ -276,10 +272,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a description longer than the maximum allowed size', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
 
         const displayName = 'test-create-displayName';
         const description = TestsUtil.generateRandomText(1000);
@@ -307,10 +303,9 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid visibility', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
-
-        const riri = _.values(user)[0];
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: riri } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -338,10 +333,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid manager id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -369,10 +364,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid member id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -401,10 +396,9 @@ describe('Meeting Jitsi', () => {
 
     it('should not be successfull with a private user as a member', callback => {
       TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
-        const riri = _.values(users)[0];
-        const fifi = _.values(users)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -413,7 +407,7 @@ describe('Meeting Jitsi', () => {
         const visibility = 'public';
 
         RestAPI.User.updateUser(fifi.restContext, fifi.user.id, { visibility: 'private' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           RestAPI.MeetingsJitsi.createMeeting(
             riri.restContext,
@@ -437,10 +431,9 @@ describe('Meeting Jitsi', () => {
 
     it('should not be successfull with a private group as a member', callback => {
       TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
-        const riri = _.values(users)[0];
-        const fifi = _.values(users)[1];
+        const { 0: riri, 1: fifi } = users;
 
         RestAPI.Group.createGroup(
           fifi.restContext,
@@ -451,7 +444,7 @@ describe('Meeting Jitsi', () => {
           [],
           [],
           (err, groupObj) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const displayName = 'test-create-displayName';
             const description = 'test-create-description';
@@ -483,10 +476,10 @@ describe('Meeting Jitsi', () => {
 
   describe('Update meeting', () => {
     it('should update successfully the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -503,7 +496,7 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
@@ -513,7 +506,7 @@ describe('Meeting Jitsi', () => {
             };
 
             RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(meeting.displayName, updates.displayName);
               assert.strictEqual(meeting.description, updates.description);
 
@@ -525,10 +518,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an empty display name', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -545,14 +538,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: '',
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -564,10 +557,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a display name longer than the maximum allowed size', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -584,14 +578,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: TestsUtil.generateRandomText(100),
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -603,10 +597,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a description longer than the maximum allowed size', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -623,14 +618,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               description: TestsUtil.generateRandomText(1000)
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -642,10 +637,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with no fields to update', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -662,11 +658,11 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -678,10 +674,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid chat value', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -698,14 +695,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               chat: 'not-an-valid-value'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -717,10 +714,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be susccessfull with an invalid contactList value', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -737,14 +735,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               contactList: 'not-an-valid-value'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -756,10 +754,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a invalid meeting id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -775,15 +774,15 @@ describe('Meeting Jitsi', () => {
           visibility,
           null,
           null,
-          (err, meeting) => {
-            assert.ok(!err);
+          (err /* , meeting */) => {
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, 'not-an-id', updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, 'not-an-id', updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -795,10 +794,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid field name', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -815,7 +815,7 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
@@ -823,7 +823,7 @@ describe('Meeting Jitsi', () => {
               'not-an-valid-field-name': 'test'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(riri.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -835,10 +835,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if the user is anonymous', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
         const chat = true;
@@ -855,14 +856,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(camAnonymousRestCtx, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(camAnonymousRestCtx, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
@@ -874,11 +875,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if the user is loggedin but not a member', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -896,14 +896,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
@@ -915,11 +915,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if the user is just a member', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'test-create-displayName';
         const description = 'test-create-description';
@@ -938,14 +937,14 @@ describe('Meeting Jitsi', () => {
           null,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {
               displayName: 'new-display-name',
               description: 'new-description'
             };
 
-            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err, meeting) => {
+            RestAPI.MeetingsJitsi.updateMeeting(fifi.restContext, meeting.id, updates, (err /* , meeting */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
@@ -959,12 +958,10 @@ describe('Meeting Jitsi', () => {
 
   describe('Delete meeting', () => {
     it('should successfully delete the meeting and its members association', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
-        const loulou = _.values(user)[2];
+        const { 0: riri, 1: fifi, 2: loulou } = users;
 
         const displayName = 'meeting-display-name';
         const description = 'meeting-description';
@@ -985,11 +982,11 @@ describe('Meeting Jitsi', () => {
           managers,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Delete the meeting
             RestAPI.MeetingsJitsi.deleteMeeting(riri.restContext, meeting.id, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Check the meeting associtations have been correctly deleted
               async.parallel(
@@ -1031,12 +1028,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should successfully remove the meeting from its members and managers library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
-        const loulou = _.values(user)[2];
+        const { 0: riri, 1: fifi, 2: loulou } = users;
 
         const displayName = 'meeting-display-name';
         const description = 'meeting-description';
@@ -1057,7 +1052,7 @@ describe('Meeting Jitsi', () => {
           managers,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             RestAPI.MeetingsJitsi.createMeeting(
               riri.restContext,
@@ -1069,11 +1064,11 @@ describe('Meeting Jitsi', () => {
               managers,
               members,
               (err, meeting2) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Delete the meeting
                 RestAPI.MeetingsJitsi.deleteMeeting(riri.restContext, meeting.id, err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Check the meeting associtations have been correctly deleted
                   async.parallel(
@@ -1081,7 +1076,7 @@ describe('Meeting Jitsi', () => {
                       /* eslint-disable-next-line func-names */
                       function ririCheck(done) {
                         RestAPI.MeetingsJitsi.getMeetingsLibrary(riri.restContext, riri.user.id, (err, meetings) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.strictEqual(meetings.results.length, 1);
                           assert.strictEqual(meetings.results[0].id, meeting2.id);
 
@@ -1091,7 +1086,7 @@ describe('Meeting Jitsi', () => {
                       /* eslint-disable-next-line func-names */
                       function fifiCheck(done) {
                         RestAPI.MeetingsJitsi.getMeetingsLibrary(fifi.restContext, fifi.user.id, (err, meetings) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.strictEqual(meetings.results.length, 1);
                           assert.strictEqual(meetings.results[0].id, meeting2.id);
 
@@ -1104,7 +1099,7 @@ describe('Meeting Jitsi', () => {
                           loulou.restContext,
                           loulou.user.id,
                           (err, meetings) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(meetings.results.length, 1);
                             assert.strictEqual(meetings.results[0].id, meeting2.id);
 
@@ -1124,10 +1119,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid meeting id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'meeting-display-name';
         const description = 'meeting-description';
         const chat = true;
@@ -1143,8 +1138,8 @@ describe('Meeting Jitsi', () => {
           visibility,
           null,
           null,
-          (err, meeting) => {
-            assert.ok(!err);
+          (err /* , meeting */) => {
+            assert.notExists(err);
 
             RestAPI.MeetingsJitsi.deleteMeeting(riri.restContext, 'not-a-valid-id', err => {
               assert.ok(err);
@@ -1158,11 +1153,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if a simple member tries to delete the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'meeting-display-name';
         const description = 'meeting-description';
@@ -1181,7 +1175,7 @@ describe('Meeting Jitsi', () => {
           null,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             RestAPI.MeetingsJitsi.deleteMeeting(fifi.restContext, meeting.id, err => {
               assert.ok(err);
@@ -1197,11 +1191,10 @@ describe('Meeting Jitsi', () => {
 
   describe('Manage meeting access', () => {
     it('should successfully update the meeting access', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1220,16 +1213,16 @@ describe('Meeting Jitsi', () => {
           managers,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
             updates[fifi.user.id] = 'member';
 
             RestAPI.MeetingsJitsi.updateMembers(riri.restContext, meeting.id, updates, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               RestAPI.MeetingsJitsi.getMeeting(fifi.restContext, meeting.id, (err, meeting) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(!meeting.isManager);
 
                 return callback();
@@ -1241,11 +1234,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid meeting id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1263,8 +1255,8 @@ describe('Meeting Jitsi', () => {
           visibility,
           managers,
           null,
-          (err, meeting) => {
-            assert.ok(!err);
+          (err /* , meeting */) => {
+            assert.notExists(err);
 
             const updates = {};
             updates[fifi.user.id] = 'member';
@@ -1281,11 +1273,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid role', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1304,7 +1295,7 @@ describe('Meeting Jitsi', () => {
           managers,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
             updates[fifi.user.id] = 'not-a-valid-role';
@@ -1321,11 +1312,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid principal id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1344,7 +1334,7 @@ describe('Meeting Jitsi', () => {
           managers,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
             updates['not-a-valid-principal-id'] = 'member';
@@ -1361,12 +1351,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if the user is not authorized to manage the access of the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
-        const loulou = _.values(user)[2];
+        const { 0: riri, 1: fifi, 2: loulou } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1386,7 +1374,7 @@ describe('Meeting Jitsi', () => {
           managers,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
             updates[fifi.user.id] = 'member';
@@ -1403,11 +1391,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull if the update ends up with no manager for the meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1426,7 +1413,7 @@ describe('Meeting Jitsi', () => {
           null,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const updates = {};
             updates[riri.user.id] = 'member';
@@ -1445,10 +1432,10 @@ describe('Meeting Jitsi', () => {
 
   describe('Comment meeting', () => {
     it('should successfully comment the meeting with the proper model', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1466,14 +1453,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(comment.createdBy.id, riri.user.id);
               assert.strictEqual(comment.level, 0);
               assert.strictEqual(comment.body, body);
@@ -1489,11 +1476,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should successfully comment the meeting even when it is a response to another comment', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1513,27 +1499,23 @@ describe('Meeting Jitsi', () => {
           null,
           members,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Add a response to the previous comment
-              RestAPI.MeetingsJitsi.createComment(
-                fifi.restContext,
-                meeting.id,
-                'Hello riri',
-                comment.created,
-                (err, comment) => {
-                  assert.ok(!err);
+              RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, 'Hello riri', comment.created, (
+                err /* , comment */
+              ) => {
+                assert.notExists(err);
 
-                  return callback();
-                }
-              );
+                return callback();
+              });
             });
           }
         );
@@ -1541,10 +1523,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid meeting id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1561,35 +1543,31 @@ describe('Meeting Jitsi', () => {
           visibility,
           null,
           null,
-          (err, meeting) => {
-            assert.ok(!err);
+          (err /* , meeting */) => {
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(
-              riri.restContext,
-              'not-a-valid-meeting-id',
-              body,
-              replyTo,
-              (err, comment) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 400);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, 'not-a-valid-meeting-id', body, replyTo, (
+              err /* , comment */
+            ) => {
+              assert.ok(err);
+              assert.strictEqual(err.code, 400);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           }
         );
       });
     });
 
     it('should not be successfull with an empty body', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1607,13 +1585,13 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = '';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -1625,10 +1603,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an non-existing reply-to timestamp', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1646,13 +1624,13 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello World';
             const replyTo = 'not-an-existing-reply-to-timestamp';
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -1664,10 +1642,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a body longer thant the maximum allowed size', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1685,13 +1663,13 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = TestsUtil.generateRandomText(10000);
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 400);
 
@@ -1703,10 +1681,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an anonymous user', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1724,13 +1702,15 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(camAnonymousRestCtx, meeting.id, body, replyTo, (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(camAnonymousRestCtx, meeting.id, body, replyTo, (
+              err /* , comment */
+            ) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
@@ -1742,11 +1722,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with a non-member user on a private meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1765,13 +1744,13 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
               assert.ok(err);
               assert.strictEqual(err.code, 401);
 
@@ -1783,11 +1762,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should be successfull with a non-member user on a public meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1806,14 +1784,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
+              assert.notExists(err);
 
               return callback();
             });
@@ -1823,11 +1801,10 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should be successfull with a non-member user on a loggedin meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
-        const fifi = _.values(user)[1];
+        const { 0: riri, 1: fifi } = users;
 
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
@@ -1846,14 +1823,14 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
+              assert.notExists(err);
 
               return callback();
             });
@@ -1865,10 +1842,11 @@ describe('Meeting Jitsi', () => {
 
   describe('Delete meeting comment', () => {
     it('should successfully delete a comment from a meeting', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1886,17 +1864,19 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
-              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, comment.created, (err, softDeleted) => {
-                assert.ok(!err);
+              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, comment.created, (
+                err /* , softDeleted */
+              ) => {
+                assert.notExists(err);
 
                 return callback();
               });
@@ -1907,10 +1887,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should successfully soft delete a comment from a meeting if the comment has replies to it', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1928,37 +1909,33 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment1) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
-              RestAPI.MeetingsJitsi.createComment(
-                riri.restContext,
-                meeting.id,
-                'Hello Riri',
-                comment1.created,
-                (err, comment2) => {
-                  assert.ok(!err);
+              RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, 'Hello Riri', comment1.created, (
+                err /* , comment2 */
+              ) => {
+                assert.notExists(err);
 
-                  RestAPI.MeetingsJitsi.deleteComment(
-                    riri.restContext,
-                    meeting.id,
-                    comment1.created,
-                    (err, softDeleted) => {
-                      assert.ok(!err);
-                      assert.ok(softDeleted.deleted);
-                      assert.ok(!softDeleted.body);
+                RestAPI.MeetingsJitsi.deleteComment(
+                  riri.restContext,
+                  meeting.id,
+                  comment1.created,
+                  (err, softDeleted) => {
+                    assert.notExists(err);
+                    assert.ok(softDeleted.deleted);
+                    assert.ok(!softDeleted.body);
 
-                      return callback();
-                    }
-                  );
-                }
-              );
+                    return callback();
+                  }
+                );
+              });
             });
           }
         );
@@ -1966,10 +1943,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid meeting id', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -1987,26 +1965,23 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
-              RestAPI.MeetingsJitsi.deleteComment(
-                riri.restContext,
-                'not-a-valid-meeting-id',
-                comment.created,
-                (err, softDeleted) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
+              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, 'not-a-valid-meeting-id', comment.created, (
+                err /* , softDeleted */
+              ) => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
 
-                  return callback();
-                }
-              );
+                return callback();
+              });
             });
           }
         );
@@ -2014,10 +1989,11 @@ describe('Meeting Jitsi', () => {
     });
 
     it('should not be successfull with an invalid timestamp', callback => {
-      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, user) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
+        assert.notExists(err);
 
-        const riri = _.values(user)[0];
+        const { 0: riri } = users;
+
         const displayName = 'my-meeting-display-name';
         const description = 'my-meeting-description';
         const chat = true;
@@ -2035,26 +2011,23 @@ describe('Meeting Jitsi', () => {
           null,
           null,
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Add a comment
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err, comment) => {
-              assert.ok(!err);
+            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (err /* , comment */) => {
+              assert.notExists(err);
 
-              RestAPI.MeetingsJitsi.deleteComment(
-                riri.restContext,
-                meeting.id,
-                'not-a-valid-comment-timestamp',
-                (err, softDeleted) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 400);
+              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, 'not-a-valid-comment-timestamp', (
+                err /* , softDeleted */
+              ) => {
+                assert.ok(err);
+                assert.strictEqual(err.code, 400);
 
-                  return callback();
-                }
-              );
+                return callback();
+              });
             });
           }
         );

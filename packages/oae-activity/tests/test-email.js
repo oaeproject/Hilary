@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import util from 'util';
 import $ from 'cheerio';
-import _ from 'underscore';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
 import * as EmailTestUtil from 'oae-email/lib/test/util';
@@ -32,9 +31,24 @@ import * as ActivityEmail from 'oae-activity/lib/internal/email';
 import * as ActivitySystemConfig from 'oae-activity/lib/internal/config';
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
+import {
+  forEach,
+  equals,
+  find,
+  head,
+  compose,
+  mergeRight,
+  map,
+  prop,
+  union,
+  contains,
+  sortBy,
+  propSatisfies
+} from 'ramda';
+const NO_MANAGERS = [];
+const NO_VIEWERS = [];
+const NO_FOLDERS = [];
 const PUBLIC = 'public';
-const PRIVATE = 'private';
-const LOGGED_IN = 'loggedin';
 
 describe('Activity Email', () => {
   // Rest contexts that can be used every time we need to make a request as an admin
@@ -130,14 +144,15 @@ describe('Activity Email', () => {
     };
 
     // Allow for other configuration
-    config = _.extend(config, extraConfig);
+    // config = _.extend(config, extraConfig);
+    config = mergeRight(config, extraConfig);
 
     // Configure the daily/weekly values
     config.mail.daily = { hour: dailyHour };
     config.mail.weekly = { hour: weeklyHour, day: weeklyDay };
 
     ActivityTestUtil.refreshConfiguration(config, err => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(config);
     });
   };
@@ -148,8 +163,9 @@ describe('Activity Email', () => {
      * configuration
      */
     it('verify footer template', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, mrvisser) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+        assert.notExists(err);
+        const { 1: nico, 2: mrvisser } = users;
 
         // Clear emails to start
         EmailTestUtil.collectAndFetchAllEmails(() => {
@@ -268,9 +284,9 @@ describe('Activity Email', () => {
           ConfigTestUtil.clearConfigAndWait(
             globalAdminRestContext,
             null,
-            _.union(instanceConfigFields, hostingOrganizationConfigFields),
+            union(instanceConfigFields, hostingOrganizationConfigFields),
             err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Create a link, let Nico manage it
               RestAPI.Content.createLink(
@@ -281,11 +297,11 @@ describe('Activity Email', () => {
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
                   managers: [nico.user.id],
-                  viewers: [],
-                  folders: []
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Ensure the email is as expected
                   EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -297,13 +313,13 @@ describe('Activity Email', () => {
                       null,
                       updateConfigInstance,
                       err => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         RestAPI.Content.updateContent(
                           mrvisser.restContext,
                           link.id,
                           { displayName: 'Update 1' },
                           (err, link) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             EmailTestUtil.collectAndFetchAllEmails(messages => {
                               _assertEmailFooter(messages[0], {
                                 expectInstanceName: true,
@@ -316,19 +332,19 @@ describe('Activity Email', () => {
                                 null,
                                 instanceConfigFields,
                                 err => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
                                   ConfigTestUtil.updateConfigAndWait(
                                     globalAdminRestContext,
                                     null,
                                     updateConfigHostingOrganization,
                                     err => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       RestAPI.Content.updateContent(
                                         mrvisser.restContext,
                                         link.id,
                                         { displayName: 'Update 2' },
                                         (err, link) => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
                                           EmailTestUtil.collectAndFetchAllEmails(messages => {
                                             _assertEmailFooter(messages[0], {
                                               expectHostingOrganizationName: true,
@@ -341,13 +357,13 @@ describe('Activity Email', () => {
                                               null,
                                               updateConfigInstance,
                                               err => {
-                                                assert.ok(!err);
+                                                assert.notExists(err);
                                                 RestAPI.Content.updateContent(
                                                   mrvisser.restContext,
                                                   link.id,
                                                   { displayName: 'Update 3' },
                                                   (err, link) => {
-                                                    assert.ok(!err);
+                                                    assert.notExists(err);
                                                     EmailTestUtil.collectAndFetchAllEmails(
                                                       messages => {
                                                         _assertEmailFooter(messages[0], {
@@ -367,13 +383,13 @@ describe('Activity Email', () => {
                                                           null,
                                                           urlFields,
                                                           err => {
-                                                            assert.ok(!err);
+                                                            assert.notExists(err);
                                                             RestAPI.Content.updateContent(
                                                               mrvisser.restContext,
                                                               link.id,
                                                               { displayName: 'Update 3' },
                                                               err => {
-                                                                assert.ok(!err);
+                                                                assert.notExists(err);
                                                                 EmailTestUtil.collectAndFetchAllEmails(
                                                                   messages => {
                                                                     _assertEmailFooter(
@@ -422,8 +438,10 @@ describe('Activity Email', () => {
    * Test that verifies that emails aggregate
    */
   it('verify email aggregation', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, mrvisser) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: simong, 1: nico, 2: mrvisser } = users;
 
       RestAPI.Content.createLink(
         mrvisser.restContext,
@@ -432,12 +450,12 @@ describe('Activity Email', () => {
           description: 'Google',
           visibility: PUBLIC,
           link: 'http://www.google.ca',
-          managers: [],
+          managers: NO_MANAGERS,
           viewers: [nico.user.id],
-          folders: []
+          folders: NO_FOLDERS
         },
         (err, firstLink) => {
-          assert.ok(!err);
+          assert.notExists(err);
           RestAPI.Content.createLink(
             mrvisser.restContext,
             {
@@ -445,12 +463,12 @@ describe('Activity Email', () => {
               description: 'Google',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: [],
+              managers: NO_MANAGERS,
               viewers: [nico.user.id],
-              folders: []
+              folders: NO_FOLDERS
             },
             (err, secondLink) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createLink(
                 simong.restContext,
                 {
@@ -458,12 +476,12 @@ describe('Activity Email', () => {
                   description: 'Google',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: [],
+                  managers: NO_MANAGERS,
                   viewers: [nico.user.id],
-                  folders: []
+                  folders: NO_FOLDERS
                 },
                 (err, thirdLink) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
                     simong.restContext,
                     {
@@ -471,12 +489,12 @@ describe('Activity Email', () => {
                       description: 'Google',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [nico.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
                     (err, fourthLink) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       RestAPI.Discussions.createDiscussion(
                         simong.restContext,
                         'First discussion',
@@ -485,7 +503,7 @@ describe('Activity Email', () => {
                         null,
                         [nico.user.id],
                         (err, firstDiscussion) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
 
                           // Nico should've received an email with 3 activities in it
                           //  - 1 content-create: Branden created 2 links
@@ -524,15 +542,15 @@ describe('Activity Email', () => {
                               null,
                               [nico.user.id, mrvisser.user.id],
                               (err, secondDiscussion) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
                                 EmailTestUtil.collectAndFetchAllEmails(messages => {
                                   assert.strictEqual(messages.length, 2);
-                                  _.each(messages, message => {
+                                  forEach(message => {
                                     assert.ok(
-                                      _.contains(
-                                        [nico.user.email, mrvisser.user.email],
-                                        message.to[0].address
-                                      )
+                                      contains(message.to[0].address, [
+                                        nico.user.email,
+                                        mrvisser.user.email
+                                      ])
                                     );
 
                                     // Assert that only the link to the discussion profile is present
@@ -562,7 +580,7 @@ describe('Activity Email', () => {
 
                                     // Assert the link to Simon's profile is present
                                     assert.ok(message.html.indexOf(simong.user.profilePath) > 0);
-                                  });
+                                  }, messages);
 
                                   return callback();
                                 });
@@ -586,8 +604,9 @@ describe('Activity Email', () => {
    * Test that verifies that aggregation in a stream is stopped when an email is sent
    */
   it('verify aggregation in a stream is stopped when an email is sent', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, nico, branden, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: nico, 1: branden, 2: simong } = users;
 
       // Trigger an activity
       RestAPI.Content.createLink(
@@ -597,12 +616,12 @@ describe('Activity Email', () => {
           description: 'Google',
           visibility: PUBLIC,
           link: 'http://www.google.be',
-          managers: [],
+          managers: NO_MANAGERS,
           viewers: [branden.user.id],
-          folders: []
+          folders: NO_FOLDERS
         },
         (err, firstContentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Collect the e-mails, Branden should've received an e-mail containing the content-create activity
           EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -619,12 +638,12 @@ describe('Activity Email', () => {
                 description: 'Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.be',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [branden.user.id],
-                folders: []
+                folders: NO_FOLDERS
               },
               (err, secondContentObj) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Collect the e-mails, Branden should've received an e-mail containing the content-create activity
                 EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -643,7 +662,7 @@ describe('Activity Email', () => {
                     [],
                     [branden.user.id],
                     (err, discussion) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Collect the e-mails, Branden should've received an e-mail containing the content-create activity
                       EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -676,258 +695,262 @@ describe('Activity Email', () => {
    * Test that verifies that the email aggregator respects each user their email preference
    */
   it('verify aggregation respects email preference', callback => {
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      5,
-      (err, users, neverMailUser, immediateMailUser, dailyMailUser, weeklyMailUser, simong) => {
-        assert.ok(!err);
-        RestAPI.User.updateUser(
-          neverMailUser.restContext,
-          neverMailUser.user.id,
-          { emailPreference: 'never' },
-          err => {
-            assert.ok(!err);
-            RestAPI.User.updateUser(
-              immediateMailUser.restContext,
-              immediateMailUser.user.id,
-              { emailPreference: 'immediate' },
-              err => {
-                assert.ok(!err);
-                RestAPI.User.updateUser(
-                  dailyMailUser.restContext,
-                  dailyMailUser.user.id,
-                  { emailPreference: 'daily' },
-                  err => {
-                    assert.ok(!err);
-                    RestAPI.User.updateUser(
-                      weeklyMailUser.restContext,
-                      weeklyMailUser.user.id,
-                      { emailPreference: 'weekly' },
-                      err => {
-                        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 5, (err, users) => {
+      const {
+        0: neverMailUser,
+        1: immediateMailUser,
+        2: dailyMailUser,
+        3: weeklyMailUser,
+        4: simong
+      } = users;
+      assert.notExists(err);
+      RestAPI.User.updateUser(
+        neverMailUser.restContext,
+        neverMailUser.user.id,
+        { emailPreference: 'never' },
+        err => {
+          assert.notExists(err);
+          RestAPI.User.updateUser(
+            immediateMailUser.restContext,
+            immediateMailUser.user.id,
+            { emailPreference: 'immediate' },
+            err => {
+              assert.notExists(err);
+              RestAPI.User.updateUser(
+                dailyMailUser.restContext,
+                dailyMailUser.user.id,
+                { emailPreference: 'daily' },
+                err => {
+                  assert.notExists(err);
+                  RestAPI.User.updateUser(
+                    weeklyMailUser.restContext,
+                    weeklyMailUser.user.id,
+                    { emailPreference: 'weekly' },
+                    err => {
+                      assert.notExists(err);
 
-                        // Configure the email collector, so that the email collection window doesn't include
-                        // the daily and weekly collection point
-                        refreshConfiguration(null, false, false, {}, () => {
-                          // Trigger an activity
-                          RestAPI.Content.createLink(
-                            simong.restContext,
-                            {
-                              displayName: 'Google1',
-                              description: 'Google1',
-                              visibility: PUBLIC,
-                              link: 'http://www.google1.be',
-                              managers: [],
-                              viewers: [
-                                neverMailUser.user.id,
-                                immediateMailUser.user.id,
-                                dailyMailUser.user.id,
-                                weeklyMailUser.user.id
-                              ],
-                              folders: []
-                            },
-                            err => {
-                              assert.ok(!err);
+                      // Configure the email collector, so that the email collection window doesn't include
+                      // the daily and weekly collection point
+                      refreshConfiguration(null, false, false, {}, () => {
+                        // Trigger an activity
+                        RestAPI.Content.createLink(
+                          simong.restContext,
+                          {
+                            displayName: 'Google1',
+                            description: 'Google1',
+                            visibility: PUBLIC,
+                            link: 'http://www.google1.be',
+                            managers: NO_MANAGERS,
+                            viewers: [
+                              neverMailUser.user.id,
+                              immediateMailUser.user.id,
+                              dailyMailUser.user.id,
+                              weeklyMailUser.user.id
+                            ],
+                            folders: NO_FOLDERS
+                          },
+                          err => {
+                            assert.notExists(err);
 
-                              // Collect the e-mails, only the immediate user should receive an e-mail
-                              EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                assert.strictEqual(messages.length, 1);
-                                assert.strictEqual(
-                                  messages[0].to[0].address,
-                                  immediateMailUser.user.email
-                                );
+                            // Collect the e-mails, only the immediate user should receive an e-mail
+                            EmailTestUtil.collectAndFetchAllEmails(messages => {
+                              assert.strictEqual(messages.length, 1);
+                              assert.strictEqual(
+                                messages[0].to[0].address,
+                                immediateMailUser.user.email
+                              );
 
-                                // Configure the email collector, so that the email collection window includes
-                                // the daily but not the weekly collection point
-                                refreshConfiguration(null, true, false, {}, () => {
-                                  // Trigger an activity
-                                  RestAPI.Content.createLink(
-                                    simong.restContext,
-                                    {
-                                      displayName: 'Google2',
-                                      description: 'Google2',
-                                      visibility: PUBLIC,
-                                      link: 'http://www.google2.be',
-                                      managers: [],
-                                      viewers: [
-                                        neverMailUser.user.id,
-                                        immediateMailUser.user.id,
-                                        dailyMailUser.user.id,
-                                        weeklyMailUser.user.id
-                                      ],
-                                      folders: []
-                                    },
-                                    err => {
-                                      assert.ok(!err);
+                              // Configure the email collector, so that the email collection window includes
+                              // the daily but not the weekly collection point
+                              refreshConfiguration(null, true, false, {}, () => {
+                                // Trigger an activity
+                                RestAPI.Content.createLink(
+                                  simong.restContext,
+                                  {
+                                    displayName: 'Google2',
+                                    description: 'Google2',
+                                    visibility: PUBLIC,
+                                    link: 'http://www.google2.be',
+                                    managers: NO_MANAGERS,
+                                    viewers: [
+                                      neverMailUser.user.id,
+                                      immediateMailUser.user.id,
+                                      dailyMailUser.user.id,
+                                      weeklyMailUser.user.id
+                                    ],
+                                    folders: NO_FOLDERS
+                                  },
+                                  err => {
+                                    assert.notExists(err);
 
-                                      // Collect the e-mails, only the immediate and daily users should've received an e-mail
-                                      EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                        assert.strictEqual(messages.length, 2);
-                                        assert.ok(
-                                          _.contains(
-                                            [
-                                              immediateMailUser.user.email,
-                                              dailyMailUser.user.email
+                                    // Collect the e-mails, only the immediate and daily users should've received an e-mail
+                                    EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                      assert.strictEqual(messages.length, 2);
+                                      assert.ok(
+                                        contains(messages[0].to[0].address, [
+                                          immediateMailUser.user.email,
+                                          dailyMailUser.user.email
+                                        ])
+                                      );
+                                      assert.ok(
+                                        contains(messages[1].to[0].address, [
+                                          immediateMailUser.user.email,
+                                          dailyMailUser.user.email
+                                        ])
+                                      );
+                                      // Assert that the "weekly" mail user's email contains 1 activity
+                                      const dailyMail = find(
+                                        compose(
+                                          equals(dailyMailUser.user.email),
+                                          prop('address'),
+                                          head,
+                                          prop('to')
+                                        ),
+
+                                        messages
+                                      );
+                                      assert.ok(dailyMail);
+
+                                      // Configure the email collector, so that the email collection window includes
+                                      // the weekly but not the daily collection point
+                                      refreshConfiguration(null, false, true, {}, () => {
+                                        // Trigger an activity
+                                        RestAPI.Content.createLink(
+                                          simong.restContext,
+                                          {
+                                            displayName: 'Google3',
+                                            description: 'Google3',
+                                            visibility: PUBLIC,
+                                            link: 'http://www.google3.be',
+                                            managers: NO_MANAGERS,
+                                            viewers: [
+                                              neverMailUser.user.id,
+                                              immediateMailUser.user.id,
+                                              dailyMailUser.user.id,
+                                              weeklyMailUser.user.id
                                             ],
-                                            messages[0].to[0].address
-                                          )
-                                        );
-                                        assert.ok(
-                                          _.contains(
-                                            [
-                                              immediateMailUser.user.email,
-                                              dailyMailUser.user.email
-                                            ],
-                                            messages[1].to[0].address
-                                          )
-                                        );
-                                        // Assert that the "weekly" mail user's email contains 1 activity
-                                        const dailyMail = _.find(messages, message => {
-                                          return message.to[0].address === dailyMailUser.user.email;
-                                        });
-                                        assert.ok(dailyMail);
+                                            folders: NO_FOLDERS
+                                          },
+                                          err => {
+                                            assert.notExists(err);
 
-                                        // Configure the email collector, so that the email collection window includes
-                                        // the weekly but not the daily collection point
-                                        refreshConfiguration(null, false, true, {}, () => {
-                                          // Trigger an activity
-                                          RestAPI.Content.createLink(
-                                            simong.restContext,
-                                            {
-                                              displayName: 'Google3',
-                                              description: 'Google3',
-                                              visibility: PUBLIC,
-                                              link: 'http://www.google3.be',
-                                              managers: [],
-                                              viewers: [
-                                                neverMailUser.user.id,
-                                                immediateMailUser.user.id,
-                                                dailyMailUser.user.id,
-                                                weeklyMailUser.user.id
-                                              ],
-                                              folders: []
-                                            },
-                                            err => {
-                                              assert.ok(!err);
+                                            // Collect the e-mails, only the immediate and weekly users should've received an e-mail
+                                            EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                              assert.strictEqual(messages.length, 2);
+                                              const mailAddresses = [
+                                                immediateMailUser.user.email,
+                                                weeklyMailUser.user.email
+                                              ];
+                                              assert.ok(
+                                                contains(messages[0].to[0].address),
+                                                mailAddresses
+                                              );
+                                              assert.ok(
+                                                contains(messages[1].to[0].address),
+                                                mailAddresses
+                                              );
+                                              // Assert that the "weekly" mail user's email contains 1 activity
+                                              const weeklyMail = find(
+                                                compose(
+                                                  equals(weeklyMailUser.user.email),
+                                                  prop('address'),
+                                                  head,
+                                                  prop('to')
+                                                ),
+                                                messages
+                                              );
+                                              assert.ok(weeklyMail);
 
-                                              // Collect the e-mails, only the immediate and weekly users should've received an e-mail
-                                              EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                                assert.strictEqual(messages.length, 2);
-                                                const mailAddresses = [
-                                                  immediateMailUser.user.email,
-                                                  weeklyMailUser.user.email
-                                                ];
-                                                assert.ok(
-                                                  _.contains(
-                                                    mailAddresses,
-                                                    messages[0].to[0].address
-                                                  )
+                                              // Configure the email collector, so that the email collection window includes
+                                              // both the daily and the weekly collection point
+                                              refreshConfiguration(null, true, true, {}, () => {
+                                                // Trigger an activity
+                                                RestAPI.Content.createLink(
+                                                  simong.restContext,
+                                                  {
+                                                    displayName: 'Google4',
+                                                    description: 'Google4',
+                                                    visibility: PUBLIC,
+                                                    link: 'http://www.google4.be',
+                                                    managers: NO_MANAGERS,
+                                                    viewers: [
+                                                      neverMailUser.user.id,
+                                                      immediateMailUser.user.id,
+                                                      dailyMailUser.user.id,
+                                                      weeklyMailUser.user.id
+                                                    ],
+                                                    folders: NO_FOLDERS
+                                                  },
+                                                  err => {
+                                                    assert.notExists(err);
+
+                                                    // Collect the e-mails, all users (except the neverMailUser) should've received an e-mail
+                                                    EmailTestUtil.collectAndFetchAllEmails(
+                                                      messages => {
+                                                        assert.strictEqual(messages.length, 3);
+                                                        const mailAddresses = [
+                                                          immediateMailUser.user.email,
+                                                          dailyMailUser.user.email,
+                                                          weeklyMailUser.user.email
+                                                        ];
+                                                        assert.ok(
+                                                          contains(
+                                                            messages[0].to[0].address,
+                                                            mailAddresses
+                                                          )
+                                                        );
+                                                        assert.ok(
+                                                          contains(
+                                                            messages[1].to[0].address,
+                                                            mailAddresses
+                                                          )
+                                                        );
+                                                        assert.ok(
+                                                          contains(
+                                                            messages[2].to[0].address,
+                                                            mailAddresses
+                                                          )
+                                                        );
+
+                                                        // Assert that the "weekly" mail user's email contains 1 activity (but is an aggregate of 3)
+                                                        const weeklyMail = find(
+                                                          compose(
+                                                            equals(weeklyMailUser.user.email),
+                                                            prop('address'),
+                                                            head,
+                                                            prop('to')
+                                                          ),
+                                                          messages
+                                                        );
+
+                                                        assert.ok(weeklyMail);
+                                                        return callback();
+                                                      }
+                                                    );
+                                                  }
                                                 );
-                                                assert.ok(
-                                                  _.contains(
-                                                    mailAddresses,
-                                                    messages[1].to[0].address
-                                                  )
-                                                );
-                                                // Assert that the "weekly" mail user's email contains 1 activity
-                                                const weeklyMail = _.find(messages, message => {
-                                                  return (
-                                                    message.to[0].address ===
-                                                    weeklyMailUser.user.email
-                                                  );
-                                                });
-                                                assert.ok(weeklyMail);
-
-                                                // Configure the email collector, so that the email collection window includes
-                                                // both the daily and the weekly collection point
-                                                refreshConfiguration(null, true, true, {}, () => {
-                                                  // Trigger an activity
-                                                  RestAPI.Content.createLink(
-                                                    simong.restContext,
-                                                    {
-                                                      displayName: 'Google4',
-                                                      description: 'Google4',
-                                                      visibility: PUBLIC,
-                                                      link: 'http://www.google4.be',
-                                                      managers: [],
-                                                      viewers: [
-                                                        neverMailUser.user.id,
-                                                        immediateMailUser.user.id,
-                                                        dailyMailUser.user.id,
-                                                        weeklyMailUser.user.id
-                                                      ],
-                                                      folders: []
-                                                    },
-                                                    err => {
-                                                      assert.ok(!err);
-
-                                                      // Collect the e-mails, all users (except the neverMailUser) should've received an e-mail
-                                                      EmailTestUtil.collectAndFetchAllEmails(
-                                                        messages => {
-                                                          assert.strictEqual(messages.length, 3);
-                                                          const mailAddresses = [
-                                                            immediateMailUser.user.email,
-                                                            dailyMailUser.user.email,
-                                                            weeklyMailUser.user.email
-                                                          ];
-                                                          assert.ok(
-                                                            _.contains(
-                                                              mailAddresses,
-                                                              messages[0].to[0].address
-                                                            )
-                                                          );
-                                                          assert.ok(
-                                                            _.contains(
-                                                              mailAddresses,
-                                                              messages[1].to[0].address
-                                                            )
-                                                          );
-                                                          assert.ok(
-                                                            _.contains(
-                                                              mailAddresses,
-                                                              messages[2].to[0].address
-                                                            )
-                                                          );
-
-                                                          // Assert that the "weekly" mail user's email contains 1 activity (but is an aggregate of 3)
-                                                          const weeklyMail = _.find(
-                                                            messages,
-                                                            message => {
-                                                              return (
-                                                                message.to[0].address ===
-                                                                weeklyMailUser.user.email
-                                                              );
-                                                            }
-                                                          );
-                                                          assert.ok(weeklyMail);
-                                                          return callback();
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                });
                                               });
-                                            }
-                                          );
-                                        });
+                                            });
+                                          }
+                                        );
                                       });
-                                    }
-                                  );
-                                });
+                                    });
+                                  }
+                                );
                               });
-                            }
-                          );
-                        });
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
+                            });
+                          }
+                        );
+                      });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    });
   });
 
   /**
@@ -958,14 +981,14 @@ describe('Activity Email', () => {
         const alias = TenantsTestUtil.generateTestTenantAlias();
         const host = TenantsTestUtil.generateTestTenantHost();
         TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext, user) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Set each user's email preference to daily
           const profile = {
             emailPreference: 'daily'
           };
           RestAPI.User.updateUser(restContext, user.id, profile, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Set the default timezone for this tenant
             offset++;
@@ -975,7 +998,7 @@ describe('Activity Email', () => {
               null,
               { 'oae-tenants/timezone/timezone': timezone },
               err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 userIds.push(user.id);
                 if (timezone === 'Etc/GMT+0') {
                   receivingUser = user.email;
@@ -994,8 +1017,9 @@ describe('Activity Email', () => {
       const allTenantsCreated = function() {
         EmailTestUtil.clearEmailCollections(() => {
           // Create a user who will create the link and add the users thus triggering an email for each one
-          TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-            assert.ok(!err);
+          TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+            assert.notExists(err);
+            const { 0: simong } = users;
 
             // Trigger a mail for all 24 users
             RestAPI.Content.createLink(
@@ -1005,12 +1029,12 @@ describe('Activity Email', () => {
                 description: 'Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: userIds,
-                folders: []
+                folders: NO_FOLDERS
               },
               err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Only one user should've received an email
                 EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -1037,7 +1061,7 @@ describe('Activity Email', () => {
     const alias = TenantsTestUtil.generateTestTenantAlias();
     const host = TenantsTestUtil.generateTestTenantHost();
     TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Configure the default timezone to something that's 5 hours behind
       ConfigTestUtil.updateConfigAndWait(
@@ -1045,11 +1069,12 @@ describe('Activity Email', () => {
         null,
         { 'oae-tenants/timezone/timezone': 'Etc/GMT+5' },
         err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Generate some users that we can test with
-          TestsUtil.generateTestUsers(restContext, 2, (err, users, simong, nico) => {
-            assert.ok(!err);
+          TestsUtil.generateTestUsers(restContext, 2, (err, users) => {
+            assert.notExists(err);
+            const { 0: simong, 1: nico } = users;
 
             // Change Nico's email preference so he gets daily aggregates
             RestAPI.User.updateUser(
@@ -1057,7 +1082,7 @@ describe('Activity Email', () => {
               nico.user.id,
               { emailPreference: 'daily' },
               err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Configure the mail collector so daily mails are collected 5 hours later relative to Nico's timezone
                 refreshConfiguration('Etc/GMT+5', false, false, {}, config => {
@@ -1069,12 +1094,12 @@ describe('Activity Email', () => {
                       description: 'Google',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [nico.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // As the hour was set to 5hrs after Nico's current time, he should not receive an email yet
                       EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -1083,7 +1108,7 @@ describe('Activity Email', () => {
                         // If we manually collect the daily emails that are scheduled 5 hours ahead of the the UTC-5 timezone, Nico's mail should be sent out
                         const hours = (24 + config.mail.daily.hour - 5) % 24;
                         ActivityEmail.collectMails(0, 'daily', null, hours, (err, empty, users) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.strictEqual(users.length, 1);
                           assert.strictEqual(users[0].id, nico.user.id);
                           return callback();
@@ -1114,17 +1139,19 @@ describe('Activity Email', () => {
       }
     };
     ActivityTestUtil.refreshConfiguration(config, err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Create a test tenant
       const alias = TenantsTestUtil.generateTestTenantAlias();
       const host = TenantsTestUtil.generateTestTenantHost();
       TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Generate some users that we can test with
-        TestsUtil.generateTestUsers(restContext, 2, (err, users, simong, nico) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(restContext, 2, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: simong, 1: nico } = users;
 
           // Change Nico's email preference so he gets weekly emails
           RestAPI.User.updateUser(
@@ -1132,7 +1159,7 @@ describe('Activity Email', () => {
             nico.user.id,
             { emailPreference: 'weekly' },
             err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Configure the default timezone to something that's 5 hours ahead
               ConfigTestUtil.updateConfigAndWait(
@@ -1140,7 +1167,7 @@ describe('Activity Email', () => {
                 null,
                 { 'oae-tenants/timezone/timezone': 'Etc/GMT+5' },
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Trigger a mail for Nico
                   RestAPI.Content.createLink(
@@ -1150,12 +1177,12 @@ describe('Activity Email', () => {
                       description: 'Google',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [nico.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Give some time to let the activity route to the correct streams
                       ActivityTestUtil.collectAndGetActivityStream(
@@ -1163,21 +1190,23 @@ describe('Activity Email', () => {
                         nico.user.id,
                         null,
                         err => {
-                          assert.ok(!err);
+                          assert.notExists(err);
 
-                          // As the collector is in the UTC timezone, Nico in UTC+5 and mails should be in the user their
-                          // inbox at 1am on Tuesday, we should send out an email at 20h UTC on Monday
+                          /**
+                           * As the collector is in the UTC timezone, Nico in UTC+5 and
+                           * mails should be in the user their inbox at 1am on Tuesday,
+                           *  we should send out an email at 20h UTC on Monday
+                           */
                           ActivityEmail.collectMails(0, 'weekly', 2, 20, (err, empty, users) => {
-                            assert.ok(!err);
-                            assert.strictEqual(users.length, 1);
-                            assert.ok(
-                              _.find(users, user => {
-                                return nico.user.id === user.id;
-                              })
-                            );
+                            assert.notExists(err);
+                            assert.lengthOf(users, 1);
+                            assert.ok(find(propSatisfies(equals(nico.user.id), 'id'), users));
 
-                            // Assert that roll overs to the next day work too by configuring the collector so emails end up
-                            // in users their email inbox at 23h on Tuesday
+                            /**
+                             * Assert that roll overs to the next day work too by configuring
+                             * the collector so emails end up in users their email inbox
+                             * at 23h on Tuesday
+                             */
                             config = {
                               mail: {
                                 pollingFrequency: 60 * 60,
@@ -1187,7 +1216,7 @@ describe('Activity Email', () => {
                               }
                             };
                             ActivityTestUtil.refreshConfiguration(config, err => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Configure the default timezone to something that's 5 hours behind
                               ConfigTestUtil.updateConfigAndWait(
@@ -1195,7 +1224,7 @@ describe('Activity Email', () => {
                                 null,
                                 { 'oae-tenants/timezone/timezone': 'Etc/GMT-5' },
                                 err => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
 
                                   // Trigger a mail for Nico
                                   RestAPI.Content.createLink(
@@ -1205,12 +1234,12 @@ describe('Activity Email', () => {
                                       description: 'Google',
                                       visibility: PUBLIC,
                                       link: 'http://www.google.ca',
-                                      managers: [],
+                                      managers: NO_MANAGERS,
                                       viewers: [nico.user.id],
-                                      folders: []
+                                      folders: NO_FOLDERS
                                     },
                                     err => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
 
                                       // Give some time to let the activity route to the correct streams
                                       ActivityTestUtil.collectAndGetActivityStream(
@@ -1218,7 +1247,7 @@ describe('Activity Email', () => {
                                         nico.user.id,
                                         null,
                                         err => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
 
                                           // As the collector is in the UTC timezone, Nico in UTC-5 and mails should be in the user their
                                           // inbox at 23h on Wednesday, we should send out an email at 4am UTC on Thursday
@@ -1228,12 +1257,13 @@ describe('Activity Email', () => {
                                             4,
                                             4,
                                             (err, empty, users) => {
-                                              assert.ok(!err);
+                                              assert.notExists(err);
                                               assert.strictEqual(users.length, 1);
                                               assert.ok(
-                                                _.find(users, user => {
-                                                  return nico.user.id === user.id;
-                                                })
+                                                find(
+                                                  propSatisfies(equals(nico.user.id), 'id'),
+                                                  users
+                                                )
                                               );
                                               return callback();
                                             }
@@ -1273,17 +1303,19 @@ describe('Activity Email', () => {
       }
     };
     ActivityTestUtil.refreshConfiguration(config, err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Create a test tenant
       const alias = TenantsTestUtil.generateTestTenantAlias();
       const host = TenantsTestUtil.generateTestTenantHost();
       TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Generate some users that we can test with
-        TestsUtil.generateTestUsers(restContext, 2, (err, users, simong, nico) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(restContext, 2, (err, users) => {
+          assert.notExists(err);
+
+          const { 0: simong, 1: nico } = users;
 
           // Change Nico's email preference so he gets daily emails
           RestAPI.User.updateUser(
@@ -1291,7 +1323,7 @@ describe('Activity Email', () => {
             nico.user.id,
             { emailPreference: 'daily' },
             err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Configure the default timezone to something that's 5 hours ahead
               ConfigTestUtil.updateConfigAndWait(
@@ -1299,7 +1331,7 @@ describe('Activity Email', () => {
                 null,
                 { 'oae-tenants/timezone/timezone': 'Etc/GMT+5' },
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Trigger a mail for Nico
                   RestAPI.Content.createLink(
@@ -1309,12 +1341,12 @@ describe('Activity Email', () => {
                       description: 'Google',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [nico.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
-                    (err, link) => {
-                      assert.ok(!err);
+                    (err /* , link */) => {
+                      assert.notExists(err);
 
                       // Give some time to let the activity route to the correct streams
                       ActivityTestUtil.collectAndGetActivityStream(
@@ -1322,12 +1354,12 @@ describe('Activity Email', () => {
                         nico.user.id,
                         null,
                         err => {
-                          assert.ok(!err);
+                          assert.notExists(err);
 
                           // As the collector is in the UTC timezone, Nico in UTC+5 and mails should be in the user their
                           // inbox at 1am, we should send out an email at 20h UTC
                           ActivityEmail.collectMails(0, 'daily', null, 20, (err, empty, users) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(users.length, 1);
                             assert.strictEqual(users[0].id, nico.user.id);
 
@@ -1341,7 +1373,7 @@ describe('Activity Email', () => {
                               }
                             };
                             ActivityTestUtil.refreshConfiguration(config, err => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Configure the default timezone to something that's 5 hours behind
                               ConfigTestUtil.updateConfigAndWait(
@@ -1349,7 +1381,7 @@ describe('Activity Email', () => {
                                 null,
                                 { 'oae-tenants/timezone/timezone': 'Etc/GMT-5' },
                                 err => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
 
                                   // Trigger a mail for Nico
                                   RestAPI.Content.createLink(
@@ -1359,12 +1391,12 @@ describe('Activity Email', () => {
                                       description: 'Google',
                                       visibility: PUBLIC,
                                       link: 'http://www.google.ca',
-                                      managers: [],
+                                      managers: NO_MANAGERS,
                                       viewers: [nico.user.id],
-                                      folders: []
+                                      folders: NO_FOLDERS
                                     },
-                                    (err, link) => {
-                                      assert.ok(!err);
+                                    (err /* , link */) => {
+                                      assert.notExists(err);
 
                                       // Give some time to let the activity route to the correct streams
                                       ActivityTestUtil.collectAndGetActivityStream(
@@ -1372,7 +1404,7 @@ describe('Activity Email', () => {
                                         nico.user.id,
                                         null,
                                         err => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
 
                                           // As the collector is in the UTC timezone, Nico in UTC-5 and mails should be in the user their
                                           // inbox at 23h, we should send out an email at 4am UTC
@@ -1382,7 +1414,7 @@ describe('Activity Email', () => {
                                             null,
                                             4,
                                             (err, empty, users) => {
-                                              assert.ok(!err);
+                                              assert.notExists(err);
                                               assert.strictEqual(users.length, 1);
                                               assert.strictEqual(users[0].id, nico.user.id);
                                               return callback();
@@ -1416,8 +1448,9 @@ describe('Activity Email', () => {
   it('verify email is not delivered to users who have since deleted/restored their profile', callback => {
     // Create a user to perform actions (simong) and one to receive emails
     // (mrvisser) through a group
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, mrvisser, simong, nico) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: mrvisser, 1: simong, 2: nico } = users;
       PrincipalsTestUtil.assertCreateGroupSucceeds(
         mrvisser.restContext,
         'displayName',
@@ -1441,14 +1474,15 @@ describe('Activity Email', () => {
               null,
               [group.id],
               null,
-              link1 => {
+              (/* link1 */) => {
                 EmailTestUtil.collectAndFetchAllEmails(messages => {
                   assert.strictEqual(messages.length, 2);
 
                   // Ensure the 2 recipients are mrvisser and nico
-                  const recipients = _.map(messages, eachMessage => {
-                    return _.first(eachMessage.to).address;
-                  }).sort();
+                  const recipients = sortBy(
+                    x => x,
+                    map(compose(prop('address'), head, prop('to')), messages)
+                  );
                   assert.deepStrictEqual(recipients, expectedRecipients);
 
                   // Delete mrvisser and ensure the same action results in only nico receiving the email
@@ -1466,13 +1500,16 @@ describe('Activity Email', () => {
                         null,
                         [group.id],
                         null,
-                        link2 => {
+                        (/* link2 */) => {
                           EmailTestUtil.collectAndFetchAllEmails(messages => {
                             assert.strictEqual(messages.length, 1);
-                            assert.strictEqual(_.first(messages[0].to).address, nico.user.email);
+                            assert.strictEqual(head(messages[0].to).address, nico.user.email);
 
-                            // Restore mrvisser and ensure email is not sent to mrvisser even if he has
-                            // been restored because he lost all those rights when his profile was deleted
+                            /**
+                             * Restore mrvisser and ensure email is not sent to mrvisser
+                             * even if he has been restoredbecause he lost all those
+                             * rights when his profile was deleted
+                             */
                             PrincipalsTestUtil.assertRestoreUserSucceeds(
                               camAdminRestContext,
                               mrvisser.user.id,
@@ -1486,14 +1523,15 @@ describe('Activity Email', () => {
                                   null,
                                   [group.id],
                                   null,
-                                  link2 => {
+                                  (/* link2 */) => {
                                     EmailTestUtil.collectAndFetchAllEmails(messages => {
                                       assert.strictEqual(messages.length, 1);
 
                                       // Ensure only nico gets it this time
-                                      const recipients = _.map(messages, eachMessage => {
-                                        return _.first(eachMessage.to).address;
-                                      }).sort();
+                                      const recipients = sortBy(
+                                        x => x,
+                                        map(compose(prop('address'), head, prop('to')), messages)
+                                      );
                                       assert.deepStrictEqual(recipients, [nico.user.email]);
 
                                       return callback();
@@ -1520,8 +1558,9 @@ describe('Activity Email', () => {
    * Test that verifies that old activities are not included in an immediate email when they are not situated in the email interval
    */
   it('verify old activities in the email stream are not included for immediate emails', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, mrvisser, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
+      assert.notExists(err);
+      const { 0: mrvisser, 1: simong } = users;
 
       // Set the appropriate email preference for mrvisser
       RestAPI.User.updateUser(
@@ -1529,7 +1568,7 @@ describe('Activity Email', () => {
         mrvisser.user.id,
         { emailPreference: 'immediate' },
         err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Generate an email activity for mrvisser at the current time
           RestAPI.Content.createLink(
@@ -1539,12 +1578,12 @@ describe('Activity Email', () => {
               description: 'Awesome Google',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: [],
+              managers: NO_MANAGERS,
               viewers: [mrvisser.user.id],
-              folders: []
+              folders: NO_FOLDERS
             },
             (err, linkNow) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Deliver the activity
               ActivityTestUtil.collectAndGetActivityStream(
@@ -1552,7 +1591,7 @@ describe('Activity Email', () => {
                 null,
                 null,
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Generate an email activity for mrvisser 3 hours in the future by monkey-patching the `Date.now` function
                   const now = Date.now();
@@ -1567,12 +1606,12 @@ describe('Activity Email', () => {
                       description: 'Awesome Yahoo',
                       visibility: PUBLIC,
                       link: 'http://www.yahoo.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [mrvisser.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
                     (err, linkLater) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Collect the email as though it is 3 hours ahead. Ensure only the later content item email gets sent to mrvisser
                       EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1581,7 +1620,7 @@ describe('Activity Email', () => {
                         null,
                         null,
                         messages => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           assert.strictEqual(messages.length, 1);
                           assert.strictEqual(messages[0].to[0].address, mrvisser.user.email);
 
@@ -1603,12 +1642,12 @@ describe('Activity Email', () => {
                               description: 'AltaWhat?',
                               visibility: PUBLIC,
                               link: 'http://www.altavista.ca',
-                              managers: [],
+                              managers: NO_MANAGERS,
                               viewers: [mrvisser.user.id],
-                              folders: []
+                              folders: NO_FOLDERS
                             },
                             (err, linkNow2) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
 
                               // Collect the email for the current time and ensure we get the 2 "now" items
                               EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1617,7 +1656,7 @@ describe('Activity Email', () => {
                                 null,
                                 null,
                                 messages => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
                                   assert.strictEqual(messages.length, 1);
                                   assert.strictEqual(
                                     messages[0].to[0].address,
@@ -1659,8 +1698,9 @@ describe('Activity Email', () => {
    * Test that verifies that old activities are not included in an daily email when they are not situated in the email interval
    */
   it('verify old activities in the email stream are not included for daily emails', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, mrvisser, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
+      assert.notExists(err);
+      const { 0: mrvisser, 1: simong } = users;
 
       refreshConfiguration(null, true, false, null, config => {
         // Set the appropriate email preference for mrvisser
@@ -1669,7 +1709,7 @@ describe('Activity Email', () => {
           mrvisser.user.id,
           { emailPreference: 'daily' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Generate an email activity for mrvisser at the current time
             RestAPI.Content.createLink(
@@ -1679,12 +1719,12 @@ describe('Activity Email', () => {
                 description: 'Awesome Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [mrvisser.user.id],
-                folders: []
+                folders: NO_FOLDERS
               },
               (err, linkNow) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Deliver the activity
                 ActivityTestUtil.collectAndGetActivityStream(
@@ -1692,7 +1732,7 @@ describe('Activity Email', () => {
                   null,
                   null,
                   err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Generate an email activity for mrvisser 2 days in the future by monkey-patching the `Date.now` function
                     const now = Date.now();
@@ -1707,12 +1747,12 @@ describe('Activity Email', () => {
                         description: 'Awesome Yahoo',
                         visibility: PUBLIC,
                         link: 'http://www.yahoo.ca',
-                        managers: [],
+                        managers: NO_MANAGERS,
                         viewers: [mrvisser.user.id],
-                        folders: []
+                        folders: NO_FOLDERS
                       },
                       (err, linkLater) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Collect the email as though it is 2 days ahead. Ensure only the later content item email gets sent to mrvisser
                         EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1721,7 +1761,7 @@ describe('Activity Email', () => {
                           null,
                           config.mail.daily.hour,
                           messages => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(messages.length, 1);
                             assert.strictEqual(messages[0].to[0].address, mrvisser.user.email);
 
@@ -1743,12 +1783,12 @@ describe('Activity Email', () => {
                                 description: 'AltaWhat?',
                                 visibility: PUBLIC,
                                 link: 'http://www.altavista.ca',
-                                managers: [],
+                                managers: NO_MANAGERS,
                                 viewers: [mrvisser.user.id],
-                                folders: []
+                                folders: NO_FOLDERS
                               },
                               (err, linkNow2) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
 
                                 // Collect the email for the current time and ensure we get the 2 "now" items
                                 EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1757,7 +1797,7 @@ describe('Activity Email', () => {
                                   null,
                                   config.mail.daily.hour,
                                   messages => {
-                                    assert.ok(!err);
+                                    assert.notExists(err);
                                     assert.strictEqual(messages.length, 1);
                                     assert.strictEqual(
                                       messages[0].to[0].address,
@@ -1800,8 +1840,9 @@ describe('Activity Email', () => {
    * Test that verifies that old activities are not included in an weekly email when they are not situated in the email interval
    */
   it('verify old activities in the email stream are not included for weekly emails', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, mrvisser, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
+      assert.notExists(err);
+      const { 0: mrvisser, 1: simong } = users;
 
       refreshConfiguration(null, false, true, null, config => {
         // Set the appropriate email preference for mrvisser
@@ -1810,7 +1851,7 @@ describe('Activity Email', () => {
           mrvisser.user.id,
           { emailPreference: 'weekly' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Generate an email activity for mrvisser at the current time
             RestAPI.Content.createLink(
@@ -1820,12 +1861,12 @@ describe('Activity Email', () => {
                 description: 'Awesome Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [mrvisser.user.id],
-                folders: []
+                folders: NO_FOLDERS
               },
               (err, linkNow) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Deliver the activity
                 ActivityTestUtil.collectAndGetActivityStream(
@@ -1833,7 +1874,7 @@ describe('Activity Email', () => {
                   null,
                   null,
                   err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Generate an email activity for mrvisser 2 weeks in the future by monkey-patching the `Date.now` function
                     const now = Date.now();
@@ -1848,12 +1889,12 @@ describe('Activity Email', () => {
                         description: 'Awesome Yahoo',
                         visibility: PUBLIC,
                         link: 'http://www.yahoo.ca',
-                        managers: [],
+                        managers: NO_MANAGERS,
                         viewers: [mrvisser.user.id],
-                        folders: []
+                        folders: NO_FOLDERS
                       },
                       (err, linkLater) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Collect the email as though it is 2 weeks ahead. Ensure only the later content item email gets sent to mrvisser
                         EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1862,7 +1903,7 @@ describe('Activity Email', () => {
                           config.mail.weekly.day,
                           config.mail.weekly.hour,
                           messages => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(messages.length, 1);
                             assert.strictEqual(messages[0].to[0].address, mrvisser.user.email);
 
@@ -1884,12 +1925,12 @@ describe('Activity Email', () => {
                                 description: 'AltaWhat?',
                                 visibility: PUBLIC,
                                 link: 'http://www.altavista.ca',
-                                managers: [],
+                                managers: NO_MANAGERS,
                                 viewers: [mrvisser.user.id],
-                                folders: []
+                                folders: NO_FOLDERS
                               },
                               (err, linkNow2) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
 
                                 // Collect the email for the current time and ensure we get the 2 "now" items
                                 EmailTestUtil.collectAndFetchEmailsForBucket(
@@ -1898,7 +1939,7 @@ describe('Activity Email', () => {
                                   config.mail.weekly.day,
                                   config.mail.weekly.hour,
                                   messages => {
-                                    assert.ok(!err);
+                                    assert.notExists(err);
                                     assert.strictEqual(messages.length, 1);
                                     assert.strictEqual(
                                       messages[0].to[0].address,
@@ -1941,134 +1982,146 @@ describe('Activity Email', () => {
    * Test that verifies that the email subject is translated and depends on the activities/email preference
    */
   it('verify email subject headers', callback => {
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      4,
-      (err, users, simong, nico, branden, bert) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico, 2: branden, 3: bert } = users;
 
-        RestAPI.User.updateUser(
-          branden.restContext,
-          branden.user.id,
-          { emailPreference: 'daily' },
-          err => {
-            assert.ok(!err);
-            RestAPI.User.updateUser(
-              bert.restContext,
-              bert.user.id,
-              { emailPreference: 'weekly' },
-              err => {
-                assert.ok(!err);
+      RestAPI.User.updateUser(
+        branden.restContext,
+        branden.user.id,
+        { emailPreference: 'daily' },
+        err => {
+          assert.notExists(err);
+          RestAPI.User.updateUser(
+            bert.restContext,
+            bert.user.id,
+            { emailPreference: 'weekly' },
+            err => {
+              assert.notExists(err);
 
-                // Enable daily and weekly mails
-                refreshConfiguration(null, true, true, {}, config => {
-                  // Trigger a mail for Nico
-                  RestAPI.Content.createLink(
-                    simong.restContext,
-                    {
-                      displayName: 'Google',
-                      description: 'Google',
-                      visibility: PUBLIC,
-                      link: 'http://www.google.ca',
-                      managers: [],
-                      viewers: [nico.user.id],
-                      folders: []
-                    },
-                    (err, link) => {
-                      assert.ok(!err);
-                      EmailTestUtil.collectAndFetchAllEmails(messages => {
-                        assert.strictEqual(messages.length, 1);
+              // Enable daily and weekly mails
+              refreshConfiguration(null, true, true, {}, (/* config */) => {
+                // Trigger a mail for Nico
+                RestAPI.Content.createLink(
+                  simong.restContext,
+                  {
+                    displayName: 'Google',
+                    description: 'Google',
+                    visibility: PUBLIC,
+                    link: 'http://www.google.ca',
+                    managers: NO_MANAGERS,
+                    viewers: [nico.user.id],
+                    folders: NO_FOLDERS
+                  },
+                  (err, link) => {
+                    assert.notExists(err);
+                    EmailTestUtil.collectAndFetchAllEmails(messages => {
+                      assert.strictEqual(messages.length, 1);
 
-                        // Assert that we're using a localized message for the subject header
-                        const mail = messages[0];
-                        assert.strictEqual(mail.subject.indexOf('__MSG__'), -1);
+                      // Assert that we're using a localized message for the subject header
+                      const mail = messages[0];
+                      assert.strictEqual(mail.subject.indexOf('__MSG__'), -1);
 
-                        // The message can change, but the actor's and object's displayname will usually be in there
-                        assert.ok(mail.subject.includes(simong.user.displayName));
-                        assert.ok(mail.subject.includes(link.displayName));
+                      // The message can change, but the actor's and object's displayname will usually be in there
+                      assert.ok(mail.subject.includes(simong.user.displayName));
+                      assert.ok(mail.subject.includes(link.displayName));
 
-                        // Trigger a mail that contains two different activities
-                        RestAPI.Content.createLink(
-                          simong.restContext,
-                          {
-                            displayName: 'Google',
-                            description: 'Google',
-                            visibility: PUBLIC,
-                            link: 'http://www.google.ca',
-                            managers: [],
-                            viewers: [nico.user.id],
-                            folders: []
-                          },
-                          (err, secondLink) => {
-                            assert.ok(!err);
-                            RestAPI.Discussions.createDiscussion(
-                              simong.restContext,
-                              'First discussion',
-                              'descr',
-                              'public',
-                              null,
-                              [nico.user.id],
-                              (err, firstDiscussion) => {
-                                assert.ok(!err);
+                      // Trigger a mail that contains two different activities
+                      RestAPI.Content.createLink(
+                        simong.restContext,
+                        {
+                          displayName: 'Google',
+                          description: 'Google',
+                          visibility: PUBLIC,
+                          link: 'http://www.google.ca',
+                          managers: NO_MANAGERS,
+                          viewers: [nico.user.id],
+                          folders: NO_FOLDERS
+                        },
+                        (err /* , secondLink */) => {
+                          assert.notExists(err);
+                          RestAPI.Discussions.createDiscussion(
+                            simong.restContext,
+                            'First discussion',
+                            'descr',
+                            'public',
+                            null,
+                            [nico.user.id],
+                            (err /* , firstDiscussion */) => {
+                              assert.notExists(err);
 
-                                // Collect the e-mail, there should only be one
-                                EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                  assert.strictEqual(messages.length, 1);
+                              // Collect the e-mail, there should only be one
+                              EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                assert.strictEqual(messages.length, 1);
 
-                                  // Assert that we're using a localized message for the subject header
-                                  const secondMail = messages[0];
-                                  assert.strictEqual(secondMail.subject.indexOf('__MSG__'), -1);
+                                // Assert that we're using a localized message for the subject header
+                                const secondMail = messages[0];
+                                assert.strictEqual(secondMail.subject.indexOf('__MSG__'), -1);
 
-                                  // Assert that this mail's subject is different from the initial mail as it spans two activities
-                                  assert.notStrictEqual(mail.subject, secondMail.subject);
+                                // Assert that this mail's subject is different from the initial mail as it spans two activities
+                                assert.notStrictEqual(mail.subject, secondMail.subject);
 
-                                  // Trigger a mail for Branden and Bert
-                                  RestAPI.Content.createLink(
-                                    simong.restContext,
-                                    {
-                                      displayName: 'Google',
-                                      description: 'Google',
-                                      visibility: PUBLIC,
-                                      link: 'http://www.google.ca',
-                                      managers: [],
-                                      viewers: [branden.user.id, bert.user.id],
-                                      folders: []
-                                    },
-                                    (err, thirdLink) => {
-                                      assert.ok(!err);
-                                      EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                        assert.strictEqual(messages.length, 2);
+                                // Trigger a mail for Branden and Bert
+                                RestAPI.Content.createLink(
+                                  simong.restContext,
+                                  {
+                                    displayName: 'Google',
+                                    description: 'Google',
+                                    visibility: PUBLIC,
+                                    link: 'http://www.google.ca',
+                                    managers: NO_MANAGERS,
+                                    viewers: [branden.user.id, bert.user.id],
+                                    folders: NO_FOLDERS
+                                  },
+                                  (err /* , thirdLink */) => {
+                                    assert.notExists(err);
+                                    EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                      assert.strictEqual(messages.length, 2);
 
-                                        // Assert that the two subject headers are different as they have different email preferences
-                                        const brandenMessage = _.find(messages, message => {
-                                          return message.to[0].address === branden.user.email;
-                                        });
-                                        const bertMessage = _.find(messages, message => {
-                                          return message.to[0].address === bert.user.email;
-                                        });
-                                        assert.notStrictEqual(
-                                          brandenMessage.subject,
-                                          bertMessage.subject
-                                        );
-                                        return callback();
-                                      });
-                                    }
-                                  );
-                                });
-                              }
-                            );
-                          }
-                        );
-                      });
-                    }
-                  );
-                });
-              }
-            );
-          }
-        );
-      }
-    );
+                                      /**
+                                       * Assert that the two subject headers are different
+                                       * as they have different email preferences
+                                       */
+                                      const brandenMessage = find(
+                                        compose(
+                                          equals(branden.user.email),
+                                          prop('address'),
+                                          head,
+                                          prop('to')
+                                        ),
+                                        messages
+                                      );
+                                      const bertMessage = find(
+                                        compose(
+                                          equals(bert.user.email),
+                                          prop('address'),
+                                          head,
+                                          prop('to')
+                                        ),
+                                        messages
+                                      );
+                                      assert.notStrictEqual(
+                                        brandenMessage.subject,
+                                        bertMessage.subject
+                                      );
+                                      return callback();
+                                    });
+                                  }
+                                );
+                              });
+                            }
+                          );
+                        }
+                      );
+                    });
+                  }
+                );
+              });
+            }
+          );
+        }
+      );
+    });
   });
 
   /**
@@ -2076,8 +2129,9 @@ describe('Activity Email', () => {
    */
   it('verify email markdown parsing', callback => {
     // Create users for the test
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1, user2) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: user1, 1: user2 } = users;
 
       // Make sure that the first user receives email messages
       RestAPI.User.updateUser(
@@ -2085,7 +2139,7 @@ describe('Activity Email', () => {
         user1.user.id,
         { emailPreference: 'immediate' },
         err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Create a discussion on which to comment
           RestAPI.Discussions.createDiscussion(
@@ -2096,7 +2150,7 @@ describe('Activity Email', () => {
             null,
             [user2.user.id],
             (err, discussion) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Add a comment to the discussion
               const markdownBody = [
@@ -2156,21 +2210,22 @@ describe('Activity Email', () => {
                 discussion.id,
                 markdownBody,
                 null,
-                (err, comment) => {
-                  assert.ok(!err);
+                (err /* , comment */) => {
+                  assert.notExists(err);
 
                   // Get the resulting email notification
                   EmailTestUtil.collectAndFetchAllEmails(messages => {
                     // Find the email message for the first user
-                    const mail = _.find(messages, message => {
-                      return message.to[0].address === user1.user.email;
-                    });
+                    const mail = find(
+                      compose(equals(user1.user.email), prop('address'), head, prop('to')),
+                      messages
+                    );
                     assert.ok(mail);
 
                     // Verify all the expected HTML content is present in the message
-                    _.each(htmlBody, htmlFragment => {
+                    forEach(htmlFragment => {
                       assert.notStrictEqual(mail.html.indexOf(htmlFragment), -1, htmlFragment);
-                    });
+                    }, htmlBody);
 
                     return callback();
                   });
@@ -2187,16 +2242,18 @@ describe('Activity Email', () => {
    * Test that verifies that dates in email are in the tenant timezone
    */
   it('verify email date timezones', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico } = users;
 
       const alias = TenantsTestUtil.generateTestTenantAlias();
       const host = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext, admin) => {
-        assert.ok(!err);
+      TestsUtil.createTenantWithAdmin(alias, host, (err, tenant, restContext /* , admin */) => {
+        assert.notExists(err);
 
-        TestsUtil.generateTestUsers(restContext, 1, (err, users, bert) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(restContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: bert } = users;
 
           // Configure the default timezone to something that's 5 hours behind
           ConfigTestUtil.updateConfigAndWait(
@@ -2204,7 +2261,7 @@ describe('Activity Email', () => {
             null,
             { 'oae-tenants/timezone/timezone': 'Etc/GMT+5' },
             err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Trigger a mail for Nico and Bert
               RestAPI.Content.createLink(
@@ -2214,22 +2271,24 @@ describe('Activity Email', () => {
                   description: 'Google',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: [],
+                  managers: NO_MANAGERS,
                   viewers: [nico.user.id, bert.user.id],
-                  folders: []
+                  folders: NO_FOLDERS
                 },
-                (err, link) => {
-                  assert.ok(!err);
+                (err /* , link */) => {
+                  assert.notExists(err);
                   EmailTestUtil.collectAndFetchAllEmails(messages => {
                     assert.strictEqual(messages.length, 2);
 
                     // Assert that the messages contain properly formatted dates
-                    const utcMessage = _.find(messages, message => {
-                      return message.to[0].address === nico.user.email;
-                    });
-                    const plus5Message = _.find(messages, message => {
-                      return message.to[0].address === bert.user.email;
-                    });
+                    const utcMessage = find(
+                      compose(equals(nico.user.email), prop('address'), head, prop('to')),
+                      messages
+                    );
+                    const plus5Message = find(
+                      compose(equals(bert.user.email), prop('address'), head, prop('to')),
+                      messages
+                    );
 
                     // Parse the dates out of the messages
                     const utcDate = utcMessage.html.match(/\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/g)[0];
@@ -2256,125 +2315,118 @@ describe('Activity Email', () => {
    * Test that verifies that marking notifications only clears the email stream when the user’s email preference is set to immediate.
    */
   it('verify marking the notifications only clears emails when the email preference is set to immediate', callback => {
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      5,
-      (err, users, simong, nico, branden, bert, stuart) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 5, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico, 2: branden, 3: bert, 4: stuart } = users;
 
-        // Give our 4 recipients different email preferences
-        RestAPI.User.updateUser(
-          nico.restContext,
-          nico.user.id,
-          { emailPreference: 'immediate' },
-          err => {
-            assert.ok(!err);
-            RestAPI.User.updateUser(
-              branden.restContext,
-              branden.user.id,
-              { emailPreference: 'daily' },
-              err => {
-                assert.ok(!err);
-                RestAPI.User.updateUser(
-                  bert.restContext,
-                  bert.user.id,
-                  { emailPreference: 'weekly' },
-                  err => {
-                    assert.ok(!err);
-                    RestAPI.User.updateUser(
-                      stuart.restContext,
-                      stuart.user.id,
-                      { emailPreference: 'never' },
-                      err => {
-                        assert.ok(!err);
+      // Give our 4 recipients different email preferences
+      RestAPI.User.updateUser(
+        nico.restContext,
+        nico.user.id,
+        { emailPreference: 'immediate' },
+        err => {
+          assert.notExists(err);
+          RestAPI.User.updateUser(
+            branden.restContext,
+            branden.user.id,
+            { emailPreference: 'daily' },
+            err => {
+              assert.notExists(err);
+              RestAPI.User.updateUser(
+                bert.restContext,
+                bert.user.id,
+                { emailPreference: 'weekly' },
+                err => {
+                  assert.notExists(err);
+                  RestAPI.User.updateUser(
+                    stuart.restContext,
+                    stuart.user.id,
+                    { emailPreference: 'never' },
+                    err => {
+                      assert.notExists(err);
 
-                        // The next email collection cycle should handle immediate, daily and weekly deliveries
-                        refreshConfiguration(null, true, true, {}, config => {
-                          // Trigger an email-worthy activity for our recipients
-                          RestAPI.Content.createLink(
-                            simong.restContext,
-                            {
-                              displayName: 'Google',
-                              description: 'Google',
-                              visibility: PUBLIC,
-                              link: 'http://www.google.ca',
-                              managers: [],
-                              viewers: [
-                                nico.user.id,
-                                branden.user.id,
-                                bert.user.id,
-                                stuart.user.id
-                              ],
-                              folders: []
-                            },
-                            err => {
-                              assert.ok(!err);
+                      // The next email collection cycle should handle immediate, daily and weekly deliveries
+                      refreshConfiguration(null, true, true, {}, (/* config */) => {
+                        // Trigger an email-worthy activity for our recipients
+                        RestAPI.Content.createLink(
+                          simong.restContext,
+                          {
+                            displayName: 'Google',
+                            description: 'Google',
+                            visibility: PUBLIC,
+                            link: 'http://www.google.ca',
+                            managers: NO_MANAGERS,
+                            viewers: [nico.user.id, branden.user.id, bert.user.id, stuart.user.id],
+                            folders: NO_FOLDERS
+                          },
+                          err => {
+                            assert.notExists(err);
 
-                              // Deliver the activities
-                              ActivityTestUtil.collectAndGetActivityStream(
-                                nico.restContext,
-                                null,
-                                null,
-                                (err, activityStream) => {
-                                  assert.ok(!err);
+                            // Deliver the activities
+                            ActivityTestUtil.collectAndGetActivityStream(
+                              nico.restContext,
+                              null,
+                              null,
+                              (err /* activityStream */) => {
+                                assert.notExists(err);
 
-                                  // Let each user mark his notifications as read
-                                  ActivityTestUtil.markNotificationsAsRead(nico.restContext, () => {
-                                    ActivityTestUtil.markNotificationsAsRead(
-                                      branden.restContext,
-                                      result => {
-                                        ActivityTestUtil.markNotificationsAsRead(
-                                          bert.restContext,
-                                          result => {
-                                            ActivityTestUtil.markNotificationsAsRead(
-                                              stuart.restContext,
-                                              result => {
-                                                // Deliver the e-mails, only Branden and Bert should get an e-mail as stuart has
-                                                // selected to never get emails and Nico his activity email stream should've been
-                                                // cleared when he marked his notifications as read
-                                                EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                                  assert.strictEqual(messages.length, 2);
-                                                  _.each(messages, message => {
-                                                    assert.ok(
-                                                      _.contains(
-                                                        [branden.user.email, bert.user.email],
-                                                        message.to[0].address
-                                                      )
-                                                    );
-                                                  });
+                                // Let each user mark his notifications as read
+                                ActivityTestUtil.markNotificationsAsRead(nico.restContext, () => {
+                                  ActivityTestUtil.markNotificationsAsRead(
+                                    branden.restContext,
+                                    (/* result */) => {
+                                      ActivityTestUtil.markNotificationsAsRead(
+                                        bert.restContext,
+                                        (/* result */) => {
+                                          ActivityTestUtil.markNotificationsAsRead(
+                                            stuart.restContext,
+                                            (/* result */) => {
+                                              // Deliver the e-mails, only Branden and Bert should get an e-mail as stuart has
+                                              // selected to never get emails and Nico his activity email stream should've been
+                                              // cleared when he marked his notifications as read
+                                              EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                                assert.lengthOf(messages, 2);
+                                                forEach(message => {
+                                                  assert.ok(
+                                                    contains(message.to[0].address, [
+                                                      branden.user.email,
+                                                      bert.user.email
+                                                    ])
+                                                  );
+                                                }, messages);
 
-                                                  return callback();
-                                                });
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  });
-                                }
-                              );
-                            }
-                          );
-                        });
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
+                                                return callback();
+                                              });
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                });
+                              }
+                            );
+                          }
+                        );
+                      });
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    });
   });
 
   /**
    * Test that verifies that when a user changing his email preference, he does not get double emails
    */
   it('verify changing the email preference does not result in double emails', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico } = users;
 
       // The next email collection cycle should only handle `immediate` deliveries
       refreshConfiguration(null, false, false, {}, config => {
@@ -2386,53 +2438,50 @@ describe('Activity Email', () => {
             description: 'Google',
             visibility: PUBLIC,
             link: 'http://www.google.ca',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: [nico.user.id],
-            folders: []
+            folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.ok(!err);
+          (err /* , link */) => {
+            assert.notExists(err);
 
             // Run an activity collection, which will queue an immediate email for Nico
-            ActivityTestUtil.collectAndGetActivityStream(
-              nico.restContext,
-              null,
-              null,
-              (err, activityStream) => {
-                assert.ok(!err);
+            ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
+              err /* , activityStream */
+            ) => {
+              assert.notExists(err);
 
-                // Change Nico's email preference to daily
-                RestAPI.User.updateUser(
-                  nico.restContext,
-                  nico.user.id,
-                  { emailPreference: 'daily' },
-                  err => {
-                    assert.ok(!err);
-                  }
-                );
+              // Change Nico's email preference to daily
+              RestAPI.User.updateUser(
+                nico.restContext,
+                nico.user.id,
+                { emailPreference: 'daily' },
+                err => {
+                  assert.notExists(err);
+                }
+              );
 
-                ActivityAPI.emitter.once(ActivityConstants.events.UPDATED_USER, () => {
-                  // When we collect the emails, Nico should not get an email
-                  EmailTestUtil.collectAndFetchAllEmails(messages => {
-                    assert.strictEqual(messages.length, 0);
+              ActivityAPI.emitter.once(ActivityConstants.events.UPDATED_USER, () => {
+                // When we collect the emails, Nico should not get an email
+                EmailTestUtil.collectAndFetchAllEmails(messages => {
+                  assert.strictEqual(messages.length, 0);
 
-                    // Sanity check that Nico gets the email when the dailies are sent out
-                    ActivityEmail.collectMails(
-                      0,
-                      'daily',
-                      null,
-                      config.mail.daily.hour,
-                      (err, empty, users) => {
-                        assert.ok(!err);
-                        assert.strictEqual(users.length, 1);
-                        assert.strictEqual(users[0].id, nico.user.id);
-                        return callback();
-                      }
-                    );
-                  });
+                  // Sanity check that Nico gets the email when the dailies are sent out
+                  ActivityEmail.collectMails(
+                    0,
+                    'daily',
+                    null,
+                    config.mail.daily.hour,
+                    (err, empty, users) => {
+                      assert.notExists(err);
+                      assert.strictEqual(users.length, 1);
+                      assert.strictEqual(users[0].id, nico.user.id);
+                      return callback();
+                    }
+                  );
                 });
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -2443,11 +2492,12 @@ describe('Activity Email', () => {
    * Test that verifies that user who change their email preference to never don't get any emails
    */
   it('verify changing the email preference to never results in no mail', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico } = users;
 
       // The next email collection cycle should only handle `immediate` deliveries
-      refreshConfiguration(null, false, false, {}, config => {
+      refreshConfiguration(null, false, false, {}, (/* config */) => {
         // Assert that the user was still receiving emails (by virtue of the default being `immediate`)
         RestAPI.Content.createLink(
           simong.restContext,
@@ -2456,12 +2506,12 @@ describe('Activity Email', () => {
             description: 'Google',
             visibility: PUBLIC,
             link: 'http://www.google.ca',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: [nico.user.id],
-            folders: []
+            folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.ok(!err);
+          (err /* , link */) => {
+            assert.notExists(err);
 
             // When we collect the emails, Nico should get an email
             EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -2473,7 +2523,7 @@ describe('Activity Email', () => {
                 nico.user.id,
                 { emailPreference: 'never' },
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Try to trigger an email
                   RestAPI.Content.createLink(
@@ -2483,12 +2533,12 @@ describe('Activity Email', () => {
                       description: 'Google',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: [],
+                      managers: NO_MANAGERS,
                       viewers: [nico.user.id],
-                      folders: []
+                      folders: NO_FOLDERS
                     },
-                    (err, link) => {
-                      assert.ok(!err);
+                    (err /* , link */) => {
+                      assert.notExists(err);
 
                       // When we collect the emails, Nico should get an email
                       EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -2522,8 +2572,9 @@ describe('Activity Email', () => {
    *  - When a user receives his weekly email, he should see 1 activity containing all 4 aggregates
    */
   it('verify two distinct aggregated activities aggregate during email collection', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico, branden) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico, 2: branden } = users;
 
       // Set the aggregate expiry time to 1 second. This should give us enough time to aggregate 2 activities, wait for expiry, then create 2 more
       refreshConfiguration(
@@ -2531,7 +2582,7 @@ describe('Activity Email', () => {
         false,
         false,
         { collectionPollingFrequency: -1, aggregateIdleExpiry: 1 },
-        config => {
+        (/* config */) => {
           RestAPI.Content.createLink(
             simong.restContext,
             {
@@ -2539,87 +2590,89 @@ describe('Activity Email', () => {
               description: 'Link A',
               visibility: PUBLIC,
               link: 'http://www.google.com',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, contentObj) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createComment(
                 nico.restContext,
                 contentObj.id,
                 'Comment A',
                 null,
                 (err, commentA) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createComment(
                     branden.restContext,
                     contentObj.id,
                     'Comment B',
                     null,
                     (err, commentB) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Collect the activity stream so A and B can aggregate
-                      ActivityTestUtil.collectAndGetActivityStream(
-                        simong.restContext,
-                        null,
-                        null,
-                        (err, activityStream) => {
-                          assert.ok(!err);
+                      ActivityTestUtil.collectAndGetActivityStream(simong.restContext, null, null, (
+                        err /* , activityStream */
+                      ) => {
+                        assert.notExists(err);
 
-                          // Let the aggregation timeout expire and generate 2 more activities, these should not aggregate with the previous two
-                          // in the regular activity stream, they should however aggregate in the email
-                          setTimeout(
-                            RestAPI.Content.createComment,
-                            1100,
-                            nico.restContext,
-                            contentObj.id,
-                            'Comment C',
-                            null,
-                            (err, commentC) => {
-                              assert.ok(!err);
-                              RestAPI.Content.createComment(
-                                branden.restContext,
-                                contentObj.id,
-                                'Comment D',
-                                null,
-                                (err, commentD) => {
-                                  assert.ok(!err);
+                        // Let the aggregation timeout expire and generate 2 more activities, these should not aggregate with the previous two
+                        // in the regular activity stream, they should however aggregate in the email
+                        setTimeout(
+                          RestAPI.Content.createComment,
+                          1100,
+                          nico.restContext,
+                          contentObj.id,
+                          'Comment C',
+                          null,
+                          (err, commentC) => {
+                            assert.notExists(err);
+                            RestAPI.Content.createComment(
+                              branden.restContext,
+                              contentObj.id,
+                              'Comment D',
+                              null,
+                              (err, commentD) => {
+                                assert.notExists(err);
 
-                                  // Collect the emails, there should only be one containing one activity which is an aggregate of 4 comments
-                                  EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                    // 3 messages, 1 for Simon (manager) and 2 for Nico and Branden (recent commenters)
-                                    assert.strictEqual(messages.length, 3);
+                                // Collect the emails, there should only be one containing one activity which is an aggregate of 4 comments
+                                EmailTestUtil.collectAndFetchAllEmails(messages => {
+                                  // 3 messages, 1 for Simon (manager) and 2 for Nico and Branden (recent commenters)
+                                  assert.strictEqual(messages.length, 3);
 
-                                    // The message for Simon should contain 1 content-comment activity on 1 content item with 4 comments
-                                    const simongMessage = _.find(messages, message => {
-                                      return message.to[0].address === simong.user.email;
-                                    });
-                                    // Assert that the correct content item is included in the email
-                                    assert.strictEqual(
-                                      simongMessage.html.match(contentObj.profilePath).length,
-                                      1
-                                    );
+                                  // The message for Simon should contain 1 content-comment activity on 1 content item with 4 comments
+                                  const simongMessage = find(
+                                    compose(
+                                      equals(simong.user.email),
+                                      prop('address'),
+                                      head,
+                                      prop('to')
+                                    ),
+                                    messages
+                                  );
+                                  // Assert that the correct content item is included in the email
+                                  assert.strictEqual(
+                                    simongMessage.html.match(contentObj.profilePath).length,
+                                    1
+                                  );
 
-                                    // Assert that all 4 comments are in the email
-                                    assert.strictEqual(
-                                      simongMessage.html.match(/activity-comment-container/g)
-                                        .length,
-                                      4
-                                    );
-                                    assert.ok(simongMessage.html.indexOf(commentA.body) > 0);
-                                    assert.ok(simongMessage.html.indexOf(commentB.body) > 0);
-                                    assert.ok(simongMessage.html.indexOf(commentC.body) > 0);
-                                    assert.ok(simongMessage.html.indexOf(commentD.body) > 0);
-                                    return callback();
-                                  });
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                                  // Assert that all 4 comments are in the email
+                                  assert.strictEqual(
+                                    simongMessage.html.match(/activity-comment-container/g).length,
+                                    4
+                                  );
+                                  assert.ok(simongMessage.html.indexOf(commentA.body) > 0);
+                                  assert.ok(simongMessage.html.indexOf(commentB.body) > 0);
+                                  assert.ok(simongMessage.html.indexOf(commentC.body) > 0);
+                                  assert.ok(simongMessage.html.indexOf(commentD.body) > 0);
+                                  return callback();
+                                });
+                              }
+                            );
+                          }
+                        );
+                      });
                     }
                   );
                 }
@@ -2636,11 +2689,12 @@ describe('Activity Email', () => {
    * no untranslated keys, untranslated dynamic variables, links to relative paths, etc.
    */
   it('verify basic checks in email template', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico } = users;
 
       // The next email collection cycle should only handle `immediate` deliveries
-      refreshConfiguration(null, false, false, {}, config => {
+      refreshConfiguration(null, false, false, {}, (/* config */) => {
         // Trigger an email with a long display name
         const displayName = TestsUtil.generateRandomText(3);
         RestAPI.Content.createLink(
@@ -2650,81 +2704,78 @@ describe('Activity Email', () => {
             description: 'Google',
             visibility: PUBLIC,
             link: 'http://www.google.ca',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: [nico.user.id],
-            folders: []
+            folders: NO_FOLDERS
           },
           (err, link) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Run an activity collection, which will queue an immediate email for Nico
-            ActivityTestUtil.collectAndGetActivityStream(
-              nico.restContext,
-              null,
-              null,
-              (err, activityStream) => {
-                assert.ok(!err);
+            ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
+              err /* , activityStream */
+            ) => {
+              assert.notExists(err);
 
-                // Collect the email and check for some basic pitfalls in the template
-                EmailTestUtil.collectAndFetchAllEmails(messages => {
-                  assert.strictEqual(messages.length, 1);
-                  const { html } = messages[0];
-                  const { text } = messages[0];
+              // Collect the email and check for some basic pitfalls in the template
+              EmailTestUtil.collectAndFetchAllEmails(messages => {
+                assert.strictEqual(messages.length, 1);
+                const { html } = messages[0];
+                const { text } = messages[0];
 
-                  // Assert we have both html and text
-                  assert.ok(html);
-                  assert.ok(text);
+                // Assert we have both html and text
+                assert.ok(html);
+                assert.ok(text);
 
-                  // Assert there are no untranslated keys in there
-                  assert.strictEqual(
-                    html.indexOf('__MSG__'),
-                    -1,
-                    'An i18n key was not replaced in the html email template'
-                  );
-                  assert.strictEqual(
-                    text.indexOf('__MSG__'),
-                    -1,
-                    'An i18n key was not replaced in the text email template'
-                  );
+                // Assert there are no untranslated keys in there
+                assert.strictEqual(
+                  html.indexOf('__MSG__'),
+                  -1,
+                  'An i18n key was not replaced in the html email template'
+                );
+                assert.strictEqual(
+                  text.indexOf('__MSG__'),
+                  -1,
+                  'An i18n key was not replaced in the text email template'
+                );
 
-                  // Assert all dynamic variables are replaced
-                  assert.strictEqual(
-                    html.indexOf('${'),
-                    -1,
-                    'A dynamic variable was not replaced in the html email template'
-                  );
-                  assert.strictEqual(
-                    text.indexOf('${'),
-                    -1,
-                    'A dynamic variable was not replaced in the text email template'
-                  );
+                // Assert all dynamic variables are replaced
+                assert.strictEqual(
+                  html.indexOf('${'),
+                  -1,
+                  'A dynamic variable was not replaced in the html email template'
+                );
+                assert.strictEqual(
+                  text.indexOf('${'),
+                  -1,
+                  'A dynamic variable was not replaced in the text email template'
+                );
 
-                  // Assert that there are no URLs in the template that don't include the tenant base url
-                  assert.strictEqual(
-                    html.indexOf('href="/'),
-                    -1,
-                    'Links in emails should include the tenant base url'
-                  );
-                  assert.strictEqual(
-                    html.indexOf('src="/'),
-                    -1,
-                    'Links in emails should include the tenant base url'
-                  );
+                // Assert that there are no URLs in the template that don't include the tenant base url
+                assert.strictEqual(
+                  html.indexOf('href="/'),
+                  -1,
+                  'Links in emails should include the tenant base url'
+                );
+                assert.strictEqual(
+                  html.indexOf('src="/'),
+                  -1,
+                  'Links in emails should include the tenant base url'
+                );
 
-                  // Assert that html links have been converted to "plain text links"
-                  assert.strictEqual(text.indexOf('<a href='), -1);
-                  assert.notStrictEqual(text.indexOf(link.profilePath), -1);
+                // Assert that html links have been converted to "plain text links"
+                assert.strictEqual(text.indexOf('<a href='), -1);
+                assert.notStrictEqual(text.indexOf(link.profilePath), -1);
 
-                  // Ensure the long display name gets truncated
-                  assert.notStrictEqual(
-                    html.indexOf(util.format('%s...', displayName.slice(0, 30))),
-                    -1
-                  );
+                // Ensure the long display name gets truncated
+                assert.notStrictEqual(
+                  html.indexOf(util.format('%s...', displayName.slice(0, 30))),
+                  -1
+                );
 
-                  return callback();
-                });
-              }
-            );
+                return callback();
+              });
+            });
           }
         );
       });
@@ -2751,20 +2802,21 @@ describe('Activity Email', () => {
    * Test that verifies a private user does not appear in a link in an activity email
    */
   it('verify private users are not displayed with links', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: mrvisser, 1: simong } = users;
 
       RestAPI.User.updateUser(
         mrvisser.restContext,
         mrvisser.user.id,
         { visibility: 'private' },
         (err, updatedMrvisser) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(updatedMrvisser.visibility, 'private');
 
           // Mrvisser follows simong now that he is private
           RestAPI.Following.follow(mrvisser.restContext, simong.user.id, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Collect the emails
             EmailTestUtil.collectAndFetchAllEmails(messages => {
@@ -2808,8 +2860,9 @@ describe('Activity Email', () => {
     };
     refreshConfiguration(null, false, false, config, () => {
       // Generate some users that we can test with
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: nico } = users;
 
         // Trigger an email with 2 activities
         RestAPI.Content.createLink(
@@ -2819,11 +2872,11 @@ describe('Activity Email', () => {
             description: 'Google',
             visibility: PUBLIC,
             link: 'http://www.google.ca',
-            managers: [],
+            managers: NO_MANAGERS,
             viewers: [nico.user.id]
           },
-          (err, link) => {
-            assert.ok(!err);
+          (err /* , link */) => {
+            assert.notExists(err);
             RestAPI.Content.createLink(
               simong.restContext,
               {
@@ -2831,34 +2884,31 @@ describe('Activity Email', () => {
                 description: 'Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [nico.user.id]
               },
-              (err, link) => {
-                assert.ok(!err);
+              (err /* , link */) => {
+                assert.notExists(err);
 
                 // Run an activity collection, which will queue an immediate email for Nico
-                ActivityTestUtil.collectAndGetActivityStream(
-                  nico.restContext,
-                  null,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
+                ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
+                  err /* , activityStream */
+                ) => {
+                  assert.notExists(err);
 
-                    // Because of the grace period however, Nico should not get the email in this collection cycle
-                    EmailTestUtil.collectAndFetchAllEmails(messages => {
-                      assert.strictEqual(messages.length, 0);
+                  // Because of the grace period however, Nico should not get the email in this collection cycle
+                  EmailTestUtil.collectAndFetchAllEmails(messages => {
+                    assert.strictEqual(messages.length, 0);
 
-                      // If we let the grace period pass, Nico should get his email
-                      EmailTestUtil.waitForEmail(messages => {
-                        assert.strictEqual(messages.length, 1);
-                        assert.ok(messages[0].html.indexOf('Link #1') > 0);
-                        assert.ok(messages[0].html.indexOf('Link #2') > 0);
-                        return callback();
-                      });
+                    // If we let the grace period pass, Nico should get his email
+                    EmailTestUtil.waitForEmail(messages => {
+                      assert.strictEqual(messages.length, 1);
+                      assert.ok(messages[0].html.indexOf('Link #1') > 0);
+                      assert.ok(messages[0].html.indexOf('Link #2') > 0);
+                      return callback();
                     });
-                  }
-                );
+                  });
+                });
               }
             );
           }
@@ -2872,9 +2922,13 @@ describe('Activity Email', () => {
    * Here we ensure that there is no line that surpasses a safe SMTP threshold
    */
   it('verify email for 2 items being created for a group do not result in lines that are too long', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users, simong, nico) => {
-      assert.ok(!err);
-      TestsUtil.generateTestGroups(simong.restContext, 1, group => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, users) => {
+      assert.notExists(err);
+      const { 0: simong, 1: nico } = users;
+
+      TestsUtil.generateTestGroups(simong.restContext, 1, (err, groups) => {
+        assert.notExists(err);
+        let { 0: group } = groups;
         group = group.group;
 
         // Add the members to the group
@@ -2897,11 +2951,11 @@ describe('Activity Email', () => {
                   visibility: PUBLIC,
                   link: 'http://www.myawesomelinkthatilike.ca',
                   managers: [group.id],
-                  viewers: [],
-                  folders: []
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
                     simong.restContext,
                     {
@@ -2911,11 +2965,11 @@ describe('Activity Email', () => {
                       link:
                         'http://www.anotherlinkthatilike.ca/this/is/reasonably/long?so=what&will=happen',
                       managers: [group.id],
-                      viewers: [],
-                      folders: []
+                      viewers: NO_VIEWERS,
+                      folders: NO_FOLDERS
                     },
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Collect email, ensuring that no line surpasses an acceptable threshold
                       EmailTestUtil.collectAndFetchAllEmails(messages => {

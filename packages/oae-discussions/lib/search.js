@@ -27,7 +27,7 @@ import { DiscussionsConstants } from './constants';
 
 const log = logger('discussions-search');
 
-import { head, concat, mergeDeepWith } from 'ramda';
+import { head } from 'ramda';
 
 /**
  * Initializes the child search documents for the Discussions module
@@ -46,9 +46,9 @@ const init = function(callback) {
   );
 };
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+/**
+ * Indexing tasks
+ */
 
 /*!
  * When a discussion is created, we must index it and all its potential members
@@ -119,9 +119,9 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
   );
 });
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produce the necessary discussion message search documents.
@@ -251,9 +251,9 @@ const _produceDiscussionSearchDocument = function(discussion) {
 
 SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of discussion search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -272,7 +272,7 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
     try {
       doc.fields._extra[0] = JSON.parse(doc.fields._extra[0]);
     } catch (error) {
-      // TODO log something here
+      log().warn('Error trying to parse JSON: ' + error);
     }
 
     // Extract the extra object from the search document

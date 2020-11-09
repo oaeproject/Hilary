@@ -125,8 +125,7 @@ const collectAndFetchAllEmails = function(callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
       ActivityNotifications.whenNotificationsEmpty(() => {
-        // Wait for any message that was sent to finish its asynchronous
-        // work
+        // Wait for any message that was sent to finish its asynchronous work
         EmailAPI.whenAllEmailsSent(() => {
           /*!
            * Handle the debugSent event, filling up the messages array with the messages we receive
@@ -135,7 +134,10 @@ const collectAndFetchAllEmails = function(callback) {
             messages.push(JSON.parse(info.message));
           };
 
-          // Handler that simply collects the messages that are sent in this collection cycle into an array
+          /**
+           * Handler that simply collects the messages that are sent in this collection
+           * cycle into an array
+           */
           EmailAPI.emitter.on('debugSent', _handleDebugSent);
 
           // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams

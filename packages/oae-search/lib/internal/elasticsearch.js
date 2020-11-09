@@ -40,7 +40,7 @@ import {
 
 const { Client } = require('@elastic/elasticsearch');
 
-const log = logger('elasticsearchclient');
+const log = logger('elasticsearch');
 
 const Telemetry = telemetry('search');
 

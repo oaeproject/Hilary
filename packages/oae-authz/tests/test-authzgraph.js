@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import AuthzGraph from 'oae-authz/lib/internal/graph';
+import { assert } from 'chai';
+import { pluck } from 'ramda';
 
-import _ from 'underscore';
+import AuthzGraph from 'oae-authz/lib/internal/graph';
 
 describe('Authz Graph', () => {
   /**
@@ -32,7 +32,7 @@ describe('Authz Graph', () => {
     assert.strictEqual(a.myprop, 'myval');
 
     // Verify trying to re-add the node has no impact on the existing node
-    assert.ok(!graph.addNode('a', { myprop: 'anotherval', anotherprop: 'anotherval' }));
+    assert.isNotOk(graph.addNode('a', { myprop: 'anotherval', anotherprop: 'anotherval' }));
     a = graph.getNode('a');
     assert.ok(a);
     assert.strictEqual(a.id, 'a');
@@ -46,7 +46,7 @@ describe('Authz Graph', () => {
 
     // Ensure we have 2 nodes
     const nodes = graph.getNodes();
-    assert.strictEqual(nodes.length, 2);
+    assert.lengthOf(nodes, 2);
     assert.strictEqual(nodes[0].id, 'a');
     assert.strictEqual(nodes[0].myprop, 'myval');
     assert.strictEqual(nodes[1].id, 'b');
@@ -194,27 +194,57 @@ describe('Authz Graph', () => {
     graph.addEdge('e', 'i');
 
     // Verify that the inbound and outbound traversals are depth first and does not repeat
-    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a', 'i', 'h', 'g', 'f', 'e', 'd', 'c', 'b']);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
+    assert.deepStrictEqual(pluck('id', graph.traverseIn('a')), [
+      'a',
+      'i',
+      'h',
+      'g',
+      'f',
+      'e',
+      'd',
+      'c',
+      'b'
+    ]);
+    assert.deepStrictEqual(pluck('id', graph.traverseOut('a')), [
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+      'g',
+      'h',
+      'i'
+    ]);
 
     // Verify that if we delete the circular graph edges from the vowels, it still finds
     // some different paths around
     graph.removeEdge('d', 'e');
     graph.removeEdge('h', 'i');
-    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a', 'i', 'e']);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']);
+    assert.deepStrictEqual(pluck('id', graph.traverseIn('a')), ['a', 'i', 'e']);
+    assert.deepStrictEqual(pluck('id', graph.traverseOut('a')), [
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+      'g',
+      'h',
+      'i'
+    ]);
 
     // Delete 'e', ensure paths are broken pretty good
     graph.removeNode('e');
-    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a', 'i']);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a', 'b', 'c', 'd']);
+    assert.deepStrictEqual(pluck('id', graph.traverseIn('a')), ['a', 'i']);
+    assert.deepStrictEqual(pluck('id', graph.traverseOut('a')), ['a', 'b', 'c', 'd']);
 
     // Remove the last of the edges that are connecting to 'a', and ensure we still traverse
     // over 'a' as a single array result
     graph.removeNode('i');
     graph.removeNode('b');
-    assert.deepStrictEqual(_.pluck(graph.traverseIn('a'), 'id'), ['a']);
-    assert.deepStrictEqual(_.pluck(graph.traverseOut('a'), 'id'), ['a']);
+    assert.deepStrictEqual(pluck('id', graph.traverseIn('a')), ['a']);
+    assert.deepStrictEqual(pluck('id', graph.traverseOut('a')), ['a']);
 
     return callback();
   });

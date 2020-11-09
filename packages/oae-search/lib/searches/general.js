@@ -23,7 +23,6 @@ import { SearchConstants } from 'oae-search/lib/constants';
 
 import * as OaeUtil from 'oae-util/lib/util';
 import * as SearchUtil from 'oae-search/lib/util';
-import { defaultTo, mergeDeepWith, concat } from 'ramda';
 const {
   filterCreatedBy,
   createHasChildQuery,
@@ -34,8 +33,6 @@ const {
   createFilteredQuery,
   createQuery
 } = SearchUtil;
-
-const SUM = 'sum';
 
 const RESOURCE_TYPES_ACCESS_SCOPED = [
   SearchConstants.general.RESOURCE_TYPE_ALL,

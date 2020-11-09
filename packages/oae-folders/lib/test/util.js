@@ -1252,8 +1252,16 @@ const assertGeneralFolderSearchEquals = function(restContext, q, expectedFolders
     { resourceTypes: 'folder', q, scope: '_network' },
     (err, results) => {
       assert.ok(!err);
-      setTimeout(_assertSearchResults, TIMEOUT, results, expectedFolders, missingFolders);
-      return callback();
+      setTimeout(
+        () => {
+          _assertSearchResults();
+          return callback();
+        },
+        TIMEOUT,
+        results,
+        expectedFolders,
+        missingFolders
+      );
     }
   );
 };

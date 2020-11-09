@@ -14,16 +14,16 @@
  */
 
 import { assert } from 'chai';
-import _ from 'underscore';
-import { of, prop } from 'ramda';
+import { compose, prop, head, of, equals, find, propSatisfies } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const { createGroup } = RestAPI.Group;
 const { searchRefreshed, searchAll } = SearchTestsUtil;
 const { createComment, createLink } = RestAPI.Content;
-const { generateTestUsers, createTenantAdminRestContext, createTenantRestContext } = TestsUtil;
+const { generateTestUserId, generateTestUsers, createTenantAdminRestContext, createTenantRestContext } = TestsUtil;
 const { createMessage, createDiscussion } = RestAPI.Discussions;
 const { search } = RestAPI.Search;
 const { shareContent } = RestAPI.Content;
@@ -31,12 +31,17 @@ const { shareContent } = RestAPI.Content;
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 const LOGGED_IN = 'loggedin';
+const CONTENT_LIBRARY = 'content-library';
+const DISCUSSION_LIBRARY = 'discussion-library';
+const NOT_JOINABLE = 'no';
 
 const NO_FOLDERS = [];
 const NO_MANAGERS = [];
 const NO_VIEWERS = [];
 
-const resultsWithin = prop('results');
+const justTheOneResult = results => propSatisfies(equals(1), 'total', results);
+const noResults = results => propSatisfies(equals(0), 'total', results);
+const topResult = compose(prop('id'), head, prop('results'));
 
 describe('Library Search', () => {
   // REST contexts we can use to do REST requests
@@ -59,12 +64,12 @@ describe('Library Search', () => {
     generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
       assert.isNotOk(err);
 
-      const { 0: simon } = users;
-      const asSimon = simon.restContext;
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
       // Create content with a comment on it
       createLink(
-        asSimon,
+        asHomer,
         {
           displayName: 'Apereo Website',
           description: 'The website of the Apereo Foundation',
@@ -77,7 +82,7 @@ describe('Library Search', () => {
         (err, content) => {
           assert.isNotOk(err);
 
-          createComment(asSimon, content.id, 'abcdefghi', null, (err, comment) => {
+          createComment(asHomer, content.id, 'abcdefghi', null, (err /* , comment */) => {
             assert.isNotOk(err);
 
             /**
@@ -86,16 +91,16 @@ describe('Library Search', () => {
              * a test string or use an md5 hash as those are probably not going to contain
              * substrings of 5 characters
              */
-            searchAll(asSimon, 'content-library', of(simon.user.id), { q: 'abcdefghijklmn' }, (err, results) => {
+            searchAll(asHomer, CONTENT_LIBRARY, of(homer.user.id), { q: 'abcdefghijklmn' }, (err, results) => {
               assert.isNotOk(err);
 
-              assert.ok(_.find(results.results, { id: content.id }));
+              assert.ok(find(propSatisfies(equals(content.id), 'id'), results.results));
 
               // Create a discussion with a message on it
-              createDiscussion(asSimon, 'A talk', 'about the moon', 'public', [], [], (err, discussion) => {
+              createDiscussion(asHomer, 'A talk', 'about the moon', PUBLIC, [], [], (err, discussion) => {
                 assert.isNotOk(err);
 
-                createMessage(asSimon, discussion.id, 'stuvwxyz', null, (err /* , message */) => {
+                createMessage(asHomer, discussion.id, 'stuvwxyz', null, (err /* , message */) => {
                   assert.isNotOk(err);
 
                   /**
@@ -104,9 +109,9 @@ describe('Library Search', () => {
                    * a test string or use an md5 hash as those are probably not going to contain
                    * substrings of 5 characters
                    */
-                  searchAll(asSimon, 'discussion-library', [simon.user.id], { q: 'stuvwxyz' }, (err, results) => {
+                  searchAll(asHomer, DISCUSSION_LIBRARY, [homer.user.id], { q: 'stuvwxyz' }, (err, results) => {
                     assert.isNotOk(err);
-                    assert.ok(_.find(results.results, { id: discussion.id }));
+                    assert.ok(find(propSatisfies(equals(discussion.id), 'id'), results.results));
 
                     return callback();
                   });
@@ -124,13 +129,13 @@ describe('Library Search', () => {
      * Test that verifies only valid principal ids return results
      */
     it('verify the principal id gets validated', callback => {
-      searchAll(asCambridgeTenantAdmin, 'content-library', [''], null, (err, results) => {
+      searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [''], null, (err, results) => {
         assert.strictEqual(err.code, 400);
-        assert.ok(!results);
+        assert.notExists(results);
 
-        searchAll(asCambridgeTenantAdmin, 'content-library', ['invalid-user-id'], null, (err, results) => {
+        searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, ['invalid-user-id'], null, (err, results) => {
           assert.strictEqual(err.code, 400);
-          assert.ok(!results);
+          assert.notExists(results);
 
           return callback();
         });
@@ -143,67 +148,66 @@ describe('Library Search', () => {
     it('verify all users see public user library item', callback => {
       generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
         assert.isNotOk(err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+        const { 0: homer, 1: marge, 2: bart } = users;
+        const asHomer = homer.restContext;
+        const asBart = bart.restContext;
+        const asMarge = marge.restContext;
 
         generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
           assert.isNotOk(err);
 
-          const { 0: darthVader } = users;
+          const { 0: lisa } = users;
 
           createLink(
-            doer.restContext,
+            asHomer,
             {
               displayName: 'Apereo Website',
               description: 'The website of the Apereo Foundation',
               visibility: PUBLIC,
               link: 'http://www.apereofoundation.org',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, content) => {
-              assert.ok(!err);
+              assert.notExists(err);
+              const sameAsLink = equals(content.id);
 
-              shareContent(doer.restContext, content.id, [jack.user.id], err => {
+              shareContent(asHomer, content.id, [marge.user.id], err => {
                 assert.isNotOk(err);
 
                 // Verify anonymous can see the content item
-                searchAll(asCambridgeAnonymousUser, 'content-library', [jack.user.id], null, (err, results) => {
-                  assert.ok(!err);
-                  assert.strictEqual(results.total, 1);
-                  assert.strictEqual(results.results[0].id, content.id);
+                searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                  assert.notExists(err);
+                  assert.ok(justTheOneResult(results));
+                  assert.isTrue(sameAsLink(topResult(results)));
 
                   // Verify tenant admin can see the content item
-                  searchAll(asCambridgeTenantAdmin, 'content-library', [jack.user.id], null, (err, results) => {
-                    assert.ok(!err);
-                    assert.strictEqual(results.total, 1);
-                    assert.strictEqual(results.results[0].id, content.id);
+                  searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                    assert.notExists(err);
+                    assert.ok(justTheOneResult(results));
+                    assert.isTrue(sameAsLink(topResult(results)));
 
                     // Verify the target user can see the content item
-                    searchAll(jack.restContext, 'content-library', [jack.user.id], null, (err, results) => {
-                      assert.ok(!err);
-                      assert.strictEqual(results.total, 1);
-                      assert.strictEqual(results.results[0].id, content.id);
+                    searchAll(asMarge, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(justTheOneResult(results));
+                      assert.isTrue(sameAsLink(topResult(results)));
 
                       // Verify a different loggedin user can see the content item
-                      searchAll(jane.restContext, 'content-library', [jack.user.id], null, (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 1);
-                        assert.strictEqual(results.results[0].id, content.id);
+                      searchAll(asBart, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.ok(justTheOneResult(results));
+                        assert.isTrue(sameAsLink(topResult(results)));
 
                         // Verify the cross-tenant user can see the content item
-                        SearchTestsUtil.searchAll(
-                          darthVader.restContext,
-                          'content-library',
-                          [jack.user.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
-                            return callback();
-                          }
-                        );
+                        searchAll(lisa.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.ok(justTheOneResult(results));
+                          assert.isTrue(sameAsLink(topResult(results)));
+
+                          return callback();
+                        });
                       });
                     });
                   });
@@ -219,97 +223,70 @@ describe('Library Search', () => {
      * Test that verifies that anonymous and cross-tenant users cannot search loggedin user library items.
      */
     it('verify anonymous and cross-tenant user cannot see loggedin user library items', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge, 2: bart } = users;
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.ok(!err);
-          const { 0: darthVader } = users;
+        generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: lisa } = users;
 
           // Create the content item as 'loggedin'
-          RestAPI.Content.createLink(
-            doer.restContext,
+          createLink(
+            homer.restContext,
             {
               displayName: 'Apereo Website',
               description: 'The website of the Apereo Foundation',
               visibility: LOGGED_IN,
               link: 'http://www.apereofoundation.org',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, content) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
-              RestAPI.Content.shareContent(doer.restContext, content.id, [jack.user.id], err => {
-                assert.ok(!err);
+              const sameAsLink = equals(content.id);
+
+              shareContent(homer.restContext, content.id, [marge.user.id], err => {
+                assert.notExists(err);
 
                 // Verify anonymous cannot see it
-                SearchTestsUtil.searchAll(
-                  asCambridgeAnonymousUser,
-                  'content-library',
-                  [jack.user.id],
-                  null,
-                  (err, results) => {
-                    assert.ok(!err);
-                    assert.strictEqual(results.total, 0);
-                    assert.ok(!results.results[0]);
+                searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                  assert.notExists(err);
+                  assert.ok(noResults(results));
+                  assert.isNotOk(topResult(results));
 
-                    // Verify tenant admin can see it
-                    SearchTestsUtil.searchAll(
-                      asCambridgeTenantAdmin,
-                      'content-library',
-                      [jack.user.id],
-                      null,
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 1);
-                        assert.strictEqual(results.results[0].id, content.id);
+                  // Verify tenant admin can see it
+                  searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                    assert.notExists(err);
+                    assert.ok(justTheOneResult(results));
+                    assert.isTrue(sameAsLink(topResult(results)));
 
-                        // Verify the target user can see it
-                        SearchTestsUtil.searchAll(
-                          jack.restContext,
-                          'content-library',
-                          [jack.user.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
+                    // Verify the target user can see it
+                    searchAll(marge.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(justTheOneResult(results));
+                      assert.isTrue(sameAsLink(topResult(results)));
 
-                            // Verify another loggedin user can see it
-                            SearchTestsUtil.searchAll(
-                              jane.restContext,
-                              'content-library',
-                              [jack.user.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 1);
-                                assert.strictEqual(results.results[0].id, content.id);
+                      // Verify another loggedin user can see it
+                      searchAll(bart.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.ok(justTheOneResult(results));
+                        assert.isTrue(sameAsLink(topResult(results)));
 
-                                // Verify the cross-tenant user cannot see it
-                                SearchTestsUtil.searchAll(
-                                  darthVader.restContext,
-                                  'content-library',
-                                  [jack.user.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 0);
-                                    assert.ok(!results.results[0]);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                        // Verify the cross-tenant user cannot see it
+                        searchAll(lisa.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.ok(noResults(results));
+                          assert.isNotOk(topResult(results));
+
+                          return callback();
+                        });
+                      });
+                    });
+                  });
+                });
               });
             }
           );
@@ -321,97 +298,72 @@ describe('Library Search', () => {
      * Test that verifies only admin and the user themselves can search private user library items.
      */
     it('verify only self and admin can see private user library items', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge, 2: bart } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.ok(!err);
-          const { 0: darthVader } = users;
+        generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: lisa } = users;
 
           // Create the private content item
-          RestAPI.Content.createLink(
-            doer.restContext,
+          createLink(
+            asHomer,
             {
               displayName: 'Apereo Website',
               description: 'The website of the Apereo Foundation',
               visibility: PRIVATE,
               link: 'http://www.apereofoundation.org',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, content) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
-              RestAPI.Content.shareContent(doer.restContext, content.id, [jack.user.id], err => {
-                assert.ok(!err);
+              const sameAsLink = equals(content.id);
+
+              shareContent(asHomer, content.id, [marge.user.id], err => {
+                assert.notExists(err);
 
                 // Verify anonymous cannot search it
-                SearchTestsUtil.searchAll(
-                  asCambridgeAnonymousUser,
-                  'content-library',
-                  [jack.user.id],
-                  null,
-                  (err, results) => {
-                    assert.ok(!err);
-                    assert.strictEqual(results.total, 0);
-                    assert.ok(!results.results[0]);
+                searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                  assert.notExists(err);
+                  assert.ok(noResults(results));
+                  assert.isNotOk(topResult(results));
 
-                    // Verify tenant admin can search it
-                    SearchTestsUtil.searchAll(
-                      asCambridgeTenantAdmin,
-                      'content-library',
-                      [jack.user.id],
-                      null,
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 1);
-                        assert.strictEqual(results.results[0].id, content.id);
+                  // Verify tenant admin can search it
+                  searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                    assert.notExists(err);
+                    assert.ok(justTheOneResult(results));
+                    assert.isTrue(sameAsLink(topResult(results)));
 
-                        // Verify the target user can search it
-                        SearchTestsUtil.searchAll(
-                          jack.restContext,
-                          'content-library',
-                          [jack.user.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
+                    // Verify the target user can search it
+                    searchAll(asMarge, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(justTheOneResult(results));
+                      assert.isTrue(sameAsLink(topResult(results)));
 
-                            // Verify another loggedin user cannot search it
-                            SearchTestsUtil.searchAll(
-                              jane.restContext,
-                              'content-library',
-                              [jack.user.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 0);
-                                assert.ok(!results.results[0]);
+                      // Verify another loggedin user cannot search it
+                      searchAll(bart.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.ok(noResults(results));
+                        assert.isNotOk(topResult(results));
 
-                                // Verify the cross-tenant user cannot search it
-                                SearchTestsUtil.searchAll(
-                                  darthVader.restContext,
-                                  'content-library',
-                                  [jack.user.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 0);
-                                    assert.ok(!results.results[0]);
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                        // Verify the cross-tenant user cannot search it
+                        searchAll(lisa.restContext, CONTENT_LIBRARY, [marge.user.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.ok(noResults(results));
+                          assert.isNotOk(topResult(results));
+
+                          return callback();
+                        });
+                      });
+                    });
+                  });
+                });
               });
             }
           );
@@ -425,108 +377,85 @@ describe('Library Search', () => {
      * Test that verifies all users can see public group library items.
      */
     it('verify all users see public group library items', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge, 2: bart } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
+        const asBart = bart.restContext;
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.ok(!err);
-          const { 0: darthVader } = users;
+        generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: lisa } = users;
+          const asLisa = lisa.restContext;
 
-          RestAPI.Group.createGroup(
-            doer.restContext,
-            TestsUtil.generateTestUserId('group'),
-            TestsUtil.generateTestUserId('group'),
-            'public',
-            'no',
-            [],
-            [jack.user.id],
+          createGroup(
+            asHomer,
+            generateTestUserId('group'),
+            generateTestUserId('group'),
+            PUBLIC,
+            NOT_JOINABLE,
+            NO_MANAGERS,
+            [marge.user.id],
             (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Create the public content item and share it with the group
-              RestAPI.Content.createLink(
-                doer.restContext,
+              createLink(
+                asHomer,
                 {
                   displayName: 'Apereo Website',
                   description: 'The website of the Apereo Foundation',
                   visibility: PUBLIC,
                   link: 'http://www.apereofoundation.org',
-                  managers: [],
-                  viewers: [],
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, content) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
-                  RestAPI.Content.shareContent(doer.restContext, content.id, [group.id], err => {
-                    assert.ok(!err);
+                  const sameAsLink = equals(content.id);
+
+                  shareContent(asHomer, content.id, [group.id], err => {
+                    assert.notExists(err);
 
                     // Verify anonymous can see it
-                    SearchTestsUtil.searchAll(
-                      asCambridgeAnonymousUser,
-                      'content-library',
-                      [group.id],
-                      null,
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 1);
-                        assert.strictEqual(results.results[0].id, content.id);
+                    searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(justTheOneResult(results));
+                      assert.isTrue(sameAsLink(topResult(results)));
 
-                        // Verify tenant admin can see it
-                        SearchTestsUtil.searchAll(
-                          asCambridgeTenantAdmin,
-                          'content-library',
-                          [group.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
+                      // Verify tenant admin can see it
+                      searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.ok(justTheOneResult(results));
+                        assert.isTrue(sameAsLink(topResult(results)));
 
-                            // Verify a member can see it
-                            SearchTestsUtil.searchAll(
-                              jack.restContext,
-                              'content-library',
-                              [group.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 1);
-                                assert.strictEqual(results.results[0].id, content.id);
+                        // Verify a member can see it
+                        searchAll(asMarge, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.ok(justTheOneResult(results));
+                          assert.isTrue(sameAsLink(topResult(results)));
 
-                                // Verify a loggedin non-member can see it
-                                SearchTestsUtil.searchAll(
-                                  jane.restContext,
-                                  'content-library',
-                                  [group.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 1);
-                                    assert.strictEqual(results.results[0].id, content.id);
+                          // Verify a loggedin non-member can see it
+                          searchAll(asBart, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                            assert.notExists(err);
+                            assert.ok(justTheOneResult(results));
+                            assert.isTrue(sameAsLink(topResult(results)));
 
-                                    // Verify a cross-tenant user can see it
-                                    SearchTestsUtil.searchAll(
-                                      darthVader.restContext,
-                                      'content-library',
-                                      [group.id],
-                                      null,
-                                      (err, results) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(results.total, 1);
-                                        assert.strictEqual(results.results[0].id, content.id);
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                            // Verify a cross-tenant user can see it
+                            searchAll(asLisa, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                              assert.notExists(err);
+                              assert.ok(justTheOneResult(results));
+                              assert.isTrue(sameAsLink(topResult(results)));
+
+                              return callback();
+                            });
+                          });
+                        });
+                      });
+                    });
                   });
                 }
               );
@@ -540,108 +469,86 @@ describe('Library Search', () => {
      * Test that verifies that anonymous and cross-tenant users cannot search loggedin group library items.
      */
     it('verify anonymous and cross-tenant users cannot see loggedin group library items', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge, 2: lisa } = users;
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.ok(!err);
-          const { 0: darthVader } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
+        const asLisa = lisa.restContext;
 
-          RestAPI.Group.createGroup(
-            doer.restContext,
-            TestsUtil.generateTestUserId('group'),
-            TestsUtil.generateTestUserId('group'),
-            'public',
-            'no',
+        generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: bart } = users;
+          const asBart = bart.restContext;
+
+          createGroup(
+            asHomer,
+            generateTestUserId('group'),
+            generateTestUserId('group'),
+            PUBLIC,
+            NOT_JOINABLE,
             [],
-            [jack.user.id],
+            [marge.user.id],
             (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Create the loggedin content item and share it with the group
-              RestAPI.Content.createLink(
-                doer.restContext,
+              createLink(
+                asHomer,
                 {
                   displayName: 'Apereo Website',
                   description: 'The website of the Apereo Foundation',
                   visibility: LOGGED_IN,
                   link: 'http://www.apereofoundation.org',
-                  managers: [],
-                  viewers: [],
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, content) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
-                  RestAPI.Content.shareContent(doer.restContext, content.id, [group.id], err => {
-                    assert.ok(!err);
+                  const sameAsLink = equals(content.id);
+
+                  shareContent(asHomer, content.id, [group.id], err => {
+                    assert.notExists(err);
 
                     // Verify anonymous cannot see it
-                    SearchTestsUtil.searchAll(
-                      asCambridgeAnonymousUser,
-                      'content-library',
-                      [group.id],
-                      null,
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 0);
-                        assert.ok(!results.results[0]);
+                    searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.strictEqual(results.total, 0);
+                      assert.isNotOk(topResult(results));
 
-                        // Verify tenant admin can see it
-                        SearchTestsUtil.searchAll(
-                          asCambridgeTenantAdmin,
-                          'content-library',
-                          [group.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
+                      // Verify tenant admin can see it
+                      searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.strictEqual(results.total, 1);
+                        assert.isTrue(sameAsLink(topResult(results)));
+
+                        // Verify member user can see it
+                        searchAll(asMarge, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.strictEqual(results.total, 1);
+                          assert.isTrue(sameAsLink(topResult(results)));
+
+                          // Verify a loggedin non-member can see it
+                          searchAll(asLisa, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                            assert.notExists(err);
                             assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
+                            assert.isTrue(sameAsLink(topResult(results)));
 
-                            // Verify member user can see it
-                            SearchTestsUtil.searchAll(
-                              jack.restContext,
-                              'content-library',
-                              [group.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 1);
-                                assert.strictEqual(results.results[0].id, content.id);
+                            // Verify a cross-tenant user cannot see it
+                            searchAll(asBart, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                              assert.notExists(err);
+                              assert.strictEqual(results.total, 0);
+                              assert.isNotOk(topResult(results));
 
-                                // Verify a loggedin non-member can see it
-                                SearchTestsUtil.searchAll(
-                                  jane.restContext,
-                                  'content-library',
-                                  [group.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 1);
-                                    assert.strictEqual(results.results[0].id, content.id);
-
-                                    // Verify a cross-tenant user cannot see it
-                                    SearchTestsUtil.searchAll(
-                                      darthVader.restContext,
-                                      'content-library',
-                                      [group.id],
-                                      null,
-                                      (err, results) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(results.total, 0);
-                                        assert.ok(!results.results[0]);
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                              return callback();
+                            });
+                          });
+                        });
+                      });
+                    });
                   });
                 }
               );
@@ -656,122 +563,95 @@ describe('Library Search', () => {
      * belong to a different tenant.
      */
     it('verify only member and admin users can see private group library items', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer, 1: jack, 2: jane } = users;
+      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+        assert.notExists(err);
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 2, (err, users) => {
-          assert.ok(!err);
+        const { 0: homer, 1: marge, 2: bart } = users;
+        const asHomer = homer.restContext;
+        const asBart = bart.restContext;
+        const asMarge = marge.restContext;
 
-          const { 0: darthVader, 1: sith } = users;
+        generateTestUsers(asGeorgiaTechTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
 
-          RestAPI.Group.createGroup(
-            doer.restContext,
-            TestsUtil.generateTestUserId('group'),
-            TestsUtil.generateTestUserId('group'),
-            'public',
-            'no',
+          const { 0: lisa, 1: maggie } = users;
+          const asLisa = lisa.restContext;
+          const asMaggie = maggie.restContext;
+
+          createGroup(
+            asHomer,
+            generateTestUserId('group'),
+            generateTestUserId('group'),
+            PUBLIC,
+            NOT_JOINABLE,
             [],
-            [sith.user.id, jack.user.id],
+            [maggie.user.id, marge.user.id],
             (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Create the private content item and share it with the group
-              RestAPI.Content.createLink(
-                doer.restContext,
+              createLink(
+                asHomer,
                 {
                   displayName: 'Apereo Website',
                   description: 'The website of the Apereo Foundation',
                   visibility: PRIVATE,
                   link: 'http://www.apereofoundation.org',
-                  managers: [],
-                  viewers: [],
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, content) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
-                  RestAPI.Content.shareContent(doer.restContext, content.id, [group.id], err => {
-                    assert.ok(!err);
+                  const sameAsLink = equals(content.id);
+
+                  shareContent(asHomer, content.id, [group.id], err => {
+                    assert.notExists(err);
 
                     // Verify anonymous cannot see the private content item
-                    SearchTestsUtil.searchAll(
-                      asCambridgeAnonymousUser,
-                      'content-library',
-                      [group.id],
-                      null,
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.strictEqual(results.total, 0);
-                        assert.ok(!results.results[0]);
+                    searchAll(asCambridgeAnonymousUser, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(noResults(results));
+                      assert.isNotOk(topResult(results));
 
-                        // Verify cam admin can see the private content item
-                        SearchTestsUtil.searchAll(
-                          asCambridgeTenantAdmin,
-                          'content-library',
-                          [group.id],
-                          null,
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.strictEqual(results.total, 1);
-                            assert.strictEqual(results.results[0].id, content.id);
+                      // Verify cam admin can see the private content item
+                      searchAll(asCambridgeTenantAdmin, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                        assert.notExists(err);
+                        assert.ok(justTheOneResult(results));
+                        assert.isTrue(sameAsLink(topResult(results)));
 
-                            // Verify the same-tenant member can see the private content item
-                            SearchTestsUtil.searchAll(
-                              jack.restContext,
-                              'content-library',
-                              [group.id],
-                              null,
-                              (err, results) => {
-                                assert.ok(!err);
-                                assert.strictEqual(results.total, 1);
-                                assert.strictEqual(results.results[0].id, content.id);
+                        // Verify the same-tenant member can see the private content item
+                        searchAll(asMarge, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                          assert.notExists(err);
+                          assert.ok(justTheOneResult(results));
+                          assert.isTrue(sameAsLink(topResult(results)));
 
-                                // Verify the cross-tenant member can see the private content item
-                                SearchTestsUtil.searchAll(
-                                  sith.restContext,
-                                  'content-library',
-                                  [group.id],
-                                  null,
-                                  (err, results) => {
-                                    assert.ok(!err);
-                                    assert.strictEqual(results.total, 1);
-                                    assert.strictEqual(results.results[0].id, content.id);
+                          // Verify the cross-tenant member can see the private content item
+                          searchAll(asMaggie, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                            assert.notExists(err);
+                            assert.ok(justTheOneResult(results));
+                            assert.isTrue(sameAsLink(topResult(results)));
 
-                                    // Verify another loggedin user cannot see the private content item
-                                    SearchTestsUtil.searchAll(
-                                      jane.restContext,
-                                      'content-library',
-                                      [group.id],
-                                      null,
-                                      (err, results) => {
-                                        assert.ok(!err);
-                                        assert.strictEqual(results.total, 0);
-                                        assert.ok(!results.results[0]);
+                            // Verify another loggedin user cannot see the private content item
+                            searchAll(asBart, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                              assert.notExists(err);
+                              assert.ok(noResults(results));
+                              assert.isNotOk(topResult(results));
 
-                                        // Verify cross-tenant non-member user cannot see the private content item
-                                        SearchTestsUtil.searchAll(
-                                          darthVader.restContext,
-                                          'content-library',
-                                          [group.id],
-                                          null,
-                                          (err, results) => {
-                                            assert.ok(!err);
-                                            assert.strictEqual(results.total, 0);
-                                            assert.ok(!results.results[0]);
-                                            return callback();
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                              // Verify cross-tenant non-member user cannot see the private content item
+                              searchAll(asLisa, CONTENT_LIBRARY, [group.id], null, (err, results) => {
+                                assert.notExists(err);
+                                assert.ok(noResults(results));
+                                assert.isNotOk(topResult(results));
+
+                                return callback();
+                              });
+                            });
+                          });
+                        });
+                      });
+                    });
                   });
                 }
               );
@@ -788,87 +668,74 @@ describe('Library Search', () => {
      */
     it('verify paging the library search feed works correctly', callback => {
       generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.ok(!err);
-        const { 0: doer } = users;
+        assert.notExists(err);
+
+        const { 0: homer } = users;
+        const asHomer = homer.restContext;
 
         createLink(
-          doer.restContext,
+          asHomer,
           {
             displayName: 'Apereo Website',
             description: 'The website of the Apereo Foundation',
             visibility: PUBLIC,
             link: 'http://www.apereofoundation.org',
-            managers: [],
-            viewers: [],
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, content) => {
-            assert.ok(!err);
+            assert.notExists(err);
+            const sameAsFirstLink = equals(content.id);
 
             createLink(
-              doer.restContext,
+              asHomer,
               {
                 displayName: 'Google Website',
                 description: 'Google',
                 visibility: PUBLIC,
                 link: 'http://www.google.ca',
-                managers: [],
-                viewers: [],
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, content) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
-                searchRefreshed(
-                  doer.restContext,
-                  'content-library',
-                  [doer.user.id],
-                  { limit: 2, start: 0 },
-                  (err, results) => {
-                    assert.ok(!err);
+                const sameAsSecondLink = equals(content.id);
+
+                searchRefreshed(asHomer, CONTENT_LIBRARY, [homer.user.id], { limit: 2, start: 0 }, (err, results) => {
+                  assert.notExists(err);
+                  assert.ok(results.results);
+                  assert.lengthOf(results.results, 2);
+
+                  const firstId = results.results[0].id;
+                  assert.ok(firstId);
+
+                  const secondId = results.results[1].id;
+                  assert.ok(secondId);
+
+                  /**
+                   * Verify the first item comes on the first page.
+                   * We don't need to refresh this search because we haven't indexed anything since the previous search
+                   */
+                  search(asHomer, CONTENT_LIBRARY, [homer.user.id], { limit: 1, start: 0 }, (err, results) => {
+                    assert.notExists(err);
                     assert.ok(results.results);
-                    assert.strictEqual(results.results.length, 2);
+                    assert.lengthOf(results.results, 1);
+                    assert.isTrue(sameAsFirstLink(topResult(results)));
 
-                    const firstId = results.results[0].id;
-                    const secondId = results.results[1].id;
+                    // Verify the second item comes on the first page.
+                    search(asHomer, CONTENT_LIBRARY, [homer.user.id], { limit: 1, start: 1 }, (err, results) => {
+                      assert.notExists(err);
+                      assert.ok(results.results);
+                      assert.lengthOf(results.results, 1);
+                      assert.isTrue(sameAsSecondLink(topResult(results)));
 
-                    assert.ok(firstId);
-                    assert.ok(secondId);
-
-                    /**
-                     * Verify the first item comes on the first page.
-                     * We don't need to refresh this search because we haven't indexed anything since the previous search
-                     */
-                    search(
-                      doer.restContext,
-                      'content-library',
-                      [doer.user.id],
-                      { limit: 1, start: 0 },
-                      (err, results) => {
-                        assert.ok(!err);
-                        assert.ok(results.results);
-                        assert.strictEqual(results.results.length, 1);
-                        assert.strictEqual(results.results[0].id, firstId);
-
-                        // Verify the second item comes on the first page.
-                        search(
-                          doer.restContext,
-                          'content-library',
-                          [doer.user.id],
-                          { limit: 1, start: 1 },
-                          (err, results) => {
-                            assert.ok(!err);
-                            assert.ok(results.results);
-                            assert.strictEqual(results.results.length, 1);
-                            assert.strictEqual(results.results[0].id, secondId);
-
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                      return callback();
+                    });
+                  });
+                });
               }
             );
           }

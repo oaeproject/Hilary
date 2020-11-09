@@ -26,9 +26,9 @@ const log = logger();
 const SHUTDOWN_GRACE_TIME_MILLIS = 60000;
 const PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS = 15000;
 
-/// //////////////////////////
-// Configuration variables //
-/// //////////////////////////
+/**
+ *  Configuration variables
+ */
 
 // Variables in which the global admin server and the tenant server will be cached
 let globalAdminServer = null;

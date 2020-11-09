@@ -66,6 +66,7 @@ const CONTENT = 'content';
 const MEMBER = 'member';
 const DISCUSSION = 'discussion';
 const LINK = 'link';
+const PASSWORD = 'password';
 
 const JOINABLE = 'yes';
 const NOT_JOINABLE = 'no';
@@ -118,10 +119,10 @@ const getId = prop('id');
 const getTenantAlias = path(['tenant', 'alias']);
 const getVisibility = prop('visibility');
 const getDisplayName = prop('displayName');
-const getResourceId = prop('resourceId');
 const getResourceType = prop('resourceType');
 const getResultsWithin = prop('results');
 const getLastModified = compose(parseInt, prop('lastModified'));
+const numberOfResults = compose(length, getResultsWithin);
 
 const getGroupIds = compose(reject(isNil), map(path(['group', 'id'])), last);
 
@@ -155,6 +156,9 @@ const isWithin = (results, documentId) => gte(findIndex(propEq('id', documentId)
 const isNotWithin = compose(not, isWithin);
 const fetchWithin = (results, documentId) => find(propEq('id', documentId), getResultsWithin(results));
 const numberOf = compose(length, prop('results'));
+const numberOfGroupsResults = compose(length, isResourceTypeAGroup, getResultsWithin);
+const numberOfContentResults = compose(length, isResourceTypeAContent, getResultsWithin);
+const numberOfUserResults = compose(length, isResourceTypeAUser, getResultsWithin);
 
 describe('General Search', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -265,9 +269,9 @@ describe('General Search', () => {
       generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
         assert.notExists(err);
 
-        // Verify we can search for the user
         const { 0: johnDoe } = values(users);
 
+        // Verify we can search for the user
         searchRefreshed(
           asCambridgeAnonymousUser,
           GENERAL_SEARCH,
@@ -4508,6 +4512,7 @@ describe('General Search', () => {
                                                                                     undefined,
                                                                                     groupDoc._extra
                                                                                   );
+                                                                                  // TODO type not _type?
                                                                                   assert.strictEqual(
                                                                                     undefined,
                                                                                     groupDoc._type
@@ -4745,7 +4750,7 @@ describe('General Search', () => {
       createUser(
         asCambridgeTenantAdmin,
         generateRandomText(1),
-        'password',
+        PASSWORD,
         'Luke Skywalker',
         email,
         NO_OPTIONS,
@@ -4756,7 +4761,7 @@ describe('General Search', () => {
           createUser(
             asGeorgiaTenantAdmin,
             generateRandomText(1),
-            'password',
+            PASSWORD,
             'Lucky the Silly',
             email,
             NO_OPTIONS,
@@ -4802,7 +4807,7 @@ describe('General Search', () => {
       createUser(
         asCambridgeTenantAdmin,
         username,
-        'password',
+        PASSWORD,
         displayName,
         email,
         NO_OPTIONS,
@@ -4813,7 +4818,7 @@ describe('General Search', () => {
           createUser(
             asGeorgiaTenantAdmin,
             username,
-            'password',
+            PASSWORD,
             displayName,
             email,
             NO_OPTIONS,
@@ -4837,7 +4842,7 @@ describe('General Search', () => {
 
                   assert.notStrictEqual(-1, userFromCambridgeIndex);
                   assert.notStrictEqual(-1, userFromGeorgiaTechIndex);
-                  assert.ok(lt(userFromCambridgeIndex, userFromGeorgiaTechIndex));
+                  assert.isBelow(userFromCambridgeIndex, userFromGeorgiaTechIndex);
 
                   /**
                    *
@@ -4857,7 +4862,7 @@ describe('General Search', () => {
 
                       assert.notStrictEqual(-1, userFromCambridgeIndex);
                       assert.notStrictEqual(-1, userFromGeorgiaTechIndex);
-                      assert.ok(lt(userFromGeorgiaTechIndex, userFromCambridgeIndex));
+                      assert.isBelow(userFromGeorgiaTechIndex, userFromCambridgeIndex);
 
                       return callback();
                     }
@@ -4919,8 +4924,8 @@ describe('General Search', () => {
                   (err, results) => {
                     assert.notExists(err);
                     assert.ok(isWithin(results, johnDoe.user.id));
-                    assert.strictEqual(0, compose(length, isResourceTypeAGroup, getResultsWithin)(results));
-                    assert.strictEqual(0, compose(length, isResourceTypeAContent, getResultsWithin)(results));
+                    assert.strictEqual(0, numberOfGroupsResults(results));
+                    assert.strictEqual(0, numberOfContentResults(results));
 
                     // Verify we only get groups from a group search
                     searchRefreshed(
@@ -4931,8 +4936,8 @@ describe('General Search', () => {
                       (err, results) => {
                         assert.notExists(err);
                         assert.ok(isWithin(results, group.id));
-                        assert.strictEqual(0, compose(length, isResourceTypeAUser, getResultsWithin)(results));
-                        assert.strictEqual(0, compose(length, isResourceTypeAContent, getResultsWithin)(results));
+                        assert.strictEqual(0, numberOfUserResults(results));
+                        assert.strictEqual(0, numberOfContentResults(results));
 
                         // Verify we only get content from a content search
                         searchRefreshed(
@@ -4943,8 +4948,8 @@ describe('General Search', () => {
                           (err, results) => {
                             assert.notExists(err);
                             assert.ok(isWithin(results, content.id));
-                            assert.strictEqual(0, compose(length, isResourceTypeAUser, getResultsWithin)(results));
-                            assert.strictEqual(0, compose(length, isResourceTypeAGroup, getResultsWithin)(results));
+                            assert.strictEqual(0, numberOfUserResults(results));
+                            assert.strictEqual(0, numberOfGroupsResults(results));
                             return callback();
                           }
                         );
@@ -4972,22 +4977,22 @@ describe('General Search', () => {
         // Verify that the limit parameter is respected.
         searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 8 }, (err, results) => {
           assert.notExists(err);
-          assert.strictEqual(8, compose(length, getResultsWithin)(results));
+          assert.strictEqual(8, numberOfResults(results));
 
           // Verify that searches have an upper limit.
           search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 1000 }, (err, results) => {
             assert.notExists(err);
-            assert.strictEqual(25, compose(length, getResultsWithin)(results));
+            assert.strictEqual(25, numberOfResults(results));
 
             // Verify that searches have a lower limit.
             search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: -1 }, (err, results) => {
               assert.notExists(err);
-              assert.strictEqual(1, compose(length, getResultsWithin)(results));
+              assert.strictEqual(1, numberOfResults(results));
 
               // Verify that searches have a lower limit.
               search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 0 }, (err, results) => {
                 assert.notExists(err);
-                assert.strictEqual(1, compose(length, getResultsWithin)(results));
+                assert.strictEqual(1, numberOfResults(results));
 
                 callback();
               });

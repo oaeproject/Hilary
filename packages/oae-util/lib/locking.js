@@ -114,8 +114,9 @@ const release = function(lock, callback) {
     return callback(error);
   }
 
-  // the first parameter is not necessary after the
-  // migration from redback to redlock
+  /**
+   * The first parameter is not necessary after the migration from redback to redlock
+   */
   locker.unlock(lock, err => {
     if (err) {
       log().error({ err }, 'Unable to release the lock ' + lock.value);

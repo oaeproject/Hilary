@@ -13,25 +13,45 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
+import { and, contains, forEachObjIndexed } from 'ramda';
+import { EventEmitter } from 'oae-emitter';
+
+const { getGroup, createGroup } = RestAPI.Group;
+const { createLink } = RestAPI.Content;
+const { getContent, updateContent } = RestAPI.Content;
+const { createDiscussion } = RestAPI.Discussions;
+const { markNotificationsRead } = RestAPI.Activity;
+
+const {
+  collectAndGetNotificationStream,
+  collectAndGetActivityStream,
+  getPushClient,
+  getFullySetupPushClient
+} = ActivityTestUtil;
+const { getMe } = RestAPI.User;
+const { createTenantAdminRestContext, generateTestUsers } = TestsUtil;
+
+const NO_VIEWERS = [];
+const NO_MANAGERS = [];
+const NO_FOLDERS = [];
 const PUBLIC = 'public';
 
 describe('Activity push', () => {
   // Rest context that can be used every time we need to make a request as a tenant admin
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
   before(callback => {
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
@@ -40,9 +60,14 @@ describe('Activity push', () => {
      * Test that verifies that messages that are sent by a client need to have an ID
      */
     it('verify missing id results in an immediate disconnect', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, meData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, meData) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
@@ -51,7 +76,7 @@ describe('Activity push', () => {
               signature: meData.signature
             }
           };
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, client => {
             const socket = client.getRawSocket();
 
             let receivedMessages = 0;
@@ -81,9 +106,14 @@ describe('Activity push', () => {
      * Test that verifies that non JSON messages get rejected
      */
     it('verify a malformed message results in an immediate disconnect', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, meData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, meData) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
@@ -92,7 +122,7 @@ describe('Activity push', () => {
               signature: meData.signature
             }
           };
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, client => {
             const socket = client.getRawSocket();
 
             let receivedMessages = 0;
@@ -122,7 +152,7 @@ describe('Activity push', () => {
      * Test that verifies the sockets gets closed when the client does not provide their authentication credentials within a reasonable timeframe
      */
     it('verify authentication timeout', callback => {
-      ActivityTestUtil.getPushClient(client => {
+      getPushClient(client => {
         client.on('close', () => {
           return callback();
         });
@@ -135,8 +165,8 @@ describe('Activity push', () => {
      * Test that verifies that the very first frame that gets sent has to be an authentication frame
      */
     it('verify no authentication frame results in a disconnect', callback => {
-      ActivityTestUtil.getPushClient(client => {
-        client.sendMessage('foo', {}, (err, msg) => {
+      getPushClient(client => {
+        client.sendMessage('foo', {}, (err /* , msg */) => {
           assert.ok(err);
           assert.strictEqual(err.code, 401);
         });
@@ -156,18 +186,16 @@ describe('Activity push', () => {
      * Test that verifies that an invalid user id results in an error
      */
     it('verify an invalid user id results in a error', callback => {
-      ActivityTestUtil.getPushClient(client => {
+      getPushClient(client => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage(
-          'authentication',
-          { userId: 'not-a-user-id', signature: {} },
-          (err, data) => {
-            assert.strictEqual(err.code, 400);
-            receivedResponse = true;
-          }
-        );
+        client.sendMessage('authentication', { userId: 'not-a-user-id', signature: {} }, (
+          err /* , data */
+        ) => {
+          assert.strictEqual(err.code, 400);
+          receivedResponse = true;
+        });
 
         client.on('close', () => {
           assert.ok(receivedResponse, 'Expected to receive a message before closing the socket');
@@ -180,11 +208,11 @@ describe('Activity push', () => {
      * Test that verifies that an invalid signature results in an error
      */
     it('verify a missing signature results in a error', callback => {
-      ActivityTestUtil.getPushClient(client => {
+      getPushClient(client => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (err, data) => {
+        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (err /* , data */) => {
           assert.strictEqual(err.code, 400);
           receivedResponse = true;
         });
@@ -200,15 +228,25 @@ describe('Activity push', () => {
      * Test that verifies that clients can authenticate themselves on the socket
      */
     it('verify authentication', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, meData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
 
-          ActivityTestUtil.getPushClient(client => {
-            // The first message should always be the authentication message
-            // If not, the backend should close the socket.
-            client.authenticate(meData.id, meData.tenant.alias, meData.signature, (err, data) => {
-              assert.ok(!err);
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, meData) => {
+          assert.notExists(err);
+
+          getPushClient(client => {
+            /**
+             * The first message should always be the authentication message
+             * If not, the backend should close the socket.
+             */
+            client.authenticate(meData.id, meData.tenant.alias, meData.signature, (
+              err /* , data */
+            ) => {
+              assert.notExists(err);
+
               client.close(callback);
             });
           });
@@ -222,34 +260,38 @@ describe('Activity push', () => {
      * Test that verifies the subscription validation
      */
     it('verify validation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             }
           };
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+
+          getFullySetupPushClient(data, client => {
             // Registering on an unknown feed should result in an error
-            client.subscribe(mrvisser.user.id, 'unknown', { some: 'token' }, null, (err, msg) => {
+            client.subscribe(johnDoe.user.id, 'unknown', { some: 'token' }, null, (
+              err /* , msg */
+            ) => {
               assert.strictEqual(err.code, 400);
 
               // Specifying an unknown format should result in a validation error
-              client.subscribe(
-                mrvisser.user.id,
-                'activity',
-                { some: 'token' },
-                'unknown format',
-                (err, msg) => {
-                  assert.strictEqual(err.code, 400);
+              client.subscribe(johnDoe.user.id, 'activity', { some: 'token' }, 'unknown format', (
+                err /* , msg */
+              ) => {
+                assert.strictEqual(err.code, 400);
 
-                  client.close(callback);
-                }
-              );
+                client.close(callback);
+              });
             });
           });
         });
@@ -260,61 +302,61 @@ describe('Activity push', () => {
      * Test that verifies subscribing and authorization on activity streams
      */
     it('verify subscribing and authorization on activity streams', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simon) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe, 1: janeDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             }
           };
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
-            // Mrvisser cannot subscribe on Simon's feed
-            client.subscribe(
-              simon.user.id,
-              'activity',
-              mrvisserMeData.signature,
-              null,
-              (err, msg) => {
-                assert.strictEqual(err.code, 401);
 
-                // He can register for his own feed without a token since he's authenticated on the socket
-                client.subscribe(mrvisser.user.id, 'activity', null, null, (err, msg) => {
-                  assert.ok(!err);
+          getFullySetupPushClient(data, client => {
+            // johnDoe cannot subscribe on jane's feed
+            client.subscribe(janeDoe.user.id, 'activity', johnDoeData.signature, null, (
+              err /* , msg */
+            ) => {
+              assert.strictEqual(err.code, 401);
 
-                  // He can register on a group feed
-                  RestAPI.Group.createGroup(
-                    mrvisser.restContext,
-                    'Group title',
-                    'Group description',
-                    'public',
-                    'yes',
-                    [],
-                    [],
-                    (err, group) => {
-                      assert.ok(!err);
-                      RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
-                        assert.ok(!err);
-                        client.subscribe(
-                          group.id,
-                          'activity',
-                          group.signature,
-                          null,
-                          (err, msg) => {
-                            assert.ok(!err);
+              // He can register for his own feed without a token since he's authenticated on the socket
+              client.subscribe(johnDoe.user.id, 'activity', null, null, (err /* , msg */) => {
+                assert.notExists(err);
 
-                            client.close(callback);
-                          }
-                        );
+                // He can register on a group feed
+                createGroup(
+                  asJohnDoe,
+                  'Group title',
+                  'Group description',
+                  'public',
+                  'yes',
+                  [],
+                  [],
+                  (err, group) => {
+                    assert.notExists(err);
+
+                    getGroup(asJohnDoe, group.id, (err, group) => {
+                      assert.notExists(err);
+
+                      client.subscribe(group.id, 'activity', group.signature, null, (
+                        err /* , msg */
+                      ) => {
+                        assert.notExists(err);
+
+                        client.close(callback);
                       });
-                    }
-                  );
-                });
-              }
-            );
+                    });
+                  }
+                );
+              });
+            });
           });
         });
       });
@@ -324,69 +366,63 @@ describe('Activity push', () => {
      * Test that verifies subscribing and authorization on notification streams
      */
     it('verify subscribing and authorization on notification streams', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simon) => {
-        assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+        const { 0: johnDoe, 1: janeDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             }
           };
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
-            // Mrvisser cannot subscribe on Simon's feed
-            client.subscribe(
-              simon.user.id,
-              'notification',
-              mrvisserMeData.signature,
-              null,
-              (err, msg) => {
-                assert.strictEqual(err.code, 401);
 
-                // Groups don't have notification feeds
-                RestAPI.Group.createGroup(
-                  mrvisser.restContext,
-                  'Group title',
-                  'Group description',
-                  'public',
-                  'yes',
-                  [],
-                  [],
-                  (err, group) => {
-                    assert.ok(!err);
-                    RestAPI.Group.getGroup(mrvisser.restContext, group.id, (err, group) => {
-                      assert.ok(!err);
-                      client.subscribe(
-                        group.id,
-                        'notification',
-                        group.signature,
-                        null,
-                        (err, msg) => {
-                          assert.strictEqual(err.code, 400);
+          getFullySetupPushClient(data, client => {
+            // johnDoe cannot subscribe on Jane's feed
+            client.subscribe(janeDoe.user.id, 'notification', johnDoeData.signature, null, (
+              err /* , msg */
+            ) => {
+              assert.strictEqual(err.code, 401);
 
-                          // He can register for his own feed without a token since he's authenticated on the socket
-                          client.subscribe(
-                            mrvisser.user.id,
-                            'notification',
-                            null,
-                            null,
-                            (err, msg) => {
-                              assert.ok(!err);
+              // Groups don't have notification feeds
+              createGroup(
+                asJohnDoe,
+                'Group title',
+                'Group description',
+                'public',
+                'yes',
+                [],
+                [],
+                (err, group) => {
+                  assert.notExists(err);
 
-                              client.close(callback);
-                            }
-                          );
-                        }
-                      );
+                  getGroup(asJohnDoe, group.id, (err, group) => {
+                    assert.notExists(err);
+
+                    client.subscribe(group.id, 'notification', group.signature, null, (
+                      err /* , msg */
+                    ) => {
+                      assert.strictEqual(err.code, 400);
+
+                      // He can register for his own feed without a token since he's authenticated on the socket
+                      client.subscribe(johnDoe.user.id, 'notification', null, null, (
+                        err /* , msg */
+                      ) => {
+                        assert.notExists(err);
+
+                        client.close(callback);
+                      });
                     });
-                  }
-                );
-              }
-            );
+                  });
+                }
+              );
+            });
           });
         });
       });
@@ -396,105 +432,100 @@ describe('Activity push', () => {
      * Test that verifies that you only get activities that occur on the subscribed resources
      */
     it('verify segregation', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
 
-          RestAPI.Content.createLink(
-            mrvisser.restContext,
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
+
+          createLink(
+            asJohnDoe,
             {
               displayName: 'Yahoo',
               description: 'Yahoo',
               visibility: PUBLIC,
               link: 'http://www.yahoo.ca',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, yahooLink) => {
-              assert.ok(!err);
-              RestAPI.Content.getContent(mrvisser.restContext, yahooLink.id, (err, yahooLink) => {
-                assert.ok(!err);
-                RestAPI.Content.createLink(
-                  mrvisser.restContext,
+              assert.notExists(err);
+
+              getContent(asJohnDoe, yahooLink.id, (err, yahooLink) => {
+                assert.notExists(err);
+
+                createLink(
+                  asJohnDoe,
                   {
                     displayName: 'Google',
                     description: 'Google',
                     visibility: PUBLIC,
                     link: 'http://www.google.ca',
-                    managers: [],
-                    viewers: [],
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
                   (err, googleLink) => {
-                    assert.ok(!err);
-                    RestAPI.Content.getContent(
-                      mrvisser.restContext,
-                      googleLink.id,
-                      (err, googleLink) => {
-                        assert.ok(!err);
+                    assert.notExists(err);
 
-                        // Route and deliver activities
-                        ActivityTestUtil.collectAndGetActivityStream(
-                          mrvisser.restContext,
-                          null,
-                          null,
-                          err => {
-                            assert.ok(!err);
+                    getContent(asJohnDoe, googleLink.id, (err, googleLink) => {
+                      assert.notExists(err);
 
-                            // Subscribe on the Yahoo link
-                            const data = {
-                              authentication: {
-                                userId: mrvisserMeData.id,
-                                tenantAlias: mrvisserMeData.tenant.alias,
-                                signature: mrvisserMeData.signature
-                              },
-                              streams: [
-                                {
-                                  resourceId: yahooLink.id,
-                                  streamType: 'activity',
-                                  token: yahooLink.signature
-                                }
-                              ]
-                            };
-                            ActivityTestUtil.getFullySetupPushClient(data, client => {
-                              // Wait for a bit so the content create notification is sent
-                              setTimeout(() => {
-                                client.on('message', message => {
-                                  if (message) {
-                                    assert.fail(
-                                      'No activities should be pushed to this stream as nothing happened on the "yahoo" link'
-                                    );
-                                  }
-                                });
+                      // Route and deliver activities
+                      collectAndGetActivityStream(asJohnDoe, null, null, err => {
+                        assert.notExists(err);
 
-                                // Trigger an update on the google item, we should not get an activity on the websocket for that content item
-                                RestAPI.Content.updateContent(
-                                  mrvisser.restContext,
-                                  googleLink.id,
-                                  { displayName: 'Google woo' },
-                                  err => {
-                                    assert.ok(!err);
+                        // Subscribe on the Yahoo link
+                        const data = {
+                          authentication: {
+                            userId: johnDoeData.id,
+                            tenantAlias: johnDoeData.tenant.alias,
+                            signature: johnDoeData.signature
+                          },
+                          streams: [
+                            {
+                              resourceId: yahooLink.id,
+                              streamType: 'activity',
+                              token: yahooLink.signature
+                            }
+                          ]
+                        };
 
-                                    // Route and deliver activities
-                                    ActivityTestUtil.collectAndGetActivityStream(
-                                      mrvisser.restContext,
-                                      null,
-                                      null,
-                                      err => {
-                                        assert.ok(!err);
-
-                                        client.close(callback);
-                                      }
-                                    );
-                                  }
+                        getFullySetupPushClient(data, client => {
+                          // Wait for a bit so the content create notification is sent
+                          setTimeout(() => {
+                            client.on('message', message => {
+                              if (message) {
+                                assert.fail(
+                                  'No activities should be pushed to this stream as nothing happened on the "yahoo" link'
                                 );
-                              }, 1000);
+                              }
                             });
-                          }
-                        );
-                      }
-                    );
+
+                            // Trigger an update on the google item, we should not get an activity on the websocket for that content item
+                            updateContent(
+                              asJohnDoe,
+                              googleLink.id,
+                              { displayName: 'Google woo' },
+                              err => {
+                                assert.notExists(err);
+
+                                // Route and deliver activities
+                                collectAndGetActivityStream(asJohnDoe, null, null, err => {
+                                  assert.notExists(err);
+
+                                  client.close(callback);
+                                });
+                              }
+                            );
+                          }, 1000);
+                        });
+                      });
+                    });
                   }
                 );
               });
@@ -508,50 +539,56 @@ describe('Activity push', () => {
      * Test that verifies that multiple clients can listen on the same feed
      */
     it('verify multiple clients on same feed', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, mrvisser) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           // Get 2 clients
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             },
             streams: [
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'activity',
-                token: mrvisserMeData.signature
+                token: johnDoeData.signature
               },
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'notification',
-                token: mrvisserMeData.signature
+                token: johnDoeData.signature
               }
             ]
           };
-          ActivityTestUtil.collectAndGetActivityStream(mrvisser.restContext, null, null, err => {
-            assert.ok(!err);
+
+          collectAndGetActivityStream(asJohnDoe, null, null, err => {
+            assert.notExists(err);
 
             // Setup the clients
-            ActivityTestUtil.getFullySetupPushClient(data, clientA => {
-              ActivityTestUtil.getFullySetupPushClient(data, clientB => {
+            getFullySetupPushClient(data, clientA => {
+              getFullySetupPushClient(data, clientB => {
                 // Do something that ends up in the `activity`  activitystream
-                RestAPI.Content.createLink(
-                  mrvisser.restContext,
+                createLink(
+                  asJohnDoe,
                   {
                     displayName: 'Yahoo',
                     description: 'Yahoo',
                     visibility: PUBLIC,
                     link: 'http://www.yahoo.ca',
-                    managers: [],
-                    viewers: [],
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
-                  (err, link) => {
-                    assert.ok(!err);
+                  (err /* , link */) => {
+                    assert.notExists(err);
                   }
                 );
 
@@ -559,16 +596,16 @@ describe('Activity push', () => {
                 let clientBReceived = false;
 
                 clientA.once('message', message => {
-                  assert.ok(!message.error);
+                  assert.notExists(message.error);
                   clientAReceived = true;
-                  if (clientAReceived && clientBReceived) {
+                  if (and(clientAReceived, clientBReceived)) {
                     bothReceived();
                   }
                 });
                 clientB.once('message', message => {
-                  assert.ok(!message.error);
+                  assert.notExists(message.error);
                   clientBReceived = true;
-                  if (clientAReceived && clientBReceived) {
+                  if (and(clientAReceived, clientBReceived)) {
                     bothReceived();
                   }
                 });
@@ -586,19 +623,19 @@ describe('Activity push', () => {
                     });
 
                     // Do something that ends up in the `activity`  activitystream
-                    RestAPI.Content.createLink(
-                      mrvisser.restContext,
+                    createLink(
+                      asJohnDoe,
                       {
                         displayName: 'Yahoo',
                         description: 'Yahoo',
                         visibility: PUBLIC,
                         link: 'http://www.yahoo.ca',
-                        managers: [],
-                        viewers: [],
-                        folders: []
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
                       },
-                      (err, link) => {
-                        assert.ok(!err);
+                      (err /* , link */) => {
+                        assert.notExists(err);
                       }
                     );
 
@@ -619,75 +656,86 @@ describe('Activity push', () => {
      * Test that verifies that the format for activity entities can be specified
      */
     it('verify the activity entities format can be specified', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer, 1: marge } = users;
+        const asHomer = homer.restContext;
+        const asMarge = marge.restContext;
 
-          // Register a push client for mrvisser who is subscribed to his activitystream with the regular format and his notification stream with the internal format
+        RestAPI.User.getMe(asHomer, (err, homerInfo) => {
+          assert.notExists(err);
+
+          /**
+           * Register a push client for homer who is subscribed to his activitystream
+           * with the regular format and his notification stream with the internal format
+           */
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: homerInfo.id,
+              tenantAlias: homerInfo.tenant.alias,
+              signature: homerInfo.signature
             },
             streams: [
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: homerInfo.id,
                 streamType: 'activity',
-                token: mrvisserMeData.signature,
+                token: homerInfo.signature,
                 format: 'activitystreams'
               },
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: homerInfo.id,
                 streamType: 'notification',
-                token: mrvisserMeData.signature,
+                token: homerInfo.signature,
                 format: 'internal'
               }
             ]
           };
 
+          const discussionEmitter = new EventEmitter();
+
           // Setup the client
           ActivityTestUtil.getFullySetupPushClient(data, client => {
-            // Simon will now create a discussion and share it with mrvisser, this will trigger an activity that gets delivered on both streams
-            // To ensure proper scrubbing of data, simon will have a private profile
+            /**
+             * marge will now create a discussion and share it with homer,
+             * this will trigger an activity that gets delivered on both streams
+             * To ensure proper scrubbing of data, simon will have a private profile
+             */
             RestAPI.User.updateUser(
-              simong.restContext,
-              simong.user.id,
+              asMarge,
+              marge.user.id,
               { visibility: 'private' },
               (err, updatedUser) => {
-                assert.ok(!err);
-                simong.user = updatedUser;
+                assert.notExists(err);
+                marge.user = updatedUser;
                 let discussion = null;
 
                 RestAPI.Discussions.createDiscussion(
-                  simong.restContext,
+                  asMarge,
                   'Test discussion',
                   'Test discussion description',
                   'public',
                   [],
-                  [mrvisser.user.id],
+                  [homer.user.id],
                   (err, _discussion) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
+
                     discussion = _discussion;
+                    // We need to signal that the variable now holds the discussion data
+                    discussionEmitter.emit('discussionReady', discussion);
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
-                    ActivityTestUtil.collectAndGetActivityStream(
-                      mrvisser.restContext,
-                      null,
-                      null,
-                      err => {
-                        assert.ok(!err);
-                      }
-                    );
+                    ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
+                      assert.notExists(err);
+                    });
                   }
                 );
 
                 let activitiesReceived = 0;
-                client.on('message', message => {
+                const dealWithMessage = message => {
                   activitiesReceived++;
 
                   assert.ok(message.activities);
-                  assert.strictEqual(message.activities.length, 1);
+                  assert.lengthOf(message.activities, 1);
                   const activity = message.activities[0];
                   assert.ok(activity);
 
@@ -700,15 +748,15 @@ describe('Activity push', () => {
 
                     // Assert that the actor entity is a user object augmented with an oae:id and objectType
                     assert.ok(activity.actor);
-                    assert.strictEqual(activity.actor['oae:id'], simong.user.id);
-                    assert.strictEqual(activity.actor.id, simong.user.id);
-                    assert.strictEqual(activity.actor.displayName, simong.user.publicAlias);
-                    assert.strictEqual(activity.actor.lastModified, simong.user.lastModified);
+                    assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                    assert.strictEqual(activity.actor.id, marge.user.id);
+                    assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
+                    assert.strictEqual(activity.actor.lastModified, marge.user.lastModified);
                     assert.strictEqual(activity.actor.visibility, 'private');
-                    assert.ok(_.isObject(activity.actor.picture));
+                    assert.isObject(activity.actor.picture);
                     assert.strictEqual(activity.actor.resourceType, 'user');
                     assert.strictEqual(activity.actor.objectType, 'user');
-                    assert.ok(_.isObject(activity.actor.tenant));
+                    assert.isObject(activity.actor.tenant);
 
                     // Ensure only these properties are present
                     allowedActorProperties = [
@@ -722,51 +770,53 @@ describe('Activity push', () => {
                       'tenant',
                       'lastModified'
                     ];
-                    _.each(activity.actor, (value, key) => {
+                    forEachObjIndexed((value, key) => {
                       assert.ok(
-                        _.contains(allowedActorProperties, key),
+                        contains(key, allowedActorProperties),
                         key + ' is not allowed on an internally formatted activity entity'
                       );
-                    });
+                    }, activity.actor);
 
-                    // Assert that the object entity is a discussion object augmented with an oae:id and objectType
-                    assert.ok(activity.object);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.object.id, discussion.id);
-                    assert.strictEqual(activity.object.visibility, discussion.visibility);
-                    assert.strictEqual(activity.object.displayName, discussion.displayName);
-                    assert.strictEqual(activity.object.description, discussion.description);
-                    assert.strictEqual(activity.object.createdBy, discussion.createdBy);
-                    assert.strictEqual(activity.object.created, discussion.created);
-                    assert.strictEqual(activity.object.lastModified, discussion.lastModified);
-                    assert.strictEqual(activity.object.profilePath, discussion.profilePath);
-                    assert.strictEqual(activity.object.resourceType, discussion.resourceType);
-                    assert.strictEqual(activity.object.objectType, 'discussion');
-                    assert.ok(_.isObject(activity.object.tenant));
+                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                      assert.ok(activity.object);
+                      assert.strictEqual(activity.object['oae:id'], discussion.id);
+                      assert.strictEqual(activity.object.id, discussion.id);
+                      assert.strictEqual(activity.object.visibility, discussion.visibility);
+                      assert.strictEqual(activity.object.displayName, discussion.displayName);
+                      assert.strictEqual(activity.object.description, discussion.description);
+                      assert.strictEqual(activity.object.createdBy, discussion.createdBy);
+                      assert.strictEqual(activity.object.created, discussion.created);
+                      assert.strictEqual(activity.object.lastModified, discussion.lastModified);
+                      assert.strictEqual(activity.object.profilePath, discussion.profilePath);
+                      assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                      assert.strictEqual(activity.object.objectType, 'discussion');
+                      assert.isObject(activity.object.tenant);
 
-                    allowedObjectProperties = [
-                      'tenant',
-                      'id',
-                      'visibility',
-                      'displayName',
-                      'description',
-                      'resourceSubType',
-                      'createdBy',
-                      'created',
-                      'lastModified',
-                      'profilePath',
-                      'resourceType',
-                      'latestRevisionId',
-                      'previews',
-                      'signature',
-                      'objectType',
-                      'oae:id'
-                    ];
-                    _.each(activity.object, (value, key) => {
-                      assert.ok(
-                        _.contains(allowedObjectProperties, key),
-                        key + ' is not allowed on an internally formatted activity entity'
-                      );
+                      allowedObjectProperties = [
+                        'tenant',
+                        'id',
+                        'visibility',
+                        'displayName',
+                        'description',
+                        'resourceSubType',
+                        'createdBy',
+                        'created',
+                        'lastModified',
+                        'profilePath',
+                        'resourceType',
+                        'latestRevisionId',
+                        'previews',
+                        'signature',
+                        'objectType',
+                        'oae:id'
+                      ];
+                      forEachObjIndexed((value, key) => {
+                        assert.ok(
+                          contains(key, allowedObjectProperties),
+                          key + ' is not allowed on an internally formatted activity entity'
+                        );
+                      }, activity.object);
                     });
                   } else {
                     // Assert that the activity entities are activitystrea.ms formatted
@@ -774,15 +824,15 @@ describe('Activity push', () => {
 
                     // Assert that the actor entity is in the proper activitystreams format
                     assert.ok(activity.actor);
-                    assert.strictEqual(activity.actor['oae:id'], simong.user.id);
-                    assert.strictEqual(activity.actor['oae:visibility'], simong.user.visibility);
-                    assert.strictEqual(activity.actor.displayName, simong.user.publicAlias);
+                    assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                    assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
+                    assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
                     assert.strictEqual(activity.actor.objectType, 'user');
                     assert.strictEqual(
                       activity.actor.id,
-                      'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + simong.user.id
+                      'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
                     );
-                    assert.ok(_.isObject(activity.actor['oae:tenant']));
+                    assert.isObject(activity.actor['oae:tenant']);
 
                     allowedActorProperties = [
                       'oae:id',
@@ -792,63 +842,72 @@ describe('Activity push', () => {
                       'id',
                       'oae:tenant'
                     ];
-                    _.each(activity.actor, (value, key) => {
+                    forEachObjIndexed((value, key) => {
                       assert.ok(
-                        _.contains(allowedActorProperties, key),
+                        contains(key, allowedActorProperties),
                         key +
                           ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                       );
-                    });
+                    }, activity.actor);
 
-                    // Assert that the object entity is in the proper activitystreams format
-                    assert.ok(activity.object);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
-                    assert.strictEqual(activity.object['oae:profilePath'], discussion.profilePath);
-                    assert.strictEqual(
-                      activity.object['oae:resourceSubType'],
-                      discussion.resourceSubType
-                    );
-                    assert.strictEqual(activity.object.displayName, discussion.displayName);
-                    assert.strictEqual(
-                      activity.object.url,
-                      'http://' +
-                        global.oaeTests.tenants.cam.host +
-                        '/discussion/camtest/' +
-                        discussion.id.split(':')[2]
-                    );
-                    assert.strictEqual(activity.object.objectType, 'discussion');
-                    assert.strictEqual(
-                      activity.object.id,
-                      'http://' +
-                        global.oaeTests.tenants.cam.host +
-                        '/api/discussion/' +
-                        discussion.id
-                    );
-                    assert.ok(_.isObject(activity.object['oae:tenant']));
-
-                    allowedObjectProperties = [
-                      'oae:id',
-                      'oae:visibility',
-                      'oae:profilePath',
-                      'displayName',
-                      'url',
-                      'objectType',
-                      'id',
-                      'oae:tenant'
-                    ];
-                    _.each(activity.object, (value, key) => {
-                      assert.ok(
-                        _.contains(allowedObjectProperties, key),
-                        key +
-                          ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the object entity is in the proper activitystreams format
+                      assert.ok(activity.object);
+                      assert.strictEqual(activity.object['oae:id'], discussion.id);
+                      assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
+                      assert.strictEqual(
+                        activity.object['oae:profilePath'],
+                        discussion.profilePath
                       );
+                      assert.strictEqual(
+                        activity.object['oae:resourceSubType'],
+                        discussion.resourceSubType
+                      );
+                      assert.strictEqual(activity.object.displayName, discussion.displayName);
+                      assert.strictEqual(
+                        activity.object.url,
+                        'http://' +
+                          global.oaeTests.tenants.cam.host +
+                          '/discussion/camtest/' +
+                          discussion.id.split(':')[2]
+                      );
+                      assert.strictEqual(activity.object.objectType, 'discussion');
+                      assert.strictEqual(
+                        activity.object.id,
+                        'http://' +
+                          global.oaeTests.tenants.cam.host +
+                          '/api/discussion/' +
+                          discussion.id
+                      );
+                      assert.isObject(activity.object['oae:tenant']);
+
+                      allowedObjectProperties = [
+                        'oae:id',
+                        'oae:visibility',
+                        'oae:profilePath',
+                        'displayName',
+                        'url',
+                        'objectType',
+                        'id',
+                        'oae:tenant'
+                      ];
+                      forEachObjIndexed((value, key) => {
+                        assert.ok(
+                          contains(key, allowedObjectProperties),
+                          key +
+                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        );
+                      }, activity.object);
                     });
                   }
 
                   if (activitiesReceived === 2) {
                     return callback();
                   }
+                };
+
+                client.on('message', message => {
+                  setTimeout(dealWithMessage, 100, message);
                 });
               }
             );
@@ -861,9 +920,15 @@ describe('Activity push', () => {
      * Test that verifies a socket can subscribe for the same activity stream twice but with a different format
      */
     it('verify a subscription can be made to the same activity stream with a different format', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe, 1: janeDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+        const asJaneDoe = janeDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           /*
            * Register a push client for mrvisser who is subscribed to:
@@ -873,53 +938,49 @@ describe('Activity push', () => {
            */
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             },
             streams: [
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'activity',
-                token: mrvisserMeData.signature,
+                token: johnDoeData.signature,
                 format: 'activitystreams'
               },
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'activity',
-                token: mrvisserMeData.signature,
+                token: johnDoeData.signature,
                 format: 'internal'
               },
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'notification',
-                token: mrvisserMeData.signature,
+                token: johnDoeData.signature,
                 format: 'internal'
               }
             ]
           };
 
           // Setup the client
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, client => {
             // Create/share a discussion with mrvisser
-            RestAPI.Discussions.createDiscussion(
-              simong.restContext,
+            createDiscussion(
+              asJaneDoe,
               'Test discussion',
               'Test discussion description',
               'public',
               [],
-              [mrvisser.user.id],
-              (err, discussion) => {
-                assert.ok(!err);
+              [johnDoe.user.id],
+              (err /* , discussion */) => {
+                assert.notExists(err);
 
                 // Force a collection cycle as notifications are sent out on aggregation
-                ActivityTestUtil.collectAndGetNotificationStream(
-                  mrvisser.restContext,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                  }
-                );
+                collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
+                  assert.notExists(err);
+                });
 
                 let activitiesReceived = 0;
                 const formatReceived = {
@@ -948,9 +1009,15 @@ describe('Activity push', () => {
      * Test that verifies that messages sent after the aggregation phase indicate whether they aggregated with an older activity
      */
     it('verify aggregation phase messages indicate whether the activity agregated with an older activity', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, mrvisser, simong) => {
-        RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserMeData) => {
-          assert.ok(!err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: johnDoe, 1: janeDoe } = users;
+        const asJohnDoe = johnDoe.restContext;
+        const asJaneDoe = janeDoe.restContext;
+
+        getMe(asJohnDoe, (err, johnDoeData) => {
+          assert.notExists(err);
 
           /*
            * Register a push client for mrvisser who is subscribed to:
@@ -960,40 +1027,37 @@ describe('Activity push', () => {
            */
           const data = {
             authentication: {
-              userId: mrvisserMeData.id,
-              tenantAlias: mrvisserMeData.tenant.alias,
-              signature: mrvisserMeData.signature
+              userId: johnDoeData.id,
+              tenantAlias: johnDoeData.tenant.alias,
+              signature: johnDoeData.signature
             },
             streams: [
               {
-                resourceId: mrvisserMeData.id,
+                resourceId: johnDoeData.id,
                 streamType: 'notification',
-                token: mrvisserMeData.signature,
+                token: johnDoeData.signature,
                 format: 'internal'
               }
             ]
           };
 
           // Setup the client
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, client => {
             // Create/share a discussion with mrvisser
-            RestAPI.Discussions.createDiscussion(
-              simong.restContext,
+            createDiscussion(
+              asJaneDoe,
               'Test discussion',
               'Test discussion description',
               'public',
               [],
-              [mrvisser.user.id],
-              (err, discussion) => {
-                assert.ok(!err);
+              [johnDoe.user.id],
+              (err /* , discussion */) => {
+                assert.notExists(err);
+
                 // We need to force a collection cycle as the notifiation stream gets pushed out after the aggregation phase
-                ActivityTestUtil.collectAndGetNotificationStream(
-                  mrvisser.restContext,
-                  null,
-                  (err, activityStream) => {
-                    assert.ok(!err);
-                  }
-                );
+                collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
+                  assert.notExists(err);
+                });
 
                 // As this is the first discussion_created activity in mrvisser's notification stream it
                 // can't aggregate with any other activities. That should be indicated on the push message
@@ -1003,24 +1067,22 @@ describe('Activity push', () => {
 
                   // When we generate another discussion_created activity it will aggregate with the previous
                   // activity. This should be reflected on the push message
-                  RestAPI.Discussions.createDiscussion(
-                    simong.restContext,
+                  createDiscussion(
+                    asJaneDoe,
                     'Test discussion',
                     'Test discussion description',
                     'public',
                     [],
-                    [mrvisser.user.id],
-                    (err, discussion) => {
-                      assert.ok(!err);
+                    [johnDoe.user.id],
+                    (err /* , discussion */) => {
+                      assert.notExists(err);
                       // We need to force a collection cycle as the notifiation
                       // stream gets pushed out after the aggregation phase
-                      ActivityTestUtil.collectAndGetNotificationStream(
-                        mrvisser.restContext,
-                        null,
-                        (err, activityStream) => {
-                          assert.ok(!err);
-                        }
-                      );
+                      collectAndGetNotificationStream(asJohnDoe, null, (
+                        err /* , activityStream */
+                      ) => {
+                        assert.notExists(err);
+                      });
                       client.once('message', message => {
                         assert.ok(message);
                         assert.strictEqual(message.numNewActivities, 0);
@@ -1029,33 +1091,31 @@ describe('Activity push', () => {
                         // this will reset the aggregator for that stream. Any new discussion_created activities
                         // should result in a "new activity". However, if 2 activities aggregate in-memory in the
                         // aggregation phase, they should be counted as 1
-                        RestAPI.Activity.markNotificationsRead(mrvisser.restContext, err => {
-                          assert.ok(!err);
-                          RestAPI.Discussions.createDiscussion(
-                            simong.restContext,
+                        RestAPI.Activity.markNotificationsRead(asJohnDoe, err => {
+                          assert.notExists(err);
+                          createDiscussion(
+                            asJaneDoe,
                             'Test discussion',
                             'Test discussion description',
                             'public',
                             [],
-                            [mrvisser.user.id],
-                            (err, discussion) => {
-                              assert.ok(!err);
-                              RestAPI.Discussions.createDiscussion(
-                                simong.restContext,
+                            [johnDoe.user.id],
+                            (err /* , discussion */) => {
+                              assert.notExists(err);
+                              createDiscussion(
+                                asJaneDoe,
                                 'Test discussion',
                                 'Test discussion description',
                                 'public',
                                 [],
-                                [mrvisser.user.id],
-                                (err, discussion) => {
-                                  assert.ok(!err);
-                                  ActivityTestUtil.collectAndGetNotificationStream(
-                                    mrvisser.restContext,
-                                    null,
-                                    (err, activityStream) => {
-                                      assert.ok(!err);
-                                    }
-                                  );
+                                [johnDoe.user.id],
+                                (err /* , discussion */) => {
+                                  assert.notExists(err);
+                                  collectAndGetNotificationStream(asJohnDoe, null, (
+                                    err /* , activityStream */
+                                  ) => {
+                                    assert.notExists(err);
+                                  });
 
                                   client.once('message', message => {
                                     assert.ok(message);
@@ -1063,53 +1123,48 @@ describe('Activity push', () => {
 
                                     // If 2 disjoint activities get delivered to the notification stream, the
                                     // number of new activities should be 2
-                                    RestAPI.Activity.markNotificationsRead(
-                                      mrvisser.restContext,
-                                      err => {
-                                        assert.ok(!err);
-                                        RestAPI.Discussions.createDiscussion(
-                                          simong.restContext,
-                                          'Test discussion',
-                                          'Test discussion description',
-                                          'public',
-                                          [],
-                                          [mrvisser.user.id],
-                                          (err, discussion) => {
-                                            assert.ok(!err);
-                                            RestAPI.Content.createLink(
-                                              simong.restContext,
-                                              {
-                                                displayName: 'Test link',
-                                                description: 'Test link',
-                                                visibility: PUBLIC,
-                                                link: 'https://google.com',
-                                                managers: [],
-                                                viewers: [mrvisser.user.id],
-                                                folders: []
-                                              },
-                                              (err, discussion) => {
-                                                assert.ok(!err);
-                                                ActivityTestUtil.collectAndGetNotificationStream(
-                                                  mrvisser.restContext,
-                                                  null,
-                                                  (err, activityStream) => {
-                                                    assert.ok(!err);
-                                                  }
-                                                );
+                                    markNotificationsRead(asJohnDoe, err => {
+                                      assert.notExists(err);
+                                      createDiscussion(
+                                        asJaneDoe,
+                                        'Test discussion',
+                                        'Test discussion description',
+                                        'public',
+                                        [],
+                                        [johnDoe.user.id],
+                                        (err /* , discussion */) => {
+                                          assert.notExists(err);
+                                          createLink(
+                                            asJaneDoe,
+                                            {
+                                              displayName: 'Test link',
+                                              description: 'Test link',
+                                              visibility: PUBLIC,
+                                              link: 'https://google.com',
+                                              managers: [],
+                                              viewers: [johnDoe.user.id],
+                                              folders: []
+                                            },
+                                            (err /* , discussion */) => {
+                                              assert.notExists(err);
+                                              collectAndGetNotificationStream(asJohnDoe, null, (
+                                                err /* , activityStream */
+                                              ) => {
+                                                assert.notExists(err);
+                                              });
 
-                                                client.once('message', message => {
-                                                  assert.ok(message);
-                                                  assert.strictEqual(message.numNewActivities, 2);
-                                                  assert.strictEqual(message.activities.length, 2);
+                                              client.once('message', message => {
+                                                assert.ok(message);
+                                                assert.strictEqual(message.numNewActivities, 2);
+                                                assert.lengthOf(message.activities, 2);
 
-                                                  return callback();
-                                                });
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
+                                                return callback();
+                                              });
+                                            }
+                                          );
+                                        }
+                                      );
+                                    });
                                   });
                                 }
                               );

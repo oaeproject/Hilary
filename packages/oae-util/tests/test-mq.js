@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
@@ -29,7 +29,7 @@ describe('MQ', () => {
   it('verify re-initialization is safe', callback => {
     // Ensure processing continues, and that MQ is still stable with the tests that follow
     MQ.init(config.mq, err => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback();
     });
   });
@@ -50,7 +50,7 @@ describe('MQ', () => {
 
     assertAllClientsAreDisconnected(connectionsToCheck, () => {
       MQ.init(config.mq, err => {
-        assert.ok(!err);
+        assert.notExists(err);
         assertAllClientsAreReady(connectionsToCheck);
         return callback();
       });
@@ -91,7 +91,7 @@ describe('MQ', () => {
 
           // Lets give redis a bit to process
           setTimeout(getQueueLength, 1000, redeliveryQueue, (err, count) => {
-            assert.ok(!err);
+            assert.notExists(err);
             // the redelivery mechanism is asynchronous, so counters must be close to 10
             assert(counter >= 1, 'The number of tasks handled should be at least 1');
             assert(counter <= 10, 'The number of tasks handled should be close to 10');
@@ -104,7 +104,7 @@ describe('MQ', () => {
               assert(!err);
 
               getQueueLength(redeliveryQueue, (err, count) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert(count === 0, 'Purged queue should have zero length');
                 callback();
               });
@@ -154,10 +154,10 @@ describe('MQ', () => {
                   MQ.purgeQueues(bothQueues, err => {
                     assert(!err);
                     getQueueLength(bothQueues[0], (err, count) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert(count === 0, 'Purged queues should be zero length');
                       getQueueLength(bothQueues[1], (err, count) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert(count === 0, 'Purged queues should be zero length');
 
                         callback();
@@ -189,16 +189,16 @@ describe('MQ', () => {
         MQ.submit(queueName, null, err => {
           assert.strictEqual(err.code, 400);
 
-        // A string message must be provided
-        MQ.submit(queueName, data, err => {
-          assert.strictEqual(err.code, 400);
+          // A string message must be provided
+          MQ.submit(queueName, data, err => {
+            assert.strictEqual(err.code, 400);
 
-          // Sanity check
-          MQ.submit(queueName, JSON.stringify(data), err => {
-            assert.ok(!err);
-            return callback();
+            // Sanity check
+            MQ.submit(queueName, JSON.stringify(data), err => {
+              assert.notExists(err);
+              return callback();
+            });
           });
-        });
         });
       });
     });
@@ -217,21 +217,21 @@ describe('MQ', () => {
 
         // make sure there is one task in the queue
         getQueueLength(`${queueName}-processing`, (err, count) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
         });
       };
 
       MQ.submit(queueName, JSON.stringify(data), err => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.strictEqual(counter, 0, 'It has not been subscribed so submit wont deliver the message');
 
         MQ.subscribe(queueName, taskHandler, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           MQ.submit(queueName, JSON.stringify(data), err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             waitUntilProcessed(queueName, () => {
               assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
@@ -257,27 +257,27 @@ describe('MQ', () => {
 
         // make sure there is one task in the queue
         getQueueLength(`${queueName}-processing`, (err, count) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
         });
       };
 
       MQ.subscribe(queueName, taskHandler, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         MQ.submit(queueName, JSON.stringify(data), err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
             MQ.unsubscribe(queueName, err => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
               MQ.submit(queueName, JSON.stringify(data), err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 waitUntilProcessed(queueName, () => {
                   assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
@@ -307,30 +307,30 @@ describe('MQ', () => {
 
         // make sure there is one task in the queue
         getQueueLength(`${queueName}-processing`, (err, count) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(count, 1, 'There should be one task on the processing queue');
           done();
         });
       };
 
       MQ.subscribe(queueName, taskHandler, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         MQ.submit(queueName, JSON.stringify(data), err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(counter, 1, 'Task handler should have been called once so far');
 
             // make sure the queue is Empty, as well the processing and redelivery correspondents
             getQueueLength(queueName, (err, count) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(count, 0, 'The queue should be empty');
               getQueueLength(`${queueName}-processing`, (err, count) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
                 getQueueLength(`${queueName}-redelivery`, (err, count) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(count, 0, 'The queue should be empty');
 
                   callback();
@@ -368,10 +368,10 @@ describe('MQ', () => {
       };
 
       MQ.subscribe(queueName, taskHandler, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         submitTasksToQueue(queueName, allTasks, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(
@@ -382,13 +382,13 @@ describe('MQ', () => {
 
             // make sure the queue is Empty, as well the processing and redelivery correspondents
             getQueueLength(queueName, (err, count) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(count, 0, 'The queue should be empty');
               getQueueLength(`${queueName}-processing`, (err, count) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
                 getQueueLength(`${queueName}-redelivery`, (err, count) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(count, 0, 'The queue should be empty');
 
                   callback();
@@ -413,19 +413,19 @@ describe('MQ', () => {
       };
 
       MQ.subscribe(queueName, taskHandler, err => {
-        assert.ok(!err);
+        assert.notExists(err);
         MQ.submit(queueName, JSON.stringify(data), err => {
-          assert.ok(!err);
+          assert.notExists(err);
           waitUntilProcessed(queueName, () => {
             assert.strictEqual(counter, 1, 'There should be one processed task so far');
             getQueueLength(queueName, (err, count) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.strictEqual(count, 0, 'The queue should be empty');
               getQueueLength(`${queueName}-processing`, (err, count) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(count, 0, 'The queue should be empty');
                 getQueueLength(`${queueName}-redelivery`, (err, count) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(count, 1, 'There should be one task redelivered for later processing');
                   done();
                 });

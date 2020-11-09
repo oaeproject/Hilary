@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
-import _ from 'underscore';
 import dateFormat from 'dateformat';
+
+import { map, head, reverse, compose, split, join } from 'ramda';
 
 import {
   publishCollabDoc,
@@ -45,44 +45,19 @@ const PRIVATE = 'private';
 
 describe('Export data', () => {
   // Rest contexts that can be used to make requests as different types of users
-  let globalAdminRestContext = null;
-  let camAdminRestContext = null;
-  let camAnonymousRestContext = null;
-  let gtAdminRestContext = null;
-  let gtAnonymousRestContext = null;
-
-  /**
-   * @return {Stream} A stream to jpg image
-   * @api private
-   */
-  const _getPictureStream = () => {
-    return fs.createReadStream(util.format('%s/data/restroom.jpg', __dirname));
-  };
+  let asCambridgeTenantAdmin = null;
 
   /**
    * @return {Array} An array with the contents of the extracted data
    * @api private
    */
-  const parseExtractedContent = extractedData => {
-    const lines = extractedData.split('\n');
-    const element = [];
-
-    _.each(lines, (line, i) => {
-      element[i] = line
-        .split(': ')
-        .reverse()
-        .shift();
-    });
-    return element;
-  };
+  const parseExtractedContent = extractedData => map(compose(head, reverse, split(': ')), split('\n', extractedData));
 
   /**
    * @return    {String}      the input to transform
    * @api private
    */
-  const _commafy = string => {
-    return string.split('  ').join(', ');
-  };
+  const _commafy = compose(join(', '), split('  '));
 
   /**
    * Set some text in Etherpad.
@@ -139,7 +114,7 @@ describe('Export data', () => {
 
       // Do some edits in etherpad
       _setEtherpadText(user.user.id, contentObj, texts[done], err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         publishCollabDoc(contentObj.id, user.user.id, () => {
           done++;
@@ -155,12 +130,8 @@ describe('Export data', () => {
    * Function that will fill up the REST and admin contexts
    */
   before(callback => {
-    // Fill up the request contexts
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    camAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    gtAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host);
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+
     return callback();
   });
 
@@ -170,8 +141,10 @@ describe('Export data', () => {
      */
     it('verify get personal data', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, brecke) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: brecke } = users;
 
         brecke.restContext.tenant = () => {
           return brecke.user.tenant;
@@ -182,29 +155,22 @@ describe('Export data', () => {
         };
 
         // Export personal data
-        PrincipalsAPI.exportData(brecke.restContext, 'invalidUserId', 'personal-data', (err, zip) => {
+        PrincipalsAPI.exportData(brecke.restContext, 'invalidUserId', 'personal-data', (err /* , zip */) => {
           assert.ok(err);
           assert.strictEqual(400, err.code);
-          PrincipalsAPI.exportData('invalidContext', brecke.user.id, 'personal-data', (err, zip) => {
+          PrincipalsAPI.exportData('invalidContext', brecke.user.id, 'personal-data', (err /* , zip */) => {
             assert.ok(err);
             assert.strictEqual(401, err.code);
-            PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'invalidExportType', (err, zip) => {
+            PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'invalidExportType', (err /* , zip */) => {
               assert.ok(err);
               assert.strictEqual(402, err.code);
               PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'personal-data', async (err, zip) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Verify the personal data on the zip file
                 const content = await zip.file('personal_data.txt').async(TO_STRING);
+                const element = map(compose(head, reverse, split(': ')), split('\n', content));
 
-                const lines = content.split('\n');
-                const element = [];
-                _.each(lines, (line, i) => {
-                  element[i] = line
-                    .split(': ')
-                    .reverse()
-                    .shift();
-                });
                 assert.strictEqual(brecke.user.id, element[0]);
                 assert.strictEqual(brecke.user.displayName, element[1]);
                 assert.strictEqual(brecke.user.email, element[2]);
@@ -222,8 +188,9 @@ describe('Export data', () => {
      */
     it('verify resources with same names', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, brecke) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: brecke } = users;
 
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
@@ -242,7 +209,7 @@ describe('Export data', () => {
           null,
           null,
           (err, discussion) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Create one new discussion with the same name
             RestAPI.Discussions.createDiscussion(
@@ -253,7 +220,7 @@ describe('Export data', () => {
               null,
               null,
               (err, secondDiscussion) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Create one new discussion with the same name
                 RestAPI.Discussions.createDiscussion(
@@ -264,7 +231,7 @@ describe('Export data', () => {
                   null,
                   null,
                   (err, thirdDiscussion) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Export data using 'content' export type
                     PrincipalsAPI.exportData(
@@ -272,71 +239,34 @@ describe('Export data', () => {
                       brecke.user.id,
                       EXPORT_CONTENT_SCOPE,
                       async (err, zip) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Verify the personal data on the zip file
                         let zipDiscussion = await zip
                           .file('discussion_data/' + discussion.displayName + '.txt')
                           .async(TO_STRING);
-
-                        let lines = zipDiscussion.split('\n');
-                        let element = [];
-
-                        _.each(lines, (line, i) => {
-                          element[i] = line
-                            .split(': ')
-                            .reverse()
-                            .shift();
-                        });
-
+                        let element = map(compose(head, reverse, split(': ')), split('\n', zipDiscussion));
                         assert.strictEqual(discussion.displayName, element[0]);
 
                         // Verify the personal data on the zip file
                         zipDiscussion = await zip
                           .file('discussion_data/' + discussion.displayName + '.txt')
                           .async(TO_STRING);
-                        lines = zipDiscussion.split('\n');
-                        element = [];
-
-                        _.each(lines, (line, i) => {
-                          element[i] = line
-                            .split(': ')
-                            .reverse()
-                            .shift();
-                        });
-
+                        element = map(compose(head, reverse, split(': ')), split('\n', zipDiscussion));
                         assert.strictEqual(secondDiscussion.displayName, element[0]);
 
                         // Verify the personal data on the zip file
                         zipDiscussion = await zip
                           .file('discussion_data/' + discussion.displayName + '(1).txt')
                           .async(TO_STRING);
-                        lines = zipDiscussion.split('\n');
-                        element = [];
-
-                        _.each(lines, (line, i) => {
-                          element[i] = line
-                            .split(': ')
-                            .reverse()
-                            .shift();
-                        });
-
+                        element = map(compose(head, reverse, split(': ')), split('\n', zipDiscussion));
                         assert.strictEqual(discussion.displayName, element[0]);
 
                         // Verify the personal data on the zip file
                         zipDiscussion = await zip
                           .file('discussion_data/' + discussion.displayName + '(2).txt')
                           .async(TO_STRING);
-                        lines = zipDiscussion.split('\n');
-                        element = [];
-
-                        _.each(lines, (line, i) => {
-                          element[i] = line
-                            .split(': ')
-                            .reverse()
-                            .shift();
-                        });
-
+                        element = map(compose(head, reverse, split(': ')), split('\n', zipDiscussion));
                         assert.strictEqual(thirdDiscussion.displayName, element[0]);
 
                         return callback();
@@ -366,10 +296,10 @@ describe('Export data', () => {
       };
 
       // Generate user in cam tenant
-      createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
-        assert.ok(!err);
+      createCollabDoc(asCambridgeTenantAdmin, 1, 1, (err, collabdocData) => {
+        assert.notExists(err);
 
-        const [collabdoc, users, brecke] = collabdocData;
+        const { 0: collabdoc, 2: brecke } = collabdocData;
 
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
@@ -380,13 +310,13 @@ describe('Export data', () => {
         };
 
         createCollabsheetForUser(brecke, (err, collabsheet) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assertCreateLinkSucceeds(
             brecke.restContext,
             SOME_NAME,
             '',
             PRIVATE,
-            'http://google.com',
+            'https://www.google.co.uk',
             [],
             [],
             [],
@@ -396,7 +326,7 @@ describe('Export data', () => {
               // Give one of the users a profile picture
               const cropArea = { x: 0, y: 0, width: 50, height: 50 };
               RestAPI.User.uploadPicture(brecke.restContext, brecke.user.id, getPictureStream, cropArea, err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Get the object
                 PrincipalsAPI.collectDataToExport(
@@ -404,7 +334,7 @@ describe('Export data', () => {
                   brecke.user.id,
                   EXPORT_CONTENT_SCOPE,
                   (err, data) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Export data using 'content' export type
                     PrincipalsAPI.exportData(
@@ -412,7 +342,7 @@ describe('Export data', () => {
                       brecke.user.id,
                       EXPORT_CONTENT_SCOPE,
                       async (err, zip) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
 
                         // Verify the personal data on the zip file
                         const extractedZipData = await zip
@@ -422,7 +352,7 @@ describe('Export data', () => {
 
                         assert.strictEqual(link.displayName, contentChunks[0]);
                         assert.strictEqual(link.profilePath, contentChunks[1]);
-                        assert.strictEqual('http://google.com', contentChunks[2]);
+                        assert.strictEqual('https://www.google.co.uk', contentChunks[2]);
                         assert.strictEqual(link.visibility, contentChunks[3]);
                         assert.strictEqual(link.tenant.displayName, contentChunks[4]);
 
@@ -476,8 +406,9 @@ describe('Export data', () => {
      */
     it('verify get discussion data', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, brecke) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: brecke } = users;
 
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
@@ -496,30 +427,22 @@ describe('Export data', () => {
           null,
           null,
           (err, discussion) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Get the object
             PrincipalsAPI.collectDataToExport(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, data) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Export data using 'content' export type
               PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Verify the personal data on the zip file
                 const zipDiscussion = await zip
                   .file('discussion_data/' + discussion.displayName + '.txt')
                   .async(TO_STRING);
 
-                const lines = zipDiscussion.split('\n');
-                const element = [];
-
-                _.each(lines, (line, i) => {
-                  element[i] = line
-                    .split(': ')
-                    .reverse()
-                    .shift();
-                });
+                const element = map(compose(head, reverse, split(': ')), split('\n', zipDiscussion));
 
                 assert.strictEqual(discussion.displayName, element[0]);
                 assert.strictEqual(discussion.description, element[1]);
@@ -543,8 +466,9 @@ describe('Export data', () => {
      */
     it('verify get meeting data', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, brecke) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: brecke } = users;
 
         brecke.restContext.tenant = function() {
           return brecke.user.tenant;
@@ -565,28 +489,19 @@ describe('Export data', () => {
           [],
           [],
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Get the object
             PrincipalsAPI.collectDataToExport(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, data) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Export data using 'content' export type
               PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Verify the personal data on the zip file
                 const zipMeeting = await zip.file('meeting_data/' + meeting.displayName + '.txt').async(TO_STRING);
-
-                const lines = zipMeeting.split('\n');
-                const element = [];
-
-                _.each(lines, (line, i) => {
-                  element[i] = line
-                    .split(': ')
-                    .reverse()
-                    .shift();
-                });
+                const element = map(compose(head, reverse, split(': ')), split('\n', zipMeeting));
 
                 assert.strictEqual(meeting.displayName, element[0]);
                 assert.strictEqual(meeting.description, element[1]);
@@ -610,8 +525,9 @@ describe('Export data', () => {
      */
     it("verify get the correct data using 'shared' export type", callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, brecke, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: brecke, 1: simon } = users;
 
         simon.restContext.tenant = function() {
           return simon.user.tenant;
@@ -640,11 +556,11 @@ describe('Export data', () => {
           [],
           [brecke.user.id],
           (err, meeting) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Export the data using 'shared' export type
             PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_SHARED_SCOPE, (err, zip) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Verify the personal data on the zip file
               assert.ok(zip.files['meeting_data/' + meeting.displayName + '.txt']);
@@ -662,8 +578,9 @@ describe('Export data', () => {
      */
     it('verify we only get the data asked and not more', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, brecke, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: brecke, 1: simon } = users;
 
         simon.restContext.tenant = function() {
           return simon.user.tenant;
@@ -691,12 +608,12 @@ describe('Export data', () => {
           PUBLIC,
           [],
           [],
-          (err, breckeMeeting) => {
-            assert.ok(!err);
+          (err /* , breckeMeeting */) => {
+            assert.notExists(err);
 
             // Export personal data and verify we don't get the shared content
             PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'personal-data', (err, zip) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(!zip.files['meeting_data/breckeMeeting.txt']);
 
               // Create one new meeting
@@ -709,17 +626,17 @@ describe('Export data', () => {
                 PUBLIC,
                 [],
                 [brecke.user.id],
-                (err, simonMeeting) => {
-                  assert.ok(!err);
+                (err /* , simonMeeting */) => {
+                  assert.notExists(err);
 
                   // Export personal data and verify we don't get the shared content
                   PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, 'personal-data', (err, zip) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(!zip.files['meeting_data/simonMeeting.txt']);
 
                     // Export content data and verify we don't get the shared content
                     PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, (err, zip) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.ok(!zip.files['meeting_data/SimonMeeting.txt']);
 
                       return callback();
@@ -738,15 +655,11 @@ describe('Export data', () => {
      */
     it('verify get the correct data inside a collabdoc', callback => {
       // Generate user in cam tenant
-      createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
-        const [collabdoc, users, brecke] = collabdocData;
-        brecke.restContext.tenant = function() {
-          return brecke.user.tenant;
-        };
-
-        brecke.restContext.user = function() {
-          return brecke.user;
-        };
+      createCollabDoc(asCambridgeTenantAdmin, 1, 1, (err, collabdocData) => {
+        assert.notExists(err);
+        const { 0: collabdoc, 2: brecke } = collabdocData;
+        brecke.restContext.tenant = () => brecke.user.tenant;
+        brecke.restContext.user = () => brecke.user;
 
         const text =
           'Most modern calendars mar the sweet simplicity of our lives by reminding us that each day that passes is the anniversary of some perfectly uninteresting event.';
@@ -755,7 +668,7 @@ describe('Export data', () => {
         _editAndPublish(brecke, collabdoc, [text], () => {
           // Export the 'content' data
           PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Verify the personal data on the zip file
             const extractedZip = await zip.file('collabdoc_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
@@ -764,7 +677,9 @@ describe('Export data', () => {
             const spreadsheetContent = contentChunks[4];
 
             // Get etharpad text and compare it
-            _getEtherpadText(collabdoc, (err, data) => {
+            _getEtherpadText(collabdoc, (err /* , data */) => {
+              assert.notExists(err);
+
               assert.ok(spreadsheetContent.includes(text));
               return callback();
             });
@@ -777,16 +692,12 @@ describe('Export data', () => {
      * Test that verify we get the text inside a collabsheet file
      */
     it('verify get the correct data inside a collabsheet', callback => {
-      createCollabsheet(camAdminRestContext, 1, 1, (err, collabsheetData) => {
-        const [collabdoc, users, brecke] = collabsheetData;
+      createCollabsheet(asCambridgeTenantAdmin, 1, 1, (err, collabsheetData) => {
+        assert.notExists(err);
+        const { 0: collabdoc, 2: brecke } = collabsheetData;
 
-        brecke.restContext.tenant = () => {
-          return brecke.user.tenant;
-        };
-
-        brecke.restContext.user = () => {
-          return brecke.user;
-        };
+        brecke.restContext.tenant = () => brecke.user.tenant;
+        brecke.restContext.user = () => brecke.user;
 
         const text =
           'Most modern calendars mar the sweet simplicity of our lives by reminding us that each day that passes is the anniversary of some perfectly uninteresting event';
@@ -794,9 +705,9 @@ describe('Export data', () => {
 
         // Here we are not testing the API but instead editing through the driver diirectly
         editAndPublishCollabSheet(brecke, collabdoc, textToCSV, (err, contentInJSON) => {
-          assert.ok(!err);
+          assert.notExists(err);
           PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             const extractedZip = await zip.file('collabsheet_data/' + collabdoc.displayName + '.txt').async(TO_STRING);
 
@@ -818,12 +729,14 @@ describe('Export data', () => {
      */
     it('verify get the correct comments related to a resource', callback => {
       // Generate user in cam tenant
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simon } = users;
 
         // Generate user and content in cam tenant
-        createCollabDoc(camAdminRestContext, 1, 1, (err, collabdocData) => {
-          const [collabdoc, users, brecke] = collabdocData;
+        createCollabDoc(asCambridgeTenantAdmin, 1, 1, (err, collabdocData) => {
+          assert.notExists(err);
+          const { 0: collabdoc, 2: brecke } = collabdocData;
           brecke.restContext.tenant = function() {
             return brecke.user.tenant;
           };
@@ -842,7 +755,7 @@ describe('Export data', () => {
 
           // Create one comment
           RestAPI.Content.createComment(brecke.restContext, collabdoc.id, 'This is a comment', null, (err, comment) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Create one more
             RestAPI.Content.createComment(
@@ -851,23 +764,18 @@ describe('Export data', () => {
               'Another comment',
               null,
               (err, anotherComment) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Export the 'content' data
                 PrincipalsAPI.exportData(brecke.restContext, brecke.user.id, EXPORT_CONTENT_SCOPE, async (err, zip) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Verify the collabdoc data on the zip file
                   const zipCollabdoc = await zip
                     .file('collabdoc_data/' + collabdoc.displayName + '.txt')
                     .async(TO_STRING);
                   try {
-                    const lines = zipCollabdoc.split('\n');
-                    const element = [];
-
-                    _.each(lines, (line, i) => {
-                      element[i] = line.split(': ');
-                    });
+                    const element = map(split(': '), split('\n', zipCollabdoc));
 
                     // Get the creation date
                     const messageCreatedComment = dateFormat(
@@ -894,7 +802,7 @@ describe('Export data', () => {
                     assert.ok(element[7][2].includes(anotherComment.createdBy.publicAlias));
                     assert.strictEqual(levelAnotherComment[1], anotherComment.level.toString());
                     assert.ok(element[7][0].includes(messageCreatedAnotherComment));
-                  } catch (error) {
+                  } catch {
                     return callback();
                   }
 

@@ -50,6 +50,7 @@ const EMPTY_OBJECT = {};
 
 const getId = prop('id');
 const getResourceType = prop('resourceType');
+const { TASK_INDEX_DOCUMENT, TASK_REINDEX_ALL, TASK_INDEX_DOCUMENT_PROCESSING } = SearchConstants.mq;
 
 describe('Search API', () => {
   let asAnonymousUserFromCambridge = null;
@@ -62,7 +63,7 @@ describe('Search API', () => {
     asTenantAdminOnCambridge = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Unbind the current handler, if any
-    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    unsubscribe(TASK_REINDEX_ALL, err => {
       assert.notExists(err);
 
       /*!
@@ -76,7 +77,7 @@ describe('Search API', () => {
       };
 
       // Drain the queue
-      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskDrain, err => {
+      subscribe(TASK_REINDEX_ALL, _handleTaskDrain, err => {
         assert.notExists(err);
         callback();
       });
@@ -186,7 +187,7 @@ describe('Search API', () => {
    */
   it('verify reindex all triggers an mq task', callback => {
     // Unbind the current handler, if any
-    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    unsubscribe(TASK_REINDEX_ALL, err => {
       assert.notExists(err);
 
       /*!
@@ -201,7 +202,7 @@ describe('Search API', () => {
       };
 
       // Bind the handler to invoke the callback when the test passes
-      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTask, err => {
+      subscribe(TASK_REINDEX_ALL, _handleTask, err => {
         assert.notExists(err);
 
         // Reprocess previews
@@ -217,7 +218,7 @@ describe('Search API', () => {
    */
   it('verify non-global admin users cannot trigger reindex all', callback => {
     // Unbind the current handler, if any
-    unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, err => {
+    unsubscribe(TASK_REINDEX_ALL, err => {
       assert.notExists(err);
 
       /*!
@@ -234,7 +235,7 @@ describe('Search API', () => {
        * Bind a handler to handle the task that invokes an assertion failure,
        * as no task should be triggered from this test
        */
-      subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleTaskFail, err => {
+      subscribe(TASK_REINDEX_ALL, _handleTaskFail, err => {
         assert.notExists(err);
 
         // Generate a normal user with which to try and reprocess previews
@@ -329,8 +330,8 @@ describe('Search API', () => {
             assert.notExists(err);
 
             // Wait for the producers to be invoked
-            whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-              whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+            whenTasksEmpty(TASK_INDEX_DOCUMENT, () => {
+              whenTasksEmpty(TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 // Ensure only the proper resource type invoked the producer
                 assert.strictEqual(invoked, 1);
 
@@ -376,8 +377,8 @@ describe('Search API', () => {
             assert.notExists(err);
 
             // Wait for the producers to be invoked
-            whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-              whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
+            whenTasksEmpty(TASK_INDEX_DOCUMENT, () => {
+              whenTasksEmpty(TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 // Ensure only the proper resource type invoked the producer
                 assert.strictEqual(invoked, 2);
 

@@ -70,7 +70,9 @@ services:
       - my_network
   oae-elasticsearch:
     container_name: oae-elasticsearch
-    image: oaeproject/oae-elasticsearch-docker
+    image: elasticsearch:7.8.0
+    environment:
+      - discovery.type=single-node
     networks:
       - my_network
     ports:

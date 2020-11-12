@@ -70,7 +70,7 @@ services:
       - my_network
   oae-elasticsearch:
     container_name: oae-elasticsearch
-    image: elasticsearch:7.8.0
+    image: elasticsearch:7.9.0
     environment:
       - discovery.type=single-node
     networks:

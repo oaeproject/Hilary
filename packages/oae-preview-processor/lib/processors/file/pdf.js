@@ -19,7 +19,7 @@ import path from 'path';
 import stream from 'stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import sharp from 'sharp';
-import pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';

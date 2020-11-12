@@ -77,7 +77,7 @@ const createMessageSearchDocuments = function(name, resourceId, messages) {
       // TODO experiment because of discussion_message_ schema not being body otherwise it conflicts with contentBodySchema's name
       return SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
-        discussion_message_body: message.body
+        discussion_message_body: message.body // eslint-disable-line camelcase
       });
     })
     .value();

@@ -13,27 +13,26 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable import/namespace, no-unused-vars */
+
 import _ from 'underscore';
 import locale from 'locale';
 
 import * as OAE from 'oae-util/lib/oae';
 
-// eslint-disable-next-line no-unused-vars, import/namespace
+// Require the user related REST endpoints
 import * as UserRESTEndpoints from 'oae-principals/lib/rest.user';
-// eslint-disable-next-line no-unused-vars, import/namespace
+// Require the group related REST endpoints
 import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group';
+
 import * as userConfig from '../config/user';
 import PrincipalsAPI from './api';
 
-// Require the user related REST endpoints
-
-// Require the group related REST endpoints
-
 let languages = userConfig.user.elements.defaultLanguage.list;
 
-/// /////////
-// LOCALE //
-/// /////////
+/**
+ * Locale
+ */
 
 // Make languages into an array of just the values as that's what locale needs
 languages = _.map(languages, lang => {
@@ -53,9 +52,9 @@ OAE.tenantServer.use((req, res, next) => {
   return next();
 });
 
-/// ///////////////////////
-// TERMS AND CONDITIONS //
-/// ///////////////////////
+/**
+ * Terms and conditions
+ */
 
 /*!
  * Adds middleware that will check if the user has accepted the Terms and Conditions, if enabled.

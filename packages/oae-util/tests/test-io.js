@@ -118,7 +118,6 @@ describe('IO', () => {
           assert.notExists(err);
           assert.strictEqual(exists, true);
 
-          // eslint-disable-next-line no-path-concat
           IO.exists(__filename + 'non-existing-file', (err, exists) => {
             assert.notExists(err);
             assert.strictEqual(exists, false);

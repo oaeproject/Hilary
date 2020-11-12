@@ -77,9 +77,10 @@ services:
       - my_network
     ports:
       - 9200:9200
+      - 9300:9300
     tty: false
-    volumes:
-      - ../data/elasticsearch:/usr/share/elasticsearch/data
+    # volumes:
+    #  - ../data/elasticsearch:/usr/share/elasticsearch/data
   oae-nginx:
     container_name: oae-nginx
     image: nginx:stable-alpine

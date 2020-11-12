@@ -16,7 +16,9 @@
     "url": "https://github.com/oaeproject/Hilary/issues"
   },
   "license": "ECL-2.0",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=12.16.0"
   },
@@ -123,7 +125,7 @@
     "prettier": "^1.18.2",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
-    "xo": "^0.33.2"
+    "xo": "^0.27.2"
   },
   "scripts": {
     "test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
@@ -138,23 +140,33 @@
     "ethercalc": "npx pm2 startOrReload process.json --only Ethercalc",
     "etherpad": "npx pm2 startOrReload process.json --only Etherpad",
     "server": "npx pm2 startOrReload process.json --only Hilary",
-    "all": "npx pm2 startOrReload process.json",
+    "servers": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
-    "lint": "xo --prettier --quiet 'packages/**/*.js'",
+    "lint": "node_modules/.bin/xo --prettier --quiet 'packages/**/*.js'",
     "lint-module": "func() { xo --prettier --quiet $*; }; func",
-    "format": "xo --fix --prettier --quiet 'packages/**/*.js'",
+    "format": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
     "snyk-protect": "snyk protect",
     "prepare": "npm run snyk-protect"
   },
   "nyc": {
     "include": "packages/**/*",
-    "exclude": ["3akai-ux", "**/domstubs.js "]
+    "exclude": [
+      "3akai-ux",
+      "**/domstubs.js "
+    ]
   },
   "xo": {
     "prettier": true,
-    "extends": ["prettier"],
-    "plugins": ["prettier"],
-    "ignores": ["**/processors/file/domstubs.js", "**/tests/*.js"],
+    "extends": [
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "ignores": [
+      "**/processors/file/domstubs.js",
+      "**/tests/*.js"
+    ],
     "rules": {
       "node/prefer-promises/fs": "off",
       "import/no-extraneous-dependencies": "off",
@@ -168,7 +180,9 @@
       "prefer-named-capture-group": "off",
       "import/no-unresolved": "off"
     },
-    "env": ["mocha"],
+    "env": [
+      "mocha"
+    ],
     "overrides": [
       {
         "files": "**/tests/*.js",

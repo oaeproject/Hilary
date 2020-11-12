@@ -62,7 +62,7 @@ services:
       - SYS_ADMIN
   oae-redis:
     container_name: oae-redis
-    image: redis:5-alpine
+    image: redis:6-alpine
     ports:
       - 6379:6379
     tty: false

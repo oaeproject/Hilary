@@ -41,7 +41,6 @@ import {
 const { Client } = require('@elastic/elasticsearch');
 
 const log = logger('elasticsearch');
-
 const Telemetry = telemetry('search');
 
 let index = null;
@@ -51,7 +50,17 @@ const returned200 = propEq('statusCode', 200);
 const isOne = equals(1);
 const firstKeyOf = compose(head, keys);
 
-// const INDEX_RETRY_TIMEOUT = 5;
+const CREATE_INDEX = 'createIndex';
+const DELETE_INDEX = 'deleteIndex';
+const INDEX_STATUS = 'indexSatus'; // index exists
+const REFRESH = 'refresh';
+const PUT_MAPPING = 'putMapping';
+const GET_MAPPING = 'getMapping'; // mapping exists
+const SEARCH = 'search';
+const RUN_INDEX = 'index';
+const BULK = 'bulk';
+const DELETE = 'delete'; // del
+const DELETE_BY_QUERY = 'deleteByQuery';
 
 /**
  * Refresh the search configuration with the given options.
@@ -97,12 +106,22 @@ const createIndex = function(index, settings, callback) {
 
     const body = { settings };
 
+    Telemetry.incr('exec.' + CREATE_INDEX + '.count');
+    const start = Date.now();
     return client.indices.create(
       {
         index,
         body
       },
-      callback
+      (err, result) => {
+        if (err) {
+          _logError(CREATE_INDEX, err);
+          return callback(err);
+        }
+
+        Telemetry.appendDuration('exec.' + CREATE_INDEX + '.time', start);
+        return callback(null, result);
+      }
     );
   });
 };
@@ -120,11 +139,21 @@ const deleteIndex = function(index, callback) {
 
     if (indexExists) {
       log().info('Deleting index "%s"...', index);
+
+      Telemetry.incr('exec.' + DELETE_INDEX + '.count');
+      const start = Date.now();
       return client.indices.delete(
         {
           index
         },
-        callback
+        (err, result) => {
+          if (err) {
+            _logError(DELETE_INDEX, err);
+          }
+
+          Telemetry.appendDuration('exec.' + DELETE_INDEX + '.time', start);
+          return callback(null, result);
+        }
       );
     }
 
@@ -141,13 +170,19 @@ const deleteIndex = function(index, callback) {
  * @param  {Boolean}     callback.exists Whether or not the index exists
  */
 const indexExists = function(index, callback) {
+  Telemetry.incr('exec.' + INDEX_STATUS + '.count');
+  const start = Date.now();
   return client.indices.exists(
     {
       index
     },
     (err, queryResult) => {
-      if (err) return callback(err);
+      if (err) {
+        _logError(INDEX_STATUS, err);
+        return callback(err);
+      }
 
+      Telemetry.appendDuration('exec.' + INDEX_STATUS + '.time', start);
       const result = returned200(queryResult);
       return callback(null, result);
     }
@@ -161,12 +196,21 @@ const indexExists = function(index, callback) {
  * @param  {Object}      callback.err    An error that occurred, if any
  */
 const refresh = callback => {
-  // _exec('refresh', client.refresh(index, null), callback);
+  Telemetry.incr('exec.' + REFRESH + '.count');
+  const start = Date.now();
   return client.indices.refresh(
     {
       index
     },
-    callback
+    (err, result) => {
+      if (err) {
+        _logError(REFRESH, err);
+        return callback(err);
+      }
+
+      Telemetry.appendDuration('exec.' + REFRESH + '.time', start);
+      return callback(null, result);
+    }
   );
 };
 
@@ -201,11 +245,11 @@ const refresh = callback => {
  */
 const putMapping = function(properties, opts, callback) {
   opts = opts || {};
-  // opts._source = opts._source !== true;
 
   /**
    * TODO for some reason I have to do this, fuck it
    */
+
   indexExists(index, (err, exists) => {
     if (err) return callback(err);
     if (not(exists)) return callback();
@@ -234,15 +278,21 @@ const putMapping = function(properties, opts, callback) {
 
     log().info({ typeData: body }, 'Creating new search type mapping');
 
+    Telemetry.incr('exec.' + PUT_MAPPING + '.count');
+    const start = Date.now();
     client.indices.putMapping(
       {
         index,
         body
       },
-      err => {
-        if (err) return callback(err);
+      (err, result) => {
+        if (err) {
+          _logError(PUT_MAPPING, err);
+          return callback(err);
+        }
 
-        return callback();
+        Telemetry.appendDuration('exec.' + PUT_MAPPING + '.time', start);
+        return callback(null, result);
       }
     );
   });
@@ -283,13 +333,19 @@ const mapChildrenToParent = function(parentName, childrenName, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  */
 const mappingExists = function(property, callback) {
+  Telemetry.incr('exec.' + GET_MAPPING + '.count');
+  const start = Date.now();
   client.indices.getMapping(
     {
       index
     },
     (err, result) => {
-      if (err) return callback(err);
+      if (err) {
+        _logError(GET_MAPPING, err);
+        return callback(err);
+      }
 
+      Telemetry.appendDuration('exec.' + GET_MAPPING + '.time', start);
       const mappingExists = compose(Boolean, prop(property), path(['body', index, 'mappings', 'properties']))(result);
 
       return callback(null, mappingExists);
@@ -310,6 +366,8 @@ const search = function(body, options, callback) {
   log().trace({ query: body }, 'Querying elastic search');
 
   const { storedFields, from, size } = options;
+  Telemetry.incr('exec.' + SEARCH + '.count');
+  const start = Date.now();
   return client.search(
     {
       index,
@@ -318,7 +376,15 @@ const search = function(body, options, callback) {
       from,
       size
     },
-    callback
+    (err, result) => {
+      if (err) {
+        _logError(SEARCH, err);
+        return callback(err);
+      }
+
+      Telemetry.appendDuration('exec.' + SEARCH + '.time', start);
+      return callback(null, result);
+    }
   );
 };
 
@@ -341,10 +407,16 @@ const runIndex = function(typeName, id, body, options, callback) {
   // delete body._type;
   const { routing } = options;
 
-  return client.index({ id, index, body, routing }, (err, indexedData) => {
-    if (err) return callback(err);
+  Telemetry.incr('exec.' + RUN_INDEX + '.count');
+  const start = Date.now();
+  return client.index({ id, index, body, routing }, (err, result) => {
+    if (err) {
+      _logError(RUN_INDEX, err);
+      return callback(err);
+    }
 
-    return callback(null, indexedData);
+    Telemetry.appendDuration('exec.' + RUN_INDEX + '.time', start);
+    return callback(null, result);
   });
 };
 
@@ -373,27 +445,22 @@ const bulk = (operationsToRun, callback) => {
   operationsToRun = map(transformOperations, operationsToRun);
   operationsToRun = insertRoutingIntoActionPairs(operationsToRun);
 
-  /*
-  for (const meta of operations) {
-    const keys = _.keys(meta);
-    // Verify this is a metadata line, then apply the index
-
-    if (keys.length === 1 && (meta.create || meta.index || meta.delete)) {
-      numberOfOperations++;
-      const opName = keys[0];
-      meta[opName]._index = index;
-    }
-  } */
-
   log().trace({ operations: operationsToRun }, 'Performing a bulk set of %s operations.', numberOfOperations);
 
+  Telemetry.incr('exec.' + BULK + '.count');
+  const start = Date.now();
   return client.bulk(
     {
       index,
       body: operationsToRun
     },
     (err, bulkResponse) => {
-      if (err) return callback(err);
+      if (err) {
+        _logError(BULK, err);
+        return callback(err);
+      }
+
+      Telemetry.appendDuration('exec.' + BULK + '.time', start);
 
       if (bulkResponse.errors) {
         const erroredDocuments = [];
@@ -458,12 +525,22 @@ const insertRoutingIntoActionPairs = operationsToRun => {
 const del = function(typeName, id, callback) {
   log().trace({ typeName, documentId: id }, 'Deleting an index document.');
 
+  Telemetry.incr('exec.' + DELETE + '.count');
+  const start = Date.now();
   return client.delete(
     {
       id,
       index
     },
-    callback
+    (err, result) => {
+      if (err) {
+        _logError(DELETE, err);
+        return callback(err);
+      }
+
+      Telemetry.appendDuration('exec.' + DELETE + '.time', start);
+      return callback(null, result);
+    }
   );
 };
 
@@ -479,67 +556,24 @@ const del = function(typeName, id, callback) {
 const deleteByQuery = function(type, query, options, callback) {
   log().trace({ typeName: type, query, options }, 'Deleting search documents by query');
 
+  Telemetry.incr('exec.' + DELETE_BY_QUERY + '.count');
+  const start = Date.now();
   return client.deleteByQuery(
     {
       index,
       type,
       q: query
     },
-    callback
+    (err, result) => {
+      if (err) {
+        _logError(DELETE_BY_QUERY, err);
+        return callback(err);
+      }
+
+      Telemetry.appendDuration('exec.' + DELETE_BY_QUERY + '.time', start);
+      return callback(null, result);
+    }
   );
-};
-
-/**
- * Execute a call to the ElasticSearchClient API.
- *
- * @param  {String}              name            The name of the method
- * @param  {ElasticSearchCall}   call            The call object that will be executed
- * @param  {Function}            callback        Standard callback function
- * @param  {Object}              callback.err    An error that occurred, if any
- * @param  {Object}              callback.data   The search response data, if any
- * @api private
- */
-const _exec = function(name, call, callback) {
-  callback = callback || function() {};
-
-  Telemetry.incr('exec.' + name + '.count');
-  const start = Date.now();
-  let data = null;
-
-  // Grab the data
-  call.data(_data => {
-    data = _data;
-  });
-
-  // When finished, call the callback with the data
-  call.done(() => {
-    // Data should always be JSON, I think.
-    try {
-      data = JSON.parse(data);
-      log().trace({ call: name, data }, 'Search execution completed.');
-    } catch (error) {
-      log().trace({ call: name, data }, 'Search execution completed.');
-      _logError(name, error);
-      return callback(new Error('Non-JSON body returned in response.'));
-    }
-
-    // ElasticSearch returns an object with an error attribute if there is an error
-    if (data.error) {
-      // We don't implicitly log this because it could be intended
-      return callback(data);
-    }
-
-    Telemetry.appendDuration('exec.' + name + '.time', start);
-    return callback(null, data);
-  });
-
-  // When there is an error, call the callback with the error
-  call.error(err => {
-    _logError(name, err);
-    return callback(err);
-  });
-
-  call.exec();
 };
 
 /**

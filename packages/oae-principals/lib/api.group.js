@@ -1224,9 +1224,7 @@ const createRequestJoinGroup = function(ctx, groupId, callback) {
  * @param  {Object}     callback.err                An error that occured, if any
  */
 const getJoinGroupRequests = function(ctx, filter, callback) {
-  // eslint-disable-next-line no-unused-vars
-  let { groupId, start, limit } = filter;
-  limit = OaeUtil.getNumberParam(limit, 10, 1);
+  const { groupId } = filter;
   _validateJoinGroupRequest(ctx, groupId, err => {
     if (err) return callback(err);
 

@@ -56,9 +56,9 @@ const ES6Modules = [
   'oae-principals'
 ];
 
-/// ///////////////////////
-// Module bootstrapping //
-/// ///////////////////////
+/**
+ * Module bootstrapping
+ */
 
 /**
  * Bootstrap all the OAE modules that are present. This will first execute all of the init.js files for all of the modules which will

@@ -491,7 +491,6 @@ const postDeleteTask = function(id, children, callback) {
  * @api private
  */
 const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
-  // TODO ramda ifElse
   if (destroy) {
     log().info('Destroying index "%s"', indexName);
     client.deleteIndex(indexName, err => {

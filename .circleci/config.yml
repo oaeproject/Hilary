@@ -1,7 +1,7 @@
 aliases:
   - &defaults
     docker:
-      - image: "alpine:3.9"
+      - image: 'alpine:3.9'
     environment:
       TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
@@ -12,8 +12,8 @@ aliases:
     run:
       name: Setup customs hosts
       command: |
-        printf "127.0.0.1 cambridge.oae.com" >> /etc/hosts
-        printf "127.0.0.1 gt.oae.com" >> /etc/hosts
+        printf "127.0.0.1 cambridge.oae.com\n" >> /etc/hosts
+        printf "127.0.0.1 gt.oae.com\n" >> /etc/hosts
   - &install_system_dependencies
     run:
       name: Install system dependencies
@@ -113,6 +113,10 @@ aliases:
       name: Install docker-compose
       command: |
         pip install docker-compose~=1.23.2
+  - &setup_remote_docker
+    setup_remote_docker:
+      version: 19.03.13
+
 
 version: 2.1
 jobs:
@@ -120,7 +124,7 @@ jobs:
     <<: *defaults
     parallelism: 4
     steps:
-      - setup_remote_docker
+      - *setup_remote_docker
       - *install_system_dependencies
       - *setup_custom_hosts
       - checkout
@@ -141,7 +145,7 @@ jobs:
     <<: *defaults
     parallelism: 1
     steps:
-      - setup_remote_docker
+      - *setup_remote_docker
       - *install_system_dependencies
       - *setup_custom_hosts
       - checkout

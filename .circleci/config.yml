@@ -38,7 +38,7 @@ aliases:
         printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
         printf "\nconfig.cassandra.timeout = 9000;" >> config.js
         printf "\nconfig.redis.host = 'oae-redis';" >> config.js
-        printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+        printf "\nconfig.search.nodes = ['http://oae-elasticsearch:9200'];" >> config.js
         printf "\nconfig.mq.host = 'oae-redis';" >> config.js
         printf "\nconfig.previews.enabled = true;" >> config.js
         printf "\nconfig.email.debug = false;" >> config.js
@@ -116,7 +116,6 @@ aliases:
   - &setup_remote_docker
     setup_remote_docker:
       version: 19.03.13
-
 
 version: 2.1
 jobs:

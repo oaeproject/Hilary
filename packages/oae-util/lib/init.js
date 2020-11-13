@@ -63,9 +63,7 @@ const bootRedis = (config, callback) => {
     }
 
     // Initialize the Redis based locking
-    Locking.init();
-
-    return callback();
+    Locking.init(callback);
   });
 };
 

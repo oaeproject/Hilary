@@ -95,9 +95,7 @@ const createClient = function(_config, callback) {
 /**
  * @return {RedisClient} A redis client that gets created when the app starts up.
  */
-const getClient = function() {
-  return client;
-};
+const getClient = () => client;
 
 /**
  * Flushes all messages from the system that we're currently pushing to.

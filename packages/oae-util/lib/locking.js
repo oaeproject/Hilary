@@ -30,10 +30,9 @@ let locker = null;
 /**
  * Initialize the Redis based locking
  */
-const init = function() {
+const init = done => {
   locker = new Redlock([Redis.getClient()], {
     /**
-     * From https://www.npmjs.com/package/redlock#how-do-i-check-if-something-is-locked:
      *
      * Redlock cannot tell you with certainty if a resource is currently locked.
      * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
@@ -48,6 +47,8 @@ const init = function() {
     retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
     retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
   });
+
+  return done();
 };
 
 /**

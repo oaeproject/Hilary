@@ -14,12 +14,12 @@
  */
 
 import Redlock from 'redlock';
+import * as Redis from './redis';
 
 import { logger } from 'oae-logger';
 
 import { compose } from 'ramda';
 import isInt from 'validator/lib/isInt';
-import * as Redis from './redis';
 import { Validator as validator } from './validator';
 
 const { unless, isDefined, isNotNull } = validator;

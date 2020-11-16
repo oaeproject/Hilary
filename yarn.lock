@@ -2315,7 +2315,7 @@ blob@0.0.2:
   resolved "https://registry.yarnpkg.com/blob/-/blob-0.0.2.tgz#b89562bd6994af95ba1e812155536333aa23cf24"
   integrity sha1-uJVivWmUr5W6HoEhVVNjM6ojzyQ=
 
-bluebird@^3.5.0, bluebird@^3.5.1, bluebird@^3.5.3, bluebird@^3.5.5, bluebird@^3.5.x, bluebird@^3.7.2:
+bluebird@^3.3.3, bluebird@^3.5.0, bluebird@^3.5.1, bluebird@^3.5.3, bluebird@^3.5.5, bluebird@^3.5.x:
   version "3.7.2"
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
@@ -11276,12 +11276,12 @@ redis@0.12.x:
   resolved "https://registry.yarnpkg.com/redis/-/redis-0.12.1.tgz#64df76ad0fc8acebaebd2a0645e8a48fac49185e"
   integrity sha1-ZN92rQ/IrOuuvSoGReikj6xJGF4=
 
-redlock@^4.2.0:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/redlock/-/redlock-4.2.0.tgz#c26590768559afd5fff76aa1133c94b411ff4f5f"
-  integrity sha512-j+oQlG+dOwcetUt2WJWttu4CZVeRzUrcVcISFmEmfyuwCVSJ93rDT7YSgg7H7rnxwoRyk/jU46kycVka5tW7jA==
+redlock@4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/redlock/-/redlock-4.0.0.tgz#cae41c8addf57ff87b79510253495b0fa8dd46c6"
+  integrity sha512-971JQ2rBzZKIOrlqjjcEO4lbxmuq71QtfTNYk7w/m9h59mBYpN+r7xHZEWZw8ubEwvrxxzmqOl4fC2o05+UjDw==
   dependencies:
-    bluebird "^3.7.2"
+    bluebird "^3.3.3"
 
 reduce-component@1.0.1:
   version "1.0.1"

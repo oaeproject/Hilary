@@ -2,6 +2,9 @@ aliases:
   - &defaults
     docker:
       - image: 'alpine:3.9'
+        auth:
+          username: $DOCKER_USER # can specify string literal values
+          password: $DOCKER_PASS # or project environment variable reference
     environment:
       TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true

@@ -8,12 +8,6 @@ aliases:
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
     working_directory: ~/Hilary
-  - &setup_custom_hosts
-    run:
-      name: Setup customs hosts
-      command: |
-        docker-compose run --rm oae-hilary 'printf "127.0.0.1 cambridge.oae.com\n" >> /etc/hosts'
-        docker-compose run --rm oae-hilary 'printf "127.0.0.1 gt.oae.com\n" >> /etc/hosts'
   - &install_system_dependencies
     run:
       name: Install system dependencies
@@ -136,7 +130,6 @@ jobs:
       - *launch_containers
       - *copy_code
       - *install_dependencies
-      - *setup_custom_hosts
       - *run_linting
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
@@ -157,7 +150,6 @@ jobs:
       - *launch_containers
       - *copy_code
       - *install_dependencies
-      - *setup_custom_hosts
       - *run_linting
       - *run_sequential_tests # includes coverage
       - *copy_artifacts

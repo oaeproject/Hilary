@@ -35,6 +35,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: oae-hilary
+    extra_hosts:
+      - "gt.oae.com: 127.0.0.1"
+      - "cambridge.oae.com: 127.0.0.1"
     # command: nodemon -L app.js | npx bunyan # default
     # command: npm test # for running tests
     extra_hosts:

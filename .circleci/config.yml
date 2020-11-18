@@ -12,8 +12,8 @@ aliases:
     run:
       name: Setup customs hosts
       command: |
-        printf "127.0.0.1 cambridge.oae.com\n" >> /etc/hosts
-        printf "127.0.0.1 gt.oae.com\n" >> /etc/hosts
+        docker-compose run --rm oae-hilary 'printf "127.0.0.1 cambridge.oae.com\n" >> /etc/hosts'
+        docker-compose run --rm oae-hilary 'printf "127.0.0.1 gt.oae.com\n" >> /etc/hosts'
   - &install_system_dependencies
     run:
       name: Install system dependencies
@@ -64,6 +64,7 @@ aliases:
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
           cp ep-settings.json etherpad/settings.json; \
+          cp ep-package.json etherpad/src/package.json; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-with-coverage"
@@ -74,6 +75,7 @@ aliases:
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
           cp ep-settings.json etherpad/settings.json; \
+          cp ep-package.json etherpad/src/package.json; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
@@ -125,7 +127,6 @@ jobs:
     steps:
       - *setup_remote_docker
       - *install_system_dependencies
-      - *setup_custom_hosts
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
@@ -135,6 +136,7 @@ jobs:
       - *launch_containers
       - *copy_code
       - *install_dependencies
+      - *setup_custom_hosts
       - *run_linting
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
@@ -146,7 +148,6 @@ jobs:
     steps:
       - *setup_remote_docker
       - *install_system_dependencies
-      - *setup_custom_hosts
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
@@ -156,6 +157,7 @@ jobs:
       - *launch_containers
       - *copy_code
       - *install_dependencies
+      - *setup_custom_hosts
       - *run_linting
       - *run_sequential_tests # includes coverage
       - *copy_artifacts

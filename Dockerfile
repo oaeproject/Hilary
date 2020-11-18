@@ -26,12 +26,15 @@
 # $ docker run -it --name=hilary --net=host oae-hilary:latest
 #
 
-# This tag corresponds to node 12.x and alpine 3.11
+# This tag corresponds to node 15.x and alpine 3.11
 FROM node:15.2.1-alpine3.11
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation
 LABEL Email=oae@apereo.org
+
+# Avoid prompt when using npx
+ENV npm_config_yes true
 
 # Upgrade system libraries
 RUN apk update ; apk upgrade

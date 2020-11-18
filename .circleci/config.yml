@@ -7,6 +7,7 @@ aliases:
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
+      npm_config_yes: true
     working_directory: ~/Hilary
   - &install_system_dependencies
     run:

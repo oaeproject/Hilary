@@ -118,7 +118,7 @@ describe('IO', () => {
           assert.notExists(err);
           assert.strictEqual(exists, true);
 
-          IO.exists(path.join(__filename, 'non-existing-file'), (err, exists) => {
+          IO.exists(path.join(__dirname, 'non-existing-file'), (err, exists) => {
             assert.notExists(err);
             assert.strictEqual(exists, false);
 

@@ -85,7 +85,7 @@ aliases:
         docker-compose run --rm oae-hilary 'yarn run prepare-3akai'
         docker-compose run --rm oae-hilary 'yarn run prepare-etherpad'
         docker-compose run --rm oae-hilary 'yarn run prepare-ethercalc'
-        docker-compose run --rm oae-hilary 'npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'yarn global add lerna ; home/node/.yarn/bin/lerna bootstrap'
   - &copy_code
     run:
       name: Copy code

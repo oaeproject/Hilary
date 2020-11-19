@@ -85,16 +85,16 @@ aliases:
         docker-compose run --rm oae-hilary 'yarn run prepare-3akai'
         docker-compose run --rm oae-hilary 'yarn run prepare-etherpad'
         docker-compose run --rm oae-hilary 'yarn run prepare-ethercalc'
-        docker-compose run --rm oae-hilary 'yarn global add lerna ; home/node/.yarn/bin/lerna bootstrap'
+        docker-compose run --rm oae-hilary 'yarn global add lerna ; /home/node/.yarn/bin/lerna bootstrap'
   - &copy_code
     run:
       name: Copy code
       command: |
         addgroup -g 1000 node
         adduser -u 1000 -G node -s /bin/sh -D node
-        chown -R node:node .
         cp ep-settings.json etherpad/settings.json
         cp ep-package.json etherpad/src/package.json
+        chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
         mkdir -p reports/logs
   - &create_containers

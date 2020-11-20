@@ -710,10 +710,9 @@ describe('Principals Activity', () => {
             assert.notExists(err);
 
             // Mrvisser creates a private unjoinable group
-            // TODO totally nuts
             setTimeout(
               RestAPI.Group.createGroup,
-              60000,
+              1000,
               mrvisser.restContext,
               TestsUtil.generateTestGroupId('group'),
               TestsUtil.generateTestGroupId('group'),

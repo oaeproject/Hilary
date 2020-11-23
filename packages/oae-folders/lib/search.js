@@ -15,7 +15,6 @@
 
 /* eslint-disable no-unused-vars */
 
-import util from 'util';
 import _ from 'underscore';
 
 import * as AuthzSearch from 'oae-authz/lib/search';
@@ -32,7 +31,34 @@ import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 
 const log = logger('folders-search');
 
-import { concat, head, mergeDeepWith } from 'ramda';
+import {
+  unless,
+  compose,
+  identity,
+  has,
+  assoc,
+  __,
+  mergeLeft,
+  mergeDeepLeft,
+  pipe,
+  map,
+  concat,
+  defaultTo,
+  head,
+  mergeDeepWith,
+  reject,
+  isNil,
+  path,
+  prop,
+  mapObjIndexed
+} from 'ramda';
+
+const defaultToEmptyObject = defaultTo({});
+const getResourceId = prop('resourceId');
+const { getTenant } = TenantsAPI;
+const { getResourceFromId } = AuthzUtil;
+const getTenantAlias = prop('tenantAlias');
+const removeFalsy = reject(isNil);
 
 /**
  * Initializes the child search documents for the folders module
@@ -296,9 +322,9 @@ const _produceFolderSearchDocument = function(folder) {
 
 SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of folder search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -311,44 +337,46 @@ SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments
  * @api private
  */
 const _transformFolderDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // TODO take care of this
-    try {
-      doc.fields._extra[0] = JSON.parse(doc.fields._extra[0]);
-    } catch (error) {
-      // TODO log here something
-    }
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
 
-    // Remember, the document id is the *group* id
-    const result = { groupId: docId };
-
-    // Extract the extra object from the search document
-    // as that's where we stored the folder id in
-    const extra = head(doc.fields._extra) || {};
-    result.id = extra.folderId;
-
-    // Apply the scalar values wrapped in each ElasticSearch document
-    // to the transformed search document
-    _.each(doc.fields, (value, key) => {
-      result[key] = head(value);
-    });
-    // result = mergeDeepWith(concat, result, doc.fields);
-
-    // Add the full tenant object and profile path
-    _.extend(result, {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format('/folder/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
-    });
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(extraFields.folderId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/folder/${tenantAlias}/${resourceId}`
+    };
+    const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
+    const signThumbnail = thumbnailUrl => {
+      if (thumbnailUrl) {
+        return result => assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl), result);
+      }
+
+      return identity;
+    };
+
+    const result = pipe(
+      // Remember, the document id is the *group* id
+      mergeLeft({ groupId: docId }),
+      mergeLeft({ id: extraFields.folderId }),
+      mergeLeft(scalarFields),
+      mergeDeepLeft(tenantAndProfileInfo),
+      signThumbnail(thumbnailUrl)
+    )(extraFields);
+
+    // If applicable, sign the thumbnailUrl so the current user can access it
+    /*
     if (thumbnailUrl) {
       result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl);
     }
+    */
 
-    transformedDocs[docId] = result;
-  });
+    return result;
+  }, docs);
 
   return callback(null, transformedDocs);
 };

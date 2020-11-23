@@ -14,7 +14,6 @@
  */
 
 import fs from 'fs';
-import util from 'util';
 import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
 import _ from 'underscore';
 
@@ -35,27 +34,25 @@ import * as contentBodySchema from './search/schema/contentBodySchema';
 const log = logger('content-search');
 
 const getResourceId = prop('resourceId');
-const getId = prop('id');
 const getTenantAlias = prop('tenantAlias');
 const { getSignedDownloadUrl } = ContentUtil;
 const { getResourceFromId } = AuthzUtil;
 
 const defaultToEmptyObject = defaultTo({});
-const removeFalsy = reject(isNil);
 
 import {
   prop,
   assoc,
-  isNil,
+  pipe,
+  map,
   and,
-  reject,
-  mergeAll,
+  mergeLeft,
   path,
   compose,
   defaultTo,
   head,
-  forEachObjIndexed,
-  mergeDeepLeft
+  mergeDeepLeft,
+  mapObjIndexed
 } from 'ramda';
 
 /**
@@ -513,45 +510,34 @@ SearchAPI.registerSearchDocumentProducer('content', _produceContentSearchDocumen
  * @api private
  */
 const _transformContentDocuments = function(ctx, docs, callback) {
-  let transformedDocs = {};
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head, path(['fields', '_extra']))(doc);
 
-  forEachObjIndexed((doc, docId) => {
-    // TODO this is to merge the `lastModified` attribute to the `_source` field but it's already there
-    // TODO make sure we really (still) need this
-    // const pickFields = pick(['mime', 'lastModified']);
-    const getExtra = path(['fields', '_extra']);
-    const extraFields = compose(defaultToEmptyObject, head, getExtra)(doc);
-    // let result = mergeAll([doc.fields, { id: docId }, extraFields]);
-    let result = mergeAll([{ id: docId }, extraFields]);
-
-    // let result = mergeAll([doc.fields, { id: docId }]);
-    // TODO redo this using map and assoc
-    _.each(doc.fields, (value, key) => {
-      // Apply the scalar values wrapped in each ElasticSearch document
-      // to the transformed search document
-      result[key] = head(value);
-    });
-
-    // Add the full tenant object and profile path
-    result = mergeDeepLeft(
-      {
-        tenant: compose(removeFalsy, getTenant, getTenantAlias)(result),
-        profilePath: util.format(
-          '/content/%s/%s',
-          getTenantAlias(result),
-          compose(getResourceId, getResourceFromId, getId)(result)
-        )
-      },
-      result
-    );
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(docId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/content/${tenantAlias}/${resourceId}`
+    };
+    const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
-    if (and(thumbnailUrl, result.lastModified)) {
-      result.thumbnailUrl = getSignedDownloadUrl(ctx, thumbnailUrl);
-    }
+    const signThumbnail = result => {
+      if (and(thumbnailUrl, result.lastModified)) {
+        return assoc('thumbnailUrl', getSignedDownloadUrl(ctx, thumbnailUrl), result);
+      }
 
-    transformedDocs = assoc(docId, result, transformedDocs);
+      return result;
+    };
+
+    return pipe(
+      mergeLeft({ id: docId }),
+      mergeLeft(scalarFields),
+      mergeDeepLeft(tenantAndProfileInfo),
+      signThumbnail
+    )(extraFields);
   }, docs);
 
   return callback(null, transformedDocs);

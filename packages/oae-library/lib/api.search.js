@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import { is, contains } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
@@ -111,9 +111,13 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
           };
 
           // If we're searching for content items we also try to match on content comments and bodies
-          if (_.contains(resourceTypes, 'content')) {
+          if (contains('content', resourceTypes)) {
             query.bool.should.push(
-              // TODO it's this one!!!! doc doc doc and link it to resourceMessagesSchema file please
+              /**
+               * The query we're creating needs to use the `discussion_message_body` field
+               * as that is how we're exporting the schema for discussions. See file:
+               * `oae-messagebox/lib/search/schema/resourceMessagesSchema`
+               */
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_COMMENT,
                 SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
@@ -121,9 +125,9 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
               )
             );
             query.bool.should.push(
-              // TODO Do I need to change this ['content_body'] as well???
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_BODY,
+                // TODO check is this needs changing as well
                 SearchUtil.createQueryStringQuery(opts.q, ['content_body']),
                 'max',
                 2
@@ -131,7 +135,7 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
             );
 
             // If we're searching for discussions we also try to match discussion messages
-          } else if (_.contains(resourceTypes, 'discussion')) {
+          } else if (contains('discussion', resourceTypes)) {
             query.bool.should.push(
               SearchUtil.createHasChildQuery(
                 DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
@@ -141,7 +145,7 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
             );
           }
 
-          const filterFunction = _.isFunction(options.searches[visibility])
+          const filterFunction = is(Function, options.searches[visibility])
             ? options.searches[visibility]
             : _defaultLibraryFilter(resourceTypes, visibility, options.association);
           filterFunction(ctx, libraryOwner, opts, (err, filter) => {

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
 import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -27,7 +26,13 @@ import { DiscussionsConstants } from './constants';
 
 const log = logger('discussions-search');
 
-import { head } from 'ramda';
+import { pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
+
+const defaultToEmptyObject = defaultTo({});
+const getResourceId = prop('resourceId');
+const { getTenant } = TenantsAPI;
+const { getResourceFromId } = AuthzUtil;
+const getTenantAlias = prop('tenantAlias');
 
 /**
  * Initializes the child search documents for the Discussions module
@@ -266,42 +271,27 @@ SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchD
  * @api private
  */
 const _transformDiscussionDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // TODO check this out
-    try {
-      doc.fields._extra[0] = JSON.parse(doc.fields._extra[0]);
-    } catch (error) {
-      log().warn('Error trying to parse JSON: ' + error);
-    }
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
 
-    // Extract the extra object from the search document
-    const extra = head(doc.fields._extra || {});
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(docId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/discussion/${tenantAlias}/${resourceId}`
+    };
 
-    // Build the transformed result document from the ElasticSearch document
-    const result = { id: docId };
-    _.each(doc.fields, (value, key) => {
-      // Apply the scalar values wrapped in each ElasticSearch document
-      // to the transformed search document
-      result[key] = head(value);
-    });
-    // const result = mergeDeepWith(concat, { id: docId }, doc.fields);
+    const result = pipe(
+      mergeLeft({ id: docId }),
+      mergeLeft(scalarFields),
+      mergeLeft({ lastModified: extraFields.lastModified }),
+      mergeDeepLeft(tenantAndProfileInfo)
+    )(extraFields);
 
-    // Take just the `lastModified` from the extra fields, if specified
-    _.extend(result, _.pick(extra, 'lastModified'));
-
-    // Add the full tenant object and profile path
-    _.extend(result, {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format(
-        '/discussion/%s/%s',
-        result.tenantAlias,
-        AuthzUtil.getResourceFromId(result.id).resourceId
-      )
-    });
-
-    transformedDocs[docId] = result;
-  });
+    return result;
+  }, docs);
 
   return callback(null, transformedDocs);
 };

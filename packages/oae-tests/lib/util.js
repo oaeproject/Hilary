@@ -14,7 +14,7 @@
  */
 
 import path from 'path';
-import assert from 'assert';
+import { assert } from 'chai';
 import stream from 'stream';
 import util from 'util';
 
@@ -147,7 +147,7 @@ const clearAllData = function(callback) {
     // And by doing that we also clean the preview processing queues
     // instead of waiting on them to be empty
     Redis.flush(err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Mock a global admin request context so we can create a proper global administrator in the system
       const globalContext = createGlobalAdminContext();
@@ -163,7 +163,7 @@ const clearAllData = function(callback) {
         'Global Administrator',
         opts,
         err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Re-create the tenant administrators
           return _setUpTenantAdmins(callback);
@@ -179,7 +179,7 @@ const clearAllData = function(callback) {
         const query = util.format('TRUNCATE "%s"', cf);
 
         Cassandra.runQuery(query, [], err => {
-          assert.ok(!err);
+          assert.notExists(err);
           return truncated();
         });
       });
@@ -211,7 +211,7 @@ const setUpTenants = function(callback) {
     'cambridge.oae.com',
     { emailDomains: 'cam.ac.uk' },
     (err, tenant) => {
-      assert.ok(!err);
+      assert.notExists(err);
       global.oaeTests.tenants.cam = tenant;
 
       // Create the Georgia Tech tenant
@@ -222,7 +222,7 @@ const setUpTenants = function(callback) {
         'gt.oae.com',
         { emailDomains: 'gatech.edu' },
         (err, tenant) => {
-          assert.ok(!err);
+          assert.notExists(err);
           global.oaeTests.tenants.gt = tenant;
 
           // Create a tenant with a hostname set to 'localhost:2001' (ie: the host/port
@@ -235,7 +235,7 @@ const setUpTenants = function(callback) {
             'localhost:2001',
             null,
             (err, tenant) => {
-              assert.ok(!err);
+              assert.notExists(err);
               global.oaeTests.tenants.localhost = tenant;
 
               // Set up the tenant admins
@@ -264,10 +264,10 @@ const _setUpTenantAdmins = callback => {
     assert.ok(!err, JSON.stringify(err));
 
     _setupTenantAdmin(gtTenant, err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       _setupTenantAdmin(localTenant, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         return callback();
       });
@@ -292,7 +292,7 @@ const _setupTenantAdmin = function(tenant, callback) {
 
   const ctx = createTenantAdminContext(tenant);
   AuthenticationAPI.createUser(ctx, adminLoginId, displayName, { email }, (err, createdUser) => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     return PrincipalsAPI.setTenantAdmin(ctx, createdUser.id, true, callback);
   });
@@ -369,9 +369,8 @@ const generateSingleTestUser = (restCtx, callback) => {
 
         // Manually verify the user their email address
         setEmailAddress(user, toLower(email), (err, user) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
-          // TODO maybe not needed?
           user.username = username;
 
           return callback(null, user);
@@ -385,14 +384,13 @@ const generateSingleTestUser = (restCtx, callback) => {
  * Generate a number of random groups that can be used inside of tests
  *
  * @param  {RestContext}    restContext                     Standard REST Context object that contains the current tenant URL and the current user credentials
- * @param  {Number}         numberOfGroups                           The total number of test groups that need to be created. If not provided, a single test group will be created
- * @param  {Function}       callback                        Standard callback function
- * @param  {Object}         callback.group0...              Each group that was created is a separate return parameter
- * @param  {RestContext}    callback.group0.restContext     A REST Context that can be used to invoke requests as a manager of the group
- * @param  {Group}          callback.group0.group           The group profile of the group
+ * @param  {Number}         numberOfGroups                  The total number of test groups that need to be created. If not provided, a single test group will be created
+ * @param  {Array}          args.createdGroups              Array of already created groups to add more groups to (recursiveness)
+ * @param  {Function}       args.callback                   Standard callback function
+ * @param  {Object}         args.callback.err               An error that occurred, if any
+ * @param  {Object}         args.callback.groups            An array with all the groups created
  * @throws {AssertionError}                                 Thrown if there is an error creating the groups
  */
-// TODO make the createdGroups an optional parameter with args...
 const generateTestGroups = (restContext, numberOfGroups, ...args) => {
   const callback = last(args);
   const createdGroups = compose(defaultTo([]), head, dropLast(1))(args);
@@ -400,8 +398,6 @@ const generateTestGroups = (restContext, numberOfGroups, ...args) => {
   if (isZero(numberOfGroups)) {
     whenIndexingComplete(() => {
       return callback(null, createdGroups);
-      // callback.apply(callback, _groups));
-      // return;
     });
   } else {
     generateSingleTestGroup(restContext, (err, group) => {
@@ -415,7 +411,14 @@ const generateTestGroups = (restContext, numberOfGroups, ...args) => {
   }
 };
 
-// TODO jsdoc
+/**
+ * Generate a random group that can be used inside of tests
+ *
+ * @param  {RestContext}    restCtx             Standard REST Context object that contains the current tenant URL and the current user credentials
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.err        An error that occurred, if any
+ * @param  {Object}         callback.group      Group created
+ */
 const generateSingleTestGroup = (restContext, callback) => {
   // Create the next group and store its full group profile
   createGroup(
@@ -432,10 +435,6 @@ const generateSingleTestGroup = (restContext, callback) => {
         assert.ok(not(err));
 
         return callback(null, fullGroupProfile);
-        // _groups.push({ restContext, group: fullGroupProfile });
-
-        // Recursively continue creating groups
-        // return generateTestGroups(restContext, --total, callback, _groups);
       });
     }
   );
@@ -534,7 +533,7 @@ const generateGroupHierarchy = (restCtx, groupIds, role, callback) => {
   const membershipChanges = {};
   membershipChanges[groupIds[1]] = role;
   setGroupMembers(restCtx, groupIds[0], membershipChanges, err => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     // Recurse, removing the first group
     return generateGroupHierarchy(restCtx, groupIds.slice(1), role, callback);
@@ -692,9 +691,9 @@ const createGlobalAdminContext = function() {
  */
 const getUserFromRestContext = function(restCtx, callback) {
   RestAPI.User.getMe(restCtx, (err, me) => {
-    assert.ok(!err);
+    assert.notExists(err);
     RestAPI.User.getUser(restCtx, me.id, (err, user) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(user);
     });
   });
@@ -994,7 +993,7 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
     email,
     { visibility, publicAlias },
     (err, user) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback({
         user,
         restContext: createTenantRestContext(tenant.adminRestContext.hostHeader, username, password)
@@ -1086,7 +1085,7 @@ const _createGroupWithVisibility = function(tenant, group, callback) {
     [],
     [memberPrincipalId],
     (err, newGroup) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(newGroup);
     }
   );
@@ -1110,7 +1109,7 @@ const _createPrivateTenant = function(tenantAlias, callback) {
       tenant.alias,
       { 'oae-tenants/tenantprivacy/tenantprivate': true },
       err => {
-        assert.ok(!err);
+        assert.notExists(err);
         return callback(tenant, tenantAdmin);
       }
     );
@@ -1133,7 +1132,7 @@ const _createPublicTenant = function(tenantAlias, hostSeed, callback) {
     tenantAlias,
     TenantsTestUtil.generateTestTenantHost(hostSeed, generateRandomText()),
     (err, tenant, tenantAdminRestCtx, tenantAdminUser) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(tenant, { user: tenantAdminUser, restContext: tenantAdminRestCtx });
     }
   );
@@ -1212,10 +1211,10 @@ const createInitialTestConfig = function() {
    * This is a low-level setting. Some store implementations have poor concurrency
    * or disable optimizations for heap memory usage. We recommend sticking to the defaults.
    * https://www.elastic.co/guide/en/elasticsearch/reference/7.x/index-modules-store.html
+   *
+   * mergedConfig.search.index.settings.store = { type: 'memory' };
    */
-  // mergedConfig.search.index.settings.store = { type: 'memory' };
 
-  // TODO commented for testing, for now
   mergedConfig.search.index.destroyOnStartup = true;
 
   // Disable the poller so it only collects manually
@@ -1303,39 +1302,41 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {
         Cassandra.close(() => {
+          /*
           Redis.init(config.redis, () => {
             log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
 
             Redis.flush(err => {
               if (err) return callback(new Error(err.msg));
+              */
 
-              // Initialize the application modules
-              OAE.init(config, err => {
+          // Initialize the application modules
+          OAE.init(config, err => {
+            if (err) return callback(new Error(err.msg));
+
+            _bindRequestLogger();
+          });
+
+          // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
+          // This will always be fired after OAE.init has successfully finished.
+          MQ.emitter.on('ready', err => {
+            if (err) return callback(new Error(err.msg));
+
+            // Set up a couple of test tenants
+            setUpTenants(err => {
+              if (err) return callback(new Error(err.msg));
+
+              log().info('Disabling the preview processor during tests');
+              PreviewAPI.disable(err => {
                 if (err) return callback(new Error(err.msg));
 
-                _bindRequestLogger();
-              });
-
-              // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
-              // This will always be fired after OAE.init has successfully finished.
-              MQ.emitter.on('ready', err => {
-                if (err) return callback(new Error(err.msg));
-
-                // Set up a couple of test tenants
-                setUpTenants(err => {
-                  if (err) return callback(new Error(err.msg));
-
-                  log().info('Disabling the preview processor during tests');
-                  PreviewAPI.disable(err => {
-                    if (err) return callback(new Error(err.msg));
-
-                    return callback();
-                  });
-                });
+                return callback();
               });
             });
           });
         });
+        // });
+        // });
       });
     };
 

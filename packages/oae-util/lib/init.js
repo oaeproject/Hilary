@@ -57,7 +57,7 @@ const bootCassandra = (config, callback) => {
 const bootRedis = (config, callback) => {
   // Allows for simple redis client creations
   // TODO: Move this into its own oae-redis module with a high priority. All of the init(..) stuff then goes in its init.js
-  Redis.init(config.redis, err => {
+  Redis.init(config.redis, (err /* , _redisClient */) => {
     if (err) {
       return callback(err);
     }

@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+import { telemetry } from 'oae-telemetry';
 import { logger } from 'oae-logger';
 
-import { telemetry } from 'oae-telemetry';
 import {
   keys,
+  pipe,
   map,
   inc,
   and,
@@ -246,10 +247,6 @@ const refresh = callback => {
 const putMapping = function(properties, opts, callback) {
   opts = opts || {};
 
-  /**
-   * TODO for some reason I have to do this, fuck it
-   */
-
   indexExists(index, (err, exists) => {
     if (err) return callback(err);
     if (not(exists)) return callback();
@@ -298,7 +295,14 @@ const putMapping = function(properties, opts, callback) {
   });
 };
 
-// TODO JsDoc
+/**
+ * Creates the ES mapping to link parents and children (resources)
+ *
+ * @function mapChildrenToParent
+ * @param  {type} parentName   parent resource type
+ * @param  {type} childrenName children resource type
+ * @param  {type} callback     Standard callback function
+ */
 const mapChildrenToParent = function(parentName, childrenName, callback) {
   if (isEmpty(childrenName)) return callback();
 
@@ -470,7 +474,7 @@ const bulk = (operationsToRun, callback) => {
          * that we did for the document has failed.
          */
         bulkResponse.items.forEach((action, i) => {
-          const operation = Object.keys(action)[0];
+          const operation = pipe(keys, head)(action);
           if (action[operation].error) {
             erroredDocuments.push({
               /**
@@ -485,9 +489,8 @@ const bulk = (operationsToRun, callback) => {
             });
           }
         });
-        // TODO not sure this is how to error log, check it out
-        log().error({}, erroredDocuments);
-        // TODO probably return callback(err) here? try it out when tests are passing
+        _logError(BULK, erroredDocuments);
+        return callback(err);
       }
 
       return callback();
@@ -496,20 +499,33 @@ const bulk = (operationsToRun, callback) => {
 };
 
 /**
- * TODO jsdoc here
+ * "The routing value is mandatory because parent and child documents must be indexed on the same shard"
+ *
+ * Elasticsearch 7.x+ bulk operation requires action-data pairs as an input
+ * However, the routing field must be put in there for the child-parent
+ * relationships to be correctly inserted
+ *
+ * This function picks the fields related to document parenthood and uses that to fill in the routing
+ * field. More info here:
+ * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html
+ *
+ * @function insertRoutingIntoActionPairs
+ * @param  {Array} operationsToRun Array with action/data pairs that go into the ES bulk operation
  */
 const insertRoutingIntoActionPairs = operationsToRun => {
   const parentIdPath = ['_parent', 'parent'];
   const getParentPath = path(parentIdPath);
-  const actionPairs = filter(path(['_parent']));
-  const dataPairs = reject(path(['_parent']));
 
-  const parentIds = compose(map(getParentPath), actionPairs)(operationsToRun);
+  const cherryPickActionPairs = filter(path(['_parent']));
+  const cherryPickDataPairs = reject(path(['_parent']));
+
+  const extractParentIds = compose(map(getParentPath), cherryPickActionPairs);
+  const parentIds = extractParentIds(operationsToRun);
 
   forEach(eachOperation => {
     const routingId = parentIds.shift();
     eachOperation.index.routing = routingId;
-  }, dataPairs(operationsToRun));
+  }, cherryPickDataPairs(operationsToRun));
 
   return operationsToRun;
 };
@@ -583,9 +599,9 @@ const deleteByQuery = function(type, query, options, callback) {
  * @param  {Object} err      The error to log.
  * @api private
  */
-const _logError = function(callName, err) {
-  Telemetry.incr('exec.' + callName + '.error.count');
-  log().error({ err }, 'Error executing %s query.', callName);
+const _logError = function(fn, err) {
+  Telemetry.incr('exec.' + fn + '.error.count');
+  log().error({ err }, 'Error executing %s query.', fn);
 };
 
 export {

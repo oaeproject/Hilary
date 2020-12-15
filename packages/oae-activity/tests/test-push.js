@@ -658,6 +658,7 @@ describe('Activity push', () => {
     it('verify the activity entities format can be specified', callback => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.notExists(err);
+
         const { 0: homer, 1: marge } = users;
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
@@ -907,7 +908,7 @@ describe('Activity push', () => {
                 };
 
                 client.on('message', message => {
-                  setTimeout(dealWithMessage, 100, message);
+                  setTimeout(dealWithMessage, 500, message);
                 });
               }
             );

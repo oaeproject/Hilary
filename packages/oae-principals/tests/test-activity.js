@@ -68,7 +68,6 @@ describe('Principals Activity', () => {
    */
   const _getActivity = function(activityStream, activityType, entityType, entityOaeId) {
     if (not(and(activityStream, activityStream.items))) {
-      // !activityStream || !activityStream.items) {
       return null;
     }
 

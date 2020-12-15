@@ -21,34 +21,38 @@ import { logger } from 'oae-logger';
 import { compose } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import { Validator as validator } from './validator';
+import { config } from '../../../config';
 
 const { unless, isDefined, isNotNull } = validator;
 const log = logger('oae-util-locking');
 
-let locker = null;
+let locker;
 
 /**
  * Initialize the Redis based locking
  */
 const init = done => {
-  locker = new Redlock([Redis.getClient()], {
-    /**
-     *
-     * Redlock cannot tell you with certainty if a resource is currently locked.
-     * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
-     * but you don't know if the lock exists on the other side; all you know is that you can't
-     * guarantee exclusivity on yours.
-     *
-     * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
-     * failure as the resource being "locked" or (more correctly) "unavailable",
-     * With retryCount=-1 there will be unlimited retries until the lock is aquired.
-     */
-    retryDelay: 500, // the time in ms between attempts
-    retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
-    retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
-  });
+  Redis.createClient(config.redis, (err, client) => {
+    if (err) return done(err);
+    locker = new Redlock([client], {
+      /**
+       *
+       * Redlock cannot tell you with certainty if a resource is currently locked.
+       * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
+       * but you don't know if the lock exists on the other side; all you know is that you can't
+       * guarantee exclusivity on yours.
+       *
+       * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
+       * failure as the resource being "locked" or (more correctly) "unavailable",
+       * With retryCount=-1 there will be unlimited retries until the lock is aquired.
+       */
+      retryDelay: 500, // the time in ms between attempts
+      retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
+      retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
+    });
 
-  return done();
+    return done(null, locker);
+  });
 };
 
 /**
@@ -128,4 +132,6 @@ const release = function(lock, callback) {
   });
 };
 
-export { init, acquire, release };
+const getLocker = () => locker;
+
+export { init, acquire, release, getLocker };

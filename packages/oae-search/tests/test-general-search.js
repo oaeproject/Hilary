@@ -4512,10 +4512,13 @@ describe('General Search', () => {
                                                                                     undefined,
                                                                                     groupDoc._extra
                                                                                   );
-                                                                                  // TODO type not _type?
                                                                                   assert.strictEqual(
                                                                                     undefined,
                                                                                     groupDoc._type
+                                                                                  );
+                                                                                  assert.strictEqual(
+                                                                                    undefined,
+                                                                                    groupDoc.type
                                                                                   );
                                                                                   assert.strictEqual(
                                                                                     undefined,

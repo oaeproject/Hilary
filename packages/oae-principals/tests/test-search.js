@@ -15,7 +15,7 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import { find, propSatisfies, equals } from 'ramda';
+import { keys, find, propSatisfies, equals } from 'ramda';
 
 import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
 import * as RestAPI from 'oae-rest';
@@ -97,7 +97,7 @@ describe('Search', () => {
                         const userDoc = _getDocById(results, jack.user.id);
                         assert.ok(userDoc);
                         assert.ok(_.isObject(userDoc.tenant));
-                        assert.strictEqual(_.keys(userDoc.tenant).length, 3);
+                        assert.lengthOf(keys(userDoc.tenant), 3);
                         assert.strictEqual(userDoc.tenant.displayName, global.oaeTests.tenants.cam.displayName);
                         assert.strictEqual(userDoc.tenant.alias, global.oaeTests.tenants.cam.alias);
                         return callback();

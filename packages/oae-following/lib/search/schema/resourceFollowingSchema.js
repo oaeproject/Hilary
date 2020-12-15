@@ -21,7 +21,11 @@
  *
  * @return {Object}     schema              The resource following schema object
  *         {String[]}   schema.following    A multi-value field that holds the resource ids of which the parent resource is following
+ *
+ * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+ * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
+
 /* eslint-disable unicorn/filename-case */
 export const following = {
   type: 'keyword',

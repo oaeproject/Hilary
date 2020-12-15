@@ -36,7 +36,7 @@ export function init(config, callback) {
 
     // Periodically clean that directory.
     Cleaner.start(config.previews.tmpDir, config.files.cleaner.interval);
-  });
 
-  PreviewAPI.refreshPreviewConfiguration(config, callback);
+    PreviewAPI.refreshPreviewConfiguration(config, callback);
+  });
 }

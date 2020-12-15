@@ -15,12 +15,11 @@
 
 /* eslint-disable camelcase */
 import util from 'util';
-import _ from 'underscore';
 
 import { logger } from 'oae-logger';
-
 import * as AuthzAPI from 'oae-authz';
 import * as OaeUtil from 'oae-util/lib/util';
+const { invokeIfNecessary } = OaeUtil;
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as SearchModel from 'oae-search/lib/model';
@@ -30,20 +29,27 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import { Validator as validator } from 'oae-util/lib/validator';
 import {
   mergeDeepWith,
+  mergeDeepRight,
   concat,
+  gte,
   equals,
+  pluck,
+  includes,
   not,
   reject,
   isNil,
   keys,
   prop,
+  forEach,
+  union,
   isEmpty,
   path,
   defaultTo,
   compose,
   length,
   values,
-  pluck,
+  either,
+  is,
   head
 } from 'ramda';
 
@@ -51,7 +57,10 @@ const { isObject, unless } = validator;
 const { defaultToEmptyArray, defaultToEmptyObject } = validator;
 const log = logger('oae-search-util');
 
+const isArray = is(Array);
+const isNotArray = compose(not, isArray);
 const removeNils = reject(isNil);
+const removeFalsies = reject(either(isNil, isEmpty));
 
 /**
  * Get the standard search parameters from the given request.
@@ -64,7 +73,10 @@ const getSearchParams = function(req) {
     return {};
   }
 
-  // Note that we do not impose an upper limit on the `limit` parameter. It's up to individual registered search types to do this.
+  /**
+   * Note that we do not impose an upper limit on the `limit` parameter.
+   * It's up to individual registered search types to do this.
+   */
   return {
     q: req.query.q,
     start: req.query.start,
@@ -95,7 +107,7 @@ const getQueryParam = function(val, defaultVal) {
  */
 const getScopeParam = function(val, defaultVal) {
   defaultVal = defaultVal ? getScopeParam(defaultVal) : SearchConstants.general.SCOPE_ALL;
-  if (_.contains(SearchConstants.general.SCOPES_ALL, val)) {
+  if (includes(val, SearchConstants.general.SCOPES_ALL)) {
     // If it is a valid scope type, return the scope as-is
     return val;
   }
@@ -110,7 +122,8 @@ const getScopeParam = function(val, defaultVal) {
 };
 
 /**
- * Determine if the given parameter is a valid sort direction parameter. If so, simply return the `val`, otherwise, return `defaultVal`.
+ * Determine if the given parameter is a valid sort direction parameter.
+ * If so, simply return the `val`, otherwise, return `defaultVal`.
  * By default results are sorted in an ascending direction.
  *
  * @param  {String}     val             The value to check
@@ -119,16 +132,17 @@ const getScopeParam = function(val, defaultVal) {
  * @return {String}                     `val` if it is valid. `defaultVal` otherwise
  */
 const getSortDirParam = function(val, defaultVal, sortBy) {
-  if (sortBy === SearchConstants.sort.field.SCORE || sortBy === SearchConstants.sort.field.MODIFIED) {
+  if (equals(sortBy, SearchConstants.sort.field.SCORE) || equals(sortBy, SearchConstants.sort.field.MODIFIED)) {
     return SearchConstants.sort.direction.DESC;
   }
 
   defaultVal = defaultVal ? getSortDirParam(defaultVal) : SearchConstants.sort.direction.ASC;
-  return _.contains(SearchConstants.sort.direction.OPTIONS, val) ? val : defaultVal;
+  return includes(val, SearchConstants.sort.direction.OPTIONS) ? val : defaultVal;
 };
 
 /**
- * Determine if the given parameter is a valid sort field parameter. If so, simply return the `val`, otherwise, return `defaultVal`. By
+ * Determine if the given parameter is a valid sort field parameter.
+ * If so, simply return the `val`, otherwise, return `defaultVal`. By
  * default we use the 'sort' field in the elasticsearch document for sorting results.
  *
  * @param  {String}     val             The value to check
@@ -137,7 +151,7 @@ const getSortDirParam = function(val, defaultVal, sortBy) {
  */
 const getSortFieldParam = function(val, defaultVal) {
   defaultVal = defaultVal ? getSortFieldParam(defaultVal) : SearchConstants.sort.field.SCORE;
-  return _.contains(SearchConstants.sort.field.OPTIONS, val) ? val : defaultVal;
+  return includes(val, SearchConstants.sort.field.OPTIONS) ? val : defaultVal;
 };
 
 /**
@@ -151,16 +165,17 @@ const getSortFieldParam = function(val, defaultVal) {
  */
 const getArrayParam = function(val, defaultVal) {
   defaultVal = defaultVal ? getArrayParam(defaultVal) : [];
-  if (!_.isArray(val)) {
+  if (isNotArray(val)) {
     return getArrayParam([val], defaultVal);
   }
 
-  val = _.compact(val);
-  return _.isEmpty(val) ? defaultVal : val;
+  val = removeFalsies(val);
+  return isEmpty(val) ? defaultVal : val;
 };
 
 /**
- * Transform the raw search `results` from ElasticSearch into a `SearchResult` that can be returned to the client.
+ * Transform the raw search `results` from ElasticSearch into a `SearchResult`
+ * that can be returned to the client.
  *
  * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
  * @param  {Object}         transformers        An object keyed by the resource type, and the value is the transformer object that can transform a set of search documents into client-viewable documents
@@ -170,41 +185,14 @@ const getArrayParam = function(val, defaultVal) {
  * @param  {SearchResult}   callback.results    The search results that can be sent to the client
  */
 const transformSearchResults = function(ctx, transformers, results, callback) {
-  const hits = defaultTo({}, path(['body', 'hits', 'hits'], results)); //  results.hits || {};
-  // const total = prop('total', hits);
-  // const total = defaultTo(0, hits.total); //  || 0;
-
+  const hits = defaultTo({}, path(['body', 'hits', 'hits'], results));
   const resultsTotalCount = path(['body', 'hits', 'total', 'value'], results);
 
   if (isEmpty(hits)) return callback(null, new SearchModel.SearchResult(resultsTotalCount, []));
 
-  // const total = length(hits);
-  // const total = path(['body', 'hits', 'total', 'value'], results);
   // Aggregate all the documents to be keyed by type
   const docsByType = {};
   const docIdOrdering = {};
-  // hits = prop('hits', hits);
-
-  /*
-  const saveEachHit = eachResultHit => {
-    const id = prop('_id', eachResultHit);
-    // let type = path(['_source', 'resourceType'], eachResultHit);
-    let type = path(['fields', 'resourceType'], eachResultHit);
-
-    // If transformer does not exist, pass it through the default "raw" transformer
-    if (!transformers[type]) type = '*';
-
-    if (!docsByType[type]) docsByType[type] = {};
-
-    docsByType = assocPath([type, id], eachResultHit, docsByType);
-    docIdOrdering = assocPath([id], index, docIdOrdering);
-    // docsByType[type][id] = eachResultHit;
-    // docIdOrdering[id] = index;
-    index++;
-  };
-
-  forEach(saveEachHit, hits);
-  */
 
   for (const [i, doc] of hits.entries()) {
     const id = doc._id;
@@ -224,10 +212,10 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
   }
 
   // Run all the documents through the document transformers for their particular type
-  const transformersToRun = compose(length, keys)(docsByType); // _.keys(docsByType).length;
+  const transformersToRun = compose(length, keys)(docsByType);
   let transformersComplete = 0;
   let transformErr = null;
-  const transformedDocs = {};
+  let transformedDocs = {};
 
   const _monitorTransformers = function(err, resourceType, docs) {
     if (transformErr) {
@@ -236,9 +224,13 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
       transformErr = err;
       return callback(transformErr);
     } else {
-      // If we aren't using the default transformer, ensure the resourceType property by merging it over the doc, it should never change and don't necessarily need to be manually applied by an extension transformer
+      /**
+       * If we aren't using the default transformer, ensure the resourceType property
+       * by merging it over the doc, it should never change and don't necessarily
+       * need to be manually applied by an extension transformer
+       */
       if (resourceType !== '*') {
-        const docIds = _.keys(docs);
+        const docIds = keys(docs);
         for (const element of docIds) {
           const doc = docs[element];
           doc.resourceType = resourceType;
@@ -246,12 +238,15 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
       }
 
       // Merge the docs into the transformed docs
-      _.extend(transformedDocs, docs);
+      transformedDocs = mergeDeepRight(transformedDocs, docs);
 
       transformersComplete++;
-      if (transformersComplete >= transformersToRun) {
-        // We've done all transformations, reorder the docs into the original search ordering and send back the response
-        const orderedDocs = _.values(transformedDocs);
+      if (gte(transformersComplete, transformersToRun)) {
+        /**
+         * We've done all transformations, reorder the docs into the original
+         * search ordering and send back the response
+         */
+        const orderedDocs = values(transformedDocs);
 
         // Reorder the docs using the ordering hash that was recorded before transformation
         orderedDocs.sort((one, other) => {
@@ -263,8 +258,11 @@ const transformSearchResults = function(ctx, transformers, results, callback) {
     }
   };
 
-  // Execute all transformers asynchronously from one another. `_monitorTransformers` will keep track of their completion
-  _.keys(docsByType).forEach(type => {
+  /**
+   * Execute all transformers asynchronously from one another. `_monitorTransformers`
+   * will keep track of their completion
+   */
+  keys(docsByType).forEach(type => {
     transformers[type](
       ctx,
       docsByType[type],
@@ -322,17 +320,17 @@ const createQuery = function(query, filter, opts) {
   opts = {
     from: OaeUtil.getNumberParam(opts.start),
     size: OaeUtil.getNumberParam(opts.limit),
-    sort: _.union(
+    sort: union(
       // The field to sort by, uses _score by default unless other value has been provided
       [sortBy],
 
       // Final sort is the lowly natural resource sort parameter
       [{ sort: getSortDirParam(opts.sort) }]
     ),
-    min_score: _.isNumber(opts.minScore) ? opts.minScore : SearchConstants.query.MINIMUM_SCORE
+    min_score: is(Number, opts.minScore) ? opts.minScore : SearchConstants.query.MINIMUM_SCORE
   };
 
-  return _.extend(data, opts);
+  return mergeDeepRight(data, opts);
 };
 
 /**
@@ -343,30 +341,13 @@ const createQuery = function(query, filter, opts) {
  * @param  {Object}     filter      The ElasticSearch filter to apply
  * @return {Object}                 The ElasticSearch Filtered Query object
  */
-const createFilteredQuery = function(query, filter) {
-  /*
-  const filteredQuery = {
-    filtered: {
-      filter
-    }
-  };
-
-  if (query) {
-    filteredQuery.filtered.query = query;
-  }
-
-  return filteredQuery;
-  */
-
-  return mergeDeepWith(concat, query, filter);
-
-  // if (query) query.bool.filter = filter;
-  // return query;
-};
+const createFilteredQuery = (query, filter) => mergeDeepWith(concat, query, filter);
 
 /**
- * Create an ElasticSearch bulk index operation from the given array of documents. This splits up the documents automatically into the
- * meta / document sub-parts, and returns the array of documents that can be sent to the elasticsearchclient to be indexed. This does
+ * Create an ElasticSearch bulk index operation from the given array of documents.
+ * This splits up the documents automatically into the
+ * meta / document sub-parts, and returns the array of documents that can be sent
+ * to the elasticsearchclient to be indexed. This does
  * not support bulk delete operations, as it is only for indexing operations.
  *
  * @param  {Object[]}   docs        An array of documents to be indexed
@@ -375,10 +356,9 @@ const createFilteredQuery = function(query, filter) {
 const createBulkIndexOperations = function(docs) {
   const cmds = [];
 
-  _.each(docs, doc => {
+  forEach(doc => {
     const meta = {
       index: {
-        // _type: doc._type || SearchConstants.search.MAPPING_RESOURCE,
         _id: doc.id
       }
     };
@@ -386,14 +366,11 @@ const createBulkIndexOperations = function(docs) {
     const parentId = doc._parent;
     /**
      * When indexing parents or children, we need to do this all the time
-     * This makes sense for resources, not sure about users though? // TODO
      */
     doc._parent = {};
 
     if (parentId) {
       // the _parent field no longer exists on the meta object, instead we need to chenge it
-      // meta.index._parent = doc._parent;
-
       doc._parent.parent = parentId;
     }
 
@@ -403,12 +380,10 @@ const createBulkIndexOperations = function(docs) {
 
     // These meta attributes have been promoted and shouldn't be on the core doc anymore
     delete doc.id;
-    // delete doc._type;
-    // delete doc._parent;
 
     cmds.push(meta);
     cmds.push(doc);
-  });
+  }, docs);
 
   return cmds;
 };
@@ -448,7 +423,7 @@ const filterExists = function(field) {
  * @return {Object}             An ElasticSearch "OR" filter
  */
 const filterOr = function(...args) {
-  const filterClauses = _.compact(args);
+  const filterClauses = removeNils(args);
   if (isEmpty(filterClauses)) return null;
 
   // If there is only one filter, no need to wrap it in an `or`
@@ -457,7 +432,6 @@ const filterOr = function(...args) {
   if (singleFilter) {
     result = head(filterClauses);
   } else {
-    // return { should: filters };
     result = { bool: { should: filterClauses } };
   }
 
@@ -478,36 +452,6 @@ const filterAnd = function(...args) {
   const mustNots = compose(removeNils, getMustNots)(filterClauses);
   const exceptMustNots = each => not(isNil(prop('must_not', each)));
   const otherClauses = reject(exceptMustNots, filterClauses);
-
-  /*
-  const getTerm = pluck('term');
-  const getTerms = pluck('terms');
-  const getMusts = pluck('must');
-  const unpluckTerm = eachFilter => assoc('term', eachFilter, {});
-  const unpluckTerms = eachFilter => assoc('terms', eachFilter, {});
-
-  const mapTerm = map(unpluckTerm);
-  const mapTerms = map(unpluckTerms);
-
-  const termFilters = compose(mapTerm, removeNils, getTerm)(clauses);
-  const termsFilters = compose(mapTerms, removeNils, getTerms)(clauses);
-  const filters = insertAll(0, termFilters, termsFilters);
-
-  const musts = compose(removeNils, getMusts)(clauses);
-
-  // const shoulds = compose(removeNils, defaultTo([]), getShoulds)(clauses);
-  const shoulds = compose(flatten, reject(isNil), map(path(['bool', 'should'])))(clauses);
-
-  const result = {
-    bool: {
-      filter: filters,
-      must: musts,
-      must_not: mustNots,
-      should: shoulds
-    }
-  };
-  return result;
-  */
 
   // If there is only one filter, no need to wrap it in an `and`
   const singleClause = compose(equals(1), length)(filterClauses);
@@ -530,7 +474,6 @@ const filterAnd = function(...args) {
 const filterNot = function(filter) {
   if (!filter) return null;
 
-  // return { bool: { must_not: filter } };
   const result = { must_not: filter };
   return result;
 };
@@ -552,9 +495,9 @@ const filterTerms = function(field, values) {
   if (isEmpty(values)) return null;
 
   const filter = { terms: {} };
-  if (_.isArray(values)) {
+  if (isArray(values)) {
     // We've been given a static terms array on query
-    const terms = _.compact(values);
+    const terms = removeNils(values);
     if (isEmpty(terms)) return null;
 
     filter.terms[field] = terms;
@@ -605,10 +548,6 @@ const filterResources = (resourceTypes, deleted) => {
   filters.push(filterTerm('type', SearchConstants.search.MAPPING_RESOURCE));
   if (not(isEmpty(resourceTypes))) filters.push(filterTerms('resourceType', resourceTypes));
 
-  // const { must_not } = filterDeleted;
-  // const result = { bool: { filter: filters, must_not } };
-  // return result;
-
   const termsFilter = filterTerms('resourceType', resourceTypes);
   return filterAnd(
     // Should only return resource documents
@@ -620,29 +559,6 @@ const filterResources = (resourceTypes, deleted) => {
     // Filter according to the deleted directive
     filterDeleted
   );
-
-  /*
-    const termCondition = filterTerm('type', SearchConstants.search.MAPPING_RESOURCE);
-  const termsCondition = isEmpty(resourceTypes) ? {} : filterTerms('resourceType', resourceTypes);
-
-  let result = {};
-  result = assoc('must', mergeRight(termCondition, termsCondition), result);
-  result = assoc('must_not', filterExists('deleted'), result);
-
-  return result;
-  */
-  /*
-   return {
-
-     // Should only return resource documents
-     must: 
-     
-     // Should only return resource documents of the specified resource type
-     
-     // Filter according to the deleted directive
-     filterDeleted
-    };
-    */
 };
 
 /**
@@ -659,7 +575,9 @@ const filterInteractingTenants = function(tenantAlias) {
   }
 
   // A public tenant can only interact with public tenants
-  const nonInteractingTenantAliases = _.pluck(TenantsAPI.getNonInteractingTenants(), 'alias');
+  const nonInteractingTenants = TenantsAPI.getNonInteractingTenants();
+  const nonInteractingTenantAliases = pluck('alias', values(nonInteractingTenants));
+
   return filterNot(filterTerms('tenantAlias', nonInteractingTenantAliases));
 };
 
@@ -674,9 +592,9 @@ const filterInteractingTenants = function(tenantAlias) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  * @param  {Object}     callback.filter                 The ElasticSearch filter that can be used in the search query
  */
-const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, callback) {
-  scope = getScopeParam(scope);
-
+const filterScopeAndAccess = function(ctx, opts, needsFilterByExplicitAccess, callback) {
+  const scope = getScopeParam(opts.scope);
+  const { index } = opts;
   const tenant = ctx.tenant();
   const user = ctx.user();
   const interactingTenantAliasesFilter = filterInteractingTenants(tenant.alias);
@@ -689,16 +607,23 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
    */
   needsFilterByExplicitAccess = needsFilterByExplicitAccess || scope === SearchConstants.general.SCOPE_MY;
 
-  // TODO remove this util method
-  OaeUtil.invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
+  invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, index, (err, explicitAccessFilter) => {
     if (err) return callback(err);
 
-    if (user && user.isGlobalAdmin() && scope === SearchConstants.general.SCOPE_ALL) {
+    const isScopeToAll = equals(scope, SearchConstants.general.SCOPE_ALL);
+    const isScopeToInteractionOnly = equals(scope, SearchConstants.general.SCOPE_INTERACT);
+    const isScopeToMineOnly = equals(scope, SearchConstants.general.SCOPE_MY);
+    const scopeToAllOrNetwork = either(
+      equals(SearchConstants.general.SCOPE_NETWORK),
+      equals(SearchConstants.general.SCOPE_ALL)
+    )(scope);
+
+    if (user && user.isGlobalAdmin() && isScopeToAll) {
       // Global admins can search all public resources, including private tenants'
       return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
     }
 
-    if (scope === SearchConstants.general.SCOPE_NETWORK || scope === SearchConstants.general.SCOPE_ALL) {
+    if (scopeToAllOrNetwork) {
       /**
        *  When searching network, we care about access and the scope of the tenant network (i.e.,
        *  scope public tenants away from private). All resources outside the network that the
@@ -710,7 +635,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (scope === SearchConstants.general.SCOPE_INTERACT) {
+    if (isScopeToInteractionOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({
@@ -741,7 +666,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (scope === SearchConstants.general.SCOPE_MY) {
+    if (isScopeToMineOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({
@@ -835,7 +760,7 @@ const filterImplicitAccess = function(ctx) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.filter     The ElasticSearch filter that will filter by explicit access. If unspecified, it implies the user has explicit access to *nothing*
  */
-const filterExplicitAccess = function(ctx, callback) {
+const filterExplicitAccess = function(ctx, index, callback) {
   const user = ctx.user();
   if (!user) {
     // Anonymous users cannot have explicit access to anything
@@ -863,7 +788,7 @@ const filterExplicitAccess = function(ctx, callback) {
              * Include all resources that have the current user or
              * the user's *indirect* group memberships as a direct member
              */
-            filterTerms('direct_members', _.union([ctx.user().id], indirectGroupIds)),
+            filterTerms('direct_members', union([ctx.user().id], indirectGroupIds)),
 
             /**
              * Additionally, include all resources that have the current user's *direct*
@@ -874,12 +799,10 @@ const filterExplicitAccess = function(ctx, callback) {
              * @see http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-terms-filter.html
              */
             filterTerms('direct_members', {
-              // type: AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, // this is deprecated
-              index: 'oaetest', // TODO this needs to come out of somewhere, can't be hardcoded
+              index,
               id: getChildSearchDocumentId(AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, ctx.user().id),
               path: 'direct_memberships',
               routing: ctx.user().id
-              // cache: false // this is obsolete, apparently
             })
           )
         )
@@ -889,7 +812,8 @@ const filterExplicitAccess = function(ctx, callback) {
 };
 
 /**
- * Create an ElasticSearch filter that will filter only the items created by the current user or items NOT created by the current user
+ * Create an ElasticSearch filter that will filter only the items created by
+ * the current user or items NOT created by the current user
  *
  * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
  * @param  {String}     createdBy           A string used to filter items by
@@ -905,7 +829,6 @@ const filterCreatedBy = function(ctx, createdBy) {
     return filterNot(filterTerm('createdBy', user.id));
   }
 
-  // TODO changed here, verify
   return null;
 };
 
@@ -920,13 +843,13 @@ const filterCreatedBy = function(ctx, createdBy) {
  * @return {Object}                     A Query object that can be used in the query portion of the ElasticSearch Query DSL
  */
 const createQueryStringQuery = function(q, fields, boost) {
-  if (_.isEmpty(fields)) {
+  if (isEmpty(keys(fields))) {
     fields = ['displayName^3.0', 'q_high^2.0', 'q_low^0.75'];
   }
 
   let query = null;
   q = getQueryParam(q);
-  if (q === SearchConstants.query.ALL) {
+  if (equals(q, SearchConstants.query.ALL)) {
     // We're searching everything, use query_string syntax
     query = {
       query_string: {
@@ -938,9 +861,6 @@ const createQueryStringQuery = function(q, fields, boost) {
     if (boost) {
       query.query_string.boost = boost;
     }
-
-    // TODO experiment for now
-    // query = {};
   } else {
     // Build a query that will do a full-text search on the "q" fields, giving favour to matches on the title
     query = {
@@ -964,9 +884,7 @@ const createQueryStringQuery = function(q, fields, boost) {
  * @param  {String}     email   The email to search for
  * @return {Object}             A Query object that can be used in the query portion of the ElasticSearch Query DSL
  */
-const createEmailQuery = function(email) {
-  return createFilteredQuery(null, filterTerm('email', email));
-};
+const createEmailQuery = email => createFilteredQuery(null, filterTerm('email', email));
 
 /**
  * Creates a has_child query object that can be used to get those resources that have children of
@@ -991,12 +909,13 @@ const createHasChildQuery = function(type, childQuery, scoreType, boost) {
     }
   };
 
-  // Because we can't use a has_child query with a scoreType in a filter,
-  // we only add the scoreType when it's been defined, so callers can specify
-  // when to add it
+  /**
+   * Because we can't use a has_child query with a scoreType in a filter,
+   * we only add the scoreType when it's been defined, so callers can specify
+   * when to add it
+   */
   if (scoreType) {
     query.has_child.score_mode = scoreType;
-    // query.has_child.score_type = scoreType;
   }
 
   if (boost) {
@@ -1016,7 +935,7 @@ const createHasChildQuery = function(type, childQuery, scoreType, boost) {
  * @return {Object}                 A Query object that can be used in the query portion of the ElasticSearch Query DSL
  */
 const createMoreLikeThisQuery = function(val, fields) {
-  fields = _.isEmpty(fields) ? ['q_high'] : fields;
+  fields = isEmpty(keys(fields)) ? ['q_high'] : fields;
   return {
     more_like_this: {
       fields,
@@ -1036,7 +955,7 @@ const createMoreLikeThisQuery = function(val, fields) {
  * @param  {String}     [fields.id]     A custom id for the document. If this is not specified, then the empty string is used and it is assumed you probably only want one child of this type per resource. Specifying the id allows you to have many child documents per resource
  */
 const createChildSearchDocument = function(type, resourceId, fields) {
-  return _.extend({}, fields, {
+  return mergeDeepRight(fields, {
     id: getChildSearchDocumentId(type, resourceId, fields.id),
     type,
     _parent: resourceId
@@ -1072,12 +991,14 @@ const filterByResource = resourcesToFilterBy => {
 };
 
 /**
- * TODO Jsdoc
- *  * Make sure the `tenantAlias` cannot be part of the query result
+ * Filter by interacting tenants to include in query
  *
- * if Private, then...
  * A private tenant can only interact with itself
- * if Public, then...
+ * A public tenant can only interact with public tenants
+ *
+ * @function filterByInteractingTenants
+ * @param  {type} const filterByInteractingTenants {description}
+ * @return {type} {description}
  */
 const filterByInteractingTenants = tenantAlias => {
   const { isPrivate } = TenantsUtil;
@@ -1093,13 +1014,6 @@ const filterByInteractingTenants = tenantAlias => {
   const tenantsItCannotInteractWith = compose(getAlias, values, getNonInteractingTenants)();
   return { must_not: { terms: { tenantAlias: tenantsItCannotInteractWith } } };
 };
-
-/**
-    return filterTerm('tenantAlias', tenantAlias);
-  }
-
-  return filterNot(filterTerms('tenantAlias', nonInteractingTenantAliases));
- */
 
 /**
  * Return a query for exact match for email

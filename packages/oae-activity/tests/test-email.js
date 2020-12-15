@@ -786,17 +786,13 @@ describe('Activity Email', () => {
                                     // Collect the e-mails, only the immediate and daily users should've received an e-mail
                                     EmailTestUtil.collectAndFetchAllEmails(messages => {
                                       assert.strictEqual(messages.length, 2);
-                                      assert.ok(
-                                        contains(messages[0].to[0].address, [
-                                          immediateMailUser.user.email,
-                                          dailyMailUser.user.email
-                                        ])
+                                      assert.include(
+                                        [immediateMailUser.user.email, dailyMailUser.user.email],
+                                        messages[0].to[0].address
                                       );
-                                      assert.ok(
-                                        contains(messages[1].to[0].address, [
-                                          immediateMailUser.user.email,
-                                          dailyMailUser.user.email
-                                        ])
+                                      assert.include(
+                                        [immediateMailUser.user.email, dailyMailUser.user.email],
+                                        messages[1].to[0].address
                                       );
                                       // Assert that the "weekly" mail user's email contains 1 activity
                                       const dailyMail = find(
@@ -841,14 +837,16 @@ describe('Activity Email', () => {
                                                 immediateMailUser.user.email,
                                                 weeklyMailUser.user.email
                                               ];
-                                              assert.ok(
-                                                contains(messages[0].to[0].address),
-                                                mailAddresses
+                                              assert.include(
+                                                mailAddresses,
+                                                messages[0].to[0].address
                                               );
-                                              assert.ok(
-                                                contains(messages[1].to[0].address),
-                                                mailAddresses
+
+                                              assert.include(
+                                                mailAddresses,
+                                                messages[1].to[0].address
                                               );
+
                                               // Assert that the "weekly" mail user's email contains 1 activity
                                               const weeklyMail = find(
                                                 compose(
@@ -893,23 +891,17 @@ describe('Activity Email', () => {
                                                           dailyMailUser.user.email,
                                                           weeklyMailUser.user.email
                                                         ];
-                                                        assert.ok(
-                                                          contains(
-                                                            messages[0].to[0].address,
-                                                            mailAddresses
-                                                          )
+                                                        assert.include(
+                                                          mailAddresses,
+                                                          messages[0].to[0].address
                                                         );
-                                                        assert.ok(
-                                                          contains(
-                                                            messages[1].to[0].address,
-                                                            mailAddresses
-                                                          )
+                                                        assert.include(
+                                                          mailAddresses,
+                                                          messages[1].to[0].address
                                                         );
-                                                        assert.ok(
-                                                          contains(
-                                                            messages[2].to[0].address,
-                                                            mailAddresses
-                                                          )
+                                                        assert.include(
+                                                          mailAddresses,
+                                                          messages[2].to[0].address
                                                         );
 
                                                         // Assert that the "weekly" mail user's email contains 1 activity (but is an aggregate of 3)
@@ -1109,7 +1101,7 @@ describe('Activity Email', () => {
                         const hours = (24 + config.mail.daily.hour - 5) % 24;
                         ActivityEmail.collectMails(0, 'daily', null, hours, (err, empty, users) => {
                           assert.notExists(err);
-                          assert.strictEqual(users.length, 1);
+                          assert.lengthOf(users, 1);
                           assert.strictEqual(users[0].id, nico.user.id);
                           return callback();
                         });
@@ -1258,7 +1250,7 @@ describe('Activity Email', () => {
                                             4,
                                             (err, empty, users) => {
                                               assert.notExists(err);
-                                              assert.strictEqual(users.length, 1);
+                                              assert.lengthOf(users, 1);
                                               assert.ok(
                                                 find(
                                                   propSatisfies(equals(nico.user.id), 'id'),
@@ -1360,7 +1352,7 @@ describe('Activity Email', () => {
                           // inbox at 1am, we should send out an email at 20h UTC
                           ActivityEmail.collectMails(0, 'daily', null, 20, (err, empty, users) => {
                             assert.notExists(err);
-                            assert.strictEqual(users.length, 1);
+                            assert.lengthOf(users, 1);
                             assert.strictEqual(users[0].id, nico.user.id);
 
                             // Configure the email collector so emails arrive at a user their inbox at 1am on Tueday
@@ -1415,7 +1407,7 @@ describe('Activity Email', () => {
                                             4,
                                             (err, empty, users) => {
                                               assert.notExists(err);
-                                              assert.strictEqual(users.length, 1);
+                                              assert.lengthOf(users, 1);
                                               assert.strictEqual(users[0].id, nico.user.id);
                                               return callback();
                                             }
@@ -2016,7 +2008,7 @@ describe('Activity Email', () => {
                   (err, link) => {
                     assert.notExists(err);
                     EmailTestUtil.collectAndFetchAllEmails(messages => {
-                      assert.strictEqual(messages.length, 1);
+                      assert.lengthOf(messages, 1);
 
                       // Assert that we're using a localized message for the subject header
                       const mail = messages[0];
@@ -2052,7 +2044,7 @@ describe('Activity Email', () => {
 
                               // Collect the e-mail, there should only be one
                               EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                assert.strictEqual(messages.length, 1);
+                                assert.lengthOf(messages, 1);
 
                                 // Assert that we're using a localized message for the subject header
                                 const secondMail = messages[0];
@@ -2076,7 +2068,7 @@ describe('Activity Email', () => {
                                   (err /* , thirdLink */) => {
                                     assert.notExists(err);
                                     EmailTestUtil.collectAndFetchAllEmails(messages => {
-                                      assert.strictEqual(messages.length, 2);
+                                      assert.lengthOf(messages, 2);
 
                                       /**
                                        * Assert that the two subject headers are different
@@ -2474,7 +2466,7 @@ describe('Activity Email', () => {
                     config.mail.daily.hour,
                     (err, empty, users) => {
                       assert.notExists(err);
-                      assert.strictEqual(users.length, 1);
+                      assert.lengthOf(users, 1);
                       assert.strictEqual(users[0].id, nico.user.id);
                       return callback();
                     }

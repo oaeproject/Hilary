@@ -1128,40 +1128,39 @@ describe('Content Activity', () => {
                   );
 
                   // Create another comment and assert that both the managers and the recent contributors get a notification
-                  createComment(asMarge, link.id, 'Comment A', null, (err /* , commentA */) => {
+                  createComment(asMarge, link.id, 'Comment B', null, (err /* , commentB */) => {
                     assert.notExists(err);
 
                     // Because Bert made a comment previously, he should get a notification as well
                     collectAndGetNotificationStream(asBart, null, (err, activityStream) => {
                       assert.notExists(err);
 
-                      const commentActivities = filter(
+                      const commentActivitiesAsBart = filter(
                         activity => equals(activity['oae:activityType'], 'content-comment'),
                         activityStream.items
                       );
-                      // TODO make sure this makes sense
-                      assert.lengthOf(commentActivities, 1);
+                      assert.lengthOf(commentActivitiesAsBart, 1);
 
                       // Sanity-check that the managers got it as well
                       collectAndGetNotificationStream(asMarge, null, (err, activityStream) => {
                         assert.notExists(err);
 
-                        const commentActivities = filter(
+                        const commentActivitiesAsMarge = filter(
                           activity => equals(activity['oae:activityType'], 'content-comment'),
                           activityStream.items
                         );
-                        // TODO make sure this makes sense
-                        assert.lengthOf(commentActivities, 1);
+                        assert.lengthOf(commentActivitiesAsMarge, 1);
 
                         collectAndGetNotificationStream(asHomer, null, (err, activityStream) => {
                           assert.notExists(err);
 
-                          const commentActivities = filter(
+                          const commentActivitiesAsHomer = filter(
                             activity => equals(activity['oae:activityType'], 'content-comment'),
                             activityStream.items
                           );
-                          // TODO make sure this makes sense
-                          assert.lengthOf(commentActivities, 1);
+
+                          // Homer sees a single activity because both content-comment activities have been merged into a collection
+                          assert.lengthOf(commentActivitiesAsHomer, 1);
 
                           return callback();
                         });

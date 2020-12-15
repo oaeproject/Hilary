@@ -403,15 +403,17 @@ describe('Search Util', () => {
   });
 
   describe('#filterExplicitAccess', () => {
+    const index = 'oaeTest';
+
     /**
      * Test that verifies anonymous and global admin user have no explicit access
      */
     it('verify anonymous and global admin user receive no filter for explicit access', callback => {
-      filterExplicitAccess(createGlobalAdminContext(), (err, filter) => {
+      filterExplicitAccess(createGlobalAdminContext(), index, (err, filter) => {
         assert.isNotOk(err);
         assert.isNotOk(filter);
 
-        filterExplicitAccess(new Context(global.oaeTests.tenants.cam), (err, filter) => {
+        filterExplicitAccess(new Context(global.oaeTests.tenants.cam), index, (err, filter) => {
           assert.isNotOk(err);
           assert.isNotOk(filter);
 

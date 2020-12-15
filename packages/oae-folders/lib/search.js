@@ -353,7 +353,7 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
     // If applicable, sign the thumbnailUrl so the current user can access it
     const signThumbnail = thumbnailUrl => {
       if (thumbnailUrl) {
-        return result => assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl), result);
+        return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl));
       }
 
       return identity;
@@ -367,13 +367,6 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
       mergeDeepLeft(tenantAndProfileInfo),
       signThumbnail(thumbnailUrl)
     )(extraFields);
-
-    // If applicable, sign the thumbnailUrl so the current user can access it
-    /*
-    if (thumbnailUrl) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl);
-    }
-    */
 
     return result;
   }, docs);

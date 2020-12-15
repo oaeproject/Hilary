@@ -52,6 +52,7 @@ services:
       - 2001:2001
     tty: false
     environment:
+      - RECAPTCHA_KEY
       - CODACY_PROJECT_TOKEN
       - TWITTER_KEY
       - TWITTER_SECRET

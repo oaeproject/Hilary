@@ -520,10 +520,10 @@ describe('Principals Delete and Restore', () => {
     it('verify deleting and restoring groups removes and restores access to its full group profile', callback => {
       // Create a user and group that will be deleted and restored
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert(!err);
+        assert.notExists(err);
         const { 0: manager } = users;
         TestsUtil.generateTestGroups(manager.restContext, 1, (err, groups) => {
-          assert(!err);
+          assert.notExists(err);
           const { 0: group } = groups;
           // Delete the group, ensuring the side-effects (including 404 on group profile) succeeds
           PrincipalsTestUtil.assertDeleteGroupSucceeds(
@@ -827,10 +827,10 @@ describe('Principals Delete and Restore', () => {
       // Create a deleted group (parentGroup) who has one group in its memberships library to
       // test with
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert(!err);
+        assert.notExists(err);
         const { 0: manager, 1: member } = users;
         TestsUtil.generateTestGroups(manager.restContext, 2, (err, groups) => {
-          assert(!err);
+          assert.notExists(err);
           const { 0: childGroup, 1: parentGroup } = groups;
           // Add a group and a user as members of the parentGroup
           const permissionChanges = {};
@@ -1190,13 +1190,6 @@ describe('Principals Delete and Restore', () => {
         assert.notExists(err);
 
         TestsUtil.generateTestGroups(asCambridgeTenantAdmin, 4, (...args) => {
-          // const groups = Array.prototype.slice.call(args);
-          /*
-          const groupIds = _.chain(groups)
-            .pluck('group')
-            .pluck('id')
-            .value();
-            */
           const groups = last(args);
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
           const principalIds = groupIds.concat(user.user.id);
@@ -1244,10 +1237,10 @@ describe('Principals Delete and Restore', () => {
     it('verify a deleted group can show in a group members feed', callback => {
       // Create a group that has a deleted group as a member
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert(!err);
+        assert.notExists(err);
         const { 0: manager } = users;
         TestsUtil.generateTestGroups(manager.restContext, 2, (err, groups) => {
-          assert(!err);
+          assert.notExists(err);
           const { 0: childGroup, 1: parentGroup } = groups;
           TestsUtil.generateGroupHierarchy(
             manager.restContext,

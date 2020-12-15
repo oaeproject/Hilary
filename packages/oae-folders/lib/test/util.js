@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable no-unused-vars */
-import assert from 'assert';
+import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 import shortid from 'shortid';
@@ -66,7 +66,7 @@ const generateTestFolders = function(restContext, numFolders, callback, _folders
     null,
     null,
     (err, createdFolder) => {
-      assert.ok(!err);
+      assert.notExists(err);
       _folders.push(createdFolder);
       return generateTestFolders(restContext, numFolders - 1, callback, _folders);
     }
@@ -102,7 +102,7 @@ const generateTestFoldersWithVisibility = function(restContext, numFolders, visi
     null,
     null,
     (err, createdFolder) => {
-      assert.ok(!err);
+      assert.notExists(err);
       _folders.push(createdFolder);
       return generateTestFoldersWithVisibility(restContext, numFolders - 1, visibility, callback, _folders);
     }
@@ -171,7 +171,7 @@ const assertAddContentItemsToFolderSucceeds = function(restContext, folderId, co
   getAllFolderContentItems(restContext, folderId, null, () => {
     // Add the content items to the folder
     RestAPI.Folders.addContentItemsToFolder(restContext, folderId, contentIds, err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Ensure that the items we just added to the folder are in fact there
       getAllFolderContentItems(restContext, folderId, null, (contentItems, responses) => {
@@ -255,7 +255,7 @@ const assertRemoveContentItemsFromFolderSucceeds = function(restContext, folderI
 
     // Remove the content items from the folder
     RestAPI.Folders.removeContentItemsFromFolder(restContext, folderId, contentIds, err => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       LibraryAPI.Index.whenUpdatesComplete(() => {
         // Ensure that the items we just removed from the folder are in fact removed
@@ -399,7 +399,7 @@ const assertCreateFolderSucceeds = function(
       managerIds,
       viewerIds,
       (err, createdFolder) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(createdFolder);
         assert.ok(createdFolder.id);
         assert.ok(createdFolder.groupId);
@@ -416,7 +416,7 @@ const assertCreateFolderSucceeds = function(
         // Determine what the full membership should be, including the current user who created
         // the folder
         RestAPI.User.getMe(restContext, (err, me) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           const expectedMemberRoles = _.extend(
             AuthzTestUtil.createRoleChange(viewerIds, 'viewer'),
@@ -427,7 +427,7 @@ const assertCreateFolderSucceeds = function(
           const user = new User(me.tenant.alias, me.id, me.displayName, me.email, me);
           const ctx = new Context(me.tenant, user);
           PrincipalsAPI.canManageAny(ctx, managerIds, (err, canManage) => {
-            assert.ok(!err);
+            assert.notExists(err);
             if (!canManage) {
               expectedMemberRoles[me.id] = 'manager';
               // Add the current user member info to ensure the folder gets added to their library
@@ -521,7 +521,7 @@ const assertGetFolderFails = function(restContext, folderId, httpCode, callback)
  */
 const assertGetFolderSucceeds = function(restContext, folderId, callback) {
   RestAPI.Folders.getFolder(restContext, folderId, (err, folder) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(folder);
     assert.strictEqual(folder.id, folderId);
     return callback(folder);
@@ -540,7 +540,7 @@ const assertGetFolderSucceeds = function(restContext, folderId, callback) {
  */
 const assertUpdateFolderSucceeds = function(restContext, folderId, updates, callback) {
   RestAPI.Folders.updateFolder(restContext, folderId, updates, (err, folder) => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     // Wait for library and search to be udpated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
@@ -617,7 +617,7 @@ const assertDeleteFolderFails = function(restContext, folderId, httpCode, callba
  */
 const assertDeleteFolderSucceeds = function(restContext, folderId, deleteContent, callback) {
   RestAPI.Folders.deleteFolder(restContext, folderId, deleteContent, err => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     // Wait for library and search to be updated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
@@ -661,7 +661,7 @@ const assertGetFolderContentLibraryFails = function(restContext, folderId, start
  */
 const assertGetFolderContentLibrarySucceeds = function(restContext, folderId, start, limit, callback) {
   RestAPI.Folders.getFolderContentLibrary(restContext, folderId, start, limit, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(_.isArray(result.results));
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
 
@@ -765,7 +765,7 @@ const assertGetAllFolderMembersSucceeds = function(
  */
 const assertGetFolderMembersSucceeds = function(restContext, folderId, start, limit, callback) {
   RestAPI.Folders.getFolderMembers(restContext, folderId, start, limit, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(result);
     assert.ok(_.isArray(result.results));
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
@@ -831,7 +831,7 @@ const assertGetAllFoldersLibrarySucceeds = function(
  */
 const assertGetFoldersLibrarySucceeds = function(restContext, principalId, start, limit, callback) {
   RestAPI.Folders.getFoldersLibrary(restContext, principalId, start, limit, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(result);
     assert.ok(_.isArray(result.results));
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
@@ -905,7 +905,7 @@ const assertRemoveFolderFromLibraryFails = function(restContext, principalId, fo
  */
 const assertRemoveFolderFromLibrarySucceeds = function(restContext, principalId, folderId, callback) {
   RestAPI.Folders.removeFolderFromLibrary(restContext, principalId, folderId, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     // Assert that the folder really was removed
     assertGetFoldersLibrarySucceeds(restContext, principalId, null, null, folders => {
@@ -980,7 +980,7 @@ const assertShareFolderSucceeds = function(managerRestContext, actorRestContext,
       _getAllFoldersInLibraries(viewerInfos, principalFoldersLibrariesBeforeShare => {
         // Share the folder with all the principals and wait for the library updates to complete
         RestAPI.Folders.shareFolder(actorRestContext, folderId, viewerIds, err => {
-          assert.ok(!err);
+          assert.notExists(err);
           LibraryAPI.Index.whenUpdatesComplete(() => {
             // Ensure the invitations and members of the folder were udpated as we would expect
             AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'folder', folderId, result => {
@@ -1136,7 +1136,7 @@ const assertUpdateFolderMembersSucceeds = function(
       // Get the folder libraries to ensure they are not stale and will be updated on the fly
       _getAllFoldersInLibraries(memberInfos, principalFoldersLibrariesBeforeUpdate => {
         RestAPI.Folders.updateFolderMembers(actorRestContext, folderId, roleChange, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Ensure the member and email roles are as we expect given the change made
           AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'folder', folderId, result => {
@@ -1220,7 +1220,7 @@ const assertFullFoldersLibraryEquals = function(restContext, principalId, expect
  */
 const assertFolderSearchEquals = function(restContext, folderId, q, expectedContent, callback) {
   SearchTestUtil.searchAll(restContext, 'folder-content', [folderId], { q, scope: '_network' }, (err, results) => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     // Assert we've got the exact number of results that we expected (in case we want 0 results)
     setTimeout(assert.strictEqual, TIMEOUT, results.results.length, expectedContent.length);
@@ -1251,7 +1251,7 @@ const assertGeneralFolderSearchEquals = function(restContext, q, expectedFolders
     null,
     { resourceTypes: 'folder', q, scope: '_network' },
     (err, results) => {
-      assert.ok(!err);
+      assert.notExists(err);
       setTimeout(
         () => {
           _assertSearchResults();
@@ -1279,7 +1279,7 @@ const assertGeneralFolderSearchEquals = function(restContext, q, expectedFolders
  */
 const assertFolderLibrarySearch = function(restContext, principalId, q, expectedFolders, missingFolders, callback) {
   SearchTestUtil.searchAll(restContext, 'folder-library', [principalId], { q }, (err, results) => {
-    assert.ok(!err);
+    assert.notExists(err);
     _assertSearchResults(results, expectedFolders, missingFolders);
     return callback();
   });
@@ -1517,7 +1517,7 @@ const assertCreateMessageFails = function(restContext, folderId, body, replyTo, 
  */
 const assertCreateMessageSucceeds = function(restContext, folderId, body, replyTo, callback) {
   RestAPI.Folders.createMessage(restContext, folderId, body, replyTo, (err, message) => {
-    assert.ok(!err);
+    assert.notExists(err);
     return callback(message);
   });
 };
@@ -1553,7 +1553,7 @@ const assertGetMessagesFails = function(restContext, folderId, start, limit, htt
  */
 const assertGetMessagesSucceeds = function(restContext, folderId, start, limit, callback) {
   RestAPI.Folders.getMessages(restContext, folderId, start, limit, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
     return callback(result);
   });
 };
@@ -1588,7 +1588,7 @@ const assertDeleteMessageFails = function(restContext, folderId, messageCreated,
  */
 const assertDeleteMessageSucceeds = function(restContext, folderId, messageCreated, callback) {
   RestAPI.Folders.deleteMessage(restContext, folderId, messageCreated, (err, result) => {
-    assert.ok(!err);
+    assert.notExists(err);
     return callback(result);
   });
 };
@@ -1646,7 +1646,7 @@ const _createFolderWithVisibility = function(restContext, visibility, callback) 
     null,
     null,
     (err, folder) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(folder);
     }
   );
@@ -1714,7 +1714,7 @@ const _purgeFolderContentLibrary = function(folderId, callback) {
   MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, () => {
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, () => {
       FoldersDAO.getFoldersByIds([folderId], (err, folders) => {
-        assert.ok(!err);
+        assert.notExists(err);
         return LibraryTestUtil.assertPurgeFreshLibraries(
           FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME,
           [_.first(folders).groupId],

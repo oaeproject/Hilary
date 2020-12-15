@@ -287,9 +287,11 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
         return callback(err);
       }
 
-      // TODO: Use a "mark as deleted" approach for deleting discussions instead of hard
-      // deleting it from the database. This approach wouldn't require accessing and deleting
-      // all authz member roles from the discussion
+      /*
+       * TODO: Use a "mark as deleted" approach for deleting discussions instead of hard
+       * deleting it from the database. This approach wouldn't require accessing and deleting
+       * all authz member roles from the discussion
+       */
       AuthzAPI.getAllAuthzMembers(discussion.id, (err, memberIdRoles) => {
         if (err) {
           return callback(err);

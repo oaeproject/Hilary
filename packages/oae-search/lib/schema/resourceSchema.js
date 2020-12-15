@@ -69,11 +69,16 @@
  *         {Number}     schema.dateCreated      The date a particular item was created. Used for sorting.
  *         {Number}     schema.lastModified     When a particular item was last modified. Used for sorting.
  *         {String}     schema.created          Id of the user who created the item. This is used to limit to items created by current user only.
+ *
+ * A few tips:
+ * - Only text fields support the analyzer mapping parameter.
+ * - Avoid using keyword fields for full-text search. Use the text field type instead.
  */
+
 /* eslint-disable unicorn/filename-case, camelcase */
 const schema = {
   id: {
-    type: 'text',
+    type: 'keyword', // Maybe should be a keyword?
     store: 'true',
     index: 'false'
   },
@@ -81,16 +86,14 @@ const schema = {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   resourceType: {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   resourceSubType: {
-    type: 'text',
+    type: 'keyword', // Maybe should be a keyword?
     store: 'true',
     index: 'false'
   },
@@ -98,26 +101,22 @@ const schema = {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   displayName: {
     type: 'text',
     store: 'true',
     index: 'true',
-    // index: 'analyzed',
     analyzer: 'display_name'
   },
   description: {
-    type: 'keyword',
+    type: 'text', // Maybe should be a text?
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   email: {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   _extra: {
     type: 'text',
@@ -128,59 +127,51 @@ const schema = {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   joinable: {
     type: 'keyword',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   deleted: {
     type: 'long',
     store: 'true',
     index: 'false'
-    // index: 'not_analyzed'
   },
   q_high: {
     type: 'text',
     store: 'false',
     index: 'true',
-    // index: 'analyzed',
     analyzer: 'q'
   },
   q_low: {
     type: 'text',
     store: 'false',
     index: 'true',
-    // index: 'analyzed',
     analyzer: 'q'
   },
   sort: {
     type: 'keyword',
     store: 'false',
     index: 'true'
-    // index: 'not_analyzed'
   },
   dateCreated: {
     type: 'long',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   lastModified: {
     type: 'long',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   },
   createdBy: {
     type: 'text',
     store: 'true',
     index: 'true'
-    // index: 'not_analyzed'
   }
 };
+
 export const {
   id,
   tenantAlias,

@@ -20,8 +20,7 @@ import * as TestsUtil from 'oae-tests';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
 
-import { and, contains, forEachObjIndexed } from 'ramda';
-import { EventEmitter } from 'oae-emitter';
+import { and, contains, forEach } from 'ramda';
 
 const { getGroup, createGroup } = RestAPI.Group;
 const { createLink } = RestAPI.Content;
@@ -622,7 +621,7 @@ describe('Activity push', () => {
                       );
                     });
 
-                    // Do something that ends up in the `activity`  activitystream
+                    // Do something that ends up in the `activity` activitystream
                     createLink(
                       asJohnDoe,
                       {
@@ -652,20 +651,18 @@ describe('Activity push', () => {
       });
     });
 
-    /**
-     * Test that verifies that the format for activity entities can be specified
-     */
     it('verify the activity entities format can be specified', callback => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.notExists(err);
+
         const { 0: homer, 1: marge } = users;
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
 
         RestAPI.User.getMe(asHomer, (err, homerInfo) => {
-          assert.notExists(err);
+          assert.ok(!err);
 
-          /**
+          /*
            * Register a push client for homer who is subscribed to his activitystream
            * with the regular format and his notification stream with the internal format
            */
@@ -691,21 +688,18 @@ describe('Activity push', () => {
             ]
           };
 
-          const discussionEmitter = new EventEmitter();
-
-          // Setup the client
           ActivityTestUtil.getFullySetupPushClient(data, client => {
-            /**
-             * marge will now create a discussion and share it with homer,
+            /*
+             * Marge will now create a discussion and share it with Homer
              * this will trigger an activity that gets delivered on both streams
-             * To ensure proper scrubbing of data, simon will have a private profile
+             * to ensure proper scrubbing of data, simon will have a private profile
              */
             RestAPI.User.updateUser(
               asMarge,
               marge.user.id,
               { visibility: 'private' },
               (err, updatedUser) => {
-                assert.notExists(err);
+                assert.ok(!err);
                 marge.user = updatedUser;
                 let discussion = null;
 
@@ -717,21 +711,18 @@ describe('Activity push', () => {
                   [],
                   [homer.user.id],
                   (err, _discussion) => {
-                    assert.notExists(err);
-
+                    assert.ok(!err);
                     discussion = _discussion;
-                    // We need to signal that the variable now holds the discussion data
-                    discussionEmitter.emit('discussionReady', discussion);
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
                     ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
-                      assert.notExists(err);
+                      assert.ok(!err);
                     });
                   }
                 );
 
                 let activitiesReceived = 0;
-                const dealWithMessage = message => {
+                client.on('message', message => {
                   activitiesReceived++;
 
                   assert.ok(message.activities);
@@ -770,87 +761,86 @@ describe('Activity push', () => {
                       'tenant',
                       'lastModified'
                     ];
-                    forEachObjIndexed((value, key) => {
+                    forEach(key => {
                       assert.ok(
                         contains(key, allowedActorProperties),
                         key + ' is not allowed on an internally formatted activity entity'
                       );
                     }, activity.actor);
 
-                    discussionEmitter.when('discussionReady', discussion => {
-                      // Assert that the object entity is a discussion object augmented with an oae:id and objectType
-                      assert.ok(activity.object);
-                      assert.strictEqual(activity.object['oae:id'], discussion.id);
-                      assert.strictEqual(activity.object.id, discussion.id);
-                      assert.strictEqual(activity.object.visibility, discussion.visibility);
-                      assert.strictEqual(activity.object.displayName, discussion.displayName);
-                      assert.strictEqual(activity.object.description, discussion.description);
-                      assert.strictEqual(activity.object.createdBy, discussion.createdBy);
-                      assert.strictEqual(activity.object.created, discussion.created);
-                      assert.strictEqual(activity.object.lastModified, discussion.lastModified);
-                      assert.strictEqual(activity.object.profilePath, discussion.profilePath);
-                      assert.strictEqual(activity.object.resourceType, discussion.resourceType);
-                      assert.strictEqual(activity.object.objectType, 'discussion');
-                      assert.isObject(activity.object.tenant);
+                    // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                    assert.ok(activity.object);
+                    assert.strictEqual(activity.object['oae:id'], discussion.id);
+                    assert.strictEqual(activity.object.id, discussion.id);
+                    assert.strictEqual(activity.object.visibility, discussion.visibility);
+                    assert.strictEqual(activity.object.displayName, discussion.displayName);
+                    assert.strictEqual(activity.object.description, discussion.description);
+                    assert.strictEqual(activity.object.createdBy, discussion.createdBy);
+                    assert.strictEqual(activity.object.created, discussion.created);
+                    assert.strictEqual(activity.object.lastModified, discussion.lastModified);
+                    assert.strictEqual(activity.object.profilePath, discussion.profilePath);
+                    assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                    assert.strictEqual(activity.object.objectType, 'discussion');
+                    assert.isObject(activity.object.tenant);
 
-                      allowedObjectProperties = [
-                        'tenant',
-                        'id',
-                        'visibility',
-                        'displayName',
-                        'description',
-                        'resourceSubType',
-                        'createdBy',
-                        'created',
-                        'lastModified',
-                        'profilePath',
-                        'resourceType',
-                        'latestRevisionId',
-                        'previews',
-                        'signature',
-                        'objectType',
-                        'oae:id'
-                      ];
-                      forEachObjIndexed((value, key) => {
-                        assert.ok(
-                          contains(key, allowedObjectProperties),
-                          key + ' is not allowed on an internally formatted activity entity'
-                        );
-                      }, activity.object);
-                    });
-                  } else {
-                    // Assert that the activity entities are activitystrea.ms formatted
-                    assert.strictEqual(message.format, 'activitystreams');
-
-                    // Assert that the actor entity is in the proper activitystreams format
-                    assert.ok(activity.actor);
-                    assert.strictEqual(activity.actor['oae:id'], marge.user.id);
-                    assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
-                    assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
-                    assert.strictEqual(activity.actor.objectType, 'user');
-                    assert.strictEqual(
-                      activity.actor.id,
-                      'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
-                    );
-                    assert.isObject(activity.actor['oae:tenant']);
-
-                    allowedActorProperties = [
-                      'oae:id',
-                      'oae:visibility',
-                      'displayName',
-                      'objectType',
+                    allowedObjectProperties = [
+                      'tenant',
                       'id',
-                      'oae:tenant'
+                      'visibility',
+                      'displayName',
+                      'description',
+                      'resourceSubType',
+                      'createdBy',
+                      'created',
+                      'lastModified',
+                      'profilePath',
+                      'resourceType',
+                      'latestRevisionId',
+                      'previews',
+                      'signature',
+                      'objectType',
+                      'oae:id'
                     ];
-                    forEachObjIndexed((value, key) => {
+                    forEach(key => {
                       assert.ok(
-                        contains(key, allowedActorProperties),
-                        key +
-                          ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        contains(key, allowedObjectProperties),
+                        key + ' is not allowed on an internally formatted activity entity'
                       );
-                    }, activity.actor);
+                    }, activity.object);
+                  } else {
+                    setTimeout(() => {
+                      // Assert that the activity entities are activitystrea.ms formatted
+                      assert.strictEqual(message.format, 'activitystreams');
 
-                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the actor entity is in the proper activitystreams format
+                      assert.ok(activity.actor);
+                      assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                      assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
+                      assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
+                      assert.strictEqual(activity.actor.objectType, 'user');
+                      assert.strictEqual(
+                        activity.actor.id,
+                        'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
+                      );
+                      assert.isObject(activity.actor['oae:tenant']);
+
+                      allowedActorProperties = [
+                        'oae:id',
+                        'oae:visibility',
+                        'displayName',
+                        'objectType',
+                        'id',
+                        'oae:tenant'
+                      ];
+
+                      forEach(key => {
+                        assert.ok(
+                          contains(key, allowedActorProperties),
+                          key +
+                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        );
+                      }, activity.actor);
+
                       // Assert that the object entity is in the proper activitystreams format
                       assert.ok(activity.object);
                       assert.strictEqual(activity.object['oae:id'], discussion.id);
@@ -891,23 +881,19 @@ describe('Activity push', () => {
                         'id',
                         'oae:tenant'
                       ];
-                      forEachObjIndexed((value, key) => {
+                      forEach(key => {
                         assert.ok(
                           contains(key, allowedObjectProperties),
                           key +
                             ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                         );
                       }, activity.object);
-                    });
+                    }, 1000);
                   }
 
                   if (activitiesReceived === 2) {
-                    return callback();
+                    return client.close(callback);
                   }
-                };
-
-                client.on('message', message => {
-                  setTimeout(dealWithMessage, 100, message);
                 });
               }
             );
@@ -931,7 +917,7 @@ describe('Activity push', () => {
           assert.notExists(err);
 
           /*
-           * Register a push client for mrvisser who is subscribed to:
+           * Register a push client for johnDoe who is subscribed to:
            *  * `activity`-stream with the `activitystream` format
            *  * `activity`-stream with the `internal` format
            *  * `notification`-stream with the `internal` format
@@ -966,7 +952,7 @@ describe('Activity push', () => {
 
           // Setup the client
           getFullySetupPushClient(data, client => {
-            // Create/share a discussion with mrvisser
+            // Create/share a discussion with johnDoe
             createDiscussion(
               asJaneDoe,
               'Test discussion',
@@ -981,25 +967,26 @@ describe('Activity push', () => {
                 collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
                   assert.notExists(err);
                 });
-
-                let activitiesReceived = 0;
-                const formatReceived = {
-                  internal: 0,
-                  activitystreams: 0
-                };
-                client.on('message', message => {
-                  activitiesReceived++;
-                  formatReceived[message.format]++;
-
-                  if (activitiesReceived === 3) {
-                    assert.strictEqual(formatReceived.internal, 2);
-                    assert.strictEqual(formatReceived.activitystreams, 1);
-
-                    return callback();
-                  }
-                });
               }
             );
+
+            // Before push notifications come along, lets do this
+            let activitiesReceived = 0;
+            const formatReceived = {
+              internal: 0,
+              activitystreams: 0
+            };
+            client.on('message', message => {
+              activitiesReceived++;
+              formatReceived[message.format]++;
+
+              if (activitiesReceived === 3) {
+                assert.strictEqual(formatReceived.internal, 2);
+                assert.strictEqual(formatReceived.activitystreams, 1);
+
+                client.close(callback);
+              }
+            });
           });
         });
       });
@@ -1008,7 +995,7 @@ describe('Activity push', () => {
     /**
      * Test that verifies that messages sent after the aggregation phase indicate whether they aggregated with an older activity
      */
-    it('verify aggregation phase messages indicate whether the activity agregated with an older activity', callback => {
+    it('verify aggregation phase messages indicate whether the activity aggregated with an older activity', callback => {
       generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
         assert.notExists(err);
 
@@ -1043,7 +1030,7 @@ describe('Activity push', () => {
 
           // Setup the client
           getFullySetupPushClient(data, client => {
-            // Create/share a discussion with mrvisser
+            // Create/share a discussion with johnDoe
             createDiscussion(
               asJaneDoe,
               'Test discussion',
@@ -1054,19 +1041,54 @@ describe('Activity push', () => {
               (err /* , discussion */) => {
                 assert.notExists(err);
 
-                // We need to force a collection cycle as the notifiation stream gets pushed out after the aggregation phase
+                // We need to force a collection cycle as the notification stream gets pushed out after the aggregation phase
                 collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
                   assert.notExists(err);
                 });
+              }
+            );
 
-                // As this is the first discussion_created activity in mrvisser's notification stream it
-                // can't aggregate with any other activities. That should be indicated on the push message
-                client.once('message', message => {
-                  assert.ok(message);
-                  assert.strictEqual(message.numNewActivities, 1);
+            /**
+             * As this is the first discussion_created activity in mrvisser's notification stream it
+             * can't aggregate with any other activities. That should be indicated on the push message
+             */
+            client.once('message', message => {
+              assert.ok(message);
+              assert.strictEqual(message.numNewActivities, 1);
 
-                  // When we generate another discussion_created activity it will aggregate with the previous
-                  // activity. This should be reflected on the push message
+              // When we generate another discussion_created activity it will aggregate with the previous
+              // activity. This should be reflected on the push message
+              createDiscussion(
+                asJaneDoe,
+                'Test discussion',
+                'Test discussion description',
+                'public',
+                [],
+                [johnDoe.user.id],
+                (err /* , discussion */) => {
+                  assert.notExists(err);
+                  /**
+                   * We need to force a collection cycle as the notification
+                   * stream gets pushed out after the aggregation phase
+                   */
+                  collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
+                    assert.notExists(err);
+                  });
+                }
+              );
+
+              client.once('message', message => {
+                assert.ok(message);
+                assert.strictEqual(message.numNewActivities, 0);
+
+                /**
+                 * Mark the notifications as read. Because we marked the notifications as read,
+                 * this will reset the aggregator for that stream. Any new discussion_created activities
+                 * should result in a "new activity". However, if 2 activities aggregate in-memory in the
+                 * aggregation phase, they should be counted as 1
+                 */
+                RestAPI.Activity.markNotificationsRead(asJohnDoe, err => {
+                  assert.notExists(err);
                   createDiscussion(
                     asJaneDoe,
                     'Test discussion',
@@ -1076,22 +1098,30 @@ describe('Activity push', () => {
                     [johnDoe.user.id],
                     (err /* , discussion */) => {
                       assert.notExists(err);
-                      // We need to force a collection cycle as the notifiation
-                      // stream gets pushed out after the aggregation phase
-                      collectAndGetNotificationStream(asJohnDoe, null, (
-                        err /* , activityStream */
-                      ) => {
-                        assert.notExists(err);
-                      });
+                      createDiscussion(
+                        asJaneDoe,
+                        'Test discussion',
+                        'Test discussion description',
+                        'public',
+                        [],
+                        [johnDoe.user.id],
+                        (err /* , discussion */) => {
+                          assert.notExists(err);
+                          collectAndGetNotificationStream(asJohnDoe, null, (
+                            err /* , activityStream */
+                          ) => {
+                            assert.notExists(err);
+                          });
+                        }
+                      );
+
                       client.once('message', message => {
                         assert.ok(message);
-                        assert.strictEqual(message.numNewActivities, 0);
+                        assert.strictEqual(message.numNewActivities, 1);
 
-                        // Mark the notifications as read. Because we marked the notifications as read,
-                        // this will reset the aggregator for that stream. Any new discussion_created activities
-                        // should result in a "new activity". However, if 2 activities aggregate in-memory in the
-                        // aggregation phase, they should be counted as 1
-                        RestAPI.Activity.markNotificationsRead(asJohnDoe, err => {
+                        // If 2 disjoint activities get delivered to the notification stream, the
+                        // number of new activities should be 2
+                        markNotificationsRead(asJohnDoe, err => {
                           assert.notExists(err);
                           createDiscussion(
                             asJaneDoe,
@@ -1102,13 +1132,17 @@ describe('Activity push', () => {
                             [johnDoe.user.id],
                             (err /* , discussion */) => {
                               assert.notExists(err);
-                              createDiscussion(
+                              createLink(
                                 asJaneDoe,
-                                'Test discussion',
-                                'Test discussion description',
-                                'public',
-                                [],
-                                [johnDoe.user.id],
+                                {
+                                  displayName: 'Test link',
+                                  description: 'Test link',
+                                  visibility: PUBLIC,
+                                  link: 'https://google.com',
+                                  managers: [],
+                                  viewers: [johnDoe.user.id],
+                                  folders: []
+                                },
                                 (err /* , discussion */) => {
                                   assert.notExists(err);
                                   collectAndGetNotificationStream(asJohnDoe, null, (
@@ -1116,67 +1150,25 @@ describe('Activity push', () => {
                                   ) => {
                                     assert.notExists(err);
                                   });
-
-                                  client.once('message', message => {
-                                    assert.ok(message);
-                                    assert.strictEqual(message.numNewActivities, 1);
-
-                                    // If 2 disjoint activities get delivered to the notification stream, the
-                                    // number of new activities should be 2
-                                    markNotificationsRead(asJohnDoe, err => {
-                                      assert.notExists(err);
-                                      createDiscussion(
-                                        asJaneDoe,
-                                        'Test discussion',
-                                        'Test discussion description',
-                                        'public',
-                                        [],
-                                        [johnDoe.user.id],
-                                        (err /* , discussion */) => {
-                                          assert.notExists(err);
-                                          createLink(
-                                            asJaneDoe,
-                                            {
-                                              displayName: 'Test link',
-                                              description: 'Test link',
-                                              visibility: PUBLIC,
-                                              link: 'https://google.com',
-                                              managers: [],
-                                              viewers: [johnDoe.user.id],
-                                              folders: []
-                                            },
-                                            (err /* , discussion */) => {
-                                              assert.notExists(err);
-                                              collectAndGetNotificationStream(asJohnDoe, null, (
-                                                err /* , activityStream */
-                                              ) => {
-                                                assert.notExists(err);
-                                              });
-
-                                              client.once('message', message => {
-                                                assert.ok(message);
-                                                assert.strictEqual(message.numNewActivities, 2);
-                                                assert.lengthOf(message.activities, 2);
-
-                                                return callback();
-                                              });
-                                            }
-                                          );
-                                        }
-                                      );
-                                    });
-                                  });
                                 }
                               );
                             }
                           );
+
+                          client.once('message', message => {
+                            assert.ok(message);
+                            assert.strictEqual(message.numNewActivities, 2);
+                            assert.lengthOf(message.activities, 2);
+
+                            client.close(callback);
+                          });
                         });
                       });
                     }
                   );
                 });
-              }
-            );
+              });
+            });
           });
         });
       });

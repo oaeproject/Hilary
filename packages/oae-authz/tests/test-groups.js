@@ -1660,17 +1660,17 @@ describe('Authz Groups', () => {
           AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
             assert.notExists(err);
             assert.ok(groupIds);
-            assert.strictEqual(groupIds.length, 2);
-            assert.ok(_.contains(groupIds, groupId1));
-            assert.ok(_.contains(groupIds, groupId2));
+            assert.lengthOf(groupIds, 2);
+            assert.include(groupIds, groupId1);
+            assert.include(groupIds, groupId2);
 
             // Get the memberships cached
             AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
               assert.notExists(err);
               assert.ok(groupIds);
-              assert.strictEqual(groupIds.length, 2);
-              assert.ok(_.contains(groupIds, groupId1));
-              assert.ok(_.contains(groupIds, groupId2));
+              assert.lengthOf(groupIds, 2);
+              assert.include(groupIds, groupId1);
+              assert.include(groupIds, groupId2);
               callback();
             });
           });

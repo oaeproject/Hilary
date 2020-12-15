@@ -59,7 +59,7 @@ describe('OAE Server', () => {
             // Verify we are anonymous
             RestAPI.User.getMe(user.restContext, (err, me) => {
               assert.notExists(err);
-              assert.ok(!me.id);
+              assert.isNotOk(me.id);
               assert.ok(me.anon);
 
               // Spoof the referer to be a relative uri. This should pass CSRF validation
@@ -111,7 +111,7 @@ describe('OAE Server', () => {
                             // Verify we are now anonymous
                             RestAPI.User.getMe(user.restContext, (err, me) => {
                               assert.notExists(err);
-                              assert.ok(!me.id);
+                              assert.isNotOk(me.id);
                               assert.ok(me.anon);
                               callback();
                             });
@@ -171,7 +171,7 @@ describe('OAE Server', () => {
 
         // Ensure the user is authenticated
         PrincipalsTestUtil.assertGetMeSucceeds(simong.restContext, me => {
-          assert.ok(!me.anon);
+          assert.isNotOk(me.anon);
 
           // Get the cookies from the cookie har
           const cookies = simong.restContext.cookieJar.getCookies('http://localhost');

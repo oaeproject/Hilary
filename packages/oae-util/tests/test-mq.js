@@ -84,10 +84,10 @@ describe('MQ', () => {
       // we need subscribe even though we don't use it,
       // otherwise it won't submit to a queue that hasn't been subscribed
       MQ.subscribe(testQueue, increment, err => {
-        assert(!err);
+        assert.isNotOk(err);
         const allTasks = new Array(10).fill({ foo: 'bar' });
         submitTasksToQueue(testQueue, allTasks, err => {
-          assert(!err);
+          assert.isNotOk(err);
 
           // Lets give redis a bit to process
           setTimeout(getQueueLength, 1000, redeliveryQueue, (err, count) => {
@@ -101,7 +101,7 @@ describe('MQ', () => {
             assert(count <= 10, 'The number of tasks on redelivery should be close to 10');
 
             MQ.purgeQueue(redeliveryQueue, err => {
-              assert(!err);
+              assert.isNotOk(err);
 
               getQueueLength(redeliveryQueue, (err, count) => {
                 assert.notExists(err);
@@ -141,18 +141,18 @@ describe('MQ', () => {
       MQ.subscribe(testQueueA, increment, () => {
         MQ.subscribe(testQueueB, increment, () => {
           submitTasksToQueue(testQueueA, allTasksForQueueA, err => {
-            assert(!err);
+            assert.isNotOk(err);
             waitUntilProcessed(testQueueA, () => {
               assert(counters.a >= 1, 'The number of tasks on redelivery should be at least 1');
               assert(counters.a <= 10, 'The number of tasks on redelivery should be close to 10');
               submitTasksToQueue(testQueueB, allTasksForQueueB, err => {
-                assert(!err);
+                assert.isNotOk(err);
                 waitUntilProcessed(testQueueA, () => {
                   assert(counters.b >= 1, 'The number of tasks on redelivery should be at least 1');
                   assert(counters.b <= 10, 'The number of tasks on redelivery should be close to 10');
 
                   MQ.purgeQueues(bothQueues, err => {
-                    assert(!err);
+                    assert.isNotOk(err);
                     getQueueLength(bothQueues[0], (err, count) => {
                       assert.notExists(err);
                       assert(count === 0, 'Purged queues should be zero length');

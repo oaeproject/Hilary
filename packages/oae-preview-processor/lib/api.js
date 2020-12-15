@@ -57,7 +57,7 @@ import { PreviewContext } from './model';
 const log = logger('oae-preview-processor');
 const Telemetry = telemetry('preview-processor');
 
-let config = null;
+let config;
 
 // A hash of registered processors.
 const _processors = {};
@@ -78,12 +78,6 @@ const PreviewProcessorAPI = new EmitterAPI.EventEmitter();
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
 const enable = function(callback) {
-  callback =
-    callback ||
-    function(/* err */) {
-      /* Error is logged within the implementation */
-    };
-
   // Bind an error listener to the REST methods
   RestUtil.emitter.on('error', _restErrorLister);
   MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, err => {
@@ -122,12 +116,6 @@ const enable = function(callback) {
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
 const disable = function(callback) {
-  callback =
-    callback ||
-    function(/* err */) {
-      /* Error is logged within the implementation */
-    };
-
   MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
     if (err) {
       log().error({ err }, 'Could not unbind from the previews queue');
@@ -180,18 +168,14 @@ const _restErrorLister = function(err) {
 const refreshPreviewConfiguration = function(_config, callback) {
   // Stop listening for tasks.
   disable(err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Store this configuration.
     config = _config;
 
     if (config.previews.enabled) {
       _initializeDefaultProcessors(err => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Register the processors.
         try {

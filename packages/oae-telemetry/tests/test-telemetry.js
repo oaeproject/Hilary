@@ -23,7 +23,7 @@ const { generateTestUsers } = TestsUtil;
 const { getTelemetryData: requestTelemetryData } = RestAPI.Telemetry;
 const { getTelemetryData, reset, init } = TelemetryAPI;
 
-import { assoc } from 'ramda';
+import { mergeAll } from 'ramda';
 
 describe('Telemetry', () => {
   /*!
@@ -31,8 +31,8 @@ describe('Telemetry', () => {
    *
    * @param  {Object}     config  The configuration object with which to create an enabled telemetry config
    */
-  const _createConfig = config => {
-    return assoc('enabled', true, config);
+  const _createConfig = (config = {}) => {
+    return mergeAll([{ enabled: true }, config]);
   };
 
   let Telemetry = null;
@@ -86,19 +86,23 @@ describe('Telemetry', () => {
 
   describe('Publish and Reset', () => {
     /**
-     * Test that verifies that when the publisher is invoked, it publishes the set of data that is available, and that when reset is invoked,
+     * Test that verifies that when the publisher is invoked,
+     * it publishes the set of data that is available, and that when reset is invoked,
      * it resets the data for the next publishing cycle.
      */
     it('verify publish interval publishes the proper data while reset clears the data', callback => {
       /**
-       * Configure the telemetry API such that on the first second we get a publish, then in the second second we
+       * Configure the telemetry API such that on the first second we get a publish,
+       * then in the second second we
        * get a reset, then in the 3rd we get another publish
        */
       init(_createConfig({ publishInterval: 1, resetInterval: 2 }), err => {
         assert.notExists(err);
 
-        // Note that if this takes longer than one second our test fails intermittently :( I'm not sure we can avoid this
-        // without disrupting the test
+        /**
+         * Note that if this takes longer than one second our test fails intermittently :(
+         * I'm not sure we can avoid this without disrupting the test
+         */
         Telemetry.incr('incr', 10);
         Telemetry.append('append', 50);
         Telemetry.append('append', 30);
@@ -113,10 +117,16 @@ describe('Telemetry', () => {
           // Once we get our reset, wait for the next publish to ensure our counts are reset
           TelemetryAPI.emitter.once('reset', () => {
             TelemetryAPI.emitter.once('publish', data => {
-              // Either the top-level tests module object should be gone, or the incr key should either be 0 or falsey
+              /**
+               * Either the top-level tests module object should be gone,
+               * or the incr key should either be 0 or falsey
+               */
               assert.ok(!data.tests || !data.tests.incr);
 
-              // Either the top-level tests module object should be gone, or the append key histograms should be either falsey or empty
+              /**
+               * Either the top-level tests module object should be gone,
+               * or the append key histograms should be either falsey or empty
+               */
               assert.ok(!data.tests || !data.tests.append || !data.tests.append.length);
 
               return callback();

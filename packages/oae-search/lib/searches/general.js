@@ -15,6 +15,7 @@
 
 /* eslint-disable camelcase */
 import _ from 'underscore';
+import { includes, isEmpty } from 'ramda';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
@@ -64,7 +65,7 @@ export default function(ctx, opts, callback) {
   opts.q = SearchUtil.getQueryParam(opts.q);
   opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
   opts.createdBy = SearchUtil.getArrayParam(opts.createdBy);
-  opts.searchAllResourceTypes = _.isEmpty(opts.resourceTypes);
+  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
 
   return _search(ctx, opts, callback);
 }
@@ -84,14 +85,14 @@ const _search = function(ctx, opts, callback) {
   const query = _createQuery(ctx, opts);
   const filterByResources = filterResources(opts.resourceTypes);
 
-  filterScopeAndAccess(ctx, opts.scope, _needsFilterByExplicitAccess(ctx, opts), (err, filterScopeAndAccess) => {
+  filterScopeAndAccess(ctx, opts, _needsFilterByExplicitAccess(ctx, opts), (err, scopeAndAccessFilter) => {
     if (err) return callback(err);
 
     // Filter by created if needed
     const createdByFilter = filterCreatedBy(ctx, opts.createdBy);
 
     // Create the filtered query
-    const filter = filterAnd(filterByResources, filterScopeAndAccess, createdByFilter);
+    const filter = filterAnd(filterByResources, scopeAndAccessFilter, createdByFilter);
 
     const filteredQuery = createFilteredQuery(query, filter);
 
@@ -119,58 +120,6 @@ const _search = function(ctx, opts, callback) {
   });
 };
 
-// TODO bah
-/*
-const _search_new = function(ctx, opts, callback) {
-  // The query and filter objects for the Query DSL
-  const query = _createQuery(ctx, opts);
-  const resourcesFilter = filterResources(opts.resourceTypes);
-  const explicitAccess = _needsFilterByExplicitAccess(ctx, opts);
-
-  filterScopeAndAccess(ctx, opts.scope, explicitAccess, (err, filterScopeAndAccess) => {
-    if (err) return callback(err);
-
-    filterScopeAndAccess = defaultTo({}, filterScopeAndAccess);
-
-    // Filter by created if needed
-    const createdByFilter = filterCreatedBy(ctx, opts.createdBy);
-
-    // const filter = SearchUtil.filterAnd(resourcesFilter, filterScopeAndAccess, createdByFilter);
-    let filter = {};
-    filter = mergeDeepWith(concat, filter, resourcesFilter);
-    filter = mergeDeepWith(concat, filter, filterScopeAndAccess);
-    filter = mergeDeepWith(concat, filter, createdByFilter);
-    filter = mergeDeepWith(concat, filter, query);
-
-    // const filteredQuery = SearchUtil.createFilteredQuery(query, filter);
-
-    // query = mergeDeepWith([query, filter]);
-
-    // Give results from the current tenant a slight boost
-    const boostingQuery = {
-      function_score: {
-        score_mode: SUM,
-        boost_mode: SUM,
-        functions: [
-          {
-            filter: {
-              term: {
-                tenantAlias: ctx.tenant().alias
-              }
-            },
-            weight: 1.5
-          }
-        ],
-        query: filter
-      }
-    };
-
-    // Wrap the query and filter into the top-level Query DSL "query" object
-    return callback(null, createQuery(boostingQuery, null, opts));
-  });
-};
-*/
-
 /**
  * Create the ElasticSearch query object for the general search.
  *
@@ -185,12 +134,10 @@ const _createQuery = function(ctx, opts) {
   const includeFolder = _includesResourceType(opts, 'folder');
 
   if (opts.q === SearchConstants.query.ALL) {
-    // return createQueryStringQuery(opts.q);
-    // TODO not sure this produces the exact same results
-    // but apparently ES no longer supports query_string syntax along with bool type query
-    // so all in all I'm adding a should with a query_string in it
-    // oae-content tests pass
-    // oae-search tests pass
+    /**
+     * Apparently ES no longer supports `query_string` syntax along with bool type query
+     * so all in all I'm adding a `should` with a query_string in it
+     */
     return { bool: { should: [createQueryStringQuery(opts.q)], minimum_should_match: 1 } };
   }
 
@@ -208,8 +155,12 @@ const _createQuery = function(ctx, opts) {
 
   // For content items, include their comments and body text
   if (includeContent) {
+    /**
+     * Here we're looking for `discussion_message_body` as that is the
+     * default export of `resourceMessagesSchema` defined in `oae-messagebox/lib/search/schema`
+     * If the fields do not match, the query will look for the wrong data
+     */
     query.bool.should.push(
-      // TODO state here the association with resourceMessagesSchema
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         createQueryStringQuery(opts.q, ['discussion_message_body']),
@@ -229,7 +180,11 @@ const _createQuery = function(ctx, opts) {
 
   // For discussions, include their messages
   if (includeDiscussion) {
-    // TODO state here the association with resourceMessagesSchema
+    /**
+     * Here we're looking for `discussion_message_body` as that is the
+     * default export of `resourceMessagesSchema` defined in `oae-messagebox/lib/search/schema`
+     * If the fields do not match, the query will look for the wrong data
+     */
     query.bool.should.push(
       SearchUtil.createHasChildQuery(
         DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
@@ -290,5 +245,5 @@ const _needsFilterByExplicitAccess = function(ctx, opts) {
  * @api private
  */
 const _includesResourceType = function(opts, resourceType) {
-  return opts.searchAllResourceTypes || _.contains(opts.resourceTypes, resourceType);
+  return opts.searchAllResourceTypes || includes(resourceType, opts.resourceTypes);
 };

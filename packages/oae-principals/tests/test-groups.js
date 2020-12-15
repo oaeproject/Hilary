@@ -2358,13 +2358,6 @@ describe('Groups', () => {
 
         // Add Nicolaas to 5 groups
         TestsUtil.generateTestGroups(nicolaas.restContext, 5, (...args) => {
-          /*
-          const groupIds = _.chain(args)
-            .pluck('group')
-            .pluck('id')
-            .value();
-            */
-
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
 
           // Generate 5 folders. This is to ensure that the membership library
@@ -2376,8 +2369,8 @@ describe('Groups', () => {
               assert.strictEqual(memberships.results.length, 2);
 
               // Assert we only retrieved groups
-              assert.ok(_.contains(groupIds, memberships.results[0].id));
-              assert.ok(_.contains(groupIds, memberships.results[1].id));
+              assert.include(groupIds, memberships.results[0].id);
+              assert.include(groupIds, memberships.results[1].id);
 
               // Remember these group IDs
               let seenGroupIds = _.pluck(memberships.results, 'id');

@@ -74,7 +74,7 @@ const createMessageSearchDocuments = function(name, resourceId, messages) {
       return !message.deleted;
     })
     .map(message => {
-      // TODO experiment because of discussion_message_ schema not being body otherwise it conflicts with contentBodySchema's name
+      // Here we'll be looking for `discussion_message_body` because that's the default export in `resourceMessagesSchema.js`
       return SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
         discussion_message_body: message.body // eslint-disable-line camelcase

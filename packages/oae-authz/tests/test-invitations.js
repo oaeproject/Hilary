@@ -37,6 +37,8 @@ import clone from 'clone';
 
 const _ = require('underscore');
 
+import { find, equals } from 'ramda';
+
 describe('Invitations', () => {
   // Initialize some rest contexts for anonymous and admin users
   let anonymousRestContext = null;
@@ -777,15 +779,17 @@ describe('Invitations', () => {
           (/* resource */) => {
             EmailTestUtil.collectAndFetchAllEmails(messages => {
               // There should be 2 emails, one for cambridgeEmail and one for guestEmail
-              assert.strictEqual(messages.length, 2);
+              assert.lengthOf(messages, 2);
 
-              const cambridgeMessage = _.find(messages, message => {
-                return message.to[0].address === cambridgeEmail.toLowerCase();
-              });
+              const cambridgeMessage = find(
+                message => equals(message.to[0].address, cambridgeEmail.toLowerCase()),
+                messages
+              );
 
-              const guestMessage = _.find(messages, message => {
-                return message.to[0].address === guestEmail.toLowerCase();
-              });
+              const guestMessage = find(
+                message => equals(message.to[0].address, guestEmail.toLowerCase()),
+                messages
+              );
 
               // Grab the invitation link from the messages
               const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(
@@ -1392,7 +1396,7 @@ describe('Invitations', () => {
                                       const activities = ActivityTestUtil.parseActivityHtml(
                                         message.html
                                       );
-                                      assert.strictEqual(activities.length, 1);
+                                      assert.lengthOf(activities, 1);
 
                                       // Ensure the summary has at exactly one of the resources
                                       const numMatchesDisplayName = _.chain(resourceCs)
@@ -1725,7 +1729,7 @@ describe('Invitations', () => {
         email = email.toLowerCase();
 
         EmailTestUtil.collectAndFetchAllEmails(messages => {
-          assert.strictEqual(messages.length, 1);
+          assert.lengthOf(messages, 1);
 
           const message = _.first(messages);
 
@@ -1743,14 +1747,14 @@ describe('Invitations', () => {
               token,
               result => {
                 assert.strictEqual(result.email, email);
-                assert.strictEqual(result.resources.length, 0);
+                assert.lengthOf(result.resources, 0);
 
                 // Ensure nothing went into the user's library
                 fns.getLibrarySucceeds(
                   acceptingUserInfo.restContext,
                   acceptingUserInfo.user.id,
                   libraryItems => {
-                    assert.strictEqual(libraryItems.length, 0);
+                    assert.lengthOf(libraryItems, 0);
                     return callback(creatingUserInfo, acceptingUserInfo, resource);
                   }
                 );

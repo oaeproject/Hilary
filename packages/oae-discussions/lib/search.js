@@ -26,7 +26,7 @@ import { DiscussionsConstants } from './constants';
 
 const log = logger('discussions-search');
 
-import { pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
+import { isEmpty, pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
 
 const defaultToEmptyObject = defaultTo({});
 const getResourceId = prop('resourceId');
@@ -136,7 +136,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
  */
 const _produceDiscussionMessageDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
+  if (isEmpty(resources)) {
     return callback(_errs, _documents);
   }
 

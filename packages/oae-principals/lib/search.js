@@ -329,7 +329,8 @@ SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
  */
 const _transformUserDocuments = function(ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
-    const extra = defaultTo({}, head(doc.fields._extra));
+    const scalarExtraField = head(doc.fields._extra);
+    const extra = defaultTo({}, scalarExtraField);
     const scalarFields = map(head, doc.fields);
     const { thumbnailUrl, email, displayName, tenantAlias, visibility } = scalarFields;
 
@@ -417,7 +418,8 @@ SearchAPI.registerSearchDocumentTransformer('user', _transformUserDocuments);
  */
 const _transformGroupDocuments = function(ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
-    const extraFields = head(defaultTo({}, doc.fields._extra));
+    const scalarExtraField = head(doc.fields._extra);
+    const extraFields = defaultTo({}, scalarExtraField);
     const alias = pick(['alias'], extraFields);
     const scalarFields = map(head, doc.fields);
     const tenantAlias = getTenantAlias(scalarFields);

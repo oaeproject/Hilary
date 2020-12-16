@@ -49,6 +49,7 @@ import {
   mergeLeft,
   path,
   compose,
+  isEmpty,
   defaultTo,
   head,
   mergeDeepLeft,
@@ -220,7 +221,7 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
  */
 const _produceContentCommentDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
+  if (isEmpty(resources)) {
     return callback(_errs, _documents);
   }
 

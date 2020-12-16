@@ -25,7 +25,6 @@ import { SearchConstants } from 'oae-search/lib/constants';
 import { prop, isEmpty } from 'ramda';
 
 const { buildIndex } = SearchAPI;
-// TODO simplify and ramdify this file
 
 /**
  * Completely empty out the search index
@@ -37,7 +36,7 @@ const deleteAll = callback => {
   whenIndexingComplete(() => {
     // Destroy and rebuild the search schema, as well as all documents inside it
     buildIndex(true, err => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback();
     });
   });
@@ -52,7 +51,7 @@ const deleteAll = callback => {
  */
 const reindexAll = (globalAdminRestCtx, callback) => {
   RestAPI.Search.reindexAll(globalAdminRestCtx, err => {
-    assert.ok(!err);
+    assert.notExists(err);
 
     /**
      * When the reindex-all task has completed, we have a guarantee that all
@@ -70,7 +69,7 @@ const reindexAll = (globalAdminRestCtx, callback) => {
 const assertSearchSucceeds = function(restCtx, searchType, params, opts, callback) {
   whenIndexingComplete(() => {
     RestAPI.Search.search(restCtx, searchType, params, opts, (err, response) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(response);
     });
   });
@@ -90,7 +89,7 @@ const assertSearchSucceeds = function(restCtx, searchType, params, opts, callbac
  */
 const assertSearchContains = function(restCtx, searchType, params, opts, containIds, callback) {
   setTimeout(searchAll, 200, restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.deepStrictEqual(
       _.chain(response.results)
         .pluck('id')
@@ -117,7 +116,7 @@ const assertSearchContains = function(restCtx, searchType, params, opts, contain
  */
 const assertSearchNotContains = function(restCtx, searchType, params, opts, notContainIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(
       _.chain(response.results)
         .pluck('id')
@@ -145,7 +144,7 @@ const assertSearchNotContains = function(restCtx, searchType, params, opts, notC
 const assertSearchEquals = function(restCtx, searchType, params, opts, expectedIds, callback) {
   // searchAll(restCtx, null, params, opts, (err, response) => {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.deepStrictEqual(_.pluck(response.results, 'id').sort(), expectedIds.slice().sort());
     return callback(response);
   });
@@ -243,7 +242,7 @@ const whenIndexingComplete = function(callback) {
           MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
             MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT_PROCESSING, () => {
               ElasticSearch.refresh(err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 return callback();
               });
             });

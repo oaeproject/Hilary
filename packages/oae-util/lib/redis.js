@@ -80,9 +80,19 @@ const createClient = function(_config, callback) {
   const redisClient = Redis.createClient(connectionOptions);
 
   // Register an error handler.
+  redisClient.on('close', () => {
+    log().error('Closing connection to redis...');
+  });
+
+  redisClient.on('end', () => {
+    log().error(
+      'All connections have been closed and no more reconnections will be made, or the connection has failed to establish.'
+    );
+  });
+
   redisClient.on('error', () => {
-    isDown = true;
     log().error('Error connecting to redis...');
+    isDown = true;
   });
 
   redisClient.on('ready', () => {
@@ -92,6 +102,7 @@ const createClient = function(_config, callback) {
 
     isDown = false;
   });
+
   return callback(null, redisClient);
 };
 

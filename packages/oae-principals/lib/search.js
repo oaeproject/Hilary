@@ -317,6 +317,37 @@ SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
  */
 
 /**
+ * A function that returns a function that either associates an `thumbnailUrl` field
+ * to the user object or alternatively just returns the identity function
+ *
+ * @function _assignThumbnailIfNeeded
+ * @param  {Object} ctx  The http context requesting
+ * @param  {Object} user the user object
+ */
+const _assignThumbnailIfNeeded = (ctx, user) => {
+  if (user.picture.mediumUri) {
+    return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, user.picture.mediumUri));
+  }
+
+  return identity;
+};
+
+/**
+ * A function that returns a function that either associates an `extra` field
+ * to the user object or alternatively just returns the identity function
+ *
+ * @function _assignExtraIfNeeded
+ * @param {Object} user The user object
+ */
+const _assignExtraIfNeeded = user => {
+  if (user.extra) {
+    return assoc('extra', user.extra);
+  }
+
+  return identity;
+};
+
+/**
  * Given an array of user search documents, transform them into search documents
  * suitable to be displayed to the user in context.
  *
@@ -362,32 +393,13 @@ const _transformUserDocuments = function(ctx, docs, callback) {
       tenant: user.tenant
     };
 
-    // The UI search model expects the 'extra' parameter if it was not scrubbed
-    const assignExtraIfNeeded = user => {
-      if (user.extra) {
-        return assoc('extra', user.extra);
-      }
-
-      return identity;
-    };
-
-    /**
-     * If the mediumPictureUri wasn't scrubbed from the user object
-     * that means the current user can see it
-     */
-    const assignThumbnailIfNeeded = user => {
-      if (user.picture.mediumUri) {
-        return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, user.picture.mediumUri));
-      }
-
-      return identity;
-    };
-
     const result = pipe(
       _produceUserSearchDocument,
       mergeDeepLeft(tenantAndProfileInfo),
-      assignExtraIfNeeded(user),
-      assignThumbnailIfNeeded(user)
+      // The UI search model expects the 'extra' parameter if it was not scrubbed
+      _assignExtraIfNeeded(user),
+      // If the mediumPictureUri wasn't scrubbed from the user object that means the current user can see it
+      _assignThumbnailIfNeeded(ctx, user)
     )(user);
 
     /**

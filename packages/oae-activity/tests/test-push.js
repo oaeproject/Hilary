@@ -721,8 +721,13 @@ describe('Activity push', () => {
                     assert.notExists(err);
 
                     discussion = _discussion;
-                    // We need to signal that the variable now holds the discussion data
-                    discussionEmitter.emit('discussionReady', discussion);
+                    /**
+                     * We need to signal that the variable now holds the discussion data
+                     * but we wait a bit for the event listener to be ready
+                     */
+                    setTimeout(() => {
+                      discussionEmitter.emit('discussionReady', discussion);
+                    }, 1000);
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
                     ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
@@ -908,7 +913,7 @@ describe('Activity push', () => {
                 };
 
                 client.on('message', message => {
-                  setTimeout(dealWithMessage, 500, message);
+                  dealWithMessage(message);
                 });
               }
             );

@@ -52,7 +52,7 @@ const emitter = TelemetryAPI;
  *
  * @param  {Object}     [telemetryConfig]   The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
  */
-const init = function(_telemetryConfig, callback) {
+const init = (_telemetryConfig, callback) => {
   Locking.init((err, _locker) => {
     if (err) return callback(err);
 
@@ -61,34 +61,33 @@ const init = function(_telemetryConfig, callback) {
 
     _applyTelemetryConfig(_telemetryConfig);
     _resetTelemetry(publishIntervalId, resetIntervalId);
-
-    if (telemetryConfig.enabled && telemetryConfig.publisher) {
-      initTelemetry(telemetryConfig, callback);
-    } else {
-      return callback();
-    }
+    _initPublish(telemetryConfig, callback);
   });
 };
 
 // TODO JSDoc
-const initTelemetry = (telemetryConfig, callback) => {
-  publisher = require('./publishers/' + telemetryConfig.publisher);
-  publisher.init(telemetryConfig);
+const _initPublish = (telemetryConfig, callback) => {
+  if (telemetryConfig.enabled && telemetryConfig.publisher) {
+    publisher = require('./publishers/' + telemetryConfig.publisher);
+    publisher.init(telemetryConfig);
 
-  /**
-   * Immediately try and reset telemetry counts so if the servers are
-   * rebooted it doesn't put off the reset for potentially another
-   * full day
-   */
-  _resetTelemetryCounts(err => {
-    if (err) return callback(err);
+    /**
+     * Immediately try and reset telemetry counts so if the servers are
+     * rebooted it doesn't put off the reset for potentially another
+     * full day
+     */
+    _resetTelemetryCounts(err => {
+      if (err) return callback(err);
 
-    // Begin the publish and reset intervals
-    publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
-    resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
+      // Begin the publish and reset intervals
+      publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
+      resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
 
+      return callback();
+    });
+  } else {
     return callback();
-  });
+  }
 };
 
 // TODO JSDoc

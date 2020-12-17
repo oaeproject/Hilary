@@ -60,37 +60,45 @@ const init = function(_telemetryConfig, callback) {
     lockerRedisClient = head(locker.servers);
 
     _applyTelemetryConfig(_telemetryConfig);
-    _resetLocalHistograms();
-    _resetLocalCounts();
-
-    // Clear the publish and reset intervals in case telemetry is now disabled
-    clearTimeout(publishIntervalId);
-    clearTimeout(resetIntervalId);
+    _resetTelemetry(publishIntervalId, resetIntervalId);
 
     if (telemetryConfig.enabled && telemetryConfig.publisher) {
-      publisher = require('./publishers/' + telemetryConfig.publisher);
-      publisher.init(telemetryConfig);
-
-      /**
-       * Immediately try and reset telemetry counts so if the servers are
-       * rebooted it doesn't put off the reset for potentially another
-       * full day
-       */
-      _resetTelemetryCounts(err => {
-        if (err) {
-          return callback(err);
-        }
-
-        // Begin the publish and reset intervals
-        publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
-        resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
-
-        return callback();
-      });
+      initTelemetry(telemetryConfig, callback);
     } else {
       return callback();
     }
   });
+};
+
+// TODO JSDoc
+const initTelemetry = (telemetryConfig, callback) => {
+  publisher = require('./publishers/' + telemetryConfig.publisher);
+  publisher.init(telemetryConfig);
+
+  /**
+   * Immediately try and reset telemetry counts so if the servers are
+   * rebooted it doesn't put off the reset for potentially another
+   * full day
+   */
+  _resetTelemetryCounts(err => {
+    if (err) return callback(err);
+
+    // Begin the publish and reset intervals
+    publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
+    resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
+
+    return callback();
+  });
+};
+
+// TODO JSDoc
+const _resetTelemetry = (publishIntervalId, resetIntervalId) => {
+  _resetLocalHistograms();
+  _resetLocalCounts();
+
+  // Clear the publish and reset intervals in case telemetry is now disabled
+  clearTimeout(publishIntervalId);
+  clearTimeout(resetIntervalId);
 };
 
 /**

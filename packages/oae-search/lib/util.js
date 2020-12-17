@@ -610,12 +610,20 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
   invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
     if (err) return callback(err);
 
-    if (user && user.isGlobalAdmin() && equals(scope, SearchConstants.general.SCOPE_ALL)) {
+    const scopeToAll = equals(scope, SearchConstants.general.SCOPE_ALL);
+    const scopeToInteractionOnly = equals(scope, SearchConstants.general.SCOPE_INTERACT);
+    const scopeToMineOnly = equals(SearchConstants.general.SCOPE_MY);
+    const scopeToAllOrNetwork = either(
+      equals(SearchConstants.general.SCOPE_NETWORK),
+      equals(SearchConstants.general.SCOPE_ALL)
+    )(scope);
+
+    if (user && user.isGlobalAdmin() && scopeToAll) {
       // Global admins can search all public resources, including private tenants'
       return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
     }
 
-    if (equals(scope, SearchConstants.general.SCOPE_NETWORK) || equals(scope, SearchConstants.general.SCOPE_ALL)) {
+    if (scopeToAllOrNetwork) {
       /**
        *  When searching network, we care about access and the scope of the tenant network (i.e.,
        *  scope public tenants away from private). All resources outside the network that the
@@ -627,7 +635,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (equals(scope, SearchConstants.general.SCOPE_INTERACT)) {
+    if (scopeToInteractionOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({
@@ -658,7 +666,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (equals(scope, SearchConstants.general.SCOPE_MY)) {
+    if (scopeToMineOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({
@@ -791,12 +799,10 @@ const filterExplicitAccess = function(ctx, callback) {
              * @see http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-terms-filter.html
              */
             filterTerms('direct_members', {
-              // type: AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, // this is deprecated
               index: 'oaetest', // TODO this needs to come out of somewhere, can't be hardcoded
               id: getChildSearchDocumentId(AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, ctx.user().id),
               path: 'direct_memberships',
               routing: ctx.user().id
-              // cache: false // this is obsolete, apparently
             })
           )
         )

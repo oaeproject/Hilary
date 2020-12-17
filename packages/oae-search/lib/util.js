@@ -19,6 +19,7 @@ import util from 'util';
 import { logger } from 'oae-logger';
 import * as AuthzAPI from 'oae-authz';
 import * as OaeUtil from 'oae-util/lib/util';
+const { invokeIfNecessary } = OaeUtil;
 import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as SearchModel from 'oae-search/lib/model';
@@ -606,8 +607,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
    */
   needsFilterByExplicitAccess = needsFilterByExplicitAccess || scope === SearchConstants.general.SCOPE_MY;
 
-  // TODO remove this util method
-  OaeUtil.invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
+  invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
     if (err) return callback(err);
 
     if (user && user.isGlobalAdmin() && equals(scope, SearchConstants.general.SCOPE_ALL)) {
@@ -806,7 +806,8 @@ const filterExplicitAccess = function(ctx, callback) {
 };
 
 /**
- * Create an ElasticSearch filter that will filter only the items created by the current user or items NOT created by the current user
+ * Create an ElasticSearch filter that will filter only the items created by
+ * the current user or items NOT created by the current user
  *
  * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
  * @param  {String}     createdBy           A string used to filter items by
@@ -822,7 +823,6 @@ const filterCreatedBy = function(ctx, createdBy) {
     return filterNot(filterTerm('createdBy', user.id));
   }
 
-  // TODO changed here, verify
   return null;
 };
 
@@ -903,12 +903,13 @@ const createHasChildQuery = function(type, childQuery, scoreType, boost) {
     }
   };
 
-  // Because we can't use a has_child query with a scoreType in a filter,
-  // we only add the scoreType when it's been defined, so callers can specify
-  // when to add it
+  /**
+   * Because we can't use a has_child query with a scoreType in a filter,
+   * we only add the scoreType when it's been defined, so callers can specify
+   * when to add it
+   */
   if (scoreType) {
     query.has_child.score_mode = scoreType;
-    // query.has_child.score_type = scoreType;
   }
 
   if (boost) {

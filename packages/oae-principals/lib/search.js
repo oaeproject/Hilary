@@ -419,6 +419,39 @@ const _transformUserDocuments = function(ctx, docs, callback) {
 SearchAPI.registerSearchDocumentTransformer('user', _transformUserDocuments);
 
 /**
+ * A function that either returns a function that conditionally assigns the `thumbnailUrl`
+ * to an object or alternatively just returns the identity function
+ *
+ * @function _signThumbnail
+ * @param  {Object} ctx          The http context of the request
+ * @param  {String} thumbnailUrl The thumbnailUrl to assign conditionally
+ * @param  {Object} result       Search result object
+ */
+const _signThumbnailIfNeeded = (ctx, thumbnailUrl, result) => {
+  if (has('thumbnailUrl', result)) {
+    return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl));
+  }
+
+  return identity;
+};
+
+/**
+ * A function that either returns a function that conditionally assigns the `profilePath`
+ * to an object or alternatively just returns the identity function
+ * @function _assignProfilePathIfNeeded
+ * @param  {Object} tenantAlias The tenant alias the profile belongs to
+ * @param  {String} resourceId  The resourceId representing the group
+ * @param  {Object} result      Search result object
+ */
+const _assignProfilePathIfNeeded = (tenantAlias, resourceId, result) => {
+  if (not(result.deleted)) {
+    return assoc('profilePath', `/group/${tenantAlias}/${resourceId}`);
+  }
+
+  return identity;
+};
+
+/**
  * Given an array of group search documents, transform them into search documents suitable to be displayed to the user in context.
  *
  * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
@@ -438,29 +471,13 @@ const _transformGroupDocuments = function(ctx, docs, callback) {
     const tenant = getTenant(tenantAlias).compact();
     const resourceId = compose(getResourceId, getResourceFromId)(docId);
 
-    // Sign the thumbnail URL so it may be downloaded by the client
-    const signThumbnail = result => {
-      if (has('thumbnailUrl', result)) {
-        return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, scalarFields.thumbnailUrl), result);
-      }
-
-      return result;
-    };
-
-    // Add the profile path, only if the group is not deleted
-    const assignProfilePathIfNeeded = result => {
-      if (not(result.deleted)) {
-        return assoc('profilePath', `/group/${tenantAlias}/${resourceId}`, result);
-      }
-
-      return result;
-    };
-
     return pipe(
       mergeLeft({ id: docId }),
       mergeLeft(scalarFields),
-      signThumbnail,
-      assignProfilePathIfNeeded,
+      // Sign the thumbnail URL so it may be downloaded by the client
+      _signThumbnailIfNeeded(ctx, scalarFields.thumbnailUrl, scalarFields),
+      // Add the profile path, only if the group is not deleted
+      _assignProfilePathIfNeeded(tenantAlias, resourceId, scalarFields),
       mergeDeepLeft({ alias }),
       mergeDeepLeft({ tenant })
     )(extraFields);

@@ -47,20 +47,26 @@ const Telemetry = telemetry('search');
 let index = null;
 let client = null;
 
+/**
+ * Helper functions
+ */
 const returned200 = propEq('statusCode', 200);
 const isOne = equals(1);
 const firstKeyOf = compose(head, keys);
 
+/**
+ * Constants
+ */
 const CREATE_INDEX = 'createIndex';
 const DELETE_INDEX = 'deleteIndex';
-const INDEX_STATUS = 'indexSatus'; // index exists
+const INDEX_STATUS = 'indexSatus'; // index exists command
 const REFRESH = 'refresh';
 const PUT_MAPPING = 'putMapping';
-const GET_MAPPING = 'getMapping'; // mapping exists
+const GET_MAPPING = 'getMapping'; // mapping exists command
 const SEARCH = 'search';
 const RUN_INDEX = 'index';
 const BULK = 'bulk';
-const DELETE = 'delete'; // del
+const DELETE = 'delete'; // del command
 const DELETE_BY_QUERY = 'deleteByQuery';
 
 /**
@@ -184,8 +190,7 @@ const indexExists = function(index, callback) {
       }
 
       Telemetry.appendDuration('exec.' + INDEX_STATUS + '.time', start);
-      const result = returned200(queryResult);
-      return callback(null, result);
+      return callback(null, returned200(queryResult));
     }
   );
 };
@@ -321,11 +326,7 @@ const mapChildrenToParent = function(parentName, childrenName, callback) {
       index,
       body
     },
-    err => {
-      if (err) return callback(err);
-
-      return callback();
-    }
+    callback
   );
 };
 
@@ -372,6 +373,7 @@ const search = function(body, options, callback) {
   const { storedFields, from, size } = options;
   Telemetry.incr('exec.' + SEARCH + '.count');
   const start = Date.now();
+
   return client.search(
     {
       index,
@@ -405,14 +407,10 @@ const search = function(body, options, callback) {
 const runIndex = function(typeName, id, body, options, callback) {
   log().trace({ id, document: body, options }, 'Indexing a document');
 
-  // Because ES7.x is typeless
-  // body.type = typeName;
-  // body.type = body._type;
-  // delete body._type;
   const { routing } = options;
-
   Telemetry.incr('exec.' + RUN_INDEX + '.count');
   const start = Date.now();
+
   return client.index({ id, index, body, routing }, (err, result) => {
     if (err) {
       _logError(RUN_INDEX, err);

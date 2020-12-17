@@ -21,7 +21,7 @@ import * as Locking from 'oae-util/lib/locking';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Redis from 'oae-util/lib/redis';
-import { head } from 'ramda';
+import { isEmpty, head } from 'ramda';
 
 const log = logger('oae-telemetry');
 
@@ -51,6 +51,7 @@ const emitter = TelemetryAPI;
  * analysis backend.
  *
  * @param  {Object}     [telemetryConfig]   The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
+ * @param  {Function} callback        Standard callback function
  */
 const init = (_telemetryConfig, callback) => {
   Locking.init((err, _locker) => {
@@ -65,7 +66,13 @@ const init = (_telemetryConfig, callback) => {
   });
 };
 
-// TODO JSDoc
+/**
+ * Post-initialization for Telemetry API
+ *
+ * @function _initPublish
+ * @param  {Object} telemetryConfig The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
+ * @param  {Function} callback        Standard callback function
+ */
 const _initPublish = (telemetryConfig, callback) => {
   if (telemetryConfig.enabled && telemetryConfig.publisher) {
     publisher = require('./publishers/' + telemetryConfig.publisher);
@@ -90,7 +97,13 @@ const _initPublish = (telemetryConfig, callback) => {
   }
 };
 
-// TODO JSDoc
+/**
+ * Resets all telemetry counters and timeouts
+ *
+ * @function _resetTelemetry
+ * @param  {Number} publishIntervalId The publish telemetry interval
+ * @param  {Number} resetIntervalId   The reset telemetry interval
+ */
 const _resetTelemetry = (publishIntervalId, resetIntervalId) => {
   _resetLocalHistograms();
   _resetLocalCounts();
@@ -318,7 +331,7 @@ const _resetTelemetryCounts = function(callback) {
  * @api private
  */
 const _pushCountsToRedis = function(callback) {
-  if (_.isEmpty(stats.counts)) {
+  if (isEmpty(stats.counts)) {
     return callback();
   }
 

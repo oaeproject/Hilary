@@ -127,7 +127,6 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
             query.bool.should.push(
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_BODY,
-                // TODO check is this needs changing as well
                 SearchUtil.createQueryStringQuery(opts.q, ['content_body']),
                 'max',
                 2

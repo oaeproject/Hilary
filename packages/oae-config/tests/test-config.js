@@ -38,6 +38,8 @@ const {
   createTenantRestContext
 } = TestsUtil;
 
+const { RECAPTCHA_KEY } = process.env;
+
 describe('Configuration', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user on the Cambridge tenant
   let asCambridgeAnonymousUser = null;
@@ -229,7 +231,7 @@ describe('Configuration', () => {
       // Retrieve a suppressed value
       assert.strictEqual(
         PrincipalsConfig.getValue(global.oaeTests.tenants.cam.alias, 'recaptcha', 'privateKey'),
-        '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
+        RECAPTCHA_KEY
       );
 
       return callback();
@@ -344,7 +346,7 @@ describe('Configuration', () => {
         // Verify that a public value is present
         assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
         // Verify that a suppressed value is present
-        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, RECAPTCHA_KEY);
         // Verify that a globalAdminOnly value is present
         assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
 
@@ -377,7 +379,7 @@ describe('Configuration', () => {
         // Verify that a public value is present
         assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
         // Verify that a suppressed value is present
-        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, RECAPTCHA_KEY);
         // Verify that a globalAdminOnly values are not present
         assert.notExists(config['oae-content'].storage);
 
@@ -716,7 +718,7 @@ describe('Configuration', () => {
         assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
         // Verify that a suppressed value is present
-        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs');
+        assert.strictEqual(config['oae-principals'].recaptcha.privateKey, RECAPTCHA_KEY);
 
         // Verify that a globalAdminOnly value is present
         assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
@@ -835,10 +837,7 @@ describe('Configuration', () => {
                       assert.notExists(err);
                       assert.ok(config);
                       assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
-                      assert.strictEqual(
-                        config['oae-principals'].recaptcha.privateKey,
-                        '6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs'
-                      );
+                      assert.strictEqual(config['oae-principals'].recaptcha.privateKey, RECAPTCHA_KEY);
 
                       return callback();
                     });

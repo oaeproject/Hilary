@@ -610,15 +610,15 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
   invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
     if (err) return callback(err);
 
-    const scopeToAll = equals(scope, SearchConstants.general.SCOPE_ALL);
-    const scopeToInteractionOnly = equals(scope, SearchConstants.general.SCOPE_INTERACT);
-    const scopeToMineOnly = equals(SearchConstants.general.SCOPE_MY);
+    const isScopeToAll = equals(scope, SearchConstants.general.SCOPE_ALL);
+    const isScopeToInteractionOnly = equals(scope, SearchConstants.general.SCOPE_INTERACT);
+    const isScopeToMineOnly = equals(scope, SearchConstants.general.SCOPE_MY);
     const scopeToAllOrNetwork = either(
       equals(SearchConstants.general.SCOPE_NETWORK),
       equals(SearchConstants.general.SCOPE_ALL)
     )(scope);
 
-    if (user && user.isGlobalAdmin() && scopeToAll) {
+    if (user && user.isGlobalAdmin() && isScopeToAll) {
       // Global admins can search all public resources, including private tenants'
       return callback(null, filterOr(implicitAccessFilter, explicitAccessFilter));
     }
@@ -635,7 +635,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (scopeToInteractionOnly) {
+    if (isScopeToInteractionOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({
@@ -666,7 +666,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
       );
     }
 
-    if (scopeToMineOnly) {
+    if (isScopeToMineOnly) {
       if (!user) {
         // Anonymous users cannot interact with anything, give an authorization error for this scenario
         return callback({

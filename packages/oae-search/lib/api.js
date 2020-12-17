@@ -357,8 +357,6 @@ const search = function(ctx, searchType, opts, callback) {
     return callback({ code: 400, msg: 'Search "' + searchType + '" is not a valid search type.' });
   }
 
-  // TODO experiment because I need the index down the line
-  opts.index = index;
   // Invoke the search plugin to get the query object
   registeredSearch.queryBuilder(ctx, opts, (err, queryBody) => {
     if (err) return callback(err);

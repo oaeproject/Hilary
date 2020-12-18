@@ -592,9 +592,9 @@ const filterInteractingTenants = function(tenantAlias) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  * @param  {Object}     callback.filter                 The ElasticSearch filter that can be used in the search query
  */
-const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, callback) {
-  scope = getScopeParam(scope);
-
+const filterScopeAndAccess = function(ctx, opts, needsFilterByExplicitAccess, callback) {
+  const scope = getScopeParam(opts.scope);
+  const { index } = opts;
   const tenant = ctx.tenant();
   const user = ctx.user();
   const interactingTenantAliasesFilter = filterInteractingTenants(tenant.alias);
@@ -607,7 +607,7 @@ const filterScopeAndAccess = function(ctx, scope, needsFilterByExplicitAccess, c
    */
   needsFilterByExplicitAccess = needsFilterByExplicitAccess || scope === SearchConstants.general.SCOPE_MY;
 
-  invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, (err, explicitAccessFilter) => {
+  invokeIfNecessary(needsFilterByExplicitAccess, filterExplicitAccess, ctx, index, (err, explicitAccessFilter) => {
     if (err) return callback(err);
 
     const isScopeToAll = equals(scope, SearchConstants.general.SCOPE_ALL);
@@ -760,7 +760,7 @@ const filterImplicitAccess = function(ctx) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.filter     The ElasticSearch filter that will filter by explicit access. If unspecified, it implies the user has explicit access to *nothing*
  */
-const filterExplicitAccess = function(ctx, callback) {
+const filterExplicitAccess = function(ctx, index, callback) {
   const user = ctx.user();
   if (!user) {
     // Anonymous users cannot have explicit access to anything
@@ -799,7 +799,7 @@ const filterExplicitAccess = function(ctx, callback) {
              * @see http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-terms-filter.html
              */
             filterTerms('direct_members', {
-              index: 'oaetest', // TODO this needs to come out of somewhere, can't be hardcoded
+              index,
               id: getChildSearchDocumentId(AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS, ctx.user().id),
               path: 'direct_memberships',
               routing: ctx.user().id

@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-
+import { isEmpty } from 'ramda';
 import * as OaeUtil from 'oae-util/lib/util';
 
 import { SearchConstants } from 'oae-search/lib/constants';
 import * as SearchUtil from 'oae-search/lib/util';
+const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterScopeAndAccess } = SearchUtil;
 
 /**
  * Search that searches through deleted resources
@@ -40,7 +40,7 @@ export default function(ctx, opts, callback) {
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
   opts.q = SearchUtil.getQueryParam(opts.q);
   opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
-  opts.searchAllResourceTypes = _.isEmpty(opts.resourceTypes);
+  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
   opts.sortBy = [{ deleted: SearchConstants.sort.direction.DESC }];
 
   const user = ctx.user();
@@ -52,17 +52,17 @@ export default function(ctx, opts, callback) {
   opts.scope = _resolveScope(ctx, opts.scope);
 
   // The query and filter objects for the Query DSL
-  const query = { bool: { should: [SearchUtil.createQueryStringQuery(opts.q)] } };
-  const filterResources = SearchUtil.filterResources(opts.resourceTypes, SearchConstants.deleted.ONLY);
+  const query = { bool: { should: [createQueryStringQuery(opts.q)] } };
+  const resourcesFilter = filterResources(opts.resourceTypes, SearchConstants.deleted.ONLY);
 
   // Apply the scope and access filters for the deleted search
-  SearchUtil.filterScopeAndAccess(ctx, opts.scope, false, (err, filterScopeAndAccess) => {
+  filterScopeAndAccess(ctx, opts, false, (err, scopeAndAccessFilter) => {
     if (err) {
       return callback(err);
     }
 
-    const filter = SearchUtil.filterAnd(filterResources, filterScopeAndAccess);
-    return callback(null, SearchUtil.createQuery(query, filter, opts));
+    const filter = filterAnd(resourcesFilter, scopeAndAccessFilter);
+    return callback(null, createQuery(query, filter, opts));
   });
 }
 

@@ -15,6 +15,7 @@
 
 /* eslint-disable camelcase */
 import _ from 'underscore';
+import { includes, isEmpty } from 'ramda';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
@@ -64,7 +65,7 @@ export default function(ctx, opts, callback) {
   opts.q = SearchUtil.getQueryParam(opts.q);
   opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
   opts.createdBy = SearchUtil.getArrayParam(opts.createdBy);
-  opts.searchAllResourceTypes = _.isEmpty(opts.resourceTypes);
+  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
 
   return _search(ctx, opts, callback);
 }
@@ -84,14 +85,14 @@ const _search = function(ctx, opts, callback) {
   const query = _createQuery(ctx, opts);
   const filterByResources = filterResources(opts.resourceTypes);
 
-  filterScopeAndAccess(ctx, opts.scope, _needsFilterByExplicitAccess(ctx, opts), (err, filterScopeAndAccess) => {
+  filterScopeAndAccess(ctx, opts, _needsFilterByExplicitAccess(ctx, opts), (err, scopeAndAccessFilter) => {
     if (err) return callback(err);
 
     // Filter by created if needed
     const createdByFilter = filterCreatedBy(ctx, opts.createdBy);
 
     // Create the filtered query
-    const filter = filterAnd(filterByResources, filterScopeAndAccess, createdByFilter);
+    const filter = filterAnd(filterByResources, scopeAndAccessFilter, createdByFilter);
 
     const filteredQuery = createFilteredQuery(query, filter);
 
@@ -244,5 +245,5 @@ const _needsFilterByExplicitAccess = function(ctx, opts) {
  * @api private
  */
 const _includesResourceType = function(opts, resourceType) {
-  return opts.searchAllResourceTypes || _.contains(opts.resourceTypes, resourceType);
+  return opts.searchAllResourceTypes || includes(resourceType, opts.resourceTypes);
 };

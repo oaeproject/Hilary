@@ -710,198 +710,6 @@ describe('Activity push', () => {
                 marge.user = updatedUser;
                 let discussion = null;
 
-                client.on('setUpListener', () => {
-                  let activitiesReceived = 0;
-                  const dealWithMessage = message => {
-                    activitiesReceived++;
-
-                    assert.ok(message.activities);
-                    assert.lengthOf(message.activities, 1);
-                    const activity = message.activities[0];
-                    assert.ok(activity);
-
-                    let allowedActorProperties = null;
-                    let allowedObjectProperties = null;
-
-                    if (message.streamType === 'notification') {
-                      // Assert that the activity entities are internally formatted
-                      assert.strictEqual(message.format, 'internal');
-
-                      // Assert that the actor entity is a user object augmented with an oae:id and objectType
-                      assert.ok(activity.actor);
-                      assert.strictEqual(activity.actor['oae:id'], marge.user.id);
-                      assert.strictEqual(activity.actor.id, marge.user.id);
-                      assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
-                      assert.strictEqual(activity.actor.lastModified, marge.user.lastModified);
-                      assert.strictEqual(activity.actor.visibility, 'private');
-                      assert.isObject(activity.actor.picture);
-                      assert.strictEqual(activity.actor.resourceType, 'user');
-                      assert.strictEqual(activity.actor.objectType, 'user');
-                      assert.isObject(activity.actor.tenant);
-
-                      // Ensure only these properties are present
-                      allowedActorProperties = [
-                        'oae:id',
-                        'id',
-                        'displayName',
-                        'visibility',
-                        'picture',
-                        'resourceType',
-                        'objectType',
-                        'tenant',
-                        'lastModified'
-                      ];
-                      forEachObjIndexed((value, key) => {
-                        assert.ok(
-                          contains(key, allowedActorProperties),
-                          key + ' is not allowed on an internally formatted activity entity'
-                        );
-                      }, activity.actor);
-
-                      discussionEmitter.when('discussionReady', discussion => {
-                        // Assert that the object entity is a discussion object augmented with an oae:id and objectType
-                        assert.ok(activity.object);
-                        assert.strictEqual(activity.object['oae:id'], discussion.id);
-                        assert.strictEqual(activity.object.id, discussion.id);
-                        assert.strictEqual(activity.object.visibility, discussion.visibility);
-                        assert.strictEqual(activity.object.displayName, discussion.displayName);
-                        assert.strictEqual(activity.object.description, discussion.description);
-                        assert.strictEqual(activity.object.createdBy, discussion.createdBy);
-                        assert.strictEqual(activity.object.created, discussion.created);
-                        assert.strictEqual(activity.object.lastModified, discussion.lastModified);
-                        assert.strictEqual(activity.object.profilePath, discussion.profilePath);
-                        assert.strictEqual(activity.object.resourceType, discussion.resourceType);
-                        assert.strictEqual(activity.object.objectType, 'discussion');
-                        assert.isObject(activity.object.tenant);
-
-                        allowedObjectProperties = [
-                          'tenant',
-                          'id',
-                          'visibility',
-                          'displayName',
-                          'description',
-                          'resourceSubType',
-                          'createdBy',
-                          'created',
-                          'lastModified',
-                          'profilePath',
-                          'resourceType',
-                          'latestRevisionId',
-                          'previews',
-                          'signature',
-                          'objectType',
-                          'oae:id'
-                        ];
-                        forEachObjIndexed((value, key) => {
-                          assert.ok(
-                            contains(key, allowedObjectProperties),
-                            key + ' is not allowed on an internally formatted activity entity'
-                          );
-                        }, activity.object);
-                      });
-                    } else {
-                      // Assert that the activity entities are activitystrea.ms formatted
-                      assert.strictEqual(message.format, 'activitystreams');
-
-                      // Assert that the actor entity is in the proper activitystreams format
-                      assert.ok(activity.actor);
-                      assert.strictEqual(activity.actor['oae:id'], marge.user.id);
-                      assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
-                      assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
-                      assert.strictEqual(activity.actor.objectType, 'user');
-                      assert.strictEqual(
-                        activity.actor.id,
-                        'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
-                      );
-                      assert.isObject(activity.actor['oae:tenant']);
-
-                      allowedActorProperties = [
-                        'oae:id',
-                        'oae:visibility',
-                        'displayName',
-                        'objectType',
-                        'id',
-                        'oae:tenant'
-                      ];
-                      forEachObjIndexed((value, key) => {
-                        assert.ok(
-                          contains(key, allowedActorProperties),
-                          key +
-                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                        );
-                      }, activity.actor);
-
-                      discussionEmitter.when('discussionReady', discussion => {
-                        // Assert that the object entity is in the proper activitystreams format
-                        assert.ok(activity.object);
-                        assert.strictEqual(activity.object['oae:id'], discussion.id);
-                        assert.strictEqual(
-                          activity.object['oae:visibility'],
-                          discussion.visibility
-                        );
-                        assert.strictEqual(
-                          activity.object['oae:profilePath'],
-                          discussion.profilePath
-                        );
-                        assert.strictEqual(
-                          activity.object['oae:resourceSubType'],
-                          discussion.resourceSubType
-                        );
-                        assert.strictEqual(activity.object.displayName, discussion.displayName);
-                        assert.strictEqual(
-                          activity.object.url,
-                          'http://' +
-                            global.oaeTests.tenants.cam.host +
-                            '/discussion/camtest/' +
-                            discussion.id.split(':')[2]
-                        );
-                        assert.strictEqual(activity.object.objectType, 'discussion');
-                        assert.strictEqual(
-                          activity.object.id,
-                          'http://' +
-                            global.oaeTests.tenants.cam.host +
-                            '/api/discussion/' +
-                            discussion.id
-                        );
-                        assert.isObject(activity.object['oae:tenant']);
-
-                        allowedObjectProperties = [
-                          'oae:id',
-                          'oae:visibility',
-                          'oae:profilePath',
-                          'displayName',
-                          'url',
-                          'objectType',
-                          'id',
-                          'oae:tenant'
-                        ];
-                        forEachObjIndexed((value, key) => {
-                          assert.ok(
-                            contains(key, allowedObjectProperties),
-                            key +
-                              ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                          );
-                        }, activity.object);
-                      });
-                    }
-
-                    if (activitiesReceived === 2) {
-                      return callback();
-                    }
-                  };
-
-                  client.on('message', message => {
-                    dealWithMessage(message);
-                  });
-
-                  discussionEmitter.emit('listenerSetUp');
-                });
-                discussionEmitter.emit('setUpListener');
-
-                /**
-                 * We need to signal that the variable now holds the discussion data
-                 * but we wait a bit for the event listener to be ready
-                 */
                 discussionEmitter.when('listenerSetUp', () => {
                   RestAPI.Discussions.createDiscussion(
                     asMarge,
@@ -915,7 +723,17 @@ describe('Activity push', () => {
 
                       discussion = _discussion;
 
+                      /**
+                       * We need to signal that the variable now holds the discussion data
+                       */
                       discussionEmitter.emit('discussionReady', discussion);
+                      /**
+                       * We have signalled that the discussion is ready to be parsed
+                       * so the second time the event is invoked we already know the
+                       * `discussion` variable is set, hence we can remove the remaining listener
+                       * If we let it exist, we would need two event emissions
+                       */
+                      discussionEmitter.removeAllListeners('discussionReady');
 
                       // Force a collection cycle as notifications only get delivered upon aggregation
                       ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
@@ -924,6 +742,190 @@ describe('Activity push', () => {
                     }
                   );
                 });
+
+                let activitiesReceived = 0;
+                const dealWithMessage = message => {
+                  activitiesReceived++;
+
+                  assert.ok(message.activities);
+                  assert.lengthOf(message.activities, 1);
+                  const activity = message.activities[0];
+                  assert.ok(activity);
+
+                  let allowedActorProperties = null;
+                  let allowedObjectProperties = null;
+
+                  if (message.streamType === 'notification') {
+                    // Assert that the activity entities are internally formatted
+                    assert.strictEqual(message.format, 'internal');
+
+                    // Assert that the actor entity is a user object augmented with an oae:id and objectType
+                    assert.ok(activity.actor);
+                    assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                    assert.strictEqual(activity.actor.id, marge.user.id);
+                    assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
+                    assert.strictEqual(activity.actor.lastModified, marge.user.lastModified);
+                    assert.strictEqual(activity.actor.visibility, 'private');
+                    assert.isObject(activity.actor.picture);
+                    assert.strictEqual(activity.actor.resourceType, 'user');
+                    assert.strictEqual(activity.actor.objectType, 'user');
+                    assert.isObject(activity.actor.tenant);
+
+                    // Ensure only these properties are present
+                    allowedActorProperties = [
+                      'oae:id',
+                      'id',
+                      'displayName',
+                      'visibility',
+                      'picture',
+                      'resourceType',
+                      'objectType',
+                      'tenant',
+                      'lastModified'
+                    ];
+                    forEachObjIndexed((value, key) => {
+                      assert.ok(
+                        contains(key, allowedActorProperties),
+                        key + ' is not allowed on an internally formatted activity entity'
+                      );
+                    }, activity.actor);
+
+                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                      assert.ok(activity.object);
+                      assert.strictEqual(activity.object['oae:id'], discussion.id);
+                      assert.strictEqual(activity.object.id, discussion.id);
+                      assert.strictEqual(activity.object.visibility, discussion.visibility);
+                      assert.strictEqual(activity.object.displayName, discussion.displayName);
+                      assert.strictEqual(activity.object.description, discussion.description);
+                      assert.strictEqual(activity.object.createdBy, discussion.createdBy);
+                      assert.strictEqual(activity.object.created, discussion.created);
+                      assert.strictEqual(activity.object.lastModified, discussion.lastModified);
+                      assert.strictEqual(activity.object.profilePath, discussion.profilePath);
+                      assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                      assert.strictEqual(activity.object.objectType, 'discussion');
+                      assert.isObject(activity.object.tenant);
+
+                      allowedObjectProperties = [
+                        'tenant',
+                        'id',
+                        'visibility',
+                        'displayName',
+                        'description',
+                        'resourceSubType',
+                        'createdBy',
+                        'created',
+                        'lastModified',
+                        'profilePath',
+                        'resourceType',
+                        'latestRevisionId',
+                        'previews',
+                        'signature',
+                        'objectType',
+                        'oae:id'
+                      ];
+                      forEachObjIndexed((value, key) => {
+                        assert.ok(
+                          contains(key, allowedObjectProperties),
+                          key + ' is not allowed on an internally formatted activity entity'
+                        );
+                      }, activity.object);
+                    });
+                  } else {
+                    // Assert that the activity entities are activitystrea.ms formatted
+                    assert.strictEqual(message.format, 'activitystreams');
+
+                    // Assert that the actor entity is in the proper activitystreams format
+                    assert.ok(activity.actor);
+                    assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                    assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
+                    assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
+                    assert.strictEqual(activity.actor.objectType, 'user');
+                    assert.strictEqual(
+                      activity.actor.id,
+                      'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
+                    );
+                    assert.isObject(activity.actor['oae:tenant']);
+
+                    allowedActorProperties = [
+                      'oae:id',
+                      'oae:visibility',
+                      'displayName',
+                      'objectType',
+                      'id',
+                      'oae:tenant'
+                    ];
+                    forEachObjIndexed((value, key) => {
+                      assert.ok(
+                        contains(key, allowedActorProperties),
+                        key +
+                          ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                      );
+                    }, activity.actor);
+
+                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the object entity is in the proper activitystreams format
+                      assert.ok(activity.object);
+                      assert.strictEqual(activity.object['oae:id'], discussion.id);
+                      assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
+                      assert.strictEqual(
+                        activity.object['oae:profilePath'],
+                        discussion.profilePath
+                      );
+                      assert.strictEqual(
+                        activity.object['oae:resourceSubType'],
+                        discussion.resourceSubType
+                      );
+                      assert.strictEqual(activity.object.displayName, discussion.displayName);
+                      assert.strictEqual(
+                        activity.object.url,
+                        'http://' +
+                          global.oaeTests.tenants.cam.host +
+                          '/discussion/camtest/' +
+                          discussion.id.split(':')[2]
+                      );
+                      assert.strictEqual(activity.object.objectType, 'discussion');
+                      assert.strictEqual(
+                        activity.object.id,
+                        'http://' +
+                          global.oaeTests.tenants.cam.host +
+                          '/api/discussion/' +
+                          discussion.id
+                      );
+                      assert.isObject(activity.object['oae:tenant']);
+
+                      allowedObjectProperties = [
+                        'oae:id',
+                        'oae:visibility',
+                        'oae:profilePath',
+                        'displayName',
+                        'url',
+                        'objectType',
+                        'id',
+                        'oae:tenant'
+                      ];
+                      forEachObjIndexed((value, key) => {
+                        assert.ok(
+                          contains(key, allowedObjectProperties),
+                          key +
+                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
+                        );
+                      }, activity.object);
+                    });
+                  }
+
+                  if (activitiesReceived === 2) {
+                    return callback();
+                  }
+                };
+
+                discussionEmitter.on('setUpListener', () => {
+                  client.on('message', dealWithMessage);
+
+                  discussionEmitter.emit('listenerSetUp');
+                });
+
+                discussionEmitter.emit('setUpListener');
               }
             );
           });

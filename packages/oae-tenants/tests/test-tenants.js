@@ -17,7 +17,7 @@ import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 
-import { is, head, length, keys } from 'ramda';
+import { isNil, head, length, keys } from 'ramda';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -30,7 +30,7 @@ import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 
-const isUndefined = is(undefined);
+const isUndefined = isNil;
 
 describe('Tenants', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

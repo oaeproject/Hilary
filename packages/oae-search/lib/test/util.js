@@ -142,7 +142,6 @@ const assertSearchNotContains = function(restCtx, searchType, params, opts, notC
  * @throws {AssertionError}                     Thrown if the search fails or if the results do not match the expected ids
  */
 const assertSearchEquals = function(restCtx, searchType, params, opts, expectedIds, callback) {
-  // searchAll(restCtx, null, params, opts, (err, response) => {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
     assert.notExists(err);
     assert.deepStrictEqual(_.pluck(response.results, 'id').sort(), expectedIds.slice().sort());
@@ -185,12 +184,10 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
 
   whenIndexingComplete(() => {
     // Search first with a limit of 1. This is to get the total number of documents available to search
-    // opts.limit = 1;
     opts.size = 1;
     searchRefreshed(restCtx, searchType, params, opts, (err, result) => {
       if (err) return callback(err);
 
-      // const totalResults = path(['total', 'value'], result);
       const totalResults = prop('total', result);
 
       if (totalResults === 0) {
@@ -203,9 +200,7 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
 
       // There are more results, search for everything. Don't refresh this time since we already did for the previous query (if specified)
       const getMoreResults = function() {
-        // opts.start = allData.results.length;
         opts.from = allData.results.length;
-        // opts.limit = 25;
         opts.size = 25;
 
         RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {

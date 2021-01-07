@@ -23,7 +23,11 @@
  *
  * @return {Object}     schema                      The resource memberships schema object
  *         {String[]}   schema.direct_memberships   A multi-value field that holds the direct parent group ids to which the resource is a member
+ *
+ * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+ * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
+
 // eslint-disable-next-line camelcase
 export const direct_memberships = {
   type: 'keyword',

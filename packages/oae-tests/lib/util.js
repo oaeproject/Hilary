@@ -1302,14 +1302,6 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {
         Cassandra.close(() => {
-          /*
-          Redis.init(config.redis, () => {
-            log().info('Flushing redis DB index "%d" to clean up before tests', config.redis.dbIndex);
-
-            Redis.flush(err => {
-              if (err) return callback(new Error(err.msg));
-              */
-
           // Initialize the application modules
           OAE.init(config, err => {
             if (err) return callback(new Error(err.msg));
@@ -1335,8 +1327,6 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
             });
           });
         });
-        // });
-        // });
       });
     };
 

@@ -17,7 +17,7 @@ import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 
-import { head, length, keys } from 'ramda';
+import { is, head, length, keys } from 'ramda';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -29,6 +29,8 @@ import * as TenantsAPI from 'oae-tenants';
 import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+
+const isUndefined = is(undefined);
 
 describe('Tenants', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -391,7 +393,7 @@ describe('Tenants', () => {
           assert.notExists(err);
           const { 0: user } = users;
           PrincipalsTestUtil.assertGetMeSucceeds(user.restContext, me => {
-            assert.ok(_.isUndefined(me.tenant.isGuestTenant));
+            assert.ok(isUndefined(me.tenant.isGuestTenant));
             return callback();
           });
         });
@@ -868,8 +870,7 @@ describe('Tenants', () => {
               // in the private tenants list
               assert.ok(!_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias }));
 
-              // Disable the tenant and ensure it goes into the list of non-interacting
-              // tenants
+              // Disable the tenant and ensure it goes into the list of non-interacting tenants
               TenantsTestUtil.stopTenantAndWait(globalAdminRestContext, tenantAlias, err => {
                 assert.notExists(err);
                 assert.ok(_.findWhere(TenantsAPI.getNonInteractingTenants(), { alias: tenantAlias }));
@@ -1483,17 +1484,17 @@ describe('Tenants', () => {
                   // Verify the users got disabled too
                   PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
                     assert.notExists(err);
-                    assert.ok(!_.isUndefined(principal1.deleted));
+                    assert.ok(!isUndefined(principal1.deleted));
                     assert.ok(principal1.deleted > 0);
 
                     PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
                       assert.notExists(err);
-                      assert.ok(!_.isUndefined(principal2.deleted));
+                      assert.ok(!isUndefined(principal2.deleted));
                       assert.ok(principal2.deleted > 0);
 
                       PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
                         assert.notExists(err);
-                        assert.ok(!_.isUndefined(principal3.deleted));
+                        assert.ok(!isUndefined(principal3.deleted));
                         assert.ok(principal3.deleted > 0);
 
                         return callback();
@@ -1585,15 +1586,15 @@ describe('Tenants', () => {
                   // Verify the users got re-enabled too
                   PrincipalsDAO.getPrincipal(user1.user.id, (err, principal1) => {
                     assert.notExists(err);
-                    assert.ok(_.isUndefined(principal1.deleted));
+                    assert.ok(isUndefined(principal1.deleted));
 
                     PrincipalsDAO.getPrincipal(user2.user.id, (err, principal2) => {
                       assert.notExists(err);
-                      assert.ok(_.isUndefined(principal2.deleted));
+                      assert.ok(isUndefined(principal2.deleted));
 
                       PrincipalsDAO.getPrincipal(user3.user.id, (err, principal3) => {
                         assert.notExists(err);
-                        assert.ok(_.isUndefined(principal3.deleted));
+                        assert.ok(isUndefined(principal3.deleted));
 
                         return callback();
                       });

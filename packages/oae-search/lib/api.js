@@ -856,7 +856,7 @@ const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resou
   _resourceTypes = _resourceTypes || _.keys(resourcesToIndex);
   _documents = _documents || [];
 
-  if (_.isEmpty(_resourceTypes)) return callback(null, _documents);
+  if (R.isEmpty(_resourceTypes)) return callback(null, _documents);
 
   // Select the next resourceType from the list whose documents to produce
   const resourceType = _resourceTypes.shift();

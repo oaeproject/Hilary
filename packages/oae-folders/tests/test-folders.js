@@ -5296,12 +5296,6 @@ describe('Folders', () => {
             assert.ok(!head(args));
 
             const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
-            /*
-            const groupIds = _.chain(args)
-              .pluck('group')
-              .pluck('id')
-              .value();
-              */
 
             // Create a content item to add to the folders
             RestAPI.Content.createLink(

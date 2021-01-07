@@ -31,7 +31,7 @@ describe('Locking', () => {
       // Try again, make sure we don't get a token for it
       Locking.acquire(LOCK_KEY, 5, (err, wouldBeLock) => {
         assert.ok(err);
-        assert.ok(!wouldBeLock);
+        assert.isNotOk(wouldBeLock);
 
         // Release the lock
         Locking.release(lock, err => {
@@ -60,22 +60,22 @@ describe('Locking', () => {
     // Lock key validation.
     Locking.acquire(null, 5000, (err, lock) => {
       assert.strictEqual(err.code, 400);
-      assert.ok(!lock);
+      assert.isNotOk(lock);
 
       // Expires validation
       Locking.acquire(LOCK_KEY, null, (err, anotherLock) => {
         assert.strictEqual(err.code, 400);
-        assert.ok(!anotherLock);
+        assert.isNotOk(anotherLock);
         Locking.acquire(LOCK_KEY, 'Not an int', (err, yetAnotherLock) => {
           assert.strictEqual(err.code, 400);
-          assert.ok(!yetAnotherLock);
+          assert.isNotOk(yetAnotherLock);
           Locking.acquire(LOCK_KEY, 3.5, (err, alternativeLock) => {
             assert.strictEqual(err.code, 400);
-            assert.ok(!alternativeLock);
+            assert.isNotOk(alternativeLock);
 
             Locking.acquire(null, null, (err, indeedLock) => {
               assert.strictEqual(err.code, 400);
-              assert.ok(!indeedLock);
+              assert.isNotOk(indeedLock);
 
               // Sanity checking can happen in other test methods.
               callback();
@@ -120,7 +120,7 @@ describe('Locking', () => {
       // Try again, make sure we don't get a token for it
       Locking.acquire(LOCK_KEY, 5, (err, noLock) => {
         assert.ok(err);
-        assert.ok(!noLock);
+        assert.isNotOk(noLock);
 
         // Wait until it expires then try and steal it
         setTimeout(Locking.acquire, 1100, LOCK_KEY, 5, (err, goodLock) => {
@@ -134,7 +134,7 @@ describe('Locking', () => {
             // Make sure that the invalid release token failed to release the lock
             Locking.acquire(LOCK_KEY, 5, (err, wouldBeLock) => {
               assert.ok(err);
-              assert.ok(!wouldBeLock);
+              assert.isNotOk(wouldBeLock);
 
               // Release it successfully to continue.
               Locking.release(goodLock, err => {
@@ -160,7 +160,7 @@ describe('Locking', () => {
       // Try again, make sure we don't get a token for it
       Locking.acquire(LOCK_KEY, 5, (err, noLock) => {
         assert.ok(err);
-        assert.ok(!noLock);
+        assert.isNotOk(noLock);
 
         // Wait until it expires then try and release it. Verify we get an error
         setTimeout(Locking.release, 1100, lock, err => {

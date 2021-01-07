@@ -20,6 +20,9 @@
  *
  * @return {Object}     schema          The contentBody child document schema
  *         {String}     schema.body     A free-text string representing the body of the content
+ *
+ * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+ * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 /* eslint-disable unicorn/filename-case */
 export const body = {

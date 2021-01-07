@@ -69,18 +69,12 @@ const queryBuilder = function(ctx, opts, callback) {
   // Ensure the email address being searched is lower case so it is case insensitive
   const email = opts.q.toLowerCase();
 
-  // const filterResources = SearchUtil.filterResources(['user']);
-  // const filterInteractingTenants = SearchUtil.filterInteractingTenants(ctx.user().tenant.alias);
-
   /**
    * When searching for users by email, we can ignore profile visibility in lieu of an email
    * exact match. The user profile is still "scrubbed" of private information on its way out,
    * however we enable the ability for a user to share with that profile if they know the email
    * address
    */
-  // const query = SearchUtil.createEmailQuery(email);
-  // const queryOpts = _.extend({}, opts, { minScore: 0 });
-  // const filter = SearchUtil.filterAnd(filterResources, filterInteractingTenants);
 
   /**
    *  aux functions
@@ -104,7 +98,6 @@ const queryBuilder = function(ctx, opts, callback) {
   };
 
   return callback(null, queryBody);
-  // return callback(null, SearchUtil.createQuery(query, filter, queryOpts));
 };
 
 /**

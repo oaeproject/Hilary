@@ -762,7 +762,7 @@ describe('Authentication', () => {
                     // Sanity check the client is still there
                     RestAPI.OAuth.getClients(localAdminRestContext, simong.user.id, (err, data) => {
                       assert.notExists(err);
-                      assert.strictEqual(data.results.length, 1);
+                      assert.lengthOf(data.results, 1);
                       assert.strictEqual(data.results[0].id, client.id);
                       assert.strictEqual(data.results[0].displayName, client.displayName);
                       assert.strictEqual(data.results[0].secret, client.secret);
@@ -779,7 +779,7 @@ describe('Authentication', () => {
                           simong.user.id,
                           (err, data) => {
                             assert.notExists(err);
-                            assert.strictEqual(data.results.length, 0);
+                            assert.lengthOf(data.results, 0);
 
                             // Create another client and try to delete it as the tenant admin
                             const clientDisplayName = TestsUtil.generateRandomText(1);

@@ -368,13 +368,6 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
       signThumbnail(thumbnailUrl)
     )(extraFields);
 
-    // If applicable, sign the thumbnailUrl so the current user can access it
-    /*
-    if (thumbnailUrl) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl);
-    }
-    */
-
     return result;
   }, docs);
 

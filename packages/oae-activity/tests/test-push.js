@@ -724,16 +724,14 @@ describe('Activity push', () => {
 
                       discussion = _discussion;
 
-                      /**
-                       * We need to signal that the variable now holds the discussion data
-                       */
-                      setTimeout(() => {
-                        discussionEmitter.emit('discussionReady', discussion);
-                      }, 500);
-
                       // Force a collection cycle as notifications only get delivered upon aggregation
                       ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
                         assert.notExists(err);
+
+                        /**
+                         * We need to signal that the variable now holds the discussion data
+                         */
+                        discussionEmitter.emit('discussionReady', discussion);
                       });
                     }
                   );
@@ -741,8 +739,6 @@ describe('Activity push', () => {
 
                 let activitiesReceived = 0;
                 const dealWithMessage = message => {
-                  activitiesReceived++;
-
                   assert.ok(message.activities);
                   assert.lengthOf(message.activities, 1);
                   const activity = message.activities[0];
@@ -826,6 +822,11 @@ describe('Activity push', () => {
                           key + ' is not allowed on an internally formatted activity entity'
                         );
                       }, activity.object);
+
+                      activitiesReceived++;
+                      if (activitiesReceived === 2) {
+                        return callback();
+                      }
                     });
                   } else {
                     // Assert that the activity entities are activitystrea.ms formatted
@@ -907,11 +908,12 @@ describe('Activity push', () => {
                             ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                         );
                       }, activity.object);
-                    });
-                  }
 
-                  if (activitiesReceived === 2) {
-                    return callback();
+                      activitiesReceived++;
+                      if (activitiesReceived === 2) {
+                        return callback();
+                      }
+                    });
                   }
                 };
 

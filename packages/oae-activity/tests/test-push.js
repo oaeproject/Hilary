@@ -727,7 +727,9 @@ describe('Activity push', () => {
                       /**
                        * We need to signal that the variable now holds the discussion data
                        */
-                      discussionEmitter.emit('discussionReady', discussion);
+                      setTimeout(() => {
+                        discussionEmitter.emit('discussionReady', discussion);
+                      }, 500);
 
                       // Force a collection cycle as notifications only get delivered upon aggregation
                       ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
@@ -784,50 +786,47 @@ describe('Activity push', () => {
                       );
                     }, activity.actor);
 
-                    // Assert that the object entity is a discussion object augmented with an oae:id and objectType
-                    assert.ok(activity.object);
-                    assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.object.id, discussion.id);
-                    assert.strictEqual(activity.object.visibility, discussion.visibility);
-                    assert.strictEqual(activity.object.displayName, discussion.displayName);
-                    assert.strictEqual(activity.object.description, discussion.description);
-                    assert.strictEqual(activity.object.createdBy, discussion.createdBy);
-                    assert.strictEqual(activity.object.created, discussion.created);
-                    assert.strictEqual(activity.object.lastModified, discussion.lastModified);
-                    assert.strictEqual(activity.object.profilePath, discussion.profilePath);
-                    assert.strictEqual(activity.object.resourceType, discussion.resourceType);
-                    assert.strictEqual(activity.object.objectType, 'discussion');
-                    assert.isObject(activity.object.tenant);
+                    discussionEmitter.when('discussionReady', discussion => {
+                      // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                      assert.ok(activity.object);
+                      assert.strictEqual(activity.object['oae:id'], discussion.id);
+                      assert.strictEqual(activity.object.id, discussion.id);
+                      assert.strictEqual(activity.object.visibility, discussion.visibility);
+                      assert.strictEqual(activity.object.displayName, discussion.displayName);
+                      assert.strictEqual(activity.object.description, discussion.description);
+                      assert.strictEqual(activity.object.createdBy, discussion.createdBy);
+                      assert.strictEqual(activity.object.created, discussion.created);
+                      assert.strictEqual(activity.object.lastModified, discussion.lastModified);
+                      assert.strictEqual(activity.object.profilePath, discussion.profilePath);
+                      assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                      assert.strictEqual(activity.object.objectType, 'discussion');
+                      assert.isObject(activity.object.tenant);
 
-                    allowedObjectProperties = [
-                      'tenant',
-                      'id',
-                      'visibility',
-                      'displayName',
-                      'description',
-                      'resourceSubType',
-                      'createdBy',
-                      'created',
-                      'lastModified',
-                      'profilePath',
-                      'resourceType',
-                      'latestRevisionId',
-                      'previews',
-                      'signature',
-                      'objectType',
-                      'oae:id'
-                    ];
-                    forEachObjIndexed((value, key) => {
-                      assert.ok(
-                        contains(key, allowedObjectProperties),
-                        key + ' is not allowed on an internally formatted activity entity'
-                      );
-                    }, activity.object);
-
-                    if (activitiesReceived === 2) {
-                      discussionEmitter.removeAllListeners();
-                      return callback();
-                    }
+                      allowedObjectProperties = [
+                        'tenant',
+                        'id',
+                        'visibility',
+                        'displayName',
+                        'description',
+                        'resourceSubType',
+                        'createdBy',
+                        'created',
+                        'lastModified',
+                        'profilePath',
+                        'resourceType',
+                        'latestRevisionId',
+                        'previews',
+                        'signature',
+                        'objectType',
+                        'oae:id'
+                      ];
+                      forEachObjIndexed((value, key) => {
+                        assert.ok(
+                          contains(key, allowedObjectProperties),
+                          key + ' is not allowed on an internally formatted activity entity'
+                        );
+                      }, activity.object);
+                    });
                   } else {
                     // Assert that the activity entities are activitystrea.ms formatted
                     assert.strictEqual(message.format, 'activitystreams');
@@ -908,12 +907,11 @@ describe('Activity push', () => {
                             ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                         );
                       }, activity.object);
-
-                      if (activitiesReceived === 2) {
-                        discussionEmitter.removeAllListeners();
-                        return callback();
-                      }
                     });
+                  }
+
+                  if (activitiesReceived === 2) {
+                    return callback();
                   }
                 };
 

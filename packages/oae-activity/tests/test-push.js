@@ -732,6 +732,9 @@ describe('Activity push', () => {
                          * We need to signal that the variable now holds the discussion data
                          */
                         discussionEmitter.emit('discussionReady', discussion);
+
+                        discussionEmitter.removeAllListeners();
+                        client.removeAllListeners();
                       });
                     }
                   );

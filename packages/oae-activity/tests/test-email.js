@@ -1250,7 +1250,7 @@ describe('Activity Email', () => {
                                             4,
                                             (err, empty, users) => {
                                               assert.notExists(err);
-                                              assert.strictEqual(users.length, 1);
+                                              assert.lengthOf(users, 1);
                                               assert.ok(
                                                 find(
                                                   propSatisfies(equals(nico.user.id), 'id'),
@@ -1352,7 +1352,7 @@ describe('Activity Email', () => {
                           // inbox at 1am, we should send out an email at 20h UTC
                           ActivityEmail.collectMails(0, 'daily', null, 20, (err, empty, users) => {
                             assert.notExists(err);
-                            assert.strictEqual(users.length, 1);
+                            assert.lengthOf(users, 1);
                             assert.strictEqual(users[0].id, nico.user.id);
 
                             // Configure the email collector so emails arrive at a user their inbox at 1am on Tueday
@@ -1407,7 +1407,7 @@ describe('Activity Email', () => {
                                             4,
                                             (err, empty, users) => {
                                               assert.notExists(err);
-                                              assert.strictEqual(users.length, 1);
+                                              assert.lengthOf(users, 1);
                                               assert.strictEqual(users[0].id, nico.user.id);
                                               return callback();
                                             }
@@ -2466,7 +2466,7 @@ describe('Activity Email', () => {
                     config.mail.daily.hour,
                     (err, empty, users) => {
                       assert.notExists(err);
-                      assert.strictEqual(users.length, 1);
+                      assert.lengthOf(users, 1);
                       assert.strictEqual(users[0].id, nico.user.id);
                       return callback();
                     }

@@ -740,7 +740,9 @@ describe('Activity push', () => {
                   );
                 });
 
-                let activitiesReceived = 0;
+                let notificationReceived = false;
+                let activityReceived = false;
+
                 const dealWithMessage = message => {
                   assert.ok(message.activities);
                   assert.lengthOf(message.activities, 1);
@@ -826,8 +828,8 @@ describe('Activity push', () => {
                         );
                       }, activity.object);
 
-                      activitiesReceived++;
-                      if (activitiesReceived === 2) {
+                      notificationReceived = true;
+                      if (notificationReceived && activityReceived) {
                         return callback();
                       }
                     });
@@ -912,8 +914,8 @@ describe('Activity push', () => {
                         );
                       }, activity.object);
 
-                      activitiesReceived++;
-                      if (activitiesReceived === 2) {
+                      activityReceived = true;
+                      if (notificationReceived && activityReceived) {
                         return callback();
                       }
                     });

@@ -27,7 +27,7 @@
 #
 
 # This tag corresponds to node 15.x and alpine 3.11
-FROM node:15.2.1-alpine3.11
+FROM node:15.5.1-alpine3.11
 
 LABEL Name=OAE-Hilary
 LABEL Author=ApereoFoundation

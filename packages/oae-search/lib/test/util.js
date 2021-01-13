@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
@@ -22,6 +22,9 @@ import * as RestAPI from 'oae-rest';
 import * as SearchAPI from 'oae-search';
 import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
 import { SearchConstants } from 'oae-search/lib/constants';
+import { prop, isEmpty } from 'ramda';
+
+const { buildIndex } = SearchAPI;
 
 /**
  * Completely empty out the search index
@@ -29,11 +32,11 @@ import { SearchConstants } from 'oae-search/lib/constants';
  * @param  {Function}           callback    Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs
  */
-const deleteAll = function(callback) {
+const deleteAll = callback => {
   whenIndexingComplete(() => {
     // Destroy and rebuild the search schema, as well as all documents inside it
-    SearchAPI.buildIndex(true, err => {
-      assert.ok(!err);
+    buildIndex(true, err => {
+      assert.notExists(err);
       return callback();
     });
   });
@@ -46,12 +49,14 @@ const deleteAll = function(callback) {
  * @param  {Function}           callback            Standard callback function
  * @throws {AssertionError}                         Thrown if an error occurrs
  */
-const reindexAll = function(globalAdminRestCtx, callback) {
+const reindexAll = (globalAdminRestCtx, callback) => {
   RestAPI.Search.reindexAll(globalAdminRestCtx, err => {
-    assert.ok(!err);
+    assert.notExists(err);
 
-    // When the reindex-all task has completed, we have a guarantee that all index tasks
-    // have been recognized by MQ
+    /**
+     * When the reindex-all task has completed, we have a guarantee that all
+     * index tasks have been recognized by MQ
+     */
     return whenIndexingComplete(callback);
   });
 };
@@ -64,7 +69,7 @@ const reindexAll = function(globalAdminRestCtx, callback) {
 const assertSearchSucceeds = function(restCtx, searchType, params, opts, callback) {
   whenIndexingComplete(() => {
     RestAPI.Search.search(restCtx, searchType, params, opts, (err, response) => {
-      assert.ok(!err);
+      assert.notExists(err);
       return callback(response);
     });
   });
@@ -84,7 +89,7 @@ const assertSearchSucceeds = function(restCtx, searchType, params, opts, callbac
  */
 const assertSearchContains = function(restCtx, searchType, params, opts, containIds, callback) {
   setTimeout(searchAll, 200, restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.deepStrictEqual(
       _.chain(response.results)
         .pluck('id')
@@ -111,7 +116,7 @@ const assertSearchContains = function(restCtx, searchType, params, opts, contain
  */
 const assertSearchNotContains = function(restCtx, searchType, params, opts, notContainIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.ok(
       _.chain(response.results)
         .pluck('id')
@@ -138,7 +143,7 @@ const assertSearchNotContains = function(restCtx, searchType, params, opts, notC
  */
 const assertSearchEquals = function(restCtx, searchType, params, opts, expectedIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
-    assert.ok(!err);
+    assert.notExists(err);
     assert.deepStrictEqual(_.pluck(response.results, 'id').sort(), expectedIds.slice().sort());
     return callback(response);
   });
@@ -179,33 +184,30 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
 
   whenIndexingComplete(() => {
     // Search first with a limit of 1. This is to get the total number of documents available to search
-    opts.limit = 1;
+    opts.size = 1;
     searchRefreshed(restCtx, searchType, params, opts, (err, result) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
-      if (result.total === 0) {
+      const totalResults = prop('total', result);
+
+      if (totalResults === 0) {
         // We got 0 documents, just return the result as-is
         return callback(null, result);
       }
 
       // An object that will resemble all the results
-      const allData = { total: result.total, results: [] };
+      const allData = { total: totalResults, results: [] };
 
       // There are more results, search for everything. Don't refresh this time since we already did for the previous query (if specified)
       const getMoreResults = function() {
-        opts.start = allData.results.length;
-        opts.limit = 25;
-        RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {
-          if (err) {
-            return callback(err);
-          }
+        opts.from = allData.results.length;
+        opts.size = 25;
 
-          if (_.isEmpty(data.results)) {
-            // There are no more new results coming back which means we've got them all
-            return callback(null, allData);
-          }
+        RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {
+          if (err) return callback(err);
+
+          // There are no more new results coming back which means we've got them all
+          if (isEmpty(data.results)) return callback(null, allData);
 
           // Add the new results
           allData.results = allData.results.concat(data.results);
@@ -235,7 +237,7 @@ const whenIndexingComplete = function(callback) {
           MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
             MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT_PROCESSING, () => {
               ElasticSearch.refresh(err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 return callback();
               });
             });

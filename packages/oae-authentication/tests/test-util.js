@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
-
+import { assert } from 'chai';
+import { keys } from 'ramda';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
 describe('Authentication - util', () => {
@@ -44,10 +43,10 @@ describe('Authentication - util', () => {
       assert.strictEqual(profileParameters.initial, true);
 
       // Assert that only one key was added
-      assert.strictEqual(_.keys(profileParameters).length, 2);
+      assert.lengthOf(keys(profileParameters), 2);
 
       // Assert that the data object is still intact
-      assert.strictEqual(_.keys(data).length, 2);
+      assert.lengthOf(keys(data), 2);
       assert.strictEqual(data.firstName, 'John');
       assert.strictEqual(data.lastName, 'Doe');
 
@@ -128,7 +127,7 @@ describe('Authentication - util', () => {
       const result = AuthenticationUtil.renderTemplate(template, data);
       assert.strictEqual(result, 'foo');
 
-      assert.strictEqual(_.keys(data).length, 1);
+      assert.lengthOf(keys(data), 1);
       assert.strictEqual(data.var1, 'foo');
       assert.strictEqual(template, '{var1}');
       return callback();

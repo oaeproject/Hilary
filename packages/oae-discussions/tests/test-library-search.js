@@ -14,22 +14,22 @@
  */
 
 /* esling-disable no-unused-vars */
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
-describe('Discussion Library Search', () => {
-  // REST contexts we can use to do REST requests
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
+const { createTenantAdminRestContext } = TestsUtil;
 
-  before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    callback();
+describe('Discussion Library Search', () => {
+  // let asCambridgeAnonymousUser = null;
+  let asCambridgeAdminUser = null;
+
+  before(done => {
+    // asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAdminUser = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    done();
   });
 
   describe('Library search', () => {
@@ -37,13 +37,15 @@ describe('Discussion Library Search', () => {
      * A test that verifies a discussion library can be searched through
      */
     it('verify searching through a discussion library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.ok(!err);
-        const simong = _.values(users)[0];
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong } = users;
 
         // Create 2 discussions
         const randomTextA = TestsUtil.generateRandomText(25);
         const randomTextB = TestsUtil.generateRandomText(25);
+
         RestAPI.Discussions.createDiscussion(
           simong.restContext,
           randomTextA,
@@ -52,37 +54,32 @@ describe('Discussion Library Search', () => {
           null,
           null,
           (err, discussionA) => {
-            assert.ok(!err);
-            RestAPI.Discussions.createDiscussion(
-              simong.restContext,
-              randomTextB,
-              randomTextB,
-              'public',
-              null,
-              null,
-              (err, discussionB) => {
-                assert.ok(!err);
+            assert.notExists(err);
 
-                // Ensure that the randomTextA discussion returns and scores better than randomTextB
-                SearchTestsUtil.searchAll(
-                  simong.restContext,
-                  'discussion-library',
-                  [simong.user.id],
-                  { q: randomTextA },
-                  (err, results) => {
-                    assert.ok(!err);
-                    assert.ok(results.results);
+            RestAPI.Discussions.createDiscussion(simong.restContext, randomTextB, randomTextB, 'public', null, null, (
+              err /* , discussionB */
+            ) => {
+              assert.notExists(err);
 
-                    const doc = results.results[0];
-                    assert.ok(doc);
-                    assert.strictEqual(doc.id, discussionA.id);
-                    assert.strictEqual(doc.displayName, randomTextA);
-                    assert.strictEqual(doc.description, randomTextA);
-                    callback();
-                  }
-                );
-              }
-            );
+              // Ensure that the randomTextA discussion returns and scores better than randomTextB
+              SearchTestsUtil.searchAll(
+                simong.restContext,
+                'discussion-library',
+                [simong.user.id],
+                { q: randomTextA },
+                (err, results) => {
+                  assert.notExists(err);
+                  assert.ok(results.results);
+
+                  const doc = results.results[0];
+                  assert.ok(doc);
+                  assert.strictEqual(doc.id, discussionA.id);
+                  assert.strictEqual(doc.displayName, randomTextA);
+                  assert.strictEqual(doc.description, randomTextA);
+                  callback();
+                }
+              );
+            });
           }
         );
       });

@@ -1569,7 +1569,6 @@ const assertDeleteUserSucceeds = function(adminRestCtx, deleterRestCtx, userId, 
           SearchTestUtil.whenIndexingComplete(() => {
             LibraryAPI.Index.whenUpdatesComplete(() => {
               // Ensure the user profile now throws 404s
-              // eslint-disable-next-line handle-callback-err
               assertGetUserFails(adminRestCtx, userId, 404, (err, user) => {
                 // If the user deleted themself, ensure they are now anonymous
                 assertGetMeSucceeds(deleterRestCtx, (deleterMeAfterDelete, response) => {

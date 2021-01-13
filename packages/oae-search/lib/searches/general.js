@@ -15,6 +15,7 @@
 
 /* eslint-disable camelcase */
 import _ from 'underscore';
+import { includes, isEmpty } from 'ramda';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
@@ -23,6 +24,16 @@ import { SearchConstants } from 'oae-search/lib/constants';
 
 import * as OaeUtil from 'oae-util/lib/util';
 import * as SearchUtil from 'oae-search/lib/util';
+const {
+  filterCreatedBy,
+  createHasChildQuery,
+  createQueryStringQuery,
+  filterResources,
+  filterScopeAndAccess,
+  filterAnd,
+  createFilteredQuery,
+  createQuery
+} = SearchUtil;
 
 const RESOURCE_TYPES_ACCESS_SCOPED = [
   SearchConstants.general.RESOURCE_TYPE_ALL,
@@ -54,7 +65,7 @@ export default function(ctx, opts, callback) {
   opts.q = SearchUtil.getQueryParam(opts.q);
   opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
   opts.createdBy = SearchUtil.getArrayParam(opts.createdBy);
-  opts.searchAllResourceTypes = _.isEmpty(opts.resourceTypes);
+  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
 
   return _search(ctx, opts, callback);
 }
@@ -72,47 +83,41 @@ export default function(ctx, opts, callback) {
 const _search = function(ctx, opts, callback) {
   // The query and filter objects for the Query DSL
   const query = _createQuery(ctx, opts);
-  const filterResources = SearchUtil.filterResources(opts.resourceTypes);
-  SearchUtil.filterScopeAndAccess(
-    ctx,
-    opts.scope,
-    _needsFilterByExplicitAccess(ctx, opts),
-    (err, filterScopeAndAccess) => {
-      if (err) {
-        return callback(err);
+  const filterByResources = filterResources(opts.resourceTypes);
+
+  filterScopeAndAccess(ctx, opts, _needsFilterByExplicitAccess(ctx, opts), (err, scopeAndAccessFilter) => {
+    if (err) return callback(err);
+
+    // Filter by created if needed
+    const createdByFilter = filterCreatedBy(ctx, opts.createdBy);
+
+    // Create the filtered query
+    const filter = filterAnd(filterByResources, scopeAndAccessFilter, createdByFilter);
+
+    const filteredQuery = createFilteredQuery(query, filter);
+
+    // Give results from the current tenant a slight boost
+    const boostingQuery = {
+      function_score: {
+        score_mode: 'sum',
+        boost_mode: 'sum',
+        functions: [
+          {
+            filter: {
+              term: {
+                tenantAlias: ctx.tenant().alias
+              }
+            },
+            weight: 1.5
+          }
+        ],
+        query: filteredQuery
       }
+    };
 
-      // Filter by created if needed
-      const filterCreatedBy = SearchUtil.filterCreatedBy(ctx, opts.createdBy);
-
-      // Create the filtered query
-      const filter = SearchUtil.filterAnd(filterResources, filterScopeAndAccess, filterCreatedBy);
-
-      const filteredQuery = SearchUtil.createFilteredQuery(query, filter);
-
-      // Give results from the current tenant a slight boost
-      const boostingQuery = {
-        function_score: {
-          score_mode: 'sum',
-          boost_mode: 'sum',
-          functions: [
-            {
-              filter: {
-                term: {
-                  tenantAlias: ctx.tenant().alias
-                }
-              },
-              boost_factor: 1.5
-            }
-          ],
-          query: filteredQuery
-        }
-      };
-
-      // Wrap the query and filter into the top-level Query DSL "query" object
-      return callback(null, SearchUtil.createQuery(boostingQuery, null, opts));
-    }
-  );
+    // Wrap the query and filter into the top-level Query DSL "query" object
+    return callback(null, createQuery(boostingQuery, null, opts));
+  });
 };
 
 /**
@@ -124,38 +129,49 @@ const _search = function(ctx, opts, callback) {
  * @api private
  */
 const _createQuery = function(ctx, opts) {
+  const includeContent = _includesResourceType(opts, 'content');
+  const includeDiscussion = _includesResourceType(opts, 'discussion');
+  const includeFolder = _includesResourceType(opts, 'folder');
+
   if (opts.q === SearchConstants.query.ALL) {
-    return SearchUtil.createQueryStringQuery(opts.q);
+    /**
+     * Apparently ES no longer supports `query_string` syntax along with bool type query
+     * so all in all I'm adding a `should` with a query_string in it
+     */
+    return { bool: { should: [createQueryStringQuery(opts.q)], minimum_should_match: 1 } };
   }
 
-  const hasContent = _includesResourceType(opts, 'content');
-  const hasDiscussion = _includesResourceType(opts, 'discussion');
-  const hasFolder = _includesResourceType(opts, 'folder');
-
-  // If we will be including results that match child documents, we'll want to
-  // boost the resource match to avoid the messages dominating resources
-  const boost = hasContent || hasDiscussion || hasFolder ? 5 : null;
+  /**
+   * If we will be including results that match child documents, we'll want to
+   * boost the resource match to avoid the messages dominating resources
+   */
+  const boost = includeContent || includeDiscussion || includeFolder ? 5 : null;
   const query = {
     bool: {
-      should: [SearchUtil.createQueryStringQuery(opts.q, null, boost)],
+      should: [createQueryStringQuery(opts.q, null, boost)],
       minimum_should_match: 1
     }
   };
 
   // For content items, include their comments and body text
-  if (hasContent) {
+  if (includeContent) {
+    /**
+     * Here we're looking for `discussion_message_body` as that is the
+     * default export of `resourceMessagesSchema` defined in `oae-messagebox/lib/search/schema`
+     * If the fields do not match, the query will look for the wrong data
+     */
     query.bool.should.push(
-      SearchUtil.createHasChildQuery(
+      createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
-        SearchUtil.createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(opts.q, ['discussion_message_body']),
         'max'
       )
     );
     // If the content_body matches that should be boosted over a comment match
     query.bool.should.push(
-      SearchUtil.createHasChildQuery(
+      createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_BODY,
-        SearchUtil.createQueryStringQuery(opts.q, ['content_body']),
+        createQueryStringQuery(opts.q, ['content_body']),
         'max',
         2
       )
@@ -163,22 +179,27 @@ const _createQuery = function(ctx, opts) {
   }
 
   // For discussions, include their messages
-  if (hasDiscussion) {
+  if (includeDiscussion) {
+    /**
+     * Here we're looking for `discussion_message_body` as that is the
+     * default export of `resourceMessagesSchema` defined in `oae-messagebox/lib/search/schema`
+     * If the fields do not match, the query will look for the wrong data
+     */
     query.bool.should.push(
       SearchUtil.createHasChildQuery(
         DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-        SearchUtil.createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(opts.q, ['discussion_message_body']),
         'max'
       )
     );
   }
 
   // For folders, include their comments
-  if (hasFolder) {
+  if (includeFolder) {
     query.bool.should.push(
-      SearchUtil.createHasChildQuery(
+      createHasChildQuery(
         FoldersConstants.search.MAPPING_FOLDER_MESSAGE,
-        SearchUtil.createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(opts.q, ['body']),
         'max'
       )
     );
@@ -188,12 +209,13 @@ const _createQuery = function(ctx, opts) {
 };
 
 /**
- * Determines whether or not the search needs to be scoped by the user's explicit access privileges. This is true when:
+ * Determines whether or not the search needs to be scoped by the user's explicit access privileges.
+ * This is true when:
  *
- *  * The user is authenticated; and
- *  * The user is not a global administrator; and
- *  * The search includes content and groups (users are not filtered by access); and
- *  * The search is actually specifying a query (e.g., if the search is '*', then we only include implicit access)
+ *  1 The user is authenticated; and
+ *  2 The user is not a global administrator; and
+ *  3 The search includes content and groups (users are not filtered by access); and
+ *  4 The search is actually specifying a query (e.g., if the search is '*', then we only include implicit access)
  *
  * @param  {Context}   ctx         Standard context object containing the current user and the current tenant
  * @param  {Object}    opts        The (sanitized) search options
@@ -223,5 +245,5 @@ const _needsFilterByExplicitAccess = function(ctx, opts) {
  * @api private
  */
 const _includesResourceType = function(opts, resourceType) {
-  return opts.searchAllResourceTypes || _.contains(opts.resourceTypes, resourceType);
+  return opts.searchAllResourceTypes || includes(resourceType, opts.resourceTypes);
 };

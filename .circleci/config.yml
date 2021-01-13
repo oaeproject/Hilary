@@ -1,12 +1,16 @@
 aliases:
   - &defaults
     docker:
-      - image: "alpine:3.9"
+      - image: 'alpine:3.9'
+        auth:
+          username: $DOCKER_USER # can specify string literal values
+          password: $DOCKER_PASS # or project environment variable reference
     environment:
       TMP: /root/tmp
       PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
+      npm_config_yes: true
     working_directory: ~/Hilary
   - &install_system_dependencies
     run:
@@ -32,7 +36,7 @@ aliases:
         printf "\nconfig.cassandra.hosts = ['oae-cassandra'];" >> config.js
         printf "\nconfig.cassandra.timeout = 9000;" >> config.js
         printf "\nconfig.redis.host = 'oae-redis';" >> config.js
-        printf "\nconfig.search.hosts[0].host = 'oae-elasticsearch';" >> config.js
+        printf "\nconfig.search.nodes = ['http://oae-elasticsearch:9200'];" >> config.js
         printf "\nconfig.mq.host = 'oae-redis';" >> config.js
         printf "\nconfig.previews.enabled = true;" >> config.js
         printf "\nconfig.email.debug = false;" >> config.js
@@ -57,7 +61,6 @@ aliases:
       command: |
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          cp ep-settings.json etherpad/settings.json; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-with-coverage"
@@ -67,7 +70,6 @@ aliases:
       command: |
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          cp ep-settings.json etherpad/settings.json; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
@@ -78,18 +80,20 @@ aliases:
         docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
   - &install_dependencies
     run:
-      name: Install Hilary dependencies
+      name: Install dependencies
       command: |
         docker-compose run --rm oae-hilary 'yarn run prepare-3akai'
         docker-compose run --rm oae-hilary 'yarn run prepare-etherpad'
         docker-compose run --rm oae-hilary 'yarn run prepare-ethercalc'
-        docker-compose run --rm oae-hilary 'npx lerna bootstrap'
+        docker-compose run --rm oae-hilary 'yarn global add lerna ; /home/node/.yarn/bin/lerna bootstrap'
   - &copy_code
     run:
       name: Copy code
       command: |
         addgroup -g 1000 node
         adduser -u 1000 -G node -s /bin/sh -D node
+        cp ep-settings.json etherpad/settings.json
+        cp ep-package.json etherpad/src/package.json
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
         mkdir -p reports/logs
@@ -107,6 +111,9 @@ aliases:
       name: Install docker-compose
       command: |
         pip install docker-compose~=1.23.2
+  - &setup_remote_docker
+    setup_remote_docker:
+      version: 19.03.13
 
 version: 2.1
 jobs:
@@ -114,7 +121,7 @@ jobs:
     <<: *defaults
     parallelism: 4
     steps:
-      - setup_remote_docker
+      - *setup_remote_docker
       - *install_system_dependencies
       - checkout
       - run: git submodule sync
@@ -134,7 +141,7 @@ jobs:
     <<: *defaults
     parallelism: 1
     steps:
-      - setup_remote_docker
+      - *setup_remote_docker
       - *install_system_dependencies
       - checkout
       - run: git submodule sync

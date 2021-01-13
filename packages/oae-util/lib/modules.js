@@ -56,9 +56,9 @@ const ES6Modules = [
   'oae-principals'
 ];
 
-/// ///////////////////////
-// Module bootstrapping //
-/// ///////////////////////
+/**
+ * Module bootstrapping
+ */
 
 /**
  * Bootstrap all the OAE modules that are present. This will first execute all of the init.js files for all of the modules which will
@@ -160,9 +160,9 @@ const bootstrapModulesRest = function(modules, callback) {
   });
 };
 
-/// ////////////////////
-// Available modules //
-/// ////////////////////
+/**
+ * Available modules
+ */
 
 /**
  * Get a list of all of the available modules, ordered by priority, and cache them
@@ -172,9 +172,7 @@ const bootstrapModulesRest = function(modules, callback) {
  */
 const initAvailableModules = function(callback) {
   IO.getFileListForFolder(OaeUtil.getNodeModulesDir(), (err, modules) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     const finalModules = [];
     const modulePriority = {};
@@ -198,9 +196,7 @@ const initAvailableModules = function(callback) {
     }
 
     // Order by the startup priority
-    finalModules.sort((a, b) => {
-      return modulePriority[a] - modulePriority[b];
-    });
+    finalModules.sort((a, b) => modulePriority[a] - modulePriority[b]);
 
     // Cache the available modules
     cachedAvailableModules = finalModules;

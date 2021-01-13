@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import OAuth from 'oauth';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
@@ -45,7 +45,7 @@ describe('Authentication', () => {
     );
     // Fill up localhost tenant admin rest context
     RestAPI.Admin.loginOnTenant(globalAdminRestContext, 'localhost', null, (err, restContext) => {
-      assert.ok(!err);
+      assert.notExists(err);
       localAdminRestContext = restContext;
       return callback();
     });
@@ -63,8 +63,9 @@ describe('Authentication', () => {
      * @throws {AssertionError}                                     Thrown when there is an error setting up OAuth
      */
     const _setupOAuth = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, simong) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong } = users;
 
         // Give simong an OAuth client
         const clientDisplayName = TestsUtil.generateRandomText(1);
@@ -73,7 +74,7 @@ describe('Authentication', () => {
           simong.user.id,
           clientDisplayName,
           (err, client) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(client.displayName, clientDisplayName);
 
             // Setup an OAuth instance with which we can make oauth authenticated http calls
@@ -91,7 +92,7 @@ describe('Authentication', () => {
               // eslint-disable-next-line camelcase
               { grant_type: 'client_credentials' },
               (err, accessToken, refreshToken, results) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Assert we retrieved an access token
                 assert.ok(accessToken);
@@ -143,7 +144,7 @@ describe('Authentication', () => {
           global.oaeTests.tenants.localhost.host,
           'InvalidAccessToken'
         );
-        RestAPI.User.getMe(oauthRestContext, (err, data) => {
+        RestAPI.User.getMe(oauthRestContext, (err /* , data */) => {
           assert.strictEqual(err.code, 401);
 
           return callback();
@@ -154,14 +155,14 @@ describe('Authentication', () => {
        * Test that verifies a tenant admin retains his status when authenticated via OAuth
        */
       it('verify tenant admin privileges can be used when using OAuth', callback => {
-        _setupOAuth((simong, client, accessToken) => {
+        _setupOAuth((simong /* , client, accessToken */) => {
           // Make Simon a tenant administrator
           RestAPI.User.setTenantAdmin(globalAdminRestContext, simong.user.id, true, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Assert that we're acting as a tenant admin
             RestAPI.User.getMe(simong.oauthRestContext, (err, data) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(data);
               assert.ok(data.isTenantAdmin);
               assert.strictEqual(data.authenticationStrategy, 'oauth');
@@ -172,11 +173,11 @@ describe('Authentication', () => {
                 null,
                 { 'oae-authentication/shibboleth/enabled': true },
                 err => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Sanity check that the config has been updated
                   RestAPI.Config.getTenantConfig(localAdminRestContext, null, (err, config) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(config['oae-authentication'].shibboleth.enabled, true);
 
                     return callback();
@@ -194,10 +195,10 @@ describe('Authentication', () => {
        * Test that verifies the client credentials grant
        */
       it('verify grant flow', callback => {
-        _setupOAuth((simong, client, accessToken) => {
+        _setupOAuth((simong /* , client, accessToken */) => {
           // Assert that we're authenticated over OAuth
           RestAPI.User.getMe(simong.oauthRestContext, (err, data) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(data.id, simong.user.id);
             assert.strictEqual(data.displayName, simong.user.displayName);
             assert.strictEqual(data.authenticationStrategy, 'oauth');
@@ -216,7 +217,7 @@ describe('Authentication', () => {
                 folders: []
               },
               (err, link) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Sanity check the piece of content has actually beenc reated
                 RestAPI.Content.getLibrary(
@@ -225,7 +226,7 @@ describe('Authentication', () => {
                   null,
                   null,
                   (err, data) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.strictEqual(data.results.length, 1);
                     assert.strictEqual(data.results[0].id, link.id);
                     return callback();
@@ -255,8 +256,8 @@ describe('Authentication', () => {
             '',
             // eslint-disable-next-line camelcase
             { grant_type: 'client_credentials' },
-            (err, newAccessToken, refreshToken, results) => {
-              assert.ok(!err);
+            (err, newAccessToken /* , refreshToken, results */) => {
+              assert.notExists(err);
 
               // Assert we retrieved an access token
               assert.ok(newAccessToken);
@@ -274,8 +275,9 @@ describe('Authentication', () => {
        * Test that verifies you need both the client id and secret to get an access token
        */
       it('verify the client credentials are verified when requesting an access token', callback => {
-        TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, simong) => {
-          assert.ok(!err);
+        TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: simong } = users;
 
           // Assert that using a random Client ID/Secret combination is not sufficient
           let oauth = new OAuth.OAuth2(
@@ -290,7 +292,7 @@ describe('Authentication', () => {
             '',
             // eslint-disable-next-line camelcase
             { grant_type: 'client_credentials' },
-            (err, accessToken, refreshToken, results) => {
+            (err, accessToken /* , refreshToken, results */) => {
               assert.strictEqual(err.statusCode, 401);
               assert.ok(!accessToken);
 
@@ -300,7 +302,7 @@ describe('Authentication', () => {
                 simong.user.id,
                 clientDisplayName,
                 (err, client) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(!accessToken);
 
                   // Assert that just the ID is not sufficient
@@ -316,7 +318,7 @@ describe('Authentication', () => {
                     '',
                     // eslint-disable-next-line camelcase
                     { grant_type: 'client_credentials' },
-                    (err, accessToken, refreshToken, results) => {
+                    (err, accessToken /* , refreshToken, results */) => {
                       assert.strictEqual(err.statusCode, 401);
                       assert.ok(!accessToken);
 
@@ -333,7 +335,7 @@ describe('Authentication', () => {
                         '',
                         // eslint-disable-next-line camelcase
                         { grant_type: 'client_credentials' },
-                        (err, accessToken, refreshToken, results) => {
+                        (err, accessToken /* , refreshToken, results */) => {
                           assert.strictEqual(err.statusCode, 401);
                           assert.ok(!accessToken);
 
@@ -356,40 +358,32 @@ describe('Authentication', () => {
          * Test that verifies the parameters are validated when creating a client
          */
         it('verify validation', callback => {
-          TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, simong) => {
-            assert.ok(!err);
+          TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+            assert.notExists(err);
+            const { 0: simong } = users;
 
             // Invalid userId
-            RestAPI.OAuth.createClient(
-              localAdminRestContext,
-              'invalid user',
-              'By admin',
-              (err, client) => {
+            RestAPI.OAuth.createClient(localAdminRestContext, 'invalid user', 'By admin', (
+              err /* , client */
+            ) => {
+              assert.strictEqual(err.code, 400);
+
+              // Missing displayName
+              RestAPI.OAuth.createClient(localAdminRestContext, simong.user.id, null, (
+                err /* , client */
+              ) => {
                 assert.strictEqual(err.code, 400);
 
-                // Missing displayName
-                RestAPI.OAuth.createClient(
-                  localAdminRestContext,
-                  simong.user.id,
-                  null,
-                  (err, client) => {
-                    assert.strictEqual(err.code, 400);
+                // Sanity check
+                RestAPI.OAuth.createClient(localAdminRestContext, simong.user.id, 'Test app', (
+                  err /* , client */
+                ) => {
+                  assert.notExists(err);
 
-                    // Sanity check
-                    RestAPI.OAuth.createClient(
-                      localAdminRestContext,
-                      simong.user.id,
-                      'Test app',
-                      (err, client) => {
-                        assert.ok(!err);
-
-                        return callback();
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                  return callback();
+                });
+              });
+            });
           });
         });
 
@@ -397,8 +391,9 @@ describe('Authentication', () => {
          * Test that verifies that only global or tenant admins can create OAuth clients
          */
         it('verify authorization', callback => {
-          TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, nico) => {
-            assert.ok(!err);
+          TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
+            assert.notExists(err);
+            const { 0: simong, 1: nico } = users;
 
             // Assert that anonymous users can't create clients
             RestAPI.OAuth.createClient(
@@ -421,41 +416,38 @@ describe('Authentication', () => {
                     // Make Nico a tenant admin on the `localhost` tenant
                     // We can't use the localAdminRestContext as that is really the global admin on the localhost tenant
                     RestAPI.User.setTenantAdmin(globalAdminRestContext, nico.user.id, true, err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // As Nico is not a tenant on the `camtest` tenant we cannot create an OAuth application for that user
-                      RestAPI.OAuth.createClient(
-                        nico.restContext,
-                        'u:camtest:foo',
-                        'By admin',
-                        (err, client) => {
-                          assert.strictEqual(err.code, 401);
+                      RestAPI.OAuth.createClient(nico.restContext, 'u:camtest:foo', 'By admin', (
+                        err /* , client */
+                      ) => {
+                        assert.strictEqual(err.code, 401);
 
-                          // Assert that tenant admins can create a client
-                          RestAPI.OAuth.createClient(
-                            localAdminRestContext,
-                            simong.user.id,
-                            'By admin',
-                            (err, client) => {
-                              assert.ok(!err);
-                              assert.ok(client);
+                        // Assert that tenant admins can create a client
+                        RestAPI.OAuth.createClient(
+                          localAdminRestContext,
+                          simong.user.id,
+                          'By admin',
+                          (err, client) => {
+                            assert.notExists(err);
+                            assert.ok(client);
 
-                              // Sanity check the client was associated with simong
-                              RestAPI.OAuth.getClients(
-                                simong.restContext,
-                                simong.user.id,
-                                (err, data) => {
-                                  assert.ok(!err);
-                                  assert.strictEqual(data.results.length, 1);
-                                  assert.strictEqual(data.results[0].displayName, 'By admin');
+                            // Sanity check the client was associated with simong
+                            RestAPI.OAuth.getClients(
+                              simong.restContext,
+                              simong.user.id,
+                              (err, data) => {
+                                assert.notExists(err);
+                                assert.strictEqual(data.results.length, 1);
+                                assert.strictEqual(data.results[0].displayName, 'By admin');
 
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      });
                     });
                   }
                 );
@@ -470,14 +462,14 @@ describe('Authentication', () => {
          * Test that verifies the parameters are validated when retrieving a user's clients
          */
         it('verify validation', callback => {
-          _setupOAuth((simong, client, accessToken) => {
+          _setupOAuth((simong, client /* , accessToken */) => {
             // Invalid user id
-            RestAPI.OAuth.getClients(simong.restContext, 'not a user id', (err, data) => {
+            RestAPI.OAuth.getClients(simong.restContext, 'not a user id', (err /* , data */) => {
               assert.strictEqual(err.code, 400);
 
               // Sanity check
               RestAPI.OAuth.getClients(simong.restContext, simong.user.id, (err, data) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(data.results.length, 1);
                 assert.strictEqual(data.results[0].id, client.id);
                 assert.strictEqual(data.results[0].displayName, client.displayName);
@@ -494,31 +486,33 @@ describe('Authentication', () => {
          * created by users on their tenant
          */
         it('verify authorization', callback => {
-          _setupOAuth((simong, client, accessToken) => {
-            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, nico) => {
-              assert.ok(!err);
+          _setupOAuth((homer, client /* , accessToken */) => {
+            const asHomer = homer.restContext;
+            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+              assert.notExists(err);
+              const { 0: marge } = users;
 
               // Verify you cannot get another user their clients
-              RestAPI.OAuth.getClients(simong.restContext, nico.user.id, (err, data) => {
+              RestAPI.OAuth.getClients(asHomer, marge.user.id, (err /* , data */) => {
                 assert.strictEqual(err.code, 401);
 
                 // Verify that a tenant admin cannot get the clients for a user that is not from his tenant
-                RestAPI.OAuth.getClients(camAdminRestContext, nico.user.id, (err, data) => {
+                RestAPI.OAuth.getClients(camAdminRestContext, marge.user.id, (err /* , data */) => {
                   assert.strictEqual(err.code, 401);
 
                   // Sanity checks
                   // Verify a user can fetch his own clients
-                  RestAPI.OAuth.getClients(simong.restContext, simong.user.id, (err, data) => {
-                    assert.ok(!err);
-                    assert.strictEqual(data.results.length, 1);
+                  RestAPI.OAuth.getClients(asHomer, homer.user.id, (err, data) => {
+                    assert.notExists(err);
+                    assert.lengthOf(data.results, 1);
                     assert.strictEqual(data.results[0].id, client.id);
                     assert.strictEqual(data.results[0].displayName, client.displayName);
                     assert.strictEqual(data.results[0].secret, client.secret);
 
                     // Verify a tenant admin can fetch the clients of a user on his tenant
-                    RestAPI.OAuth.getClients(localAdminRestContext, simong.user.id, (err, data) => {
-                      assert.ok(!err);
-                      assert.strictEqual(data.results.length, 1);
+                    RestAPI.OAuth.getClients(localAdminRestContext, homer.user.id, (err, data) => {
+                      assert.notExists(err);
+                      assert.lengthOf(data.results, 1);
                       assert.strictEqual(data.results[0].id, client.id);
                       assert.strictEqual(data.results[0].displayName, client.displayName);
                       assert.strictEqual(data.results[0].secret, client.secret);
@@ -538,32 +532,33 @@ describe('Authentication', () => {
          * Test that verifies the parameters when updating an OAuth client
          */
         it('verify validation', callback => {
-          _setupOAuth((simong, client, accessToken) => {
+          _setupOAuth((homer, client /* , accessToken */) => {
+            const asHomer = homer.restContext;
             // Try updating an unknown client
             RestAPI.OAuth.updateClient(
-              simong.restContext,
-              simong.user.id,
+              asHomer,
+              homer.user.id,
               'unknown client id',
               'name 1',
               'secret 1',
-              (err, updateClient) => {
+              (err /* , updateClient */) => {
                 assert.strictEqual(err.code, 404);
 
                 // Assert that both the display name and secret need to be specified
                 RestAPI.OAuth.updateClient(
-                  simong.restContext,
-                  simong.user.id,
+                  asHomer,
+                  homer.user.id,
                   client.id,
                   null,
                   null,
                   (err, updateClient) => {
                     assert.strictEqual(err.code, 400);
-                    assert.ok(!updateClient);
+                    assert.isNotOk(updateClient);
 
                     // Sanity check that nothing has changed
-                    RestAPI.OAuth.getClients(localAdminRestContext, simong.user.id, (err, data) => {
-                      assert.ok(!err);
-                      assert.strictEqual(data.results.length, 1);
+                    RestAPI.OAuth.getClients(localAdminRestContext, homer.user.id, (err, data) => {
+                      assert.notExists(err);
+                      assert.lengthOf(data.results, 1);
                       assert.strictEqual(data.results[0].id, client.id);
                       assert.strictEqual(data.results[0].displayName, client.displayName);
                       assert.strictEqual(data.results[0].secret, client.secret);
@@ -582,9 +577,10 @@ describe('Authentication', () => {
          * update clients from users that originate on their tenant
          */
         it('verify authorization', callback => {
-          _setupOAuth((simong, client, accessToken) => {
-            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, nico) => {
-              assert.ok(!err);
+          _setupOAuth((simong, client /* , accessToken */) => {
+            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+              assert.notExists(err);
+              const { 0: nico } = users;
 
               // Verify an anonymous user cannot update a client
               RestAPI.OAuth.updateClient(
@@ -595,7 +591,7 @@ describe('Authentication', () => {
                 'secret',
                 (err, updateClient) => {
                   assert.strictEqual(err.code, 401);
-                  assert.ok(!updateClient);
+                  assert.isNotOk(updateClient);
 
                   // Verify you cannot update another user their client
                   RestAPI.OAuth.updateClient(
@@ -606,7 +602,7 @@ describe('Authentication', () => {
                     'secret',
                     (err, updateClient) => {
                       assert.strictEqual(err.code, 401);
-                      assert.ok(!updateClient);
+                      assert.isNotOk(updateClient);
 
                       // Verify that a tenant admin cannot update a client for a user that is not from his tenant
                       RestAPI.OAuth.updateClient(
@@ -617,14 +613,14 @@ describe('Authentication', () => {
                         'secret',
                         (err, updateClient) => {
                           assert.strictEqual(err.code, 401);
-                          assert.ok(!updateClient);
+                          assert.isNotOk(updateClient);
 
                           // Sanity check the client hasn't been updated
                           RestAPI.OAuth.getClients(
                             localAdminRestContext,
                             simong.user.id,
                             (err, data) => {
-                              assert.ok(!err);
+                              assert.notExists(err);
                               assert.strictEqual(data.results.length, 1);
                               assert.strictEqual(data.results[0].id, client.id);
                               assert.strictEqual(data.results[0].displayName, client.displayName);
@@ -638,7 +634,7 @@ describe('Authentication', () => {
                                 'New name by user',
                                 'New secret by user',
                                 (err, updateClient) => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
                                   assert.strictEqual(updateClient.id, client.id);
                                   assert.strictEqual(updateClient.displayName, 'New name by user');
                                   assert.strictEqual(updateClient.secret, 'New secret by user');
@@ -648,7 +644,7 @@ describe('Authentication', () => {
                                     simong.restContext,
                                     simong.user.id,
                                     (err, data) => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       assert.strictEqual(data.results.length, 1);
                                       assert.strictEqual(data.results[0].id, client.id);
                                       assert.strictEqual(
@@ -668,7 +664,7 @@ describe('Authentication', () => {
                                         'New name by admin',
                                         'New secret by admin',
                                         (err, updateClient) => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
                                           assert.strictEqual(updateClient.id, client.id);
                                           assert.strictEqual(
                                             updateClient.displayName,
@@ -684,7 +680,7 @@ describe('Authentication', () => {
                                             simong.restContext,
                                             simong.user.id,
                                             (err, data) => {
-                                              assert.ok(!err);
+                                              assert.notExists(err);
                                               assert.strictEqual(data.results.length, 1);
                                               assert.strictEqual(data.results[0].id, client.id);
                                               assert.strictEqual(
@@ -723,18 +719,15 @@ describe('Authentication', () => {
          * Test that verifies the parameters when deleting an OAuth client
          */
         it('verify validation', callback => {
-          _setupOAuth((simong, client, accessToken) => {
+          _setupOAuth((simong /* , client, accessToken */) => {
             // Try deleting an unknown client
-            RestAPI.OAuth.deleteClient(
-              simong.restContext,
-              simong.user.id,
-              'unknown client id',
-              (err, data) => {
-                assert.strictEqual(err.code, 404);
+            RestAPI.OAuth.deleteClient(simong.restContext, simong.user.id, 'unknown client id', (
+              err /* , data */
+            ) => {
+              assert.strictEqual(err.code, 404);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           });
         });
 
@@ -743,104 +736,89 @@ describe('Authentication', () => {
          * delete clients from users that originate on their tenant
          */
         it('verify authorization', callback => {
-          _setupOAuth((simong, client, accessToken) => {
-            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users, nico) => {
-              assert.ok(!err);
+          _setupOAuth((simong, client /* , accessToken */) => {
+            TestsUtil.generateTestUsers(localAdminRestContext, 1, (err, users) => {
+              assert.notExists(err);
+              const { 0: nico } = users;
 
               // Verify an anonymous user cannot delete a client
-              RestAPI.OAuth.deleteClient(
-                anonymousLocalRestContext,
-                simong.user.id,
-                client.id,
-                (err, data) => {
+              RestAPI.OAuth.deleteClient(anonymousLocalRestContext, simong.user.id, client.id, (
+                err /* , data */
+              ) => {
+                assert.strictEqual(err.code, 401);
+
+                // Verify you cannot delete another user their client
+                RestAPI.OAuth.deleteClient(nico.restContext, simong.user.id, client.id, (
+                  err /* , data */
+                ) => {
                   assert.strictEqual(err.code, 401);
 
-                  // Verify you cannot delete another user their client
-                  RestAPI.OAuth.deleteClient(
-                    nico.restContext,
-                    simong.user.id,
-                    client.id,
-                    (err, data) => {
-                      assert.strictEqual(err.code, 401);
+                  // Verify that a tenant admin cannot delete a client for a user that is not from his tenant
+                  RestAPI.OAuth.deleteClient(camAdminRestContext, simong.user.id, client.id, (
+                    err /* , data */
+                  ) => {
+                    assert.strictEqual(err.code, 401);
 
-                      // Verify that a tenant admin cannot delete a client for a user that is not from his tenant
-                      RestAPI.OAuth.deleteClient(
-                        camAdminRestContext,
-                        simong.user.id,
-                        client.id,
-                        (err, data) => {
-                          assert.strictEqual(err.code, 401);
+                    // Sanity check the client is still there
+                    RestAPI.OAuth.getClients(localAdminRestContext, simong.user.id, (err, data) => {
+                      assert.notExists(err);
+                      assert.lengthOf(data.results, 1);
+                      assert.strictEqual(data.results[0].id, client.id);
+                      assert.strictEqual(data.results[0].displayName, client.displayName);
+                      assert.strictEqual(data.results[0].secret, client.secret);
 
-                          // Sanity check the client is still there
-                          RestAPI.OAuth.getClients(
-                            localAdminRestContext,
-                            simong.user.id,
-                            (err, data) => {
-                              assert.ok(!err);
-                              assert.strictEqual(data.results.length, 1);
-                              assert.strictEqual(data.results[0].id, client.id);
-                              assert.strictEqual(data.results[0].displayName, client.displayName);
-                              assert.strictEqual(data.results[0].secret, client.secret);
+                      // Delete the client
+                      RestAPI.OAuth.deleteClient(simong.restContext, simong.user.id, client.id, (
+                        err /* , data */
+                      ) => {
+                        assert.notExists(err);
 
-                              // Delete the client
-                              RestAPI.OAuth.deleteClient(
-                                simong.restContext,
-                                simong.user.id,
-                                client.id,
-                                (err, data) => {
-                                  assert.ok(!err);
+                        // Verify that it's been removed
+                        RestAPI.OAuth.getClients(
+                          simong.restContext,
+                          simong.user.id,
+                          (err, data) => {
+                            assert.notExists(err);
+                            assert.lengthOf(data.results, 0);
 
-                                  // Verify that it's been removed
-                                  RestAPI.OAuth.getClients(
-                                    simong.restContext,
-                                    simong.user.id,
-                                    (err, data) => {
-                                      assert.ok(!err);
-                                      assert.strictEqual(data.results.length, 0);
+                            // Create another client and try to delete it as the tenant admin
+                            const clientDisplayName = TestsUtil.generateRandomText(1);
+                            RestAPI.OAuth.createClient(
+                              localAdminRestContext,
+                              simong.user.id,
+                              clientDisplayName,
+                              (err, client) => {
+                                assert.notExists(err);
+                                assert.strictEqual(client.displayName, clientDisplayName);
+                                RestAPI.OAuth.deleteClient(
+                                  localAdminRestContext,
+                                  simong.user.id,
+                                  client.id,
+                                  (err /* , data */) => {
+                                    assert.notExists(err);
 
-                                      // Create another client and try to delete it as the tenant admin
-                                      const clientDisplayName = TestsUtil.generateRandomText(1);
-                                      RestAPI.OAuth.createClient(
-                                        localAdminRestContext,
-                                        simong.user.id,
-                                        clientDisplayName,
-                                        (err, client) => {
-                                          assert.ok(!err);
-                                          assert.strictEqual(client.displayName, clientDisplayName);
-                                          RestAPI.OAuth.deleteClient(
-                                            localAdminRestContext,
-                                            simong.user.id,
-                                            client.id,
-                                            (err, data) => {
-                                              assert.ok(!err);
+                                    // Verify that it's been removed
+                                    RestAPI.OAuth.getClients(
+                                      simong.restContext,
+                                      simong.user.id,
+                                      (err, data) => {
+                                        assert.notExists(err);
+                                        assert.strictEqual(data.results.length, 0);
 
-                                              // Verify that it's been removed
-                                              RestAPI.OAuth.getClients(
-                                                simong.restContext,
-                                                simong.user.id,
-                                                (err, data) => {
-                                                  assert.ok(!err);
-                                                  assert.strictEqual(data.results.length, 0);
-
-                                                  return callback();
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      });
+                    });
+                  });
+                });
+              });
             });
           });
         });

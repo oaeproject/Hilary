@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
@@ -23,96 +22,131 @@ import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+import { filter, forEach, prop, equals, compose, head, map, path } from 'ramda';
+
+const { runQuery } = Cassandra;
+const {
+  getLibrary,
+  shareContent,
+  updateContent,
+  removeContentFromLibrary,
+  deleteContent,
+  createLink
+} = RestAPI.Content;
+const { setGroupMembers, createGroup } = RestAPI.Group;
+const { updateUser } = RestAPI.User;
+const { generateTestTenantHost, generateTestTenantAlias } = TenantsTestUtil;
+const {
+  createTenantRestContext,
+  createTenantWithAdmin,
+  createTenantAdminRestContext,
+  createGlobalAdminRestContext,
+  generateTestUsers,
+  generateTestGroups,
+  generateGroupHierarchy
+} = TestsUtil;
+
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 const LOGGED_IN = 'loggedin';
+const NO_MANAGERS = [];
+const NO_FOLDERS = [];
+const NO_VIEWERS = [];
+const NOT_JOINABLE = 'no';
+const MEMBER = 'member';
+const MANAGER = 'manager';
+const NAME = 'name';
+const DESCRIPTION = 'description';
+
+const getTopItemId = compose(prop('id'), head);
 
 describe('Content Libraries', () => {
-  let camAnonymousRestCtx = null;
-  let camAdminRestCtx = null;
-  let gtAnonymousRestCtx = null;
-  let gtAdminRestCtx = null;
-  let globalAdminRestContext = null;
+  let asCambridgeAnonymousUser = null;
+  let asCambridgeTenantAdmin = null;
+  let asGTAnonymousUser = null;
+  let asGTTenantAdmin = null;
+  let asGlobalAdmin = null;
 
   beforeEach(() => {
-    camAnonymousRestCtx = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestCtx = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAnonymousRestCtx = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    gtAdminRestCtx = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asGTAnonymousUser = createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    asGTTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    asGlobalAdmin = createGlobalAdminRestContext();
   });
 
   /**
    * Test that will verify if the returned items from the library are sorted by their last modified date.
    */
   it('verify library is sorted on last modified', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
       const items = [];
-      RestAPI.Content.createLink(
-        nicolaas.restContext,
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           items.push(contentObj.id);
 
-          RestAPI.Content.createLink(
-            nicolaas.restContext,
+          createLink(
+            asHomer,
             {
               displayName: 'Test Content',
               description: 'Test content description',
               visibility: PUBLIC,
               link: 'http://www.oaeproject.org/',
-              managers: [],
-              viewers: [],
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, contentObj) => {
-              assert.ok(!err);
+              assert.notExists(err);
               items.push(contentObj.id);
 
-              RestAPI.Content.createLink(
-                nicolaas.restContext,
+              createLink(
+                asHomer,
                 {
                   displayName: 'Test Content',
                   description: 'Test content description',
                   visibility: PUBLIC,
                   link: 'http://www.oaeproject.org/',
-                  managers: [],
-                  viewers: [],
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, contentObj) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   items.push(contentObj.id);
 
                   // Get the 2 most recent items.
-                  RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, 2, (err, data) => {
-                    assert.ok(!err);
+                  getLibrary(asHomer, homer.user.id, null, 2, (err, data) => {
+                    assert.notExists(err);
                     const library = data.results;
-                    assert.strictEqual(library.length, 2);
+                    assert.lengthOf(library, 2);
                     assert.strictEqual(library[0].id, items[2]);
                     assert.strictEqual(library[1].id, items[1]);
 
                     // Modify the oldest one.
-                    RestAPI.Content.updateContent(nicolaas.restContext, items[0], { description: 'lalila' }, err => {
-                      assert.ok(!err);
+                    updateContent(asHomer, items[0], { description: 'lalila' }, err => {
+                      assert.notExists(err);
 
                       // When we retrieve the library the just modified one, should be on-top.
-                      RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, 2, (err, data) => {
-                        assert.ok(!err);
+                      getLibrary(asHomer, homer.user.id, null, 2, (err, data) => {
+                        assert.notExists(err);
                         const library = data.results;
-                        assert.strictEqual(library.length, 2);
+                        assert.lengthOf(library, 2);
                         assert.strictEqual(library[0].id, items[0]);
                         assert.strictEqual(library[1].id, items[2]);
 
@@ -133,20 +167,22 @@ describe('Content Libraries', () => {
    * Test that verifies the parameters on the `getContentLibraryItems` method
    */
   it('verify getLibrary parameter validation', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-      assert.ok(!err);
-      const { 0: simon } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
 
-      RestAPI.Content.getLibrary(simon.restContext, ' ', null, null, (err, data) => {
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
+
+      getLibrary(asHomer, ' ', null, null, (err /* , data */) => {
         assert.strictEqual(err.code, 400);
 
-        RestAPI.Content.getLibrary(simon.restContext, 'invalid-user-id', null, null, (err, data) => {
+        getLibrary(asHomer, 'invalid-user-id', null, null, (err /* , data */) => {
           assert.strictEqual(err.code, 400);
 
-          RestAPI.Content.getLibrary(simon.restContext, 'c:cam:bleh', null, null, (err, data) => {
+          getLibrary(asHomer, 'c:cam:bleh', null, null, (err /* , data */) => {
             assert.strictEqual(err.code, 400);
 
-            RestAPI.Content.getLibrary(simon.restContext, 'u:cam:bleh', null, null, (err, data) => {
+            getLibrary(asHomer, 'u:cam:bleh', null, null, (err /* , data */) => {
               assert.strictEqual(err.code, 404);
               callback();
             });
@@ -156,46 +192,42 @@ describe('Content Libraries', () => {
     });
   });
 
-  /**
+  /*
    * Verifies the parameters on the `removeContentFromLibrary` method.
    */
   it('verify removeContentFromLibrary parameter validation', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-      assert.ok(!err);
-      const { 0: simon } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
-      RestAPI.Content.createLink(
-        simon.restContext,
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
-          RestAPI.Content.removeContentFromLibrary(camAnonymousRestCtx, simon.user.id, contentObj.id, err => {
+          removeContentFromLibrary(asCambridgeAnonymousUser, homer.user.id, contentObj.id, err => {
             assert.strictEqual(err.code, 401);
 
-            RestAPI.Content.removeContentFromLibrary(simon.restContext, 'invalid-user-id', contentObj.id, err => {
+            removeContentFromLibrary(asHomer, 'invalid-user-id', contentObj.id, err => {
               assert.strictEqual(err.code, 400);
 
-              RestAPI.Content.removeContentFromLibrary(simon.restContext, simon.user.id, 'invalid-content-id', err => {
+              removeContentFromLibrary(asHomer, homer.user.id, 'invalid-content-id', err => {
                 assert.strictEqual(err.code, 400);
 
-                RestAPI.Content.removeContentFromLibrary(
-                  simon.restContext,
-                  simon.user.id,
-                  'c:camtest:nonexisting',
-                  err => {
-                    assert.strictEqual(err.code, 404);
-                    callback();
-                  }
-                );
+                removeContentFromLibrary(asHomer, homer.user.id, 'c:camtest:nonexisting', err => {
+                  assert.strictEqual(err.code, 404);
+                  callback();
+                });
               });
             });
           });
@@ -208,31 +240,32 @@ describe('Content Libraries', () => {
    * Test that will verify if an item can be removed from a user library.
    */
   it('verify deleting an item removes it from the library', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
-      RestAPI.Content.createLink(
-        nicolaas.restContext,
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
-          RestAPI.Content.deleteContent(nicolaas.restContext, contentObj.id, err => {
-            assert.ok(!err);
+          deleteContent(asHomer, contentObj.id, err => {
+            assert.notExists(err);
 
-            RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (err, data) => {
-              assert.ok(!err);
+            getLibrary(asHomer, homer.user.id, null, null, (err, data) => {
+              assert.notExists(err);
               const library = data.results;
-              assert.strictEqual(library.length, 0);
+              assert.isEmpty(library);
               callback();
             });
           });
@@ -245,41 +278,43 @@ describe('Content Libraries', () => {
    * Test that will verify if an item can be removed from a user library if the user only holds a viewer permission.
    */
   it('verify a content viewer can remove the content item from his library', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
-      const { 1: simon } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+      assert.notExists(err);
+      const { 0: homer, 1: marge } = users;
+      const asHomer = homer.restContext;
+      const asMarge = marge.restContext;
 
-      RestAPI.Content.createLink(
-        nicolaas.restContext,
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.ok(!err);
+        (err, link) => {
+          assert.notExists(err);
+          const sameAsLink = equals(link.id);
 
-          RestAPI.Content.shareContent(nicolaas.restContext, contentObj.id, [simon.user.id], err => {
-            assert.ok(!err);
+          shareContent(asHomer, link.id, [marge.user.id], err => {
+            assert.notExists(err);
 
             // Sanity check that Simon has the item
-            RestAPI.Content.getLibrary(simon.restContext, simon.user.id, null, null, (err, data) => {
-              assert.ok(!err);
+            getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
+              assert.notExists(err);
               const library = data.results;
-              assert.strictEqual(library.length, 1);
-              assert.strictEqual(library[0].id, contentObj.id);
+              assert.lengthOf(library, 1);
+              assert.isTrue(sameAsLink(getTopItemId(library)));
 
-              RestAPI.Content.removeContentFromLibrary(simon.restContext, simon.user.id, contentObj.id, err => {
-                assert.ok(!err);
-                RestAPI.Content.getLibrary(simon.restContext, simon.user.id, null, null, (err, data) => {
-                  assert.ok(!err);
+              removeContentFromLibrary(asMarge, marge.user.id, link.id, err => {
+                assert.notExists(err);
+                getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
+                  assert.notExists(err);
                   const library = data.results;
-                  assert.strictEqual(library.length, 0);
+                  assert.isEmpty(library);
                   callback();
                 });
               });
@@ -295,27 +330,27 @@ describe('Content Libraries', () => {
    * the content item unmanaged.
    */
   it('verify a piece of content cannot be left managerless by removing it from the library', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
-      RestAPI.Content.createLink(
-        nicolaas.restContext,
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
-          // Nicolaas can't remove the content from his library
-          // as he is the only manager for it.
-          RestAPI.Content.removeContentFromLibrary(nicolaas.restContext, nicolaas.user.id, contentObj.id, err => {
+          // Homer can't remove the content from his library as he is the only manager for it.
+          removeContentFromLibrary(asHomer, homer.user.id, contentObj.id, err => {
             assert.strictEqual(err.code, 400);
             callback();
           });
@@ -335,57 +370,60 @@ describe('Content Libraries', () => {
    */
   it('verify a piece of content can be removed after a tenant becomes private', callback => {
     // We'll create two new tenants.
-    const tenantAliasA = TenantsTestUtil.generateTestTenantAlias();
-    const tenantAliasB = TenantsTestUtil.generateTestTenantAlias();
-    const tenantHostA = TenantsTestUtil.generateTestTenantHost();
-    const tenantHostB = TenantsTestUtil.generateTestTenantHost();
-    TestsUtil.createTenantWithAdmin(tenantAliasA, tenantHostA, (err, tenantA, adminRestCtxA) => {
-      assert.ok(!err);
-      TestsUtil.createTenantWithAdmin(tenantAliasB, tenantHostB, (err, tenantB, adminRestCtxB) => {
-        assert.ok(!err);
+    const tenantAliasA = generateTestTenantAlias();
+    const tenantAliasB = generateTestTenantAlias();
+    const tenantHostA = generateTestTenantHost();
+    const tenantHostB = generateTestTenantHost();
+    createTenantWithAdmin(tenantAliasA, tenantHostA, (err, tenantA, adminRestCtxA) => {
+      assert.notExists(err);
+      createTenantWithAdmin(tenantAliasB, tenantHostB, (err, tenantB, adminRestCtxB) => {
+        assert.notExists(err);
 
-        TestsUtil.generateTestUsers(adminRestCtxA, 1, (err, users) => {
-          assert.ok(!err);
-          const { 0: userA } = _.values(users);
-          TestsUtil.generateTestUsers(adminRestCtxB, 1, (err, users) => {
-            assert.ok(!err);
-            const { 0: userB } = _.values(users);
+        generateTestUsers(adminRestCtxA, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: homer } = users;
+          const asHomer = homer.restContext;
 
-            RestAPI.Content.createLink(
-              userA.restContext,
+          generateTestUsers(adminRestCtxB, 1, (err, users) => {
+            assert.notExists(err);
+            const { 0: marge } = users;
+            const asMarge = marge.restContext;
+
+            createLink(
+              asHomer,
               {
                 displayName: 'Test Content',
                 description: 'Test content description',
                 visibility: PUBLIC,
                 link: 'http://www.oaeproject.org/',
-                managers: [],
-                viewers: [userB.user.id],
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: [marge.user.id],
+                folders: NO_FOLDERS
               },
               (err, contentObj) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Sanity check that userB has the item in his library
-                RestAPI.Content.getLibrary(userB.restContext, userB.user.id, null, null, (err, data) => {
-                  assert.ok(!err);
+                getLibrary(marge.restContext, marge.user.id, null, null, (err, data) => {
+                  assert.notExists(err);
                   const library = data.results;
-                  assert.strictEqual(library.length, 1);
+                  assert.lengthOf(library, 1);
                   assert.strictEqual(library[0].id, contentObj.id);
 
                   // Now make tenantA private.
                   ConfigTestUtil.updateConfigAndWait(
-                    globalAdminRestContext,
+                    asGlobalAdmin,
                     tenantAliasA,
                     { 'oae-tenants/tenantprivacy/tenantprivate': true },
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
-                      RestAPI.Content.removeContentFromLibrary(userB.restContext, userB.user.id, contentObj.id, err => {
-                        assert.ok(!err);
-                        RestAPI.Content.getLibrary(userB.restContext, userB.user.id, null, null, (err, data) => {
-                          assert.ok(!err);
+                      removeContentFromLibrary(asMarge, marge.user.id, contentObj.id, err => {
+                        assert.notExists(err);
+                        getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
+                          assert.notExists(err);
                           const library = data.results;
-                          assert.strictEqual(library.length, 0);
+                          assert.isEmpty(library);
                           callback();
                         });
                       });
@@ -404,35 +442,41 @@ describe('Content Libraries', () => {
    * Verifies a user cannot remove content from another user his library.
    */
   it('verify a user can only remove content from libraries he owns', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
-      const { 1: simon } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+      assert.notExists(err);
 
-      RestAPI.Content.createLink(
-        nicolaas.restContext,
+      const { 0: homer, 1: marge } = users;
+      const asHomer = homer.restContext;
+      const asMarge = marge.restContext;
+
+      createLink(
+        asHomer,
         {
           displayName: 'Test Content',
           description: 'Test content description',
           visibility: PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.ok(!err);
+        (err, link) => {
+          assert.notExists(err);
 
-          // This should fail as Simon can't manage Nicolaas his library.
-          RestAPI.Content.removeContentFromLibrary(simon.restContext, nicolaas.user.id, contentObj.id, err => {
+          const sameAsLink = equals(link.id);
+
+          // This should fail as Marge can't manage Homer his library.
+          removeContentFromLibrary(asMarge, homer.user.id, link.id, err => {
             assert.strictEqual(err.code, 401);
 
-            // Sanity check Nicolaas his library to ensure nothing got removed.
-            RestAPI.Content.getLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (err, data) => {
-              assert.ok(!err);
+            // Sanity check Homer his library to ensure nothing got removed.
+            getLibrary(asHomer, homer.user.id, null, null, (err, data) => {
+              assert.notExists(err);
+
               const library = data.results;
-              assert.strictEqual(library.length, 1);
-              assert.strictEqual(library[0].id, contentObj.id);
+              assert.lengthOf(library, 1);
+              assert.isTrue(sameAsLink(getTopItemId(library)));
+
               callback();
             });
           });
@@ -445,68 +489,67 @@ describe('Content Libraries', () => {
    * Test that will verify a user can remove content from a group library by virtue of his group ancestry.
    */
   it('verify a user can remove content from a group library by virtue of his group ancestry', callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
-      assert.ok(!err);
-      const { 0: nicolaas } = _.values(users);
-      const { 1: simon } = _.values(users);
-      const { 2: bert } = _.values(users);
+    generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: homer, 1: marge, 2: bart } = users;
+      const asHomer = homer.restContext;
+      const asMarge = marge.restContext;
+      const asBart = bart.restContext;
 
       // Create three nested, groups.
-      TestsUtil.generateTestGroups(nicolaas.restContext, 3, (group, parent, grandParent) => {
-        const groupIds = [grandParent.group.id, parent.group.id, group.group.id];
-        TestsUtil.generateGroupHierarchy(nicolaas.restContext, groupIds, 'manager', () => {
-          // Make Simon a manager of the 'group' group (ie: the farthest one down)
-          // That should make him a manager of all the groups above this one as well.
-          const permissions = {};
-          permissions[simon.user.id] = 'manager';
-          RestAPI.Group.setGroupMembers(nicolaas.restContext, group.group.id, permissions, err => {
-            assert.ok(!err);
+      generateTestGroups(asHomer, 3, (err, groups) => {
+        assert.notExists(err);
 
-            // Bert shares some content with the top group
-            RestAPI.Content.createLink(
-              bert.restContext,
+        const { 1: grandParent, 2: group } = groups;
+        const groupIds = map(path(['group', 'id']), groups);
+
+        generateGroupHierarchy(asHomer, groupIds, MANAGER, () => {
+          /**
+           * Make Marge a manager of the 'group' group (ie: the farthest one down)
+           * That should make him a manager of all the groups above this one as well.
+           */
+          const permissions = {};
+          permissions[marge.user.id] = MANAGER;
+          setGroupMembers(asHomer, group.group.id, permissions, err => {
+            assert.notExists(err);
+
+            // Bart shares some content with the top group
+            createLink(
+              asBart,
               {
                 displayName: 'Test Content',
                 description: 'Test content description',
                 visibility: PUBLIC,
                 link: 'http://www.google.com/',
-                managers: [],
+                managers: NO_MANAGERS,
                 viewers: [grandParent.group.id],
-                folders: []
+                folders: NO_FOLDERS
               },
-              (err, contentObj) => {
-                assert.ok(!err);
+              (err, someLink) => {
+                assert.notExists(err);
+
+                const sameAsLink = equals(someLink.id);
 
                 // Sanity check it's there.
-                RestAPI.Content.getLibrary(nicolaas.restContext, grandParent.group.id, null, null, (err, data) => {
-                  assert.ok(!err);
-                  const library = data.results;
-                  assert.strictEqual(library.length, 1);
-                  assert.strictEqual(library[0].id, contentObj.id);
+                getLibrary(asHomer, grandParent.group.id, null, null, (err, data) => {
+                  assert.notExists(err);
+                  assert.lengthOf(data.results, 1);
+
+                  assert.isTrue(sameAsLink(getTopItemId(data.results)));
 
                   // Simon decides the content isn't all that great and removes it.
-                  RestAPI.Content.removeContentFromLibrary(
-                    simon.restContext,
-                    grandParent.group.id,
-                    contentObj.id,
-                    err => {
-                      assert.ok(!err);
+                  removeContentFromLibrary(asMarge, grandParent.group.id, someLink.id, err => {
+                    assert.notExists(err);
 
-                      // Sanity check that it's gone.
-                      RestAPI.Content.getLibrary(
-                        nicolaas.restContext,
-                        grandParent.group.id,
-                        null,
-                        null,
-                        (err, data) => {
-                          assert.ok(!err);
-                          const library = data.results;
-                          assert.strictEqual(library.length, 0);
-                          return callback();
-                        }
-                      );
-                    }
-                  );
+                    // Sanity check that it's gone.
+                    getLibrary(asHomer, grandParent.group.id, null, null, (err, data) => {
+                      assert.notExists(err);
+                      assert.isEmpty(data.results);
+
+                      return callback();
+                    });
+                  });
                 });
               }
             );
@@ -526,22 +569,20 @@ describe('Content Libraries', () => {
    * @param  {Function}       callback        Standard callback function
    */
   const checkLibrary = function(restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
-    RestAPI.Content.getLibrary(restCtx, libraryOwnerId, null, null, (err, items) => {
+    getLibrary(restCtx, libraryOwnerId, null, null, (err, items) => {
       if (expectAccess) {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Make sure only the expected items are returned.
         assert.strictEqual(items.results.length, expectedItems.length);
-        _.each(expectedItems, expectedContentItem => {
-          assert.ok(
-            _.filter(items.results, content => {
-              return content.id === expectedContentItem.id;
-            })
-          );
-        });
+
+        const filterExpectedItems = item => compose(equals(item.id), prop('id'));
+        forEach(eachItem => {
+          assert.ok(filter(filterExpectedItems(eachItem), items.results));
+        }, expectedItems);
       } else {
         assert.strictEqual(err.code, 401);
-        assert.ok(!items);
+        assert.isNotOk(items);
       }
 
       callback();
@@ -561,52 +602,56 @@ describe('Content Libraries', () => {
    */
   const createUserAndLibrary = function(restCtx, userVisibility, callback) {
     // Create a user with the proper visibility
-    TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
-      const { 0: user } = _.values(users);
-      RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, err => {
-        assert.ok(!err);
+    generateTestUsers(restCtx, 1, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
+
+      updateUser(asHomer, homer.user.id, { visibility: userVisibility }, err => {
+        assert.notExists(err);
 
         // Fill up this user his library with 3 content items.
-        RestAPI.Content.createLink(
-          user.restContext,
+        createLink(
+          asHomer,
           {
-            displayName: 'name',
-            description: 'description',
+            displayName: NAME,
+            description: DESCRIPTION,
             visibility: PRIVATE,
             link: 'http://www.oaeproject.org',
-            managers: null,
-            viewers: null,
-            folders: []
+            managers: NO_MANAGERS,
+            viewers: NO_VIEWERS,
+            folders: NO_FOLDERS
           },
           (err, privateContent) => {
-            assert.ok(!err);
-            RestAPI.Content.createLink(
-              user.restContext,
+            assert.notExists(err);
+            createLink(
+              asHomer,
               {
-                displayName: 'name',
-                description: 'description',
+                displayName: NAME,
+                description: DESCRIPTION,
                 visibility: LOGGED_IN,
                 link: 'http://www.oaeproject.org',
-                managers: null,
-                viewers: null,
-                folders: []
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
               },
               (err, loggedinContent) => {
-                assert.ok(!err);
-                RestAPI.Content.createLink(
-                  user.restContext,
+                assert.notExists(err);
+                createLink(
+                  asHomer,
                   {
-                    displayName: 'name',
-                    description: 'description',
+                    displayName: NAME,
+                    description: DESCRIPTION,
                     visibility: PUBLIC,
                     link: 'http://www.oaeproject.org',
-                    managers: null,
-                    viewers: null,
-                    folders: []
+                    managers: NO_MANAGERS,
+                    viewers: NO_VIEWERS,
+                    folders: NO_FOLDERS
                   },
                   (err, publicContent) => {
-                    assert.ok(!err);
-                    callback(user, privateContent, loggedinContent, publicContent);
+                    assert.notExists(err);
+                    callback(homer, privateContent, loggedinContent, publicContent);
                   }
                 );
               }
@@ -628,50 +673,50 @@ describe('Content Libraries', () => {
    * @param  {Content}        callback.loggedinContent    The loggedin piece of content
    * @param  {Content}        callback.publicContent      The public piece of content
    */
-  const createGroupAndLibrary = function(restCtx, groupVisibility, callback) {
-    RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (err, group) => {
-      assert.ok(!err);
+  const createGroupAndLibrary = function(asSomebody, groupVisibility, callback) {
+    createGroup(asSomebody, 'displayName', DESCRIPTION, groupVisibility, NOT_JOINABLE, [], [], (err, group) => {
+      assert.notExists(err);
 
       // Fill up the group library with 3 content items.
-      RestAPI.Content.createLink(
-        restCtx,
+      createLink(
+        asSomebody,
         {
-          displayName: 'name',
-          description: 'description',
+          displayName: NAME,
+          description: DESCRIPTION,
           visibility: PRIVATE,
           link: 'http://www.oaeproject.org',
           managers: [group.id],
-          viewers: null,
-          folders: []
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, privateContent) => {
-          assert.ok(!err);
-          RestAPI.Content.createLink(
-            restCtx,
+          assert.notExists(err);
+          createLink(
+            asSomebody,
             {
-              displayName: 'name',
-              description: 'description',
+              displayName: NAME,
+              description: DESCRIPTION,
               visibility: LOGGED_IN,
               link: 'http://www.oaeproject.org',
               managers: [group.id],
-              viewers: null,
-              folders: []
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, loggedinContent) => {
-              assert.ok(!err);
-              RestAPI.Content.createLink(
-                restCtx,
+              assert.notExists(err);
+              createLink(
+                asSomebody,
                 {
-                  displayName: 'name',
-                  description: 'description',
+                  displayName: NAME,
+                  description: DESCRIPTION,
                   visibility: PUBLIC,
                   link: 'http://www.oaeproject.org',
                   managers: [group.id],
-                  viewers: null,
-                  folders: []
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, publicContent) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   callback(group, privateContent, loggedinContent, publicContent);
                 }
               );
@@ -689,167 +734,176 @@ describe('Content Libraries', () => {
   it('verify user libraries', callback => {
     // We'll create a private, loggedin and public user, each user's library will contain a private, loggedin and public content item.
     createUserAndLibrary(
-      camAdminRestCtx,
-      'private',
+      asCambridgeTenantAdmin,
+      PRIVATE,
       (privateUser, privateUserPrivateContent, privateUserLoggedinContent, privateUserPublicContent) => {
+        const asPrivateUser = privateUser.restContext;
+
         createUserAndLibrary(
-          camAdminRestCtx,
-          'loggedin',
+          asCambridgeTenantAdmin,
+          LOGGED_IN,
           (loggedinUser, loggedinUserPrivateContent, loggedinUserLoggedinContent, loggedinUserPublicContent) => {
+            const asLoggedinUser = loggedinUser.restContext;
+
             createUserAndLibrary(
-              camAdminRestCtx,
-              'public',
+              asCambridgeTenantAdmin,
+              PUBLIC,
               (publicUser, publicUserPrivateContent, publicUserLoggedinContent, publicUserPublicContent) => {
+                const asPublicUser = publicUser.restContext;
+
                 // Each user should be able to see all the items in his library.
                 checkLibrary(
-                  privateUser.restContext,
+                  asPrivateUser,
                   privateUser.user.id,
                   true,
                   [privateUserPublicContent, privateUserLoggedinContent, privateUserPrivateContent],
                   () => {
                     checkLibrary(
-                      loggedinUser.restContext,
+                      asLoggedinUser,
                       loggedinUser.user.id,
                       true,
                       [loggedinUserPublicContent, loggedinUserLoggedinContent, loggedinUserPrivateContent],
                       () => {
                         checkLibrary(
-                          publicUser.restContext,
+                          asPublicUser,
                           publicUser.user.id,
                           true,
                           [publicUserPublicContent, publicUserLoggedinContent, publicUserPrivateContent],
                           () => {
                             // The anonymous user can only see the public stream of the public user.
                             checkLibrary(
-                              camAnonymousRestCtx,
+                              asCambridgeAnonymousUser,
                               publicUser.user.id,
                               true,
                               [publicUserPublicContent],
                               () => {
-                                checkLibrary(camAnonymousRestCtx, loggedinUser.user.id, false, [], () => {
-                                  checkLibrary(camAnonymousRestCtx, privateUser.user.id, false, [], () => {
+                                checkLibrary(asCambridgeAnonymousUser, loggedinUser.user.id, false, [], () => {
+                                  checkLibrary(asCambridgeAnonymousUser, privateUser.user.id, false, [], () => {
                                     checkLibrary(
-                                      gtAnonymousRestCtx,
+                                      asGTAnonymousUser,
                                       publicUser.user.id,
                                       true,
                                       [publicUserPublicContent],
                                       () => {
-                                        checkLibrary(gtAnonymousRestCtx, loggedinUser.user.id, false, [], () => {
-                                          checkLibrary(gtAnonymousRestCtx, privateUser.user.id, false, [], () => {
+                                        checkLibrary(asGTAnonymousUser, loggedinUser.user.id, false, [], () => {
+                                          checkLibrary(asGTAnonymousUser, privateUser.user.id, false, [], () => {
                                             // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
-                                            TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-                                              const { 0: anotherUser } = _.values(users);
+                                            generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+                                              assert.notExists(err);
+                                              const { 0: anotherUser } = users;
+                                              const asAnotherUser = anotherUser.restContext;
+
                                               checkLibrary(
-                                                anotherUser.restContext,
+                                                asAnotherUser,
                                                 publicUser.user.id,
                                                 true,
                                                 [publicUserPublicContent, publicUserLoggedinContent],
                                                 () => {
                                                   checkLibrary(
-                                                    anotherUser.restContext,
+                                                    asAnotherUser,
                                                     loggedinUser.user.id,
                                                     true,
                                                     [loggedinUserPublicContent, loggedinUserLoggedinContent],
                                                     () => {
                                                       checkLibrary(
-                                                        anotherUser.restContext,
+                                                        asAnotherUser,
                                                         privateUser.user.id,
                                                         false,
                                                         [],
                                                         () => {
                                                           // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                                          TestsUtil.generateTestUsers(
-                                                            gtAdminRestCtx,
-                                                            1,
-                                                            (err, users) => {
-                                                              const { 0: otherTenantUser } = _.values(users);
-                                                              checkLibrary(
-                                                                otherTenantUser.restContext,
-                                                                publicUser.user.id,
-                                                                true,
-                                                                [publicUserPublicContent],
-                                                                () => {
-                                                                  checkLibrary(
-                                                                    otherTenantUser.restContext,
-                                                                    loggedinUser.user.id,
-                                                                    false,
-                                                                    [],
-                                                                    () => {
-                                                                      checkLibrary(
-                                                                        otherTenantUser.restContext,
-                                                                        privateUser.user.id,
-                                                                        false,
-                                                                        [],
-                                                                        () => {
-                                                                          // The cambridge tenant admin can see all the things.
-                                                                          checkLibrary(
-                                                                            camAdminRestCtx,
-                                                                            publicUser.user.id,
-                                                                            true,
-                                                                            [
-                                                                              publicUserPublicContent,
-                                                                              publicUserLoggedinContent,
-                                                                              publicUserPrivateContent
-                                                                            ],
-                                                                            () => {
-                                                                              checkLibrary(
-                                                                                camAdminRestCtx,
-                                                                                loggedinUser.user.id,
-                                                                                true,
-                                                                                [
-                                                                                  loggedinUserPublicContent,
-                                                                                  loggedinUserLoggedinContent,
-                                                                                  loggedinUserPrivateContent
-                                                                                ],
-                                                                                () => {
-                                                                                  checkLibrary(
-                                                                                    camAdminRestCtx,
-                                                                                    privateUser.user.id,
-                                                                                    true,
-                                                                                    [
-                                                                                      privateUserPublicContent,
-                                                                                      privateUserLoggedinContent,
-                                                                                      privateUserPrivateContent
-                                                                                    ],
-                                                                                    () => {
-                                                                                      // The GT tenant admin can only see the public stream for the public user.
-                                                                                      checkLibrary(
-                                                                                        gtAdminRestCtx,
-                                                                                        publicUser.user.id,
-                                                                                        true,
-                                                                                        [publicUserPublicContent],
-                                                                                        () => {
-                                                                                          checkLibrary(
-                                                                                            gtAdminRestCtx,
-                                                                                            loggedinUser.user.id,
-                                                                                            false,
-                                                                                            [],
-                                                                                            () => {
-                                                                                              checkLibrary(
-                                                                                                gtAdminRestCtx,
-                                                                                                privateUser.user.id,
-                                                                                                false,
-                                                                                                [],
-                                                                                                callback
-                                                                                              );
-                                                                                            }
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
+                                                          generateTestUsers(asGTTenantAdmin, 1, (err, users) => {
+                                                            assert.notExists(err);
+
+                                                            const { 0: otherTenantUser } = users;
+                                                            const asOtherTenantUser = otherTenantUser.restContext;
+
+                                                            checkLibrary(
+                                                              asOtherTenantUser,
+                                                              publicUser.user.id,
+                                                              true,
+                                                              [publicUserPublicContent],
+                                                              () => {
+                                                                checkLibrary(
+                                                                  asOtherTenantUser,
+                                                                  loggedinUser.user.id,
+                                                                  false,
+                                                                  [],
+                                                                  () => {
+                                                                    checkLibrary(
+                                                                      asOtherTenantUser,
+                                                                      privateUser.user.id,
+                                                                      false,
+                                                                      [],
+                                                                      () => {
+                                                                        // The cambridge tenant admin can see all the things.
+                                                                        checkLibrary(
+                                                                          asCambridgeTenantAdmin,
+                                                                          publicUser.user.id,
+                                                                          true,
+                                                                          [
+                                                                            publicUserPublicContent,
+                                                                            publicUserLoggedinContent,
+                                                                            publicUserPrivateContent
+                                                                          ],
+                                                                          () => {
+                                                                            checkLibrary(
+                                                                              asCambridgeTenantAdmin,
+                                                                              loggedinUser.user.id,
+                                                                              true,
+                                                                              [
+                                                                                loggedinUserPublicContent,
+                                                                                loggedinUserLoggedinContent,
+                                                                                loggedinUserPrivateContent
+                                                                              ],
+                                                                              () => {
+                                                                                checkLibrary(
+                                                                                  asCambridgeTenantAdmin,
+                                                                                  privateUser.user.id,
+                                                                                  true,
+                                                                                  [
+                                                                                    privateUserPublicContent,
+                                                                                    privateUserLoggedinContent,
+                                                                                    privateUserPrivateContent
+                                                                                  ],
+                                                                                  () => {
+                                                                                    // The GT tenant admin can only see the public stream for the public user.
+                                                                                    checkLibrary(
+                                                                                      asGTTenantAdmin,
+                                                                                      publicUser.user.id,
+                                                                                      true,
+                                                                                      [publicUserPublicContent],
+                                                                                      () => {
+                                                                                        checkLibrary(
+                                                                                          asGTTenantAdmin,
+                                                                                          loggedinUser.user.id,
+                                                                                          false,
+                                                                                          [],
+                                                                                          () => {
+                                                                                            checkLibrary(
+                                                                                              asGTTenantAdmin,
+                                                                                              privateUser.user.id,
+                                                                                              false,
+                                                                                              [],
+                                                                                              callback
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          });
                                                         }
                                                       );
                                                     }
@@ -884,196 +938,192 @@ describe('Content Libraries', () => {
    */
   it('verify group libraries', callback => {
     // Create three groups: private, loggedin, public
-    TestsUtil.generateTestUsers(camAdminRestCtx, 3, (err, users) => {
-      assert.ok(!err);
-      const { 0: groupCreator } = _.values(users);
-      const { 1: anotherUser } = _.values(users);
-      createGroupAndLibrary(
-        groupCreator.restContext,
-        'private',
-        (privateGroup, privateGroupPrivateContent, privateGroupLoggedinContent, privateGroupPublicContent) => {
-          createGroupAndLibrary(
-            groupCreator.restContext,
-            'loggedin',
-            (loggedinGroup, loggedinGroupPrivateContent, loggedinGroupLoggedinContent, loggedinGroupPublicContent) => {
-              createGroupAndLibrary(
-                groupCreator.restContext,
-                'public',
-                (publicGroup, publicGroupPrivateContent, publicGroupLoggedinContent, publicGroupPublicContent) => {
-                  // An anonymous user can only see the public stream for the public group.
-                  checkLibrary(camAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicContent], () => {
-                    checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                      checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
-                        checkLibrary(gtAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicContent], () => {
-                          checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                            checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
-                              // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
-                              checkLibrary(
-                                anotherUser.restContext,
-                                publicGroup.id,
-                                true,
-                                [publicGroupPublicContent, publicGroupLoggedinContent],
-                                () => {
-                                  checkLibrary(
-                                    anotherUser.restContext,
-                                    loggedinGroup.id,
-                                    true,
-                                    [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
-                                    () => {
-                                      checkLibrary(anotherUser.restContext, privateGroup.id, false, [], () => {
-                                        // A loggedin user on *another* tenant can only see the public stream for the public group.
-                                        TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
-                                          const otherTenantUser = _.values(users)[0];
-                                          checkLibrary(
-                                            otherTenantUser.restContext,
-                                            publicGroup.id,
-                                            true,
-                                            [publicGroupPublicContent],
-                                            () => {
-                                              checkLibrary(
-                                                otherTenantUser.restContext,
-                                                loggedinGroup.id,
-                                                false,
-                                                [],
-                                                () => {
-                                                  checkLibrary(
-                                                    otherTenantUser.restContext,
-                                                    privateGroup.id,
-                                                    false,
-                                                    [],
-                                                    () => {
-                                                      // The cambridge tenant admin can see all the things.
-                                                      checkLibrary(
-                                                        camAdminRestCtx,
-                                                        publicGroup.id,
-                                                        true,
-                                                        [
-                                                          publicGroupPublicContent,
-                                                          publicGroupLoggedinContent,
-                                                          publicGroupPrivateContent
-                                                        ],
-                                                        () => {
-                                                          checkLibrary(
-                                                            camAdminRestCtx,
-                                                            loggedinGroup.id,
-                                                            true,
-                                                            [
-                                                              loggedinGroupPublicContent,
-                                                              loggedinGroupLoggedinContent,
-                                                              loggedinGroupPrivateContent
-                                                            ],
-                                                            () => {
-                                                              checkLibrary(
-                                                                camAdminRestCtx,
-                                                                privateGroup.id,
-                                                                true,
-                                                                [
-                                                                  privateGroupPrivateContent,
-                                                                  privateGroupLoggedinContent,
-                                                                  privateGroupPrivateContent
-                                                                ],
-                                                                () => {
-                                                                  // The GT tenant admin can only see the public stream for the public group.
-                                                                  checkLibrary(
-                                                                    gtAdminRestCtx,
-                                                                    publicGroup.id,
-                                                                    true,
-                                                                    [publicGroupPublicContent],
-                                                                    () => {
-                                                                      checkLibrary(
-                                                                        gtAdminRestCtx,
-                                                                        loggedinGroup.id,
-                                                                        false,
-                                                                        [],
-                                                                        () => {
-                                                                          checkLibrary(
-                                                                            gtAdminRestCtx,
-                                                                            privateGroup.id,
-                                                                            false,
-                                                                            [],
-                                                                            () => {
-                                                                              // If we make the cambridge user a member of the private group he should see everything.
-                                                                              let changes = {};
-                                                                              changes[anotherUser.user.id] = 'member';
-                                                                              RestAPI.Group.setGroupMembers(
-                                                                                groupCreator.restContext,
-                                                                                privateGroup.id,
-                                                                                changes,
-                                                                                err => {
-                                                                                  assert.ok(!err);
-                                                                                  checkLibrary(
-                                                                                    anotherUser.restContext,
-                                                                                    privateGroup.id,
-                                                                                    true,
-                                                                                    [
-                                                                                      privateGroupPrivateContent,
-                                                                                      privateGroupLoggedinContent,
-                                                                                      privateGroupPrivateContent
-                                                                                    ],
-                                                                                    () => {
-                                                                                      // If we make the GT user a member of the private group, he should see everything.
-                                                                                      changes = {};
-                                                                                      changes[otherTenantUser.user.id] =
-                                                                                        'member';
-                                                                                      RestAPI.Group.setGroupMembers(
-                                                                                        groupCreator.restContext,
-                                                                                        privateGroup.id,
-                                                                                        changes,
-                                                                                        err => {
-                                                                                          assert.ok(!err);
-                                                                                          checkLibrary(
-                                                                                            otherTenantUser.restContext,
-                                                                                            privateGroup.id,
-                                                                                            true,
-                                                                                            [
-                                                                                              privateGroupPrivateContent,
-                                                                                              privateGroupLoggedinContent,
-                                                                                              privateGroupPrivateContent
-                                                                                            ],
-                                                                                            callback
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        });
+    generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: groupCreator, 1: anotherUser } = users;
+      const asGroupCreator = groupCreator.restContext;
+      const asAnotherUser = anotherUser.restContext;
+
+      createGroupAndLibrary(asGroupCreator, PRIVATE, (
+        privateGroup,
+        privateGroupPrivateContent,
+        privateGroupLoggedinContent /* , privateGroupPublicContent */
+      ) => {
+        createGroupAndLibrary(
+          asGroupCreator,
+          LOGGED_IN,
+          (loggedinGroup, loggedinGroupPrivateContent, loggedinGroupLoggedinContent, loggedinGroupPublicContent) => {
+            createGroupAndLibrary(
+              asGroupCreator,
+              PUBLIC,
+              (publicGroup, publicGroupPrivateContent, publicGroupLoggedinContent, publicGroupPublicContent) => {
+                // An anonymous user can only see the public stream for the public group.
+                checkLibrary(asCambridgeAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
+                  checkLibrary(asCambridgeAnonymousUser, loggedinGroup.id, false, [], () => {
+                    checkLibrary(asCambridgeAnonymousUser, privateGroup.id, false, [], () => {
+                      checkLibrary(asGTAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
+                        checkLibrary(asGTAnonymousUser, loggedinGroup.id, false, [], () => {
+                          checkLibrary(asGTAnonymousUser, privateGroup.id, false, [], () => {
+                            // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                            checkLibrary(
+                              asAnotherUser,
+                              publicGroup.id,
+                              true,
+                              [publicGroupPublicContent, publicGroupLoggedinContent],
+                              () => {
+                                checkLibrary(
+                                  asAnotherUser,
+                                  loggedinGroup.id,
+                                  true,
+                                  [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
+                                  () => {
+                                    checkLibrary(asAnotherUser, privateGroup.id, false, [], () => {
+                                      // A loggedin user on *another* tenant can only see the public stream for the public group.
+                                      generateTestUsers(asGTTenantAdmin, 1, (err, users) => {
+                                        assert.notExists(err);
+
+                                        const { 0: otherTenantUser } = users;
+                                        const asOtherTenantUser = otherTenantUser.restContext;
+
+                                        checkLibrary(
+                                          asOtherTenantUser,
+                                          publicGroup.id,
+                                          true,
+                                          [publicGroupPublicContent],
+                                          () => {
+                                            checkLibrary(asOtherTenantUser, loggedinGroup.id, false, [], () => {
+                                              checkLibrary(asOtherTenantUser, privateGroup.id, false, [], () => {
+                                                // The cambridge tenant admin can see all the things.
+                                                checkLibrary(
+                                                  asCambridgeTenantAdmin,
+                                                  publicGroup.id,
+                                                  true,
+                                                  [
+                                                    publicGroupPublicContent,
+                                                    publicGroupLoggedinContent,
+                                                    publicGroupPrivateContent
+                                                  ],
+                                                  () => {
+                                                    checkLibrary(
+                                                      asCambridgeTenantAdmin,
+                                                      loggedinGroup.id,
+                                                      true,
+                                                      [
+                                                        loggedinGroupPublicContent,
+                                                        loggedinGroupLoggedinContent,
+                                                        loggedinGroupPrivateContent
+                                                      ],
+                                                      () => {
+                                                        checkLibrary(
+                                                          asCambridgeTenantAdmin,
+                                                          privateGroup.id,
+                                                          true,
+                                                          [
+                                                            privateGroupPrivateContent,
+                                                            privateGroupLoggedinContent,
+                                                            privateGroupPrivateContent
+                                                          ],
+                                                          () => {
+                                                            // The GT tenant admin can only see the public stream for the public group.
+                                                            checkLibrary(
+                                                              asGTTenantAdmin,
+                                                              publicGroup.id,
+                                                              true,
+                                                              [publicGroupPublicContent],
+                                                              () => {
+                                                                checkLibrary(
+                                                                  asGTTenantAdmin,
+                                                                  loggedinGroup.id,
+                                                                  false,
+                                                                  [],
+                                                                  () => {
+                                                                    checkLibrary(
+                                                                      asGTTenantAdmin,
+                                                                      privateGroup.id,
+                                                                      false,
+                                                                      [],
+                                                                      () => {
+                                                                        // If we make the cambridge user a member of the private group he should see everything.
+                                                                        let changes = {};
+                                                                        changes[anotherUser.user.id] = MEMBER;
+                                                                        setGroupMembers(
+                                                                          asGroupCreator,
+                                                                          privateGroup.id,
+                                                                          changes,
+                                                                          err => {
+                                                                            assert.notExists(err);
+                                                                            checkLibrary(
+                                                                              asAnotherUser,
+                                                                              privateGroup.id,
+                                                                              true,
+                                                                              [
+                                                                                privateGroupPrivateContent,
+                                                                                privateGroupLoggedinContent,
+                                                                                privateGroupPrivateContent
+                                                                              ],
+                                                                              () => {
+                                                                                // If we make the GT user a member of the private group, he should see everything.
+                                                                                changes = {};
+                                                                                changes[
+                                                                                  otherTenantUser.user.id
+                                                                                ] = MEMBER;
+                                                                                setGroupMembers(
+                                                                                  asGroupCreator,
+                                                                                  privateGroup.id,
+                                                                                  changes,
+                                                                                  err => {
+                                                                                    assert.notExists(err);
+                                                                                    checkLibrary(
+                                                                                      asOtherTenantUser,
+                                                                                      privateGroup.id,
+                                                                                      true,
+                                                                                      [
+                                                                                        privateGroupPrivateContent,
+                                                                                        privateGroupLoggedinContent,
+                                                                                        privateGroupPrivateContent
+                                                                                      ],
+                                                                                      callback
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              });
+                                            });
+                                          }
+                                        );
                                       });
-                                    }
-                                  );
-                                }
-                              );
-                            });
+                                    });
+                                  }
+                                );
+                              }
+                            );
                           });
                         });
                       });
                     });
                   });
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              }
+            );
+          }
+        );
+      });
     });
   });
 
@@ -1081,23 +1131,26 @@ describe('Content Libraries', () => {
    * Test that verifies that a library can be rebuilt from a dirty authz table
    */
   it('verify a library can be rebuilt from a dirty authz table', callback => {
-    createUserAndLibrary(camAdminRestCtx, 'private', (simong, privateContent, loggedinContent, publicContent) => {
+    createUserAndLibrary(asCambridgeTenantAdmin, PRIVATE, (homer, privateContent, loggedinContent, publicContent) => {
+      const asHomer = homer.restContext;
       // Ensure all the items are in the user's library
-      checkLibrary(simong.restContext, simong.user.id, true, [privateContent, loggedinContent, publicContent], () => {
-        // Remove a content item directly in Cassandra. This will leave a pointer
-        // in the Authz table that points to nothing. The library re-indexer should
-        // be able to deal with this. Note that we go straight to Cassandra, as the
-        // ContentDAO also takes care of removing the item from the appropriate libraries
-        Cassandra.runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], err => {
-          assert.ok(!err);
+      checkLibrary(asHomer, homer.user.id, true, [privateContent, loggedinContent, publicContent], () => {
+        /**
+         * Remove a content item directly in Cassandra. This will leave a pointer
+         * in the Authz table that points to nothing. The library re-indexer should
+         * be able to deal with this. Note that we go straight to Cassandra, as the
+         * ContentDAO also takes care of removing the item from the appropriate libraries
+         */
+        runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], err => {
+          assert.notExists(err);
 
           // Purge the library so that it has to be rebuild on the next request
-          LibraryAPI.Index.purge('content:content', simong.user.id, err => {
-            assert.ok(!err);
+          LibraryAPI.Index.purge('content:content', homer.user.id, err => {
+            assert.notExists(err);
 
             // We should be able to rebuild the library on-the-fly. The private
             // content item should not be returned as it has been removed
-            checkLibrary(simong.restContext, simong.user.id, true, [loggedinContent, publicContent], callback);
+            checkLibrary(asHomer, homer.user.id, true, [loggedinContent, publicContent], callback);
           });
         });
       });

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import { is, contains } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from 'oae-content/lib/constants';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
@@ -111,11 +111,16 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
           };
 
           // If we're searching for content items we also try to match on content comments and bodies
-          if (_.contains(resourceTypes, 'content')) {
+          if (contains('content', resourceTypes)) {
             query.bool.should.push(
+              /**
+               * The query we're creating needs to use the `discussion_message_body` field
+               * as that is how we're exporting the schema for discussions. See file:
+               * `oae-messagebox/lib/search/schema/resourceMessagesSchema`
+               */
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_COMMENT,
-                SearchUtil.createQueryStringQuery(opts.q, ['body']),
+                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
                 'max'
               )
             );
@@ -129,17 +134,17 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
             );
 
             // If we're searching for discussions we also try to match discussion messages
-          } else if (_.contains(resourceTypes, 'discussion')) {
+          } else if (contains('discussion', resourceTypes)) {
             query.bool.should.push(
               SearchUtil.createHasChildQuery(
                 DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-                SearchUtil.createQueryStringQuery(opts.q, ['body']),
+                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
                 'max'
               )
             );
           }
 
-          const filterFunction = _.isFunction(options.searches[visibility])
+          const filterFunction = is(Function, options.searches[visibility])
             ? options.searches[visibility]
             : _defaultLibraryFilter(resourceTypes, visibility, options.association);
           filterFunction(ctx, libraryOwner, opts, (err, filter) => {
@@ -156,8 +161,9 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
 };
 
 /**
- * Provides a sane default privacy filter for searching libraries. This logic mimicks the library visibility logic
- * such that if a library is requested, only the appropriate items in the visibility bucket are returned
+ * Provides a sane default privacy filter for searching libraries.
+ * This logic mimicks the library visibility logic such that if a library is requested,
+ * only the appropriate items in the visibility bucket are returned
  *
  * @param  {String[]}   resourceTypes           The types of resources to filter by
  * @param  {String}     visibility              The target library visibility to filter as per AuthzConstants#visibility
@@ -175,7 +181,7 @@ const _defaultLibraryFilter = function(resourceTypes, visibility, association) {
   return function(ctx, libraryOwner, opts, callback) {
     // Only look for resources that are in the user's library
     const baseFilter = SearchUtil.filterAnd(
-      SearchUtil.filterTerm('_type', SearchConstants.search.MAPPING_RESOURCE),
+      SearchUtil.filterTerm('type', SearchConstants.search.MAPPING_RESOURCE),
       SearchUtil.filterTerms('resourceType', resourceTypes),
       SearchUtil.createHasChildQuery(
         association.name,

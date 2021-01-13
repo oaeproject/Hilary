@@ -21,9 +21,12 @@ import * as Locking from 'oae-util/lib/locking';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as Redis from 'oae-util/lib/redis';
+import { isEmpty, head } from 'ramda';
 
 const log = logger('oae-telemetry');
 
+let locker = null;
+let lockerRedisClient = null;
 let telemetryConfig = null;
 
 // Will hold the local histogram (duration) data
@@ -48,26 +51,40 @@ const emitter = TelemetryAPI;
  * analysis backend.
  *
  * @param  {Object}     [telemetryConfig]   The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
+ * @param  {Function} callback        Standard callback function
  */
-const init = function(_telemetryConfig, callback) {
-  _applyTelemetryConfig(_telemetryConfig);
-  _resetLocalHistograms();
-  _resetLocalCounts();
+const init = (_telemetryConfig, callback) => {
+  Locking.init((err, _locker) => {
+    if (err) return callback(err);
 
-  // Clear the publish and reset intervals in case telemetry is now disabled
-  clearTimeout(publishIntervalId);
-  clearTimeout(resetIntervalId);
+    locker = _locker;
+    lockerRedisClient = head(locker.servers);
 
+    _applyTelemetryConfig(_telemetryConfig);
+    _resetTelemetry(publishIntervalId, resetIntervalId);
+    _initPublish(telemetryConfig, callback);
+  });
+};
+
+/**
+ * Post-initialization for Telemetry API
+ *
+ * @function _initPublish
+ * @param  {Object} telemetryConfig The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
+ * @param  {Function} callback        Standard callback function
+ */
+const _initPublish = (telemetryConfig, callback) => {
   if (telemetryConfig.enabled && telemetryConfig.publisher) {
     publisher = require('./publishers/' + telemetryConfig.publisher);
     publisher.init(telemetryConfig);
 
-    // Immediately try and reset telemetry counts so if the servers are rebooted it doesn't put off the reset for potentially another
-    // full day
+    /**
+     * Immediately try and reset telemetry counts so if the servers are
+     * rebooted it doesn't put off the reset for potentially another
+     * full day
+     */
     _resetTelemetryCounts(err => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       // Begin the publish and reset intervals
       publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
@@ -78,6 +95,22 @@ const init = function(_telemetryConfig, callback) {
   } else {
     return callback();
   }
+};
+
+/**
+ * Resets all telemetry counters and timeouts
+ *
+ * @function _resetTelemetry
+ * @param  {Number} publishIntervalId The publish telemetry interval
+ * @param  {Number} resetIntervalId   The reset telemetry interval
+ */
+const _resetTelemetry = (publishIntervalId, resetIntervalId) => {
+  _resetLocalHistograms();
+  _resetLocalCounts();
+
+  // Clear the publish and reset intervals in case telemetry is now disabled
+  clearTimeout(publishIntervalId);
+  clearTimeout(resetIntervalId);
 };
 
 /**
@@ -206,12 +239,12 @@ const reset = function(callback) {
     _resetLocalCounts();
 
     // Also reset the locks
-    Redis.getClient().del(_getTelemetryCountResetLock(), resetErr => {
+    lockerRedisClient.del(_getTelemetryCountResetLock(), resetErr => {
       if (resetErr) {
         log().error({ err: resetErr }, 'Error trying to reset the count reset lock');
       }
 
-      Redis.getClient().del(_getTelemetryCountPublishLock(), publishErr => {
+      lockerRedisClient.del(_getTelemetryCountPublishLock(), publishErr => {
         if (publishErr) {
           log().error({ err: publishErr }, 'Error trying to reset the telemetry publish lock');
         }
@@ -298,7 +331,7 @@ const _resetTelemetryCounts = function(callback) {
  * @api private
  */
 const _pushCountsToRedis = function(callback) {
-  if (_.isEmpty(stats.counts)) {
+  if (isEmpty(stats.counts)) {
     return callback();
   }
 

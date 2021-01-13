@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
 import { Context } from 'oae-context';
 import { Tenant } from 'oae-tenants/lib/model';
@@ -63,11 +63,11 @@ import * as TestsUtil from 'oae-tests/lib/util';
 describe('Utilities', () => {
   describe('Validator', () => {
     it('verify undefined gets checked as empty', callback => {
-      assert.strictEqual(isEmpty(undefined), false);
-      assert.strictEqual(isEmpty(null), false);
-      assert.strictEqual(isEmpty(''), true);
-      assert.strictEqual(isEmpty([]), true);
-      assert.strictEqual(isEmpty({}), true);
+      assert.isFalse(isEmpty(undefined));
+      assert.isFalse(isEmpty(null));
+      assert.isTrue(isEmpty(''));
+      assert.isTrue(isEmpty([]));
+      assert.isTrue(isEmpty({}));
       return callback();
     });
 
@@ -553,7 +553,6 @@ describe('Utilities', () => {
       assert.strictEqual(toInt('-1'), -1);
       assert.strictEqual(toInt('0'), 0);
       assert.strictEqual(toInt('10'), 10);
-      assert.strictEqual(toInt(NaN), NaN);
     });
 
     it('verify notContains validation', () => {
@@ -637,36 +636,43 @@ describe('Utilities', () => {
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)('0');
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)(null);
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)([]);
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)({});
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)(false);
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)(undefined);
       } catch (error) {
         assert.strictEqual(error, e);
       }
+
       try {
         unless(isANumber, e)(NaN);
       } catch (error) {
@@ -675,7 +681,6 @@ describe('Utilities', () => {
     });
 
     it('verify validateInCase validation', () => {
-      const e = new Error('surprise!');
       assert.strictEqual(validateInCase(true, isANumber)(1), true);
       assert.strictEqual(validateInCase(true, isANumber)(10), true);
       assert.strictEqual(validateInCase(true, isANumber)(0), true);
@@ -746,8 +751,8 @@ describe('Utilities', () => {
       assert.strictEqual(isObject({ a: 1, b: 2, c: 3 }), true);
       assert.strictEqual(isObject([]), true);
       assert.strictEqual(isObject([1, 2, 3]), true);
-      assert.strictEqual(isObject(new Array()), true);
-      assert.strictEqual(isObject(new Object()), true);
+      assert.strictEqual(isObject([]), true);
+      assert.strictEqual(isObject({}), true);
 
       assert.strictEqual(isObject(''), false);
       assert.strictEqual(isObject(null), false);
@@ -762,8 +767,8 @@ describe('Utilities', () => {
       assert.strictEqual(isModule({ a: 1, b: 2, c: 3 }), true);
       assert.strictEqual(isModule([]), true);
       assert.strictEqual(isModule([1, 2, 3]), true);
-      assert.strictEqual(isModule(new Array()), true);
-      assert.strictEqual(isModule(new Object()), true);
+      assert.strictEqual(isModule([]), true);
+      assert.strictEqual(isModule({}), true);
 
       assert.strictEqual(isModule(''), false);
       assert.strictEqual(isModule(null), false);

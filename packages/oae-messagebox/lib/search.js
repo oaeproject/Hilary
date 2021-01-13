@@ -74,9 +74,10 @@ const createMessageSearchDocuments = function(name, resourceId, messages) {
       return !message.deleted;
     })
     .map(message => {
+      // Here we'll be looking for `discussion_message_body` because that's the default export in `resourceMessagesSchema.js`
       return SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
-        body: message.body
+        discussion_message_body: message.body // eslint-disable-line camelcase
       });
     })
     .value();

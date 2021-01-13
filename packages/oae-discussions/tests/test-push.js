@@ -14,8 +14,7 @@
  */
 
 /* esling-disable no-unused-vars */
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
@@ -26,14 +25,14 @@ import { DiscussionsConstants } from 'oae-discussions/lib/constants';
 
 describe('Discussion Push', () => {
   // Rest contexts that can be used performing rest requests
-  let localAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /**
    * Function that will fill up the tenant admin and anymous rest contexts
    */
-  before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
-    callback();
+  before(done => {
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
+    done();
   });
 
   describe('Authorization', () => {
@@ -41,11 +40,13 @@ describe('Discussion Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, branden) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: simong, 1: branden } = users;
 
         RestAPI.User.getMe(simong.restContext, (err, simonFull) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           const data = {
             authentication: {
@@ -66,9 +67,9 @@ describe('Discussion Push', () => {
               [branden.user.id],
               null,
               (err, discussion) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 RestAPI.Discussions.getDiscussion(simong.restContext, discussion.id, (err, discussion) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Ensure we get a 400 error with an invalid activity stream id
                   client.subscribe(discussion.id, null, discussion.signature, null, err => {
@@ -108,7 +109,7 @@ describe('Discussion Push', () => {
                                     branden.restContext,
                                     discussion.id,
                                     (err, discussionForBranden) => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       client.subscribe(
                                         discussion.id,
                                         'activity',
@@ -124,7 +125,7 @@ describe('Discussion Push', () => {
                                             discussion.signature,
                                             null,
                                             err => {
-                                              assert.ok(!err);
+                                              assert.notExists(err);
                                               return callback();
                                             }
                                           );
@@ -161,8 +162,10 @@ describe('Discussion Push', () => {
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, branden, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 1: simon, 0: branden } = users;
 
         const contexts = {
           branden,
@@ -171,7 +174,7 @@ describe('Discussion Push', () => {
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
         RestAPI.User.getMe(contexts.simon.restContext, (err, simonFull) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Create a discussion and get the full discussion profile so we have a signature that we can use to register for push notifications
           RestAPI.Discussions.createDiscussion(
@@ -182,9 +185,9 @@ describe('Discussion Push', () => {
             [contexts.branden.user.id],
             [],
             (err, discussion) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Discussions.getDiscussion(contexts.simon.restContext, discussion.id, (err, discussion) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Route and deliver activities
                 ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
@@ -231,7 +234,7 @@ describe('Discussion Push', () => {
           discussion.id,
           { displayName: 'Laaike whatevs' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
           }
         );
 
@@ -262,7 +265,7 @@ describe('Discussion Push', () => {
           discussion.id,
           { visibility: 'loggedin' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
           }
         );
 
@@ -287,29 +290,28 @@ describe('Discussion Push', () => {
      */
     it('verify a new message triggers a push notification', callback => {
       setupFixture((contexts, discussion, client) => {
-        let discussionMessage = null;
         let activity = null;
+        let counter = 0;
 
-        const _assertAndCallback = _.after(2, () => {
-          // Verify that we have access to the message body and createdBy property
-          assert.strictEqual(activity.object.body, 'Cup a Soup');
-          assert.ok(_.isObject(activity.object.createdBy));
-          assert.strictEqual(activity.object.createdBy.id, contexts.branden.user.id);
-          return client.close(callback);
-        });
+        const _assertAndCallback = () => {
+          counter++;
+
+          if (counter === 2) {
+            // Verify that we have access to the message body and createdBy property
+            assert.strictEqual(activity.object.body, 'Cup a Soup');
+            assert.isObject(activity.object.createdBy);
+            assert.strictEqual(activity.object.createdBy.id, contexts.branden.user.id);
+            return client.close(callback);
+          }
+        };
 
         // Create a message
-        RestAPI.Discussions.createMessage(
-          contexts.branden.restContext,
-          discussion.id,
-          'Cup a Soup',
-          null,
-          (err, _discussionMessage) => {
-            assert.ok(!err);
-            discussionMessage = _discussionMessage;
-            return _assertAndCallback();
-          }
-        );
+        RestAPI.Discussions.createMessage(contexts.branden.restContext, discussion.id, 'Cup a Soup', null, (
+          err /* , _discussionMessage */
+        ) => {
+          assert.notExists(err);
+          return _assertAndCallback();
+        });
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -336,31 +338,30 @@ describe('Discussion Push', () => {
           contexts.branden.user.id,
           { visibility: 'private', publicAlias: 'Ma Baker' },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
-            let discussionMessage = null;
             let activity = null;
+            let counter = 0;
 
-            const _assertAndCallback = _.after(2, () => {
-              // Verify that we have access to the message body and createdBy property
-              assert.strictEqual(activity.object.body, 'Cup a Soup');
-              assert.strictEqual(activity.object.createdBy.visibility, 'private');
-              assert.strictEqual(activity.object.createdBy.displayName, 'Ma Baker');
-              return client.close(callback);
-            });
+            const _assertAndCallback = () => {
+              counter++;
+
+              if (counter === 2) {
+                // Verify that we have access to the message body and createdBy property
+                assert.strictEqual(activity.object.body, 'Cup a Soup');
+                assert.strictEqual(activity.object.createdBy.visibility, 'private');
+                assert.strictEqual(activity.object.createdBy.displayName, 'Ma Baker');
+                return client.close(callback);
+              }
+            };
 
             // Create a message
-            RestAPI.Discussions.createMessage(
-              contexts.branden.restContext,
-              discussion.id,
-              'Cup a Soup',
-              null,
-              (err, _discussionMessage) => {
-                assert.ok(!err);
-                discussionMessage = _discussionMessage;
-                return _assertAndCallback();
-              }
-            );
+            RestAPI.Discussions.createMessage(contexts.branden.restContext, discussion.id, 'Cup a Soup', null, (
+              err /* , _discussionMessage */
+            ) => {
+              assert.notExists(err);
+              return _assertAndCallback();
+            });
 
             ActivityTestsUtil.waitForPushActivity(
               client,

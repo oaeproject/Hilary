@@ -57,7 +57,7 @@ import { PreviewContext } from './model';
 const log = logger('oae-preview-processor');
 const Telemetry = telemetry('preview-processor');
 
-let config = null;
+let config;
 
 // A hash of registered processors.
 const _processors = {};
@@ -78,13 +78,6 @@ const PreviewProcessorAPI = new EmitterAPI.EventEmitter();
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
 const enable = function(callback) {
-  callback =
-    callback ||
-    // eslint-disable-next-line no-unused-vars
-    function(err) {
-      /* Error is logged within the implementation */
-    };
-
   // Bind an error listener to the REST methods
   RestUtil.emitter.on('error', _restErrorLister);
   MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, err => {
@@ -123,13 +116,6 @@ const enable = function(callback) {
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
 const disable = function(callback) {
-  callback =
-    callback ||
-    // eslint-disable-next-line no-unused-vars
-    function(err) {
-      /* Error is logged within the implementation */
-    };
-
   MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
     if (err) {
       log().error({ err }, 'Could not unbind from the previews queue');
@@ -182,18 +168,14 @@ const _restErrorLister = function(err) {
 const refreshPreviewConfiguration = function(_config, callback) {
   // Stop listening for tasks.
   disable(err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Store this configuration.
     config = _config;
 
     if (config.previews.enabled) {
       _initializeDefaultProcessors(err => {
-        if (err) {
-          return callback(err);
-        }
+        if (err) return callback(err);
 
         // Register the processors.
         try {
@@ -245,7 +227,7 @@ const getConfiguration = function() {
  */
 const registerProcessor = function(processorId, processor) {
   unless(isNotEmpty, new Error('Missing processor ID'))(processorId);
-  unless(isNil, new Error('This processor is already registerd'))(_processors[processorId]);
+  unless(isNil, new Error('This processor is already registered'))(_processors[processorId]);
   unless(isModule, new Error('Missing processor'))(processor);
   unless(isNotNull, new Error('The processor has no test method'))(processor.test);
   unless(isNotNull, new Error('The processor has no generatePreviews method'))(processor.generatePreviews);
@@ -513,14 +495,20 @@ const _handleGeneratePreviewsTask = function(data, callback) {
   log().info({ contentId: data.contentId, data }, 'Starting preview generation process');
   const ctx = new PreviewContext(config, data.contentId, data.revisionId);
 
-  // Generate a context for this preview process and login to the tenant of this content item and start processing
+  /**
+   * Generate a context for this preview process and login to the tenant
+   * of this content item and start processing
+   */
   ctx.login(err => {
     if (err) {
-      // If we can't login, we cannot call cleanCallback as we won't have a session cookie
-      // to set a status
+      /**
+       * If we can't login, we cannot call cleanCallback as we won't
+       * have a session cookie to set a status
+       */
       ctx.cleanup();
       Telemetry.appendDuration('process.time', start);
       Telemetry.incr('error.count');
+
       return callback(err);
     }
 
@@ -534,6 +522,7 @@ const _handleGeneratePreviewsTask = function(data, callback) {
       _generatePreviews(ctx, err => {
         ctx.cleanup();
         Telemetry.appendDuration('process.time', start);
+
         PreviewProcessorAPI.emit(PreviewConstants.EVENTS.PREVIEWS_FINISHED, ctx.content, ctx.revision, ctx.getStatus());
         if (err) {
           log().error({ err, contentId: data.contentId }, 'Error when trying to process this file');
@@ -544,6 +533,7 @@ const _handleGeneratePreviewsTask = function(data, callback) {
         // We're done.
         log().info({ contentId: data.contentId }, 'Preview processing done');
         Telemetry.incr('ok.count');
+
         return callback();
       });
     });

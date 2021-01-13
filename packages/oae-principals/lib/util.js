@@ -175,7 +175,7 @@ const isUser = function(userId) {
  * @param  {User}        user    The user object to hide as necessary
  * @api private
  */
-const hideUserData = function(ctx, user) {
+const hideUserData = (ctx, user) => {
   const isAnon = !ctx.user();
   const isLoggedIn = TenantsUtil.isLoggedIn(ctx, user.tenant.alias);
   const isTargetUser = !isAnon && ctx.user().id === user.id;
@@ -189,8 +189,9 @@ const hideUserData = function(ctx, user) {
 
   // Hide the sensitive profile information if the user has limited access
   if (user.deleted || (needsLoggedIn && !isLoggedIn) || isPrivate) {
-    // Show user's publicAlias instead of displayName if it doesn't resemble a Shibboleth
-    // identifier
+    /**
+     * Show user's publicAlias instead of displayName if it doesn't resemble a Shibboleth identifier
+     */
     const invalid = /https?:\/\/|shibboleth!|@/i;
     if (!invalid.test(user.publicAlias)) {
       user.displayName = user.publicAlias;
@@ -198,8 +199,10 @@ const hideUserData = function(ctx, user) {
 
     user.picture = {};
 
-    // The profile path should be removed from the user object as well. This will tell the UI
-    // when to offer a link to the profile page and when not to
+    /**
+     * The profile path should be removed from the user object as well.
+     * This will tell the UI when to offer a link to the profile page and when not to
+     */
     delete user.profilePath;
   }
 

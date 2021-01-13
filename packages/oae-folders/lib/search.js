@@ -15,7 +15,6 @@
 
 /* eslint-disable no-unused-vars */
 
-import util from 'util';
 import _ from 'underscore';
 
 import * as AuthzSearch from 'oae-authz/lib/search';
@@ -31,6 +30,35 @@ import { FoldersConstants } from 'oae-folders/lib/constants';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 
 const log = logger('folders-search');
+
+import {
+  unless,
+  compose,
+  identity,
+  has,
+  assoc,
+  __,
+  mergeLeft,
+  mergeDeepLeft,
+  pipe,
+  map,
+  concat,
+  defaultTo,
+  head,
+  mergeDeepWith,
+  reject,
+  isNil,
+  path,
+  prop,
+  mapObjIndexed
+} from 'ramda';
+
+const defaultToEmptyObject = defaultTo({});
+const getResourceId = prop('resourceId');
+const { getTenant } = TenantsAPI;
+const { getResourceFromId } = AuthzUtil;
+const getTenantAlias = prop('tenantAlias');
+const removeFalsy = reject(isNil);
 
 /**
  * Initializes the child search documents for the folders module
@@ -294,9 +322,9 @@ const _produceFolderSearchDocument = function(folder) {
 
 SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of folder search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -309,36 +337,39 @@ SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments
  * @api private
  */
 const _transformFolderDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // Remember, the document id is the *group* id
-    const result = { groupId: docId };
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
 
-    // Extract the extra object from the search document
-    // as that's where we stored the folder id in
-    const extra = _.first(doc.fields._extra) || {};
-    result.id = extra.folderId;
-
-    // Apply the scalar values wrapped in each ElasticSearch document
-    // to the transformed search document
-    _.each(doc.fields, (value, name) => {
-      result[name] = _.first(value);
-    });
-
-    // Add the full tenant object and profile path
-    _.extend(result, {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format('/folder/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
-    });
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(extraFields.folderId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/folder/${tenantAlias}/${resourceId}`
+    };
+    const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
-    if (thumbnailUrl) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl);
-    }
+    const signThumbnail = thumbnailUrl => {
+      if (thumbnailUrl) {
+        return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl));
+      }
 
-    transformedDocs[docId] = result;
-  });
+      return identity;
+    };
+
+    const result = pipe(
+      // Remember, the document id is the *group* id
+      mergeLeft({ groupId: docId }),
+      mergeLeft({ id: extraFields.folderId }),
+      mergeLeft(scalarFields),
+      mergeDeepLeft(tenantAndProfileInfo),
+      signThumbnail(thumbnailUrl)
+    )(extraFields);
+
+    return result;
+  }, docs);
 
   return callback(null, transformedDocs);
 };
@@ -346,9 +377,9 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('folder', _transformFolderDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handlers
+ */
 
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Folders CF

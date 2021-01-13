@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import { drop, map, path } from 'ramda';
 
 describe('Following', () => {
   let globalAdminOnTenantRestContext = null;
@@ -37,7 +37,7 @@ describe('Following', () => {
 
     // Authenticate the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
     RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
-      assert.ok(!err);
+      assert.notExists(err);
       globalAdminOnTenantRestContext = ctx;
       return callback();
     });
@@ -53,9 +53,9 @@ describe('Following', () => {
     assert.ok(oneFeedUsers);
     assert.ok(otherFeedUsers);
     assert.strictEqual(oneFeedUsers.length, otherFeedUsers.length);
-    for (let i = 0; i < oneFeedUsers.length; i++) {
-      assert.ok(oneFeedUsers[i].id);
-      assert.strictEqual(oneFeedUsers[i].id, otherFeedUsers[i].id);
+    for (const each of oneFeedUsers) {
+      assert.ok(each.id);
+      assert.strictEqual(each.id, each.id);
     }
   };
 
@@ -64,13 +64,13 @@ describe('Following', () => {
    */
   it('verify with no followers or following', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const user = _.values(testUsers)[0];
+      const { 0: user } = testUsers;
 
       // Verify clean empty response
       RestAPI.Following.getFollowers(user.restContext, user.user.id, null, null, (err, response) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(response);
         assert.ok(response.results);
         assert.strictEqual(response.results.length, 0);
@@ -78,7 +78,7 @@ describe('Following', () => {
 
         // Verify clean empty response again
         RestAPI.Following.getFollowing(user.restContext, user.user.id, null, null, (err, response) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(response);
           assert.ok(response.results);
           assert.strictEqual(response.results.length, 0);
@@ -104,7 +104,7 @@ describe('Following', () => {
         () => {
           // Unfollow the user and verify that they are no longer in the following and followers lists
           RestAPI.Following.unfollow(follower.restContext, followed.user.id, err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Ensure the follower and following feeds indicate they are no longer following
             FollowingTestsUtil.assertDoesNotFollow(
@@ -125,18 +125,14 @@ describe('Following', () => {
    */
   it('verify following list privacy', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, testUsers) => {
-      assert.ok(!err);
-
-      const privateUser = _.values(testUsers)[0];
-      const loggedinUser = _.values(testUsers)[1];
-      const publicUser = _.values(testUsers)[2];
-      const bert = _.values(testUsers)[3];
+      assert.notExists(err);
+      const { 0: privateUser, 1: loggedinUser, 2: publicUser, 3: bert } = testUsers;
 
       RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, { visibility: 'loggedin' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Verify anonymous can only see public user feeds
           FollowingTestsUtil.assertNoFollowFeedAccess(
@@ -197,28 +193,30 @@ describe('Following', () => {
    */
   it('verify get followers validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const bert = _.values(testUsers)[0];
+      const { 0: bert } = testUsers;
 
       // Verify a non-valid id
-      RestAPI.Following.getFollowers(bert.restContext, 'not-a-valid-id', null, null, (err, response) => {
+      RestAPI.Following.getFollowers(bert.restContext, 'not-a-valid-id', null, null, (err /* , response */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
 
         // Verify a resource id that is not a user
-        RestAPI.Following.getFollowers(bert.restContext, 'g:not-a:user-id', null, null, (err, response) => {
+        RestAPI.Following.getFollowers(bert.restContext, 'g:not-a:user-id', null, null, (err /* , response */) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
 
           // Verify a non-existing user
-          RestAPI.Following.getFollowers(bert.restContext, 'u:cam:nonExistentUserId', null, null, (err, response) => {
+          RestAPI.Following.getFollowers(bert.restContext, 'u:cam:nonExistentUserId', null, null, (
+            err /* , response */
+          ) => {
             assert.ok(err);
             assert.strictEqual(err.code, 404);
 
             // Sanity check a valid fetch
             RestAPI.Following.getFollowers(bert.restContext, bert.user.id, null, null, (err, response) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(response);
               return callback();
             });
@@ -233,28 +231,30 @@ describe('Following', () => {
    */
   it('verify get following validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const bert = _.values(testUsers)[0];
+      const { 0: bert } = testUsers;
 
       // Verify a non-valid id
-      RestAPI.Following.getFollowing(bert.restContext, 'not-a-valid-id', null, null, (err, response) => {
+      RestAPI.Following.getFollowing(bert.restContext, 'not-a-valid-id', null, null, (err /* , response */) => {
         assert.ok(err);
         assert.strictEqual(err.code, 400);
 
         // Verify a resource id that is not a user
-        RestAPI.Following.getFollowing(bert.restContext, 'g:not-a:user-id', null, null, (err, response) => {
+        RestAPI.Following.getFollowing(bert.restContext, 'g:not-a:user-id', null, null, (err /* , response */) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
 
           // Verify a non-existing user
-          RestAPI.Following.getFollowing(bert.restContext, 'u:cam:nonExistentUserId', null, null, (err, response) => {
+          RestAPI.Following.getFollowing(bert.restContext, 'u:cam:nonExistentUserId', null, null, (
+            err /* , response */
+          ) => {
             assert.ok(err);
             assert.strictEqual(err.code, 404);
 
             // Sanity check a valid fetch
             RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (err, response) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(response);
               return callback();
             });
@@ -269,10 +269,9 @@ describe('Following', () => {
    */
   it('verify follow validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const bert = _.values(testUsers)[0];
-      const simon = _.values(testUsers)[1];
+      const { 0: bert, 1: simon } = testUsers;
 
       // Verify a non-valid id
       RestAPI.Following.follow(bert.restContext, 'not-a-valid-id', err => {
@@ -291,13 +290,14 @@ describe('Following', () => {
 
             // Ensure no following took place
             RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (err, response) => {
+              assert.notExists(err);
               assert.ok(response);
               assert.ok(response.results);
               assert.strictEqual(response.results.length, 0);
 
               // Sanity check inputs
               RestAPI.Following.follow(bert.restContext, simon.user.id, err => {
-                assert.ok(!err);
+                assert.notExists(err);
                 return callback();
               });
             });
@@ -339,7 +339,7 @@ describe('Following', () => {
                 null,
                 null,
                 (err, response) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(response);
                   assert.ok(response.results);
                   assert.strictEqual(response.results.length, 0);
@@ -349,7 +349,7 @@ describe('Following', () => {
                     publicTenant0.publicUser.restContext,
                     publicTenant1.publicUser.user.id,
                     err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       return FollowingTestsUtil.assertFollows(
                         publicTenant0.publicUser.user.id,
                         publicTenant0.publicUser.restContext,
@@ -372,10 +372,10 @@ describe('Following', () => {
    * Test that verifies the authorization of the unfollow action
    */
   it('verify unfollow authorization', callback => {
-    TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
+    TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1 /* , privateTenant0 */) => {
       // Perform a follow from publicTenant0 to publicTenant1
       RestAPI.Following.follow(publicTenant0.publicUser.restContext, publicTenant1.publicUser.user.id, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Now make publicTenant1 private
         ConfigTestsUtil.updateConfigAndWait(
@@ -383,11 +383,11 @@ describe('Following', () => {
           publicTenant1.tenant.alias,
           { 'oae-tenants/tenantprivacy/tenantprivate': true },
           err => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Now make sure we can unfollow the user in the newly private tenant
             RestAPI.Following.unfollow(publicTenant0.publicUser.restContext, publicTenant1.publicUser.user.id, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Ensure that the following user is not following anyone anymore
               RestAPI.Following.getFollowing(
@@ -396,7 +396,7 @@ describe('Following', () => {
                 null,
                 null,
                 (err, response) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(response);
                   assert.ok(response.results);
                   assert.strictEqual(response.results.length, 0);
@@ -415,10 +415,9 @@ describe('Following', () => {
    */
   it('verify unfollow validation', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const bert = _.values(testUsers)[0];
-      const simon = _.values(testUsers)[1];
+      const { 0: bert, 1: simon } = testUsers;
 
       // Verify anonymous cannot unfollow anyone
       RestAPI.Following.unfollow(camAnonymousRestContext, simon.user.id, err => {
@@ -437,7 +436,7 @@ describe('Following', () => {
 
             // Sanity check inputs
             RestAPI.Following.unfollow(bert.restContext, simon.user.id, err => {
-              assert.ok(!err);
+              assert.notExists(err);
               return callback();
             });
           });
@@ -451,27 +450,24 @@ describe('Following', () => {
    */
   it('verify paging of the following feed', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 10, (err, testUsers) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
-      const follower = _.values(testUsers)[0];
-      delete testUsers[follower.user.id];
-
-      const followingUserIds = _.map(_.values(testUsers), testUser => {
-        return testUser.user.id;
-      });
+      const { 0: follower } = testUsers;
+      testUsers = drop(1, testUsers);
+      const followingUserIds = map(path(['user', 'id']), testUsers);
 
       // Make the follower follow all the 9 following users
       FollowingTestsUtil.followAll(follower.restContext, followingUserIds, () => {
         // Get the natural following order
         RestAPI.Following.getFollowing(follower.restContext, follower.user.id, null, 9, (err, response) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(response.results.length, 9);
 
           const followingUsers = response.results;
 
           // Get the first 2, ensure we were restricted by the limit
           RestAPI.Following.getFollowing(follower.restContext, follower.user.id, null, 2, (err, response) => {
-            assert.ok(!err);
+            assert.notExists(err);
             _assertFeedsEqual(response.results, followingUsers.slice(0, 2));
 
             // Get the next 2, ensure it is the next 2-item-slice of the following array
@@ -481,7 +477,7 @@ describe('Following', () => {
               response.nextToken,
               2,
               (err, response) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 _assertFeedsEqual(response.results, followingUsers.slice(2, 4));
 
                 // Now overflow the list
@@ -491,7 +487,7 @@ describe('Following', () => {
                   response.nextToken,
                   8,
                   (err, response) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(!response.nextToken);
                     _assertFeedsEqual(response.results, followingUsers.slice(4));
                     return callback();
@@ -509,26 +505,24 @@ describe('Following', () => {
    * Test that verifies paging of the followers feed
    */
   it('verify paging of the followers feed', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 10, (err, testUsers) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestContext, 10, (err, followers) => {
+      assert.notExists(err);
 
-      const followed = _.values(testUsers)[0];
-      delete testUsers[followed.user.id];
-
-      const followers = _.values(testUsers);
+      const { 0: followed } = followers;
+      followers = drop(1, followers);
 
       // Make the follower follow all the 9 following users
       FollowingTestsUtil.followByAll(followed.user.id, followers, () => {
         // Get the natural following order
         RestAPI.Following.getFollowers(followed.restContext, followed.user.id, null, 9, (err, response) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(response.results.length, 9);
 
           const followerUsers = response.results;
 
           // Get the first 2, ensure we were restricted by the limit
           RestAPI.Following.getFollowers(followed.restContext, followed.user.id, null, 2, (err, response) => {
-            assert.ok(!err);
+            assert.notExists(err);
             _assertFeedsEqual(response.results, followerUsers.slice(0, 2));
 
             // Get the next 2, ensure it is the next 2-item-slice of the following array
@@ -538,7 +532,7 @@ describe('Following', () => {
               response.nextToken,
               2,
               (err, response) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 _assertFeedsEqual(response.results, followerUsers.slice(2, 4));
 
                 // Now overflow the list
@@ -548,7 +542,7 @@ describe('Following', () => {
                   response.nextToken,
                   8,
                   (err, response) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(!response.nextToken);
                     _assertFeedsEqual(response.results, followerUsers.slice(4));
                     return callback();

@@ -35,6 +35,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: oae-hilary
+    extra_hosts:
+      - "gt.oae.com: 127.0.0.1"
+      - "cambridge.oae.com: 127.0.0.1"
     # command: nodemon -L app.js | npx bunyan # default
     # command: npm test # for running tests
     extra_hosts:
@@ -49,6 +52,7 @@ services:
       - 2001:2001
     tty: false
     environment:
+      - RECAPTCHA_KEY
       - CODACY_PROJECT_TOKEN
       - TWITTER_KEY
       - TWITTER_SECRET
@@ -62,7 +66,7 @@ services:
       - SYS_ADMIN
   oae-redis:
     container_name: oae-redis
-    image: redis:5-alpine
+    image: redis:6-alpine
     ports:
       - 6379:6379
     tty: false
@@ -70,14 +74,17 @@ services:
       - my_network
   oae-elasticsearch:
     container_name: oae-elasticsearch
-    image: oaeproject/oae-elasticsearch-docker
+    image: elasticsearch:7.9.0
+    environment:
+      - discovery.type=single-node
     networks:
       - my_network
     ports:
       - 9200:9200
+      - 9300:9300
     tty: false
-    volumes:
-      - ../data/elasticsearch:/usr/share/elasticsearch/data
+    # volumes:
+    #  - ../data/elasticsearch:/usr/share/elasticsearch/data
   oae-nginx:
     container_name: oae-nginx
     image: nginx:stable-alpine

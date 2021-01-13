@@ -14,7 +14,6 @@
  */
 
 import assert from 'assert';
-import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
@@ -53,7 +52,7 @@ describe('Following Search', () => {
   it('verify search with no followers or following', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
       assert.ok(!err);
-      const user = _.values(testUsers)[0];
+      const { 0: user } = testUsers;
 
       RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (err, response) => {
         assert.ok(!err);
@@ -80,7 +79,7 @@ describe('Following Search', () => {
   it('verify validation of following search', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
       assert.ok(!err);
-      const user = _.values(testUsers)[0];
+      const { 0: user } = testUsers;
 
       // Ensure failure with a non-valid resource id
       RestAPI.Search.search(user.restContext, 'following', ['not-a-valid-id'], null, (err, response) => {
@@ -120,7 +119,7 @@ describe('Following Search', () => {
   it('verify validation of followers search', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
       assert.ok(!err);
-      const user = _.values(testUsers)[0];
+      const { 0: user } = testUsers;
 
       // Ensure failure with a non-valid resource id
       RestAPI.Search.search(user.restContext, 'followers', ['not-a-valid-id'], null, (err, response) => {
@@ -197,10 +196,7 @@ describe('Following Search', () => {
    */
   it('verify follow search privacy', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, testUsers) => {
-      const privateUser = _.values(testUsers)[0];
-      const loggedinUser = _.values(testUsers)[1];
-      const publicUser = _.values(testUsers)[2];
-      const bert = _.values(testUsers)[3];
+      const { 0: privateUser, 1: loggedinUser, 2: publicUser, 3: bert } = testUsers;
 
       RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
         assert.ok(!err);

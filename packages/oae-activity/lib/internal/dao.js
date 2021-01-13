@@ -360,8 +360,12 @@ const getAggregateStatus = function(aggregateKeys, callback) {
       return callback(err);
     }
 
-    // The result is each aggregate status separated by a new line, ordered the same as the keys were in the args. Therefore
-    // we iterate over those one-by-one and match the aggregate status result with the aggregate key by index.
+    /**
+     * The result is each aggregate status separated by a new line,
+     * ordered the same as the keys were in the args.
+     * Therefore we iterate over those one-by-one and match the
+     * aggregate status result with the aggregate key by index.
+     */
     const aggregateStatus = {};
     for (let [i, result] of results.entries()) {
       // Match the aggregate status result with the aggregate key by index.

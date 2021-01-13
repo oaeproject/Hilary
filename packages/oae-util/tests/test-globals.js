@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
+
 import _ from 'underscore';
 
 describe('Globals', () => {

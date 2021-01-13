@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable no-unused-vars, import/namespace */
+
 import * as ActivityAPI from 'oae-activity';
 import * as ActivityPush from './internal/push';
 
 // Register some of the default streams
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as Activity from './activity';
 
 // Bind the notification event listeners
-// eslint-disable-next-line no-unused-vars
 import * as Notifications from './internal/notifications';
 
 // Bind the email event listeners
-// eslint-disable-next-line no-unused-vars
 import * as Email from './internal/email';
 
 export function init(config, callback) {

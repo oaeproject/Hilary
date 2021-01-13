@@ -19,7 +19,7 @@ import path from 'path';
 import stream from 'stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import sharp from 'sharp';
-import pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
@@ -302,8 +302,10 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNumber, doc) {
     await writeSvgToFile(svg, getFilePathForPage(pagesDir, pageNumber, SVG_FORMAT));
     const content = await page.getTextContent();
 
-    // Content contains lots of information about the text layout and
-    // styles, but we need only strings at the moment
+    /**
+     * Content contains lots of information about the text layout and styles,
+     * but we need only strings at the moment
+     */
     const pageContents = compose(join(' '), pluck('str'))(content.items);
     const pageName = util.format('page.%s.txt', pageNumber);
     const pagePath = util.format('%s/%s', pagesDir, pageName);

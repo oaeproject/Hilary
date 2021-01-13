@@ -13,22 +13,30 @@
  * visibilitys and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
+import { keys, indexOf } from 'ramda';
+
+const { getModuleDocumentation, getModules } = RestAPI.Doc;
+const { createTenantRestContext } = TestsUtil;
+
+const TEST = 'test';
+const BACKEND = 'backend';
+const FRONTEND = 'frontend';
 
 describe('Docs', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
-  let anonymousCamRestContext = null;
+  let asCambridgeAnonymousUser = null;
 
   /**
    * Function that will fill up the global admin, tenant admin and anymous rest context
    */
   before(callback => {
     // Fill up the anonymous cam rest context
-    anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
+
     callback();
   });
 
@@ -38,19 +46,21 @@ describe('Docs', () => {
      */
     it('verify get modules', callback => {
       // Get the back-end modules
-      RestAPI.Doc.getModules(anonymousCamRestContext, 'backend', (err, backendModules) => {
-        assert.ok(!err);
+      getModules(asCambridgeAnonymousUser, BACKEND, (err, backendModules) => {
+        assert.notExists(err);
         assert.ok(backendModules);
         assert.notStrictEqual(backendModules.indexOf('oae-doc'), -1);
 
         // Get the front-end modules
-        RestAPI.Doc.getModules(anonymousCamRestContext, 'frontend', (err, frontendModules) => {
-          assert.ok(!err);
+        getModules(asCambridgeAnonymousUser, FRONTEND, (err, frontendModules) => {
+          assert.notExists(err);
           assert.ok(frontendModules);
-          assert.notStrictEqual(_.indexOf(frontendModules, 'oae.api.util.js'), -1);
+          assert.notStrictEqual(indexOf('oae.api.util.js', frontendModules), -1);
+
           // We want to exclude oae.core.js
-          assert.strictEqual(_.indexOf(frontendModules, 'oae.core.js'), -1);
-          callback();
+          assert.strictEqual(indexOf('oae.core.js', frontendModules), -1);
+
+          return callback();
         });
       });
     });
@@ -59,9 +69,9 @@ describe('Docs', () => {
      * Test that verifies that validation is done appropriately
      */
     it('verify validation', callback => {
-      RestAPI.Doc.getModules(anonymousCamRestContext, 'invalid module type', (err, modules) => {
+      getModules(asCambridgeAnonymousUser, 'invalid module type', (err, modules) => {
         assert.strictEqual(err.code, 400);
-        assert.ok(!modules);
+        assert.notExists(modules);
 
         return callback();
       });
@@ -74,18 +84,19 @@ describe('Docs', () => {
      */
     it('verify get module documentation', callback => {
       // Get the documentation for a back-end module
-      RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae-doc', (err, docs) => {
-        assert.ok(!err);
+      getModuleDocumentation(asCambridgeAnonymousUser, BACKEND, 'oae-doc', (err, docs) => {
+        assert.notExists(err);
         assert.ok(docs);
-        assert.ok(_.keys(docs).length);
-        assert.ok(_.keys(docs['api.js']).length);
+        assert.ok(keys(docs));
+        assert.ok(keys(docs['api.js']));
 
         // Get the documentation for a front-end module
-        RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'frontend', 'oae.api.util.js', (err, docs) => {
-          assert.ok(!err);
+        getModuleDocumentation(asCambridgeAnonymousUser, FRONTEND, 'oae.api.util.js', (err, docs) => {
+          assert.notExists(err);
           assert.ok(docs);
           assert.ok(docs.length);
-          callback();
+
+          return callback();
         });
       });
     });
@@ -95,31 +106,33 @@ describe('Docs', () => {
      */
     it('verify validation', callback => {
       // Get non-existing back-end module
-      RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae-non-existing', (err, docs) => {
+      getModuleDocumentation(asCambridgeAnonymousUser, BACKEND, 'oae-non-existing', (err, docs) => {
         assert.strictEqual(err.code, 404);
-        assert.ok(!docs);
+        assert.notExists(docs);
+
         // Get non-existing back-end module
-        RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'oae.api.nonexisting', (err, docs) => {
+        getModuleDocumentation(asCambridgeAnonymousUser, BACKEND, 'oae.api.nonexisting', (err, docs) => {
           assert.strictEqual(err.code, 404);
-          assert.ok(!docs);
+          assert.notExists(docs);
 
           // Get non-OAE back-end module
-          RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'backend', 'helenus', (err, docs) => {
+          getModuleDocumentation(asCambridgeAnonymousUser, BACKEND, 'helenus', (err, docs) => {
             assert.strictEqual(err.code, 404);
             assert.ok(!docs);
+
             // Get non-OAE front-end module
-            RestAPI.Doc.getModuleDocumentation(anonymousCamRestContext, 'frontend', 'test', (err, docs) => {
+            getModuleDocumentation(asCambridgeAnonymousUser, FRONTEND, TEST, (err, docs) => {
               assert.strictEqual(err.code, 404);
-              assert.ok(!docs);
+              assert.notExists(docs);
 
               // Get an invalid module type
-              RestAPI.Doc.getModuleDocumentation(
-                anonymousCamRestContext,
+              getModuleDocumentation(
+                asCambridgeAnonymousUser,
                 'invalid module type',
                 'oae.api.util.js',
                 (err, docs) => {
                   assert.strictEqual(err.code, 400);
-                  assert.ok(!docs);
+                  assert.notExists(docs);
 
                   return callback();
                 }

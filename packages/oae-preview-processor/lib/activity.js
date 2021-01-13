@@ -22,8 +22,10 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
 import PreviewConstants from './constants';
 
 PreviewProcessorAPI.emitter.on(PreviewConstants.EVENTS.PREVIEWS_FINISHED, (content, revision, status) => {
-  // Add the previews status.
-  // The actual images will be added by the content activity entity transformer
+  /**
+   * Add the previews status.
+   * The actual images will be added by the content activity entity transformer
+   */
   content.previews = content.previews || {};
   content.previews.status = status;
 

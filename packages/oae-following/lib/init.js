@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable import/namespace, no-unused-vars */
+
 import * as FollowingSearch from 'oae-following/lib/search';
 
 // Bind some plugins
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from 'oae-following/lib/activity';
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as principals from 'oae-following/lib/principals';
 
 export function init(config, callback) {

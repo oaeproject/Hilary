@@ -18,12 +18,29 @@
  *
  * ## Full-Text Search fields
  *
- * Full-text queries are supported by the `q_high` and `q_low` fields. This is a blob of text that can be provided which will be the field that
- * a "query string" query is performed in ElasticSearch. The reason it is suffixed with high and low is to be able to distinguish between
- * blobs of text that need to be scored differently to give more relevant search results. More information on scoring can be found on the
- * ElasticSearch website: http://www.elasticsearch.org/guide/reference/query-dsl/custom-score-query.html
+ * Full-text queries are supported by the `q_high` and `q_low` fields.
+ * This is a blob of text that can be provided which will be the field that
+ * a "query string" query is performed in ElasticSearch.
+ * The reason it is suffixed with high and low is to be able to distinguish between
+ * blobs of text that need to be scored differently to give more relevant search results.
+ * More information on scoring can be found on the ElasticSearch website:
+ * http://www.elasticsearch.org/guide/reference/query-dsl/custom-score-query.html
  *
  * The text analysis of the `q` query can be configured by updating the analyzer in `config.js`.
+ *
+ * ## Upgrade to ES7+
+ *
+ * - The `type` field is now a manual implementation to overcome the fact that ES is now typeless
+ * - The `store` field is official: https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-store.html
+ * - The `index` field is official: https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-index.html
+ *
+ * ### About types in ES7+
+ *
+ * "A field to index structured content such as IDs, email addresses, hostnames, status codes, zip codes or tags.
+ * They are typically used for filtering (Find me all blog posts where status is published), for sorting, and for aggregations.
+ * Keyword fields are only searchable by their exact value.
+ * If you need to index full text content such as email bodies or product descriptions, it is likely that you should rather use a text field."
+ * Check more info on: https://www.elastic.co/guide/en/elasticsearch/reference/7.x/keyword.html
  *
  * ## Extending the schema
  *
@@ -52,103 +69,109 @@
  *         {Number}     schema.dateCreated      The date a particular item was created. Used for sorting.
  *         {Number}     schema.lastModified     When a particular item was last modified. Used for sorting.
  *         {String}     schema.created          Id of the user who created the item. This is used to limit to items created by current user only.
+ *
+ * A few tips:
+ * - Only text fields support the analyzer mapping parameter.
+ * - Avoid using keyword fields for full-text search. Use the text field type instead.
  */
+
 /* eslint-disable unicorn/filename-case, camelcase */
 const schema = {
   id: {
-    type: 'string',
-    store: 'yes',
-    index: 'no'
+    type: 'keyword',
+    store: 'true',
+    index: 'false'
   },
   tenantAlias: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   resourceType: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   resourceSubType: {
-    type: 'string',
-    store: 'yes',
-    index: 'no'
+    type: 'keyword',
+    store: 'true',
+    index: 'false'
   },
   thumbnailUrl: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   displayName: {
-    type: 'string',
-    store: 'yes',
-    index: 'analyzed',
+    type: 'text',
+    store: 'true',
+    index: 'true',
     analyzer: 'display_name'
   },
   description: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'text',
+    store: 'true',
+    index: 'true'
   },
   email: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   _extra: {
-    type: 'string',
-    store: 'yes',
-    index: 'no'
+    type: 'text',
+    store: 'true',
+    index: 'false'
   },
   visibility: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   joinable: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'true',
+    index: 'true'
   },
   deleted: {
     type: 'long',
-    store: 'yes',
-    index: 'not_analyzed'
+    store: 'true',
+    index: 'false'
   },
   q_high: {
-    type: 'string',
-    store: 'no',
-    index: 'analyzed',
+    type: 'text',
+    store: 'false',
+    index: 'true',
     analyzer: 'q'
   },
   q_low: {
-    type: 'string',
-    store: 'no',
-    index: 'analyzed',
+    type: 'text',
+    store: 'false',
+    index: 'true',
     analyzer: 'q'
   },
   sort: {
-    type: 'string',
-    store: 'no',
-    index: 'not_analyzed'
+    type: 'keyword',
+    store: 'false',
+    index: 'true'
   },
   dateCreated: {
     type: 'long',
-    store: 'yes',
-    index: 'not_analyzed'
+    store: 'true',
+    index: 'true'
   },
   lastModified: {
     type: 'long',
-    store: 'yes',
-    index: 'not_analyzed'
+    store: 'true',
+    index: 'true'
   },
   createdBy: {
-    type: 'string',
-    store: 'yes',
-    index: 'not_analyzed'
+    type: 'text',
+    store: 'true',
+    index: 'true'
   }
 };
+
 export const {
   id,
   tenantAlias,

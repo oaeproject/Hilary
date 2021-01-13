@@ -15,27 +15,32 @@
 
 import util from 'util';
 
-import assert from 'assert';
+import { assert } from 'chai';
 import { logger } from 'oae-logger';
 
 import * as RestAPI from 'oae-rest';
 import * as TelemetryAPI from 'oae-telemetry';
 import * as TestsUtil from 'oae-tests/lib/util';
 
+const { getTelemetryData } = RestAPI.Telemetry;
+const { generateRandomText, createGlobalAdminRestContext } = TestsUtil;
+const { init } = TelemetryAPI;
+
 describe('Logger', () => {
   // Rest context that can be used every time we need to make a request as a global admin
-  let globalAdminRestContext = null;
+  let asGlobalAdmin = null;
 
   /**
    * Function that will fill up the global admin rest context and enable the API
    */
   before(callback => {
     // Fill up the global admin rest context
-    globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
+    asGlobalAdmin = createGlobalAdminRestContext();
 
     // Enable the telemetry API
-    TelemetryAPI.init({ enabled: true }, err => {
-      assert.ok(!err);
+    init({ enabled: true }, err => {
+      assert.notExists(err);
+
       return callback();
     });
   });
@@ -44,8 +49,9 @@ describe('Logger', () => {
    * Function that will disable the telemetry API
    */
   after(callback => {
-    TelemetryAPI.init({ enabled: false }, err => {
-      assert.ok(!err);
+    init({ enabled: false }, err => {
+      assert.notExists(err);
+
       return callback();
     });
   });
@@ -55,12 +61,12 @@ describe('Logger', () => {
    */
   it('verify that error logs are counted through the telemetry API', callback => {
     // Construct a logger specificly for this test
-    const loggerName = TestsUtil.generateRandomText();
+    const loggerName = generateRandomText();
     const log = logger(loggerName);
 
     // Get the initial count
-    RestAPI.Telemetry.getTelemetryData(globalAdminRestContext, (err, initialTelemetryData) => {
-      assert.ok(!err);
+    getTelemetryData(asGlobalAdmin, (err, initialTelemetryData) => {
+      assert.notExists(err);
 
       // Generate some error logs by using a variation of parameter values
       log().error('Simple error log');
@@ -71,8 +77,8 @@ describe('Logger', () => {
       log().error({ foo: 'bar' }, 'With a message');
 
       // Get the new telemetry daya
-      RestAPI.Telemetry.getTelemetryData(globalAdminRestContext, (err, newTelemetryData) => {
-        assert.ok(!err);
+      getTelemetryData(asGlobalAdmin, (err, newTelemetryData) => {
+        assert.notExists(err);
 
         // Get the initial total error count
         let initialTotalCount = 0;
@@ -86,6 +92,7 @@ describe('Logger', () => {
         // The error count for this specific logger should be 6
         const telemetryName = util.format('error.%s.count', loggerName);
         assert.strictEqual(newTelemetryData.logger[telemetryName], 6);
+
         return callback();
       });
     });

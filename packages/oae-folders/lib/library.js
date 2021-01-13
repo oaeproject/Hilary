@@ -266,9 +266,11 @@ FoldersAPI.emitter.when(
           );
         }
 
-        // TODO: Test timestamp doesn't update with subsequent set-permissions
-        // For all current members, update the folder in their libraries. This includes
-        // members that were just added which is a bit of a waste, but easier to code
+        /**
+         * TODO: Test timestamp doesn't update with subsequent set-permissions
+         * For all current members, update the folder in their libraries. This includes
+         * members that were just added which is a bit of a waste, but easier to code
+         */
         const memberIdsAfterUpdate = _.keys(memberChangeInfo.roles.after);
         OaeUtil.invokeIfNecessary(
           _testLibraryUpdateThreshold(folder),

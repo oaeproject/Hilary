@@ -13,35 +13,36 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as ContentTestUtil from 'oae-content/lib/test/util';
 import * as Ethercalc from 'oae-content/lib/internal/ethercalc';
 
-import _ from 'underscore';
+const { generateTestUserId, generateTestUsers } = TestsUtil;
+const { updateContent, getContent, joinCollabDoc, createLink, createCollabsheet, updateMembers } = RestAPI.Content;
 
+const NO_MANAGERS = [];
+const NO_VIEWERS = [];
+const NO_EDITORS = [];
+const NO_FOLDERS = [];
 const PUBLIC = 'public';
+const PRIVATE = 'private';
+const EDITOR = 'editor';
+const MANAGER = 'manager';
+const VIEWER = 'viewer';
 
 describe('Collaborative spreadsheets', function() {
-  // Rest context that can be used every time we need to make a request as an anonymous user
-  let anonymousRestContext = null;
   // Rest context that can be used every time we need to make a request as a tenant admin
   let camAdminRestContext = null;
-
-  // Once the server has started up, get the ethercalc configuration and store it in this variable
-  let testConfig = null;
 
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
   before(function(callback) {
-    // Fill up anonymous rest context
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     // Fill up tenant admin rest contexts
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    // Get the original test config
-    testConfig = Ethercalc.getConfig();
+
     return callback();
   });
 
@@ -49,45 +50,136 @@ describe('Collaborative spreadsheets', function() {
    * Test that verifies the request parameters get validated when joining a collaborative spreadsheet
    */
   it('verify basic parameter validation when joining a collaborative spreadsheet', function(callback) {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, function(err, users) {
-      assert.ok(!err);
-      const ctx = _.values(users)[0].restContext;
+    generateTestUsers(camAdminRestContext, 1, function(err, users) {
+      assert.notExists(err);
+      const { 0: johnDoe } = users;
+      const asJohnDoe = johnDoe.restContext;
 
       // Check that we can't join a content item that's not collaborative
-      RestAPI.Content.createLink(
-        ctx,
+
+      createLink(
+        asJohnDoe,
         {
           displayName: 'Test link',
           description: 'Test description',
           PUBLIC,
           link: 'http://www.oaeproject.org/',
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
-        function(err, link) {
-          assert.ok(!err);
+        (err, link) => {
+          assert.notExists(err);
 
-          RestAPI.Content.joinCollabDoc(ctx, link.id, function(err) {
+          joinCollabDoc(asJohnDoe, link.id, err => {
             assert.strictEqual(err.code, 400);
 
-            RestAPI.Content.createCollabsheet(ctx, 'Test sheet', 'description', 'private', [], [], [], [], function(
-              err,
-              contentObj
-            ) {
-              assert.ok(!err);
+            createCollabsheet(
+              asJohnDoe,
+              'Test sheet',
+              'description',
+              PRIVATE,
+              NO_MANAGERS,
+              NO_EDITORS,
+              NO_VIEWERS,
+              NO_FOLDERS,
+              (err, contentObj) => {
+                assert.notExists(err);
 
-              RestAPI.Content.joinCollabDoc(ctx, ' ', function(err) {
-                assert.strictEqual(err.code, 400);
-
-                RestAPI.Content.joinCollabDoc(ctx, 'invalid-id', function(err) {
+                joinCollabDoc(asJohnDoe, ' ', err => {
                   assert.strictEqual(err.code, 400);
 
-                  // Test collabsheets can be joined
-                  RestAPI.Content.joinCollabDoc(ctx, contentObj.id, function(err, data) {
-                    assert.ok(!err);
-                    assert.ok(data);
-                    callback();
+                  joinCollabDoc(asJohnDoe, 'invalid-id', err => {
+                    assert.strictEqual(err.code, 400);
+
+                    // Test collabsheets can be joined
+                    joinCollabDoc(asJohnDoe, contentObj.id, (err, data) => {
+                      assert.notExists(err);
+                      assert.ok(data);
+
+                      callback();
+                    });
+                  });
+                });
+              }
+            );
+          });
+        }
+      );
+    });
+  });
+
+  /**
+   * Test that verifies that you can only join a collaborative spreadsheet if you have manager or editor permissions
+   */
+  it('verify joining a room respects the content permissions', function(callback) {
+    generateTestUsers(camAdminRestContext, 3, function(err, users) {
+      assert.notExists(err);
+
+      const { 0: homer, 1: marge, 2: bart } = users;
+      const asHomer = homer.restContext;
+      const asMarge = marge.restContext;
+      const asBart = bart.restContext;
+
+      // homer creates a collaborative spreadsheet that's private
+      const name = generateTestUserId();
+      createCollabsheet(
+        asHomer,
+        name,
+        'description',
+        PRIVATE,
+        NO_MANAGERS,
+        NO_EDITORS,
+        NO_VIEWERS,
+        NO_FOLDERS,
+        (err, contentObj) => {
+          assert.notExists(err);
+
+          joinCollabDoc(asHomer, contentObj.id, (err, data) => {
+            assert.notExists(err);
+            assert.ok(data);
+
+            // marge has no access yet, so joining should result in a 401
+            joinCollabDoc(asMarge, contentObj.id, (err, data) => {
+              assert.strictEqual(err.code, 401);
+              assert.isNotOk(data);
+
+              // Share it with marge, viewers still can't edit(=join) though
+              const members = {};
+              members[marge.user.id] = VIEWER;
+
+              updateMembers(asHomer, contentObj.id, members, err => {
+                assert.notExists(err);
+
+                // marge can see the spreadsheet, but he cannot join in and start editing it
+                joinCollabDoc(asMarge, contentObj.id, function(err, data) {
+                  assert.strictEqual(err.code, 401);
+                  assert.isNotOk(data);
+
+                  // Now that we make marge a manager, he should be able to join
+                  members[marge.user.id] = MANAGER;
+                  updateMembers(asHomer, contentObj.id, members, err => {
+                    assert.notExists(err);
+
+                    // marge should now be able to access it
+                    joinCollabDoc(asMarge, contentObj.id, (err, data) => {
+                      assert.notExists(err);
+                      assert.ok(data);
+
+                      // Add Stuart as an editor, he should be able to join
+                      members[bart.user.id] = EDITOR;
+                      updateMembers(asHomer, contentObj.id, members, err => {
+                        assert.notExists(err);
+
+                        // Stuart should now be able to access it
+                        joinCollabDoc(asBart, contentObj.id, (err, data) => {
+                          assert.notExists(err);
+                          assert.ok(data);
+
+                          return callback();
+                        });
+                      });
+                    });
                   });
                 });
               });
@@ -99,112 +191,49 @@ describe('Collaborative spreadsheets', function() {
   });
 
   /**
-   * Test that verifies that you can only join a collaborative spreadsheet if you have manager or editor permissions
-   */
-  it('verify joining a room respects the content permissions', function(callback) {
-    TestsUtil.generateTestUsers(camAdminRestContext, 3, function(err, users) {
-      assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
-      const brandenCtx = _.values(users)[1].restContext;
-      const stuartCtx = _.values(users)[2].restContext;
-
-      // Simon creates a collaborative spreadsheet that's private
-      const name = TestsUtil.generateTestUserId();
-      RestAPI.Content.createCollabsheet(simonCtx, name, 'description', 'private', [], [], [], [], function(
-        err,
-        contentObj
-      ) {
-        assert.ok(!err);
-
-        RestAPI.Content.joinCollabDoc(simonCtx, contentObj.id, function(err, data) {
-          assert.ok(!err);
-          assert.ok(data);
-
-          // Branden has no access yet, so joining should result in a 401
-          RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, function(err, data) {
-            assert.strictEqual(err.code, 401);
-            assert.ok(!data);
-
-            // Share it with branden, viewers still can't edit(=join) though
-            const members = {};
-            members[_.keys(users)[1]] = 'viewer';
-            RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
-              assert.ok(!err);
-
-              // Branden can see the spreadsheet, but he cannot join in and start editing it
-              RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, function(err, data) {
-                assert.strictEqual(err.code, 401);
-                assert.ok(!data);
-
-                // Now that we make Branden a manager, he should be able to join
-                members[_.keys(users)[1]] = 'manager';
-                RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
-                  assert.ok(!err);
-
-                  // Branden should now be able to access it
-                  RestAPI.Content.joinCollabDoc(brandenCtx, contentObj.id, function(err, data) {
-                    assert.ok(!err);
-                    assert.ok(data);
-
-                    // Add Stuart as an editor, he should be able to join
-                    members[_.keys(users)[2]] = 'editor';
-                    RestAPI.Content.updateMembers(simonCtx, contentObj.id, members, function(err) {
-                      assert.ok(!err);
-
-                      // Stuart should now be able to access it
-                      RestAPI.Content.joinCollabDoc(stuartCtx, contentObj.id, function(err, data) {
-                        assert.ok(!err);
-                        assert.ok(data);
-
-                        return callback();
-                      });
-                    });
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-
-  /**
    * Test that verifies that `ethercalcRoomId` cannot be set.
    */
   it('verify that ethercalc related properties cannot be set on the content object', function(callback) {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, function(err, users) {
-      assert.ok(!err);
-      const simonCtx = _.values(users)[0].restContext;
+    generateTestUsers(camAdminRestContext, 1, function(err, users) {
+      assert.notExists(err);
 
-      const name = TestsUtil.generateTestUserId('collabsheet');
-      RestAPI.Content.createCollabsheet(simonCtx, name, 'description', 'public', [], [], [], [], function(
-        err,
-        contentObj
-      ) {
-        assert.ok(!err);
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
+      const name = generateTestUserId('collabsheet');
 
-        // Try updating any of the ethercalc properties
-        RestAPI.Content.updateContent(simonCtx, contentObj.id, { ethercalcRoomId: 'bleh' }, function(err) {
-          assert.strictEqual(err.code, 400);
-          // Update a regular property
-          RestAPI.Content.updateContent(simonCtx, contentObj.id, { displayName: 'bleh' }, function(
-            err,
-            updatedContentObj
-          ) {
-            assert.ok(!err);
-            assert.ok(!updatedContentObj.downloadPath);
+      createCollabsheet(
+        asHomer,
+        name,
+        'description',
+        'public',
+        NO_MANAGERS,
+        NO_EDITORS,
+        NO_VIEWERS,
+        NO_FOLDERS,
+        (err, contentObj) => {
+          assert.notExists(err);
 
-            // Double-check the the content item didn't change
-            RestAPI.Content.getContent(simonCtx, contentObj.id, function(err, latestContentObj) {
-              assert.ok(!err);
-              assert.strictEqual(contentObj.ethercalcGroupId, latestContentObj.ethercalcGroupId);
-              assert.strictEqual(contentObj.ethercalcRoomId, latestContentObj.ethercalcRoomId);
-              return callback();
+          // Try updating any of the ethercalc properties
+          updateContent(asHomer, contentObj.id, { ethercalcRoomId: 'bleh' }, err => {
+            assert.strictEqual(err.code, 400);
+
+            // Update a regular property
+            updateContent(asHomer, contentObj.id, { displayName: 'bleh' }, (err, updatedContentObj) => {
+              assert.notExists(err);
+              assert.isNotOk(updatedContentObj.downloadPath);
+
+              // Double-check the the content item didn't change
+              getContent(asHomer, contentObj.id, (err, latestContentObj) => {
+                assert.notExists(err);
+                assert.strictEqual(contentObj.ethercalcGroupId, latestContentObj.ethercalcGroupId);
+                assert.strictEqual(contentObj.ethercalcRoomId, latestContentObj.ethercalcRoomId);
+
+                return callback();
+              });
             });
           });
-        });
-      });
+        }
+      );
     });
   });
 
@@ -214,11 +243,14 @@ describe('Collaborative spreadsheets', function() {
   it('verify ethercalc spreadsheet starts with empty spreadsheet', function(callback) {
     // Create a collaborative spreadsheet to test with
     ContentTestUtil.createCollabsheet(camAdminRestContext, 1, 1, (err, collabsheet) => {
-      const [content, users, simon] = collabsheet;
+      assert.notExists(err);
+
+      const { 0: content } = collabsheet;
       // Ensure the content of the ethercalc starts as empty
       Ethercalc.getHTML(content.ethercalcRoomId, function(err, html) {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.strictEqual(Ethercalc.isContentEmpty(html), true);
+
         return callback();
       });
     });

@@ -1,58 +1,95 @@
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+const { createMeeting, updateMeeting } = RestAPI.MeetingsJitsi;
+
 describe('Meeting Search', () => {
-  // REST contexts we can use to do REST requests
-  let anonymousRestContext = null;
   let camAdminRestContext = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
   describe('Indexing', () => {
     it('verify a meeting is correctly indexed when it is created', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        const simong = _.values(user)[0];
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer } = users;
+        const asHomer = homer.restContext;
 
         // Create a meeting
         const randomText = TestsUtil.generateRandomText(25);
 
-        RestAPI.MeetingsJitsi.createMeeting(
-          simong.restContext,
-          randomText,
-          randomText,
-          false,
-          false,
-          'public',
-          null,
-          null,
-          (err, meeting) => {
-            assert.ok(!err);
+        createMeeting(asHomer, randomText, randomText, false, false, 'public', null, null, (err, meeting) => {
+          assert.notExists(err);
 
-            // Ensure the meeting has been correctly indexed
+          // Ensure the meeting has been correctly indexed
+          SearchTestsUtil.searchAll(
+            asHomer,
+            'general',
+            null,
+            { resourceTypes: 'meeting-jitsi', q: randomText },
+            (err, results) => {
+              assert.notExists(err);
+              assert.ok(results.results);
+
+              const doc = results.results[0];
+              assert.ok(doc);
+              assert.strictEqual(doc.id, meeting.id);
+              assert.strictEqual(doc.displayName, randomText);
+              assert.strictEqual(doc.description, randomText);
+              assert.strictEqual(
+                doc.profilePath,
+                '/meeting-jitsi/' +
+                  global.oaeTests.tenants.cam.alias +
+                  '/' +
+                  AuthzUtil.getResourceFromId(meeting.id).resourceId
+              );
+
+              return callback();
+            }
+          );
+        });
+      });
+    });
+
+    it("verify updating the meeting's metadata updates the index", callback => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+        const { 0: homer } = users;
+        const asHomer = homer.restContext;
+
+        // Create a meeting
+        const randomTextA = TestsUtil.generateRandomText(25);
+        const randomTextB = TestsUtil.generateRandomText(25);
+
+        createMeeting(asHomer, randomTextA, randomTextA, false, false, 'public', null, null, (err, meeting) => {
+          assert.notExists(err);
+
+          // Update the meeting's metadata
+          updateMeeting(asHomer, meeting.id, { displayName: randomTextB, description: randomTextB }, err => {
+            assert.notExists(err);
+
+            // Ensure the meeting is correctly indexed
             SearchTestsUtil.searchAll(
-              simong.restContext,
+              asHomer,
               'general',
               null,
-              { resourceTypes: 'meeting-jitsi', q: randomText },
+              { resourceTypes: 'meeting-jitsi', q: randomTextB },
               (err, results) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(results.results);
 
                 const doc = results.results[0];
                 assert.ok(doc);
                 assert.strictEqual(doc.id, meeting.id);
-                assert.strictEqual(doc.displayName, randomText);
-                assert.strictEqual(doc.description, randomText);
+                assert.strictEqual(doc.displayName, randomTextB);
+                assert.strictEqual(doc.description, randomTextB);
                 assert.strictEqual(
                   doc.profilePath,
                   '/meeting-jitsi/' +
@@ -64,70 +101,8 @@ describe('Meeting Search', () => {
                 return callback();
               }
             );
-          }
-        );
-      });
-    });
-
-    it("verify updating the meeting's metadata updates the index", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        const simong = _.values(user)[0];
-
-        // Create a meeting
-        const randomTextA = TestsUtil.generateRandomText(25);
-        const randomTextB = TestsUtil.generateRandomText(25);
-
-        RestAPI.MeetingsJitsi.createMeeting(
-          simong.restContext,
-          randomTextA,
-          randomTextA,
-          false,
-          false,
-          'public',
-          null,
-          null,
-          (err, meeting) => {
-            assert.ok(!err);
-
-            // Update the meeting's metadata
-            RestAPI.MeetingsJitsi.updateMeeting(
-              simong.restContext,
-              meeting.id,
-              { displayName: randomTextB, description: randomTextB },
-              err => {
-                assert.ok(!err);
-
-                // Ensure the meeting is correctly indexed
-                SearchTestsUtil.searchAll(
-                  simong.restContext,
-                  'general',
-                  null,
-                  { resourceTypes: 'meeting-jitsi', q: randomTextB },
-                  (err, results) => {
-                    assert.ok(!err);
-                    assert.ok(results.results);
-
-                    const doc = results.results[0];
-                    assert.ok(doc);
-                    assert.strictEqual(doc.id, meeting.id);
-                    assert.strictEqual(doc.displayName, randomTextB);
-                    assert.strictEqual(doc.description, randomTextB);
-                    assert.strictEqual(
-                      doc.profilePath,
-                      '/meeting-jitsi/' +
-                        global.oaeTests.tenants.cam.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(meeting.id).resourceId
-                    );
-
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
+          });
+        });
       });
     });
   });

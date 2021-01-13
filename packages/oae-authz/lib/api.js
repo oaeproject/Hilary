@@ -506,9 +506,7 @@ const _updateRoles = function(resourceId, changes, callback) {
  * @param  {Object[]}    callback.members        Array of objects for each of the direct member of the resource. Each object has an 'id' key containing the principal id of the member and a 'role' key containing the role of that principal
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-
-// eslint-disable-next-line no-unused-vars
-const getAllAuthzMembers = function(resourceId, callback, _members, _nextToken) {
+const getAllAuthzMembers = function(resourceId, callback /* , _members, _nextToken */) {
   Cassandra.runAllPagesQuery(
     'AuthzMembers',
     'resourceId',

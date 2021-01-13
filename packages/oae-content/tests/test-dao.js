@@ -13,33 +13,41 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import _ from 'underscore';
+import { equals, keys, forEach } from 'ramda';
 
 import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
+const { iterateAll } = ContentDAO.Content;
+const { createFile, updateFileBody } = RestAPI.Content;
+const { generateTestUsers, generateTestUserId, createTenantAdminRestContext } = TestsUtil;
+const { createLink } = RestAPI.Content;
+const { getMe } = RestAPI.User;
+const { getAllRevisionsForContent } = ContentDAO.Revisions;
+
+const NO_MANAGERS = [];
+const NO_FOLDERS = [];
+const NO_VIEWERS = [];
 const PUBLIC = 'public';
 const PRIVATE = 'private';
 
 describe('Content DAO', () => {
   // Rest contexts that will be used for requests
-  let anonymousRestContext = null;
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Log in the tenant admin so their cookie jar is set up appropriately
-    RestAPI.User.getMe(camAdminRestContext, (err, meObj) => {
-      assert.ok(!err);
+    getMe(asCambridgeTenantAdmin, (err /* , me */) => {
+      assert.notExists(err);
       callback();
     });
   });
@@ -47,35 +55,33 @@ describe('Content DAO', () => {
   /**
    * @return {Stream} Returns a stream that points to an image
    */
-  const getStream = function() {
-    return fs.createReadStream(path.join(__dirname, '/data/apereo.jpg'));
-  };
+  const getStream = () => fs.createReadStream(path.join(__dirname, '/data/apereo.jpg'));
 
   /**
    * Test that verifies the iterateAll functionality of the content DAO
    */
   it('verify ContentDAO iterateAll functionality', callback => {
-    const contentName = TestsUtil.generateTestUserId('content-name');
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-      assert.ok(!err);
+    const contentName = generateTestUserId('content-name');
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
 
-      const mrvisser = users[_.keys(users)[0]].user;
-      const mrvisserRestCtx = users[_.keys(users)[0]].restContext;
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
 
       // Create the content item we will iterate over
-      RestAPI.Content.createLink(
-        mrvisserRestCtx,
+      createLink(
+        asHomer,
         {
           displayName: contentName,
           description: contentName,
           visibility: PUBLIC,
           link: 'http://google.ca',
-          managers: null,
-          viewers: null,
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, link) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           let foundLink = false;
 
@@ -84,26 +90,22 @@ describe('Content DAO', () => {
            */
           const _onEach = function(contentRows, done) {
             // Ensure we only get the contentId of the content item
-            _.each(contentRows, contentRow => {
-              assert.strictEqual(
-                _.keys(contentRow).length,
-                1,
-                'Expected to have only one key on the content row, the content id'
-              );
+            forEach(contentRow => {
+              assert.lengthOf(keys(contentRow), 1, 'Expected to have only one key on the content row, the content id');
               assert.ok(contentRow.contentId, 'Expected the row to have contentId');
 
               // Remember whether or not we found the link
-              if (contentRow.contentId === link.id) {
+              if (equals(contentRow.contentId, link.id)) {
                 foundLink = true;
               }
-            });
+            }, contentRows);
 
             done();
           };
 
           // Verify the link information when we iterate over it
-          ContentDAO.Content.iterateAll(null, 100, _onEach, err => {
-            assert.ok(!err, JSON.stringify(err, null, 4));
+          iterateAll(null, 100, _onEach, err => {
+            assert.isNotOk(err, JSON.stringify(err, null, 4));
             assert.ok(foundLink, 'Expected to find the link we just created');
 
             foundLink = false;
@@ -114,28 +116,28 @@ describe('Content DAO', () => {
              */
             const _onEach = function(contentRows, done) {
               // Ensure we only get the contentId and displayName of the content item
-              _.each(contentRows, contentRow => {
-                assert.strictEqual(
-                  _.keys(contentRow).length,
+              forEach(contentRow => {
+                assert.lengthOf(
+                  keys(contentRow),
                   2,
                   'Expected to have only two keys on the content row, the content id and displayName'
                 );
                 assert.ok(contentRow.contentId, 'Expected the row to have contentId');
 
                 // Remember whether or not we found the link
-                if (contentRow.contentId === link.id) {
+                if (equals(contentRow.contentId, link.id)) {
                   // Verify the displayName is accurate
                   assert.strictEqual(contentRow.displayName, contentName);
                   foundLink = true;
                 }
-              });
+              }, contentRows);
 
               done();
             };
 
             // Do the same thing but fetch the contentId and the displayName, and ensure they match
-            ContentDAO.Content.iterateAll(['contentId', 'displayName'], 100, _onEach, err => {
-              assert.ok(!err, JSON.stringify(err, null, 4));
+            iterateAll(['contentId', 'displayName'], 100, _onEach, err => {
+              assert.isNotOk(err, JSON.stringify(err, null, 4));
               assert.ok(foundLink, 'Expected to find the link we just created');
               return callback();
             });
@@ -149,42 +151,46 @@ describe('Content DAO', () => {
    * Test that verifies the RevisionDAO getAllRevisionsForContent functionality
    */
   it('verify RevisionDAO getAllRevisionsForContent functionality', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-      assert.ok(!err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
 
-      const mrvisser = _.values(users)[0];
-      RestAPI.Content.createFile(
-        mrvisser.restContext,
+      const { 0: homer } = users;
+      const asHomer = homer.restContext;
+
+      createFile(
+        asHomer,
         {
           displayName: 'Test Content 1',
           description: 'Test content description 1',
           visibility: PRIVATE,
           file: getStream,
-          managers: [],
-          viewers: [],
-          folders: []
+          managers: NO_MANAGERS,
+          viewers: NO_VIEWERS,
+          folders: NO_FOLDERS
         },
         (err, contentObj) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(contentObj);
 
-          RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
-            assert.ok(!err);
-            RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
-              assert.ok(!err);
-              RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
-                assert.ok(!err);
-                RestAPI.Content.updateFileBody(mrvisser.restContext, contentObj.id, getStream, err => {
-                  assert.ok(!err);
+          updateFileBody(asHomer, contentObj.id, getStream, err => {
+            assert.notExists(err);
+            updateFileBody(asHomer, contentObj.id, getStream, err => {
+              assert.notExists(err);
+              updateFileBody(asHomer, contentObj.id, getStream, err => {
+                assert.notExists(err);
+                updateFileBody(asHomer, contentObj.id, getStream, err => {
+                  assert.notExists(err);
 
-                  ContentDAO.Revisions.getAllRevisionsForContent([contentObj.id], (err, data) => {
-                    assert.ok(!err);
+                  getAllRevisionsForContent([contentObj.id], (err, data) => {
+                    assert.notExists(err);
                     assert.ok(data[contentObj.id]);
                     assert.ok(data[contentObj.id].length, 5);
-                    _.each(data[contentObj.id], revision => {
+
+                    forEach(revision => {
                       assert.strictEqual(revision.contentId, contentObj.id);
                       assert.strictEqual(revision.filename, 'apereo.jpg');
-                    });
+                    }, data[contentObj.id]);
+
                     return callback();
                   });
                 });

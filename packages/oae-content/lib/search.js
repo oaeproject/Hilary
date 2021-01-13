@@ -14,7 +14,6 @@
  */
 
 import fs from 'fs';
-import util from 'util';
 import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
 import _ from 'underscore';
 
@@ -24,6 +23,7 @@ import * as MessageBoxSearch from 'oae-messagebox/lib/search';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util';
 import * as TenantsAPI from 'oae-tenants';
+const { getTenant } = TenantsAPI;
 
 import * as ContentAPI from 'oae-content';
 import * as ContentDAO from 'oae-content/lib/internal/dao';
@@ -32,6 +32,29 @@ import { ContentConstants } from 'oae-content/lib/constants';
 import * as contentBodySchema from './search/schema/contentBodySchema';
 
 const log = logger('content-search');
+
+const getResourceId = prop('resourceId');
+const getTenantAlias = prop('tenantAlias');
+const { getSignedDownloadUrl } = ContentUtil;
+const { getResourceFromId } = AuthzUtil;
+
+const defaultToEmptyObject = defaultTo({});
+
+import {
+  prop,
+  assoc,
+  pipe,
+  map,
+  and,
+  mergeLeft,
+  path,
+  compose,
+  isEmpty,
+  defaultTo,
+  head,
+  mergeDeepLeft,
+  mapObjIndexed
+} from 'ramda';
 
 /**
  * Initializes the child search documents for the Content module
@@ -68,9 +91,9 @@ export const init = function(callback) {
   );
 };
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+/**
+ * Indexing tasks
+ */
 
 /*!
  * When a content item is created, we must index its resource document and all potential members
@@ -186,9 +209,9 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
   );
 });
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produce the necessary content comment search documents.
@@ -198,7 +221,7 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
  */
 const _produceContentCommentDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
+  if (isEmpty(resources)) {
     return callback(_errs, _documents);
   }
 
@@ -269,7 +292,7 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
         return _produceContentBodyDocuments(resources, callback, _documents, _errs);
       }
 
-      const { tenantAlias } = AuthzUtil.getResourceFromId(revision.previewsId);
+      const { tenantAlias } = getResourceFromId(revision.previewsId);
       ContentUtil.getStorageBackend(null, preview.uri).get(tenantAlias, preview.uri, (err, file) => {
         if (err) {
           _errs = _.union(_errs, [err]);
@@ -473,9 +496,9 @@ const _produceContentSearchDocument = function(content, revision) {
 
 SearchAPI.registerSearchDocumentProducer('content', _produceContentSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of content search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -488,35 +511,35 @@ SearchAPI.registerSearchDocumentProducer('content', _produceContentSearchDocumen
  * @api private
  */
 const _transformContentDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra) || {};
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head, path(['fields', '_extra']))(doc);
 
-    const result = { id: docId };
-    _.each(doc.fields, (value, name) => {
-      // Apply the scalar values wrapped in each ElasticSearch document
-      // to the transformed search document
-      result[name] = _.first(value);
-    });
-
-    // Take just the `mime` and `lastModified` from the extra fields, if specified
-    _.extend(result, _.pick(extra, 'mime', 'lastModified'));
-
-    // Add the full tenant object and profile path
-    _.extend(result, {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format('/content/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
-    });
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(docId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/content/${tenantAlias}/${resourceId}`
+    };
+    const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
-    if (thumbnailUrl && result.lastModified) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl);
-    }
+    const signThumbnail = result => {
+      if (and(thumbnailUrl, result.lastModified)) {
+        return assoc('thumbnailUrl', getSignedDownloadUrl(ctx, thumbnailUrl), result);
+      }
 
-    transformedDocs[docId] = result;
-  });
+      return result;
+    };
+
+    return pipe(
+      mergeLeft({ id: docId }),
+      mergeLeft(scalarFields),
+      mergeDeepLeft(tenantAndProfileInfo),
+      signThumbnail
+    )(extraFields);
+  }, docs);
 
   return callback(null, transformedDocs);
 };
@@ -524,9 +547,9 @@ const _transformContentDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('content', _transformContentDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handler
+ */
 
 SearchAPI.registerReindexAllHandler('content', callback => {
   /*!

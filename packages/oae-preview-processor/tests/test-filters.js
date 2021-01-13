@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
-
 import { Content } from 'oae-content/lib/model';
 import { FilterGenerator } from 'oae-preview-processor/lib/filters';
 
 const isNotEmpty = compose(not, isEmpty);
-const isFalse = x => equals(false, x)
-const isTrue = x => equals(true, x)
+const isFalse = x => equals(false, x);
+const isTrue = x => equals(true, x);
 
 describe('Preview processor - filters', () => {
   /**
@@ -178,7 +177,7 @@ describe('Preview processor - filters', () => {
       const filters = {};
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
-      assert.ok(isNotEmpty(filterGenerator.getErrors()));
+      assert.isNotEmpty(filterGenerator.getErrors());
       assert.strictEqual(filterGenerator.getFirstError().code, 400);
       callback();
     });
@@ -194,7 +193,7 @@ describe('Preview processor - filters', () => {
       };
       let filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
-      assert.ok(isNotEmpty(filterGenerator.getErrors()));
+      assert.isNotEmpty(filterGenerator.getErrors());
       assert.strictEqual(filterGenerator.getFirstError().code, 400);
 
       filters = {
@@ -242,7 +241,10 @@ describe('Preview processor - filters', () => {
       for (const [i, element] of filteredContent.entries()) {
         assert.strictEqual(element.id, expectations.revisionStage[i].contentId);
         for (let r = 0; r < expectations.revisionStage[i].revisions.length; r++) {
-          assert.strictEqual(nth(r, element.revisions).revisionId, nth(r, nth(i, expectations.revisionStage).revisions));
+          assert.strictEqual(
+            nth(r, element.revisions).revisionId,
+            nth(r, nth(i, expectations.revisionStage).revisions)
+          );
         }
       }
     };

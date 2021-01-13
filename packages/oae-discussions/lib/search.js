@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
 import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -26,6 +25,14 @@ import DiscussionsAPI from './api';
 import { DiscussionsConstants } from './constants';
 
 const log = logger('discussions-search');
+
+import { isEmpty, pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
+
+const defaultToEmptyObject = defaultTo({});
+const getResourceId = prop('resourceId');
+const { getTenant } = TenantsAPI;
+const { getResourceFromId } = AuthzUtil;
+const getTenantAlias = prop('tenantAlias');
 
 /**
  * Initializes the child search documents for the Discussions module
@@ -44,9 +51,9 @@ const init = function(callback) {
   );
 };
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+/**
+ * Indexing tasks
+ */
 
 /*!
  * When a discussion is created, we must index it and all its potential members
@@ -117,9 +124,9 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
   );
 });
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produce the necessary discussion message search documents.
@@ -129,7 +136,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
  */
 const _produceDiscussionMessageDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
+  if (isEmpty(resources)) {
     return callback(_errs, _documents);
   }
 
@@ -249,9 +256,9 @@ const _produceDiscussionSearchDocument = function(discussion) {
 
 SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of discussion search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -264,34 +271,27 @@ SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchD
  * @api private
  */
 const _transformDiscussionDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra) || {};
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarFields = map(head, doc.fields);
+    const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
 
-    // Build the transformed result document from the ElasticSearch document
-    const result = { id: docId };
-    _.each(doc.fields, (value, name) => {
-      // Apply the scalar values wrapped in each ElasticSearch document
-      // to the transformed search document
-      result[name] = _.first(value);
-    });
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(docId);
+    const tenantAndProfileInfo = {
+      tenant,
+      profilePath: `/discussion/${tenantAlias}/${resourceId}`
+    };
 
-    // Take just the `lastModified` from the extra fields, if specified
-    _.extend(result, _.pick(extra, 'lastModified'));
+    const result = pipe(
+      mergeLeft({ id: docId }),
+      mergeLeft(scalarFields),
+      mergeLeft({ lastModified: extraFields.lastModified }),
+      mergeDeepLeft(tenantAndProfileInfo)
+    )(extraFields);
 
-    // Add the full tenant object and profile path
-    _.extend(result, {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format(
-        '/discussion/%s/%s',
-        result.tenantAlias,
-        AuthzUtil.getResourceFromId(result.id).resourceId
-      )
-    });
-
-    transformedDocs[docId] = result;
-  });
+    return result;
+  }, docs);
 
   return callback(null, transformedDocs);
 };
@@ -299,9 +299,9 @@ const _transformDiscussionDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('discussion', _transformDiscussionDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handler
+ */
 
 SearchAPI.registerReindexAllHandler('discussion', callback => {
   /*!

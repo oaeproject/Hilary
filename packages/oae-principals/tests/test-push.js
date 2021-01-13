@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -42,11 +41,12 @@ describe('Group Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, branden) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: branden } = users;
 
         RestAPI.User.getMe(simong.restContext, (err, simonFull) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           const data = {
             authentication: {
@@ -68,9 +68,9 @@ describe('Group Push', () => {
               [branden.user.id],
               null,
               (err, group) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 RestAPI.Group.getGroup(simong.restContext, group.id, (err, group) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Ensure we get a 400 error with an invalid activity stream id
                   client.subscribe(group.id, null, group.signature, null, err => {
@@ -99,7 +99,7 @@ describe('Group Push', () => {
 
                               // Simon should not be able to use a signature that was generated for Branden
                               RestAPI.Group.getGroup(branden.restContext, group.id, (err, groupForBranden) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
                                 client.subscribe(group.id, 'activity', groupForBranden.signature, null, err => {
                                   assert.strictEqual(err.code, 401);
 
@@ -113,7 +113,7 @@ describe('Group Push', () => {
                                     },
                                     null,
                                     err => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       return callback();
                                     }
                                   );
@@ -137,8 +137,9 @@ describe('Group Push', () => {
      * Test that verifies that only group members/managers get to see the signature
      */
     it('verify only members get a signature', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, branden) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users) => {
+        assert.notExists(err);
+        const { 0: simong, 1: branden } = users;
         RestAPI.Group.createGroup(
           simong.restContext,
           'displayName',
@@ -148,26 +149,26 @@ describe('Group Push', () => {
           [],
           null,
           (err, group) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Simon should see the signature, but Branden shouldn't
             RestAPI.Group.getGroup(simong.restContext, group.id, (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(group.signature);
               RestAPI.Group.getGroup(branden.restContext, group.id, (err, group) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(!group.signature);
                 RestAPI.Group.getGroup(anonymousRestContext, group.id, (err, group) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(!group.signature);
 
                   // If we make Branden a member, he should be able to see it
                   const changes = {};
                   changes[branden.user.id] = 'manager';
                   RestAPI.Group.setGroupMembers(simong.restContext, group.id, changes, err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     RestAPI.Group.getGroup(branden.restContext, group.id, (err, group) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.ok(group.signature);
                       return callback();
                     });
@@ -193,8 +194,9 @@ describe('Group Push', () => {
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 3, (err, users, branden, simon, nico) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(localAdminRestContext, 3, (err, users) => {
+        assert.notExists(err);
+        const { 0: branden, 1: simon, 2: nico } = users;
 
         const contexts = {
           branden,
@@ -204,7 +206,7 @@ describe('Group Push', () => {
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
         RestAPI.User.getMe(contexts.simon.restContext, (err, simonFull) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Create a group and get the full group profile so we have a signature that we can use to register for push notifications
           RestAPI.Group.createGroup(
@@ -216,9 +218,9 @@ describe('Group Push', () => {
             [contexts.branden.user.id],
             null,
             (err, group) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Group.getGroup(contexts.simon.restContext, group.id, (err, group) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Route and deliver activities
                 ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
@@ -258,7 +260,7 @@ describe('Group Push', () => {
       setupFixture((contexts, group, client) => {
         // Trigger an update
         RestAPI.Group.updateGroup(contexts.branden.restContext, group.id, { displayName: 'Laaike whatevs' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
         });
 
         client.on('message', message => {
@@ -287,7 +289,7 @@ describe('Group Push', () => {
       setupFixture((contexts, group, client) => {
         // Trigger an update
         RestAPI.Group.updateGroup(contexts.branden.restContext, group.id, { visibility: 'loggedin' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
         });
 
         client.on('message', message => {
@@ -350,14 +352,14 @@ describe('Group Push', () => {
         const membersToAdd = {};
         membersToAdd[contexts.nico.user.id] = 'member';
         RestAPI.Group.setGroupMembers(contexts.branden.restContext, group.id, membersToAdd, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Route and deliver activities
           ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {
             // Changing nico's role to a manager should result in a message on the socket as well
             membersToAdd[contexts.nico.user.id] = 'manager';
             RestAPI.Group.setGroupMembers(contexts.branden.restContext, group.id, membersToAdd, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Route and deliver activities
               ActivityTestsUtil.collectAndGetActivityStream(contexts.simon.restContext, null, null, () => {});
@@ -374,7 +376,7 @@ describe('Group Push', () => {
       setupFixture((contexts, group, client) => {
         // Nicolaas joins the group
         RestAPI.Group.joinGroup(contexts.nico.restContext, group.id, err => {
-          assert.ok(!err);
+          assert.notExists(err);
         });
 
         client.on('message', message => {

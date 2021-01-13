@@ -13,29 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
-import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import { compose, pluck, equals, find, flatten, pathSatisfies } from 'ramda';
 
 describe('Members Library', () => {
-  // REST contexts we can use to do REST requests
-  let globalAdminOnTenantRestContext = null;
-  let camAdminRestContext = null;
-  let anonymousRestContext = null;
+  let asCambridgeTenantAdmin = null;
+  let asCambridgeAnonymousUser = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
-    // Authenticate the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
-    RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
-      assert.ok(!err);
-      globalAdminOnTenantRestContext = ctx;
-      return callback();
-    });
+    return callback();
   });
 
   describe('Feed', () => {
@@ -44,9 +36,12 @@ describe('Members Library', () => {
        * Test that verifies the validation of the members library feed
        */
       it('verify validation of members library feed', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user) => {
-          assert.ok(!err);
-          TestsUtil.generateTestGroups(user.restContext, 1, group => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: user } = users;
+          TestsUtil.generateTestGroups(user.restContext, 1, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group } = groups;
             // Ensure it fails with a variety of bogus group ids
             PrincipalsTestUtil.assertGetMembersLibraryFails(user.restContext, 'not-a-valid-id', null, null, 400, () => {
               PrincipalsTestUtil.assertGetMembersLibraryFails(
@@ -89,7 +84,10 @@ describe('Members Library', () => {
        * Test that verifies the authorization of the public group members library feed
        */
       it('verify authorization of public group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
             publicTenant1.anonymousRestContext,
@@ -139,7 +137,10 @@ describe('Members Library', () => {
        * Test that verifies the authorization of the loggedin group members library feed
        */
       it('verify authorization of loggedin joinable group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -187,7 +188,10 @@ describe('Members Library', () => {
       });
 
       it('verify authorization of loggedin non joinable group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -237,7 +241,10 @@ describe('Members Library', () => {
       });
 
       it('verify authorization of loggedin joinable group (by request) members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -288,7 +295,10 @@ describe('Members Library', () => {
        * Test that verifies the authorization of the private group members library feed
        */
       it('verify authorization of private joinable group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -357,7 +367,10 @@ describe('Members Library', () => {
       });
 
       it('verify authorization of private not joinable group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -427,7 +440,10 @@ describe('Members Library', () => {
       });
 
       it('verify authorization of private joinable group (by request) members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
           // Ensure all users can see a public group's members library
           PrincipalsTestUtil.assertGetMembersLibraryFails(
             publicTenant1.anonymousRestContext,
@@ -500,9 +516,13 @@ describe('Members Library', () => {
        * and private items when appropriate
        */
       it('verify only the appropriate members are seen from the group members library feed', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant1, privateTenant2) => {
-          TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (err, users, publicTenant1ExtraUser) => {
-            assert.ok(!err);
+        TestsUtil.setupMultiTenantPrivacyEntities((
+          publicTenant1,
+          publicTenant2 /* , privateTenant1, privateTenant2 */
+        ) => {
+          TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (err, users) => {
+            assert.notExists(err);
+            const { 0: publicTenant1ExtraUser } = users;
 
             // These are the expected public, loggedin, private library contents
             const publicItems = [publicTenant1.publicUser.user.id];
@@ -550,9 +570,10 @@ describe('Members Library', () => {
                                   privateItems,
                                   members => {
                                     // Ensure the private user is obfuscated for the public user
-                                    const privateUserResult = _.find(members, member => {
-                                      return member.profile.visibility === 'private';
-                                    });
+                                    const privateUserResult = find(
+                                      pathSatisfies(equals('private'), ['profile', 'visibility']),
+                                      members
+                                    );
 
                                     assert.ok(privateUserResult);
                                     assert.ok(!privateUserResult.profile.profilePath);
@@ -565,9 +586,10 @@ describe('Members Library', () => {
                                       privateItems,
                                       members => {
                                         // Ensure the private user is obfuscated
-                                        const privateUserResult = _.find(members, member => {
-                                          return member.profile.visibility === 'private';
-                                        });
+                                        const privateUserResult = find(
+                                          pathSatisfies(equals('private'), ['profile', 'visibility']),
+                                          members
+                                        );
 
                                         assert.ok(privateUserResult);
                                         assert.strictEqual(
@@ -605,9 +627,12 @@ describe('Members Library', () => {
        * group members library feed
        */
       it('verify setting group members updates the group members library', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1) => {
-          assert.ok(!err);
-          TestsUtil.generateTestGroups(user1.restContext, 2, (group, group2) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: user1 } = users;
+          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group, 1: group2 } = groups;
             // Get the group members library to seed it
             PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
               user1.restContext,
@@ -653,9 +678,12 @@ describe('Members Library', () => {
        * group members library feed
        */
       it('verify joining and leaving group updates the group members library', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1, user2) => {
-          assert.ok(!err);
-          TestsUtil.generateTestGroups(user1.restContext, 1, group => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: user1, 1: user2 } = users;
+          TestsUtil.generateTestGroups(user1.restContext, 1, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group } = groups;
             PrincipalsTestUtil.assertUpdateGroupSucceeds(user1.restContext, group.group.id, { joinable: 'yes' }, () => {
               // Get the group members library to seed it
               PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
@@ -690,9 +718,12 @@ describe('Members Library', () => {
        * library feed gets updated to indicate the new user ranking
        */
       it('verify user and group setting profile picture updates the group members library', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, user1) => {
-          assert.ok(!err);
-          TestsUtil.generateTestGroups(user1.restContext, 2, (group, group2) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+          assert.notExists(err);
+          const { 0: user1 } = users;
+          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
+            assert.notExists(err);
+            const { 0: group, 1: group2 } = groups;
             const change = {};
             change[group2.group.id] = 'member';
             PrincipalsTestUtil.assertSetGroupMembersSucceeds(
@@ -701,18 +732,16 @@ describe('Members Library', () => {
               group.group.id,
               change,
               members => {
-                // Ensure the manager shows up before the member, because they both have
-                // no profile picture and the manager gets prioritized before members
-                assert.deepStrictEqual(
-                  _.chain(members)
-                    .pluck('profile')
-                    .pluck('id')
-                    .value(),
-                  [user1.user.id, group2.group.id]
-                );
+                /**
+                 * Ensure the manager shows up before the member, because they both have no
+                 * profile picture and the manager gets prioritized before members
+                 */
+                assert.deepStrictEqual(compose(pluck('id'), pluck('profile'))(members), [
+                  user1.user.id,
+                  group2.group.id
+                ]);
 
-                // The member user will add a profile picture to the group, which should
-                // prioritize it higher than manager
+                // The member user will add a profile picture to the group, which should prioritize it higher than manager
                 PrincipalsTestUtil.assertUploadGroupPictureSucceeds(user1.restContext, group2.group.id, null, () => {
                   // Ensure group2 now has precedence with its picture
                   PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
@@ -720,13 +749,10 @@ describe('Members Library', () => {
                     group.group.id,
                     null,
                     members => {
-                      assert.deepStrictEqual(
-                        _.chain(members)
-                          .pluck('profile')
-                          .pluck('id')
-                          .value(),
-                        [group2.group.id, user1.user.id]
-                      );
+                      assert.deepStrictEqual(compose(pluck('id'), pluck('profile'))(members), [
+                        group2.group.id,
+                        user1.user.id
+                      ]);
 
                       // Now the manager user uploads one, they should re-take precedence in the library
                       PrincipalsTestUtil.assertUploadUserPictureSucceeds(user1.restContext, user1.user.id, null, () => {
@@ -735,13 +761,10 @@ describe('Members Library', () => {
                           group.group.id,
                           null,
                           members => {
-                            assert.deepStrictEqual(
-                              _.chain(members)
-                                .pluck('profile')
-                                .pluck('id')
-                                .value(),
-                              [user1.user.id, group2.group.id]
-                            );
+                            assert.deepStrictEqual(compose(pluck('id'), pluck('profile'))(members), [
+                              user1.user.id,
+                              group2.group.id
+                            ]);
 
                             return callback();
                           }
@@ -761,20 +784,25 @@ describe('Members Library', () => {
        * library feed gets updated appropriately
        */
       it('verify visibility updates to a user and group also updates a group members library', callback => {
-        TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, user1) => {
-          assert.ok(!err);
-          TestsUtil.generateTestGroups(user1.restContext, 2, (group, group2) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+          assert.notExists(err);
+          const { 0: user1 } = users;
+
+          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
+            assert.notExists(err);
             const change = {};
+            const { 0: group, 1: group2 } = groups;
             change[group2.group.id] = 'member';
+
             PrincipalsTestUtil.assertSetGroupMembersSucceeds(
               user1.restContext,
               user1.restContext,
               group.group.id,
               change,
-              members => {
+              (/* members */) => {
                 // Ensure the anonymous user can see both the manager user and group in the library because they are public
                 PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                  anonymousRestContext,
+                  asCambridgeAnonymousUser,
                   group.group.id,
                   [user1.user.id, group2.group.id],
                   () => {
@@ -785,7 +813,7 @@ describe('Members Library', () => {
                       { visibility: 'loggedin' },
                       () => {
                         PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                          anonymousRestContext,
+                          asCambridgeAnonymousUser,
                           group.group.id,
                           [group2.group.id],
                           () => {
@@ -796,7 +824,7 @@ describe('Members Library', () => {
                               { visibility: 'loggedin' },
                               () => {
                                 PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                                  anonymousRestContext,
+                                  asCambridgeAnonymousUser,
                                   group.group.id,
                                   [],
                                   () => {
@@ -827,95 +855,92 @@ describe('Members Library', () => {
        *  3. Group role
        */
       it('verify that ranking gives precedence to picture visibility, profile visibility and role, respectively', callback => {
-        TestsUtil.setupMultiTenantPrivacyEntities((tenant1, tenant2) => {
+        TestsUtil.setupMultiTenantPrivacyEntities((tenant1 /* , tenant2 */) => {
           PrincipalsTestUtil.assertUpdateGroupSucceeds(
             tenant1.adminRestContext,
             tenant1.publicGroup.id,
             { joinable: 'yes' },
             () => {
-              TestsUtil.generateTestUsers(
-                tenant1.adminRestContext,
-                3,
-                (err, users, publicWithPicture, loggedinWithPicture, privateWithPicture) => {
-                  assert.ok(!err);
+              TestsUtil.generateTestUsers(tenant1.adminRestContext, 3, (err, users) => {
+                assert.notExists(err);
+                const { 0: publicWithPicture, 1: loggedinWithPicture, 2: privateWithPicture } = users;
 
-                  // Update the visibility of our non-public users
-                  PrincipalsTestUtil.assertUpdateUserSucceeds(
-                    tenant1.adminRestContext,
-                    loggedinWithPicture.user.id,
-                    { visibility: 'loggedin' },
-                    () => {
-                      PrincipalsTestUtil.assertUpdateUserSucceeds(
-                        tenant1.adminRestContext,
-                        privateWithPicture.user.id,
-                        { visibility: 'private' },
-                        () => {
-                          // Give profile pictures to those who should have them
-                          const userIdsWithPicture = [
-                            publicWithPicture.user.id,
-                            loggedinWithPicture.user.id,
-                            privateWithPicture.user.id
-                          ];
-                          PrincipalsTestUtil.assertUploadUserPicturesSucceeds(
-                            tenant1.adminRestContext,
-                            userIdsWithPicture,
-                            null,
-                            () => {
-                              // Finally, make all users a member of the group
-                              const changes = {};
-                              changes[tenant1.publicUser.user.id] = 'member';
-                              changes[tenant1.loggedinUser.user.id] = 'member';
-                              changes[tenant1.privateUser.user.id] = 'member';
-                              changes[publicWithPicture.user.id] = 'member';
-                              changes[loggedinWithPicture.user.id] = 'member';
-                              changes[privateWithPicture.user.id] = 'member';
-                              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                                tenant1.adminRestContext,
-                                tenant1.adminRestContext,
-                                tenant1.publicGroup.id,
-                                changes,
-                                () => {
-                                  // Good visibility with picture wins, secondary is good visibility without picture,
-                                  // tertiary is the role in the group
-                                  const expectedOrder1 = _.flatten([
-                                    publicWithPicture.user.id,
-                                    loggedinWithPicture.user.id,
-                                    tenant1.adminUser.user.id,
-                                    tenant1.publicUser.user.id,
-                                    tenant1.loggedinUser.user.id,
+                // Update the visibility of our non-public users
+                PrincipalsTestUtil.assertUpdateUserSucceeds(
+                  tenant1.adminRestContext,
+                  loggedinWithPicture.user.id,
+                  { visibility: 'loggedin' },
+                  () => {
+                    PrincipalsTestUtil.assertUpdateUserSucceeds(
+                      tenant1.adminRestContext,
+                      privateWithPicture.user.id,
+                      { visibility: 'private' },
+                      () => {
+                        // Give profile pictures to those who should have them
+                        const userIdsWithPicture = [
+                          publicWithPicture.user.id,
+                          loggedinWithPicture.user.id,
+                          privateWithPicture.user.id
+                        ];
+                        PrincipalsTestUtil.assertUploadUserPicturesSucceeds(
+                          tenant1.adminRestContext,
+                          userIdsWithPicture,
+                          null,
+                          () => {
+                            // Finally, make all users a member of the group
+                            const changes = {};
+                            changes[tenant1.publicUser.user.id] = 'member';
+                            changes[tenant1.loggedinUser.user.id] = 'member';
+                            changes[tenant1.privateUser.user.id] = 'member';
+                            changes[publicWithPicture.user.id] = 'member';
+                            changes[loggedinWithPicture.user.id] = 'member';
+                            changes[privateWithPicture.user.id] = 'member';
+                            PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                              tenant1.adminRestContext,
+                              tenant1.adminRestContext,
+                              tenant1.publicGroup.id,
+                              changes,
+                              () => {
+                                /**
+                                 * Good visibility with picture wins, secondary is good visibility without picture, tertiary is the role in the group
+                                 */
+                                const expectedOrder1 = flatten([
+                                  publicWithPicture.user.id,
+                                  loggedinWithPicture.user.id,
+                                  tenant1.adminUser.user.id,
+                                  tenant1.publicUser.user.id,
+                                  tenant1.loggedinUser.user.id,
 
-                                    // These items have same ranking because they are both private and both
-                                    // members. Ensure they are listed in reverse order of their id, which
-                                    // is arbitrary ordering
-                                    [tenant1.privateUser.user.id, privateWithPicture.user.id].sort().reverse()
-                                  ]);
+                                  /**
+                                   * These items have same ranking because they are both private and both
+                                   * members. Ensure they are listed in reverse order of their id, which
+                                   * is arbitrary ordering
+                                   */
+                                  [tenant1.privateUser.user.id, privateWithPicture.user.id].sort().reverse()
+                                ]);
 
-                                  // Ensure we get our expected order
-                                  PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
-                                    tenant1.adminRestContext,
-                                    tenant1.publicGroup.id,
-                                    null,
-                                    members => {
-                                      assert.deepStrictEqual(
-                                        _.chain(members)
-                                          .pluck('profile')
-                                          .pluck('id')
-                                          .value(),
-                                        expectedOrder1
-                                      );
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                                // Ensure we get our expected order
+                                PrincipalsTestUtil.assertGetAllMembersLibrarySucceeds(
+                                  tenant1.adminRestContext,
+                                  tenant1.publicGroup.id,
+                                  null,
+                                  members => {
+                                    assert.deepStrictEqual(
+                                      compose(pluck('id'), pluck('profile'))(members),
+                                      expectedOrder1
+                                    );
+                                    return callback();
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
             }
           );
         });

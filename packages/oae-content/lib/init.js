@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable import/namespace, no-unused-vars */
+
 import fs from 'fs';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
@@ -27,19 +29,15 @@ import { ContentConstants } from './constants';
 import * as ContentSearch from './search';
 
 // Initialize the content library capabilities
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as library from './library';
 
 // Initialize activity capabilities
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from './activity';
 
 // Ensure that the preview listeners get registered
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as previews from './previews';
 
 // Initialize invitations listeners
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as invitations from './invitations';
 
 const log = logger('oae-content');

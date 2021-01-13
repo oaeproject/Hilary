@@ -14,7 +14,6 @@
  */
 
 /* eslint-disable camelcase */
-import util from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
@@ -33,11 +32,33 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import { PrincipalsConstants } from 'oae-principals/lib/constants';
 import { User } from 'oae-principals/lib/model';
 
-const log = logger('principals-search');
+import {
+  compose,
+  prop,
+  has,
+  not,
+  objOf,
+  identity,
+  pipe,
+  pick,
+  map,
+  assoc,
+  head,
+  defaultTo,
+  mapObjIndexed,
+  mergeDeepLeft,
+  mergeLeft
+} from 'ramda';
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+const { getTenant } = TenantsAPI;
+const getTenantAlias = prop('tenantAlias');
+const log = logger('principals-search');
+const { getResourceFromId } = AuthzUtil;
+const getResourceId = prop('resourceId');
+
+/**
+ * Indexing tasks
+ */
 
 /*!
  * When a user is created, we must index the user resource document
@@ -155,9 +176,9 @@ const _handleUpdateGroupMembers = function(ctx, group, principalIds) {
   AuthzSearch.fireMembershipUpdateTasks(principalIds);
 };
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produces search documents for 'user' resources.
@@ -231,9 +252,7 @@ const _produceUserSearchDocument = function(user) {
  */
 const _produceGroupSearchDocuments = function(resources, callback, _documents, _errs) {
   _documents = _documents || [];
-  if (_.isEmpty(resources)) {
-    return callback(_errs, _documents);
-  }
+  if (_.isEmpty(resources)) return callback(_errs, _documents);
 
   const resource = resources.pop();
   if (resource.group) {
@@ -293,12 +312,44 @@ const _produceGroupSearchDocument = function(group) {
 SearchAPI.registerSearchDocumentProducer('user', _produceUserSearchDocuments);
 SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
- * Given an array of user search documents, transform them into search documents suitable to be displayed to the user in context.
+ * A function that returns a function that either associates an `thumbnailUrl` field
+ * to the user object or alternatively just returns the identity function
+ *
+ * @function _assignThumbnailIfNeeded
+ * @param  {Object} ctx  The http context requesting
+ * @param  {Object} user the user object
+ */
+const _assignThumbnailIfNeeded = (ctx, user) => {
+  if (user.picture.mediumUri) {
+    return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, user.picture.mediumUri));
+  }
+
+  return identity;
+};
+
+/**
+ * A function that returns a function that either associates an `extra` field
+ * to the user object or alternatively just returns the identity function
+ *
+ * @function _assignExtraIfNeeded
+ * @param {Object} user The user object
+ */
+const _assignExtraIfNeeded = user => {
+  if (user.extra) {
+    return assoc('extra', user.extra);
+  }
+
+  return identity;
+};
+
+/**
+ * Given an array of user search documents, transform them into search documents
+ * suitable to be displayed to the user in context.
  *
  * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
  * @param  {Object}    docs            A hash, keyed by the document id, while the value is the document to transform
@@ -308,60 +359,97 @@ SearchAPI.registerSearchDocumentProducer('group', _produceGroupSearchDocuments);
  * @api private
  */
 const _transformUserDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    const displayName = _.first(doc.fields.displayName);
-    const email = _.first(doc.fields.email);
-    const extra = _.first(doc.fields._extra) || {};
-    const tenantAlias = _.first(doc.fields.tenantAlias);
-    const thumbnailUrl = _.first(doc.fields.thumbnailUrl);
-    const visibility = _.first(doc.fields.visibility);
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarExtraField = head(doc.fields._extra);
+    const extra = defaultTo({}, scalarExtraField);
+    const scalarFields = map(head, doc.fields);
+    const { thumbnailUrl, email, displayName, tenantAlias, visibility } = scalarFields;
 
-    // First we need to convert the data in this document back into the source user object so that we may use PrincipalsUtil.hideUserData
-    // to hide its information. We will then after convert the user *back* to a search document once the user information has been
-    // scrubbed
-    const user = new User(tenantAlias, docId, displayName, email, {
-      visibility,
-      publicAlias: extra.publicAlias,
-      mediumPictureUri: thumbnailUrl
-    });
-    user.extra = extra.userExtra;
+    const user = assoc(
+      'extra',
+      extra.userExtra,
+      new User(tenantAlias, docId, displayName, email, {
+        visibility,
+        publicAlias: extra.publicAlias,
+        mediumPictureUri: thumbnailUrl
+      })
+    );
 
+    /**
+     * First we need to convert the data in this document back into the source user object
+     * so that we may use PrincipalsUtil.hideUserData to hide its information.
+     * We will then after convert the user *back* to a search document once the user information
+     * has been scrubbed
+     */
     // Hide information that is sensitive to the current session
     PrincipalsUtil.hideUserData(ctx, user);
 
-    // Convert the user object back to a search document using the producer. We use this simply to re-use the logic of turning a user
-    // object into a search document
-    const result = _produceUserSearchDocument(user);
-
-    // Add the full tenant object and profile path
-    _.extend(result, {
+    /**
+     * Convert the user object back to a search document using the producer.
+     * We use this simply to re-use the logic of turning a user object into a search document
+     */
+    const tenantAndProfileInfo = {
       profilePath: user.profilePath,
       tenant: user.tenant
-    });
+    };
 
-    // The UI search model expects the 'extra' parameter if it was not scrubbed
-    if (user.extra) {
-      result.extra = user.extra;
-    }
+    const result = pipe(
+      _produceUserSearchDocument,
+      mergeDeepLeft(tenantAndProfileInfo),
+      // The UI search model expects the 'extra' parameter if it was not scrubbed
+      _assignExtraIfNeeded(user),
+      // If the mediumPictureUri wasn't scrubbed from the user object that means the current user can see it
+      _assignThumbnailIfNeeded(ctx, user)
+    )(user);
 
-    // If the mediumPictureUri wasn't scrubbed from the user object that means the current user can see it
-    if (user.picture.mediumUri) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, user.picture.mediumUri);
-    }
-
-    // We need to delete these fields which are added by the producer but aren't supposed to be included in the UI
+    /**
+     * We need to delete these fields which are added by the producer but aren't
+     * supposed to be included in the UI
+     */
     delete result.q_high;
     delete result.sort;
 
-    transformedDocs[docId] = result;
-  });
+    return result;
+  }, docs);
 
   return callback(null, transformedDocs);
 };
 
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('user', _transformUserDocuments);
+
+/**
+ * A function that either returns a function that conditionally assigns the `thumbnailUrl`
+ * to an object or alternatively just returns the identity function
+ *
+ * @function _signThumbnail
+ * @param  {Object} ctx          The http context of the request
+ * @param  {String} thumbnailUrl The thumbnailUrl to assign conditionally
+ * @param  {Object} result       Search result object
+ */
+const _signThumbnailIfNeeded = (ctx, thumbnailUrl, result) => {
+  if (has('thumbnailUrl', result)) {
+    return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl));
+  }
+
+  return identity;
+};
+
+/**
+ * A function that either returns a function that conditionally assigns the `profilePath`
+ * to an object or alternatively just returns the identity function
+ * @function _assignProfilePathIfNeeded
+ * @param  {Object} tenantAlias The tenant alias the profile belongs to
+ * @param  {String} resourceId  The resourceId representing the group
+ * @param  {Object} result      Search result object
+ */
+const _assignProfilePathIfNeeded = (tenantAlias, resourceId, result) => {
+  if (not(result.deleted)) {
+    return assoc('profilePath', `/group/${tenantAlias}/${resourceId}`);
+  }
+
+  return identity;
+};
 
 /**
  * Given an array of group search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -374,36 +462,26 @@ SearchAPI.registerSearchDocumentTransformer('user', _transformUserDocuments);
  * @api private
  */
 const _transformGroupDocuments = function(ctx, docs, callback) {
-  const transformedDocs = {};
-  _.each(docs, (doc, docId) => {
-    // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra);
+  const transformedDocs = mapObjIndexed((doc, docId) => {
+    const scalarExtraField = head(doc.fields._extra);
+    const extraFields = defaultTo({}, scalarExtraField);
+    const alias = pick(['alias'], extraFields);
+    const scalarFields = map(head, doc.fields);
+    const tenantAlias = getTenantAlias(scalarFields);
+    const tenant = getTenant(tenantAlias).compact();
+    const resourceId = compose(getResourceId, getResourceFromId)(docId);
 
-    // Build the transformed result document from the ElasticSearch document
-    const result = { id: docId };
-    _.each(doc.fields, (value, name) => {
-      result[name] = _.first(value);
-    });
-
-    // Sign the thumbnail URL so it may be downloaded by the client
-    if (result.thumbnailUrl) {
-      result.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, result.thumbnailUrl);
-    }
-
-    // Add the tenant and public alias
-    _.extend(result, _.pick(extra, 'alias'), {
-      tenant: TenantsAPI.getTenant(result.tenantAlias).compact()
-    });
-
-    // Add the profile path, only if the group is not deleted
-    if (!result.deleted) {
-      _.extend(result, {
-        profilePath: util.format('/group/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
-      });
-    }
-
-    transformedDocs[docId] = result;
-  });
+    return pipe(
+      mergeLeft({ id: docId }),
+      mergeLeft(scalarFields),
+      // Sign the thumbnail URL so it may be downloaded by the client
+      _signThumbnailIfNeeded(ctx, scalarFields.thumbnailUrl, scalarFields),
+      // Add the profile path, only if the group is not deleted
+      _assignProfilePathIfNeeded(tenantAlias, resourceId, scalarFields),
+      mergeDeepLeft({ alias }),
+      mergeDeepLeft({ tenant })
+    )(extraFields);
+  }, docs);
 
   return callback(null, transformedDocs);
 };
@@ -411,9 +489,9 @@ const _transformGroupDocuments = function(ctx, docs, callback) {
 // Bind the transformer to the search API
 SearchAPI.registerSearchDocumentTransformer('group', _transformGroupDocuments);
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handlers
+ */
 
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Principals CF (users and groups)
@@ -456,9 +534,9 @@ SearchAPI.registerReindexAllHandler('principal', callback => {
   return PrincipalsDAO.iterateAll(null, 100, _onEach, callback);
 });
 
-/// //////////////////
-// DELETE HANDLERS //
-/// //////////////////
+/**
+ * Delete handlers
+ */
 
 /**
  * Handler to invoke the search tasks required to invalidate search documents necessary
@@ -486,13 +564,9 @@ const _handleInvalidateSearch = function(group, membershipsGraph, membersGraph, 
   const resourceGroupIndexTask = [{ id: group.id }];
 
   // Create the index tasks that will tell search which resource's memberships document to update
-  const memberGroupIndexTasks = _.map(memberGroupIds, groupId => {
-    return { id: groupId };
-  });
+  const memberGroupIndexTasks = map(objOf('id'), memberGroupIds);
 
-  const memberUserIndexTasks = _.map(memberUserIds, userId => {
-    return { id: userId };
-  });
+  const memberUserIndexTasks = map(objOf('id'), memberUserIds);
 
   // The index operation that tells search to update only the resource document of the target
   // resources. This is needed for the group being deleted only

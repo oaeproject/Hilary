@@ -133,7 +133,10 @@ const generatePreviews = function(ctx, contentObj, callback) {
       );
       ctx.addPreviewMetadata('embeddable', false);
     } else {
-      // The link isn't embeddable because the browser will prompt to save the target if the Content-Disposition header is set to attachment
+      /**
+       * The link isn't embeddable because the browser will prompt
+       * to save the target if the Content-Disposition header is set to attachment
+       */
       const isAttachment = compose(equals('attachment'), head, split(';'), getPath(['headers', 'content-disposition']));
 
       let forcedDownload = both(getPath(['headers', 'content-disposition']), isAttachment)(response);
@@ -204,7 +207,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
           sharp(imgPath).metadata((err, imageMetainfo) => {
             if (err) throwComparisonError(err, callback);
             sharp(path.resolve(__dirname, '../../../static/link/blank.png')).metadata((err, solidWhiteMetainfo) => {
-              if (err) throwComparisonError(err, callback);
+              if (err) return throwComparisonError(err, callback);
 
               const isEqual = equals(imageMetainfo, solidWhiteMetainfo);
               log().trace({ contentId: ctx.contentId, equality: isEqual });

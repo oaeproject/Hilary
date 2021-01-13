@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -66,28 +66,29 @@ describe('Tenant Landing Pages', () => {
           // Get the landing page information
           const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
           RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Only 1 block has been configured
-            assert.strictEqual(landingPage.length, 1);
+            assert.lengthOf(landingPage, 1);
 
+            const firstBlock = landingPage[0];
             // Verify all attributes are returned
-            assert.strictEqual(landingPage[0].type, 'text');
-            assert.strictEqual(landingPage[0].text, 'some text');
-            assert.strictEqual(landingPage[0].xs, '100%');
-            assert.strictEqual(landingPage[0].sm, '100%');
-            assert.strictEqual(landingPage[0].md, '100%');
-            assert.strictEqual(landingPage[0].lg, '100%');
-            assert.strictEqual(landingPage[0].minHeight, '100');
-            assert.strictEqual(landingPage[0].horizontalAlign, 'left');
-            assert.strictEqual(landingPage[0].verticalAlign, 'top');
-            assert.strictEqual(landingPage[0].bgColor, 'red');
-            assert.strictEqual(landingPage[0].titleColor, 'green');
-            assert.strictEqual(landingPage[0].textColor, 'blue');
-            assert.strictEqual(landingPage[0].icon, 'https://foo.com/icon.png');
-            assert.strictEqual(landingPage[0].imgUrl, 'https://foo.com/img.png');
-            assert.strictEqual(landingPage[0].videoUrl, 'https://foo.com/video.wav');
-            assert.strictEqual(landingPage[0].videoPlaceholder, 'https://foo.com/video.placeholder.png');
+            assert.strictEqual(firstBlock.type, 'text');
+            assert.strictEqual(firstBlock.text, 'some text');
+            assert.strictEqual(firstBlock.xs, '100%');
+            assert.strictEqual(firstBlock.sm, '100%');
+            assert.strictEqual(firstBlock.md, '100%');
+            assert.strictEqual(firstBlock.lg, '100%');
+            assert.strictEqual(firstBlock.minHeight, '100');
+            assert.strictEqual(firstBlock.horizontalAlign, 'left');
+            assert.strictEqual(firstBlock.verticalAlign, 'top');
+            assert.strictEqual(firstBlock.bgColor, 'red');
+            assert.strictEqual(firstBlock.titleColor, 'green');
+            assert.strictEqual(firstBlock.textColor, 'blue');
+            assert.strictEqual(firstBlock.icon, 'https://foo.com/icon.png');
+            assert.strictEqual(firstBlock.imgUrl, 'https://foo.com/img.png');
+            assert.strictEqual(firstBlock.videoUrl, 'https://foo.com/video.wav');
+            assert.strictEqual(firstBlock.videoPlaceholder, 'https://foo.com/video.placeholder.png');
 
             return callback();
           });
@@ -111,7 +112,7 @@ describe('Tenant Landing Pages', () => {
           // Get the landing page information
           const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
           RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-            assert.ok(!err);
+            assert.notExists(err);
 
             // Only 1 block has been configured
             assert.strictEqual(landingPage.length, 1);
@@ -136,38 +137,40 @@ describe('Tenant Landing Pages', () => {
       ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
         const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
         RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Verify the default text was returned
           assert.strictEqual(landingPage[0].text, 'default text');
 
           // Generate some test users
-          TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (err, users, frenchUser, defaultUser, hindiUser) => {
+          TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (err, users) => {
+            assert.notExists(err);
+            const { 0: frenchUser, 1: defaultUser, 2: hindiUser } = users;
             // Set a user's locale to French
             RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Get the landing page information with the French user
               RestAPI.Tenants.getLandingPage(frenchUser.restContext, (err, landingPage) => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Verify the French text was returned
                 assert.strictEqual(landingPage[0].text, 'French text');
 
                 // Get the landing page information with a user who has no configured locale
                 RestAPI.Tenants.getLandingPage(defaultUser.restContext, (err, landingPage) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Verify the default text was returned
                   assert.strictEqual(landingPage[0].text, 'default text');
 
                   // Set a user's locale to Hindi
                   RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, err => {
-                    assert.ok(!err);
+                    assert.notExists(err);
 
                     // Get the landing page information with the Hindi user
                     RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(err, landingPage) {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Verify the default text was returned
                       assert.strictEqual(landingPage[0].text, 'default text');
@@ -188,7 +191,7 @@ describe('Tenant Landing Pages', () => {
    */
   it('verify that blocks are not returned in the config', callback => {
     RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (err, config) => {
-      assert.ok(!err);
+      assert.notExists(err);
       for (let i = 1; i <= 12; i++) {
         assert.ok(!config['oae-tenants']['block_' + i]);
       }

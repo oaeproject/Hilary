@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import util from 'util';
 import _ from 'underscore';
 import csv from 'csv';
 import temp from 'temp';
+import { flatten, head, map, isEmpty, pipe, pluck } from 'ramda';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as RestAPI from 'oae-rest';
@@ -67,7 +68,7 @@ describe('Shibboleth Migration', () => {
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
   const _assertHaveShibbolethLoginIds = function(tenantAlias, users, callback) {
-    if (_.isEmpty(users)) {
+    if (isEmpty(users)) {
       return callback();
     }
 
@@ -78,14 +79,9 @@ describe('Shibboleth Migration', () => {
       'SELECT "loginId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
       [shibLogin],
       (err, rows) => {
-        assert.ok(!err);
+        assert.notExists(err);
 
-        const result = _.chain(rows)
-          .map(Cassandra.rowToHash)
-          .pluck('loginId')
-          .first()
-          .value();
-
+        const result = pipe(map(Cassandra.rowToHash), pluck('loginId'), head)(rows);
         assert.strictEqual(result, shibLogin);
         return _assertHaveShibbolethLoginIds(tenantAlias, users, callback);
       }
@@ -101,7 +97,7 @@ describe('Shibboleth Migration', () => {
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
   const _assertHaveNoShibbolethLoginIds = function(tenantAlias, users, callback) {
-    if (_.isEmpty(users)) {
+    if (isEmpty(users)) {
       return callback();
     }
 
@@ -112,10 +108,10 @@ describe('Shibboleth Migration', () => {
       'SELECT "loginId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
       [shibLogin],
       (err, rows) => {
-        assert.ok(!err);
-        const result = _.map(rows, Cassandra.rowToHash);
+        assert.notExists(err);
+        const result = map(Cassandra.rowToHash, rows);
 
-        assert.ok(_.isEmpty(result));
+        assert.ok(isEmpty(result));
         return _assertHaveNoShibbolethLoginIds(tenantAlias, users, callback);
       }
     );
@@ -130,15 +126,15 @@ describe('Shibboleth Migration', () => {
    */
   const _createGoogleLogins = function(tenantAlias, users) {
     // Create Google logins for users
-    const googleLoginIds = _.map(users, user => {
+    const googleLoginIds = map(user => {
       return {
         userId: user.id,
         loginId: util.format('%s:google:%s', tenantAlias, user.email)
       };
-    });
+    }, users);
 
-    const queries = _.chain(googleLoginIds)
-      .map(googleLoginId => {
+    const queries = pipe(
+      map(googleLoginId => {
         return [
           {
             query:
@@ -150,9 +146,9 @@ describe('Shibboleth Migration', () => {
             parameters: [googleLoginId.loginId, googleLoginId.userId]
           }
         ];
-      })
-      .flatten()
-      .value();
+      }),
+      flatten
+    )(googleLoginIds);
 
     return queries;
   };
@@ -162,24 +158,20 @@ describe('Shibboleth Migration', () => {
    */
   it('verify new Shibboleth logins are created', callback => {
     TestsUtil.generateTestUsers(camAdminRestContext, 20, (err, users) => {
-      assert.ok(!err);
-
-      users = _.chain(users)
-        .values()
-        .pluck('user')
-        .value();
+      assert.notExists(err);
+      users = pluck('user', users);
 
       RestAPI.Tenants.getTenant(camAdminRestContext, null, (err, tenant) => {
-        assert.ok(!err);
+        assert.notExists(err);
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, users);
 
         Cassandra.runBatchQuery(queries, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Run the migration
-          ShibbolethMigrator.doMigration(tenantAlias, csvStream, (err, errors) => {
-            assert.ok(!err);
+          ShibbolethMigrator.doMigration(tenantAlias, csvStream, (err /* , errors */) => {
+            assert.notExists(err);
 
             _assertHaveShibbolethLoginIds(tenantAlias, users, () => {
               return callback();
@@ -195,28 +187,24 @@ describe('Shibboleth Migration', () => {
    */
   it('verify no Shibboleth logins are created for users without Google IDs', callback => {
     TestsUtil.generateTestUsers(gtAdminRestContext, 20, (err, users) => {
-      assert.ok(!err);
-
-      users = _.chain(users)
-        .values()
-        .pluck('user')
-        .value();
+      assert.notExists(err);
+      users = pluck('user', users);
 
       // Split the users into a group with and a group without Google IDs
       const googleUsers = _.sample(users, 10);
       const nonGoogleUsers = _.difference(users, googleUsers);
 
       RestAPI.Tenants.getTenant(gtAdminRestContext, null, (err, tenant) => {
-        assert.ok(!err);
+        assert.notExists(err);
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, googleUsers);
 
         Cassandra.runBatchQuery(queries, err => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Run the migration
-          ShibbolethMigrator.doMigration(tenantAlias, csvStream, (err, errors) => {
-            assert.ok(!err);
+          ShibbolethMigrator.doMigration(tenantAlias, csvStream, (err /* , errors */) => {
+            assert.notExists(err);
 
             _assertHaveShibbolethLoginIds(tenantAlias, googleUsers, () => {
               _assertHaveNoShibbolethLoginIds(tenantAlias, nonGoogleUsers, () => {

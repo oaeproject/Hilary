@@ -19,6 +19,8 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 import async from 'async';
 
+import { map, path } from 'ramda';
+
 import { setSheetContents, getJSON } from 'oae-content/lib/internal/ethercalc';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
 import * as MqTestUtil from 'oae-util/lib/test/mq-util';
@@ -786,11 +788,12 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
   TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, (err, users) => {
     assert.ok(!err);
 
-    const userIds = _.keys(users);
-    const userValues = _.values(users);
+    const userIds = map(path(['user', 'id']), users);
+    const userValues = users;
 
     // Create a collaborative document where all the users are managers
     const name = TestsUtil.generateTestUserId('collabdoc');
+
     RestAPI.Content.createCollabDoc(
       userValues[0].restContext,
       name,
@@ -874,8 +877,8 @@ const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers,
     assert.ok(!err);
 
     const VISIBILITY_PUBLIC = 'public';
-    const userIds = _.keys(users);
-    const userValues = _.values(users);
+    const userIds = map(path(['user', 'id']), users);
+    const userValues = users;
 
     // Create a collaborative document where all the users are managers
     const name = TestsUtil.generateTestUserId('collabsheet');
@@ -904,7 +907,7 @@ const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers,
             });
           },
           err => {
-            if (err) callback(err);
+            if (err) return callback(err);
             return callback(null, _.union([content, users], userValues));
           }
         );
@@ -957,7 +960,7 @@ const createCollabsheetForUser = function(creator, callback) {
       assert.ok(!err);
 
       RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err /* data */) {
-        if (err) callback(err);
+        if (err) return callback(err);
 
         assert.ok(!err);
         return callback(null, contentObj);

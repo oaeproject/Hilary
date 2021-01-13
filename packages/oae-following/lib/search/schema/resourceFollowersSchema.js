@@ -21,11 +21,14 @@
  *
  * @return {Object}     schema              The resource followers schema object
  *         {String[]}   schema.followers    A multi-value field that holds the resource ids by which the parent resource is being followed
+ *
+ * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+ * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 
 /* eslint-disable unicorn/filename-case */
 export const followers = {
-  type: 'string',
-  store: 'no',
-  index: 'not_analyzed'
+  type: 'keyword',
+  store: 'false',
+  index: 'true'
 };

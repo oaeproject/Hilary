@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable import/namespace, no-unused-vars */
+
 import { logger } from 'oae-logger';
 
 import * as MeetingSearch from './search';
 // Register the activity functionality
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as activity from './activity';
 
 // Register the library functionality
-// eslint-disable-next-line no-unused-vars, import/namespace
 import * as library from './library';
 
 const log = logger('oae-jitsi-init');

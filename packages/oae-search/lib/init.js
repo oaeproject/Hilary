@@ -19,19 +19,15 @@ import deletedSearch from './searches/deleted';
 import { queryBuilder, postProcessor } from './searches/email';
 
 export function init(config, callback) {
-  // Const { index, hosts } = config.search;
   const destroy = config.search.index.destroyOnStartup === true;
 
   // Register generic search endpoints
   SearchAPI.registerSearch('general', generalSearch);
   SearchAPI.registerSearch('deleted', deletedSearch);
-
   SearchAPI.registerSearch('email', queryBuilder, postProcessor);
 
   SearchAPI.refreshSearchConfiguration(config.search, err => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     // Build the index and seed the search schema
     return SearchAPI.buildIndex(destroy, callback);

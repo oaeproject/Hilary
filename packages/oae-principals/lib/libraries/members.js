@@ -70,9 +70,9 @@ const list = function(group, visibility, opts, callback) {
   );
 };
 
-/// ////////////////
-// REGISTRATIONS //
-/// ////////////////
+/**
+ * Registrations
+ */
 
 /*!
  * Register a library indexer that can provide resources to reindex the members library

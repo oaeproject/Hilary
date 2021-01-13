@@ -17,6 +17,7 @@ import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-redis');
+import { equals, not } from 'ramda';
 
 let client = null;
 let isDown = false;
@@ -33,7 +34,7 @@ const init = function(redisConfig, callback) {
     if (err) return callback(err);
 
     client = _client;
-    return callback();
+    return callback(null, client);
   });
 };
 
@@ -45,7 +46,9 @@ const init = function(redisConfig, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function(_config, callback) {
-  const notOnTestingEnvironment = !(process.env.OAE_TESTS_RUNNING === 'true');
+  const onTestingEnvironment = equals('true', process.env.OAE_TESTS_RUNNING);
+  const notOnTestingEnvironment = not(onTestingEnvironment);
+
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
@@ -77,9 +80,19 @@ const createClient = function(_config, callback) {
   const redisClient = Redis.createClient(connectionOptions);
 
   // Register an error handler.
+  redisClient.on('close', () => {
+    log().error('Closing connection to redis...');
+  });
+
+  redisClient.on('end', () => {
+    log().error(
+      'All connections have been closed and no more reconnections will be made, or the connection has failed to establish.'
+    );
+  });
+
   redisClient.on('error', () => {
-    isDown = true;
     log().error('Error connecting to redis...');
+    isDown = true;
   });
 
   redisClient.on('ready', () => {
@@ -89,15 +102,14 @@ const createClient = function(_config, callback) {
 
     isDown = false;
   });
+
   return callback(null, redisClient);
 };
 
 /**
  * @return {RedisClient} A redis client that gets created when the app starts up.
  */
-const getClient = function() {
-  return client;
-};
+const getClient = () => client;
 
 /**
  * Flushes all messages from the system that we're currently pushing to.

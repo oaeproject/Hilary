@@ -14,7 +14,7 @@
  */
 
 /* esling-disable no-unused-vars */
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
@@ -36,7 +36,7 @@ describe('Discussion libraries', () => {
   const checkLibrary = function(restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
     RestAPI.Discussions.getDiscussionsLibrary(restCtx, libraryOwnerId, null, null, (err, items) => {
       if (expectAccess) {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Make sure only the expected items are returned.
         assert.strictEqual(items.results.length, expectedItems.length);
@@ -70,9 +70,12 @@ describe('Discussion libraries', () => {
   const createUserAndLibrary = function(restCtx, userVisibility, callback) {
     // Create a user with the proper visibility
     TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
-      const user = _.values(users)[0];
+      assert.notExists(err);
+
+      const { 0: user } = users;
+
       RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Fill up this user his library with 3 discussion items.
         RestAPI.Discussions.createDiscussion(
@@ -83,7 +86,7 @@ describe('Discussion libraries', () => {
           null,
           null,
           (err, privateDiscussion) => {
-            assert.ok(!err);
+            assert.notExists(err);
             RestAPI.Discussions.createDiscussion(
               user.restContext,
               'name',
@@ -92,7 +95,7 @@ describe('Discussion libraries', () => {
               null,
               null,
               (err, loggedinDiscussion) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 RestAPI.Discussions.createDiscussion(
                   user.restContext,
                   'name',
@@ -101,7 +104,7 @@ describe('Discussion libraries', () => {
                   null,
                   null,
                   (err, publicDiscussion) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     callback(user, privateDiscussion, loggedinDiscussion, publicDiscussion);
                   }
                 );
@@ -126,7 +129,7 @@ describe('Discussion libraries', () => {
    */
   const createGroupAndLibrary = function(restCtx, groupVisibility, callback) {
     RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (err, group) => {
-      assert.ok(!err);
+      assert.notExists(err);
 
       // Fill up the group library with 3 discussion items.
       RestAPI.Discussions.createDiscussion(
@@ -137,7 +140,7 @@ describe('Discussion libraries', () => {
         [group.id],
         null,
         (err, privateDiscussion) => {
-          assert.ok(!err);
+          assert.notExists(err);
           RestAPI.Discussions.createDiscussion(
             restCtx,
             'name',
@@ -146,7 +149,7 @@ describe('Discussion libraries', () => {
             [group.id],
             null,
             (err, loggedinDiscussion) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Discussions.createDiscussion(
                 restCtx,
                 'name',
@@ -155,7 +158,7 @@ describe('Discussion libraries', () => {
                 [group.id],
                 null,
                 (err, publicDiscussion) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   callback(group, privateDiscussion, loggedinDiscussion, publicDiscussion);
                 }
               );
@@ -239,7 +242,8 @@ describe('Discussion libraries', () => {
                                           checkLibrary(gtAnonymousRestCtx, privateUser.user.id, false, [], () => {
                                             // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
                                             TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-                                              const anotherUser = _.values(users)[0];
+                                              assert.notExists(err);
+                                              const { 0: anotherUser } = users;
                                               checkLibrary(
                                                 anotherUser.restContext,
                                                 publicUser.user.id,
@@ -263,7 +267,9 @@ describe('Discussion libraries', () => {
                                                             gtAdminRestCtx,
                                                             1,
                                                             (err, users) => {
-                                                              const otherTenantUser = _.values(users)[0];
+                                                              assert.notExists(err);
+
+                                                              const { 0: otherTenantUser } = users;
                                                               checkLibrary(
                                                                 otherTenantUser.restContext,
                                                                 publicUser.user.id,
@@ -386,205 +392,206 @@ describe('Discussion libraries', () => {
   it('verify group libraries', callback => {
     // Create three groups: private, loggedin, public
     TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-      assert.ok(!err);
-      const groupCreator = _.values(users)[0];
-      const anotherUser = _.values(users)[1];
-      createGroupAndLibrary(
-        groupCreator.restContext,
-        'private',
-        (privateGroup, privateGroupPrivateDiscussion, privateGroupLoggedinDiscussion, privateGroupPublicDiscussion) => {
-          createGroupAndLibrary(
-            groupCreator.restContext,
-            'loggedin',
-            (
-              loggedinGroup,
-              loggedinGroupPrivateDiscussion,
-              loggedinGroupLoggedinDiscussion,
-              loggedinGroupPublicDiscussion
-            ) => {
-              createGroupAndLibrary(
-                groupCreator.restContext,
-                'public',
-                (
-                  publicGroup,
-                  publicGroupPrivateDiscussion,
-                  publicGroupLoggedinDiscussion,
-                  publicGroupPublicDiscussion
-                ) => {
-                  // An anonymous user can only see the public stream for the public group.
-                  checkLibrary(camAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicDiscussion], () => {
-                    checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                      checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
-                        checkLibrary(gtAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicDiscussion], () => {
-                          checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
-                            checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
-                              // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
-                              checkLibrary(
-                                anotherUser.restContext,
-                                publicGroup.id,
-                                true,
-                                [publicGroupPublicDiscussion, publicGroupLoggedinDiscussion],
-                                () => {
-                                  checkLibrary(
-                                    anotherUser.restContext,
-                                    loggedinGroup.id,
-                                    true,
-                                    [loggedinGroupPublicDiscussion, loggedinGroupLoggedinDiscussion],
-                                    () => {
-                                      checkLibrary(anotherUser.restContext, privateGroup.id, false, [], () => {
-                                        // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                        TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
-                                          const otherTenantUser = _.values(users)[0];
-                                          checkLibrary(
-                                            otherTenantUser.restContext,
-                                            publicGroup.id,
-                                            true,
-                                            [publicGroupPublicDiscussion],
-                                            () => {
-                                              checkLibrary(
-                                                otherTenantUser.restContext,
-                                                loggedinGroup.id,
-                                                false,
-                                                [],
-                                                () => {
-                                                  checkLibrary(
-                                                    otherTenantUser.restContext,
-                                                    privateGroup.id,
-                                                    false,
-                                                    [],
-                                                    () => {
-                                                      // The cambridge tenant admin can see all the things.
-                                                      checkLibrary(
-                                                        camAdminRestCtx,
-                                                        publicGroup.id,
-                                                        true,
-                                                        [
-                                                          publicGroupPublicDiscussion,
-                                                          publicGroupLoggedinDiscussion,
-                                                          publicGroupPrivateDiscussion
-                                                        ],
-                                                        () => {
-                                                          checkLibrary(
-                                                            camAdminRestCtx,
-                                                            loggedinGroup.id,
-                                                            true,
-                                                            [
-                                                              loggedinGroupPublicDiscussion,
-                                                              loggedinGroupLoggedinDiscussion,
-                                                              loggedinGroupPrivateDiscussion
-                                                            ],
-                                                            () => {
-                                                              checkLibrary(
-                                                                camAdminRestCtx,
-                                                                privateGroup.id,
-                                                                true,
-                                                                [
-                                                                  privateGroupPrivateDiscussion,
-                                                                  privateGroupLoggedinDiscussion,
-                                                                  privateGroupPrivateDiscussion
-                                                                ],
-                                                                () => {
-                                                                  // The GT tenant admin can only see the public stream for the public user.
-                                                                  checkLibrary(
-                                                                    gtAdminRestCtx,
-                                                                    publicGroup.id,
-                                                                    true,
-                                                                    [publicGroupPublicDiscussion],
-                                                                    () => {
-                                                                      checkLibrary(
-                                                                        gtAdminRestCtx,
-                                                                        loggedinGroup.id,
-                                                                        false,
-                                                                        [],
-                                                                        () => {
-                                                                          checkLibrary(
-                                                                            gtAdminRestCtx,
-                                                                            privateGroup.id,
-                                                                            false,
-                                                                            [],
-                                                                            () => {
-                                                                              // If we make the cambridge user a member of the private group he should see everything.
-                                                                              let changes = {};
-                                                                              changes[anotherUser.user.id] = 'member';
-                                                                              RestAPI.Group.setGroupMembers(
-                                                                                groupCreator.restContext,
-                                                                                privateGroup.id,
-                                                                                changes,
-                                                                                err => {
-                                                                                  assert.ok(!err);
-                                                                                  checkLibrary(
-                                                                                    anotherUser.restContext,
-                                                                                    privateGroup.id,
-                                                                                    true,
-                                                                                    [
-                                                                                      privateGroupPrivateDiscussion,
-                                                                                      privateGroupLoggedinDiscussion,
-                                                                                      privateGroupPrivateDiscussion
-                                                                                    ],
-                                                                                    () => {
-                                                                                      // If we make the GT user a member of the private group, he should see everything.
-                                                                                      changes = {};
-                                                                                      changes[otherTenantUser.user.id] =
-                                                                                        'member';
-                                                                                      RestAPI.Group.setGroupMembers(
-                                                                                        groupCreator.restContext,
-                                                                                        privateGroup.id,
-                                                                                        changes,
-                                                                                        err => {
-                                                                                          assert.ok(!err);
-                                                                                          checkLibrary(
-                                                                                            otherTenantUser.restContext,
-                                                                                            privateGroup.id,
-                                                                                            true,
-                                                                                            [
-                                                                                              privateGroupPrivateDiscussion,
-                                                                                              privateGroupLoggedinDiscussion,
-                                                                                              privateGroupPrivateDiscussion
-                                                                                            ],
-                                                                                            callback
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        });
+      assert.notExists(err);
+      const { 0: groupCreator, 1: anotherUser } = users;
+      createGroupAndLibrary(groupCreator.restContext, 'private', (
+        privateGroup,
+        privateGroupPrivateDiscussion,
+        privateGroupLoggedinDiscussion /* , privateGroupPublicDiscussion */
+      ) => {
+        createGroupAndLibrary(
+          groupCreator.restContext,
+          'loggedin',
+          (
+            loggedinGroup,
+            loggedinGroupPrivateDiscussion,
+            loggedinGroupLoggedinDiscussion,
+            loggedinGroupPublicDiscussion
+          ) => {
+            createGroupAndLibrary(
+              groupCreator.restContext,
+              'public',
+              (
+                publicGroup,
+                publicGroupPrivateDiscussion,
+                publicGroupLoggedinDiscussion,
+                publicGroupPublicDiscussion
+              ) => {
+                // An anonymous user can only see the public stream for the public group.
+                checkLibrary(camAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicDiscussion], () => {
+                  checkLibrary(camAnonymousRestCtx, loggedinGroup.id, false, [], () => {
+                    checkLibrary(camAnonymousRestCtx, privateGroup.id, false, [], () => {
+                      checkLibrary(gtAnonymousRestCtx, publicGroup.id, true, [publicGroupPublicDiscussion], () => {
+                        checkLibrary(gtAnonymousRestCtx, loggedinGroup.id, false, [], () => {
+                          checkLibrary(gtAnonymousRestCtx, privateGroup.id, false, [], () => {
+                            // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                            checkLibrary(
+                              anotherUser.restContext,
+                              publicGroup.id,
+                              true,
+                              [publicGroupPublicDiscussion, publicGroupLoggedinDiscussion],
+                              () => {
+                                checkLibrary(
+                                  anotherUser.restContext,
+                                  loggedinGroup.id,
+                                  true,
+                                  [loggedinGroupPublicDiscussion, loggedinGroupLoggedinDiscussion],
+                                  () => {
+                                    checkLibrary(anotherUser.restContext, privateGroup.id, false, [], () => {
+                                      // A loggedin user on *another* tenant can only see the public stream for the public user.
+                                      TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
+                                        assert.notExists(err);
+
+                                        const { 0: otherTenantUser } = users;
+                                        checkLibrary(
+                                          otherTenantUser.restContext,
+                                          publicGroup.id,
+                                          true,
+                                          [publicGroupPublicDiscussion],
+                                          () => {
+                                            checkLibrary(
+                                              otherTenantUser.restContext,
+                                              loggedinGroup.id,
+                                              false,
+                                              [],
+                                              () => {
+                                                checkLibrary(
+                                                  otherTenantUser.restContext,
+                                                  privateGroup.id,
+                                                  false,
+                                                  [],
+                                                  () => {
+                                                    // The cambridge tenant admin can see all the things.
+                                                    checkLibrary(
+                                                      camAdminRestCtx,
+                                                      publicGroup.id,
+                                                      true,
+                                                      [
+                                                        publicGroupPublicDiscussion,
+                                                        publicGroupLoggedinDiscussion,
+                                                        publicGroupPrivateDiscussion
+                                                      ],
+                                                      () => {
+                                                        checkLibrary(
+                                                          camAdminRestCtx,
+                                                          loggedinGroup.id,
+                                                          true,
+                                                          [
+                                                            loggedinGroupPublicDiscussion,
+                                                            loggedinGroupLoggedinDiscussion,
+                                                            loggedinGroupPrivateDiscussion
+                                                          ],
+                                                          () => {
+                                                            checkLibrary(
+                                                              camAdminRestCtx,
+                                                              privateGroup.id,
+                                                              true,
+                                                              [
+                                                                privateGroupPrivateDiscussion,
+                                                                privateGroupLoggedinDiscussion,
+                                                                privateGroupPrivateDiscussion
+                                                              ],
+                                                              () => {
+                                                                // The GT tenant admin can only see the public stream for the public user.
+                                                                checkLibrary(
+                                                                  gtAdminRestCtx,
+                                                                  publicGroup.id,
+                                                                  true,
+                                                                  [publicGroupPublicDiscussion],
+                                                                  () => {
+                                                                    checkLibrary(
+                                                                      gtAdminRestCtx,
+                                                                      loggedinGroup.id,
+                                                                      false,
+                                                                      [],
+                                                                      () => {
+                                                                        checkLibrary(
+                                                                          gtAdminRestCtx,
+                                                                          privateGroup.id,
+                                                                          false,
+                                                                          [],
+                                                                          () => {
+                                                                            // If we make the cambridge user a member of the private group he should see everything.
+                                                                            let changes = {};
+                                                                            changes[anotherUser.user.id] = 'member';
+                                                                            RestAPI.Group.setGroupMembers(
+                                                                              groupCreator.restContext,
+                                                                              privateGroup.id,
+                                                                              changes,
+                                                                              err => {
+                                                                                assert.notExists(err);
+                                                                                checkLibrary(
+                                                                                  anotherUser.restContext,
+                                                                                  privateGroup.id,
+                                                                                  true,
+                                                                                  [
+                                                                                    privateGroupPrivateDiscussion,
+                                                                                    privateGroupLoggedinDiscussion,
+                                                                                    privateGroupPrivateDiscussion
+                                                                                  ],
+                                                                                  () => {
+                                                                                    // If we make the GT user a member of the private group, he should see everything.
+                                                                                    changes = {};
+                                                                                    changes[otherTenantUser.user.id] =
+                                                                                      'member';
+                                                                                    RestAPI.Group.setGroupMembers(
+                                                                                      groupCreator.restContext,
+                                                                                      privateGroup.id,
+                                                                                      changes,
+                                                                                      err => {
+                                                                                        assert.notExists(err);
+                                                                                        checkLibrary(
+                                                                                          otherTenantUser.restContext,
+                                                                                          privateGroup.id,
+                                                                                          true,
+                                                                                          [
+                                                                                            privateGroupPrivateDiscussion,
+                                                                                            privateGroupLoggedinDiscussion,
+                                                                                            privateGroupPrivateDiscussion
+                                                                                          ],
+                                                                                          callback
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
                                       });
-                                    }
-                                  );
-                                }
-                              );
-                            });
+                                    });
+                                  }
+                                );
+                              }
+                            );
                           });
                         });
                       });
                     });
                   });
-                }
-              );
-            }
-          );
-        }
-      );
+                });
+              }
+            );
+          }
+        );
+      });
     });
   });
 
@@ -592,8 +599,10 @@ describe('Discussion libraries', () => {
    * Test that verifies when user permissions are set on a discussion, the discussion is properly added into their library
    */
   it("verify setting permissions of discussion results in discussion showing up in the user's library", callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users, mrvisser, nicolaas) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: mrvisser, 1: nicolaas } = users;
 
       // Create a discussion as mrvisser
       RestAPI.Discussions.createDiscussion(
@@ -604,68 +613,60 @@ describe('Discussion libraries', () => {
         null,
         null,
         (err, discussion) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Seed mrvisser's and nicolaas' discussion libraries to ensure it does not get built from scratch
-          RestAPI.Discussions.getDiscussionsLibrary(
-            mrvisser.restContext,
-            mrvisser.user.id,
-            null,
-            null,
-            (err, result) => {
-              assert.ok(!err);
-              RestAPI.Discussions.getDiscussionsLibrary(
-                nicolaas.restContext,
-                nicolaas.user.id,
-                null,
-                null,
-                (err, result) => {
-                  assert.ok(!err);
+          RestAPI.Discussions.getDiscussionsLibrary(mrvisser.restContext, mrvisser.user.id, null, null, (
+            err /* , result */
+          ) => {
+            assert.notExists(err);
+            RestAPI.Discussions.getDiscussionsLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (
+              err /* , result */
+            ) => {
+              assert.notExists(err);
 
-                  // Make nicolaas a member of the discussion
-                  const memberUpdates = {};
-                  memberUpdates[nicolaas.user.id] = 'member';
-                  DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds(
-                    mrvisser.restContext,
-                    mrvisser.restContext,
-                    discussion.id,
-                    memberUpdates,
-                    err => {
-                      assert.ok(!err);
+              // Make nicolaas a member of the discussion
+              const memberUpdates = {};
+              memberUpdates[nicolaas.user.id] = 'member';
+              DiscussionsTestUtil.assertUpdateDiscussionMembersSucceeds(
+                mrvisser.restContext,
+                mrvisser.restContext,
+                discussion.id,
+                memberUpdates,
+                err => {
+                  assert.notExists(err);
 
-                      // Ensure the discussion is still in mrvisser's and nicolaas' discussion libraries
+                  // Ensure the discussion is still in mrvisser's and nicolaas' discussion libraries
+                  RestAPI.Discussions.getDiscussionsLibrary(
+                    mrvisser.restContext,
+                    mrvisser.user.id,
+                    null,
+                    null,
+                    (err, result) => {
+                      assert.notExists(err);
+                      const libraryEntry = result.results[0];
+                      assert.ok(libraryEntry);
+                      assert.strictEqual(libraryEntry.id, discussion.id);
+
                       RestAPI.Discussions.getDiscussionsLibrary(
-                        mrvisser.restContext,
-                        mrvisser.user.id,
+                        nicolaas.restContext,
+                        nicolaas.user.id,
                         null,
                         null,
                         (err, result) => {
-                          assert.ok(!err);
+                          assert.notExists(err);
                           const libraryEntry = result.results[0];
                           assert.ok(libraryEntry);
                           assert.strictEqual(libraryEntry.id, discussion.id);
-
-                          RestAPI.Discussions.getDiscussionsLibrary(
-                            nicolaas.restContext,
-                            nicolaas.user.id,
-                            null,
-                            null,
-                            (err, result) => {
-                              assert.ok(!err);
-                              const libraryEntry = result.results[0];
-                              assert.ok(libraryEntry);
-                              assert.strictEqual(libraryEntry.id, discussion.id);
-                              return callback();
-                            }
-                          );
+                          return callback();
                         }
                       );
                     }
                   );
                 }
               );
-            }
-          );
+            });
+          });
         }
       );
     });
@@ -690,11 +691,11 @@ describe('Discussion libraries', () => {
             // in the Authz table that points to nothing. The library re-indexer
             // should be able to deal with this
             DiscussionsDAO.deleteDiscussion(privateDiscussion.id, err => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Purge the library so that it has to be rebuild on the next request
               LibraryAPI.Index.purge('discussions:discussions', simong.user.id, err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // We should be able to rebuild the library on-the-fly. The private
                 // discussion item should not be returned as it has been removed

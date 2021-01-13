@@ -13,14 +13,23 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+/* eslint-disable camelcase */
+
+import { reject, isNil, pluck, path, mergeAll } from 'ramda';
 
 import * as OaeUtil from 'oae-util/lib/util';
 import * as SearchUtil from 'oae-search/lib/util';
+const { filterByResource, filterByInteractingTenants, buildQueryForEmail } = SearchUtil;
 import * as TenantsAPI from 'oae-tenants/lib/api';
 
 import { Validator as validator } from 'oae-util/lib/validator';
 const { isEmail, isLoggedInUser, unless } = validator;
+
+const MUST = 'must';
+const MUST_NOT = 'must_not';
+const outWithFalsy = reject(isNil);
+const collectMustConditions = pluck(MUST);
+const collectMustNotConditions = pluck(MUST_NOT);
 
 /**
  * A search that searches on an exact "email" match, scoping its results by the specified scope and
@@ -60,17 +69,35 @@ const queryBuilder = function(ctx, opts, callback) {
   // Ensure the email address being searched is lower case so it is case insensitive
   const email = opts.q.toLowerCase();
 
-  const filterResources = SearchUtil.filterResources(['user']);
-  const filterInteractingTenants = SearchUtil.filterInteractingTenants(ctx.user().tenant.alias);
+  /**
+   * When searching for users by email, we can ignore profile visibility in lieu of an email
+   * exact match. The user profile is still "scrubbed" of private information on its way out,
+   * however we enable the ability for a user to share with that profile if they know the email
+   * address
+   */
 
-  // When searching for users by email, we can ignore profile visibility in lieu of an email
-  // exact match. The user profile is still "scrubbed" of private information on its way out,
-  // however we enable the ability for a user to share with that profile if they know the email
-  // address
-  const query = SearchUtil.createEmailQuery(email);
-  const queryOpts = _.extend({}, opts, { minScore: 0 });
-  const filter = SearchUtil.filterAnd(filterResources, filterInteractingTenants);
-  return callback(null, SearchUtil.createQuery(query, filter, queryOpts));
+  /**
+   *  aux functions
+   */
+  const getTenantAlias = ctx => path(['tenant', 'alias'], ctx.user());
+
+  const musts = {
+    must: outWithFalsy(
+      collectMustConditions([filterByInteractingTenants(getTenantAlias(ctx)), buildQueryForEmail(email)])
+    )
+  };
+
+  const mustNots = {
+    must_not: outWithFalsy(collectMustNotConditions([filterByInteractingTenants(getTenantAlias(ctx))]))
+  };
+
+  const queryBody = {
+    query: {
+      bool: mergeAll([filterByResource(['user']), musts, mustNots])
+    }
+  };
+
+  return callback(null, queryBody);
 };
 
 /**

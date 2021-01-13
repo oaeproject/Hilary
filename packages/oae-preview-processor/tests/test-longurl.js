@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import nock from 'nock';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests/lib/util';
@@ -28,38 +27,13 @@ describe('Long url', () => {
   });
 
   /**
-   * Mock the HEAD requests the expander API will make
-   *
-   * @api private
-   */
-  const _mockRequests = function() {
-    // Ensure we can still perform regular HTTP requests during our tests
-    nock.enableNetConnect();
-
-    // The second request redirects to the full page
-    nock('https://youtu.be')
-      .get('/FYWLiGOBy1k')
-      .reply(301, 'OK', {
-        location: 'https://www.youtube.com/watch?v=FYWLiGOBy1k&feature=youtu.be'
-      });
-
-    // The third request does not redirect
-    nock('https://www.youtube.com')
-      .get('/watch?v=FYWLiGOBy1k&feature=youtu.be')
-      .reply(200, '<html>..</html>');
-  };
-
-  /**
    * Test that verifies that short URLs are expanded
    */
   it('verify it expands short URLs', callback => {
-    // Mock the HEAD requests
-    _mockRequests();
-
     RestAPI.Previews.expandUrl(anonymousCamRestContext, 'http://youtu.be/FYWLiGOBy1k', (err, data) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(data);
-      assert.strictEqual(data['long-url'], 'https://www.youtube.com/watch?v=FYWLiGOBy1k&feature=youtu.be');
+      assert.strictEqual(data['long-url'], 'https://youtu.be/FYWLiGOBy1k');
       return callback();
     });
   });

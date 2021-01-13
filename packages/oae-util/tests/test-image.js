@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import fs from 'fs';
 import Path from 'path';
 import sharp from 'sharp';
@@ -63,7 +63,7 @@ describe('Image', () => {
 
                 // Verify you can't crop outside the image
                 const path = Path.resolve(Path.join(__dirname, '/data/right.jpg'));
-                ImageUtil.cropImage(path, generateArea(10000, 10000, 10, 10), (err, file) => {
+                ImageUtil.cropImage(path, generateArea(10000, 10000, 10, 10), (err /* , file */) => {
                   assert.strictEqual(err.code, 500);
 
                   // Sanity check
@@ -75,7 +75,7 @@ describe('Image', () => {
                     assert.ok(file.name);
                     assert.ok(greaterThanZero(file.size));
                     sharp(file.path).metadata((err, metainfo) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                       assert.strictEqual(metainfo.width, 10);
                       assert.strictEqual(metainfo.height, 10);
 
@@ -135,7 +135,7 @@ describe('Image', () => {
     it('verify EXIF orientation is obeyed', callback => {
       const path = Path.resolve(Path.join(__dirname, '/data/right.jpg'));
       ImageUtil.autoOrient(path, null, (err, file) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(file);
         assert.ok(file.path);
         assert.ok(file.name);
@@ -143,7 +143,7 @@ describe('Image', () => {
 
         // The image should've been rotated and it's orientation should be fixed.
         sharp(file.path).metadata((err, metainfo) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(metainfo.width, 480);
           assert.strictEqual(metainfo.height, 640);
 
@@ -155,7 +155,7 @@ describe('Image', () => {
     });
   });
 
-  describe('#cropAndResize()', callback => {
+  describe('#cropAndResize()', () => {
     /**
      * Simple validation checks.
      */
@@ -221,7 +221,7 @@ describe('Image', () => {
                                         generateArea(10, 0, 10, 10),
                                         [generateSize(20, 20)],
                                         (err, files) => {
-                                          assert.ok(!err);
+                                          assert.notExists(err);
                                           assert.ok(files);
                                           assert.ok(files['20x20']);
                                           assert.ok(files['20x20'].path);
@@ -229,7 +229,7 @@ describe('Image', () => {
                                           assert.ok(files['20x20'].name);
                                           assert.ok(greaterThanZero(files['20x20'].size));
                                           sharp(files['20x20'].path).metadata((err, metainfo) => {
-                                            assert.ok(!err);
+                                            assert.notExists(err);
                                             assert.strictEqual(metainfo.width, 20);
                                             assert.strictEqual(metainfo.height, 20);
                                             callback();
@@ -284,16 +284,17 @@ describe('Image', () => {
     it('verify images get properly converted to JPG', callback => {
       const path = Path.resolve(Path.join(__dirname, '/../../oae-preview-processor/tests/data/image.gif'));
       ImageUtil.convertToJPG(path, (err, file) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(file);
 
         // Check it has really been converted to a JPG
         sharp(file.path).metadata((err, data) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(toUpper(data.format), 'JPEG');
 
           // Clean up the file
           fs.unlink(file.path, err => {
+            assert.notExists(err);
             return callback();
           });
         });

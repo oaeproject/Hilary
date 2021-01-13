@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import AuthzGraph from 'oae-authz/lib/internal/graph';
-
+import { assert } from 'chai';
 import _ from 'underscore';
+import { assoc } from 'ramda';
 import shortid from 'shortid';
 
+import AuthzGraph from 'oae-authz/lib/internal/graph';
 import * as TestsUtil from 'oae-tests/lib/util';
 import * as AuthzAPI from 'oae-authz';
-
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-
 import * as AuthzUtil from 'oae-authz/lib/util';
 
 describe('Authz Groups', () => {
@@ -36,11 +34,11 @@ describe('Authz Groups', () => {
    */
   const verifyNoBidirectionalGroupMembership = function(groupId, memberId, callback) {
     AuthzAPI.hasAnyRole(memberId, groupId, (err, hasRole) => {
-      assert.ok(!err);
-      assert.ok(!hasRole);
+      assert.notExists(err);
+      assert.isNotOk(hasRole);
 
       AuthzAPI.getAuthzMembers(groupId, undefined, undefined, (err, members) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(members);
         assert.ok(
           !_.find(members, member => {
@@ -64,12 +62,12 @@ describe('Authz Groups', () => {
    */
   const verifyBidirectionalGroupMembership = function(groupId, memberId, role, callback) {
     AuthzAPI.hasRole(memberId, groupId, role, (err, hasRole) => {
-      assert.ok(!err);
+      assert.notExists(err);
       assert.ok(hasRole);
 
       // Also verify from the group membership
       AuthzAPI.getAuthzMembers(groupId, undefined, undefined, (err, members) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(members);
         assert.ok(
           _.find(members, member => {
@@ -104,16 +102,16 @@ describe('Authz Groups', () => {
     const groupId5 = AuthzUtil.toId('g', 'ipm-order', '5');
     const userId = AuthzUtil.toId('u', 'ipm-order', 'mrvisser');
 
-    AuthzAPI.updateRoles(groupId5, _.oaeObj(userId, 'member'), err => {
-      assert.ok(!err);
-      AuthzAPI.updateRoles(groupId4, _.oaeObj(groupId5, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId4, 'member'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId3, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId1, _.oaeObj(groupId2, 'member'), err => {
-              assert.ok(!err);
+    AuthzAPI.updateRoles(groupId5, assoc(userId, 'member', {}), err => {
+      assert.notExists(err);
+      AuthzAPI.updateRoles(groupId4, assoc(groupId5, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId3, assoc(groupId4, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId2, assoc(groupId3, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId1, assoc(groupId2, 'member', {}), err => {
+              assert.notExists(err);
 
               return callback(userId, groupId1, groupId2, groupId3, groupId4, groupId5);
             });
@@ -127,11 +125,11 @@ describe('Authz Groups', () => {
     it('verify invalid group id error', callback => {
       AuthzAPI.updateRoles(
         'not a valid id',
-        _.oaeObj('u:cam:mrvisser', 'member'),
+        assoc('u:cam:mrvisser', 'member', {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -140,7 +138,7 @@ describe('Authz Groups', () => {
     it('verify non-group group id error', callback => {
       AuthzAPI.updateRoles(
         'u:cam:mrvisser',
-        _.oaeObj('u:cam:mrvisser', 'member'),
+        assoc('u:cam:mrvisser', 'member', {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
@@ -153,11 +151,11 @@ describe('Authz Groups', () => {
     it('verify invalid member id error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('not a valid id', 'member'),
+        assoc('not a valid id', 'member', {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -166,11 +164,11 @@ describe('Authz Groups', () => {
     it('verify non-principal member id error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('c:content:id', 'member'),
+        assoc('c:content:id', 'member', {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -179,11 +177,11 @@ describe('Authz Groups', () => {
     it('verify null role error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('u:cam:mrvisser', null),
+        assoc('u:cam:mrvisser', null, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -192,7 +190,7 @@ describe('Authz Groups', () => {
     it('verify undefined role error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('u:cam:mrvisser', undefined),
+        assoc('u:cam:mrvisser', undefined, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
@@ -205,8 +203,8 @@ describe('Authz Groups', () => {
     it('verify user gets added to group', callback => {
       const groupId = 'g:agm-add-user:oae-team';
       const memberId = 'u:agm-add-user:mrvisser';
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], memberId);
         return verifyBidirectionalGroupMembership(groupId, memberId, 'member', callback);
@@ -216,22 +214,22 @@ describe('Authz Groups', () => {
     it('verify update user membership role', callback => {
       const groupId = 'g:agm-update-user:oae-team';
       const memberId = 'u:agm-update-user:mrvisser';
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], memberId);
 
         verifyBidirectionalGroupMembership(groupId, memberId, 'member', () => {
-          AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'manager'), (err, usersInvalidated) => {
-            assert.ok(!err);
+          AuthzAPI.updateRoles(groupId, assoc(memberId, 'manager', {}), (err, usersInvalidated) => {
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 1);
             assert.strictEqual(usersInvalidated[0], memberId);
 
             verifyBidirectionalGroupMembership(groupId, memberId, 'manager', () => {
               // Also ensure that the number of members in the group is still 1
               AuthzAPI.getAuthzMembers(groupId, undefined, undefined, (err, members) => {
-                assert.ok(!err);
-                assert.strictEqual(members.length, 1);
+                assert.notExists(err);
+                assert.lengthOf(members, 1);
                 return callback();
               });
             });
@@ -243,19 +241,19 @@ describe('Authz Groups', () => {
     it('verify group gets added to group', callback => {
       const groupId = 'g:agm-add-group:oae-team';
       const memberId = 'g:agm-add-group:mrvisser';
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 0);
 
         // Verify membership exists VIA roles api (bottom-to-top association)
         AuthzAPI.hasRole(memberId, groupId, 'member', (err, hasRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasRole);
 
           // Verify membership exists VIA groups api (top-to-bottom association)
           AuthzAPI.getAuthzMembers(groupId, undefined, undefined, (err, members) => {
-            assert.ok(!err);
-            assert.strictEqual(members.length, 1);
+            assert.notExists(err);
+            assert.lengthOf(members, 1);
             return callback();
           });
         });
@@ -267,12 +265,12 @@ describe('Authz Groups', () => {
     it('verify invalid group id error', callback => {
       AuthzAPI.updateRoles(
         'not a valid id',
-        _.oaeObj('u:cam:mrvisser', false),
+        assoc('u:cam:mrvisser', false, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -281,11 +279,11 @@ describe('Authz Groups', () => {
     it('verify non-group group id error', callback => {
       AuthzAPI.updateRoles(
         'u:cam:mrvisser',
-        _.oaeObj('u:cam:mrvisser', false),
+        assoc('u:cam:mrvisser', false, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -294,11 +292,11 @@ describe('Authz Groups', () => {
     it('verify invalid member id error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('not a valid id', false),
+        assoc('not a valid id', false, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -307,11 +305,11 @@ describe('Authz Groups', () => {
     it('verify non-principal member id error', callback => {
       AuthzAPI.updateRoles(
         'g:oae:oae-team',
-        _.oaeObj('c:content:id', false),
+        assoc('c:content:id', false, {}),
         (err, usersInvalidated) => {
           assert.ok(err);
           assert.strictEqual(err.code, 400);
-          assert.ok(!usersInvalidated);
+          assert.isNotOk(usersInvalidated);
           return callback();
         }
       );
@@ -322,16 +320,16 @@ describe('Authz Groups', () => {
       const memberId = 'u:rgm-remove-user:mrvisser';
 
       // 1. add the user
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], memberId);
 
         // 2. sanity check the membership
         verifyBidirectionalGroupMembership(groupId, memberId, 'member', () => {
           // 3. remove the user
-          AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, false), (err, usersInvalidated) => {
-            assert.ok(!err);
+          AuthzAPI.updateRoles(groupId, assoc(memberId, false, {}), (err, usersInvalidated) => {
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 1);
             assert.strictEqual(usersInvalidated[0], memberId);
 
@@ -347,15 +345,15 @@ describe('Authz Groups', () => {
       const memberId = 'g:rgm-remove-user:mrvisser';
 
       // 1. add the group
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 0);
 
         // 2. sanity check group is added
         verifyBidirectionalGroupMembership(groupId, memberId, 'member', () => {
           // 3. remove the group
-          AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, false), (err, usersInvalidated) => {
-            assert.ok(!err);
+          AuthzAPI.updateRoles(groupId, assoc(memberId, false, {}), (err, usersInvalidated) => {
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 0);
 
             // 4. verify the user is removed
@@ -472,7 +470,7 @@ describe('Authz Groups', () => {
       changes[nicoId] = 'member';
 
       AuthzAPI.updateRoles(groupId, changes, (err, usersInvalidated) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 4);
 
         verifyBidirectionalGroupMembership(groupId, mrvisserId, 'member', () => {
@@ -486,7 +484,7 @@ describe('Authz Groups', () => {
                 changes[nicoId] = 'manager';
 
                 AuthzAPI.updateRoles(groupId, changes, (err, usersInvalidated) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.strictEqual(usersInvalidated.length, 4);
 
                   verifyBidirectionalGroupMembership(groupId, mrvisserId, 'manager', () => {
@@ -500,7 +498,7 @@ describe('Authz Groups', () => {
                           changes[nicoId] = false;
 
                           AuthzAPI.updateRoles(groupId, changes, (err, usersInvalidated) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.strictEqual(usersInvalidated.length, 4);
 
                             verifyNoBidirectionalGroupMembership(groupId, mrvisserId, () => {
@@ -554,10 +552,10 @@ describe('Authz Groups', () => {
     it('verify get user from group', callback => {
       const groupId = 'g:ggm-get:oae-team';
       const memberId = 'u:ggm-get:mrvisser';
-      AuthzAPI.updateRoles(groupId, _.oaeObj(memberId, 'member'), err => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(memberId, 'member', {}), err => {
+        assert.notExists(err);
         AuthzAPI.getAuthzMembers(groupId, undefined, undefined, (err, members) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(members);
           assert.strictEqual(members.length, 1);
           assert.strictEqual(members[0].id, memberId);
@@ -571,19 +569,19 @@ describe('Authz Groups', () => {
       const memberIds = TestsUtil.generateResourceIds(11, 'u', 'ggm-paging');
 
       const changes = {};
-      for (let i = 0; i < memberIds.length; i++) {
-        changes[memberIds[i]] = 'member';
+      for (const element of memberIds) {
+        changes[element] = 'member';
       }
 
       AuthzAPI.updateRoles(groupId, changes, err => {
-        assert.ok(!err);
+        assert.notExists(err);
         AuthzAPI.getAuthzMembers(groupId, undefined, 10, (err, members, nextToken) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.strictEqual(members.length, 10);
           assert.strictEqual(nextToken, members[9].id);
 
           AuthzAPI.getAuthzMembers(groupId, members[9].id, 10, (err, members, nextToken) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(members.length, 1);
             assert.ok(!nextToken);
             callback();
@@ -617,7 +615,7 @@ describe('Authz Groups', () => {
         start,
         limit,
         (err, groupIds, nextToken) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.deepStrictEqual(groupIds, expectedGroups);
           return callback(groupIds, nextToken);
         }
@@ -630,7 +628,7 @@ describe('Authz Groups', () => {
      * the correct nextToken
      */
     it('verify paging on freshly cached authz memberships indirect cache', callback => {
-      _setupMembershipChain((userId, groupId1, groupId2, groupId3, groupId4, groupId5) => {
+      _setupMembershipChain((userId, groupId1, groupId2, groupId3, groupId4 /* , groupId5 */) => {
         // Get 3 memberships for our user for the first time, ensuring we get the first 3 lexical groups
         assertIndirectMemberships(
           userId,
@@ -639,9 +637,15 @@ describe('Authz Groups', () => {
           [groupId1, groupId2, groupId3],
           (groupIds, nextToken) => {
             // Ensure subsequent request gets the last indirect group membership
-            assertIndirectMemberships(userId, nextToken, 3, [groupId4], (groupIds, nextToken) => {
-              return callback();
-            });
+            assertIndirectMemberships(
+              userId,
+              nextToken,
+              3,
+              [groupId4],
+              (/* groupIds, nextToken */) => {
+                return callback();
+              }
+            );
           }
         );
       });
@@ -658,21 +662,21 @@ describe('Authz Groups', () => {
           null,
           null,
           [groupId1, groupId2, groupId3, groupId4],
-          (groupIds, nextToken) => {
+          (/* groupIds, nextToken */) => {
             assertIndirectMemberships(
               groupId5,
               null,
               null,
               [groupId1, groupId2, groupId3],
-              (groupIds, nextToken) => {
+              (/* groupIds, nextToken */) => {
                 // Remove group4 as a member of group3. This will leave the user with
                 // only 1 indirect group membership (group4) and group5 with 0 indirect memberships
                 AuthzAPI.updateRoles(
                   groupId3,
-                  _.oaeObj(groupId4, false),
+                  assoc(groupId4, false, {}),
                   (err, usersInvalidated) => {
-                    assert.ok(!err);
-                    assert.strictEqual(usersInvalidated.length, 1);
+                    assert.notExists(err);
+                    assert.lengthOf(usersInvalidated, 1);
                     assert.strictEqual(usersInvalidated[0], userId);
 
                     // Get all the indirect memberships for the user, he should only be an indirect member of group4
@@ -681,21 +685,21 @@ describe('Authz Groups', () => {
                       null,
                       null,
                       [groupId4],
-                      (groupIds, nextToken) => {
+                      (/* groupIds, nextToken */) => {
                         // Get all the indirect memberships for group5, it should have no indirect memberships
                         assertIndirectMemberships(
                           groupId5,
                           null,
                           null,
                           [],
-                          (groupIds, nextToken) => {
+                          (/* groupIds, nextToken */) => {
                             // Restore the link between group3 and group4
                             AuthzAPI.updateRoles(
                               groupId3,
-                              _.oaeObj(groupId4, 'member'),
+                              assoc(groupId4, 'member', {}),
                               (err, usersInvalidated) => {
-                                assert.ok(!err);
-                                assert.strictEqual(usersInvalidated.length, 1);
+                                assert.notExists(err);
+                                assert.lengthOf(usersInvalidated, 1);
                                 assert.strictEqual(usersInvalidated[0], userId);
 
                                 // Get all the indirect memberships for the user, he should be an indirect member of all 4 groups again
@@ -704,14 +708,14 @@ describe('Authz Groups', () => {
                                   null,
                                   null,
                                   [groupId1, groupId2, groupId3, groupId4],
-                                  (groupIds, nextToken) => {
+                                  (/* groupIds, nextToken */) => {
                                     // Get all the indrect memberships for group5, it should be an indirect member of group 1, 2 and 3
                                     assertIndirectMemberships(
                                       groupId5,
                                       null,
                                       null,
                                       [groupId1, groupId2, groupId3],
-                                      (groupIds, nextToken) => {
+                                      (/* groupIds, nextToken */) => {
                                         return callback();
                                       }
                                     );
@@ -760,7 +764,7 @@ describe('Authz Groups', () => {
     it('verify empty membership is an empty array', callback => {
       const userId = AuthzUtil.toId('u', 'ipm-empty', 'mrvisser');
       AuthzAPI.getIndirectPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(groupIds);
         assert.strictEqual(groupIds.length, 0);
         return callback();
@@ -774,14 +778,14 @@ describe('Authz Groups', () => {
     it('verify single group membership results in empty indirect membership', callback => {
       const groupId = AuthzUtil.toId('g', 'ipm-single', 'oae-team');
       const userId = AuthzUtil.toId('u', 'ipm-single', 'mrvisser');
-      AuthzAPI.updateRoles(groupId, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
         // Get the indirect memberships uncached
         AuthzAPI.getIndirectPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(groupIds);
           assert.strictEqual(groupIds.length, 0);
 
@@ -791,7 +795,7 @@ describe('Authz Groups', () => {
             undefined,
             undefined,
             (err, groupIds) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(groupIds);
               assert.strictEqual(groupIds.length, 0);
               return callback();
@@ -808,13 +812,13 @@ describe('Authz Groups', () => {
       const groupId1 = AuthzUtil.toId('g', 'ipm-two', 'oae-team');
       const groupId2 = AuthzUtil.toId('g', 'ipm-two', 'oae-backend-team');
       const userId = AuthzUtil.toId('u', 'ipm-two', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-          assert.ok(!err);
+        AuthzAPI.updateRoles(groupId2, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+          assert.notExists(err);
           assert.strictEqual(usersInvalidated.length, 1);
           assert.strictEqual(usersInvalidated[0], userId);
 
@@ -824,7 +828,7 @@ describe('Authz Groups', () => {
             undefined,
             undefined,
             (err, groupIds) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(groupIds);
               assert.strictEqual(groupIds.length, 0);
 
@@ -834,7 +838,7 @@ describe('Authz Groups', () => {
                 undefined,
                 undefined,
                 (err, groupIds) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(groupIds);
                   assert.strictEqual(groupIds.length, 0);
                   return callback();
@@ -854,24 +858,24 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'ipm-hier', 'oae-backend-team');
       const nonMemberGroupId3 = AuthzUtil.toId('g', 'ipm-hier', 'non-member');
       const userId = AuthzUtil.toId('u', 'ipm-hier', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
-        assert.strictEqual(usersInvalidated.length, 1);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
+        assert.lengthOf(usersInvalidated, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
         AuthzAPI.updateRoles(
           groupId1,
-          _.oaeObj(nonMemberGroupId3, 'member'),
+          assoc(nonMemberGroupId3, 'member', {}),
           (err, usersInvalidated) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 0);
 
             AuthzAPI.updateRoles(
               groupId2,
-              _.oaeObj(groupId1, 'member'),
+              assoc(groupId1, 'member', {}),
               (err, usersInvalidated) => {
-                assert.ok(!err);
-                assert.strictEqual(usersInvalidated.length, 1);
+                assert.notExists(err);
+                assert.lengthOf(usersInvalidated, 1);
                 assert.strictEqual(usersInvalidated[0], userId);
 
                 // Get the indirect memberships uncached
@@ -880,9 +884,9 @@ describe('Authz Groups', () => {
                   undefined,
                   undefined,
                   (err, groupIds) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(groupIds);
-                    assert.strictEqual(groupIds.length, 1);
+                    assert.lengthOf(groupIds, 1);
                     assert.strictEqual(groupIds[0], groupId2);
 
                     // Get the indirect memberships cached
@@ -891,9 +895,9 @@ describe('Authz Groups', () => {
                       undefined,
                       undefined,
                       (err, groupIds) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.ok(groupIds);
-                        assert.strictEqual(groupIds.length, 1);
+                        assert.lengthOf(groupIds, 1);
                         assert.strictEqual(groupIds[0], groupId2);
                         return callback();
                       }
@@ -915,24 +919,24 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'ipm-circ', 'oae-backend-team');
       const groupId3 = AuthzUtil.toId('g', 'ipm-circ', 'oae-ui-team');
       const userId = AuthzUtil.toId('u', 'ipm-circ', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), (err, usersInvalidated) => {
-          assert.ok(!err);
+        AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), (err, usersInvalidated) => {
+          assert.notExists(err);
           assert.strictEqual(usersInvalidated.length, 1);
           assert.strictEqual(usersInvalidated[0], userId);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId2, 'member'), (err, usersInvalidated) => {
-            assert.ok(!err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId2, 'member', {}), (err, usersInvalidated) => {
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 1);
             assert.strictEqual(usersInvalidated[0], userId);
             AuthzAPI.updateRoles(
               groupId1,
-              _.oaeObj(groupId3, 'member'),
+              assoc(groupId3, 'member', {}),
               (err, usersInvalidated) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(usersInvalidated.length, 1);
                 assert.strictEqual(usersInvalidated[0], userId);
 
@@ -942,7 +946,7 @@ describe('Authz Groups', () => {
                   undefined,
                   undefined,
                   (err, groupIds) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(groupIds);
 
                     // The indirect memberships does not contain groupId1 because, while the user is indirectly
@@ -958,7 +962,7 @@ describe('Authz Groups', () => {
                       undefined,
                       undefined,
                       (err, groupIds) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.ok(groupIds);
                         assert.strictEqual(groupIds.length, 2);
                         assert.ok(_.contains(groupIds, groupId2));
@@ -989,20 +993,20 @@ describe('Authz Groups', () => {
       const userId = AuthzUtil.toId('u', 'ipm-pag', 'mrvisser');
 
       // Make an indirect membership chain
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'manager'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId1, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId4, _.oaeObj(groupId1, 'member'), err => {
-              assert.ok(!err);
-              AuthzAPI.updateRoles(groupId5, _.oaeObj(groupId1, 'manager'), err => {
-                assert.ok(!err);
-                AuthzAPI.updateRoles(groupId6, _.oaeObj(groupId1, 'member'), err => {
-                  assert.ok(!err);
-                  AuthzAPI.updateRoles(groupId7, _.oaeObj(groupId1, 'manager'), err => {
-                    assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'manager', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId1, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId4, assoc(groupId1, 'member', {}), err => {
+              assert.notExists(err);
+              AuthzAPI.updateRoles(groupId5, assoc(groupId1, 'manager', {}), err => {
+                assert.notExists(err);
+                AuthzAPI.updateRoles(groupId6, assoc(groupId1, 'member', {}), err => {
+                  assert.notExists(err);
+                  AuthzAPI.updateRoles(groupId7, assoc(groupId1, 'manager', {}), err => {
+                    assert.notExists(err);
 
                     // Get the paged indirect memberships uncached
                     AuthzAPI.getIndirectPrincipalMemberships(
@@ -1010,7 +1014,7 @@ describe('Authz Groups', () => {
                       groupId3,
                       3,
                       (err, groupIds, nextToken) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.ok(groupIds);
                         assert.strictEqual(groupIds.length, 3);
                         assert.ok(_.contains(groupIds, groupId4));
@@ -1024,7 +1028,7 @@ describe('Authz Groups', () => {
                           groupId3,
                           3,
                           (err, groupIds, nextToken) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.ok(groupIds);
                             assert.strictEqual(groupIds.length, 3);
                             assert.ok(_.contains(groupIds, groupId4));
@@ -1058,7 +1062,7 @@ describe('Authz Groups', () => {
      */
     const _assertAllIndirectMembershipsEquals = function(principalId, expectedGroupIds, callback) {
       AuthzAPI.getAllIndirectPrincipalMemberships(principalId, (err, groupIds) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.deepStrictEqual(groupIds.sort(), expectedGroupIds.slice().sort());
         return callback();
       });
@@ -1077,48 +1081,52 @@ describe('Authz Groups', () => {
             _assertAllIndirectMembershipsEquals(groupId5, [groupId1, groupId2, groupId3], () => {
               // Remove group4 as a member of group3. This will leave the user with only 1
               // indirect group membership (group4) and group5 with 0 indirect memberships
-              AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId4, false), (err, usersInvalidated) => {
-                assert.ok(!err);
-                assert.strictEqual(usersInvalidated.length, 1);
-                assert.strictEqual(usersInvalidated[0], userId);
+              AuthzAPI.updateRoles(
+                groupId3,
+                assoc(groupId4, false, {}),
+                (err, usersInvalidated) => {
+                  assert.notExists(err);
+                  assert.strictEqual(usersInvalidated.length, 1);
+                  assert.strictEqual(usersInvalidated[0], userId);
 
-                // Get all the indirect memberships for the user, he should only be an
-                // indirect member of group4
-                _assertAllIndirectMembershipsEquals(userId, [groupId4], () => {
-                  // Get all the indirect memberships for group5, it should have no
-                  // indirect memberships
-                  _assertAllIndirectMembershipsEquals(groupId5, [], () => {
-                    // Restore the link between group3 and group4
-                    AuthzAPI.updateRoles(
-                      groupId3,
-                      _.oaeObj(groupId4, 'member'),
-                      (err, usersInvalidated) => {
-                        assert.ok(!err);
-                        assert.strictEqual(usersInvalidated.length, 1);
-                        assert.strictEqual(usersInvalidated[0], userId);
+                  // Get all the indirect memberships for the user, he should only be an
+                  // indirect member of group4
+                  _assertAllIndirectMembershipsEquals(userId, [groupId4], () => {
+                    // Get all the indirect memberships for group5, it should have no
+                    // indirect memberships
+                    _assertAllIndirectMembershipsEquals(groupId5, [], () => {
+                      // Restore the link between group3 and group4
+                      AuthzAPI.updateRoles(
+                        groupId3,
+                        assoc(groupId4, 'member', {}),
+                        (err, usersInvalidated) => {
+                          assert.notExists(err);
+                          assert.strictEqual(usersInvalidated.length, 1);
+                          assert.strictEqual(usersInvalidated[0], userId);
 
-                        // Get all the indirect memberships for the user, he should
-                        // be an indirect member of all 4 groups again
-                        _assertAllIndirectMembershipsEquals(
-                          userId,
-                          [groupId1, groupId2, groupId3, groupId4],
-                          () => {
-                            // Get all the indrect memberships for group5, it should
-                            // be an indirect member of group 1, 2 and 3
-                            _assertAllIndirectMembershipsEquals(
-                              groupId5,
-                              [groupId1, groupId2, groupId3],
-                              () => {
-                                return callback();
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
+                          // Get all the indirect memberships for the user, he should
+                          // be an indirect member of all 4 groups again
+                          _assertAllIndirectMembershipsEquals(
+                            userId,
+                            [groupId1, groupId2, groupId3, groupId4],
+                            () => {
+                              // Get all the indrect memberships for group5, it should
+                              // be an indirect member of group 1, 2 and 3
+                              _assertAllIndirectMembershipsEquals(
+                                groupId5,
+                                [groupId1, groupId2, groupId3],
+                                () => {
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    });
                   });
-                });
-              });
+                }
+              );
             });
           }
         );
@@ -1153,7 +1161,7 @@ describe('Authz Groups', () => {
     it('verify empty membership is an empty array', callback => {
       const userId = AuthzUtil.toId('u', 'ipm-empty', 'mrvisser');
       AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(groupIds);
         assert.strictEqual(groupIds.length, 0);
         return callback();
@@ -1167,20 +1175,20 @@ describe('Authz Groups', () => {
     it('verify single group membership results in empty indirect membership', callback => {
       const groupId = AuthzUtil.toId('g', 'ipm-single', 'oae-team');
       const userId = AuthzUtil.toId('u', 'ipm-single', 'mrvisser');
-      AuthzAPI.updateRoles(groupId, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
         // Get the indirect memberships uncached
         AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(groupIds);
           assert.strictEqual(groupIds.length, 0);
 
           // Get the indirect memberships cached
           AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(groupIds);
             assert.strictEqual(groupIds.length, 0);
             return callback();
@@ -1196,25 +1204,25 @@ describe('Authz Groups', () => {
       const groupId1 = AuthzUtil.toId('g', 'ipm-two', 'oae-team');
       const groupId2 = AuthzUtil.toId('g', 'ipm-two', 'oae-backend-team');
       const userId = AuthzUtil.toId('u', 'ipm-two', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-          assert.ok(!err);
+        AuthzAPI.updateRoles(groupId2, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+          assert.notExists(err);
           assert.strictEqual(usersInvalidated.length, 1);
           assert.strictEqual(usersInvalidated[0], userId);
 
           // Get the memberships uncached
           AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(groupIds);
             assert.strictEqual(groupIds.length, 0);
 
             // Get the memberships cached
             AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(groupIds);
               assert.strictEqual(groupIds.length, 0);
               return callback();
@@ -1232,36 +1240,36 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'ipm-hier', 'oae-backend-team');
       const nonMemberGroupId3 = AuthzUtil.toId('g', 'ipm-hier', 'non-member');
       const userId = AuthzUtil.toId('u', 'ipm-hier', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
-        assert.strictEqual(usersInvalidated.length, 1);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
+        assert.lengthOf(usersInvalidated, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
         AuthzAPI.updateRoles(
           groupId1,
-          _.oaeObj(nonMemberGroupId3, 'member'),
+          assoc(nonMemberGroupId3, 'member', {}),
           (err, usersInvalidated) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 0);
 
             AuthzAPI.updateRoles(
               groupId2,
-              _.oaeObj(groupId1, 'member'),
+              assoc(groupId1, 'member', {}),
               (err, usersInvalidated) => {
-                assert.ok(!err);
-                assert.strictEqual(usersInvalidated.length, 1);
+                assert.notExists(err);
+                assert.lengthOf(usersInvalidated, 1);
                 assert.strictEqual(usersInvalidated[0], userId);
 
                 // Get the indirect memberships uncached
                 AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(groupIds);
                   assert.strictEqual(groupIds.length, 1);
                   assert.strictEqual(groupIds[0], groupId2);
 
                   // Get the indirect memberships cached
                   AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(groupIds);
                     assert.strictEqual(groupIds.length, 1);
                     assert.strictEqual(groupIds[0], groupId2);
@@ -1283,30 +1291,30 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'ipm-circ', 'oae-backend-team');
       const groupId3 = AuthzUtil.toId('g', 'ipm-circ', 'oae-ui-team');
       const userId = AuthzUtil.toId('u', 'ipm-circ', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), (err, usersInvalidated) => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), (err, usersInvalidated) => {
+        assert.notExists(err);
         assert.strictEqual(usersInvalidated.length, 1);
         assert.strictEqual(usersInvalidated[0], userId);
 
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), (err, usersInvalidated) => {
-          assert.ok(!err);
+        AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), (err, usersInvalidated) => {
+          assert.notExists(err);
           assert.strictEqual(usersInvalidated.length, 1);
           assert.strictEqual(usersInvalidated[0], userId);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId2, 'member'), (err, usersInvalidated) => {
-            assert.ok(!err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId2, 'member', {}), (err, usersInvalidated) => {
+            assert.notExists(err);
             assert.strictEqual(usersInvalidated.length, 1);
             assert.strictEqual(usersInvalidated[0], userId);
             AuthzAPI.updateRoles(
               groupId1,
-              _.oaeObj(groupId3, 'member'),
+              assoc(groupId3, 'member', {}),
               (err, usersInvalidated) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.strictEqual(usersInvalidated.length, 1);
                 assert.strictEqual(usersInvalidated[0], userId);
 
                 // Get the indirect memberships uncached
                 AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(groupIds);
 
                   // The indirect memberships does not contain groupId1 because, while the user is indirectly
@@ -1318,7 +1326,7 @@ describe('Authz Groups', () => {
 
                   // Get the indirect memberships cached
                   AuthzAPI.getAllIndirectPrincipalMemberships(userId, (err, groupIds) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(groupIds);
                     assert.strictEqual(groupIds.length, 2);
                     assert.ok(_.contains(groupIds, groupId2));
@@ -1380,12 +1388,12 @@ describe('Authz Groups', () => {
     it('verify group with no members results in single node graph', callback => {
       TestsUtil.generateResourceIds(3, 'g', 'oae', (groupId1, groupId2, groupId3) => {
         // Test empty members graph for a single group
-        AuthzTestUtil.assertAuthzMembersGraphIdsEqual([groupId1], [[groupId1]], graph => {
+        AuthzTestUtil.assertAuthzMembersGraphIdsEqual([groupId1], [[groupId1]], (/* graph */) => {
           // Test empty members graph for multiple groups
           AuthzTestUtil.assertAuthzMembersGraphIdsEqual(
             [groupId3, groupId2, groupId1],
             [[groupId3], [groupId2], [groupId1]],
-            graph => {
+            (/* graph */) => {
               return callback();
             }
           );
@@ -1401,21 +1409,21 @@ describe('Authz Groups', () => {
       TestsUtil.generateResourceIds(1, 'u', 'oae', userId => {
         TestsUtil.generateResourceIds(4, 'g', 'oae', (groupId1, groupId2, groupId3, groupId4) => {
           // The user is a member of Group1 and Group2
-          AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'manager'), err => {
-              assert.ok(!err);
+          AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId2, assoc(userId, 'manager', {}), err => {
+              assert.notExists(err);
 
               // Group1 and Group2 are both members of Group3
               const change = {};
               change[groupId1] = 'manager';
               change[groupId2] = 'member';
               AuthzAPI.updateRoles(groupId3, change, err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Group3 is a member of Group4
-                AuthzAPI.updateRoles(groupId4, _.oaeObj(groupId3, 'member'), err => {
-                  assert.ok(!err);
+                AuthzAPI.updateRoles(groupId4, assoc(groupId3, 'member', {}), err => {
+                  assert.notExists(err);
 
                   // Verify all the members edges exist and have the expected role for a single group
                   AuthzTestUtil.assertAuthzMembersGraphIdsEqual(
@@ -1431,7 +1439,10 @@ describe('Authz Groups', () => {
                       // Verify all the members edges exist and have the expected role for multiple groups
                       AuthzTestUtil.assertAuthzMembersGraphIdsEqual(
                         [groupId4, groupId1],
-                        [[userId, groupId1, groupId2, groupId3, groupId4], [userId, groupId1]],
+                        [
+                          [userId, groupId1, groupId2, groupId3, groupId4],
+                          [userId, groupId1]
+                        ],
                         graph => {
                           assert.strictEqual(graph.getEdge(userId, groupId1).role, 'member');
                           assert.strictEqual(graph.getEdge(userId, groupId2).role, 'manager');
@@ -1460,7 +1471,7 @@ describe('Authz Groups', () => {
      */
     it('verify group with no memberships results in single node graph', callback => {
       TestsUtil.generateResourceIds(1, 'g', 'oae', groupId => {
-        AuthzTestUtil.assertPrincipalMembershipsGraphIdsEqual(groupId, [groupId], graph => {
+        AuthzTestUtil.assertPrincipalMembershipsGraphIdsEqual(groupId, [groupId], (/* graph */) => {
           return callback();
         });
       });
@@ -1474,21 +1485,21 @@ describe('Authz Groups', () => {
       TestsUtil.generateResourceIds(1, 'u', 'oae', userId => {
         TestsUtil.generateResourceIds(4, 'g', 'oae', (groupId1, groupId2, groupId3, groupId4) => {
           // Group0 is a member of Group1 and Group2
-          AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'manager'), err => {
-              assert.ok(!err);
+          AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId2, assoc(userId, 'manager', {}), err => {
+              assert.notExists(err);
 
               // Group1 and Group2 are both members of Group3
               const change = {};
               change[groupId1] = 'manager';
               change[groupId2] = 'member';
               AuthzAPI.updateRoles(groupId3, change, err => {
-                assert.ok(!err);
+                assert.notExists(err);
 
                 // Group3 is a member of Group4
-                AuthzAPI.updateRoles(groupId4, _.oaeObj(groupId3, 'member'), err => {
-                  assert.ok(!err);
+                AuthzAPI.updateRoles(groupId4, assoc(groupId3, 'member', {}), err => {
+                  assert.notExists(err);
 
                   // Verify all the memberships edges exist and have the expected role. This request rebuilds the memberships graph cache on the fly
                   AuthzTestUtil.assertPrincipalMembershipsGraphIdsEqual(
@@ -1547,38 +1558,36 @@ describe('Authz Groups', () => {
 
       // Create a reverse membership chain, ensuring that the latest lexical group is closer
       // to the user in membership, and the closest lexical group is the furthest away
-      AuthzAPI.updateRoles(groupId5, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId4, _.oaeObj(groupId5, 'member'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId4, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId3, 'member'), err => {
-              assert.ok(!err);
-              AuthzAPI.updateRoles(groupId1, _.oaeObj(groupId2, 'member'), err => {
-                assert.ok(!err);
+      AuthzAPI.updateRoles(groupId5, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId4, assoc(groupId5, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId4, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId2, assoc(groupId3, 'member', {}), err => {
+              assert.notExists(err);
+              AuthzAPI.updateRoles(groupId1, assoc(groupId2, 'member', {}), err => {
+                assert.notExists(err);
 
                 // Get 3 membership for mrvisser for the first time, ensuring we get the first 3 lexical groups
                 AuthzAPI.getPrincipalMemberships(userId, null, 3, (err, groupIds, nextToken) => {
-                  assert.ok(!err);
-                  assert.strictEqual(groupIds.length, 3);
+                  assert.notExists(err);
+                  assert.lengthOf(groupIds, 3);
                   assert.strictEqual(groupIds[0], groupId1);
                   assert.strictEqual(groupIds[1], groupId2);
                   assert.strictEqual(groupIds[2], groupId3);
 
                   // Ensure subsequent request gets the next 2
-                  AuthzAPI.getPrincipalMemberships(
-                    userId,
-                    nextToken,
-                    3,
-                    (err, groupIds, nextToken) => {
-                      assert.ok(!err);
-                      assert.strictEqual(groupIds.length, 2);
-                      assert.strictEqual(groupIds[0], groupId4);
-                      assert.strictEqual(groupIds[1], groupId5);
-                      return callback();
-                    }
-                  );
+                  AuthzAPI.getPrincipalMemberships(userId, nextToken, 3, (
+                    err,
+                    groupIds /* , nextToken */
+                  ) => {
+                    assert.notExists(err);
+                    assert.lengthOf(groupIds, 2);
+                    assert.strictEqual(groupIds[0], groupId4);
+                    assert.strictEqual(groupIds[1], groupId5);
+                    return callback();
+                  });
                 });
               });
             });
@@ -1606,7 +1615,7 @@ describe('Authz Groups', () => {
     it('verify empty membership is empty array', callback => {
       const userId = AuthzUtil.toId('u', 'gmo-empty', 'mrvisser');
       AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(groupIds);
         assert.strictEqual(groupIds.length, 0);
         callback();
@@ -1616,19 +1625,19 @@ describe('Authz Groups', () => {
     it('verify single group membership', callback => {
       const groupId = AuthzUtil.toId('g', 'gmo-single', 'oae-team');
       const userId = AuthzUtil.toId('u', 'gmo-single', 'mrvisser');
-      AuthzAPI.updateRoles(groupId, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
 
         // Get the memberships uncached
         AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(groupIds);
           assert.strictEqual(groupIds.length, 1);
           assert.strictEqual(groupIds[0], groupId);
 
           // Get the memberships cached
           AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(groupIds);
             assert.strictEqual(groupIds.length, 1);
             assert.strictEqual(groupIds[0], groupId);
@@ -1642,26 +1651,26 @@ describe('Authz Groups', () => {
       const groupId1 = AuthzUtil.toId('g', 'gmo-two', 'oae-team');
       const groupId2 = AuthzUtil.toId('g', 'gmo-two', 'oae-backend-team');
       const userId = AuthzUtil.toId('u', 'gmo-two', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'member'), err => {
-          assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(userId, 'member', {}), err => {
+          assert.notExists(err);
 
           // Get the memberships uncached
           AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(groupIds);
-            assert.strictEqual(groupIds.length, 2);
-            assert.ok(_.contains(groupIds, groupId1));
-            assert.ok(_.contains(groupIds, groupId2));
+            assert.lengthOf(groupIds, 2);
+            assert.include(groupIds, groupId1);
+            assert.include(groupIds, groupId2);
 
             // Get the memberships cached
             AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(groupIds);
-              assert.strictEqual(groupIds.length, 2);
-              assert.ok(_.contains(groupIds, groupId1));
-              assert.ok(_.contains(groupIds, groupId2));
+              assert.lengthOf(groupIds, 2);
+              assert.include(groupIds, groupId1);
+              assert.include(groupIds, groupId2);
               callback();
             });
           });
@@ -1674,16 +1683,16 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'gmo-hier', 'oae-backend-team');
       const nonMemberGroupId3 = AuthzUtil.toId('g', 'gmo-hier', 'non-member');
       const userId = AuthzUtil.toId('u', 'gmo-hier', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId1, _.oaeObj(nonMemberGroupId3, 'member'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), err => {
-            assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId1, assoc(nonMemberGroupId3, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), err => {
+            assert.notExists(err);
 
             // Get the memberships uncached
             AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(groupIds);
               assert.strictEqual(groupIds.length, 2);
               assert.ok(_.contains(groupIds, groupId1));
@@ -1691,7 +1700,7 @@ describe('Authz Groups', () => {
 
               // Get the memberships cached
               AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(groupIds);
                 assert.strictEqual(groupIds.length, 2);
                 assert.ok(_.contains(groupIds, groupId1));
@@ -1709,18 +1718,18 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'gmo-circ', 'oae-backend-team');
       const groupId3 = AuthzUtil.toId('g', 'gmo-circ', 'oae-ui-team');
       const userId = AuthzUtil.toId('u', 'gmo-circ', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId2, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId1, _.oaeObj(groupId3, 'member'), err => {
-              assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId2, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId1, assoc(groupId3, 'member', {}), err => {
+              assert.notExists(err);
 
               // Get the memberships uncached
               AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(groupIds);
                 assert.strictEqual(groupIds.length, 3);
                 assert.ok(_.contains(groupIds, groupId1));
@@ -1729,7 +1738,7 @@ describe('Authz Groups', () => {
 
                 // Get the memberships cached
                 AuthzAPI.getPrincipalMemberships(userId, undefined, undefined, (err, groupIds) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(groupIds);
                   assert.strictEqual(groupIds.length, 3);
                   assert.ok(_.contains(groupIds, groupId1));
@@ -1758,20 +1767,20 @@ describe('Authz Groups', () => {
       const userId = AuthzUtil.toId('u', 'gmo-pag', 'mrvisser');
 
       // Make him a member of all groups
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'manager'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(userId, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId4, _.oaeObj(userId, 'member'), err => {
-              assert.ok(!err);
-              AuthzAPI.updateRoles(groupId5, _.oaeObj(userId, 'manager'), err => {
-                assert.ok(!err);
-                AuthzAPI.updateRoles(groupId6, _.oaeObj(userId, 'member'), err => {
-                  assert.ok(!err);
-                  AuthzAPI.updateRoles(groupId7, _.oaeObj(userId, 'manager'), err => {
-                    assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(userId, 'manager', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId3, assoc(userId, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId4, assoc(userId, 'member', {}), err => {
+              assert.notExists(err);
+              AuthzAPI.updateRoles(groupId5, assoc(userId, 'manager', {}), err => {
+                assert.notExists(err);
+                AuthzAPI.updateRoles(groupId6, assoc(userId, 'member', {}), err => {
+                  assert.notExists(err);
+                  AuthzAPI.updateRoles(groupId7, assoc(userId, 'manager', {}), err => {
+                    assert.notExists(err);
 
                     // Get the paged memberships uncached
                     AuthzAPI.getPrincipalMemberships(
@@ -1779,7 +1788,7 @@ describe('Authz Groups', () => {
                       groupId3,
                       3,
                       (err, groupIds, nextToken) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.ok(groupIds);
                         assert.strictEqual(groupIds.length, 3);
                         assert.ok(_.contains(groupIds, groupId4));
@@ -1793,7 +1802,7 @@ describe('Authz Groups', () => {
                           groupId3,
                           3,
                           (err, groupIds, nextToken) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.ok(groupIds);
                             assert.strictEqual(groupIds.length, 3);
                             assert.ok(_.contains(groupIds, groupId4));
@@ -1851,7 +1860,7 @@ describe('Authz Groups', () => {
     it('verify empty membership', callback => {
       const userId = AuthzUtil.toId('u', 'imo-empty', 'mrvisser');
       AuthzAPI.hasAnyRole(userId, 'g:oae:oae-team', (err, hasAnyRole) => {
-        assert.ok(!err);
+        assert.notExists(err);
         assert.ok(!hasAnyRole);
         callback();
       });
@@ -1860,10 +1869,10 @@ describe('Authz Groups', () => {
     it('verify single group membership', callback => {
       const groupId = AuthzUtil.toId('g', 'imo-single', 'oae-team');
       const userId = AuthzUtil.toId('u', 'imo-single', 'mrvisser');
-      AuthzAPI.updateRoles(groupId, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
+      AuthzAPI.updateRoles(groupId, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
         AuthzAPI.hasAnyRole(userId, groupId, (err, hasAnyRole) => {
-          assert.ok(!err);
+          assert.notExists(err);
           assert.ok(hasAnyRole);
           callback();
         });
@@ -1874,15 +1883,15 @@ describe('Authz Groups', () => {
       const groupId1 = AuthzUtil.toId('g', 'imo-two', 'oae-team');
       const groupId2 = AuthzUtil.toId('g', 'imo-two', 'oae-backend-team');
       const userId = AuthzUtil.toId('u', 'imo-two', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(userId, 'member'), err => {
-          assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(userId, 'member', {}), err => {
+          assert.notExists(err);
           AuthzAPI.hasAnyRole(userId, groupId1, (err, hasAnyRole) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.ok(hasAnyRole);
             AuthzAPI.hasAnyRole(userId, groupId2, (err, hasAnyRole) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(hasAnyRole);
               callback();
             });
@@ -1896,19 +1905,20 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'gmo-hier', 'oae-backend-team');
       const nonMemberGroupId3 = AuthzUtil.toId('g', 'gmo-hier', 'non-member');
       const userId = AuthzUtil.toId('u', 'gmo-hier', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId1, _.oaeObj(nonMemberGroupId3, 'member'), err => {
-          AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), err => {
-            assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId1, assoc(nonMemberGroupId3, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), err => {
+            assert.notExists(err);
             AuthzAPI.hasAnyRole(userId, groupId1, (err, hasAnyRole) => {
-              assert.ok(!err);
+              assert.notExists(err);
               assert.ok(hasAnyRole);
               AuthzAPI.hasAnyRole(userId, groupId2, (err, hasAnyRole) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(hasAnyRole);
                 AuthzAPI.hasAnyRole(userId, nonMemberGroupId3, (err, hasAnyRole) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(!hasAnyRole);
                   callback();
                 });
@@ -1924,22 +1934,22 @@ describe('Authz Groups', () => {
       const groupId2 = AuthzUtil.toId('g', 'gmo-circ', 'oae-backend-team');
       const groupId3 = AuthzUtil.toId('g', 'gmo-circ', 'oae-ui-team');
       const userId = AuthzUtil.toId('u', 'gmo-circ', 'mrvisser');
-      AuthzAPI.updateRoles(groupId1, _.oaeObj(userId, 'member'), err => {
-        assert.ok(!err);
-        AuthzAPI.updateRoles(groupId2, _.oaeObj(groupId1, 'member'), err => {
-          assert.ok(!err);
-          AuthzAPI.updateRoles(groupId3, _.oaeObj(groupId2, 'member'), err => {
-            assert.ok(!err);
-            AuthzAPI.updateRoles(groupId1, _.oaeObj(groupId3, 'member'), err => {
-              assert.ok(!err);
+      AuthzAPI.updateRoles(groupId1, assoc(userId, 'member', {}), err => {
+        assert.notExists(err);
+        AuthzAPI.updateRoles(groupId2, assoc(groupId1, 'member', {}), err => {
+          assert.notExists(err);
+          AuthzAPI.updateRoles(groupId3, assoc(groupId2, 'member', {}), err => {
+            assert.notExists(err);
+            AuthzAPI.updateRoles(groupId1, assoc(groupId3, 'member', {}), err => {
+              assert.notExists(err);
               AuthzAPI.hasAnyRole(userId, groupId1, (err, hasAnyRole) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.ok(hasAnyRole);
                 AuthzAPI.hasAnyRole(userId, groupId2, (err, hasAnyRole) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   assert.ok(hasAnyRole);
                   AuthzAPI.hasAnyRole(userId, groupId3, (err, hasAnyRole) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.ok(hasAnyRole);
                     callback();
                   });
@@ -1965,17 +1975,17 @@ describe('Authz Groups', () => {
       rolesBefore[mrvisser] = 'member';
       rolesBefore[simong] = 'member';
       AuthzAPI.updateRoles(groupId, rolesBefore, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify adding a principal by adding bert as a member
         const bert = AuthzUtil.toId('u', 'cmac', 'bert');
-        const addBertChange = _.oaeObj(bert, 'member');
+        const addBertChange = assoc(bert, 'member', {});
         AuthzAPI.computeMemberRolesAfterChanges(
           groupId,
           addBertChange,
           null,
           (err, idChangeInfo) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.deepStrictEqual(idChangeInfo.changes, addBertChange);
             assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
             assert.deepStrictEqual(
@@ -1987,13 +1997,13 @@ describe('Authz Groups', () => {
             assert.deepStrictEqual(idChangeInfo.ids.removed, []);
 
             // Verify a role change by making mrvisser a manager
-            const mrvisserManagerChange = _.oaeObj(mrvisser, 'manager');
+            const mrvisserManagerChange = assoc(mrvisser, 'manager', {});
             AuthzAPI.computeMemberRolesAfterChanges(
               groupId,
               mrvisserManagerChange,
               null,
               (err, idChangeInfo) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.deepStrictEqual(idChangeInfo.changes, mrvisserManagerChange);
                 assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                 assert.deepStrictEqual(
@@ -2005,13 +2015,13 @@ describe('Authz Groups', () => {
                 assert.deepStrictEqual(idChangeInfo.ids.removed, []);
 
                 // Verify a non-update by making simong a member (he already is a member)
-                const simonMemberChange = _.oaeObj(simong, 'member');
+                const simonMemberChange = assoc(simong, 'member', {});
                 AuthzAPI.computeMemberRolesAfterChanges(
                   groupId,
                   simonMemberChange,
                   null,
                   (err, idChangeInfo) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.deepStrictEqual(idChangeInfo.changes, {});
                     assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                     assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);
@@ -2020,13 +2030,13 @@ describe('Authz Groups', () => {
                     assert.deepStrictEqual(idChangeInfo.ids.removed, []);
 
                     // Verify removing a principal by removing simong
-                    const simonRemoveChange = _.oaeObj(simong, false);
+                    const simonRemoveChange = assoc(simong, false, {});
                     AuthzAPI.computeMemberRolesAfterChanges(
                       groupId,
                       simonRemoveChange,
                       null,
                       (err, idChangeInfo) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.deepStrictEqual(idChangeInfo.changes, simonRemoveChange);
                         assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                         assert.deepStrictEqual(
@@ -2039,13 +2049,13 @@ describe('Authz Groups', () => {
 
                         // Trying to remove the membership for a principal that has no permission should result in no change.
                         const unknownUser = AuthzUtil.toId('u', 'cmac', 'unknown');
-                        const unknownUserRemoveChange = _.oaeObj(unknownUser, false);
+                        const unknownUserRemoveChange = assoc(unknownUser, false, {});
                         AuthzAPI.computeMemberRolesAfterChanges(
                           groupId,
                           unknownUserRemoveChange,
                           null,
                           (err, idChangeInfo) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.deepStrictEqual(idChangeInfo.changes, {});
                             assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                             assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);
@@ -2081,17 +2091,17 @@ describe('Authz Groups', () => {
       rolesBefore[simong] = 'member';
       rolesBefore[stephen] = 'editor';
       AuthzAPI.updateRoles(groupId, rolesBefore, err => {
-        assert.ok(!err);
+        assert.notExists(err);
 
         // Verify adding a principal by adding bert as a member
         const bert = AuthzUtil.toId('u', 'cmaca', 'bert');
-        const addBertChange = _.oaeObj(bert, 'member');
+        const addBertChange = assoc(bert, 'member', {});
         AuthzAPI.computeMemberRolesAfterChanges(
           groupId,
           addBertChange,
           { promoteOnly: true },
           (err, idChangeInfo) => {
-            assert.ok(!err);
+            assert.notExists(err);
             assert.deepStrictEqual(idChangeInfo.changes, addBertChange);
             assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
             assert.deepStrictEqual(
@@ -2104,13 +2114,13 @@ describe('Authz Groups', () => {
 
             // Verify a role change by making mrvisser an editor. It should cause a change
             // because mrvisser is currently a lowly member
-            const mrvisserEditorChange = _.oaeObj(mrvisser, 'editor');
+            const mrvisserEditorChange = assoc(mrvisser, 'editor', {});
             AuthzAPI.computeMemberRolesAfterChanges(
               groupId,
               mrvisserEditorChange,
               { promoteOnly: true },
               (err, idChangeInfo) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 assert.deepStrictEqual(idChangeInfo.changes, mrvisserEditorChange);
                 assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                 assert.deepStrictEqual(
@@ -2123,13 +2133,13 @@ describe('Authz Groups', () => {
 
                 // Verify a role change by demoting stephen to a viewer. It should not
                 // result in a change because stephen's editor role is superior
-                const stephenViewerChange = _.oaeObj(stephen, 'viewer');
+                const stephenViewerChange = assoc(stephen, 'viewer', {});
                 AuthzAPI.computeMemberRolesAfterChanges(
                   groupId,
                   stephenViewerChange,
                   { promoteOnly: true },
                   (err, idChangeInfo) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     assert.deepStrictEqual(idChangeInfo.changes, {});
                     assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                     assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);
@@ -2139,13 +2149,13 @@ describe('Authz Groups', () => {
 
                     // Verify a non-update by making simong a member (he already is a member),
                     // should result in no change
-                    const simonMemberChange = _.oaeObj(simong, 'member');
+                    const simonMemberChange = assoc(simong, 'member', {});
                     AuthzAPI.computeMemberRolesAfterChanges(
                       groupId,
                       simonMemberChange,
                       { promoteOnly: true },
                       (err, idChangeInfo) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         assert.deepStrictEqual(idChangeInfo.changes, {});
                         assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                         assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);
@@ -2155,13 +2165,13 @@ describe('Authz Groups', () => {
 
                         // Verify removing a principal by removing simong, should result in no
                         // change
-                        const simonRemoveChange = _.oaeObj(simong, false);
+                        const simonRemoveChange = assoc(simong, false, {});
                         AuthzAPI.computeMemberRolesAfterChanges(
                           groupId,
                           simonRemoveChange,
                           { promoteOnly: true },
                           (err, idChangeInfo) => {
-                            assert.ok(!err);
+                            assert.notExists(err);
                             assert.deepStrictEqual(idChangeInfo.changes, {});
                             assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                             assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);
@@ -2172,13 +2182,13 @@ describe('Authz Groups', () => {
                             // Trying to remove the membership for a principal that has no
                             // permission should result in no change
                             const unknownUser = AuthzUtil.toId('u', 'cmaca', 'unknown');
-                            const unknownUserRemoveChange = _.oaeObj(unknownUser, false);
+                            const unknownUserRemoveChange = assoc(unknownUser, false, {});
                             AuthzAPI.computeMemberRolesAfterChanges(
                               groupId,
                               unknownUserRemoveChange,
                               { promoteOnly: true },
                               (err, idChangeInfo) => {
-                                assert.ok(!err);
+                                assert.notExists(err);
                                 assert.deepStrictEqual(idChangeInfo.changes, {});
                                 assert.deepStrictEqual(idChangeInfo.roles.before, rolesBefore);
                                 assert.deepStrictEqual(idChangeInfo.roles.after, rolesBefore);

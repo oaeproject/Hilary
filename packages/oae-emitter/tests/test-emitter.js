@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 import * as EmitterAPI from 'oae-emitter';
+
+import { union } from 'ramda';
 
 const { EventEmitter } = EmitterAPI;
 
@@ -30,17 +32,11 @@ describe('EventEmitter', () => {
       let results = [];
 
       emitter.on('a', function(...args) {
-        results = _.chain(args)
-          .toArray()
-          .union(results)
-          .value();
+        results = union(results, args);
       });
 
       emitter.on('b', function(...args) {
-        results = _.chain(args)
-          .toArray()
-          .union(results)
-          .value();
+        results = union(results, args);
       });
 
       emitter.emit('a', 1, 2, 3);
@@ -76,6 +72,7 @@ describe('EventEmitter', () => {
       emitter.when('a', (arg, done) => {
         process.nextTick(() => {
           results.push('a3' + arg);
+
           return done();
         });
       });
@@ -87,6 +84,7 @@ describe('EventEmitter', () => {
       emitter.when('b', (arg, done) => {
         process.nextTick(() => {
           results.push('b2' + arg);
+
           return done();
         });
       });
@@ -172,6 +170,7 @@ describe('EventEmitter', () => {
       emitter.when('a', (arg0, arg1, arg2, done) => {
         return done();
       });
+
       emitter.when('b', (arg0, arg1, arg2, done) => {
         return done();
       });
@@ -200,19 +199,20 @@ describe('EventEmitter', () => {
 
       let successfulACounter = 0;
 
-      emitter.on('a', (arg0, arg1, arg2, done) => {});
+      emitter.on('a', (/* arg0, arg1, arg2, done */) => {});
       emitter.when('a', (arg0, arg1, arg2, done) => {
         process.nextTick(() => {
           successfulACounter++;
+
           return done();
         });
       });
 
       emitter.emit('a', 'blah', 'blah', 'blah', errs => {
-        assert.ok(!errs);
+        assert.notExists(errs);
         assert.strictEqual(successfulACounter, 1);
         emitter.emit('a', 5, 4, 3, errs => {
-          assert.ok(!errs);
+          assert.notExists(errs);
           assert.strictEqual(successfulACounter, 2);
           emitter.emit(
             'a',
@@ -220,11 +220,13 @@ describe('EventEmitter', () => {
             [],
             () => {},
             errs => {
-              assert.ok(!errs);
+              assert.notExists(errs);
               assert.strictEqual(successfulACounter, 3);
+
               emitter.emit('a', null, undefined, false, errs => {
-                assert.ok(!errs);
+                assert.notExists(errs);
                 assert.strictEqual(successfulACounter, 4);
+
                 return callback();
               });
             }
@@ -276,9 +278,10 @@ describe('EventEmitter', () => {
       });
 
       emitter.emit('a', errs => {
-        assert.ok(_.isArray(errs));
+        assert.isArray(errs);
         assert.deepStrictEqual(errs.sort(), ['a1', 'a2']);
         assert.strictEqual(successfulACounter, 3);
+
         return callback();
       });
     });

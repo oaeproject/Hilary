@@ -15,33 +15,45 @@
 
 import assert from 'assert';
 
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
+import { generateTestElasticSearchName } from 'oae-tests/lib/util';
+import {
+  putMapping,
+  mappingExists,
+  indexExists,
+  createIndex,
+  deleteIndex
+} from 'oae-search/lib/internal/elasticsearch';
+
+import { not, assoc } from 'ramda';
+
+const NO_OPTIONS = null;
 
 describe('ElasticSearch', function() {
   /**
    * Test that verifies the ability to create, verify (check "exists") and delete an ElasticSearch index
    */
-  it('verify create, verify and delete index', function(callback) {
-    const indexName = TestsUtil.generateTestElasticSearchName('oaetest-create-verify-delete');
-    ElasticSearch.indexExists(indexName, function(err, exists) {
-      assert.ok(!err);
-      assert.ok(!exists);
+  it('verify create, verify and delete index', callback => {
+    const indexName = generateTestElasticSearchName('oaetest-create-verify-delete');
 
-      ElasticSearch.createIndex(indexName, {}, function(err) {
-        assert.ok(!err);
+    indexExists(indexName, (err, exists) => {
+      assert.ok(not(err));
+      assert.ok(not(exists));
 
-        ElasticSearch.indexExists(indexName, function(err, exists) {
-          assert.ok(!err);
+      createIndex(indexName, {}, err => {
+        assert.ok(not(err));
+
+        indexExists(indexName, (err, exists) => {
+          assert.ok(not(err));
           assert.ok(exists);
 
-          ElasticSearch.deleteIndex(indexName, function(err) {
-            assert.ok(!err);
+          deleteIndex(indexName, err => {
+            assert.ok(not(err));
 
-            ElasticSearch.indexExists(indexName, function(err, exists) {
-              assert.ok(!err);
-              assert.ok(!exists);
-              return callback();
+            indexExists(indexName, (err, exists) => {
+              assert.ok(not(err));
+              assert.ok(not(exists));
+
+              callback();
             });
           });
         });
@@ -52,21 +64,23 @@ describe('ElasticSearch', function() {
   /**
    * Test that verifies there is no error when trying to create an index that already exists. It should just leave it alone
    */
-  it('verify no error creating existing index', function(callback) {
-    const indexName = TestsUtil.generateTestElasticSearchName('oaetest-create-nonerror-existing');
-    ElasticSearch.indexExists(indexName, function(err, exists) {
-      assert.ok(!err);
-      assert.ok(!exists);
+  it('verify no error creating existing index', callback => {
+    const indexName = generateTestElasticSearchName('oaetest-create-nonerror-existing');
 
-      ElasticSearch.createIndex(indexName, {}, function(err) {
-        assert.ok(!err);
+    indexExists(indexName, (err, exists) => {
+      assert.ok(not(err));
+      assert.ok(not(exists));
 
-        ElasticSearch.createIndex(indexName, {}, function(err) {
-          assert.ok(!err);
+      createIndex(indexName, {}, err => {
+        assert.ok(not(err));
 
-          ElasticSearch.deleteIndex(indexName, function(err) {
-            assert.ok(!err);
-            return callback();
+        createIndex(indexName, {}, err => {
+          assert.ok(not(err));
+
+          deleteIndex(indexName, err => {
+            assert.ok(not(err));
+
+            callback();
           });
         });
       });
@@ -76,15 +90,17 @@ describe('ElasticSearch', function() {
   /**
    * Test that verifies there is no error when trying to delete a non-existing index
    */
-  it('verify no error deleting non-existing index', function(callback) {
-    const indexName = TestsUtil.generateTestElasticSearchName('oaetest-delete-nonerror-existing');
-    ElasticSearch.indexExists(indexName, function(err, exists) {
-      assert.ok(!err);
-      assert.ok(!exists);
+  it('verify no error deleting non-existing index', callback => {
+    const indexName = generateTestElasticSearchName('oaetest-delete-nonerror-existing');
 
-      ElasticSearch.deleteIndex(indexName, function(err) {
-        assert.ok(!err);
-        return callback();
+    indexExists(indexName, (err, exists) => {
+      assert.ok(not(err));
+      assert.ok(not(exists));
+
+      deleteIndex(indexName, err => {
+        assert.ok(not(err));
+
+        callback();
       });
     });
   });
@@ -92,39 +108,48 @@ describe('ElasticSearch', function() {
   /**
    * Test that verifies the ability to create and verify the existence of resource mappings
    */
-  it('verify put, verify mappings', function(callback) {
-    const typeName = TestsUtil.generateTestElasticSearchName('oaetest-put-verify-mappings');
-    ElasticSearch.mappingExists(typeName, function(err, exists) {
-      assert.ok(!err);
-      assert.ok(!exists);
+  it('verify put, verify mappings', callback => {
+    const fieldName = generateTestElasticSearchName('oaetest-put-verify-mappings');
 
-      ElasticSearch.putMapping(typeName, { testField: { type: 'string' } }, null, function(err) {
-        assert.ok(!err);
+    mappingExists(fieldName, (err, exists) => {
+      assert.ok(not(err));
+      assert.ok(not(exists));
 
-        ElasticSearch.mappingExists(typeName, function(err, exists) {
-          assert.ok(!err);
+      const fieldProperties = assoc(fieldName, { type: 'text' }, {});
+
+      putMapping(fieldProperties, NO_OPTIONS, err => {
+        assert.ok(not(err));
+
+        mappingExists(fieldName, (err, exists) => {
+          assert.ok(not(err));
           assert.ok(exists);
-          return callback();
+
+          callback();
         });
       });
     });
   });
 
   /**
-   * Test that verifies no error occurrs when trying to create a resource mapping by a name that already exists
+   * Test that verifies no error occurrs when trying to create a resource mapping
+   * by a name that already exists
    */
-  it('verify no error creating existing mapping', function(callback) {
-    const typeName = TestsUtil.generateTestElasticSearchName('oaetest-error-creating-existing');
-    ElasticSearch.mappingExists(typeName, function(err, exists) {
-      assert.ok(!err);
-      assert.ok(!exists);
+  it('verify no error creating existing mapping', callback => {
+    const fieldName = generateTestElasticSearchName('oaetest-error-creating-existing');
 
-      ElasticSearch.putMapping(typeName, { testField: { type: 'string' } }, null, function(err) {
-        assert.ok(!err);
+    mappingExists(fieldName, (err, exists) => {
+      assert.ok(not(err));
+      assert.ok(not(exists));
 
-        ElasticSearch.putMapping(typeName, { testField: { type: 'string' } }, null, function(err) {
-          assert.ok(!err);
-          return callback();
+      const fieldProperties = assoc(fieldName, { type: 'text' }, {});
+
+      putMapping(fieldProperties, NO_OPTIONS, err => {
+        assert.ok(not(err));
+
+        putMapping(fieldProperties, NO_OPTIONS, err => {
+          assert.ok(not(err));
+
+          callback();
         });
       });
     });

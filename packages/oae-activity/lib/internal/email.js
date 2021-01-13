@@ -204,6 +204,7 @@ const collectAllBuckets = function(callback) {
 
   const errs = [];
   let count = 0;
+
   const allDone = function(err) {
     if (err) {
       errs.push(err);

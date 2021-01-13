@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -27,16 +27,19 @@ import * as FoldersDAO from 'oae-folders/lib/internal/dao';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
 const PUBLIC = 'public';
+const NO_MANAGERS = [];
+const NO_VIEWERS = [];
+const NO_FOLDERS = [];
 
 describe('Folders - Activity', () => {
-  let camAdminRestContext = null;
+  let asCambridgeTenantAdmin = null;
 
   /*!
    * Set up an admin REST context before the tests
    */
-  before(callback => {
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    return callback();
+  before(done => {
+    asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    return done();
   });
 
   /**
@@ -53,35 +56,37 @@ describe('Folders - Activity', () => {
    */
   const _setup = function(callback) {
     // Generate some users
-    TestsUtil.generateTestUsers(
-      camAdminRestContext,
-      7,
-      (err, users, simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB) => {
-        assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (err, users) => {
+      assert.notExists(err);
 
-        // Generate some groups
-        TestsUtil.generateTestGroups(simong.restContext, 2, (groupA, groupB) => {
-          // Add regular members in both groups
-          const groupAmembers = {};
-          groupAmembers[groupMemberA.user.id] = 'member';
-          RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
-            assert.ok(!err);
-            const groupBmembers = {};
-            groupBmembers[groupMemberB.user.id] = 'member';
-            RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
-              assert.ok(!err);
+      const { 0: simong, 1: nico, 2: bert, 3: stuart, 4: stephen, 5: groupMemberA, 6: groupMemberB } = users;
 
-              // Nico follows simong
-              RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
-                assert.ok(!err);
+      // Generate some groups
+      TestsUtil.generateTestGroups(simong.restContext, 2, (err, groups) => {
+        assert.notExists(err);
+        const { 0: groupA, 1: groupB } = groups;
 
-                return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
-              });
+        // Add regular members in both groups
+        const groupAmembers = {};
+        groupAmembers[groupMemberA.user.id] = 'member';
+        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
+          assert.notExists(err);
+
+          const groupBmembers = {};
+          groupBmembers[groupMemberB.user.id] = 'member';
+          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
+            assert.notExists(err);
+
+            // Nico follows simong
+            RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
+              assert.notExists(err);
+
+              return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
             });
           });
         });
-      }
-    );
+      });
+    });
   };
 
   describe('Create permutations', () => {
@@ -489,8 +494,8 @@ describe('Folders - Activity', () => {
         folder => {
           // Simon updates the folder's name
           const updates = { displayName: 'blabla' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, data) => {
-            assert.ok(!err);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
+            assert.notExists(err);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -598,8 +603,8 @@ describe('Folders - Activity', () => {
         folder => {
           // Simon updates the folder's visibility
           const updates = { visibility: 'loggedin' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err, data) => {
-            assert.ok(!err);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
+            assert.notExists(err);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -695,7 +700,7 @@ describe('Folders - Activity', () => {
    * Test that verifies the share and add-to-library activities are generated and propagated to the correct users
    */
   it('verify the share and add-to-library activity', callback => {
-    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
+    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA /* , groupB */) => {
       // Stephen creates a folder
       FoldersTestUtil.assertCreateFolderSucceeds(
         stephen.restContext,
@@ -822,7 +827,7 @@ describe('Folders - Activity', () => {
    * Test that verifies the update-member-role activities are generated and propagated to the correct users
    */
   it('verify the update-member-role activity', callback => {
-    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
+    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA /* , groupB */) => {
       // Simon creates a folder, makes Nico a manager and Bert a member
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
@@ -931,7 +936,7 @@ describe('Folders - Activity', () => {
    * Test that verifies the folder-comment activities are generated and propagated to the correct users
    */
   it('verify the folder-comment activity', callback => {
-    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
+    _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates a folder
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
@@ -1042,7 +1047,10 @@ describe('Folders - Activity', () => {
    * Test that verifies the properties of a folder comment
    */
   it('verify the folder-comment message entity model contains the correct information', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, users, simong, nico) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: simong, 1: nico } = users;
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
         'test displayName',
@@ -1059,7 +1067,7 @@ describe('Folders - Activity', () => {
               simong.user.id,
               null,
               (err, activityStream) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 const entity = activityStream.items[0];
 
                 // Assert the correct entities are all present
@@ -1106,7 +1114,7 @@ describe('Folders - Activity', () => {
                       simong.user.id,
                       null,
                       (err, activityStream) => {
-                        assert.ok(!err);
+                        assert.notExists(err);
                         const entity = activityStream.items[0];
 
                         // Assert the correct entities are all present. The first item should be
@@ -1191,7 +1199,7 @@ describe('Folders - Activity', () => {
    * Test that verifies the add-to-folder activities are generated and propagated to the correct users
    */
   it('verify the add-to-folder activity', callback => {
-    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
+    _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates a folder and makes Bert a member
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
@@ -1209,12 +1217,12 @@ describe('Folders - Activity', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
-              folders: []
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
             },
             (err, link1) => {
-              assert.ok(!err);
+              assert.notExists(err);
               RestAPI.Content.createLink(
                 stephen.restContext,
                 {
@@ -1222,12 +1230,12 @@ describe('Folders - Activity', () => {
                   description: 'test',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: null,
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link2) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Simon adds the two items to the folder
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -1335,7 +1343,7 @@ describe('Folders - Activity', () => {
    * Test that verifies that the add-to-folder activities aggregate on the folder
    */
   it('verify the add-to-folder aggregation rules', callback => {
-    _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
+    _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates 2 folders
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
@@ -1361,12 +1369,12 @@ describe('Folders - Activity', () => {
                   description: 'test',
                   visibility: PUBLIC,
                   link: 'http://www.google.ca',
-                  managers: null,
-                  viewers: null,
-                  folders: []
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
                 },
                 (err, link1) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
                     stephen.restContext,
                     {
@@ -1374,12 +1382,12 @@ describe('Folders - Activity', () => {
                       description: 'test',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: null,
-                      viewers: null,
-                      folders: []
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
+                      folders: NO_FOLDERS
                     },
                     (err, link2) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Simon adds both files to both of his folders. This should
                       // result in 2 separate activities
@@ -1398,7 +1406,7 @@ describe('Folders - Activity', () => {
                                 simong.user.id,
                                 null,
                                 (err, data) => {
-                                  assert.ok(!err);
+                                  assert.notExists(err);
 
                                   // Get the add-to-folder activities
                                   const addToFolderActivities = _.filter(data.items, activity => {
@@ -1436,8 +1444,10 @@ describe('Folders - Activity', () => {
    * Test that verifies that previews are added to the folder entities when they are available
    */
   it('verify previews are added when available', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: simong } = users;
 
       // Simon creates a folder and makes Bert a member
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1453,12 +1463,12 @@ describe('Folders - Activity', () => {
             thumbnailUri: 'local:f/camtest/ab/cd/ef/gh/thumbnail.jpg',
             wideUri: 'local:f/camtest/ab/cd/ef/gh/wide.jpg'
           };
-          FoldersDAO.setPreviews(folder, previews, (err, folder) => {
-            assert.ok(!err);
+          FoldersDAO.setPreviews(folder, previews, (err /* , folder */) => {
+            assert.notExists(err);
 
             // Get the activities
             ActivityTestsUtil.collectAndGetActivityStream(simong.restContext, simong.user.id, null, (err, response) => {
-              assert.ok(!err);
+              assert.notExists(err);
 
               // Assert the activity is present
               const createdFolderActivity = _.findWhere(response.items, {
@@ -1485,8 +1495,10 @@ describe('Folders - Activity', () => {
    * Test that verifies that adding content to a folder upon creation does not result in an add-to-folder activity
    */
   it('verify adding content to a folder upon content creation does not result in an add-to-folder activity', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users, simong) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
+
+      const { 0: simong } = users;
 
       FoldersTestUtil.assertCreateFolderSucceeds(
         simong.restContext,
@@ -1503,19 +1515,19 @@ describe('Folders - Activity', () => {
               description: 'test',
               visibility: PUBLIC,
               link: 'http://www.google.ca',
-              managers: null,
-              viewers: null,
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
               folders: [folder.id]
             },
-            (err, link1) => {
-              assert.ok(!err);
+            (err /* , link1 */) => {
+              assert.notExists(err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
                 simong.restContext,
                 simong.user.id,
                 null,
                 (err, response) => {
-                  assert.ok(!err);
+                  assert.notExists(err);
 
                   // Assert the add-to-folder activity is not present
                   const addToLibraryActivity = _.findWhere(response.items, {
@@ -1546,11 +1558,21 @@ describe('Folders - Activity', () => {
    * are routed to the correct activity stream
    */
   it('verify content-create activities are routed to the correct activity streams and contain the correct target information', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, users, simong, nico, bert, stuart) => {
-      assert.ok(!err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
+      assert.notExists(err);
 
-      TestsUtil.generateTestGroups(nico.restContext, 2, (nicosGroup1, nicosGroup2) => {
-        TestsUtil.generateTestGroups(bert.restContext, 1, bertsGroup => {
+      const { 0: simong, 1: nico, 2: bert, 3: stuart } = users;
+
+      TestsUtil.generateTestGroups(nico.restContext, 2, (err, groups) => {
+        assert.notExists(err);
+
+        const { 0: nicosGroup1, 1: nicosGroup2 } = groups;
+
+        TestsUtil.generateTestGroups(bert.restContext, 1, (err, groups) => {
+          assert(!err);
+
+          const { 0: bertsGroup } = groups;
+
           FoldersTestUtil.assertCreateFolderSucceeds(
             simong.restContext,
             'test displayName',
@@ -1574,12 +1596,12 @@ describe('Folders - Activity', () => {
                       description: 'test',
                       visibility: PUBLIC,
                       link: 'http://www.google.ca',
-                      managers: null,
-                      viewers: null,
+                      managers: NO_MANAGERS,
+                      viewers: NO_VIEWERS,
                       folders: [folder1.id, folder2.id]
                     },
                     (err, link) => {
-                      assert.ok(!err);
+                      assert.notExists(err);
 
                       // Simon sees both folders
                       ActivityTestsUtil.assertFeedContainsActivity(

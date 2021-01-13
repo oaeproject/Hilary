@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -25,17 +25,18 @@ import { FoldersConstants } from 'oae-folders/lib/constants';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
 const PUBLIC = 'public';
+const PRIVATE = 'private';
 
 describe('Folders - Push', () => {
   // Rest contexts that can be used performing rest requests
-  let localAdminRestContext = null;
+  let asLocalhostTenantAdmin = null;
 
   /**
    * Function that will fill up the tenant admin and anymous rest contexts
    */
-  before(callback => {
-    localAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
-    callback();
+  before(done => {
+    asLocalhostTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
+    done();
   });
 
   describe('Authorization', () => {
@@ -43,17 +44,19 @@ describe('Folders - Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, simong, branden) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
 
-        RestAPI.User.getMe(simong.restContext, (err, simonFull) => {
-          assert.ok(!err);
+        const { 0: homer, 1: marge } = users;
+
+        RestAPI.User.getMe(homer.restContext, (err, homerInfo) => {
+          assert.notExists(err);
 
           const data = {
             authentication: {
-              userId: simonFull.id,
-              tenantAlias: simonFull.tenant.alias,
-              signature: simonFull.signature
+              userId: homerInfo.id,
+              tenantAlias: homerInfo.tenant.alias,
+              signature: homerInfo.signature
             },
             feeds: []
           };
@@ -61,14 +64,14 @@ describe('Folders - Push', () => {
           ActivityTestsUtil.getFullySetupPushClient(data, client => {
             // Create a folder and get its full profile so we have a signature that we can use to register for push notifications
             FoldersTestUtil.assertCreateFolderSucceeds(
-              simong.restContext,
+              homer.restContext,
               'test displayName',
               'test description',
-              'private',
-              [branden],
+              PRIVATE,
+              [marge],
               [],
               folder => {
-                FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, folder => {
+                FoldersTestUtil.assertGetFolderSucceeds(homer.restContext, folder.id, folder => {
                   // Ensure we get a 400 error with an invalid activity stream id
                   client.subscribe(folder.id, null, folder.signature, null, err => {
                     assert.strictEqual(err.code, 400);
@@ -94,7 +97,7 @@ describe('Folders - Push', () => {
 
                               // Simon should not be able to use a signature that was generated for Branden
                               FoldersTestUtil.assertGetFolderSucceeds(
-                                branden.restContext,
+                                marge.restContext,
                                 folder.id,
                                 folderForBranden => {
                                   client.subscribe(folder.id, 'activity', folderForBranden.signature, null, err => {
@@ -102,7 +105,7 @@ describe('Folders - Push', () => {
 
                                     // Sanity check that a valid signature works
                                     client.subscribe(folder.id, 'activity', folder.signature, null, err => {
-                                      assert.ok(!err);
+                                      assert.notExists(err);
                                       return callback();
                                     });
                                   });
@@ -135,8 +138,10 @@ describe('Folders - Push', () => {
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(localAdminRestContext, 2, (err, users, branden, simon) => {
-        assert.ok(!err);
+      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: branden, 1: simon } = users;
 
         const contexts = {
           branden,
@@ -145,14 +150,14 @@ describe('Folders - Push', () => {
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
         RestAPI.User.getMe(simon.restContext, (err, simonFull) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           // Create a folder and get the full folder profile so we have a signature that we can use to register for push notifications
           FoldersTestUtil.assertCreateFolderSucceeds(
             simon.restContext,
             'test displayName',
             'test description',
-            'private',
+            PRIVATE,
             [branden],
             [],
             folder => {
@@ -201,14 +206,11 @@ describe('Folders - Push', () => {
     it('verify updates trigger a push notification', callback => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(
-          contexts.branden.restContext,
-          folder.id,
-          { displayName: 'Laaike whatevs' },
-          (err, data) => {
-            assert.ok(!err);
-          }
-        );
+        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { displayName: 'Laaike whatevs' }, (
+          err /* , data */
+        ) => {
+          assert.notExists(err);
+        });
 
         client.on('message', message => {
           ActivityTestsUtil.assertActivity(
@@ -234,7 +236,7 @@ describe('Folders - Push', () => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
         RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, err => {
-          assert.ok(!err);
+          assert.notExists(err);
         });
 
         client.on('message', message => {
@@ -350,8 +352,8 @@ describe('Folders - Push', () => {
             viewers: null,
             folders: [folder.id]
           },
-          (err, nicosLink) => {
-            assert.ok(!err);
+          (err /* , someLink */) => {
+            assert.notExists(err);
           }
         );
 
@@ -362,8 +364,7 @@ describe('Folders - Push', () => {
           );
         });
 
-        // This timeout is not ideal, but we need to give the activity router some time
-        // to let it do its thing
+        // This timeout is not ideal, but we need to give the activity router some time to let it do its thing
         setTimeout(() => {
           client.close(callback);
         }, 300);

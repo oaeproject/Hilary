@@ -1,78 +1,62 @@
-import assert from 'assert';
-import _ from 'underscore';
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
+import { head, last } from 'ramda';
+
+const { createMeeting } = RestAPI.MeetingsJitsi;
+const { generateTestUsers, generateRandomText, createTenantAdminRestContext } = TestsUtil;
+const { searchAll } = SearchTestsUtil;
+
+const PUBLIC = 'public';
+
 describe('Meeting Library Search', () => {
-  // REST contexts we can use to do REST requests
-  let anonymousRestContext = null;
   let camAdminRestContext = null;
 
   before(callback => {
-    anonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    camAdminRestContext = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
   describe('Library search', () => {
     it('verify searching through a meeting library', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, user) => {
-        assert.ok(!err);
-        const simong = _.values(user)[0];
+      generateTestUsers(camAdminRestContext, 1, (err, users) => {
+        assert.notExists(err);
+
+        const { 0: homer } = users;
+        const asHomer = homer.restContext;
 
         // Create 2 meetings
-        const randomTextA = TestsUtil.generateRandomText(25);
-        const randomTextB = TestsUtil.generateRandomText(25);
+        const randomTextA = generateRandomText(25);
+        const randomTextB = generateRandomText(25);
 
-        RestAPI.MeetingsJitsi.createMeeting(
-          simong.restContext,
-          randomTextA,
-          randomTextA,
-          false,
-          false,
-          'public',
-          null,
-          null,
-          (err, meetingA) => {
-            assert.ok(!err);
+        createMeeting(asHomer, randomTextA, randomTextA, false, false, PUBLIC, null, null, (err, meetingA) => {
+          assert.notExists(err);
 
-            RestAPI.MeetingsJitsi.createMeeting(
-              simong.restContext,
-              randomTextB,
-              randomTextB,
-              false,
-              false,
-              'public',
-              null,
-              null,
-              (err, meetingB) => {
-                assert.ok(!err);
+          createMeeting(asHomer, randomTextB, randomTextB, false, false, PUBLIC, null, null, (err /* , meetingB */) => {
+            assert.notExists(err);
 
-                // Ensure that the randomTextA meeting returns and scores better than randomTextB
-                SearchTestsUtil.searchAll(
-                  simong.restContext,
-                  'meeting-jitsi-library',
-                  [simong.user.id],
-                  { q: randomTextA },
-                  (err, results) => {
-                    assert.ok(!err);
-                    assert.ok(results.results);
+            // Ensure that the randomTextA meeting returns and scores better than randomTextB
+            searchAll(asHomer, 'meeting-jitsi-library', [homer.user.id], { q: randomTextA }, (err, results) => {
+              assert.notExists(err);
+              assert.ok(results.results);
 
-                    const doc = results.results[0];
-                    assert.ok(doc);
-                    assert.strictEqual(doc.id, meetingA.id);
-                    assert.strictEqual(doc.displayName, randomTextA);
-                    assert.strictEqual(doc.description, randomTextA);
+              const firstResult = head(results.results);
+              const lastResult = last(results.results);
 
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
+              assert.ok(firstResult);
+              assert.ok(lastResult);
+
+              assert.strictEqual(firstResult.id, meetingA.id);
+              assert.strictEqual(firstResult.displayName, randomTextA);
+              assert.strictEqual(firstResult.description, randomTextA);
+
+              return callback();
+            });
+          });
+        });
       });
     });
   });

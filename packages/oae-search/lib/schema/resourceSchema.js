@@ -78,7 +78,7 @@
 /* eslint-disable unicorn/filename-case, camelcase */
 const schema = {
   id: {
-    type: 'keyword', // Maybe should be a keyword?
+    type: 'keyword',
     store: 'true',
     index: 'false'
   },
@@ -93,7 +93,7 @@ const schema = {
     index: 'true'
   },
   resourceSubType: {
-    type: 'keyword', // Maybe should be a keyword?
+    type: 'keyword',
     store: 'true',
     index: 'false'
   },
@@ -109,7 +109,7 @@ const schema = {
     analyzer: 'display_name'
   },
   description: {
-    type: 'text', // Maybe should be a text?
+    type: 'text',
     store: 'true',
     index: 'true'
   },

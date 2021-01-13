@@ -660,7 +660,7 @@ describe('Activity push', () => {
         const asMarge = marge.restContext;
 
         RestAPI.User.getMe(asHomer, (err, homerInfo) => {
-          assert.ok(!err);
+          assert.notExists(err);
 
           /*
            * Register a push client for homer who is subscribed to his activitystream
@@ -699,7 +699,7 @@ describe('Activity push', () => {
               marge.user.id,
               { visibility: 'private' },
               (err, updatedUser) => {
-                assert.ok(!err);
+                assert.notExists(err);
                 marge.user = updatedUser;
                 let discussion = null;
 
@@ -711,12 +711,12 @@ describe('Activity push', () => {
                   [],
                   [homer.user.id],
                   (err, _discussion) => {
-                    assert.ok(!err);
+                    assert.notExists(err);
                     discussion = _discussion;
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
                     ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
-                      assert.ok(!err);
+                      assert.notExists(err);
                     });
                   }
                 );

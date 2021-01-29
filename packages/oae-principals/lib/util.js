@@ -25,8 +25,8 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
-import { User } from './model';
-import * as PrincipalsDAO from './internal/dao';
+import { User } from './model.js';
+import * as PrincipalsDAO from './internal/dao.js';
 
 /**
  * Get a principal (user or group)
@@ -37,10 +37,10 @@ import * as PrincipalsDAO from './internal/dao';
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Group|User} callback.principal  The asked for principal.
  */
-const getPrincipal = function(ctx, principalId, callback) {
-  getPrincipals(ctx, [principalId], (err, principals) => {
-    if (err) {
-      return callback(err);
+const getPrincipal = function (ctx, principalId, callback) {
+  getPrincipals(ctx, [principalId], (error, principals) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!principals[principalId]) {
@@ -62,10 +62,10 @@ const getPrincipal = function(ctx, principalId, callback) {
  * @param  {String[]}       callback.err.missingPrincipalIds    The ids of the principals that did not exist
  * @param  {Object}         callback.principals                 Object representing the retrieved principals. The keys will be the principal ids and the values will be the principal basic profiles
  */
-const getPrincipals = function(ctx, principalIds, callback) {
-  PrincipalsDAO.getPrincipals(principalIds, null, (err, principals) => {
-    if (err) {
-      return callback(err);
+const getPrincipals = function (ctx, principalIds, callback) {
+  PrincipalsDAO.getPrincipals(principalIds, null, (error, principals) => {
+    if (error) {
+      return callback(error);
     }
 
     _transformPrincipals(ctx, principals);
@@ -82,13 +82,13 @@ const getPrincipals = function(ctx, principalIds, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Principal}  callback.updatedPrincipal   The updated version of the principal with its last modifed date updated
  */
-const touchLastModified = function(oldPrincipal, callback) {
+const touchLastModified = function (oldPrincipal, callback) {
   // Const oldLastModified = oldPrincipal.lastModified;
   const newLastModified = Date.now().toString();
   const updatedProfileFields = { lastModified: newLastModified };
-  PrincipalsDAO.updatePrincipal(oldPrincipal.id, updatedProfileFields, err => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.updatePrincipal(oldPrincipal.id, updatedProfileFields, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const updatedPrincipal = _.extend({}, oldPrincipal, updatedProfileFields);
@@ -107,13 +107,13 @@ const touchLastModified = function(oldPrincipal, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {User}       callback.user   The updated user
  */
-const verifyEmailAddress = function(ctx, user, email, callback) {
-  PrincipalsDAO.setEmailAddress(user, email, (err, updatedUser) => {
-    if (err) {
-      return callback(err);
+const verifyEmailAddress = function (ctx, user, email, callback) {
+  PrincipalsDAO.setEmailAddress(user, email, (error, updatedUser) => {
+    if (error) {
+      return callback(error);
     }
 
-    PrincipalsEmitter.emit(PrincipalsConstants.events.VERIFIED_EMAIL, ctx, updatedUser, errs => {
+    PrincipalsEmitter.emit(PrincipalsConstants.events.VERIFIED_EMAIL, ctx, updatedUser, (errs) => {
       if (errs) {
         return callback(_.first(errs));
       }
@@ -129,7 +129,7 @@ const verifyEmailAddress = function(ctx, user, email, callback) {
  * @param  {String}     tenantAlias     The alias of the tenant for which to generate the group id
  * @return {String}                     The id for the group
  */
-const createGroupId = function(tenantAlias) {
+const createGroupId = function (tenantAlias) {
   return AuthzUtil.toId(AuthzConstants.principalTypes.GROUP, tenantAlias, shortid.generate());
 };
 
@@ -139,7 +139,7 @@ const createGroupId = function(tenantAlias) {
  * @param  {String}  groupId    A string that may or may not be a group id
  * @return {Boolean}            Whether or not the provided identifier is a group identifier.
  */
-const isGroup = function(groupId) {
+const isGroup = function (groupId) {
   return PrincipalsDAO.isGroup(groupId);
 };
 
@@ -149,7 +149,7 @@ const isGroup = function(groupId) {
  * @param  {String}  userId     A string that may or may not be a user id
  * @return {Boolean}            Whether or not the provided identifier is a user identifier.
  */
-const isUser = function(userId) {
+const isUser = function (userId) {
   return PrincipalsDAO.isUser(userId);
 };
 
@@ -223,7 +223,7 @@ const hideUserData = (ctx, user) => {
  * @param  {Object}    fieldUpdates An object of fieldKey -> value of the field updates to apply to the user object
  * @return {User}                   The updated user with all field updates applied
  */
-const createUpdatedUser = function(user, fieldUpdates) {
+const createUpdatedUser = function (user, fieldUpdates) {
   const newDisplayName = fieldUpdates.displayName || user.displayName;
   const newEmail = fieldUpdates.email || user.email;
   const newUser = new User(user.tenant.alias, user.id, newDisplayName, newEmail, {
@@ -252,7 +252,7 @@ const createUpdatedUser = function(user, fieldUpdates) {
  * @param  {User}      [user]      The user that supplies the data for the entity
  * @return {Object}                An object containing the entity data that can be transformed into a UI user activity entity
  */
-const createPersistentUserActivityEntity = function(userId, user) {
+const createPersistentUserActivityEntity = function (userId, user) {
   return new ActivityModel.ActivityEntity('user', userId, user.visibility, { user });
 };
 
@@ -267,13 +267,13 @@ const createPersistentUserActivityEntity = function(userId, user) {
  * @param  {User}           [user]              The user object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {ActivityEntity}                     The activity entity that represents the given user data
  */
-const transformPersistentUserActivityEntity = function(ctx, userId, user) {
+const transformPersistentUserActivityEntity = function (ctx, userId, user) {
   const tenant = ctx.tenant();
   const baseUrl = TenantsUtil.getBaseUrl(tenant);
   const globalId = baseUrl + '/api/user/' + userId;
 
-  const opts = { ext: {} };
-  opts.ext[ActivityConstants.properties.OAE_ID] = userId;
+  const options = { ext: {} };
+  options.ext[ActivityConstants.properties.OAE_ID] = userId;
 
   if (user) {
     hideUserData(ctx, user);
@@ -281,12 +281,12 @@ const transformPersistentUserActivityEntity = function(ctx, userId, user) {
     // Signed user profile picture URLs will last forever
     _generatePictureURLs(ctx, user, -1);
 
-    opts.displayName = user.displayName;
+    options.displayName = user.displayName;
     if (user.profilePath) {
-      opts.url = baseUrl + user.profilePath;
+      options.url = baseUrl + user.profilePath;
 
       if (user.picture.small) {
-        opts.ext[ActivityConstants.properties.OAE_THUMBNAIL] = new ActivityModel.ActivityMediaLink(
+        options.ext[ActivityConstants.properties.OAE_THUMBNAIL] = new ActivityModel.ActivityMediaLink(
           user.picture.small,
           PrincipalsConstants.picture.size.SMALL,
           PrincipalsConstants.picture.size.SMALL
@@ -294,7 +294,7 @@ const transformPersistentUserActivityEntity = function(ctx, userId, user) {
       }
 
       if (user.picture.medium) {
-        opts.image = new ActivityModel.ActivityMediaLink(
+        options.image = new ActivityModel.ActivityMediaLink(
           user.picture.medium,
           PrincipalsConstants.picture.size.MEDIUM,
           PrincipalsConstants.picture.size.MEDIUM
@@ -302,11 +302,11 @@ const transformPersistentUserActivityEntity = function(ctx, userId, user) {
       }
     }
 
-    opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = user.visibility;
-    opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = user.profilePath;
+    options.ext[ActivityConstants.properties.OAE_VISIBILITY] = user.visibility;
+    options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = user.profilePath;
   }
 
-  return new ActivityModel.ActivityEntity('user', globalId, user.visibility, opts);
+  return new ActivityModel.ActivityEntity('user', globalId, user.visibility, options);
 };
 
 /**
@@ -318,7 +318,7 @@ const transformPersistentUserActivityEntity = function(ctx, userId, user) {
  * @param  {User}       [user]  The user object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {User}               The scrubbed user object
  */
-const transformPersistentUserActivityEntityToInternal = function(ctx, userId, user) {
+const transformPersistentUserActivityEntityToInternal = function (ctx, userId, user) {
   if (user) {
     // Signed user profile picture URLs will last forever
     hideUserData(ctx, user);
@@ -336,7 +336,7 @@ const transformPersistentUserActivityEntityToInternal = function(ctx, userId, us
  * @param  {Group}     [group]     The group that supplies the data for the entity. If not specified, only the minimal data will be returned for transformation.
  * @return {Object}                An object containing the entity data that can be transformed into a UI group activity entity
  */
-const createPersistentGroupActivityEntity = function(groupId, group) {
+const createPersistentGroupActivityEntity = function (groupId, group) {
   return new ActivityModel.ActivityEntity('group', groupId, group.visibility, { group });
 };
 
@@ -350,7 +350,7 @@ const createPersistentGroupActivityEntity = function(groupId, group) {
  * @param  {Group}          [group]             The group object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {ActivityEntity}                     The activity entity that represents the given group data
  */
-const transformPersistentGroupActivityEntity = function(ctx, groupId, group) {
+const transformPersistentGroupActivityEntity = function (ctx, groupId, group) {
   const tenant = ctx.tenant();
   const baseUrl = TenantsUtil.getBaseUrl(tenant);
 
@@ -358,18 +358,18 @@ const transformPersistentGroupActivityEntity = function(ctx, groupId, group) {
   // the tenant is using http or https
   const globalId = 'http://' + tenant.host + '/api/group/' + groupId;
 
-  const opts = { ext: {} };
-  opts.ext[ActivityConstants.properties.OAE_ID] = groupId;
+  const options = { ext: {} };
+  options.ext[ActivityConstants.properties.OAE_ID] = groupId;
 
   if (group) {
     // Signed group picture URLs will last forever
     _generatePictureURLs(ctx, group, -1);
 
-    opts.displayName = group.displayName;
-    opts.url = baseUrl + group.profilePath;
+    options.displayName = group.displayName;
+    options.url = baseUrl + group.profilePath;
 
     if (group.picture.small) {
-      opts.ext[ActivityConstants.properties.OAE_THUMBNAIL] = new ActivityModel.ActivityMediaLink(
+      options.ext[ActivityConstants.properties.OAE_THUMBNAIL] = new ActivityModel.ActivityMediaLink(
         group.picture.small,
         PrincipalsConstants.picture.size.SMALL,
         PrincipalsConstants.picture.size.SMALL
@@ -377,7 +377,7 @@ const transformPersistentGroupActivityEntity = function(ctx, groupId, group) {
     }
 
     if (group.picture.medium) {
-      opts.image = new ActivityModel.ActivityMediaLink(
+      options.image = new ActivityModel.ActivityMediaLink(
         group.picture.medium,
         PrincipalsConstants.picture.size.MEDIUM,
         PrincipalsConstants.picture.size.MEDIUM
@@ -385,16 +385,16 @@ const transformPersistentGroupActivityEntity = function(ctx, groupId, group) {
     }
 
     // Extension properties
-    opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = group.visibility;
+    options.ext[ActivityConstants.properties.OAE_VISIBILITY] = group.visibility;
 
     if (!group.deleted) {
-      opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = group.profilePath;
+      options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = group.profilePath;
     }
 
-    opts.ext[ActivityConstants.properties.OAE_JOINABLE] = group.joinable;
+    options.ext[ActivityConstants.properties.OAE_JOINABLE] = group.joinable;
   }
 
-  return new ActivityModel.ActivityEntity('group', globalId, group.visibility, opts);
+  return new ActivityModel.ActivityEntity('group', globalId, group.visibility, options);
 };
 
 /**
@@ -408,7 +408,7 @@ const transformPersistentGroupActivityEntity = function(ctx, groupId, group) {
  * @param  {Group}      [group]             The group object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {Group}                          The group object
  */
-const transformPersistentGroupActivityEntityToInternal = function(ctx, groupId, group) {
+const transformPersistentGroupActivityEntityToInternal = function (ctx, groupId, group) {
   if (group) {
     // Signed group picture URLs will last forever
     _generatePictureURLs(ctx, group, -1);
@@ -426,8 +426,8 @@ const transformPersistentGroupActivityEntityToInternal = function(ctx, groupId, 
  * @param  {Object[]}   principals  The array of users and groups to transform
  * @api private
  */
-const _transformPrincipals = function(ctx, principals) {
-  _.each(principals, principal => {
+const _transformPrincipals = function (ctx, principals) {
+  _.each(principals, (principal) => {
     _generatePictureURLs(ctx, principal);
     if (isUser(principal.id)) {
       hideUserData(ctx, principal);
@@ -444,7 +444,7 @@ const _transformPrincipals = function(ctx, principals) {
  * @param  {Number}         [offset]    The minimum time in seconds for which the generated picture URLs will be valid. Default: 1 week
  * @api private
  */
-const _generatePictureURLs = function(ctx, principal, duration, offset) {
+const _generatePictureURLs = function (ctx, principal, duration, offset) {
   if (principal.picture.smallUri) {
     principal.picture.small = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.smallUri, duration, offset);
     delete principal.picture.smallUri;

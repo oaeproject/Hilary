@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as TestsUtil from 'oae-tests';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
@@ -23,7 +24,7 @@ describe('Members Library', () => {
   let asCambridgeTenantAdmin = null;
   let asCambridgeAnonymousUser = null;
 
-  before(callback => {
+  before((callback) => {
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
@@ -35,12 +36,12 @@ describe('Members Library', () => {
       /**
        * Test that verifies the validation of the members library feed
        */
-      it('verify validation of members library feed', callback => {
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+      it('verify validation of members library feed', (callback) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: user } = users;
-          TestsUtil.generateTestGroups(user.restContext, 1, (err, groups) => {
-            assert.notExists(err);
+          TestsUtil.generateTestGroups(user.restContext, 1, (error, groups) => {
+            assert.notExists(error);
             const { 0: group } = groups;
             // Ensure it fails with a variety of bogus group ids
             PrincipalsTestUtil.assertGetMembersLibraryFails(user.restContext, 'not-a-valid-id', null, null, 400, () => {
@@ -83,7 +84,7 @@ describe('Members Library', () => {
       /**
        * Test that verifies the authorization of the public group members library feed
        */
-      it('verify authorization of public group members library feed', callback => {
+      it('verify authorization of public group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -136,7 +137,7 @@ describe('Members Library', () => {
       /**
        * Test that verifies the authorization of the loggedin group members library feed
        */
-      it('verify authorization of loggedin joinable group members library feed', callback => {
+      it('verify authorization of loggedin joinable group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -187,7 +188,7 @@ describe('Members Library', () => {
         });
       });
 
-      it('verify authorization of loggedin non joinable group members library feed', callback => {
+      it('verify authorization of loggedin non joinable group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -240,7 +241,7 @@ describe('Members Library', () => {
         });
       });
 
-      it('verify authorization of loggedin joinable group (by request) members library feed', callback => {
+      it('verify authorization of loggedin joinable group (by request) members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -294,7 +295,7 @@ describe('Members Library', () => {
       /**
        * Test that verifies the authorization of the private group members library feed
        */
-      it('verify authorization of private joinable group members library feed', callback => {
+      it('verify authorization of private joinable group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -366,7 +367,7 @@ describe('Members Library', () => {
         });
       });
 
-      it('verify authorization of private not joinable group members library feed', callback => {
+      it('verify authorization of private not joinable group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -439,7 +440,7 @@ describe('Members Library', () => {
         });
       });
 
-      it('verify authorization of private joinable group (by request) members library feed', callback => {
+      it('verify authorization of private joinable group (by request) members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
@@ -515,13 +516,13 @@ describe('Members Library', () => {
        * Test that verifies that the group members library feed offers only public, loggedin
        * and private items when appropriate
        */
-      it('verify only the appropriate members are seen from the group members library feed', callback => {
+      it('verify only the appropriate members are seen from the group members library feed', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((
           publicTenant1,
           publicTenant2 /* , privateTenant1, privateTenant2 */
         ) => {
-          TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (err, users) => {
-            assert.notExists(err);
+          TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (error, users) => {
+            assert.notExists(error);
             const { 0: publicTenant1ExtraUser } = users;
 
             // These are the expected public, loggedin, private library contents
@@ -568,7 +569,7 @@ describe('Members Library', () => {
                                   publicTenant1.publicUser.restContext,
                                   publicTenant1.publicGroup.id,
                                   privateItems,
-                                  members => {
+                                  (members) => {
                                     // Ensure the private user is obfuscated for the public user
                                     const privateUserResult = find(
                                       pathSatisfies(equals('private'), ['profile', 'visibility']),
@@ -584,7 +585,7 @@ describe('Members Library', () => {
                                       publicTenant1.adminRestContext,
                                       publicTenant1.publicGroup.id,
                                       privateItems,
-                                      members => {
+                                      (members) => {
                                         // Ensure the private user is obfuscated
                                         const privateUserResult = find(
                                           pathSatisfies(equals('private'), ['profile', 'visibility']),
@@ -626,12 +627,12 @@ describe('Members Library', () => {
        * Test that verifies that setting the group members results in an appropriately updated
        * group members library feed
        */
-      it('verify setting group members updates the group members library', callback => {
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+      it('verify setting group members updates the group members library', (callback) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
           const { 0: user1 } = users;
-          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
-            assert.notExists(err);
+          TestsUtil.generateTestGroups(user1.restContext, 2, (error, groups) => {
+            assert.notExists(error);
             const { 0: group, 1: group2 } = groups;
             // Get the group members library to seed it
             PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
@@ -648,7 +649,7 @@ describe('Members Library', () => {
                   user1.restContext,
                   group.group.id,
                   change,
-                  members => {
+                  (members) => {
                     assert.strictEqual(members[0].profile.id, user1.user.id);
 
                     // Swap the roles and ensure that the group is now the first item in
@@ -660,7 +661,7 @@ describe('Members Library', () => {
                       user1.restContext,
                       group.group.id,
                       change,
-                      members => {
+                      (members) => {
                         assert.strictEqual(members[0].profile.id, group2.group.id);
                         return callback();
                       }
@@ -677,12 +678,12 @@ describe('Members Library', () => {
        * Test that verifies that a user joining and leaving a group properly updates the
        * group members library feed
        */
-      it('verify joining and leaving group updates the group members library', callback => {
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+      it('verify joining and leaving group updates the group members library', (callback) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
           const { 0: user1, 1: user2 } = users;
-          TestsUtil.generateTestGroups(user1.restContext, 1, (err, groups) => {
-            assert.notExists(err);
+          TestsUtil.generateTestGroups(user1.restContext, 1, (error, groups) => {
+            assert.notExists(error);
             const { 0: group } = groups;
             PrincipalsTestUtil.assertUpdateGroupSucceeds(user1.restContext, group.group.id, { joinable: 'yes' }, () => {
               // Get the group members library to seed it
@@ -717,12 +718,12 @@ describe('Members Library', () => {
        * Test that verifies that when a user or group updates their group profile, the members
        * library feed gets updated to indicate the new user ranking
        */
-      it('verify user and group setting profile picture updates the group members library', callback => {
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+      it('verify user and group setting profile picture updates the group members library', (callback) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: user1 } = users;
-          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
-            assert.notExists(err);
+          TestsUtil.generateTestGroups(user1.restContext, 2, (error, groups) => {
+            assert.notExists(error);
             const { 0: group, 1: group2 } = groups;
             const change = {};
             change[group2.group.id] = 'member';
@@ -731,7 +732,7 @@ describe('Members Library', () => {
               user1.restContext,
               group.group.id,
               change,
-              members => {
+              (members) => {
                 /**
                  * Ensure the manager shows up before the member, because they both have no
                  * profile picture and the manager gets prioritized before members
@@ -748,7 +749,7 @@ describe('Members Library', () => {
                     user1.restContext,
                     group.group.id,
                     null,
-                    members => {
+                    (members) => {
                       assert.deepStrictEqual(compose(pluck('id'), pluck('profile'))(members), [
                         group2.group.id,
                         user1.user.id
@@ -760,7 +761,7 @@ describe('Members Library', () => {
                           user1.restContext,
                           group.group.id,
                           null,
-                          members => {
+                          (members) => {
                             assert.deepStrictEqual(compose(pluck('id'), pluck('profile'))(members), [
                               user1.user.id,
                               group2.group.id
@@ -783,13 +784,13 @@ describe('Members Library', () => {
        * Test that verifies that when a user or group visibility is updated, the members
        * library feed gets updated appropriately
        */
-      it('verify visibility updates to a user and group also updates a group members library', callback => {
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+      it('verify visibility updates to a user and group also updates a group members library', (callback) => {
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
           const { 0: user1 } = users;
 
-          TestsUtil.generateTestGroups(user1.restContext, 2, (err, groups) => {
-            assert.notExists(err);
+          TestsUtil.generateTestGroups(user1.restContext, 2, (error, groups) => {
+            assert.notExists(error);
             const change = {};
             const { 0: group, 1: group2 } = groups;
             change[group2.group.id] = 'member';
@@ -854,15 +855,15 @@ describe('Members Library', () => {
        *  2. Profile visibility
        *  3. Group role
        */
-      it('verify that ranking gives precedence to picture visibility, profile visibility and role, respectively', callback => {
+      it('verify that ranking gives precedence to picture visibility, profile visibility and role, respectively', (callback) => {
         TestsUtil.setupMultiTenantPrivacyEntities((tenant1 /* , tenant2 */) => {
           PrincipalsTestUtil.assertUpdateGroupSucceeds(
             tenant1.adminRestContext,
             tenant1.publicGroup.id,
             { joinable: 'yes' },
             () => {
-              TestsUtil.generateTestUsers(tenant1.adminRestContext, 3, (err, users) => {
-                assert.notExists(err);
+              TestsUtil.generateTestUsers(tenant1.adminRestContext, 3, (error, users) => {
+                assert.notExists(error);
                 const { 0: publicWithPicture, 1: loggedinWithPicture, 2: privateWithPicture } = users;
 
                 // Update the visibility of our non-public users
@@ -924,7 +925,7 @@ describe('Members Library', () => {
                                   tenant1.adminRestContext,
                                   tenant1.publicGroup.id,
                                   null,
-                                  members => {
+                                  (members) => {
                                     assert.deepStrictEqual(
                                       compose(pluck('id'), pluck('profile'))(members),
                                       expectedOrder1

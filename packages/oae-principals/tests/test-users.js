@@ -14,8 +14,9 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 
 import { pluck, mergeRight, keys } from 'ramda';
 
@@ -46,12 +47,12 @@ describe('Users', () => {
    * @return {Stream} A stream to jpg image
    * @api private
    */
-  const _getPictureStream = () => fs.createReadStream(util.format('%s/data/restroom.jpg', __dirname));
+  const _getPictureStream = () => fs.createReadStream(format('%s/data/restroom.jpg', __dirname));
 
   /**
    * Function that will fill up the REST and admin contexts
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the request contexts
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -66,7 +67,7 @@ describe('Users', () => {
     /**
      * Test that verifies you cannot register a duplicate profile decorator, nor can you register one without a function
      */
-    it('verify register full user profile decorator error scenarios', callback => {
+    it('verify register full user profile decorator error scenarios', (callback) => {
       const testId = TestsUtil.generateRandomText();
       assert.throws(() => {
         PrincipalsAPI.registerFullUserProfileDecorator(testId);
@@ -90,7 +91,7 @@ describe('Users', () => {
     /**
      * Test that verifies the serialization of many different possible types provided by some test decorators
      */
-    it('verify various user profile decorator response types', callback => {
+    it('verify various user profile decorator response types', (callback) => {
       const testUndefinedNamespace = TestsUtil.generateRandomText();
       const testNullNamespace = TestsUtil.generateRandomText();
       const testZeroNamespace = TestsUtil.generateRandomText();
@@ -117,12 +118,12 @@ describe('Users', () => {
         return callback({ code: 500, msg: 'Expected' });
       });
 
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: user } = users;
 
-        RestAPI.User.getUser(user.restContext, user.user.id, (err, userProfile) => {
-          assert.notExists(err);
+        RestAPI.User.getUser(user.restContext, user.user.id, (error, userProfile) => {
+          assert.notExists(error);
 
           assert.notInclude(keys(userProfile), testUndefinedNamespace);
           assert.notInclude(keys(userProfile), testErrorNamespace);
@@ -140,7 +141,7 @@ describe('Users', () => {
     /**
      * Test that verifies a user profile decorator cannot override existing properties
      */
-    it('verify a user profile decorator cannot overwrite existing user properties', callback => {
+    it('verify a user profile decorator cannot overwrite existing user properties', (callback) => {
       PrincipalsAPI.registerFullUserProfileDecorator('visibility', (ctx, user, callback) => {
         // Try setting the user visibility on the fly
         user.visibility = 'loggedin';
@@ -150,13 +151,13 @@ describe('Users', () => {
       });
 
       // Create a public user to test with
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: user } = users;
 
         // Verify the visibility of the user is still public
-        RestAPI.User.getUser(user.restContext, user.user.id, (err, user) => {
-          assert.notExists(err);
+        RestAPI.User.getUser(user.restContext, user.user.id, (error, user) => {
+          assert.notExists(error);
           assert.strictEqual(user.visibility, 'public');
           return callback();
         });
@@ -168,15 +169,15 @@ describe('Users', () => {
     /**
      * Test that verifies that recaptcha is bypassed when a valid invitation token is specified
      */
-    it('verify recaptcha is bypassed with valid invitation token', callback => {
+    it('verify recaptcha is bypassed with valid invitation token', (callback) => {
       // Create a tenant with recaptcha enabled and clear up any pending emails
-      TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+      TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
         ConfigTestUtil.updateConfigAndWait(
           tenant.adminRestContext,
           null,
           { 'oae-principals/recaptcha/enabled': true },
-          err => {
-            assert.notExists(err);
+          (error) => {
+            assert.notExists(error);
             EmailTestUtil.collectAndFetchAllEmails(() => {
               const email = TestsUtil.generateTestEmailAddress(null, tenant.tenant.emailDomains[0]);
               const profile = {
@@ -191,8 +192,8 @@ describe('Users', () => {
                 // Perform a create request with a token that does not map to any existing invitaion token, ensuring it fails
                 PrincipalsTestUtil.assertCreateUserFails(tenant.anonymousRestContext, profile, 400, () => {
                   // Generate an invitation token for the email address
-                  AuthzInvitationsDAO.getOrCreateTokensByEmails([email], (err, emailTokens) => {
-                    assert.notExists(err);
+                  AuthzInvitationsDAO.getOrCreateTokensByEmails([email], (error, emailTokens) => {
+                    assert.notExists(error);
 
                     // Perform the same request, but with a valid invitation token,
                     // which should create the user and not send an email
@@ -227,7 +228,7 @@ describe('Users', () => {
     /**
      * Test that verifies that it should only be possible to create a user if there are valid reCaptcha tokens present or the current user is an admin
      */
-    it('verify create user', callback => {
+    it('verify create user', (callback) => {
       // Try to create a user as an anonymous user with no reCaptcha tokens
       const recaptchaTenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const host = TenantsTestUtil.generateTestTenantHost();
@@ -239,18 +240,18 @@ describe('Users', () => {
         recaptchaTenantAlias,
         host,
         null,
-        (err, recaptchaTenant) => {
-          assert.notExists(err);
+        (error, recaptchaTenant) => {
+          assert.notExists(error);
 
           // Enable recaptcha for this tenant
           ConfigTestUtil.updateConfigAndWait(
             asGlobalAdmin,
             recaptchaTenantAlias,
             { 'oae-principals/recaptcha/enabled': true },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
-              const params = {
+              const parameters = {
                 username: TestsUtil.generateTestUserId(),
                 email: TestsUtil.generateTestEmailAddress(null, recaptchaTenant.emailDomains[0]),
                 password: 'password',
@@ -258,41 +259,44 @@ describe('Users', () => {
                 visibility: 'public'
               };
               const recaptchaAnonymousRestContext = TestsUtil.createTenantRestContext(host);
-              PrincipalsTestUtil.assertCreateUserFails(recaptchaAnonymousRestContext, params, 400, () => {
-                params.email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-                PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeTenantAdmin, params, createdUser => {
+              PrincipalsTestUtil.assertCreateUserFails(recaptchaAnonymousRestContext, parameters, 400, () => {
+                parameters.email = TestsUtil.generateTestEmailAddress(
+                  null,
+                  global.oaeTests.tenants.cam.emailDomains[0]
+                );
+                PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeTenantAdmin, parameters, (createdUser) => {
                   assert.ok(createdUser);
                   assert.strictEqual(createdUser.displayName, 'Test User');
                   assert.strictEqual(createdUser.publicAlias, 'Test User');
                   assert.strictEqual(createdUser.visibility, 'public');
                   assert.strictEqual(createdUser.resourceType, 'user');
-                  assert.strictEqual(createdUser.email, params.email.toLowerCase());
+                  assert.strictEqual(createdUser.email, parameters.email.toLowerCase());
                   assert.strictEqual(
                     createdUser.profilePath,
                     '/user/' + createdUser.tenant.alias + '/' + AuthzUtil.getResourceFromId(createdUser.id).resourceId
                   );
                   const userRestContext = TestsUtil.createTenantRestContext(
                     global.oaeTests.tenants.cam.host,
-                    params.username,
-                    params.password
+                    parameters.username,
+                    parameters.password
                   );
 
                   // Try creating a user with the same username, which should fail
-                  params.email = TestsUtil.generateTestEmailAddress(null, recaptchaTenant.emailDomains[0]);
-                  PrincipalsTestUtil.assertCreateUserFails(recaptchaAnonymousRestContext, params, 400, () => {
+                  parameters.email = TestsUtil.generateTestEmailAddress(null, recaptchaTenant.emailDomains[0]);
+                  PrincipalsTestUtil.assertCreateUserFails(recaptchaAnonymousRestContext, parameters, 400, () => {
                     // Try creating a new user as the created user
-                    params.username = TestsUtil.generateTestUserId();
-                    params.email = TestsUtil.generateTestEmailAddress(
+                    parameters.username = TestsUtil.generateTestUserId();
+                    parameters.email = TestsUtil.generateTestEmailAddress(
                       null,
                       global.oaeTests.tenants.cam.emailDomains[0]
                     );
-                    PrincipalsTestUtil.assertCreateUserFails(userRestContext, params, 401, () => {
+                    PrincipalsTestUtil.assertCreateUserFails(userRestContext, parameters, 401, () => {
                       // We promote the created user to be a tenant admin
-                      RestAPI.User.setTenantAdmin(asGlobalAdmin, createdUser.id, true, err => {
-                        assert.notExists(err);
+                      RestAPI.User.setTenantAdmin(asGlobalAdmin, createdUser.id, true, (error__) => {
+                        assert.notExists(error__);
 
                         // Try creating the user again
-                        PrincipalsTestUtil.assertCreateUserSucceeds(userRestContext, params, (/* userObj */) => {
+                        PrincipalsTestUtil.assertCreateUserSucceeds(userRestContext, parameters, (/* userObj */) => {
                           // Create a user on a tenant as the global administrator
                           let newUsername = TestsUtil.generateTestUserId();
                           const email3 = TestsUtil.generateTestEmailAddress(
@@ -307,19 +311,19 @@ describe('Users', () => {
                             'Test User',
                             email3,
                             { visibility: 'public' },
-                            (err, userObj) => {
-                              assert.notExists(err);
-                              assert.ok(userObj);
-                              assert.strictEqual(userObj.displayName, 'Test User');
-                              assert.strictEqual(userObj.publicAlias, 'Test User');
-                              assert.strictEqual(userObj.visibility, 'public');
-                              assert.strictEqual(userObj.resourceType, 'user');
+                            (error, userObject) => {
+                              assert.notExists(error);
+                              assert.ok(userObject);
+                              assert.strictEqual(userObject.displayName, 'Test User');
+                              assert.strictEqual(userObject.publicAlias, 'Test User');
+                              assert.strictEqual(userObject.visibility, 'public');
+                              assert.strictEqual(userObject.resourceType, 'user');
                               assert.strictEqual(
-                                userObj.profilePath,
+                                userObject.profilePath,
                                 '/user/' +
-                                  userObj.tenant.alias +
+                                  userObject.tenant.alias +
                                   '/' +
-                                  AuthzUtil.getResourceFromId(userObj.id).resourceId
+                                  AuthzUtil.getResourceFromId(userObject.id).resourceId
                               );
 
                               // Create a user on the global tenant as the global administrator
@@ -336,9 +340,9 @@ describe('Users', () => {
                                 'Test User',
                                 email4,
                                 { visibility: 'public' },
-                                (err, userObj) => {
-                                  assert.notExists(err);
-                                  assert.ok(userObj);
+                                (error, userObject) => {
+                                  assert.notExists(error);
+                                  assert.ok(userObject);
 
                                   // Verify we cannot create a user on the global admin tenant as an anonymous user
                                   newUsername = TestsUtil.generateTestUserId();
@@ -351,9 +355,9 @@ describe('Users', () => {
                                     'Test User',
                                     email5,
                                     {},
-                                    (err /* , userObj */) => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 401);
+                                    (error /* , userObj */) => {
+                                      assert.ok(error);
+                                      assert.strictEqual(error.code, 401);
 
                                       // Verify we cannot create a user on another tenant as global admin anonymous user
                                       const email6 = TestsUtil.generateTestEmailAddress(
@@ -368,9 +372,9 @@ describe('Users', () => {
                                         'Test User',
                                         email6,
                                         {},
-                                        (err /* , userObj */) => {
-                                          assert.ok(err);
-                                          assert.strictEqual(err.code, 401);
+                                        (error /* , userObj */) => {
+                                          assert.ok(error);
+                                          assert.strictEqual(error.code, 401);
 
                                           /**
                                            * Verify we cannot create a user on another tenant as a tenant admin.
@@ -389,9 +393,9 @@ describe('Users', () => {
                                             'Test User',
                                             email7,
                                             { visibility: 'public' },
-                                            (err /* , userObj */) => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 404);
+                                            (error /* , userObj */) => {
+                                              assert.ok(error);
+                                              assert.strictEqual(error.code, 404);
                                               return callback();
                                             }
                                           );
@@ -418,20 +422,20 @@ describe('Users', () => {
     /**
      * Test that verifies that emails belong to the configured tenant's email domain
      */
-    it("verify the email address has to belong to the configured tenant's email domain when creating a local user", callback => {
+    it("verify the email address has to belong to the configured tenant's email domain when creating a local user", (callback) => {
       // Create a tenant but don't configure an email domain yet
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TenantsTestUtil.createTenantAndWait(asGlobalAdmin, tenantAlias, tenantAlias, tenantHost, {}, err => {
-        assert.notExists(err);
+      TenantsTestUtil.createTenantAndWait(asGlobalAdmin, tenantAlias, tenantAlias, tenantHost, {}, (error) => {
+        assert.notExists(error);
 
         // Disable reCaptcha
         ConfigTestUtil.updateConfigAndWait(
           asGlobalAdmin,
           tenantAlias,
           { 'oae-principals/recaptcha/enabled': false },
-          err => {
-            assert.notExists(err);
+          (error) => {
+            assert.notExists(error);
 
             const emailDomain1 = tenantHost;
             const emailDomain2 = TenantsTestUtil.generateTestTenantHost();
@@ -440,8 +444,8 @@ describe('Users', () => {
             _verifyCreateUserWithEmailDomain(tenantHost, emailDomain1, () => {
               _verifyCreateUserWithEmailDomain(tenantHost, emailDomain2, () => {
                 // Configure the tenant with an email domain
-                RestAPI.Tenants.updateTenant(asGlobalAdmin, tenantAlias, { emailDomains: [emailDomain1] }, err => {
-                  assert.notExists(err);
+                RestAPI.Tenants.updateTenant(asGlobalAdmin, tenantAlias, { emailDomains: [emailDomain1] }, (error) => {
+                  assert.notExists(error);
 
                   // Only user accounts with an email that belongs to the configured email domain can be created
                   _verifyCreateUserWithEmailDomain(tenantHost, emailDomain1, () => {
@@ -461,33 +465,33 @@ describe('Users', () => {
      * Test that verifies that administrators can create user accounts with an email address
      * that does not match the configured email domain
      */
-    it('verify administrators can create user accounts with an email address that does not match the configured email domain', callback => {
+    it('verify administrators can create user accounts with an email address that does not match the configured email domain', (callback) => {
       // Create a tenant but don't configure an email domain yet
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         const emailDomain = tenantHost;
 
         // Verify a tenant administrator can create a user with an email address that does
         // not match the tenant's configured email domain
-        const params = {
+        const parameters = {
           username: TestsUtil.generateTestUserId(),
           password: 'password',
           displayName: 'displayName',
           email: TestsUtil.generateTestEmailAddress()
         };
-        PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, params, () => {
+        PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => {
           // Verify a tenant administrator can create a user with an email address that
           // does match the tenant's configured email domain
-          const params = {
+          const parameters = {
             username: TestsUtil.generateTestUserId(),
             password: 'password',
             displayName: 'displayName',
             email: TestsUtil.generateTestEmailAddress(null, emailDomain)
           };
-          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, params, () => {
+          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => {
             return callback();
           });
         });
@@ -502,15 +506,15 @@ describe('Users', () => {
      * @param  {Function}       callback            Standard callback function
      * @api private
      */
-    const _verifyCreateUserWithEmailDomain = function(tenantHost, emailDomain, callback) {
+    const _verifyCreateUserWithEmailDomain = function (tenantHost, emailDomain, callback) {
       const restContext = TestsUtil.createTenantRestContext(tenantHost);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: 'displayName',
         email: TestsUtil.generateTestEmailAddress(null, emailDomain)
       };
-      return PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, callback);
+      return PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, callback);
     };
 
     /**
@@ -521,21 +525,21 @@ describe('Users', () => {
      * @param  {Function}       callback            Standard callback function
      * @api private
      */
-    const _verifyCreateUserWithEmailDomainFails = function(tenantHost, emailDomain, callback) {
+    const _verifyCreateUserWithEmailDomainFails = function (tenantHost, emailDomain, callback) {
       const restContext = TestsUtil.createTenantRestContext(tenantHost);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: 'displayName',
         email: TestsUtil.generateTestEmailAddress(null, emailDomain)
       };
-      return PrincipalsTestUtil.assertCreateUserFails(restContext, params, 400, callback);
+      return PrincipalsTestUtil.assertCreateUserFails(restContext, parameters, 400, callback);
     };
 
     /**
      * Test that verifies that the default tenant user visibility is used when creating a user without a visibility
      */
-    it('verify user visibility defaults to the tenant default when created', callback => {
+    it('verify user visibility defaults to the tenant default when created', (callback) => {
       const camTenantAlias = global.oaeTests.tenants.cam.alias;
 
       // Create a user to ensure the default user visibility of the tenant starts as public
@@ -547,8 +551,8 @@ describe('Users', () => {
         'Bart',
         email1,
         {},
-        (err, createdUser) => {
-          assert.notExists(err);
+        (error, createdUser) => {
+          assert.notExists(error);
           assert.strictEqual(createdUser.visibility, 'public');
 
           // Change the default user visibility of the tenant to loggedin
@@ -556,8 +560,8 @@ describe('Users', () => {
             asGlobalAdmin,
             camTenantAlias,
             { 'oae-principals/user/visibility': 'loggedin' },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Create a user to ensure its visibility defaults to loggedin
               const email2 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
@@ -568,8 +572,8 @@ describe('Users', () => {
                 'Lisa',
                 email2,
                 {},
-                (err, createdUser) => {
-                  assert.notExists(err);
+                (error, createdUser) => {
+                  assert.notExists(error);
                   assert.strictEqual(createdUser.visibility, 'loggedin');
 
                   // Reset the default user visibility of the tenant back to the global default
@@ -577,8 +581,8 @@ describe('Users', () => {
                     asGlobalAdmin,
                     camTenantAlias,
                     ['oae-principals/user/visibility'],
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
                       // Ensure a user's visibility can be overridden when they are created
                       const email3 = TestsUtil.generateTestEmailAddress(
@@ -592,8 +596,8 @@ describe('Users', () => {
                         'Homer',
                         email3,
                         { visibility: 'private' },
-                        (err, createdUser) => {
-                          assert.notExists(err);
+                        (error, createdUser) => {
+                          assert.notExists(error);
                           assert.strictEqual(createdUser.visibility, 'private');
                           return callback();
                         }
@@ -611,7 +615,7 @@ describe('Users', () => {
     /**
      * Test that verifies that the default tenant user email preference is used when creating a user without an email preference
      */
-    it('verify email preference defaults to the tenant default when created', callback => {
+    it('verify email preference defaults to the tenant default when created', (callback) => {
       const camTenantAlias = global.oaeTests.tenants.cam.alias;
 
       // Create a user to ensure the default user email preference of the tenant starts as immediate
@@ -623,8 +627,8 @@ describe('Users', () => {
         'Bert',
         email1,
         {},
-        (err, createdUser) => {
-          assert.notExists(err);
+        (error, createdUser) => {
+          assert.notExists(error);
           assert.strictEqual(createdUser.emailPreference, 'immediate');
 
           // Change the default user email preference of the tenant to weekly
@@ -632,8 +636,8 @@ describe('Users', () => {
             asGlobalAdmin,
             camTenantAlias,
             { 'oae-principals/user/emailPreference': 'weekly' },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Create a user to ensure its email preference defaults to weekly
               const email2 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
@@ -644,8 +648,8 @@ describe('Users', () => {
                 'Lisa',
                 email2,
                 {},
-                (err, createdUser) => {
-                  assert.notExists(err);
+                (error, createdUser) => {
+                  assert.notExists(error);
                   assert.strictEqual(createdUser.emailPreference, 'weekly');
 
                   // Reset the default user email preference of the tenant back to the global default
@@ -653,8 +657,8 @@ describe('Users', () => {
                     asGlobalAdmin,
                     camTenantAlias,
                     ['oae-principals/user/emailPreference'],
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
                       // Ensure a user's email preference can be overridden when they are created
                       const email3 = TestsUtil.generateTestEmailAddress(
@@ -668,8 +672,8 @@ describe('Users', () => {
                         'Homer',
                         email3,
                         { emailPreference: 'daily' },
-                        (err, createdUser) => {
-                          assert.notExists(err);
+                        (error, createdUser) => {
+                          assert.notExists(error);
                           assert.strictEqual(createdUser.emailPreference, 'daily');
                           return callback();
                         }
@@ -688,7 +692,7 @@ describe('Users', () => {
      * Test that verifies that users their usernames get lowercased.
      * See https://github.com/oaeproject/Hilary/issues/594
      */
-    it('verify lowercasing of usernames', callback => {
+    it('verify lowercasing of usernames', (callback) => {
       const username = TestsUtil.generateTestUserId() + 'Aa';
       const lowerCasedUsername = username.toLowerCase();
       const upperCasedUsername = username.toUpperCase();
@@ -701,8 +705,8 @@ describe('Users', () => {
         'Test User',
         email,
         {},
-        (err, createdUser) => {
-          assert.notExists(err);
+        (error, createdUser) => {
+          assert.notExists(error);
 
           // Verify we cannot create another user account where the username only differs in the casing
           const email2 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
@@ -713,8 +717,8 @@ describe('Users', () => {
             'Test User',
             email2,
             {},
-            err => {
-              assert.strictEqual(err.code, 400);
+            (error_) => {
+              assert.strictEqual(error_.code, 400);
               RestAPI.User.createUser(
                 asCambridgeTenantAdmin,
                 upperCasedUsername,
@@ -722,8 +726,8 @@ describe('Users', () => {
                 'Test User',
                 email2,
                 {},
-                err => {
-                  assert.strictEqual(err.code, 400);
+                (error_) => {
+                  assert.strictEqual(error_.code, 400);
 
                   // When logging in with the same username but in lower case we should succesfully log in
                   const userRestContext = TestsUtil.createTenantRestContext(
@@ -731,10 +735,10 @@ describe('Users', () => {
                     lowerCasedUsername,
                     'password'
                   );
-                  RestAPI.Authentication.login(userRestContext, lowerCasedUsername, 'password', err => {
-                    assert.notExists(err);
-                    RestAPI.User.getMe(userRestContext, (err, meData) => {
-                      assert.notExists(err);
+                  RestAPI.Authentication.login(userRestContext, lowerCasedUsername, 'password', (error_) => {
+                    assert.notExists(error_);
+                    RestAPI.User.getMe(userRestContext, (error, meData) => {
+                      assert.notExists(error);
                       assert.strictEqual(meData.id, createdUser.id);
 
                       // When logging in with the same username but in upper case we should succesfully log in
@@ -743,10 +747,10 @@ describe('Users', () => {
                         upperCasedUsername,
                         'password'
                       );
-                      RestAPI.Authentication.login(userRestContext, upperCasedUsername, 'password', err => {
-                        assert.notExists(err);
-                        RestAPI.User.getMe(userRestContext, (err, meData) => {
-                          assert.notExists(err);
+                      RestAPI.Authentication.login(userRestContext, upperCasedUsername, 'password', (error_) => {
+                        assert.notExists(error_);
+                        RestAPI.User.getMe(userRestContext, (error, meData) => {
+                          assert.notExists(error);
                           assert.strictEqual(meData.id, createdUser.id);
                           callback();
                         });
@@ -764,7 +768,7 @@ describe('Users', () => {
     /**
      * Test that verifies that users created without a locale get the default tenant locale
      */
-    it('verify user gets default locale', callback => {
+    it('verify user gets default locale', (callback) => {
       const userId1 = TestsUtil.generateTestUserId();
       const userId2 = TestsUtil.generateTestUserId();
       const userId3 = TestsUtil.generateTestUserId();
@@ -778,8 +782,8 @@ describe('Users', () => {
         'Test User 1',
         email1,
         {},
-        (err, createdUser1) => {
-          assert.notExists(err);
+        (error, createdUser1) => {
+          assert.notExists(error);
           assert.ok(createdUser1);
           // Check that the user has been given the default locale
           assert.strictEqual(createdUser1.locale, 'en_GB');
@@ -789,8 +793,8 @@ describe('Users', () => {
             asGlobalAdmin,
             global.oaeTests.tenants.cam.alias,
             { 'oae-principals/user/defaultLanguage': 'es_ES' },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Create user without locale
               const email2 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
@@ -801,8 +805,8 @@ describe('Users', () => {
                 'Test User 2',
                 email2,
                 {},
-                (err, createdUser2) => {
-                  assert.notExists(err);
+                (error, createdUser2) => {
+                  assert.notExists(error);
                   assert.ok(createdUser2);
                   // Check that the user has been given the new default locale
                   assert.strictEqual(createdUser2.locale, 'es_ES');
@@ -816,8 +820,8 @@ describe('Users', () => {
                     asCambridgeTenantAdmin,
                     null,
                     { 'oae-principals/recaptcha/enabled': false },
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
                       const email3 = TestsUtil.generateTestEmailAddress(
                         null,
@@ -830,8 +834,8 @@ describe('Users', () => {
                         'Test User 3',
                         email3,
                         {},
-                        (err, createdUser3) => {
-                          assert.notExists(err);
+                        (error, createdUser3) => {
+                          assert.notExists(error);
                           assert.ok(createdUser3);
                           assert.strictEqual(createdUser3.locale, 'en_US');
 
@@ -839,11 +843,11 @@ describe('Users', () => {
                             asCambridgeTenantAdmin,
                             null,
                             ['oae-principals/recaptcha/enabled'],
-                            err => {
-                              assert.notExists(err);
+                            (error_) => {
+                              assert.notExists(error_);
                               // Check that the first user still has the old default locale
-                              RestAPI.User.getUser(asCambridgeTenantAdmin, createdUser1.id, (err, user) => {
-                                assert.notExists(err);
+                              RestAPI.User.getUser(asCambridgeTenantAdmin, createdUser1.id, (error, user) => {
+                                assert.notExists(error);
                                 assert.ok(user);
                                 assert.strictEqual(user.locale, 'en_GB');
 
@@ -852,12 +856,12 @@ describe('Users', () => {
                                   asGlobalAdmin,
                                   global.oaeTests.tenants.cam.alias,
                                   { 'oae-principals/user/defaultLanguage': 'en_GB' },
-                                  err => {
-                                    assert.notExists(err);
+                                  (error_) => {
+                                    assert.notExists(error_);
 
                                     // Check that the second user still has the Spanish locale
-                                    RestAPI.User.getUser(asCambridgeTenantAdmin, createdUser2.id, (err, user) => {
-                                      assert.notExists(err);
+                                    RestAPI.User.getUser(asCambridgeTenantAdmin, createdUser2.id, (error, user) => {
+                                      assert.notExists(error);
                                       assert.ok(user);
                                       assert.strictEqual(user.locale, 'es_ES');
                                       callback();
@@ -883,13 +887,13 @@ describe('Users', () => {
      * Test that verifies that anonymous users with accept-language headers get a
      * locale in the me feed
      */
-    it('verify anonymous locale', callback => {
+    it('verify anonymous locale', (callback) => {
       const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
         hostHeader: global.oaeTests.tenants.cam.host,
         additionalHeaders: { 'Accept-Language': 'en-us' }
       });
-      RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-        assert.notExists(err);
+      RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+        assert.notExists(error);
         assert.ok(meData.anon);
         assert.strictEqual(meData.locale, 'en_US');
 
@@ -898,8 +902,8 @@ describe('Users', () => {
           hostHeader: global.oaeTests.tenants.cam.host,
           additionalHeaders: { 'Accept-Language': 'es-es;q=0.5, en-us' }
         });
-        RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+          assert.notExists(error);
           assert.ok(meData.anon);
           assert.strictEqual(meData.locale, 'en_US');
 
@@ -908,8 +912,8 @@ describe('Users', () => {
             hostHeader: global.oaeTests.tenants.cam.host,
             additionalHeaders: { 'Accept-Language': 'en' }
           });
-          RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-            assert.notExists(err);
+          RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+            assert.notExists(error);
             assert.ok(meData.anon);
             assert.strictEqual(meData.locale.slice(0, 2), 'en');
 
@@ -922,8 +926,8 @@ describe('Users', () => {
                   'en-US,en;q=0.93,es-ES;q=0.87,es;q=0.80,it-IT;q=0.73,it;q=0.67,de-DE;q=0.60,de;q=0.53,fr-FR;q=0.47,fr;q=0.40,ja;q=0.33,zh-Hans-CN;q=0.27,zh-Hans;q=0.20,ar-SA;q=0.13,ar;q=0.067'
               }
             });
-            RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+              assert.notExists(error);
               assert.ok(meData.anon);
               assert.strictEqual(meData.locale, 'en_US');
 
@@ -933,8 +937,8 @@ describe('Users', () => {
                 hostHeader: global.oaeTests.tenants.cam.host,
                 additionalHeaders: { 'Accept-Language': 'qq-ZZ' }
               });
-              RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+                assert.notExists(error);
                 assert.ok(meData.anon);
                 assert.ok(!meData.locale);
 
@@ -944,8 +948,8 @@ describe('Users', () => {
                   hostHeader: global.oaeTests.tenants.cam.host,
                   additionalHeaders: { 'Accept-Language': 'qq-ZZ, zz-ZZ;q=0.50, qq-QQ;q=0.30' }
                 });
-                RestAPI.User.getMe(acceptLanguageRestContext, (err, meData) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(acceptLanguageRestContext, (error, meData) => {
+                  assert.notExists(error);
                   assert.ok(meData.anon);
                   assert.ok(!meData.locale);
 
@@ -961,77 +965,93 @@ describe('Users', () => {
     /**
      * Test that verifies that validation on user creation is done appropriately
      */
-    it('verify validation', callback => {
+    it('verify validation', (callback) => {
       const userId = TestsUtil.generateTestUserId();
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
 
       // Create user with no user id
-      RestAPI.User.createUser(asCambridgeTenantAdmin, null, 'password', 'Test User', email, {}, (err, userObj) => {
-        assert.ok(err);
-        assert.ok(!userObj);
+      RestAPI.User.createUser(asCambridgeTenantAdmin, null, 'password', 'Test User', email, {}, (error, userObject) => {
+        assert.ok(error);
+        assert.ok(!userObject);
 
         // Create user with empty password
-        RestAPI.User.createUser(asCambridgeTenantAdmin, userId, null, 'Test User', email, {}, (err, userObj) => {
-          assert.ok(err);
-          assert.ok(!userObj);
+        RestAPI.User.createUser(asCambridgeTenantAdmin, userId, null, 'Test User', email, {}, (error, userObject) => {
+          assert.ok(error);
+          assert.ok(!userObject);
 
           // Create user with short password
-          RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'short', 'Test User', email, {}, (err, userObj) => {
-            assert.ok(err);
-            assert.ok(!userObj);
+          RestAPI.User.createUser(
+            asCambridgeTenantAdmin,
+            userId,
+            'short',
+            'Test User',
+            email,
+            {},
+            (error, userObject) => {
+              assert.ok(error);
+              assert.ok(!userObject);
 
-            // Create user with no display name
-            RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', null, email, {}, (err, userObj) => {
-              assert.ok(err);
-              assert.ok(!userObj);
-
-              // Create user with unkown visibility setting
+              // Create user with no display name
               RestAPI.User.createUser(
                 asCambridgeTenantAdmin,
                 userId,
                 'password',
-                'Test User',
+                null,
                 email,
-                { visibility: 'unknown' },
-                (err, userObj) => {
-                  assert.ok(err);
-                  assert.ok(!userObj);
+                {},
+                (error, userObject) => {
+                  assert.ok(error);
+                  assert.ok(!userObject);
 
-                  // Create user with displayName that is longer than the maximum allowed size
-                  const longDisplayName = TestsUtil.generateRandomText(100);
-                  RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', longDisplayName, email, {}, (
-                    err /* , userObj */
-                  ) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 400);
+                  // Create user with unkown visibility setting
+                  RestAPI.User.createUser(
+                    asCambridgeTenantAdmin,
+                    userId,
+                    'password',
+                    'Test User',
+                    email,
+                    { visibility: 'unknown' },
+                    (error, userObject) => {
+                      assert.ok(error);
+                      assert.ok(!userObject);
 
-                    // Create a user with no email address
-                    RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', 'Test user', null, {}, (
-                      err /* , userObj */
-                    ) => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 400);
+                      // Create user with displayName that is longer than the maximum allowed size
+                      const longDisplayName = TestsUtil.generateRandomText(100);
+                      RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', longDisplayName, email, {}, (
+                        error /* , userObj */
+                      ) => {
+                        assert.ok(error);
+                        assert.strictEqual(error.code, 400);
 
-                      // Create a user with an invalid email address
-                      RestAPI.User.createUser(
-                        asCambridgeTenantAdmin,
-                        userId,
-                        'password',
-                        'Test user',
-                        'not an email address',
-                        {},
-                        (err /* , userObj */) => {
-                          assert.ok(err);
-                          assert.strictEqual(err.code, 400);
-                          return callback();
-                        }
-                      );
-                    });
-                  });
+                        // Create a user with no email address
+                        RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', 'Test user', null, {}, (
+                          error /* , userObj */
+                        ) => {
+                          assert.ok(error);
+                          assert.strictEqual(error.code, 400);
+
+                          // Create a user with an invalid email address
+                          RestAPI.User.createUser(
+                            asCambridgeTenantAdmin,
+                            userId,
+                            'password',
+                            'Test user',
+                            'not an email address',
+                            {},
+                            (error /* , userObj */) => {
+                              assert.ok(error);
+                              assert.strictEqual(error.code, 400);
+                              return callback();
+                            }
+                          );
+                        });
+                      });
+                    }
+                  );
                 }
               );
-            });
-          });
+            }
+          );
         });
       });
     });
@@ -1044,9 +1064,9 @@ describe('Users', () => {
      * @param  {String}     filename    The name of the file in the test data directory to be loaded
      * @return {Function}               A function that, when executed without parameters, returns a stream to the file in the test data directory with the provided filename
      */
-    const getDataFileStream = function(filename) {
-      return function() {
-        return fs.createReadStream(util.format('%s/data/%s', __dirname, filename));
+    const getDataFileStream = function (filename) {
+      return function () {
+        return fs.createReadStream(format('%s/data/%s', __dirname, filename));
       };
     };
 
@@ -1060,12 +1080,12 @@ describe('Users', () => {
      * @param  {String}       expectedEmail        The email address the meObj is expected to contain
      * @api private
      */
-    const _verifyUser = function(err, meObj, expectedDisplayName, expectedPublicAlias, expectedEmail) {
-      assert.notExists(err);
-      assert.ok(meObj);
-      assert.strictEqual(meObj.displayName, expectedDisplayName);
-      assert.strictEqual(meObj.publicAlias, expectedPublicAlias);
-      assert.strictEqual(meObj.email, expectedEmail);
+    const _verifyUser = function (error, meObject, expectedDisplayName, expectedPublicAlias, expectedEmail) {
+      assert.notExists(error);
+      assert.ok(meObject);
+      assert.strictEqual(meObject.displayName, expectedDisplayName);
+      assert.strictEqual(meObject.publicAlias, expectedPublicAlias);
+      assert.strictEqual(meObject.email, expectedEmail);
     };
 
     /*!
@@ -1073,11 +1093,11 @@ describe('Users', () => {
      * display name will be overridden when the account already exists and the display name is the same as the user's
      * external id
      */
-    it('verify import local users and display name override', callback => {
+    it('verify import local users and display name override', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'displayname.import.tests.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Import users as a global admin using a local authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -1086,16 +1106,16 @@ describe('Users', () => {
           getDataFileStream('users-with-password-displayname.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Verify that all imported users have been created
             // First user in the csv
             const nicolaasRestContext = TestsUtil.createTenantRestContext(tenant.host, 'user-zfdHliPLa', 'password1');
-            RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+            RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
               _verifyUser(
-                err,
-                nicolaasMeObj,
+                error,
+                nicolaasMeObject,
                 'Nicolaas Matthijs',
                 'Nicolaas Matthijs',
                 'nicolaas@displayname.import.tests.com'
@@ -1103,15 +1123,15 @@ describe('Users', () => {
 
               // User with missing first name
               const simonRestContext = TestsUtil.createTenantRestContext(tenant.host, 'user-HlKKreaDP', 'password4');
-              RestAPI.User.getMe(simonRestContext, (err, simonMeObj) => {
-                _verifyUser(err, simonMeObj, 'Gaeremynck', 'Gaeremynck', 'simon@displayname.import.tests.com');
+              RestAPI.User.getMe(simonRestContext, (error, simonMeObject) => {
+                _verifyUser(error, simonMeObject, 'Gaeremynck', 'Gaeremynck', 'simon@displayname.import.tests.com');
 
                 // User with more complex display name
                 const stuartRestContext = TestsUtil.createTenantRestContext(tenant.host, 'user-IrewPDSAw', 'password5');
-                RestAPI.User.getMe(stuartRestContext, (err, stuartMeObj) => {
+                RestAPI.User.getMe(stuartRestContext, (error, stuartMeObject) => {
                   _verifyUser(
-                    err,
-                    stuartMeObj,
+                    error,
+                    stuartMeObject,
                     'Stuart D. Freeman',
                     'Stuart D. Freeman',
                     'stuart@displayname.import.tests.com'
@@ -1123,10 +1143,10 @@ describe('Users', () => {
                     'user-bbLwAWxpd',
                     'password26'
                   );
-                  RestAPI.User.getMe(stephenRestContext, (err, stephenMeObj) => {
+                  RestAPI.User.getMe(stephenRestContext, (error, stephenMeObject) => {
                     _verifyUser(
-                      err,
-                      stephenMeObj,
+                      error,
+                      stephenMeObject,
                       'Stephen Thomas',
                       'Stephen Thomas',
                       'stephen@displayname.import.tests.com'
@@ -1135,19 +1155,19 @@ describe('Users', () => {
                     // Update a user's display name to be the same as its external id
                     RestAPI.User.updateUser(
                       nicolaasRestContext,
-                      nicolaasMeObj.id,
+                      nicolaasMeObject.id,
                       { displayName: 'user-zfdHliPLa' },
-                      (err, user) => {
-                        assert.notExists(err);
+                      (error, user) => {
+                        assert.notExists(error);
                         assert.ok(user);
-                        assert.strictEqual(user.id, nicolaasMeObj.id);
+                        assert.strictEqual(user.id, nicolaasMeObject.id);
                         assert.strictEqual(user.displayName, 'user-zfdHliPLa');
 
                         // Verify that the update is reflected in the me feed
-                        RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                        RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                           _verifyUser(
-                            err,
-                            nicolaasMeObj,
+                            error,
+                            nicolaasMeObject,
                             'user-zfdHliPLa',
                             'Nicolaas Matthijs',
                             'nicolaas@displayname.import.tests.com'
@@ -1161,14 +1181,14 @@ describe('Users', () => {
                             getDataFileStream('users-with-password-displayname.csv'),
                             'local',
                             null,
-                            err => {
-                              assert.notExists(err);
+                            (error_) => {
+                              assert.notExists(error_);
 
                               // Verify that the display name is correctly reverted
-                              RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                              RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                 _verifyUser(
-                                  err,
-                                  nicolaasMeObj,
+                                  error,
+                                  nicolaasMeObject,
                                   'Nicolaas Matthijs',
                                   'Nicolaas Matthijs',
                                   'nicolaas@displayname.import.tests.com'
@@ -1177,19 +1197,19 @@ describe('Users', () => {
                                 // Update the user's display name to a different real display name
                                 RestAPI.User.updateUser(
                                   nicolaasRestContext,
-                                  nicolaasMeObj.id,
+                                  nicolaasMeObject.id,
                                   { displayName: 'N. Matthijs' },
-                                  (err, user) => {
-                                    assert.notExists(err);
+                                  (error, user) => {
+                                    assert.notExists(error);
                                     assert.ok(user);
-                                    assert.strictEqual(user.id, nicolaasMeObj.id);
+                                    assert.strictEqual(user.id, nicolaasMeObject.id);
                                     assert.strictEqual(user.displayName, 'N. Matthijs');
 
                                     // Verify that the update is reflected in the me feed
-                                    RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                    RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                       _verifyUser(
-                                        err,
-                                        nicolaasMeObj,
+                                        error,
+                                        nicolaasMeObject,
                                         'N. Matthijs',
                                         'Nicolaas Matthijs',
                                         'nicolaas@displayname.import.tests.com'
@@ -1203,14 +1223,14 @@ describe('Users', () => {
                                         getDataFileStream('users-with-password-displayname.csv'),
                                         'local',
                                         null,
-                                        err => {
-                                          assert.notExists(err);
+                                        (error_) => {
+                                          assert.notExists(error_);
 
                                           // Verify that the display name has not been reverted
-                                          RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                          RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                             _verifyUser(
-                                              err,
-                                              nicolaasMeObj,
+                                              error,
+                                              nicolaasMeObject,
                                               'N. Matthijs',
                                               'Nicolaas Matthijs',
                                               'nicolaas@displayname.import.tests.com'
@@ -1224,14 +1244,14 @@ describe('Users', () => {
                                               getDataFileStream('users-with-password-displayname.csv'),
                                               'local',
                                               true,
-                                              err => {
-                                                assert.notExists(err);
+                                              (error_) => {
+                                                assert.notExists(error_);
 
                                                 // Verify that the display name is correctly reverted
-                                                RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                                RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                                   _verifyUser(
-                                                    err,
-                                                    nicolaasMeObj,
+                                                    error,
+                                                    nicolaasMeObject,
                                                     'Nicolaas Matthijs',
                                                     'Nicolaas Matthijs',
                                                     'nicolaas@displayname.import.tests.com'
@@ -1240,12 +1260,12 @@ describe('Users', () => {
                                                   // Update the user's display name to be the same as its external id
                                                   RestAPI.User.updateUser(
                                                     nicolaasRestContext,
-                                                    nicolaasMeObj.id,
+                                                    nicolaasMeObject.id,
                                                     { displayName: 'user-zfdHliPLa' },
-                                                    (err, user) => {
-                                                      assert.notExists(err);
+                                                    (error, user) => {
+                                                      assert.notExists(error);
                                                       assert.ok(user);
-                                                      assert.strictEqual(user.id, nicolaasMeObj.id);
+                                                      assert.strictEqual(user.id, nicolaasMeObject.id);
                                                       assert.strictEqual(user.displayName, 'user-zfdHliPLa');
 
                                                       // Re-import the users using the `forceProfileUpdate` flag to verify that the displayName is correctly reverted to
@@ -1256,16 +1276,16 @@ describe('Users', () => {
                                                         getDataFileStream('users-with-password-displayname.csv'),
                                                         'local',
                                                         true,
-                                                        err => {
-                                                          assert.notExists(err);
+                                                        (error_) => {
+                                                          assert.notExists(error_);
 
                                                           // Verify that the display name is correctly reverted
                                                           RestAPI.User.getMe(
                                                             nicolaasRestContext,
-                                                            (err, nicolaasMeObj) => {
+                                                            (error, nicolaasMeObject) => {
                                                               _verifyUser(
-                                                                err,
-                                                                nicolaasMeObj,
+                                                                error,
+                                                                nicolaasMeObject,
                                                                 'Nicolaas Matthijs',
                                                                 'Nicolaas Matthijs',
                                                                 'nicolaas@displayname.import.tests.com'
@@ -1305,11 +1325,11 @@ describe('Users', () => {
      * Test that verifies that a CSV user file can be imported using a local authentication strategy and that a user's
      * email address will be overridden when the account already exists and the email address is not set
      */
-    it('verify import local users and email address override', callback => {
+    it('verify import local users and email address override', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'email.test.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Import users as a global admin using a local authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -1318,28 +1338,28 @@ describe('Users', () => {
           getDataFileStream('users-with-password-email.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             const nicolaasRestContext = TestsUtil.createTenantRestContext(tenant.host, 'user-zfdHliPLa', 'password1');
-            RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
-              _verifyUser(err, nicolaasMeObj, 'Nicolaas Matthijs', 'Nicolaas Matthijs', 'nicolaas@email.test.com');
+            RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
+              _verifyUser(error, nicolaasMeObject, 'Nicolaas Matthijs', 'Nicolaas Matthijs', 'nicolaas@email.test.com');
 
               // Update the user's email address to a different real one
               const email = 'nicolaas@my.other.mail.address.com';
               PrincipalsTestUtil.assertUpdateUserSucceeds(
                 nicolaasRestContext,
-                nicolaasMeObj.id,
+                nicolaasMeObject.id,
                 { email },
                 (user, token) => {
-                  assert.notExists(err);
+                  assert.notExists(error);
                   // Verify the email address
-                  PrincipalsTestUtil.assertVerifyEmailSucceeds(nicolaasRestContext, nicolaasMeObj.id, token, () => {
+                  PrincipalsTestUtil.assertVerifyEmailSucceeds(nicolaasRestContext, nicolaasMeObject.id, token, () => {
                     // Verify that the update is reflected in the me feed
-                    RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                    RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                       _verifyUser(
-                        err,
-                        nicolaasMeObj,
+                        error,
+                        nicolaasMeObject,
                         'Nicolaas Matthijs',
                         'Nicolaas Matthijs',
                         'nicolaas@my.other.mail.address.com'
@@ -1353,14 +1373,14 @@ describe('Users', () => {
                         getDataFileStream('users-with-password-email.csv'),
                         'local',
                         null,
-                        err => {
-                          assert.notExists(err);
+                        (error_) => {
+                          assert.notExists(error_);
 
                           // Verify that the email address has not been reverted
-                          RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                          RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                             _verifyUser(
-                              err,
-                              nicolaasMeObj,
+                              error,
+                              nicolaasMeObject,
                               'Nicolaas Matthijs',
                               'Nicolaas Matthijs',
                               'nicolaas@my.other.mail.address.com'
@@ -1374,14 +1394,14 @@ describe('Users', () => {
                               getDataFileStream('users-with-password-email.csv'),
                               'local',
                               true,
-                              err => {
-                                assert.notExists(err);
+                              (error_) => {
+                                assert.notExists(error_);
 
                                 // Verify that the email address is correctly reverted
-                                RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                   _verifyUser(
-                                    err,
-                                    nicolaasMeObj,
+                                    error,
+                                    nicolaasMeObject,
                                     'Nicolaas Matthijs',
                                     'Nicolaas Matthijs',
                                     'nicolaas@email.test.com'
@@ -1407,11 +1427,11 @@ describe('Users', () => {
      * Test that verifies that a CSV user file can be imported using a local authentication strategy and that a user's
      * publicAlias will be overridden with the displayname from the CSV file when the account already exists and the publicAlias is not set
      */
-    it('verify import local users and public alias override', callback => {
+    it('verify import local users and public alias override', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'alias.import.tests.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Import users as a global admin using a local authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -1420,29 +1440,29 @@ describe('Users', () => {
           getDataFileStream('users-with-password-alias.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             const nicolaasRestContext = TestsUtil.createTenantRestContext(tenantHost, 'user-zfdHliPLa', 'password1');
-            RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+            RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
               _verifyUser(
-                err,
-                nicolaasMeObj,
+                error,
+                nicolaasMeObject,
                 'Nicolaas Matthijs',
                 'Nicolaas Matthijs',
                 'nicolaas@alias.import.tests.com'
               );
 
               // Empty a user's public alias
-              RestAPI.User.updateUser(nicolaasRestContext, nicolaasMeObj.id, { publicAlias: '' }, (err, user) => {
-                assert.notExists(err);
+              RestAPI.User.updateUser(nicolaasRestContext, nicolaasMeObject.id, { publicAlias: '' }, (error, user) => {
+                assert.notExists(error);
                 assert.ok(user);
-                assert.strictEqual(user.id, nicolaasMeObj.id);
+                assert.strictEqual(user.id, nicolaasMeObject.id);
                 assert.strictEqual(user.publicAlias, '');
 
                 // Verify that the update is reflected in the me feed
-                RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
-                  _verifyUser(err, nicolaasMeObj, 'Nicolaas Matthijs', '', 'nicolaas@alias.import.tests.com');
+                RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
+                  _verifyUser(error, nicolaasMeObject, 'Nicolaas Matthijs', '', 'nicolaas@alias.import.tests.com');
 
                   // Re-import the users to verify that the public alias is reverted back to the display name
                   // provided in the CSV file. This time, the import is attempted as a tenant admin
@@ -1452,14 +1472,14 @@ describe('Users', () => {
                     getDataFileStream('users-with-password-alias.csv'),
                     'local',
                     null,
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
                       // Verify that the public alias is correctly reverted
-                      RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                      RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                         _verifyUser(
-                          err,
-                          nicolaasMeObj,
+                          error,
+                          nicolaasMeObject,
                           'Nicolaas Matthijs',
                           'Nicolaas Matthijs',
                           'nicolaas@alias.import.tests.com'
@@ -1468,19 +1488,19 @@ describe('Users', () => {
                         // Update the user's public alias to a different real one
                         RestAPI.User.updateUser(
                           nicolaasRestContext,
-                          nicolaasMeObj.id,
+                          nicolaasMeObject.id,
                           { publicAlias: 'Nico' },
-                          (err, user) => {
-                            assert.notExists(err);
+                          (error, user) => {
+                            assert.notExists(error);
                             assert.ok(user);
-                            assert.strictEqual(user.id, nicolaasMeObj.id);
+                            assert.strictEqual(user.id, nicolaasMeObject.id);
                             assert.strictEqual(user.publicAlias, 'Nico');
 
                             // Verify that the update is reflected in the me feed
-                            RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                            RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                               _verifyUser(
-                                err,
-                                nicolaasMeObj,
+                                error,
+                                nicolaasMeObject,
                                 'Nicolaas Matthijs',
                                 'Nico',
                                 'nicolaas@alias.import.tests.com'
@@ -1494,14 +1514,14 @@ describe('Users', () => {
                                 getDataFileStream('users-with-password-alias.csv'),
                                 'local',
                                 null,
-                                err => {
-                                  assert.notExists(err);
+                                (error_) => {
+                                  assert.notExists(error_);
 
                                   // Verify that the public alias has not been reverted
-                                  RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                  RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                     _verifyUser(
-                                      err,
-                                      nicolaasMeObj,
+                                      error,
+                                      nicolaasMeObject,
                                       'Nicolaas Matthijs',
                                       'Nico',
                                       'nicolaas@alias.import.tests.com'
@@ -1515,14 +1535,14 @@ describe('Users', () => {
                                       getDataFileStream('users-with-password-alias.csv'),
                                       'local',
                                       true,
-                                      err => {
-                                        assert.notExists(err);
+                                      (error_) => {
+                                        assert.notExists(error_);
 
                                         // Verify that the public alias is correctly reverted
-                                        RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                        RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                           _verifyUser(
-                                            err,
-                                            nicolaasMeObj,
+                                            error,
+                                            nicolaasMeObject,
                                             'Nicolaas Matthijs',
                                             'Nicolaas Matthijs',
                                             'nicolaas@alias.import.tests.com'
@@ -1531,12 +1551,12 @@ describe('Users', () => {
                                           // Empty the user's public alias
                                           RestAPI.User.updateUser(
                                             nicolaasRestContext,
-                                            nicolaasMeObj.id,
+                                            nicolaasMeObject.id,
                                             { publicAlias: '' },
-                                            (err, user) => {
-                                              assert.notExists(err);
+                                            (error, user) => {
+                                              assert.notExists(error);
                                               assert.ok(user);
-                                              assert.strictEqual(user.id, nicolaasMeObj.id);
+                                              assert.strictEqual(user.id, nicolaasMeObject.id);
                                               assert.strictEqual(user.publicAlias, '');
 
                                               // Re-import the users using the `forceProfileUpdate` flag to verify that the public alias is correctly reverted to
@@ -1547,14 +1567,14 @@ describe('Users', () => {
                                                 getDataFileStream('users-with-password-alias.csv'),
                                                 'local',
                                                 true,
-                                                err => {
-                                                  assert.notExists(err);
+                                                (error_) => {
+                                                  assert.notExists(error_);
 
                                                   // Verify that the public alias is correctly reverted
-                                                  RestAPI.User.getMe(nicolaasRestContext, (err, nicolaasMeObj) => {
+                                                  RestAPI.User.getMe(nicolaasRestContext, (error, nicolaasMeObject) => {
                                                     _verifyUser(
-                                                      err,
-                                                      nicolaasMeObj,
+                                                      error,
+                                                      nicolaasMeObject,
                                                       'Nicolaas Matthijs',
                                                       'Nicolaas Matthijs',
                                                       'nicolaas@alias.import.tests.com'
@@ -1588,11 +1608,11 @@ describe('Users', () => {
     /*!
      * Test that verifies importing a user by CSV respects the default visibility configured for the tenant
      */
-    it('verify import local users respects default user visibility of the tenant', callback => {
+    it('verify import local users respects default user visibility of the tenant', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'users.default.visibility.import.tests.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant /* , tenantAdminRestContext */) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant /* , tenantAdminRestContext */) => {
+        assert.notExists(error);
 
         // Do a CSV user import to test that the default user visibility of the tenant starts out as public
         PrincipalsTestUtil.importUsers(
@@ -1601,8 +1621,8 @@ describe('Users', () => {
           getDataFileStream('users-default-visibility-test1.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Ensure the user was created with public visibility
             const mrvisser1RestContext = TestsUtil.createTenantRestContext(
@@ -1610,8 +1630,8 @@ describe('Users', () => {
               'userdefaultvisibilitytest1',
               'password'
             );
-            RestAPI.User.getMe(mrvisser1RestContext, (err, createdUser) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(mrvisser1RestContext, (error, createdUser) => {
+              assert.notExists(error);
               assert.strictEqual(createdUser.visibility, 'public');
 
               // Change the default user visibility of the tenant to loggedin
@@ -1619,8 +1639,8 @@ describe('Users', () => {
                 asGlobalAdmin,
                 tenant.alias,
                 { 'oae-principals/user/visibility': 'loggedin' },
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
                   // Do a CSV user import to test that the default user visibility of the tenant has changed to loggedin
                   PrincipalsTestUtil.importUsers(
@@ -1629,8 +1649,8 @@ describe('Users', () => {
                     getDataFileStream('users-default-visibility-test2.csv'),
                     'local',
                     null,
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
                       // Ensure the user was created with loggedin visibility
                       const mrvisser2RestContext = TestsUtil.createTenantRestContext(
@@ -1638,8 +1658,8 @@ describe('Users', () => {
                         'userdefaultvisibilitytest2',
                         'password'
                       );
-                      RestAPI.User.getMe(mrvisser2RestContext, (err, createdUser) => {
-                        assert.notExists(err);
+                      RestAPI.User.getMe(mrvisser2RestContext, (error, createdUser) => {
+                        assert.notExists(error);
                         assert.strictEqual(createdUser.visibility, 'loggedin');
 
                         // Reset the default visibility of the tenant to the global default
@@ -1647,8 +1667,8 @@ describe('Users', () => {
                           asGlobalAdmin,
                           tenant.alias,
                           ['oae-principals/user/visibility'],
-                          err => {
-                            assert.notExists(err);
+                          (error_) => {
+                            assert.notExists(error_);
                             return callback();
                           }
                         );
@@ -1666,11 +1686,11 @@ describe('Users', () => {
     /*!
      * Test that verifies that a CSV user file can be imported using an external authentication strategy
      */
-    it('verify import external users', callback => {
+    it('verify import external users', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'users.without.passwords.import.tests.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Import users as a global admin using the CAS authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -1679,266 +1699,289 @@ describe('Users', () => {
           getDataFileStream('users-without-password.csv'),
           'cas',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Verify that the users have been created and a CAS login id has been associated to those accounts.
             // We have to use the internal APIs for this as there is no REST endpoint that exposes this
-            AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'cas', 'user-TGdDSdadW', (err, nicolaasUserId) => {
-              assert.notExists(err);
+            AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'cas', 'user-TGdDSdadW', (error, nicolaasUserId) => {
+              assert.notExists(error);
               assert.ok(nicolaasUserId);
               // Verify that the external id is not associated to a different authentication strategy
-              AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'ldap', 'user-TGdDSdadW', err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 404);
+              AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'ldap', 'user-TGdDSdadW', (error_) => {
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 404);
                 // Verify that the user has the appropriate basic profile information
-                RestAPI.User.getUser(tenantAdminRestContext, nicolaasUserId, (err, nicolaasUserObj) => {
-                  assert.notExists(err);
-                  assert.ok(nicolaasUserObj);
-                  assert.strictEqual(nicolaasUserObj.displayName, 'Nicolaas Matthijs');
-                  assert.strictEqual(nicolaasUserObj.email, 'nicolaas@users.without.passwords.import.tests.com');
+                RestAPI.User.getUser(tenantAdminRestContext, nicolaasUserId, (error, nicolaasUserObject) => {
+                  assert.notExists(error);
+                  assert.ok(nicolaasUserObject);
+                  assert.strictEqual(nicolaasUserObject.displayName, 'Nicolaas Matthijs');
+                  assert.strictEqual(nicolaasUserObject.email, 'nicolaas@users.without.passwords.import.tests.com');
 
                   // User with missing first name
-                  AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'cas', 'user-PQasQsaWQ', (err, simonUserId) => {
-                    assert.notExists(err);
-                    assert.ok(simonUserId);
-                    // Verify that the external id is not associated to a different authentication strategy
-                    AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'shibboleth', 'user-PQasQsaWQ', err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 404);
-                      // Verify that the user has the appropriate basic profile information
-                      RestAPI.User.getUser(tenantAdminRestContext, simonUserId, (err, simonUserObj) => {
-                        assert.notExists(err);
-                        assert.ok(simonUserObj);
-                        assert.strictEqual(simonUserObj.displayName, 'Gaeremynck');
-                        assert.strictEqual(simonUserObj.email, 'simon@users.without.passwords.import.tests.com');
+                  AuthenticationAPI.getUserIdFromLoginId(
+                    tenant.alias,
+                    'cas',
+                    'user-PQasQsaWQ',
+                    (error, simonUserId) => {
+                      assert.notExists(error);
+                      assert.ok(simonUserId);
+                      // Verify that the external id is not associated to a different authentication strategy
+                      AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'shibboleth', 'user-PQasQsaWQ', (error_) => {
+                        assert.ok(error_);
+                        assert.strictEqual(error_.code, 404);
+                        // Verify that the user has the appropriate basic profile information
+                        RestAPI.User.getUser(tenantAdminRestContext, simonUserId, (error, simonUserObject) => {
+                          assert.notExists(error);
+                          assert.ok(simonUserObject);
+                          assert.strictEqual(simonUserObject.displayName, 'Gaeremynck');
+                          assert.strictEqual(simonUserObject.email, 'simon@users.without.passwords.import.tests.com');
 
-                        // User with more complex display name
-                        AuthenticationAPI.getUserIdFromLoginId(
-                          tenant.alias,
-                          'cas',
-                          'user-CXzsaWasX',
-                          (err, stuartUserId) => {
-                            assert.notExists(err);
-                            assert.ok(nicolaasUserId);
-                            // Verify that the external id is not associated to a different authentication strategy
-                            AuthenticationAPI.getUserIdFromLoginId(tenant.alias, 'facebook', 'user-CXzsaWasX', err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 404);
-                              // Verify that the user has the appropriate basic profile information
-                              RestAPI.User.getUser(tenantAdminRestContext, stuartUserId, (err, stuartUserObj) => {
-                                assert.notExists(err);
-                                assert.ok(stuartUserObj);
-                                assert.strictEqual(stuartUserObj.displayName, 'Stuart D. Freeman');
-                                assert.strictEqual(
-                                  stuartUserObj.email,
-                                  'stuart@users.without.passwords.import.tests.com'
-                                );
+                          // User with more complex display name
+                          AuthenticationAPI.getUserIdFromLoginId(
+                            tenant.alias,
+                            'cas',
+                            'user-CXzsaWasX',
+                            (error, stuartUserId) => {
+                              assert.notExists(error);
+                              assert.ok(nicolaasUserId);
+                              // Verify that the external id is not associated to a different authentication strategy
+                              AuthenticationAPI.getUserIdFromLoginId(
+                                tenant.alias,
+                                'facebook',
+                                'user-CXzsaWasX',
+                                (error_) => {
+                                  assert.ok(error_);
+                                  assert.strictEqual(error_.code, 404);
+                                  // Verify that the user has the appropriate basic profile information
+                                  RestAPI.User.getUser(
+                                    tenantAdminRestContext,
+                                    stuartUserId,
+                                    (error, stuartUserObject) => {
+                                      assert.notExists(error);
+                                      assert.ok(stuartUserObject);
+                                      assert.strictEqual(stuartUserObject.displayName, 'Stuart D. Freeman');
+                                      assert.strictEqual(
+                                        stuartUserObject.email,
+                                        'stuart@users.without.passwords.import.tests.com'
+                                      );
 
-                                // Update a user's display name to be the same as its external id
-                                RestAPI.User.updateUser(
-                                  tenantAdminRestContext,
-                                  nicolaasUserId,
-                                  { displayName: 'user-TGdDSdadW' },
-                                  (err, user) => {
-                                    assert.notExists(err);
-                                    assert.ok(user);
-                                    assert.strictEqual(user.id, nicolaasUserId);
-                                    assert.strictEqual(user.displayName, 'user-TGdDSdadW');
+                                      // Update a user's display name to be the same as its external id
+                                      RestAPI.User.updateUser(
+                                        tenantAdminRestContext,
+                                        nicolaasUserId,
+                                        { displayName: 'user-TGdDSdadW' },
+                                        (error, user) => {
+                                          assert.notExists(error);
+                                          assert.ok(user);
+                                          assert.strictEqual(user.id, nicolaasUserId);
+                                          assert.strictEqual(user.displayName, 'user-TGdDSdadW');
 
-                                    // Verify that the update is reflected when getting the user
-                                    RestAPI.User.getUser(
-                                      tenantAdminRestContext,
-                                      nicolaasUserId,
-                                      (err, nicolaasUserObj) => {
-                                        assert.notExists(err);
-                                        assert.ok(nicolaasUserObj);
-                                        assert.strictEqual(nicolaasUserObj.displayName, 'user-TGdDSdadW');
-                                        assert.strictEqual(
-                                          nicolaasUserObj.email,
-                                          'nicolaas@users.without.passwords.import.tests.com'
-                                        );
+                                          // Verify that the update is reflected when getting the user
+                                          RestAPI.User.getUser(
+                                            tenantAdminRestContext,
+                                            nicolaasUserId,
+                                            (error, nicolaasUserObject) => {
+                                              assert.notExists(error);
+                                              assert.ok(nicolaasUserObject);
+                                              assert.strictEqual(nicolaasUserObject.displayName, 'user-TGdDSdadW');
+                                              assert.strictEqual(
+                                                nicolaasUserObject.email,
+                                                'nicolaas@users.without.passwords.import.tests.com'
+                                              );
 
-                                        // Re-import the users to verify that the displayName is reverted back to the display name
-                                        // provided in the CSV file. This time, the import is attempted as a tenant admin
-                                        PrincipalsTestUtil.importUsers(
-                                          tenantAdminRestContext,
-                                          null,
-                                          getDataFileStream('users-without-password.csv'),
-                                          'cas',
-                                          null,
-                                          err => {
-                                            assert.notExists(err);
+                                              // Re-import the users to verify that the displayName is reverted back to the display name
+                                              // provided in the CSV file. This time, the import is attempted as a tenant admin
+                                              PrincipalsTestUtil.importUsers(
+                                                tenantAdminRestContext,
+                                                null,
+                                                getDataFileStream('users-without-password.csv'),
+                                                'cas',
+                                                null,
+                                                (error_) => {
+                                                  assert.notExists(error_);
 
-                                            // Verify that the display name is correctly reverted
-                                            RestAPI.User.getUser(
-                                              tenantAdminRestContext,
-                                              nicolaasUserId,
-                                              (err, nicolaasUserObj) => {
-                                                assert.notExists(err);
-                                                assert.ok(nicolaasUserObj);
-                                                assert.strictEqual(nicolaasUserObj.displayName, 'Nicolaas Matthijs');
-                                                assert.strictEqual(
-                                                  nicolaasUserObj.email,
-                                                  'nicolaas@users.without.passwords.import.tests.com'
-                                                );
+                                                  // Verify that the display name is correctly reverted
+                                                  RestAPI.User.getUser(
+                                                    tenantAdminRestContext,
+                                                    nicolaasUserId,
+                                                    (error, nicolaasUserObject) => {
+                                                      assert.notExists(error);
+                                                      assert.ok(nicolaasUserObject);
+                                                      assert.strictEqual(
+                                                        nicolaasUserObject.displayName,
+                                                        'Nicolaas Matthijs'
+                                                      );
+                                                      assert.strictEqual(
+                                                        nicolaasUserObject.email,
+                                                        'nicolaas@users.without.passwords.import.tests.com'
+                                                      );
 
-                                                // Update the user's display name to a different real display name
-                                                RestAPI.User.updateUser(
-                                                  tenantAdminRestContext,
-                                                  nicolaasUserId,
-                                                  { displayName: 'N. Matthijs' },
-                                                  (err, user) => {
-                                                    assert.notExists(err);
-                                                    assert.ok(user);
-                                                    assert.strictEqual(user.id, nicolaasUserId);
-                                                    assert.strictEqual(user.displayName, 'N. Matthijs');
+                                                      // Update the user's display name to a different real display name
+                                                      RestAPI.User.updateUser(
+                                                        tenantAdminRestContext,
+                                                        nicolaasUserId,
+                                                        { displayName: 'N. Matthijs' },
+                                                        (error, user) => {
+                                                          assert.notExists(error);
+                                                          assert.ok(user);
+                                                          assert.strictEqual(user.id, nicolaasUserId);
+                                                          assert.strictEqual(user.displayName, 'N. Matthijs');
 
-                                                    // Verify that the update is reflected when getting the user
-                                                    RestAPI.User.getUser(
-                                                      tenantAdminRestContext,
-                                                      nicolaasUserId,
-                                                      (err, nicolaasUserObj) => {
-                                                        assert.notExists(err);
-                                                        assert.ok(nicolaasUserObj);
-                                                        assert.strictEqual(nicolaasUserObj.displayName, 'N. Matthijs');
-                                                        assert.strictEqual(
-                                                          nicolaasUserObj.email,
-                                                          'nicolaas@users.without.passwords.import.tests.com'
-                                                        );
+                                                          // Verify that the update is reflected when getting the user
+                                                          RestAPI.User.getUser(
+                                                            tenantAdminRestContext,
+                                                            nicolaasUserId,
+                                                            (error, nicolaasUserObject) => {
+                                                              assert.notExists(error);
+                                                              assert.ok(nicolaasUserObject);
+                                                              assert.strictEqual(
+                                                                nicolaasUserObject.displayName,
+                                                                'N. Matthijs'
+                                                              );
+                                                              assert.strictEqual(
+                                                                nicolaasUserObject.email,
+                                                                'nicolaas@users.without.passwords.import.tests.com'
+                                                              );
 
-                                                        // Re-import the users as a tenant admin to verify that the displayName is not reverted
-                                                        // back to the display name provided in the CSV file
-                                                        PrincipalsTestUtil.importUsers(
-                                                          tenantAdminRestContext,
-                                                          null,
-                                                          getDataFileStream('users-without-password.csv'),
-                                                          'cas',
-                                                          null,
-                                                          err => {
-                                                            assert.notExists(err);
+                                                              // Re-import the users as a tenant admin to verify that the displayName is not reverted
+                                                              // back to the display name provided in the CSV file
+                                                              PrincipalsTestUtil.importUsers(
+                                                                tenantAdminRestContext,
+                                                                null,
+                                                                getDataFileStream('users-without-password.csv'),
+                                                                'cas',
+                                                                null,
+                                                                (error_) => {
+                                                                  assert.notExists(error_);
 
-                                                            // Verify that the display name has not been reverted
-                                                            RestAPI.User.getUser(
-                                                              tenantAdminRestContext,
-                                                              nicolaasUserId,
-                                                              (err, nicolaasUserObj) => {
-                                                                assert.notExists(err);
-                                                                assert.ok(nicolaasUserObj);
-                                                                assert.strictEqual(
-                                                                  nicolaasUserObj.displayName,
-                                                                  'N. Matthijs'
-                                                                );
-                                                                assert.strictEqual(
-                                                                  nicolaasUserObj.email,
-                                                                  'nicolaas@users.without.passwords.import.tests.com'
-                                                                );
+                                                                  // Verify that the display name has not been reverted
+                                                                  RestAPI.User.getUser(
+                                                                    tenantAdminRestContext,
+                                                                    nicolaasUserId,
+                                                                    (error, nicolaasUserObject) => {
+                                                                      assert.notExists(error);
+                                                                      assert.ok(nicolaasUserObject);
+                                                                      assert.strictEqual(
+                                                                        nicolaasUserObject.displayName,
+                                                                        'N. Matthijs'
+                                                                      );
+                                                                      assert.strictEqual(
+                                                                        nicolaasUserObject.email,
+                                                                        'nicolaas@users.without.passwords.import.tests.com'
+                                                                      );
 
-                                                                // Re-import the users using the `forceProfileUpdate` flag to verify that the displayName is reverted to
-                                                                // the display name provided in the CSV file
-                                                                PrincipalsTestUtil.importUsers(
-                                                                  tenantAdminRestContext,
-                                                                  null,
-                                                                  getDataFileStream('users-without-password.csv'),
-                                                                  'cas',
-                                                                  true,
-                                                                  err => {
-                                                                    assert.notExists(err);
+                                                                      // Re-import the users using the `forceProfileUpdate` flag to verify that the displayName is reverted to
+                                                                      // the display name provided in the CSV file
+                                                                      PrincipalsTestUtil.importUsers(
+                                                                        tenantAdminRestContext,
+                                                                        null,
+                                                                        getDataFileStream('users-without-password.csv'),
+                                                                        'cas',
+                                                                        true,
+                                                                        (error_) => {
+                                                                          assert.notExists(error_);
 
-                                                                    // Verify that the display name is correctly reverted
-                                                                    RestAPI.User.getUser(
-                                                                      tenantAdminRestContext,
-                                                                      nicolaasUserId,
-                                                                      (err, nicolaasUserObj) => {
-                                                                        assert.notExists(err);
-                                                                        assert.ok(nicolaasUserObj);
-                                                                        assert.strictEqual(
-                                                                          nicolaasUserObj.displayName,
-                                                                          'Nicolaas Matthijs'
-                                                                        );
-                                                                        assert.strictEqual(
-                                                                          nicolaasUserObj.email,
-                                                                          'nicolaas@users.without.passwords.import.tests.com'
-                                                                        );
+                                                                          // Verify that the display name is correctly reverted
+                                                                          RestAPI.User.getUser(
+                                                                            tenantAdminRestContext,
+                                                                            nicolaasUserId,
+                                                                            (error, nicolaasUserObject) => {
+                                                                              assert.notExists(error);
+                                                                              assert.ok(nicolaasUserObject);
+                                                                              assert.strictEqual(
+                                                                                nicolaasUserObject.displayName,
+                                                                                'Nicolaas Matthijs'
+                                                                              );
+                                                                              assert.strictEqual(
+                                                                                nicolaasUserObject.email,
+                                                                                'nicolaas@users.without.passwords.import.tests.com'
+                                                                              );
 
-                                                                        // Update the user's display name to be the same as its external id
-                                                                        RestAPI.User.updateUser(
-                                                                          tenantAdminRestContext,
-                                                                          nicolaasUserId,
-                                                                          {
-                                                                            displayName: 'user-TGdDSdadW'
-                                                                          },
-                                                                          (err, user) => {
-                                                                            assert.notExists(err);
-                                                                            assert.ok(user);
-                                                                            assert.strictEqual(user.id, nicolaasUserId);
-                                                                            assert.strictEqual(
-                                                                              user.displayName,
-                                                                              'user-TGdDSdadW'
-                                                                            );
+                                                                              // Update the user's display name to be the same as its external id
+                                                                              RestAPI.User.updateUser(
+                                                                                tenantAdminRestContext,
+                                                                                nicolaasUserId,
+                                                                                {
+                                                                                  displayName: 'user-TGdDSdadW'
+                                                                                },
+                                                                                (error, user) => {
+                                                                                  assert.notExists(error);
+                                                                                  assert.ok(user);
+                                                                                  assert.strictEqual(
+                                                                                    user.id,
+                                                                                    nicolaasUserId
+                                                                                  );
+                                                                                  assert.strictEqual(
+                                                                                    user.displayName,
+                                                                                    'user-TGdDSdadW'
+                                                                                  );
 
-                                                                            // Re-import the users using the `forceProfileUpdate` flag to verify that the displayName is correctly reverted to
-                                                                            // the display name provided in the CSV file when providing the flag
-                                                                            PrincipalsTestUtil.importUsers(
-                                                                              tenantAdminRestContext,
-                                                                              null,
-                                                                              getDataFileStream(
-                                                                                'users-without-password.csv'
-                                                                              ),
-                                                                              'cas',
-                                                                              true,
-                                                                              err => {
-                                                                                assert.notExists(err);
+                                                                                  // Re-import the users using the `forceProfileUpdate` flag to verify that the displayName is correctly reverted to
+                                                                                  // the display name provided in the CSV file when providing the flag
+                                                                                  PrincipalsTestUtil.importUsers(
+                                                                                    tenantAdminRestContext,
+                                                                                    null,
+                                                                                    getDataFileStream(
+                                                                                      'users-without-password.csv'
+                                                                                    ),
+                                                                                    'cas',
+                                                                                    true,
+                                                                                    (error_) => {
+                                                                                      assert.notExists(error_);
 
-                                                                                // Verify that the display name is correctly reverted
-                                                                                RestAPI.User.getUser(
-                                                                                  tenantAdminRestContext,
-                                                                                  nicolaasUserId,
-                                                                                  (err, nicolaasUserObj) => {
-                                                                                    assert.notExists(err);
-                                                                                    assert.ok(nicolaasUserObj);
-                                                                                    assert.strictEqual(
-                                                                                      nicolaasUserObj.displayName,
-                                                                                      'Nicolaas Matthijs'
-                                                                                    );
-                                                                                    assert.strictEqual(
-                                                                                      nicolaasUserObj.email,
-                                                                                      'nicolaas@users.without.passwords.import.tests.com'
-                                                                                    );
-                                                                                    return callback();
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              });
-                            });
-                          }
-                        );
+                                                                                      // Verify that the display name is correctly reverted
+                                                                                      RestAPI.User.getUser(
+                                                                                        tenantAdminRestContext,
+                                                                                        nicolaasUserId,
+                                                                                        (error, nicolaasUserObject) => {
+                                                                                          assert.notExists(error);
+                                                                                          assert.ok(nicolaasUserObject);
+                                                                                          assert.strictEqual(
+                                                                                            nicolaasUserObject.displayName,
+                                                                                            'Nicolaas Matthijs'
+                                                                                          );
+                                                                                          assert.strictEqual(
+                                                                                            nicolaasUserObject.email,
+                                                                                            'nicolaas@users.without.passwords.import.tests.com'
+                                                                                          );
+                                                                                          return callback();
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        });
                       });
-                    });
-                  });
+                    }
+                  );
                 });
               });
             });
@@ -1950,11 +1993,11 @@ describe('Users', () => {
     /**
      * Test that verifies that users with an email address that does not match the email domain can be imported
      */
-    it('verify users with an email address that does not match the email domain can be imported', callback => {
+    it('verify users with an email address that does not match the email domain can be imported', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'users.with.a.specific.email.domain.tests.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant /* , tenantAdminRestContext */) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant /* , tenantAdminRestContext */) => {
+        assert.notExists(error);
 
         // The global administrator should be able to import users
         PrincipalsTestUtil.importUsers(
@@ -1963,14 +2006,14 @@ describe('Users', () => {
           getDataFileStream('users-with-another-email-domain1.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Verify the user from the CSV file has been imported even though it has an email
             // that doesn't match the configured email domain
             const userRestContext = TestsUtil.createTenantRestContext(tenantHost, 'username1', 'password');
-            RestAPI.User.getMe(userRestContext, (err, me) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(userRestContext, (error, me) => {
+              assert.notExists(error);
               assert.strictEqual(me.email, 'user1@users.with.another.email.domain.tests.com');
 
               // The tenant admin should be able to import users
@@ -1980,14 +2023,14 @@ describe('Users', () => {
                 getDataFileStream('users-with-another-email-domain2.csv'),
                 'local',
                 null,
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
                   // Verify the user from the CSV file has been imported even though it has an email
                   // that doesn't match the configured email domain
                   const userRestContext = TestsUtil.createTenantRestContext(tenantHost, 'username2', 'password');
-                  RestAPI.User.getMe(userRestContext, (err, me) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(userRestContext, (error, me) => {
+                    assert.notExists(error);
                     assert.strictEqual(me.email, 'user2@users.with.another.email.domain.tests.com');
 
                     return callback();
@@ -2003,7 +2046,7 @@ describe('Users', () => {
     /**
      * Test that verifies that parameters are validated appropriately when importing users from a CSV file
      */
-    it('verify parameter validation', callback => {
+    it('verify parameter validation', (callback) => {
       // Verify that an existing tenant alias is required
       PrincipalsTestUtil.importUsers(
         asGlobalAdmin,
@@ -2011,9 +2054,9 @@ describe('Users', () => {
         getDataFileStream('users-without-password.csv'),
         'cas',
         null,
-        err => {
-          assert.ok(err);
-          assert.ok(err.code, 400);
+        (error) => {
+          assert.ok(error);
+          assert.ok(error.code, 400);
 
           // Verify that an authentication method is required
           PrincipalsTestUtil.importUsers(
@@ -2022,9 +2065,9 @@ describe('Users', () => {
             getDataFileStream('users-without-password.csv'),
             null,
             null,
-            err => {
-              assert.ok(err);
-              assert.ok(err.code, 400);
+            (error) => {
+              assert.ok(error);
+              assert.ok(error.code, 400);
 
               // Verify that an existing authentication method is required
               PrincipalsTestUtil.importUsers(
@@ -2033,9 +2076,9 @@ describe('Users', () => {
                 getDataFileStream('users-without-password.csv'),
                 'foobar',
                 null,
-                err => {
-                  assert.ok(err);
-                  assert.ok(err.code, 400);
+                (error) => {
+                  assert.ok(error);
+                  assert.ok(error.code, 400);
 
                   // Verify that a CSV file is required
                   PrincipalsTestUtil.importUsers(
@@ -2044,9 +2087,9 @@ describe('Users', () => {
                     null,
                     'cas',
                     null,
-                    err => {
-                      assert.ok(err);
-                      assert.ok(err.code, 400);
+                    (error) => {
+                      assert.ok(error);
+                      assert.ok(error.code, 400);
                       callback();
                     }
                   );
@@ -2061,7 +2104,7 @@ describe('Users', () => {
     /**
      * Test that verifies that only global or tenant administrators are able to import users from CSV
      */
-    it('verify only admins can import users', callback => {
+    it('verify only admins can import users', (callback) => {
       // Verify that an anonymous user on the global admin tenant cannot import users
       PrincipalsTestUtil.importUsers(
         asGlobalAnonymous,
@@ -2069,9 +2112,9 @@ describe('Users', () => {
         getDataFileStream('users-without-password.csv'),
         'cas',
         null,
-        err => {
-          assert.ok(err);
-          assert.ok(err.code, 401);
+        (error) => {
+          assert.ok(error);
+          assert.ok(error.code, 401);
 
           // Verify that an anonymous user on a user tenant cannot import users
           PrincipalsTestUtil.importUsers(
@@ -2080,13 +2123,13 @@ describe('Users', () => {
             getDataFileStream('users-without-password.csv'),
             'cas',
             null,
-            err => {
-              assert.ok(err);
-              assert.ok(err.code, 401);
+            (error) => {
+              assert.ok(error);
+              assert.ok(error.code, 401);
 
               // Create a non-admin user on a user tenant
-              TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-                assert.notExists(err);
+              TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+                assert.notExists(error);
                 const { 0: jack } = users;
 
                 // Verify that an authenticated non-admin user on a user tenant cannot import users
@@ -2096,9 +2139,9 @@ describe('Users', () => {
                   getDataFileStream('users-without-password.csv'),
                   'cas',
                   null,
-                  err => {
-                    assert.ok(err);
-                    assert.ok(err.code, 401);
+                  (error_) => {
+                    assert.ok(error_);
+                    assert.ok(error_.code, 401);
                     callback();
                   }
                 );
@@ -2114,15 +2157,15 @@ describe('Users', () => {
     /**
      * Test that verifies that a user's basic profile can be retrieved
      */
-    it('verify get user', callback => {
+    it('verify get user', (callback) => {
       // Create a test user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
 
         // Get the user on the global admin tenant
-        RestAPI.User.getUser(asGlobalAdmin, jack.user.id, (err, retrievedUser) => {
-          assert.notExists(err);
+        RestAPI.User.getUser(asGlobalAdmin, jack.user.id, (error, retrievedUser) => {
+          assert.notExists(error);
           assert.ok(retrievedUser);
           assert.strictEqual(retrievedUser.visibility, jack.user.visibility);
           assert.strictEqual(retrievedUser.displayName, jack.user.displayName);
@@ -2137,8 +2180,8 @@ describe('Users', () => {
           assert.strictEqual(retrievedUser.tenant.alias, global.oaeTests.tenants.cam.alias);
 
           // Get the user
-          RestAPI.User.getUser(asCambridgeAnonymousUser, jack.user.id, (err, retrievedUser) => {
-            assert.notExists(err);
+          RestAPI.User.getUser(asCambridgeAnonymousUser, jack.user.id, (error, retrievedUser) => {
+            assert.notExists(error);
             assert.ok(retrievedUser);
             assert.strictEqual(retrievedUser.visibility, jack.user.visibility);
             assert.strictEqual(retrievedUser.displayName, jack.user.displayName);
@@ -2160,8 +2203,8 @@ describe('Users', () => {
               { x: 10, y: 10, width: 200 },
               () => {
                 // Get the user
-                RestAPI.User.getUser(asCambridgeAnonymousUser, jack.user.id, (err, retrievedUser) => {
-                  assert.notExists(err);
+                RestAPI.User.getUser(asCambridgeAnonymousUser, jack.user.id, (error, retrievedUser) => {
+                  assert.notExists(error);
 
                   // Ensure the profile picture URL is signed, and back-end URIs are not returned
                   assert.ok(retrievedUser.picture.small);
@@ -2172,8 +2215,8 @@ describe('Users', () => {
                   assert.ok(!retrievedUser.picture.largeUri);
 
                   // Ensure we can get the user from the global admin tenant
-                  RestAPI.User.getUser(asGlobalAdmin, jack.user.id, (err, retrievedUser) => {
-                    assert.notExists(err);
+                  RestAPI.User.getUser(asGlobalAdmin, jack.user.id, (error, retrievedUser) => {
+                    assert.notExists(error);
                     assert.ok(retrievedUser);
                     assert.strictEqual(retrievedUser.visibility, jack.user.visibility);
                     assert.strictEqual(retrievedUser.displayName, jack.user.displayName);
@@ -2211,15 +2254,15 @@ describe('Users', () => {
     /**
      * Test that verifies the tenant data is returned in the me feed.
      */
-    it('verify that the me feed returns a tenant object', callback => {
+    it('verify that the me feed returns a tenant object', (callback) => {
       TestsUtil.setupMultiTenantPrivacyEntities((
         publicTenant1,
         publicTenant2,
         privateTenant1 /* , privateTenant2 */
       ) => {
         // Verify it for a regular user
-        RestAPI.User.getMe(publicTenant1.publicUser.restContext, (err, meData) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(publicTenant1.publicUser.restContext, (error, meData) => {
+          assert.notExists(error);
           assert.ok(!meData.anon);
           assert.isObject(meData.tenant);
           assert.lengthOf(keys(meData.tenant), 4);
@@ -2229,8 +2272,8 @@ describe('Users', () => {
           assert.deepStrictEqual(meData.tenant.emailDomains, publicTenant1.tenant.emailDomains);
 
           // Verify it for an anonymous user
-          RestAPI.User.getMe(publicTenant1.anonymousRestContext, (err, meData) => {
-            assert.notExists(err);
+          RestAPI.User.getMe(publicTenant1.anonymousRestContext, (error, meData) => {
+            assert.notExists(error);
             assert.ok(meData.anon);
             assert.isObject(meData.tenant);
             assert.lengthOf(keys(meData.tenant), 4);
@@ -2240,8 +2283,8 @@ describe('Users', () => {
             assert.deepStrictEqual(meData.tenant.emailDomains, publicTenant1.tenant.emailDomains);
 
             // Verify it for a user on a private tenant
-            RestAPI.User.getMe(privateTenant1.publicUser.restContext, (err, meData) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(privateTenant1.publicUser.restContext, (error, meData) => {
+              assert.notExists(error);
               assert.ok(!meData.anon);
               assert.isObject(meData.tenant);
               assert.lengthOf(keys(meData.tenant), 4);
@@ -2251,8 +2294,8 @@ describe('Users', () => {
               assert.deepStrictEqual(meData.tenant.emailDomains, privateTenant1.tenant.emailDomains);
 
               // Verify it for an anonymous user on a private tenant
-              RestAPI.User.getMe(privateTenant1.anonymousRestContext, (err, meData) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(privateTenant1.anonymousRestContext, (error, meData) => {
+                assert.notExists(error);
                 assert.ok(meData.anon);
                 assert.isObject(meData.tenant);
                 assert.lengthOf(keys(meData.tenant), 4);
@@ -2273,24 +2316,24 @@ describe('Users', () => {
      * Test that verifies when a user is being impostered, the imposter user object
      * is returned in the me feed
      */
-    it('verify the imposter user object', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify the imposter user object', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: mrvisser, 1: simon } = users;
 
         // Make simon a tenant admin and imposter mrvisser with him
-        RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, simon.user.id, true, err => {
-          assert.notExists(err);
+        RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, simon.user.id, true, (error_) => {
+          assert.notExists(error_);
           RestAPI.Admin.loginAsUser(
             simon.restContext,
             mrvisser.user.id,
-            util.format('http://%s', global.oaeTests.tenants.localhost.host),
-            (err, simonImpersonatingMrvisserRestContext) => {
-              assert.notExists(err);
+            format('http://%s', global.oaeTests.tenants.localhost.host),
+            (error, simonImpersonatingMrvisserRestContext) => {
+              assert.notExists(error);
 
               // Get the me feed of the impersonator to verify the data model
-              RestAPI.User.getMe(simonImpersonatingMrvisserRestContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(simonImpersonatingMrvisserRestContext, (error, me) => {
+                assert.notExists(error);
 
                 // Verify the top-level me object is that of mrvisser
                 assert.ok(me.tenant);
@@ -2333,13 +2376,13 @@ describe('Users', () => {
     /**
      * Test that verifies that the name of the authentication strategy is exposed in the me feed
      */
-    it('verify the name of the authentication strategy is exposed in the me feed', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify the name of the authentication strategy is exposed in the me feed', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simon } = users;
 
-        RestAPI.User.getMe(simon.restContext, (err, me) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(simon.restContext, (error, me) => {
+          assert.notExists(error);
           assert.strictEqual(me.authenticationStrategy, 'local');
           return callback();
         });
@@ -2350,118 +2393,118 @@ describe('Users', () => {
      * Test that verifies that the user's `isGlobalAdmin` and `isTenantAdmin` properties are only visible for
      * global admins and within the tenant admins' scope
      */
-    it('verify visibility of isGlobalAdmin and isTenantAdmin properties', callback => {
+    it('verify visibility of isGlobalAdmin and isTenantAdmin properties', (callback) => {
       // Create a Cambridge user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, camUsers) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, camUsers) => {
+        assert.notExists(error);
         const { 0: camUser } = camUsers;
         assert.ok(camUser);
 
         // Create a GT user
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, gtUsers) => {
-          assert.notExists(err);
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, gtUsers) => {
+          assert.notExists(error);
           const { 0: gtUser } = gtUsers;
           assert.ok(gtUser);
 
           // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the global admin
-          RestAPI.User.getUser(asGlobalAdmin, camUser.user.id, (err, user) => {
-            assert.notExists(err);
+          RestAPI.User.getUser(asGlobalAdmin, camUser.user.id, (error, user) => {
+            assert.notExists(error);
             assert.ok(user);
             assert.strictEqual(user.isGlobalAdmin, false);
             assert.strictEqual(user.isTenantAdmin, false);
 
             // Verify the gtUsers's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the global admin
-            RestAPI.User.getUser(asGlobalAdmin, gtUser.user.id, (err, user) => {
-              assert.notExists(err);
+            RestAPI.User.getUser(asGlobalAdmin, gtUser.user.id, (error, user) => {
+              assert.notExists(error);
               assert.ok(user);
               assert.strictEqual(user.isGlobalAdmin, false);
               assert.strictEqual(user.isTenantAdmin, false);
 
               // Verify the camAdminUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the global admin
-              RestAPI.User.getMe(asCambridgeTenantAdmin, (err, camAdminUser) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(asCambridgeTenantAdmin, (error, camAdminUser) => {
+                assert.notExists(error);
                 assert.strictEqual(camAdminUser.isGlobalAdmin, false);
                 assert.strictEqual(camAdminUser.isTenantAdmin, true);
-                RestAPI.User.getUser(asGlobalAdmin, camAdminUser.id, (err, user) => {
-                  assert.notExists(err);
+                RestAPI.User.getUser(asGlobalAdmin, camAdminUser.id, (error, user) => {
+                  assert.notExists(error);
                   assert.ok(user);
                   assert.strictEqual(user.isGlobalAdmin, false);
                   assert.strictEqual(user.isTenantAdmin, true);
 
                   // Verify the globalAdminUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the global admin
-                  RestAPI.User.getMe(asGlobalAdmin, (err, globalAdminUser) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(asGlobalAdmin, (error, globalAdminUser) => {
+                    assert.notExists(error);
                     assert.strictEqual(globalAdminUser.isGlobalAdmin, true);
                     assert.strictEqual(globalAdminUser.isTenantAdmin, false);
-                    RestAPI.User.getUser(asGlobalAdmin, globalAdminUser.id, (err, user) => {
-                      assert.notExists(err);
+                    RestAPI.User.getUser(asGlobalAdmin, globalAdminUser.id, (error, user) => {
+                      assert.notExists(error);
                       assert.ok(user);
                       assert.strictEqual(user.isGlobalAdmin, true);
                       assert.strictEqual(user.isTenantAdmin, false);
 
                       // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the cam admin
-                      RestAPI.User.getUser(asCambridgeTenantAdmin, camUser.user.id, (err, user) => {
-                        assert.notExists(err);
+                      RestAPI.User.getUser(asCambridgeTenantAdmin, camUser.user.id, (error, user) => {
+                        assert.notExists(error);
                         assert.ok(user);
                         assert.strictEqual(user.isGlobalAdmin, false);
                         assert.strictEqual(user.isTenantAdmin, false);
 
                         // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the gt admin
-                        RestAPI.User.getUser(asGeorgiaTechTenantAdmin, camUser.user.id, (err, user) => {
-                          assert.notExists(err);
+                        RestAPI.User.getUser(asGeorgiaTechTenantAdmin, camUser.user.id, (error, user) => {
+                          assert.notExists(error);
                           assert.ok(user);
                           assert.strictEqual(user.isGlobalAdmin, undefined);
                           assert.strictEqual(user.isTenantAdmin, undefined);
 
                           // Verify the gtUsers's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the cam admin
-                          RestAPI.User.getUser(asCambridgeTenantAdmin, gtUser.user.id, (err, user) => {
-                            assert.notExists(err);
+                          RestAPI.User.getUser(asCambridgeTenantAdmin, gtUser.user.id, (error, user) => {
+                            assert.notExists(error);
                             assert.ok(user);
                             assert.strictEqual(user.isGlobalAdmin, undefined);
                             assert.strictEqual(user.isTenantAdmin, undefined);
 
                             // Verify the gtUsers's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the gt admin
-                            RestAPI.User.getUser(asGeorgiaTechTenantAdmin, gtUser.user.id, (err, user) => {
-                              assert.notExists(err);
+                            RestAPI.User.getUser(asGeorgiaTechTenantAdmin, gtUser.user.id, (error, user) => {
+                              assert.notExists(error);
                               assert.ok(user);
                               assert.strictEqual(user.isGlobalAdmin, false);
                               assert.strictEqual(user.isTenantAdmin, false);
 
                               // Verifty the camUsers's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the GT user
-                              RestAPI.User.getUser(camUser.restContext, camUser.user.id, (err, user) => {
-                                assert.notExists(err);
+                              RestAPI.User.getUser(camUser.restContext, camUser.user.id, (error, user) => {
+                                assert.notExists(error);
                                 assert.ok(user);
                                 assert.strictEqual(user.isGlobalAdmin, undefined);
                                 assert.strictEqual(user.isTenantAdmin, undefined);
 
                                 // Verifty the camUsers's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the anonymous user
-                                RestAPI.User.getUser(asCambridgeAnonymousUser, camUser.user.id, (err, user) => {
-                                  assert.notExists(err);
+                                RestAPI.User.getUser(asCambridgeAnonymousUser, camUser.user.id, (error, user) => {
+                                  assert.notExists(error);
                                   assert.ok(user);
                                   assert.strictEqual(user.isGlobalAdmin, undefined);
                                   assert.strictEqual(user.isTenantAdmin, undefined);
 
                                   // Verifty the camUsers's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the global anonymous user
-                                  RestAPI.User.getUser(asGlobalAnonymous, camUser.user.id, (err, user) => {
-                                    assert.notExists(err);
+                                  RestAPI.User.getUser(asGlobalAnonymous, camUser.user.id, (error, user) => {
+                                    assert.notExists(error);
                                     assert.ok(user);
                                     assert.strictEqual(user.isGlobalAdmin, undefined);
                                     assert.strictEqual(user.isTenantAdmin, undefined);
 
                                     // Make camUser a tenant admin
-                                    RestAPI.User.setTenantAdmin(asGlobalAdmin, camUser.user.id, true, err => {
-                                      assert.notExists(err);
+                                    RestAPI.User.setTenantAdmin(asGlobalAdmin, camUser.user.id, true, (error_) => {
+                                      assert.notExists(error_);
 
                                       // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the global admin
-                                      RestAPI.User.getUser(asGlobalAdmin, camUser.user.id, (err, user) => {
-                                        assert.notExists(err);
+                                      RestAPI.User.getUser(asGlobalAdmin, camUser.user.id, (error, user) => {
+                                        assert.notExists(error);
                                         assert.ok(user);
                                         assert.strictEqual(user.isGlobalAdmin, false);
                                         assert.strictEqual(user.isTenantAdmin, true);
 
                                         // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are visible for the cam admin
-                                        RestAPI.User.getUser(asCambridgeTenantAdmin, camUser.user.id, (err, user) => {
-                                          assert.notExists(err);
+                                        RestAPI.User.getUser(asCambridgeTenantAdmin, camUser.user.id, (error, user) => {
+                                          assert.notExists(error);
                                           assert.ok(user);
                                           assert.strictEqual(user.isGlobalAdmin, false);
                                           assert.strictEqual(user.isTenantAdmin, true);
@@ -2470,20 +2513,24 @@ describe('Users', () => {
                                           RestAPI.User.getUser(
                                             asGeorgiaTechTenantAdmin,
                                             camUser.user.id,
-                                            (err, user) => {
-                                              assert.notExists(err);
+                                            (error, user) => {
+                                              assert.notExists(error);
                                               assert.ok(user);
                                               assert.strictEqual(user.isGlobalAdmin, undefined);
                                               assert.strictEqual(user.isTenantAdmin, undefined);
 
                                               // Verify the camUser's `isGlobalAdmin` and `isTenantAdmin` properties are NOT visible for the gt user
-                                              RestAPI.User.getUser(gtUser.restContext, camUser.user.id, (err, user) => {
-                                                assert.notExists(err);
-                                                assert.ok(user);
-                                                assert.strictEqual(user.isGlobalAdmin, undefined);
-                                                assert.strictEqual(user.isTenantAdmin, undefined);
-                                                return callback();
-                                              });
+                                              RestAPI.User.getUser(
+                                                gtUser.restContext,
+                                                camUser.user.id,
+                                                (error, user) => {
+                                                  assert.notExists(error);
+                                                  assert.ok(user);
+                                                  assert.strictEqual(user.isGlobalAdmin, undefined);
+                                                  assert.strictEqual(user.isTenantAdmin, undefined);
+                                                  return callback();
+                                                }
+                                              );
                                             }
                                           );
                                         });
@@ -2509,7 +2556,7 @@ describe('Users', () => {
     /**
      * Test that verifies that a user with an ugly username and a UTF-8 username can be retrieved
      */
-    it('verify get user by ugly username', callback => {
+    it('verify get user by ugly username', (callback) => {
       // Create a test user with an ugly user name
       const userId1 = TestsUtil.generateTestUserId('some.weird@`user\\name');
       const email1 = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
@@ -2520,13 +2567,13 @@ describe('Users', () => {
         'Test User',
         email1,
         { visibility: 'public' },
-        (err, userObj1) => {
-          assert.notExists(err);
-          assert.ok(userObj1);
+        (error, userObject1) => {
+          assert.notExists(error);
+          assert.ok(userObject1);
 
           // Get the user
-          RestAPI.User.getUser(asCambridgeAnonymousUser, userObj1.id, (err, retrievedUser1) => {
-            assert.notExists(err);
+          RestAPI.User.getUser(asCambridgeAnonymousUser, userObject1.id, (error, retrievedUser1) => {
+            assert.notExists(error);
             assert.ok(retrievedUser1);
             assert.strictEqual(retrievedUser1.visibility, 'public');
             assert.strictEqual(retrievedUser1.displayName, 'Test User');
@@ -2546,13 +2593,13 @@ describe('Users', () => {
               'Кругом шумел',
               email2,
               { visibility: 'public' },
-              (err, userObj2) => {
-                assert.notExists(err);
-                assert.ok(userObj2);
+              (error, userObject2) => {
+                assert.notExists(error);
+                assert.ok(userObject2);
 
                 // Get the user
-                RestAPI.User.getUser(asCambridgeAnonymousUser, userObj2.id, (err, retrievedUser2) => {
-                  assert.notExists(err);
+                RestAPI.User.getUser(asCambridgeAnonymousUser, userObject2.id, (error, retrievedUser2) => {
+                  assert.notExists(error);
                   assert.ok(retrievedUser2);
                   assert.strictEqual(retrievedUser2.visibility, 'public');
                   assert.strictEqual(retrievedUser2.displayName, 'Кругом шумел');
@@ -2576,23 +2623,23 @@ describe('Users', () => {
     /**
      * Test that verifies that a non-existing user cannot be retrieved
      */
-    it('verify get a bad userId', callback => {
+    it('verify get a bad userId', (callback) => {
       // Try and get an invalid user id
-      RestAPI.User.getUser(asCambridgeAnonymousUser, 'totally-not-a-valid-id', (err, retrievedUser) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+      RestAPI.User.getUser(asCambridgeAnonymousUser, 'totally-not-a-valid-id', (error, retrievedUser) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
         assert.ok(!retrievedUser);
 
         // Try and get an almost-valid user id
-        RestAPI.User.getUser(asCambridgeAnonymousUser, 'u:camtotally-not-a-valid-id', (err, retrievedUser) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+        RestAPI.User.getUser(asCambridgeAnonymousUser, 'u:camtotally-not-a-valid-id', (error, retrievedUser) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
           assert.ok(!retrievedUser);
 
           // Try and get a non-existent user id
-          RestAPI.User.getUser(asCambridgeAnonymousUser, 'u:cam:totally-not-existing', (err, retrievedUser) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 404);
+          RestAPI.User.getUser(asCambridgeAnonymousUser, 'u:cam:totally-not-existing', (error, retrievedUser) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 404);
             assert.ok(!retrievedUser);
             return callback();
           });
@@ -2603,36 +2650,36 @@ describe('Users', () => {
     /**
      * Test that verifies that users can be retrieved for a tenant by tenantAlias
      */
-    it('verify get users for tenant', callback => {
+    it('verify get users for tenant', (callback) => {
       // Assert users are returned for a tenant
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
         const { 0: user1, 1: user2, 2: user3 } = users;
-        RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, users) => {
-          assert.notExists(err);
+        RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, users) => {
+          assert.notExists(error);
           const tenantUserIds = pluck('id', users);
           assert.include(tenantUserIds, user1.user.id);
           assert.include(tenantUserIds, user2.user.id);
           assert.include(tenantUserIds, user3.user.id);
           // Try and get users for a non-existing tenantAlias
-          RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, 'totally-not-a-tenant-alias', (err /* , users */) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 404);
+          RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, 'totally-not-a-tenant-alias', (error /* , users */) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 404);
             // Try and get users as a non-admin user
             RestAPI.Admin.getAllUsersForTenant(asCambridgeAnonymousUser, global.oaeTests.tenants.gt.alias, (
-              err /* , users */
+              error /* , users */
             ) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
               // Try and get users for a tenant with no users
               const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
               const tenantHost = TenantsTestUtil.generateTestTenantHost();
               TenantsTestUtil.createTenantAndWait(asGlobalAdmin, tenantAlias, 'Empty tenant', tenantHost, {}, (
-                err /* , tenant */
+                error /* , tenant */
               ) => {
-                assert.notExists(err);
-                RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, tenantAlias, (err, users) => {
-                  assert.notExists(err);
+                assert.notExists(error);
+                RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, tenantAlias, (error, users) => {
+                  assert.notExists(error);
                   assert.ok(users.length === 0);
                   return callback();
                 });
@@ -2648,10 +2695,10 @@ describe('Users', () => {
     /**
      * Test that verifies that it is possible for a user to update its own basic profile, including non standard fields
      */
-    it('verify update user', callback => {
+    it('verify update user', (callback) => {
       // Create a test user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
 
         // Set a profile picture
@@ -2670,7 +2717,7 @@ describe('Users', () => {
               visibility: 'private',
               locale: 'nl_NL'
             };
-            PrincipalsTestUtil.assertUpdateUserSucceeds(jack.restContext, jack.user.id, updateValues, user => {
+            PrincipalsTestUtil.assertUpdateUserSucceeds(jack.restContext, jack.user.id, updateValues, (user) => {
               assert.ok(user.lastModified <= Date.now());
               assert.ok(user.lastModified >= timeBeforeUpdate);
               assert.strictEqual(user.resourceType, 'user');
@@ -2686,8 +2733,8 @@ describe('Users', () => {
               assert.ok(user.picture.small);
 
               // Get the user's me feed
-              RestAPI.User.getMe(jack.restContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(jack.restContext, (error, me) => {
+                assert.notExists(error);
                 assert.ok(me);
                 assert.strictEqual(me.visibility, 'private');
                 assert.strictEqual(me.displayName, 'displayname');
@@ -2717,10 +2764,10 @@ describe('Users', () => {
     /**
      * Test that verifies that it is possible for an admin user to update another user's basic profile
      */
-    it('verify admin update other user', callback => {
+    it('verify admin update other user', (callback) => {
       // Create a test user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
         const timeBeforeUpdate = Date.now();
 
@@ -2732,7 +2779,7 @@ describe('Users', () => {
           locale: 'nl_NL',
           emailPreference: 'weekly'
         };
-        PrincipalsTestUtil.assertUpdateUserSucceeds(asGlobalAdmin, jack.user.id, updateValues, user => {
+        PrincipalsTestUtil.assertUpdateUserSucceeds(asGlobalAdmin, jack.user.id, updateValues, (user) => {
           assert.ok(user.lastModified <= Date.now());
           assert.ok(user.lastModified >= timeBeforeUpdate);
           assert.strictEqual(user.resourceType, 'user');
@@ -2742,20 +2789,20 @@ describe('Users', () => {
           );
 
           // Ensure the user's `me` feed contains the updated information
-          RestAPI.User.getMe(jack.restContext, (err, meObj) => {
-            assert.notExists(err);
-            assert.ok(meObj);
-            assert.strictEqual(meObj.visibility, 'private');
-            assert.strictEqual(meObj.displayName, 'displayname');
-            assert.strictEqual(meObj.publicAlias, 'publicalias');
-            assert.strictEqual(meObj.locale, 'nl_NL');
-            assert.strictEqual(meObj.emailPreference, 'weekly');
-            assert.strictEqual(meObj.resourceType, 'user');
+          RestAPI.User.getMe(jack.restContext, (error, meObject) => {
+            assert.notExists(error);
+            assert.ok(meObject);
+            assert.strictEqual(meObject.visibility, 'private');
+            assert.strictEqual(meObject.displayName, 'displayname');
+            assert.strictEqual(meObject.publicAlias, 'publicalias');
+            assert.strictEqual(meObject.locale, 'nl_NL');
+            assert.strictEqual(meObject.emailPreference, 'weekly');
+            assert.strictEqual(meObject.resourceType, 'user');
             assert.strictEqual(
-              meObj.profilePath,
-              '/user/' + meObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObj.id).resourceId
+              meObject.profilePath,
+              '/user/' + meObject.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObject.id).resourceId
             );
-            assert.strictEqual(meObj.lastModified, user.lastModified);
+            assert.strictEqual(meObject.lastModified, user.lastModified);
 
             // Verify that a tenant admin can also update a user's basic profile
             updateValues = {
@@ -2765,7 +2812,7 @@ describe('Users', () => {
               locale: 'en_GB',
               emailPreference: 'daily'
             };
-            PrincipalsTestUtil.assertUpdateUserSucceeds(asCambridgeTenantAdmin, jack.user.id, updateValues, user => {
+            PrincipalsTestUtil.assertUpdateUserSucceeds(asCambridgeTenantAdmin, jack.user.id, updateValues, (user) => {
               assert.ok(user.lastModified <= Date.now());
               assert.ok(user.lastModified >= timeBeforeUpdate);
               assert.strictEqual(user.resourceType, 'user');
@@ -2775,20 +2822,20 @@ describe('Users', () => {
               );
 
               // Ensure the user's `me` feed contains the updated information
-              RestAPI.User.getMe(jack.restContext, (err, meObj) => {
-                assert.notExists(err);
-                assert.ok(meObj);
-                assert.strictEqual(meObj.visibility, 'public');
-                assert.strictEqual(meObj.displayName, 'Test User');
-                assert.strictEqual(meObj.publicAlias, 'updatedalias');
-                assert.strictEqual(meObj.locale, 'en_GB');
-                assert.strictEqual(meObj.emailPreference, 'daily');
-                assert.strictEqual(meObj.resourceType, 'user');
+              RestAPI.User.getMe(jack.restContext, (error, meObject) => {
+                assert.notExists(error);
+                assert.ok(meObject);
+                assert.strictEqual(meObject.visibility, 'public');
+                assert.strictEqual(meObject.displayName, 'Test User');
+                assert.strictEqual(meObject.publicAlias, 'updatedalias');
+                assert.strictEqual(meObject.locale, 'en_GB');
+                assert.strictEqual(meObject.emailPreference, 'daily');
+                assert.strictEqual(meObject.resourceType, 'user');
                 assert.strictEqual(
-                  meObj.profilePath,
-                  '/user/' + meObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObj.id).resourceId
+                  meObject.profilePath,
+                  '/user/' + meObject.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObject.id).resourceId
                 );
-                assert.strictEqual(meObj.lastModified, user.lastModified);
+                assert.strictEqual(meObject.lastModified, user.lastModified);
 
                 return callback();
               });
@@ -2801,9 +2848,9 @@ describe('Users', () => {
     /**
      * Test that verifies that it is not possible for a user to be updated with restricted fields being set
      */
-    it('verify cannot update user to tenant admin', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify cannot update user to tenant admin', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
 
         // Verify a user cannot promote themselves to a tenant administrator
@@ -2821,11 +2868,11 @@ describe('Users', () => {
               400,
               () => {
                 // Sanity check the user has not been promoted
-                PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, userObj) => {
-                  assert.notExists(err);
-                  assert.ok(userObj);
+                PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, userObject) => {
+                  assert.notExists(error);
+                  assert.ok(userObject);
                   assert.ok(
-                    !userObj.isTenantAdmin(global.oaeTests.tenants.cam.alias),
+                    !userObject.isTenantAdmin(global.oaeTests.tenants.cam.alias),
                     'Expected user to not be update-able to tenant or global admin'
                   );
                   return callback();
@@ -2845,10 +2892,10 @@ describe('Users', () => {
      *  * an anonymous user tries to update a user's profile; or
      *  * a user tries to update a non-existing user's profile
      */
-    it('verify validation of updating a user', callback => {
+    it('verify validation of updating a user', (callback) => {
       // Create a test user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: jack, 1: jane } = users;
 
         // Ensure the user id must be a valid principal id
@@ -2928,20 +2975,20 @@ describe('Users', () => {
                                                   RestAPI.User.getUser(
                                                     jack.restContext,
                                                     jack.user.id,
-                                                    (err, userObj) => {
-                                                      assert.notExists(err);
-                                                      assert.ok(userObj);
-                                                      assert.strictEqual(userObj.visibility, jack.user.visibility);
-                                                      assert.strictEqual(userObj.displayName, jack.user.displayName);
-                                                      assert.strictEqual(userObj.resourceType, 'user');
+                                                    (error, userObject) => {
+                                                      assert.notExists(error);
+                                                      assert.ok(userObject);
+                                                      assert.strictEqual(userObject.visibility, jack.user.visibility);
+                                                      assert.strictEqual(userObject.displayName, jack.user.displayName);
+                                                      assert.strictEqual(userObject.resourceType, 'user');
                                                       assert.strictEqual(
-                                                        userObj.profilePath,
+                                                        userObject.profilePath,
                                                         '/user/' +
-                                                          userObj.tenant.alias +
+                                                          userObject.tenant.alias +
                                                           '/' +
-                                                          AuthzUtil.getResourceFromId(userObj.id).resourceId
+                                                          AuthzUtil.getResourceFromId(userObject.id).resourceId
                                                       );
-                                                      assert.strictEqual(userObj.email, jack.user.email);
+                                                      assert.strictEqual(userObject.email, jack.user.email);
                                                       return callback();
                                                     }
                                                   );
@@ -2972,9 +3019,9 @@ describe('Users', () => {
     /**
      * Test that verifies that users can update their email address
      */
-    it('verify updating a user their email address', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify updating a user their email address', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
 
         // Jack should be able to use a new email address
@@ -2992,8 +3039,8 @@ describe('Users', () => {
                 assert.strictEqual(user.email, email.toLowerCase());
 
                 // Assert there's no need to verify the email address (as it hasn't changed)
-                RestAPI.User.getMe(jack.restContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(jack.restContext, (error, me) => {
+                  assert.notExists(error);
                   assert.strictEqual(me.email, email.toLowerCase());
 
                   PrincipalsTestUtil.assertUpdateUserSucceeds(
@@ -3004,8 +3051,8 @@ describe('Users', () => {
                       assert.strictEqual(user.email, email.toLowerCase());
 
                       // Assert there's no need to verify the email address (as it hasn't changed)
-                      RestAPI.User.getMe(jack.restContext, (err, me) => {
-                        assert.notExists(err);
+                      RestAPI.User.getMe(jack.restContext, (error, me) => {
+                        assert.notExists(error);
                         assert.strictEqual(me.email, email.toLowerCase());
 
                         return callback();
@@ -3033,7 +3080,7 @@ describe('Users', () => {
      * @param  {String}        expectedVisibility      The expected visibility of the user, one of 'public', 'loggedin', 'private'
      * @param  {Function}      callback                Standard callback function
      */
-    const verifyProfilePermissions = function(
+    const verifyProfilePermissions = function (
       restContext,
       userToCheck,
       expectAccess,
@@ -3043,21 +3090,21 @@ describe('Users', () => {
       callback
     ) {
       // Try to get user 1 as an anonymous user and a logged in user. Both should work
-      RestAPI.User.getUser(restContext, userToCheck, (err, userObj) => {
-        assert.notExists(err);
-        assert.ok(userObj);
-        assert.strictEqual(userObj.visibility, expectedVisibility);
-        assert.strictEqual(userObj.displayName, expectedDisplayName);
-        assert.strictEqual(userObj.publicAlias, expectedPublicAlias);
-        assert.strictEqual(userObj.resourceType, 'user');
+      RestAPI.User.getUser(restContext, userToCheck, (error, userObject) => {
+        assert.notExists(error);
+        assert.ok(userObject);
+        assert.strictEqual(userObject.visibility, expectedVisibility);
+        assert.strictEqual(userObject.displayName, expectedDisplayName);
+        assert.strictEqual(userObject.publicAlias, expectedPublicAlias);
+        assert.strictEqual(userObject.resourceType, 'user');
         // The profile path should only be present if you're allowed to view the user
         if (expectAccess) {
           assert.strictEqual(
-            userObj.profilePath,
-            '/user/' + userObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(userObj.id).resourceId
+            userObject.profilePath,
+            '/user/' + userObject.tenant.alias + '/' + AuthzUtil.getResourceFromId(userObject.id).resourceId
           );
         } else {
-          assert.strictEqual(userObj.profilePath, undefined);
+          assert.strictEqual(userObject.profilePath, undefined);
         }
 
         callback();
@@ -3069,11 +3116,11 @@ describe('Users', () => {
      * visible to all users, other than the anonymous user. Private user should only be visible to the user himself. When a user is not visible,
      * only the display name should be visible
      */
-    it('verify user permissions', callback => {
+    it('verify user permissions', (callback) => {
       // Create 2 public test users
       const jackUserId = TestsUtil.generateTestUserId();
       const jackEmail = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const jackOpts = {
+      const jackOptions = {
         visibility: 'public',
         publicAlias: 'Jack'
       };
@@ -3084,9 +3131,9 @@ describe('Users', () => {
         'password',
         'Jack Doe',
         jackEmail,
-        jackOpts,
-        (err, jack) => {
-          assert.notExists(err);
+        jackOptions,
+        (error, jack) => {
+          assert.notExists(error);
           assert.ok(jack);
           const jackRestContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.cam.host,
@@ -3103,8 +3150,8 @@ describe('Users', () => {
             'Jane Doe',
             janeEmail,
             { visibility: 'public' },
-            (err, jane) => {
-              assert.notExists(err);
+            (error, jane) => {
+              assert.notExists(error);
               assert.ok(jane);
               const janeRestContext = TestsUtil.createTenantRestContext(
                 global.oaeTests.tenants.cam.host,
@@ -3117,8 +3164,8 @@ describe('Users', () => {
                 verifyProfilePermissions(janeRestContext, jack.id, true, 'Jack Doe', undefined, 'public', () => {
                   verifyProfilePermissions(jackRestContext, jack.id, true, 'Jack Doe', 'Jack', 'public', () => {
                     // Set jack's visibility to logged in
-                    RestAPI.User.updateUser(jackRestContext, jack.id, { visibility: 'loggedin' }, err => {
-                      assert.notExists(err);
+                    RestAPI.User.updateUser(jackRestContext, jack.id, { visibility: 'loggedin' }, (error_) => {
+                      assert.notExists(error_);
 
                       // Try to get jack as an anonymous user and a logged in user and the user himself. The anonymous user
                       // should only be able to get the display name
@@ -3147,82 +3194,87 @@ describe('Users', () => {
                                 'loggedin',
                                 () => {
                                   // Set jack's visibility to private
-                                  RestAPI.User.updateUser(jackRestContext, jack.id, { visibility: 'private' }, err => {
-                                    assert.notExists(err);
+                                  RestAPI.User.updateUser(
+                                    jackRestContext,
+                                    jack.id,
+                                    { visibility: 'private' },
+                                    (error_) => {
+                                      assert.notExists(error_);
 
-                                    // Try to get jack as an anonymous user and a logged in user and the user himself. The anonymous user
-                                    // and the logged in user should only be able to get the display name
-                                    verifyProfilePermissions(
-                                      asCambridgeAnonymousUser,
-                                      jack.id,
-                                      false,
-                                      'Jack',
-                                      undefined,
-                                      'private',
-                                      () => {
-                                        verifyProfilePermissions(
-                                          janeRestContext,
-                                          jack.id,
-                                          false,
-                                          'Jack',
-                                          undefined,
-                                          'private',
-                                          () => {
-                                            verifyProfilePermissions(
-                                              jackRestContext,
-                                              jack.id,
-                                              true,
-                                              'Jack Doe',
-                                              'Jack',
-                                              'private',
-                                              () => {
-                                                // Set jack's visibility to an invalid option
-                                                RestAPI.User.updateUser(
-                                                  jackRestContext,
-                                                  jack.id,
-                                                  { visibility: 'non-existing' },
-                                                  err => {
-                                                    assert.ok(err);
+                                      // Try to get jack as an anonymous user and a logged in user and the user himself. The anonymous user
+                                      // and the logged in user should only be able to get the display name
+                                      verifyProfilePermissions(
+                                        asCambridgeAnonymousUser,
+                                        jack.id,
+                                        false,
+                                        'Jack',
+                                        undefined,
+                                        'private',
+                                        () => {
+                                          verifyProfilePermissions(
+                                            janeRestContext,
+                                            jack.id,
+                                            false,
+                                            'Jack',
+                                            undefined,
+                                            'private',
+                                            () => {
+                                              verifyProfilePermissions(
+                                                jackRestContext,
+                                                jack.id,
+                                                true,
+                                                'Jack Doe',
+                                                'Jack',
+                                                'private',
+                                                () => {
+                                                  // Set jack's visibility to an invalid option
+                                                  RestAPI.User.updateUser(
+                                                    jackRestContext,
+                                                    jack.id,
+                                                    { visibility: 'non-existing' },
+                                                    (error_) => {
+                                                      assert.ok(error_);
 
-                                                    // Make sure that the jack's visibility has not changed
-                                                    verifyProfilePermissions(
-                                                      asCambridgeAnonymousUser,
-                                                      jack.id,
-                                                      false,
-                                                      'Jack',
-                                                      undefined,
-                                                      'private',
-                                                      () => {
-                                                        verifyProfilePermissions(
-                                                          janeRestContext,
-                                                          jack.id,
-                                                          false,
-                                                          'Jack',
-                                                          undefined,
-                                                          'private',
-                                                          () => {
-                                                            verifyProfilePermissions(
-                                                              jackRestContext,
-                                                              jack.id,
-                                                              true,
-                                                              'Jack Doe',
-                                                              'Jack',
-                                                              'private',
-                                                              callback
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  });
+                                                      // Make sure that the jack's visibility has not changed
+                                                      verifyProfilePermissions(
+                                                        asCambridgeAnonymousUser,
+                                                        jack.id,
+                                                        false,
+                                                        'Jack',
+                                                        undefined,
+                                                        'private',
+                                                        () => {
+                                                          verifyProfilePermissions(
+                                                            janeRestContext,
+                                                            jack.id,
+                                                            false,
+                                                            'Jack',
+                                                            undefined,
+                                                            'private',
+                                                            () => {
+                                                              verifyProfilePermissions(
+                                                                jackRestContext,
+                                                                jack.id,
+                                                                true,
+                                                                'Jack Doe',
+                                                                'Jack',
+                                                                'private',
+                                                                callback
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
                                 }
                               );
                             }
@@ -3242,12 +3294,12 @@ describe('Users', () => {
     /**
      * Test that verifies that a public user's profile is fully visible beyond the tenant scope.
      */
-    it('verify public user is visible beyond tenant scope', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify public user is visible beyond tenant scope', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: jane } = users;
 
           verifyProfilePermissions(
@@ -3267,12 +3319,12 @@ describe('Users', () => {
      * Test that verifies that a user's basic profile is hidden when their visibility is restricted to 'loggedin' users and they are
      * accessed by an authenticated user from a different tenant.
      */
-    it('verify loggedin user is hidden beyond tenant scope', callback => {
+    it('verify loggedin user is hidden beyond tenant scope', (callback) => {
       const usernameA = TestsUtil.generateTestUserId();
       const usernameB = TestsUtil.generateTestUserId();
 
       // Create user in tenant A
-      const loggedInUserOpts = {
+      const loggedInUserOptions = {
         visibility: 'loggedin',
         publicAlias: 'A user.'
       };
@@ -3284,16 +3336,16 @@ describe('Users', () => {
         'password',
         'LoggedIn User',
         email,
-        loggedInUserOpts,
-        (err, userA) => {
-          assert.notExists(err);
+        loggedInUserOptions,
+        (error, userA) => {
+          assert.notExists(error);
 
           // Create user B in GT tenant
           email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.gt.emailDomains[0]);
           RestAPI.User.createUser(asGeorgiaTechTenantAdmin, usernameB, 'password', 'Private User', email, {}, (
-            err /* , userB */
+            error /* , userB */
           ) => {
-            assert.notExists(err);
+            assert.notExists(error);
             const restCtxB = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host, usernameB, 'password');
 
             verifyProfilePermissions(restCtxB, userA.id, false, 'A user.', undefined, 'loggedin', callback);
@@ -3308,84 +3360,84 @@ describe('Users', () => {
      * Test that verifies valid and invalid access to making users global or tenant admins. setGlobalAdmin will use the internal APIs as there
      * is not yet a way in which global admins can be set through the REST endpoints
      */
-    it('verify making someone an admin', callback => {
+    it('verify making someone an admin', (callback) => {
       // Create 2 test users
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: jack, 1: jane } = users;
         jack.context = new Context(global.oaeTests.tenants.cam, jack.user);
 
         // Verify an anonymous user cannot promote someone to global admin
-        PrincipalsAPI.setGlobalAdmin(new Context(global.oaeTests.tenants.cam), jack.user.id, true, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+        PrincipalsAPI.setGlobalAdmin(new Context(global.oaeTests.tenants.cam), jack.user.id, true, (error_) => {
+          assert.ok(error_);
+          assert.strictEqual(error_.code, 401);
 
           // Verify an anonymous user-tenant user cannot promote someone to tenant admin
-          RestAPI.User.setTenantAdmin(asCambridgeAnonymousUser, jack.user.id, true, err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
+          RestAPI.User.setTenantAdmin(asCambridgeAnonymousUser, jack.user.id, true, (error_) => {
+            assert.ok(error_);
+            assert.strictEqual(error_.code, 401);
 
             // Verify that anonymous admin-tenant users cannot make users tenant-admin
-            RestAPI.User.setTenantAdmin(asGlobalAnonymous, jack.user.id, true, err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+            RestAPI.User.setTenantAdmin(asGlobalAnonymous, jack.user.id, true, (error_) => {
+              assert.ok(error_);
+              assert.strictEqual(error_.code, 401);
 
               // Jack will try to make himself and Jane an admin. Both should fail.
-              PrincipalsAPI.setGlobalAdmin(jack.context, jack.user.id, true, err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
-                PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, true, err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+              PrincipalsAPI.setGlobalAdmin(jack.context, jack.user.id, true, (error_) => {
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 401);
+                PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, true, (error_) => {
+                  assert.ok(error_);
+                  assert.strictEqual(error_.code, 401);
 
                   // We make Jack a global admin
-                  PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, jack.user.id, true, err => {
-                    assert.notExists(err);
+                  PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, jack.user.id, true, (error_) => {
+                    assert.notExists(error_);
                     // Verify that Jack is a global admin
-                    PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, user) => {
-                      assert.notExists(err);
+                    PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, user) => {
+                      assert.notExists(error);
                       assert.strictEqual(user.isGlobalAdmin(), true);
                       assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
                       assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), false);
                       jack.context = new Context(global.oaeTests.tenants.cam, user);
 
                       // Jack will make Jane a global admin
-                      PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, true, err => {
-                        assert.notExists(err);
+                      PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, true, (error_) => {
+                        assert.notExists(error_);
 
                         // Check that Jane is a global admin
-                        PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jane.user.id, (err, user) => {
-                          assert.notExists(err);
+                        PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jane.user.id, (error, user) => {
+                          assert.notExists(error);
                           assert.strictEqual(user.isGlobalAdmin(), true);
                           assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
                           assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), false);
 
                           // Revoke Jack's global admin rights
-                          PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, jack.user.id, false, err => {
-                            assert.notExists(err);
+                          PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, jack.user.id, false, (error_) => {
+                            assert.notExists(error_);
 
                             // Check that Jack is no longer an admin
                             PrincipalsAPI.getUser(
                               new Context(global.oaeTests.tenants.cam),
                               jack.user.id,
-                              (err, user) => {
-                                assert.notExists(err);
+                              (error, user) => {
+                                assert.notExists(error);
                                 assert.strictEqual(user.isGlobalAdmin(), false);
                                 assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), false);
                                 assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), false);
                                 jack.context = new Context(global.oaeTests.tenants.cam, user);
 
                                 // Make sure that Jack can no longer revoke the admin rights of Jane
-                                PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, false, err => {
-                                  assert.ok(err);
-                                  assert.strictEqual(err.code, 401);
+                                PrincipalsAPI.setGlobalAdmin(jack.context, jane.user.id, false, (error_) => {
+                                  assert.ok(error_);
+                                  assert.strictEqual(error_.code, 401);
 
                                   // Make sure that Jane is still an admin
                                   PrincipalsAPI.getUser(
                                     new Context(global.oaeTests.tenants.cam),
                                     jane.user.id,
-                                    (err, user) => {
-                                      assert.notExists(err);
+                                    (error, user) => {
+                                      assert.notExists(error);
                                       assert.strictEqual(user.isGlobalAdmin(), true);
                                       assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
                                       assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), false);
@@ -3411,74 +3463,74 @@ describe('Users', () => {
     /**
      * Test that verifies the access restrictions for revoking admin access from users.
      */
-    it('verify revoking admin rights access restrictions', callback => {
+    it('verify revoking admin rights access restrictions', (callback) => {
       // Create 3 test users
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
         const { 0: jack, 1: jane, 2: sam } = users;
 
         // Make jane a tenant admin and verify it worked
-        RestAPI.User.setTenantAdmin(asGlobalAdmin, jane.user.id, true, err => {
-          assert.notExists(err);
+        RestAPI.User.setTenantAdmin(asGlobalAdmin, jane.user.id, true, (error_) => {
+          assert.notExists(error_);
 
-          PrincipalsAPI.getUser(asAnotherGlobalAdmin, jane.user.id, (err, user) => {
-            assert.notExists(err);
+          PrincipalsAPI.getUser(asAnotherGlobalAdmin, jane.user.id, (error, user) => {
+            assert.notExists(error);
             assert.ok(user.isTenantAdmin(global.oaeTests.tenants.cam.alias));
 
             // Make sam a global admin and verify it worked
-            PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, sam.user.id, true, err => {
-              assert.notExists(err);
+            PrincipalsAPI.setGlobalAdmin(asAnotherGlobalAdmin, sam.user.id, true, (error_) => {
+              assert.notExists(error_);
 
-              PrincipalsAPI.getUser(asAnotherGlobalAdmin, sam.user.id, (err, user) => {
-                assert.notExists(err);
+              PrincipalsAPI.getUser(asAnotherGlobalAdmin, sam.user.id, (error, user) => {
+                assert.notExists(error);
                 assert.ok(user.isGlobalAdmin());
 
                 // Get jack's API user so we can build an API context later
-                PrincipalsAPI.getUser(asAnotherGlobalAdmin, jack.user.id, (err, user) => {
-                  assert.notExists(err);
+                PrincipalsAPI.getUser(asAnotherGlobalAdmin, jack.user.id, (error, user) => {
+                  assert.notExists(error);
                   jack.context = new Context(global.oaeTests.tenants.cam, user);
 
                   // Verify an anonymous user (user-tenant or admin-tenant) or auth user cannot revoke jane's tenant-admin rights
-                  RestAPI.User.setTenantAdmin(asCambridgeAnonymousUser, jane.user.id, false, err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 401);
+                  RestAPI.User.setTenantAdmin(asCambridgeAnonymousUser, jane.user.id, false, (error_) => {
+                    assert.ok(error_);
+                    assert.strictEqual(error_.code, 401);
 
-                    RestAPI.User.setTenantAdmin(asGlobalAnonymous, jane.user.id, false, err => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 401);
+                    RestAPI.User.setTenantAdmin(asGlobalAnonymous, jane.user.id, false, (error_) => {
+                      assert.ok(error_);
+                      assert.strictEqual(error_.code, 401);
 
-                      RestAPI.User.setTenantAdmin(jack.restContext, jane.user.id, false, err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 401);
+                      RestAPI.User.setTenantAdmin(jack.restContext, jane.user.id, false, (error_) => {
+                        assert.ok(error_);
+                        assert.strictEqual(error_.code, 401);
 
                         // Verify an anonymous user (user-tenant or admin-tenant) or auth user cannot revoke sam's global-admin rights
                         PrincipalsAPI.setGlobalAdmin(
                           new Context(global.oaeTests.tenants.cam),
                           sam.user.id,
                           false,
-                          err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 401);
+                          (error_) => {
+                            assert.ok(error_);
+                            assert.strictEqual(error_.code, 401);
 
                             PrincipalsAPI.setGlobalAdmin(
                               new Context(global.oaeTests.tenants.global),
                               sam.user.id,
                               false,
-                              err => {
-                                assert.ok(err);
-                                assert.strictEqual(err.code, 401);
+                              (error_) => {
+                                assert.ok(error_);
+                                assert.strictEqual(error_.code, 401);
 
-                                PrincipalsAPI.setGlobalAdmin(jack.context, sam.user.id, false, err => {
-                                  assert.ok(err);
-                                  assert.strictEqual(err.code, 401);
+                                PrincipalsAPI.setGlobalAdmin(jack.context, sam.user.id, false, (error_) => {
+                                  assert.ok(error_);
+                                  assert.strictEqual(error_.code, 401);
 
                                   // Ensure jane and sam have their admin rights
-                                  PrincipalsAPI.getUser(asAnotherGlobalAdmin, jane.user.id, (err, user) => {
-                                    assert.notExists(err);
+                                  PrincipalsAPI.getUser(asAnotherGlobalAdmin, jane.user.id, (error, user) => {
+                                    assert.notExists(error);
                                     assert.ok(user.isTenantAdmin(global.oaeTests.tenants.cam.alias));
 
-                                    PrincipalsAPI.getUser(asAnotherGlobalAdmin, sam.user.id, (err, user) => {
-                                      assert.notExists(err);
+                                    PrincipalsAPI.getUser(asAnotherGlobalAdmin, sam.user.id, (error, user) => {
+                                      assert.notExists(error);
                                       assert.ok(user.isGlobalAdmin());
                                       return callback();
                                     });
@@ -3502,30 +3554,30 @@ describe('Users', () => {
     /**
      * Test that verifies that a tenant admin cannot make a user a global admin.
      */
-    it('verify tenant admin restrictions', callback => {
+    it('verify tenant admin restrictions', (callback) => {
       // Create a test user
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: jack } = users;
 
         // We make Jack a tenant admin
-        RestAPI.User.setTenantAdmin(asGlobalAdmin, jack.user.id, true, err => {
-          assert.notExists(err);
+        RestAPI.User.setTenantAdmin(asGlobalAdmin, jack.user.id, true, (error_) => {
+          assert.notExists(error_);
           // Verify that Jack is a tenant admin
-          PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, user) => {
-            assert.notExists(err);
+          PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, user) => {
+            assert.notExists(error);
             assert.strictEqual(user.isGlobalAdmin(), false);
             assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
             assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), true);
             jack.context = new Context(global.oaeTests.tenants.cam, user);
 
             // Jack will try to make herself a global admin. This should fail
-            PrincipalsAPI.setGlobalAdmin(jack.context, jack.user.id, true, err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+            PrincipalsAPI.setGlobalAdmin(jack.context, jack.user.id, true, (error_) => {
+              assert.ok(error_);
+              assert.strictEqual(error_.code, 401);
               // Verify that Jack is not a global admin
-              PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, user) => {
-                assert.notExists(err);
+              PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, user) => {
+                assert.notExists(error);
                 assert.strictEqual(user.isGlobalAdmin(), false);
                 assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
                 assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), true);
@@ -3540,21 +3592,21 @@ describe('Users', () => {
     /**
      * Test that verifies that unknown users and groups cannot be made admins
      */
-    it('verify admin parameter validation', callback => {
+    it('verify admin parameter validation', (callback) => {
       // Try to make an invalid user an admin
-      RestAPI.User.setTenantAdmin(asGlobalAdmin, 'invalid-id', true, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+      RestAPI.User.setTenantAdmin(asGlobalAdmin, 'invalid-id', true, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
 
         // Try to make a non-existing user an admin
-        RestAPI.User.setTenantAdmin(asGlobalAdmin, 'u:cam:non-existing', true, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 404);
+        RestAPI.User.setTenantAdmin(asGlobalAdmin, 'u:cam:non-existing', true, (error) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 404);
 
           // Try to make a group an admin
-          RestAPI.User.setTenantAdmin(asGlobalAdmin, 'g:cam:group', true, err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
+          RestAPI.User.setTenantAdmin(asGlobalAdmin, 'g:cam:group', true, (error) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
             callback();
           });
         });
@@ -3564,25 +3616,25 @@ describe('Users', () => {
     /**
      * Test that verifies that tenant admins can only update items inside of their own tenant.
      */
-    it('verify tenant admin separation', callback => {
+    it('verify tenant admin separation', (callback) => {
       // We create 3 users: jack, jane and joe. Jack and Joe are in tenant A, Jane is in tenant B.
       // We promote John to a tenant admin (for A) and try to update the profile info for Jack and Jane.
       // It should only work for Jack.
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: jack, 1: joe } = users;
 
-        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: jane } = users;
 
           // Make Jack a tenant admin
-          RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, jack.user.id, true, err => {
-            assert.notExists(err);
+          RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, jack.user.id, true, (error_) => {
+            assert.notExists(error_);
 
             // Verify that Jack is a tenant admin
-            PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, user) => {
-              assert.notExists(err);
+            PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, user) => {
+              assert.notExists(error);
               assert.strictEqual(user.isGlobalAdmin(), false);
               assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), true);
               assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), true);
@@ -3592,44 +3644,44 @@ describe('Users', () => {
                 locale: 'en_CA',
                 displayName: 'Foo Bar'
               };
-              RestAPI.User.updateUser(jack.restContext, joe.user.id, updateData, err => {
-                assert.notExists(err);
+              RestAPI.User.updateUser(jack.restContext, joe.user.id, updateData, (error_) => {
+                assert.notExists(error_);
                 // Verify that the update has worked
-                RestAPI.User.getMe(joe.restContext, (err, meObj) => {
-                  assert.notExists(err);
-                  assert.ok(meObj);
-                  assert.strictEqual(meObj.displayName, 'Foo Bar');
-                  assert.strictEqual(meObj.locale, 'en_CA');
-                  assert.strictEqual(meObj.resourceType, 'user');
+                RestAPI.User.getMe(joe.restContext, (error, meObject) => {
+                  assert.notExists(error);
+                  assert.ok(meObject);
+                  assert.strictEqual(meObject.displayName, 'Foo Bar');
+                  assert.strictEqual(meObject.locale, 'en_CA');
+                  assert.strictEqual(meObject.resourceType, 'user');
                   assert.strictEqual(
-                    meObj.profilePath,
-                    '/user/' + meObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObj.id).resourceId
+                    meObject.profilePath,
+                    '/user/' + meObject.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObject.id).resourceId
                   );
 
                   // Try to update Jane
-                  RestAPI.User.updateUser(jack.restContext, jane.user.id, updateData, err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 401);
+                  RestAPI.User.updateUser(jack.restContext, jane.user.id, updateData, (error_) => {
+                    assert.ok(error_);
+                    assert.strictEqual(error_.code, 401);
 
                     // Verify that the update has not happened
-                    RestAPI.User.getMe(jane.restContext, (err, meObj) => {
-                      assert.notExists(err);
-                      assert.ok(meObj);
-                      assert.strictEqual(meObj.displayName, jane.user.displayName);
-                      assert.strictEqual(meObj.locale, jane.user.locale);
-                      assert.strictEqual(meObj.resourceType, 'user');
+                    RestAPI.User.getMe(jane.restContext, (error, meObject) => {
+                      assert.notExists(error);
+                      assert.ok(meObject);
+                      assert.strictEqual(meObject.displayName, jane.user.displayName);
+                      assert.strictEqual(meObject.locale, jane.user.locale);
+                      assert.strictEqual(meObject.resourceType, 'user');
                       assert.strictEqual(
-                        meObj.profilePath,
-                        '/user/' + meObj.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObj.id).resourceId
+                        meObject.profilePath,
+                        '/user/' + meObject.tenant.alias + '/' + AuthzUtil.getResourceFromId(meObject.id).resourceId
                       );
 
                       // Disable Jack's admin status
-                      RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, jack.user.id, false, err => {
-                        assert.notExists(err);
+                      RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, jack.user.id, false, (error_) => {
+                        assert.notExists(error_);
 
                         // Verify he is no longer an admin
-                        PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (err, user) => {
-                          assert.notExists(err);
+                        PrincipalsAPI.getUser(new Context(global.oaeTests.tenants.cam), jack.user.id, (error, user) => {
+                          assert.notExists(error);
                           assert.strictEqual(user.isGlobalAdmin(), false);
                           assert.strictEqual(user.isAdmin(global.oaeTests.tenants.cam.alias), false);
                           assert.strictEqual(user.isTenantAdmin(global.oaeTests.tenants.cam.alias), false);

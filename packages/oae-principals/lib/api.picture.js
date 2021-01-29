@@ -14,7 +14,7 @@
  */
 
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import mime from 'mime';
 
@@ -36,11 +36,11 @@ const {
 } = validator;
 import { compose, curry, __, pipe } from 'ramda';
 import * as GroupAPI from './api.group';
-import * as PrincipalsDAO from './internal/dao';
-import PrincipalsEmitter from './internal/emitter';
-import * as PrincipalsUtil from './util';
+import * as PrincipalsDAO from './internal/dao.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsUtil from './util.js';
 
-import { PrincipalsConstants } from './constants';
+import { PrincipalsConstants } from './constants.js';
 
 const log = logger('oae-principals-shared');
 
@@ -61,18 +61,18 @@ const zeroOrGreater = pipe(String, toInt, isZeroOrGreater);
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Group|User}     callback.principal  The basic profile of the user or group whose picture was stored
  */
-const storePicture = function(ctx, principalId, file, callback) {
+const storePicture = function (ctx, principalId, file, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Unable to store picture %s for %s', file.path, principalId);
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'Unable to store picture %s for %s', file.path, principalId);
       }
     };
 
   try {
-    const msg = 'You have to be logged in to be able to update a picture';
-    unless(isLoggedInUser, { code: 401, msg })(ctx);
+    const message = 'You have to be logged in to be able to update a picture';
+    unless(isLoggedInUser, { code: 401, msg: message })(ctx);
 
     unless(isPrincipalId, {
       code: 400,
@@ -111,9 +111,9 @@ const storePicture = function(ctx, principalId, file, callback) {
 
   // Check if we can edit this principal
   // eslint-disable-next-line no-unused-vars
-  _canManagePrincipal(ctx, principalId, (err, principal) => {
-    if (err) {
-      return _cleanupOnError(err, file, callback);
+  _canManagePrincipal(ctx, principalId, (error, principal) => {
+    if (error) {
+      return _cleanupOnError(error, file, callback);
     }
 
     // Detect the mimetype of the file using the file extension, as the one that Express gives us is pulled
@@ -128,9 +128,9 @@ const storePicture = function(ctx, principalId, file, callback) {
     }
 
     // Now store and attach the new one
-    _storeLargePicture(ctx, principalId, file, err => {
-      if (err) {
-        return _cleanupOnError(err, file, callback);
+    _storeLargePicture(ctx, principalId, file, (error_) => {
+      if (error_) {
+        return _cleanupOnError(error_, file, callback);
       }
 
       return PrincipalsUtil.getPrincipal(ctx, principalId, callback);
@@ -150,24 +150,24 @@ const storePicture = function(ctx, principalId, file, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @api private
  */
-const _storeLargePicture = function(ctx, principalId, file, callback) {
+const _storeLargePicture = function (ctx, principalId, file, callback) {
   // Auto orient the picture so we can display it in the browser.
-  ImageUtil.autoOrient(file.path, { removeInput: true }, (err, orientedFile) => {
-    if (err) {
-      return _cleanupOnError(err, file, callback);
+  ImageUtil.autoOrient(file.path, { removeInput: true }, (error, orientedFile) => {
+    if (error) {
+      return _cleanupOnError(error, file, callback);
     }
 
     // Convert it to a JPG
-    ImageUtil.convertToJPG(orientedFile.path, (err, convertedFile) => {
-      if (err) {
-        return _cleanupOnError(err, file, callback);
+    ImageUtil.convertToJPG(orientedFile.path, (error, convertedFile) => {
+      if (error) {
+        return _cleanupOnError(error, file, callback);
       }
 
       // Store the oriented file
       const options = _getProfilePictureStorageOptions(principalId, Date.now(), 'large', '.jpg');
-      ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, convertedFile, options, (err, largePictureUri) => {
-        if (err) {
-          return _cleanupOnError(err, convertedFile, callback);
+      ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, convertedFile, options, (error, largePictureUri) => {
+        if (error) {
+          return _cleanupOnError(error, convertedFile, callback);
         }
 
         // By this point the temp file has been removed from disk, no need to clean up in error cases below
@@ -190,13 +190,13 @@ const _storeLargePicture = function(ctx, principalId, file, callback) {
  * @param  {Object}      callback.err        An error that occurred, if any
  * @param  {Group|User}  callback.principal  If the principal for which we cropped the picture was a user, it will be the user's basic profile. If a group, it will be the full group profile
  */
-const generateSizes = function(ctx, principalId, x, y, width, callback) {
+const generateSizes = function (ctx, principalId, x, y, width, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         // eslint-disable-next-line no-undef
-        log().error({ err }, 'Unable to crop picture %s for %s', fileUri, principalId);
+        log().error({ err: error }, 'Unable to crop picture %s for %s', fileUri, principalId);
       }
     };
 
@@ -246,9 +246,9 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
   }
 
   // Make sure we can edit this principal
-  _canManagePrincipal(ctx, principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  _canManagePrincipal(ctx, principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!principal.picture.largeUri) {
@@ -256,9 +256,9 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
     }
 
     // Generate and store the sizes
-    _generateSizes(ctx, principal, x, y, width, (err, principal) => {
-      if (err) {
-        return callback(err);
+    _generateSizes(ctx, principal, x, y, width, (error, principal) => {
+      if (error) {
+        return callback(error);
       }
 
       if (PrincipalsUtil.isUser(principalId)) {
@@ -292,22 +292,22 @@ const generateSizes = function(ctx, principalId, x, y, width, callback) {
  * @param  {Group|User}  callback.principal  The updated principal object
  * @api private
  */
-const _generateSizes = function(ctx, principal, x, y, width, callback) {
+const _generateSizes = function (ctx, principal, x, y, width, callback) {
   // Retrieve the raw image.
   ContentUtil.getStorageBackend(ctx, principal.picture.largeUri).get(
     ctx.tenant().alias,
     principal.picture.largeUri,
-    (err, file) => {
-      if (err) {
-        return callback(err);
+    (error, file) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the resized images
       const selectedArea = {
-        x: parseInt(x, 10),
-        y: parseInt(y, 10),
-        width: parseInt(width, 10),
-        height: parseInt(width, 10)
+        x: Number.parseInt(x, 10),
+        y: Number.parseInt(y, 10),
+        width: Number.parseInt(width, 10),
+        height: Number.parseInt(width, 10)
       };
       const sizes = [
         {
@@ -319,11 +319,11 @@ const _generateSizes = function(ctx, principal, x, y, width, callback) {
           height: PrincipalsConstants.picture.size.MEDIUM
         }
       ];
-      ImageUtil.cropAndResize(file.path, selectedArea, sizes, (err, files) => {
+      ImageUtil.cropAndResize(file.path, selectedArea, sizes, (error, files) => {
         // Remove the temp file first
-        file.remove(removalError => {
-          if (err) {
-            return callback(err);
+        file.remove((removalError) => {
+          if (error) {
+            return callback(error);
           }
 
           if (removalError) {
@@ -349,12 +349,12 @@ const _generateSizes = function(ctx, principal, x, y, width, callback) {
  * @param  {Group|User}  callback.principal  The updated principal object
  * @api private
  */
-const _storeCroppedPictures = function(ctx, principal, files, callback) {
+const _storeCroppedPictures = function (ctx, principal, files, callback) {
   const backend = ContentUtil.getStorageBackend(ctx);
   const now = Date.now();
 
   // Get the the small image
-  let key = util.format('%sx%s', PrincipalsConstants.picture.size.SMALL, PrincipalsConstants.picture.size.SMALL);
+  let key = format('%sx%s', PrincipalsConstants.picture.size.SMALL, PrincipalsConstants.picture.size.SMALL);
   const smallImage = files[key];
 
   // Store the image with a correct filename. We explicitly add a correct extension as nginx uses it
@@ -365,13 +365,13 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
     'small',
     ImageUtil.getImageExtension(smallImage.name, '.jpg')
   );
-  backend.store(ctx.tenant().alias, smallImage, options, (err, smallPictureUri) => {
-    if (err) {
-      return callback(err);
+  backend.store(ctx.tenant().alias, smallImage, options, (error, smallPictureUri) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the medium image, determine the correct extension and store it
-    key = util.format('%sx%s', PrincipalsConstants.picture.size.MEDIUM, PrincipalsConstants.picture.size.MEDIUM);
+    key = format('%sx%s', PrincipalsConstants.picture.size.MEDIUM, PrincipalsConstants.picture.size.MEDIUM);
     const mediumImage = files[key];
 
     options = _getProfilePictureStorageOptions(
@@ -380,9 +380,9 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
       'medium',
       ImageUtil.getImageExtension(mediumImage.name, '.jpg')
     );
-    backend.store(ctx.tenant().alias, mediumImage, options, (err, mediumPictureUri) => {
-      if (err) {
-        return callback(err);
+    backend.store(ctx.tenant().alias, mediumImage, options, (error, mediumPictureUri) => {
+      if (error) {
+        return callback(error);
       }
 
       // Files stored, save them to the DB
@@ -402,18 +402,18 @@ const _storeCroppedPictures = function(ctx, principal, files, callback) {
  * @param  {Group|User}  callback.principal  The updated principal object
  * @api private
  */
-const _saveCroppedPictureUris = function(ctx, principal, smallPictureUri, mediumPictureUri, callback) {
+const _saveCroppedPictureUris = function (ctx, principal, smallPictureUri, mediumPictureUri, callback) {
   // Apply the updates to the `principal` object
   const profileFields = { smallPictureUri, mediumPictureUri };
-  PrincipalsDAO.updatePrincipal(principal.id, profileFields, err => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.updatePrincipal(principal.id, profileFields, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the updated principal
-    PrincipalsDAO.getPrincipal(principal.id, (err, newPrincipal) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(principal.id, (error, newPrincipal) => {
+      if (error) {
+        return callback(error);
       }
 
       // Fire the appropriate update event, depending if the principal is a user or a group
@@ -438,17 +438,17 @@ const _saveCroppedPictureUris = function(ctx, principal, smallPictureUri, medium
  * @param  {Object}      callback.err        An error that occurred, if any
  * @api private
  */
-const _canManagePrincipal = function(ctx, principalId, callback) {
+const _canManagePrincipal = function (ctx, principalId, callback) {
   // Ensure the principal exists
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can manage the principal
-    AuthzPermissions.canManage(ctx, principal, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, principal, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, principal);
@@ -467,10 +467,10 @@ const _canManagePrincipal = function(ctx, principalId, callback) {
  * @return {Object}                     The storage options object that can be used in the `StorageBackend.store` method
  * @api private
  */
-const _getProfilePictureStorageOptions = function(resourceId, timestamp, size, extension) {
+const _getProfilePictureStorageOptions = function (resourceId, timestamp, size, extension) {
   return {
     resourceId,
-    prefix: util.format('profilepictures/%s', timestamp),
+    prefix: format('profilepictures/%s', timestamp),
     filename: size + extension
   };
 };
@@ -483,12 +483,12 @@ const _getProfilePictureStorageOptions = function(resourceId, timestamp, size, e
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const _cleanupOnError = function(error, file, callback) {
+const _cleanupOnError = function (error, file, callback) {
   // If it's a TempFile who has a remove method
   if (file && file.remove) {
-    file.remove(err => {
-      if (err) {
-        log().warn({ err }, 'Unable to remove an uploaded image.');
+    file.remove((error_) => {
+      if (error_) {
+        log().warn({ err: error_ }, 'Unable to remove an uploaded image.');
       }
 
       return callback(error);
@@ -496,9 +496,9 @@ const _cleanupOnError = function(error, file, callback) {
 
     // If it's an express file
   } else if (file && file.path) {
-    fs.unlink(file.path, err => {
-      if (err) {
-        log().warn({ err }, 'Unable to remove an uploaded image.');
+    fs.unlink(file.path, (error_) => {
+      if (error_) {
+        log().warn({ err: error_ }, 'Unable to remove an uploaded image.');
       }
 
       return callback(error);

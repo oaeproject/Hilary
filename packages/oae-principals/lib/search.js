@@ -15,24 +15,11 @@
 
 /* eslint-disable camelcase */
 import _ from 'underscore';
-import { logger } from 'oae-logger';
-
-import * as AuthzSearch from 'oae-authz/lib/search';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as SearchAPI from 'oae-search';
-import * as TenantsAPI from 'oae-tenants';
-
-import { emitter } from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import { User } from 'oae-principals/lib/model';
-
 import {
+  pluck,
+  filter,
+  without,
+  partition,
   compose,
   prop,
   has,
@@ -49,6 +36,22 @@ import {
   mergeDeepLeft,
   mergeLeft
 } from 'ramda';
+import { logger } from 'oae-logger';
+
+import * as AuthzSearch from 'oae-authz/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as OaeUtil from 'oae-util/lib/util';
+import * as SearchAPI from 'oae-search';
+import * as TenantsAPI from 'oae-tenants';
+
+import { emitter } from 'oae-principals';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsUtil from 'oae-principals/lib/util';
+
+import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { User } from 'oae-principals/lib/model';
 
 const { getTenant } = TenantsAPI;
 const getTenantAlias = prop('tenantAlias');
@@ -136,7 +139,7 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, group) => {
 emitter.on(
   PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
   // eslint-disable-next-line no-unused-vars
-  (ctx, group, oldGroup, memberChangeInfo, opts) => {
+  (ctx, group, oldGroup, memberChangeInfo, options) => {
     _handleUpdateGroupMembers(ctx, group, _.keys(memberChangeInfo.changes));
   }
 );
@@ -165,7 +168,7 @@ emitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo)
  * @param  {String[]}   principalIds    The ids of all the members whose status in the group changed
  * @api private
  */
-const _handleUpdateGroupMembers = function(ctx, group, principalIds) {
+const _handleUpdateGroupMembers = function (ctx, group, principalIds) {
   SearchAPI.postIndexTask('group', [{ id: group.id }], {
     children: {
       resource_members: true
@@ -186,7 +189,7 @@ const _handleUpdateGroupMembers = function(ctx, group, principalIds) {
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceUserSearchDocuments = function(resources, callback, _documents, _errs) {
+const _produceUserSearchDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -201,9 +204,9 @@ const _produceUserSearchDocuments = function(resources, callback, _documents, _e
   }
 
   // We'll need to retrieve the user if the full object wasn't provided
-  PrincipalsDAO.getPrincipal(resource.id, (err, user) => {
-    if (err) {
-      _errs = _.union(_errs, [err]);
+  PrincipalsDAO.getPrincipal(resource.id, (error, user) => {
+    if (error) {
+      _errs = _.union(_errs, [error]);
       return _produceUserSearchDocuments(resources, callback, _documents, _errs);
     }
 
@@ -219,7 +222,7 @@ const _produceUserSearchDocuments = function(resources, callback, _documents, _e
  * @return {Object}        The search document that represents the user
  * @api private
  */
-const _produceUserSearchDocument = function(user) {
+const _produceUserSearchDocument = function (user) {
   const searchDoc = {
     resourceType: user.resourceType,
     id: user.id,
@@ -250,7 +253,7 @@ const _produceUserSearchDocument = function(user) {
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceGroupSearchDocuments = function(resources, callback, _documents, _errs) {
+const _produceGroupSearchDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) return callback(_errs, _documents);
 
@@ -260,9 +263,9 @@ const _produceGroupSearchDocuments = function(resources, callback, _documents, _
     return _produceGroupSearchDocuments(resources, callback, _documents, _errs);
   }
 
-  PrincipalsDAO.getPrincipal(resource.id, (err, group) => {
-    if (err) {
-      _errs = _.union(_errs, [err]);
+  PrincipalsDAO.getPrincipal(resource.id, (error, group) => {
+    if (error) {
+      _errs = _.union(_errs, [error]);
       return _produceGroupSearchDocuments(resources, callback, _documents, _errs);
     }
 
@@ -278,7 +281,7 @@ const _produceGroupSearchDocuments = function(resources, callback, _documents, _
  * @return {Object}        The search document that represents the group
  * @api private
  */
-const _produceGroupSearchDocument = function(group) {
+const _produceGroupSearchDocument = function (group) {
   // Full text searching is done on the name, alias and description. Though, the displayName is scored higher through `q_high`.
   const fullText = _.compact([group.displayName, group.alias, group.description]).join(' ');
 
@@ -339,7 +342,7 @@ const _assignThumbnailIfNeeded = (ctx, user) => {
  * @function _assignExtraIfNeeded
  * @param {Object} user The user object
  */
-const _assignExtraIfNeeded = user => {
+const _assignExtraIfNeeded = (user) => {
   if (user.extra) {
     return assoc('extra', user.extra);
   }
@@ -358,7 +361,7 @@ const _assignExtraIfNeeded = user => {
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformUserDocuments = function(ctx, docs, callback) {
+const _transformUserDocuments = function (ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
     const scalarExtraField = head(doc.fields._extra);
     const extra = defaultTo({}, scalarExtraField);
@@ -461,7 +464,7 @@ const _assignProfilePathIfNeeded = (tenantAlias, resourceId, result) => {
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformGroupDocuments = function(ctx, docs, callback) {
+const _transformGroupDocuments = function (ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
     const scalarExtraField = head(doc.fields._extra);
     const extraFields = defaultTo({}, scalarExtraField);
@@ -496,18 +499,18 @@ SearchAPI.registerSearchDocumentTransformer('group', _transformGroupDocuments);
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Principals CF (users and groups)
  */
-SearchAPI.registerReindexAllHandler('principal', callback => {
+SearchAPI.registerReindexAllHandler('principal', (callback) => {
   /*!
    * Handles each iteration of the PrincipalsDAO iterate all method, firing tasks for all principals to
    * be reindexed.
    *
    * @see PrincipalsDAO#iterateAll
    */
-  const _onEach = function(principalRows, done) {
+  const _onEach = function (principalRows, done) {
     // Aggregate group and user reindexing task resources
     const groupResources = [];
     const userResources = [];
-    _.each(principalRows, principal => {
+    _.each(principalRows, (principal) => {
       const { principalId } = principal;
       if (principalId) {
         if (AuthzUtil.isGroupId(principalId)) {
@@ -548,15 +551,17 @@ SearchAPI.registerReindexAllHandler('principal', callback => {
  * @param  {Object[]}       callback.errs       All errs that occurred while trying to fire the search update tasks, if any
  * @api private
  */
-const _handleInvalidateSearch = function(group, membershipsGraph, membersGraph, callback) {
-  // All members (direct and indirect, users and groups) of the group that was deleted need to
-  // have their memberships child search documents invalidated
-  const groupAndUserIds = _.chain(membersGraph.getNodes())
-    .pluck('id')
-    .filter(AuthzUtil.isPrincipalId)
-    .without(group.id)
-    .partition(AuthzUtil.isGroupId)
-    .value();
+const _handleInvalidateSearch = function (group, membershipsGraph, membersGraph, callback) {
+  /**
+   * All members (direct and indirect, users and groups) of the group that was deleted need to
+   * have their memberships child search documents invalidated
+   */
+  const groupAndUserIds = pipe(
+    pluck('id'),
+    filter(AuthzUtil.isPrincipalId),
+    without(group.id),
+    partition(AuthzUtil.isGroupId)
+  )(membersGraph.getNodes());
   const memberGroupIds = groupAndUserIds[0];
   const memberUserIds = groupAndUserIds[1];
 
@@ -584,9 +589,9 @@ const _handleInvalidateSearch = function(group, membershipsGraph, membersGraph, 
 
   // Update the resource document of the group that was deleted so its `deleted` flag may be
   // set/unset for the updated delete date
-  SearchAPI.postIndexTask('group', resourceGroupIndexTask, resourceIndexOp, err => {
-    if (err) {
-      allErrs = _.union(allErrs, [err]);
+  SearchAPI.postIndexTask('group', resourceGroupIndexTask, resourceIndexOp, (error) => {
+    if (error) {
+      allErrs = _.union(allErrs, [error]);
     }
 
     // If there are group index tasks to invoke, do it
@@ -596,9 +601,9 @@ const _handleInvalidateSearch = function(group, membershipsGraph, membersGraph, 
       'group',
       memberGroupIndexTasks,
       membershipsIndexOp,
-      err => {
-        if (err) {
-          allErrs = _.union(allErrs, [err]);
+      (error) => {
+        if (error) {
+          allErrs = _.union(allErrs, [error]);
         }
 
         // If there are user index tasks to invoke, do it
@@ -608,9 +613,9 @@ const _handleInvalidateSearch = function(group, membershipsGraph, membersGraph, 
           'user',
           memberUserIndexTasks,
           membershipsIndexOp,
-          err => {
-            if (err) {
-              allErrs = _.union(allErrs, [err]);
+          (error) => {
+            if (error) {
+              allErrs = _.union(allErrs, [error]);
             }
 
             return callback(allErrs);

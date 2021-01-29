@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import _ from 'underscore';
 import Chance from 'chance';
 
@@ -26,7 +27,7 @@ import * as Redis from 'oae-util/lib/redis';
 import * as RestAPI from 'oae-rest';
 import * as SearchTestUtil from 'oae-search/lib/test/util';
 import * as TestsUtil from 'oae-tests';
-import * as LowerCaseEmailsMigrator from '../../../etc/migration/12.3-to-12.4/lib/lower-case-emails';
+import * as LowerCaseEmailsMigrator from '../../../etc/migration/12.3-to-12.4/lib/lower-case-emails.js';
 
 const chance = new Chance();
 
@@ -34,7 +35,7 @@ describe('Principals Migration', () => {
   let globalAdminRestContext = null;
   let camAdminRestContext = null;
 
-  before(callback => {
+  before((callback) => {
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
@@ -46,8 +47,8 @@ describe('Principals Migration', () => {
    * @param  {String}     toMix   The string whose case to mix
    * @return {String}             The string with its case mixed
    */
-  const _mixCase = function(toMix) {
-    return map(c => {
+  const _mixCase = function (toMix) {
+    return map((c) => {
       if (chance.bool()) {
         return c.toUpperCase();
       }
@@ -66,22 +67,22 @@ describe('Principals Migration', () => {
    * @param  {Function}       callback            Invoked when assertions are complete
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
-  const _assertAllEmailsSearch = function(emails, opts, callback) {
+  const _assertAllEmailsSearch = function (emails, options, callback) {
     emails = emails.slice();
     if (isEmpty(emails)) {
       return callback();
     }
 
     const email = emails.shift();
-    SearchTestUtil.assertSearchSucceeds(camAdminRestContext, 'email', null, { q: email }, result => {
-      if (opts.shouldContain) {
+    SearchTestUtil.assertSearchSucceeds(camAdminRestContext, 'email', null, { q: email }, (result) => {
+      if (options.shouldContain) {
         assert.strictEqual(result.results.length, 1);
         assert.strictEqual(result.results[0].email, email.toLowerCase());
       } else {
         assert.strictEqual(result.results.length, 0);
       }
 
-      return _assertAllEmailsSearch(emails, opts, callback);
+      return _assertAllEmailsSearch(emails, options, callback);
     });
   };
 
@@ -97,7 +98,7 @@ describe('Principals Migration', () => {
    * @param  {Function}       callback            Standard callback function
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
-  const _assertAllEmailsInvite = function(restContext, emails, opts, callback) {
+  const _assertAllEmailsInvite = function (restContext, emails, options, callback) {
     ContentTestUtil.assertCreateLinkSucceeds(
       restContext,
       'google',
@@ -107,23 +108,23 @@ describe('Principals Migration', () => {
       null,
       null,
       null,
-      link => {
+      (link) => {
         // In this case, the share targets are the raw emails, so we should
         // expect the share to happen with just the emails. If there are matches
         // in the PrincipalsByEmail table, then they would be used as the target
         // principal and this operation would fail
-        RestAPI.Content.shareContent(restContext, link.id, emails, err => {
-          assert.notExists(err);
-          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', link.id, invitations => {
-            ContentTestUtil.getAllContentMembers(restContext, link.id, null, members => {
+        RestAPI.Content.shareContent(restContext, link.id, emails, (error) => {
+          assert.notExists(error);
+          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', link.id, (invitations) => {
+            ContentTestUtil.getAllContentMembers(restContext, link.id, null, (members) => {
               // Since invitations will be lower-cased, to compare
               // the arrays we should lower case our mixed-case local
               // copy
-              const lowerCased = map(email => {
+              const lowerCased = map((email) => {
                 return email.toLowerCase();
               }, emails);
 
-              if (opts.shouldInvite) {
+              if (options.shouldInvite) {
                 // If we expected to invite them, ensure they are
                 // all present in the invitations list
                 assert.deepStrictEqual(pluck('email', invitations.results).sort(), lowerCased.sort());
@@ -147,20 +148,17 @@ describe('Principals Migration', () => {
   /**
    * Test that verifies emails are made case insensitive
    */
-  it('verify emails are made case insensitive', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 51, (err, users) => {
-      assert.notExists(err);
+  it('verify emails are made case insensitive', (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 51, (error, users) => {
+      assert.notExists(error);
 
       const actor = head(users);
       const targets = tail(users);
 
       // Mix the case of all emails that were persisted in this group
-      const userIds = _.chain(targets)
-        .pluck('user')
-        .pluck('id')
-        .value();
+      const userIds = _.chain(targets).pluck('user').pluck('id').value();
       const userIdEmails = _.chain(targets)
-        .map(user => {
+        .map((user) => {
           return [
             user.user.id,
             {
@@ -194,17 +192,17 @@ describe('Principals Migration', () => {
       // Persist the mixed case emails outside the scope of the API to
       // reproduce the migration test conditions (i.e., there were
       // mixed-case emails in the database at time of ugprade)
-      Cassandra.runBatchQuery(queries, err => {
-        assert.notExists(err);
+      Cassandra.runBatchQuery(queries, (error_) => {
+        assert.notExists(error_);
         Cassandra.runQuery('SELECT "principalId", "email" FROM "Principals" WHERE "principalId" IN ?', [userIds], (
-          err /* , rows */
+          error /* , rows */
         ) => {
-          assert.notExists(err);
+          assert.notExists(error);
 
           // Update redis and search since we updated outside the
           // scope of the API
-          Redis.flush(err => {
-            assert.notExists(err);
+          Redis.flush((error_) => {
+            assert.notExists(error_);
             SearchTestUtil.reindexAll(globalAdminRestContext, () => {
               // Determine which users we should not be able to find in search
               // because of mixed-cased emails
@@ -212,31 +210,28 @@ describe('Principals Migration', () => {
                 .map((emailInfo, userId) => {
                   return [userId, emailInfo];
                 })
-                .filter(entries => {
+                .filter((entries) => {
                   const emailInfo = entries[1];
 
                   /**
                    * Retain all emails that contain an upper-case character
                    * (excluding things that don't have uppercase variants like '@')
                    */
-                  return _.some(emailInfo.after, c => {
+                  return _.some(emailInfo.after, (c) => {
                     return c !== c.toLowerCase() && c === c.toUpperCase();
                   });
                 })
                 .object()
                 .value();
-              const emailsWithUpperCase = _.chain(userIdEmailsWithUpperCase)
-                .values()
-                .pluck('after')
-                .value();
+              const emailsWithUpperCase = _.chain(userIdEmailsWithUpperCase).values().pluck('after').value();
 
               // Ensure that none of the emails can be searched for or linked to when sharing a content
               // item. This is the basis for the migration
               _assertAllEmailsSearch(emailsWithUpperCase, { shouldContain: false }, () => {
                 _assertAllEmailsInvite(actor.restContext, emailsWithUpperCase, { shouldInvite: true }, () => {
                   // Run the migration
-                  LowerCaseEmailsMigrator.doMigration((err, stats) => {
-                    assert.notExists(err);
+                  LowerCaseEmailsMigrator.doMigration((error, stats) => {
+                    assert.notExists(error);
                     assert.strictEqual(stats.nUpdated, emailsWithUpperCase.length);
                     assert.strictEqual(stats.nFailed, 0);
 

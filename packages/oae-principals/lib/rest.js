@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable import/namespace, no-unused-vars */
+/* eslint-disable no-unused-vars */
 
 import _ from 'underscore';
 import locale from 'locale';
@@ -25,8 +25,8 @@ import * as UserRESTEndpoints from 'oae-principals/lib/rest.user';
 // Require the group related REST endpoints
 import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group';
 
-import * as userConfig from '../config/user';
-import PrincipalsAPI from './api';
+import * as userConfig from '../config/user.js';
+import PrincipalsAPI from './api.js';
 
 let languages = userConfig.user.elements.defaultLanguage.list;
 
@@ -35,7 +35,7 @@ let languages = userConfig.user.elements.defaultLanguage.list;
  */
 
 // Make languages into an array of just the values as that's what locale needs
-languages = _.map(languages, lang => {
+languages = _.map(languages, (lang) => {
   return lang.value;
 });
 
@@ -45,10 +45,10 @@ OAE.tenantServer.use(locale(languages));
 /*!
  * Copy the request locale into the context
  */
-OAE.tenantServer.use((req, res, next) => {
+OAE.tenantServer.use((request, response, next) => {
   // The `locale` middleware will have added a `rawLocale` property. The `rawLocale.defaulted`
   // property indicates whether or not a best match was found
-  req.ctx.locale(req.rawLocale);
+  request.ctx.locale(request.rawLocale);
   return next();
 });
 
@@ -60,19 +60,21 @@ OAE.tenantServer.use((req, res, next) => {
  * Adds middleware that will check if the user has accepted the Terms and Conditions, if enabled.
  * If the user hasn't accepted the Terms and Conditions, all POST requests (excluding whitelisted post requests) will be prevented.
  */
-OAE.tenantServer.use((req, res, next) => {
-  const { ctx } = req;
+OAE.tenantServer.use((request, response, next) => {
+  const { ctx } = request;
   const user = ctx.user();
 
   // The Terms and Conditions middleware is only applicable on logged in users who try to interact with the system
   // excluding a set of whitelisted endpoints
   if (
     user &&
-    !_.contains(['GET', 'HEAD'], req.method) &&
+    !_.contains(['GET', 'HEAD'], request.method) &&
     PrincipalsAPI.needsToAcceptTermsAndConditions(ctx) &&
-    !_isWhiteListed(req.path)
+    !_isWhiteListed(request.path)
   ) {
-    return res.status(419).send('You need to accept the Terms and Conditions before you can interact with this tenant');
+    return response
+      .status(419)
+      .send('You need to accept the Terms and Conditions before you can interact with this tenant');
   }
 
   return next();
@@ -85,7 +87,7 @@ OAE.tenantServer.use((req, res, next) => {
  * @return {Boolean}            `true` if the user doesn't have to accept the Terms and Conditions in order to POST to this url, `false` otherwise
  * @api private
  */
-const _isWhiteListed = function(url) {
+const _isWhiteListed = function (url) {
   return url.indexOf('/api/auth') === 0 || url.indexOf('/api/user') === 0;
 };
 
@@ -114,12 +116,19 @@ const _isWhiteListed = function(url) {
  * @HttpResponse                400                     This principal has no large picture
  * @HttpResponse                401                     You have to be logged in to be able to update a picture
  */
-OAE.tenantRouter.on('post', '/api/crop', (req, res) => {
-  PrincipalsAPI.generateSizes(req.ctx, req.body.principalId, req.body.x, req.body.y, req.body.width, (err, data) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/crop', (request, response) => {
+  PrincipalsAPI.generateSizes(
+    request.ctx,
+    request.body.principalId,
+    request.body.x,
+    request.body.y,
+    request.body.width,
+    (error, data) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).send(data);
-  });
+      return response.status(200).send(data);
+    }
+  );
 });

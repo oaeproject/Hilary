@@ -14,7 +14,8 @@
  */
 
 import { assert } from 'chai';
-import util from 'util';
+import { describe, before, it } from 'mocha';
+import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
@@ -29,7 +30,7 @@ describe('Members Library Search', () => {
    * @param  {String}        docId       The id of the document to search
    * @return {Object}                    The search document. `null` if it didn't exist
    */
-  const _getDocById = function(results, docId) {
+  const _getDocById = function (results, docId) {
     for (let i = 0; i < results.results.length; i++) {
       const doc = results.results[i];
       if (doc.id === docId) {
@@ -56,7 +57,7 @@ describe('Members Library Search', () => {
   let publicGroupMember = null;
   let privateGroupMember = null;
 
-  before(callback => {
+  before((callback) => {
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asGeorgiaTechTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
@@ -78,119 +79,129 @@ describe('Members Library Search', () => {
      *  publicGroupMember:      A group with visibility 'public'. Is a member of all the target groups.
      *  privateGroupMember:     A group with visibility 'private'. Is a member of all the target groups.
      */
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
+      assert.notExists(error);
       const { 0: doer, 1: publicUser, 2: loggedinUser, 3: privateUser } = users;
 
       doerRestContext = doer.restContext;
       publicUserMember = publicUser.user;
 
-      const loggedinOpts = {
+      const loggedinOptions = {
         visibility: 'loggedin',
         publicAlias: 'LoggedinHidden'
       };
-      RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, loggedinOpts, (err, loggedinUser) => {
-        assert.notExists(err);
-        loggedinUserMember = loggedinUser;
+      RestAPI.User.updateUser(
+        loggedinUser.restContext,
+        loggedinUser.user.id,
+        loggedinOptions,
+        (error, loggedinUser) => {
+          assert.notExists(error);
+          loggedinUserMember = loggedinUser;
 
-        const privateOpts = {
-          visibility: 'private',
-          publicAlias: 'PrivateHidden'
-        };
-        RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, privateOpts, (err, privateUser) => {
-          assert.notExists(err);
-          privateUserMember = privateUser;
-
-          RestAPI.Group.createGroup(
-            doerRestContext,
-            TestsUtil.generateTestUserId('targetPublicGroup'),
-            TestsUtil.generateTestUserId('targetPublicGroup'),
-            'public',
-            'no',
-            [],
-            [],
-            (err, _targetPublicGroup) => {
-              assert.notExists(err);
-              targetPublicGroup = _targetPublicGroup;
+          const privateOptions = {
+            visibility: 'private',
+            publicAlias: 'PrivateHidden'
+          };
+          RestAPI.User.updateUser(
+            privateUser.restContext,
+            privateUser.user.id,
+            privateOptions,
+            (error, privateUser) => {
+              assert.notExists(error);
+              privateUserMember = privateUser;
 
               RestAPI.Group.createGroup(
                 doerRestContext,
-                TestsUtil.generateTestUserId('targetLoggedinGroup'),
-                TestsUtil.generateTestUserId('targetLoggedinGroup'),
-                'loggedin',
+                TestsUtil.generateTestUserId('targetPublicGroup'),
+                TestsUtil.generateTestUserId('targetPublicGroup'),
+                'public',
                 'no',
                 [],
                 [],
-                (err, _targetLoggedinGroup) => {
-                  assert.notExists(err);
-                  targetLoggedinGroup = _targetLoggedinGroup;
+                (error, _targetPublicGroup) => {
+                  assert.notExists(error);
+                  targetPublicGroup = _targetPublicGroup;
 
                   RestAPI.Group.createGroup(
                     doerRestContext,
-                    TestsUtil.generateTestUserId('targetPrivateGroup'),
-                    TestsUtil.generateTestUserId('targetPrivateGroup'),
-                    'private',
+                    TestsUtil.generateTestUserId('targetLoggedinGroup'),
+                    TestsUtil.generateTestUserId('targetLoggedinGroup'),
+                    'loggedin',
                     'no',
                     [],
                     [],
-                    (err, _targetPrivateGroup) => {
-                      assert.notExists(err);
-                      targetPrivateGroup = _targetPrivateGroup;
+                    (error, _targetLoggedinGroup) => {
+                      assert.notExists(error);
+                      targetLoggedinGroup = _targetLoggedinGroup;
 
                       RestAPI.Group.createGroup(
                         doerRestContext,
-                        TestsUtil.generateTestUserId('publicGroupMemberAlias'),
-                        TestsUtil.generateTestUserId('publicGroupMemberAlias'),
-                        'public',
+                        TestsUtil.generateTestUserId('targetPrivateGroup'),
+                        TestsUtil.generateTestUserId('targetPrivateGroup'),
+                        'private',
                         'no',
                         [],
                         [],
-                        (err, _publicGroupMember) => {
-                          assert.notExists(err);
-                          publicGroupMember = _publicGroupMember;
+                        (error, _targetPrivateGroup) => {
+                          assert.notExists(error);
+                          targetPrivateGroup = _targetPrivateGroup;
 
                           RestAPI.Group.createGroup(
                             doerRestContext,
-                            TestsUtil.generateTestUserId('privateGroupMemberAlias'),
-                            TestsUtil.generateTestUserId('privateGroupMemberAlias'),
-                            'private',
+                            TestsUtil.generateTestUserId('publicGroupMemberAlias'),
+                            TestsUtil.generateTestUserId('publicGroupMemberAlias'),
+                            'public',
                             'no',
                             [],
                             [],
-                            (err, _privateGroupMember) => {
-                              assert.notExists(err);
-                              privateGroupMember = _privateGroupMember;
+                            (error, _publicGroupMember) => {
+                              assert.notExists(error);
+                              publicGroupMember = _publicGroupMember;
 
-                              const memberships = {};
-                              memberships[publicGroupMember.id] = 'member';
-                              memberships[privateGroupMember.id] = 'member';
-                              memberships[publicUserMember.id] = 'member';
-                              memberships[loggedinUserMember.id] = 'member';
-                              memberships[privateUserMember.id] = 'member';
+                              RestAPI.Group.createGroup(
+                                doerRestContext,
+                                TestsUtil.generateTestUserId('privateGroupMemberAlias'),
+                                TestsUtil.generateTestUserId('privateGroupMemberAlias'),
+                                'private',
+                                'no',
+                                [],
+                                [],
+                                (error, _privateGroupMember) => {
+                                  assert.notExists(error);
+                                  privateGroupMember = _privateGroupMember;
 
-                              // Set the members of the groups with the cam admin since they are the only ones with access to make the private
-                              // user a member
-                              RestAPI.Group.setGroupMembers(
-                                asCambridgeTenantAdmin,
-                                targetPublicGroup.id,
-                                memberships,
-                                err => {
-                                  assert.notExists(err);
+                                  const memberships = {};
+                                  memberships[publicGroupMember.id] = 'member';
+                                  memberships[privateGroupMember.id] = 'member';
+                                  memberships[publicUserMember.id] = 'member';
+                                  memberships[loggedinUserMember.id] = 'member';
+                                  memberships[privateUserMember.id] = 'member';
 
+                                  // Set the members of the groups with the cam admin since they are the only ones with access to make the private
+                                  // user a member
                                   RestAPI.Group.setGroupMembers(
                                     asCambridgeTenantAdmin,
-                                    targetLoggedinGroup.id,
+                                    targetPublicGroup.id,
                                     memberships,
-                                    err => {
-                                      assert.notExists(err);
+                                    (error_) => {
+                                      assert.notExists(error_);
 
                                       RestAPI.Group.setGroupMembers(
                                         asCambridgeTenantAdmin,
-                                        targetPrivateGroup.id,
+                                        targetLoggedinGroup.id,
                                         memberships,
-                                        err => {
-                                          assert.notExists(err);
-                                          return callback();
+                                        (error_) => {
+                                          assert.notExists(error_);
+
+                                          RestAPI.Group.setGroupMembers(
+                                            asCambridgeTenantAdmin,
+                                            targetPrivateGroup.id,
+                                            memberships,
+                                            (error_) => {
+                                              assert.notExists(error_);
+                                              return callback();
+                                            }
+                                          );
                                         }
                                       );
                                     }
@@ -207,51 +218,57 @@ describe('Members Library Search', () => {
               );
             }
           );
-        });
-      });
-    });
-  });
-
-  /**
-   * Test that verifies a user cannot search members of something that is not a valid group id or non-existing group
-   */
-  it('verify cannot search for invalid or non-existent group', callback => {
-    SearchTestsUtil.searchAll(asCambridgeAnonymousUser, 'members-library', ['not-a-group-id'], null, (err, results) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, 400);
-      assert.ok(!results);
-
-      SearchTestsUtil.searchAll(
-        asCambridgeAnonymousUser,
-        'members-library',
-        [util.format('g:%s:nonexistent-group-id', global.oaeTests.tenants.cam.alias)],
-        null,
-        (err, results) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 404);
-          assert.ok(!results);
-          return callback();
         }
       );
     });
   });
 
   /**
+   * Test that verifies a user cannot search members of something that is not a valid group id or non-existing group
+   */
+  it('verify cannot search for invalid or non-existent group', (callback) => {
+    SearchTestsUtil.searchAll(
+      asCambridgeAnonymousUser,
+      'members-library',
+      ['not-a-group-id'],
+      null,
+      (error, results) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
+        assert.ok(!results);
+
+        SearchTestsUtil.searchAll(
+          asCambridgeAnonymousUser,
+          'members-library',
+          [format('g:%s:nonexistent-group-id', global.oaeTests.tenants.cam.alias)],
+          null,
+          (error, results) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 404);
+            assert.ok(!results);
+            return callback();
+          }
+        );
+      }
+    );
+  });
+
+  /**
    * Test that verifies the member visibility of a group members search
    */
-  it('verify public group members visibility', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify public group members visibility', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: jack, 1: jane } = users;
 
-      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: darthVader } = users;
         const changes = {};
         changes[jack.user.id] = 'member';
 
-        RestAPI.Group.setGroupMembers(doerRestContext, targetPublicGroup.id, changes, err => {
-          assert.notExists(err);
+        RestAPI.Group.setGroupMembers(doerRestContext, targetPublicGroup.id, changes, (error_) => {
+          assert.notExists(error_);
 
           // Verify results and visibility for anonymous user
           SearchTestsUtil.searchAll(
@@ -259,8 +276,8 @@ describe('Members Library Search', () => {
             'members-library',
             [targetPublicGroup.id],
             null,
-            (err, results) => {
-              assert.notExists(err);
+            (error, results) => {
+              assert.notExists(error);
 
               const publicUserResult = _getDocById(results, publicUserMember.id);
               const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
@@ -308,8 +325,8 @@ describe('Members Library Search', () => {
                 'members-library',
                 [targetPublicGroup.id],
                 null,
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
 
                   const publicUserResult = _getDocById(results, publicUserMember.id);
                   const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
@@ -354,8 +371,8 @@ describe('Members Library Search', () => {
                     'members-library',
                     [targetPublicGroup.id],
                     null,
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
 
                       const publicUserResult = _getDocById(results, publicUserMember.id);
                       const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
@@ -416,8 +433,8 @@ describe('Members Library Search', () => {
                         'members-library',
                         [targetPublicGroup.id],
                         null,
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
 
                           const publicUserResult = _getDocById(results, publicUserMember.id);
                           const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
@@ -501,19 +518,19 @@ describe('Members Library Search', () => {
   /**
    * Test that verifies that anonymous and cross-tenant users cannot see the group members of a loggedin group
    */
-  it('verify loggedin group members access', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify loggedin group members access', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: jack, 1: jane } = users;
 
-      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: darthVader } = users;
 
         const changes = {};
         changes[jack.user.id] = 'member';
-        RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, err => {
-          assert.notExists(err);
+        RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, (error_) => {
+          assert.notExists(error_);
 
           // Verify anonymous cannot see loggedin group
           SearchTestsUtil.searchAll(
@@ -521,9 +538,9 @@ describe('Members Library Search', () => {
             'members-library',
             [targetLoggedinGroup.id],
             null,
-            (err, results) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+            (error, results) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
               assert.ok(!results);
 
               // Verify results and visibility for cross-tenant user. Cross-tenant user cannot see memberships of 'loggedin' groups from other tenants
@@ -532,9 +549,9 @@ describe('Members Library Search', () => {
                 'members-library',
                 [targetLoggedinGroup.id],
                 null,
-                (err, results) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+                (error, results) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 401);
                   assert.ok(!results);
 
                   // Verify results and visibility for loggedin user
@@ -543,8 +560,8 @@ describe('Members Library Search', () => {
                     'members-library',
                     [targetLoggedinGroup.id],
                     null,
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
                       const publicUserResult = _getDocById(results, publicUserMember.id);
                       const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
                       const privateUserResult = _getDocById(results, privateUserMember.id);
@@ -605,8 +622,8 @@ describe('Members Library Search', () => {
                         'members-library',
                         [targetLoggedinGroup.id],
                         null,
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
                           const publicUserResult = _getDocById(results, publicUserMember.id);
                           const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
                           const privateUserResult = _getDocById(results, privateUserMember.id);
@@ -690,19 +707,19 @@ describe('Members Library Search', () => {
   /**
    * Test that verifies only members can search the group members of a private group.
    */
-  it('verify private group members access', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify private group members access', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: jack, 1: jane } = users;
 
-      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: darthVader } = users;
 
         const changes = {};
         changes[jack.user.id] = 'member';
-        RestAPI.Group.setGroupMembers(doerRestContext, targetPrivateGroup.id, changes, err => {
-          assert.notExists(err);
+        RestAPI.Group.setGroupMembers(doerRestContext, targetPrivateGroup.id, changes, (error_) => {
+          assert.notExists(error_);
 
           // Verify anonymous cannot see members of private group
           SearchTestsUtil.searchAll(
@@ -710,9 +727,9 @@ describe('Members Library Search', () => {
             'members-library',
             [targetPrivateGroup.id],
             null,
-            (err, results) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+            (error, results) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
               assert.ok(!results);
 
               // Verify cross-tenant user cannot see members of private group
@@ -721,9 +738,9 @@ describe('Members Library Search', () => {
                 'members-library',
                 [targetPrivateGroup.id],
                 null,
-                (err, results) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+                (error, results) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 401);
                   assert.ok(!results);
 
                   // Verify loggedin user cannot see members of private group
@@ -732,9 +749,9 @@ describe('Members Library Search', () => {
                     'members-library',
                     [targetPrivateGroup.id],
                     null,
-                    (err, results) => {
-                      assert.ok(err);
-                      assert.strictEqual(err.code, 401);
+                    (error, results) => {
+                      assert.ok(error);
+                      assert.strictEqual(error.code, 401);
                       assert.ok(!results);
 
                       // Verify results and visibility for member user
@@ -743,8 +760,8 @@ describe('Members Library Search', () => {
                         'members-library',
                         [targetPrivateGroup.id],
                         null,
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
                           const publicUserResult = _getDocById(results, publicUserMember.id);
                           const loggedinUserResult = _getDocById(results, loggedinUserMember.id);
                           const privateUserResult = _getDocById(results, privateUserMember.id);
@@ -828,15 +845,15 @@ describe('Members Library Search', () => {
   /**
    * Test that verifies when a member is removed from a group, that principal no longer turns up in the members search.
    */
-  it('verify remove from group reflects in members', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify remove from group reflects in members', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: jack, 1: jane } = users;
 
       const changes = {};
       changes[jack.user.id] = 'member';
-      RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, err => {
-        assert.notExists(err);
+      RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, (error_) => {
+        assert.notExists(error_);
 
         // Verify jack exists for jane
         SearchTestsUtil.searchAll(
@@ -844,23 +861,23 @@ describe('Members Library Search', () => {
           'members-library',
           [targetLoggedinGroup.id],
           null,
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
             const jackDoc = _getDocById(results, jack.user.id);
             assert.ok(jackDoc);
 
             // Remove jack and verify he no longer returns in searches
             changes[jack.user.id] = false;
-            RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, err => {
-              assert.notExists(err);
+            RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, (error_) => {
+              assert.notExists(error_);
 
               SearchTestsUtil.searchAll(
                 jane.restContext,
                 'members-library',
                 [targetLoggedinGroup.id],
                 null,
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
                   const jackDoc = _getDocById(results, jack.user.id);
                   assert.ok(!jackDoc);
                   return callback();
@@ -876,16 +893,16 @@ describe('Members Library Search', () => {
   /**
    * Test that verifies paging in the members search feed
    */
-  it('verify paging works correcly in the members search', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify paging works correcly in the members search', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: jack, 1: jane } = users;
 
       const changes = {};
       changes[jack.user.id] = 'member';
       changes[jane.user.id] = 'member';
-      RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, err => {
-        assert.notExists(err);
+      RestAPI.Group.setGroupMembers(doerRestContext, targetLoggedinGroup.id, changes, (error_) => {
+        assert.notExists(error_);
 
         // Grab the first 2 members of the group, we will page these 2
         SearchTestsUtil.searchRefreshed(
@@ -893,8 +910,8 @@ describe('Members Library Search', () => {
           'members-library',
           [targetLoggedinGroup.id],
           { limit: 2, start: 0 },
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
             assert.ok(results.results);
             assert.strictEqual(results.results.length, 2);
 
@@ -911,8 +928,8 @@ describe('Members Library Search', () => {
               'members-library',
               [targetLoggedinGroup.id],
               { limit: 1, start: 0 },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(results.results);
                 assert.strictEqual(results.results.length, 1);
                 assert.strictEqual(results.results[0].id, firstId);
@@ -923,8 +940,8 @@ describe('Members Library Search', () => {
                   'members-library',
                   [targetLoggedinGroup.id],
                   { limit: 1, start: 1 },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     assert.ok(results.results);
                     assert.strictEqual(results.results.length, 1);
                     assert.strictEqual(results.results[0].id, secondId);

@@ -19,7 +19,7 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
-import PrincipalsAPI from './api';
+import PrincipalsAPI from './api.js';
 
 /**
  * @REST postGroupCreate
@@ -46,32 +46,32 @@ import PrincipalsAPI from './api';
  * @HttpResponse                400                     Invalid visibility setting was provided
  * @HttpResponse                401                     Cannot create a group anonymously
  */
-OAE.tenantRouter.on('post', '/api/group/create', (req, res) => {
-  const managers = OaeUtil.toArray(req.body.managers);
-  const members = OaeUtil.toArray(req.body.members);
+OAE.tenantRouter.on('post', '/api/group/create', (request, response) => {
+  const managers = OaeUtil.toArray(request.body.managers);
+  const members = OaeUtil.toArray(request.body.members);
 
   // Construct a single hash that will contain the permissions
   const memberHash = {};
-  _.each(managers, userId => {
+  _.each(managers, (userId) => {
     memberHash[userId] = AuthzConstants.role.MANAGER;
   });
-  _.each(members, userId => {
+  _.each(members, (userId) => {
     memberHash[userId] = AuthzConstants.role.MEMBER;
   });
 
   PrincipalsAPI.createGroup(
-    req.ctx,
-    req.body.displayName,
-    req.body.description,
-    req.body.visibility,
-    req.body.joinable,
+    request.ctx,
+    request.body.displayName,
+    request.body.description,
+    request.body.visibility,
+    request.body.joinable,
     memberHash,
-    (err, group) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, group) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(201).send(group);
+      return response.status(201).send(group);
     }
   );
 });
@@ -89,13 +89,13 @@ OAE.tenantRouter.on('post', '/api/group/create', (req, res) => {
  * @HttpResponse                401                 You do not have access to delete this group
  * @HttpResponse                404                 The group did not exist
  */
-OAE.tenantRouter.on('delete', '/api/group/:groupId', (req, res) => {
-  PrincipalsAPI.deleteGroup(req.ctx, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/group/:groupId', (request, response) => {
+  PrincipalsAPI.deleteGroup(request.ctx, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -111,13 +111,13 @@ OAE.tenantRouter.on('delete', '/api/group/:groupId', (req, res) => {
  * @HttpResponse                401                 You do not have access to restore this group
  * @HttpResponse                404                 The group did not exist
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/restore', (req, res) => {
-  PrincipalsAPI.restoreGroup(req.ctx, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/restore', (request, response) => {
+  PrincipalsAPI.restoreGroup(request.ctx, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -134,13 +134,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/restore', (req, res) => {
  * @HttpResponse                401                 You do not have access to this group
  * @HttpResponse                404                 The specified group could not be found
  */
-OAE.tenantRouter.on('get', '/api/group/:groupId', (req, res) => {
-  PrincipalsAPI.getFullGroupProfile(req.ctx, req.params.groupId, (err, group) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/group/:groupId', (request, response) => {
+  PrincipalsAPI.getFullGroupProfile(request.ctx, request.params.groupId, (error, group) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(group);
+    return response.status(200).send(group);
   });
 });
 
@@ -169,14 +169,14 @@ OAE.tenantRouter.on('get', '/api/group/:groupId', (req, res) => {
  * @HttpResponse                401                 You are not authorized to update this group
  * @HttpResponse                404                 The specified group could not be found
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId', (req, res) => {
+OAE.tenantRouter.on('post', '/api/group/:groupId', (request, response) => {
   // Get the fields we wish to update.
-  PrincipalsAPI.updateGroup(req.ctx, req.params.groupId, req.body, (err, updatedGroup) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  PrincipalsAPI.updateGroup(request.ctx, request.params.groupId, request.body, (error, updatedGroup) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(updatedGroup);
+    response.status(200).send(updatedGroup);
   });
 });
 
@@ -197,15 +197,21 @@ OAE.tenantRouter.on('post', '/api/group/:groupId', (req, res) => {
  * @HttpResponse                    401                 Insufficient privilege to view this group's members list
  * @HttpResponse                    404                 The specified group could not be found
  */
-OAE.tenantRouter.on('get', '/api/group/:groupId/members', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  PrincipalsAPI.getMembersLibrary(req.ctx, req.params.groupId, req.query.start, limit, (err, members, nextToken) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/group/:groupId/members', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  PrincipalsAPI.getMembersLibrary(
+    request.ctx,
+    request.params.groupId,
+    request.query.start,
+    limit,
+    (error, members, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send({ results: members, nextToken });
-  });
+      response.status(200).send({ results: members, nextToken });
+    }
+  );
 });
 
 /**
@@ -232,9 +238,9 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/members', (req, res) => {
  * @HttpResponse                        401             You are not authorized to update the members of this group
  * @HttpResponse                        404             The specified group could not be found
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/members', (req, res) => {
+OAE.tenantRouter.on('post', '/api/group/:groupId/members', (request, response) => {
   // Convert the string 'false' to a proper boolean
-  const members = req.body;
+  const members = request.body;
   const principals = _.keys(members);
   for (const element of principals) {
     if (members[element] === 'false') {
@@ -242,12 +248,12 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/members', (req, res) => {
     }
   }
 
-  PrincipalsAPI.setGroupMembers(req.ctx, req.params.groupId, members, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  PrincipalsAPI.setGroupMembers(request.ctx, request.params.groupId, members, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -266,13 +272,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/members', (req, res) => {
  * @HttpResponse                        401                 You are not allowed to get invitations for this group
  * @HttpResponse                        404                 Group not available
  */
-OAE.tenantRouter.on('get', '/api/group/:groupId/invitations', (req, res) => {
-  PrincipalsAPI.getGroupInvitations(req.ctx, req.params.groupId, (err, invitations) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/group/:groupId/invitations', (request, response) => {
+  PrincipalsAPI.getGroupInvitations(request.ctx, request.params.groupId, (error, invitations) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send({ results: invitations });
+    return response.status(200).send({ results: invitations });
   });
 });
 
@@ -294,13 +300,13 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/invitations', (req, res) => {
  * @HttpResponse                        404                 Group not available
  * @HttpResponse                        404                 No invitation for the specified email exists for the group
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/invitations/:email/resend', (req, res) => {
-  PrincipalsAPI.resendGroupInvitation(req.ctx, req.params.groupId, req.params.email, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/invitations/:email/resend', (request, response) => {
+  PrincipalsAPI.resendGroupInvitation(request.ctx, request.params.groupId, request.params.email, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -320,13 +326,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/invitations/:email/resend', (re
  * @HttpResponse                401                     You cannot join this group
  * @HttpResponse                401                     You have to be logged in to be able to join a group
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/join', (req, res) => {
-  PrincipalsAPI.joinGroup(req.ctx, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/join', (request, response) => {
+  PrincipalsAPI.joinGroup(request.ctx, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -346,13 +352,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/join', (req, res) => {
  * @HttpResponse                400                     The requested operation would leave the group without a manager
  * @HttpResponse                401                     You have to be logged in to be able to leave a group
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/leave', (req, res) => {
-  PrincipalsAPI.leaveGroup(req.ctx, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/leave', (request, response) => {
+  PrincipalsAPI.leaveGroup(request.ctx, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -374,17 +380,17 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/leave', (req, res) => {
  * @HttpResponse                400                     The size of a picture has an upper limit of 10MB
  * @HttpResponse                401                     You have to be a group manager to update its picture
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/picture', (req, res) => {
-  req.files = req.files || {};
-  PrincipalsAPI.storePicture(req.ctx, req.params.groupId, req.files.file, (err, principal) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/picture', (request, response) => {
+  request.files = request.files || {};
+  PrincipalsAPI.storePicture(request.ctx, request.params.groupId, request.files.file, (error, principal) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
     // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
-    res.set('Content-Type', 'text/plain');
-    res.status(200).send(principal);
+    response.set('Content-Type', 'text/plain');
+    response.status(200).send(principal);
   });
 });
 
@@ -402,13 +408,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/picture', (req, res) => {
  * @HttpResponse                400                     Invalid groupId specified
  * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
  */
-OAE.tenantRouter.on('post', '/api/group/:groupId/join-request', (req, res) => {
-  PrincipalsAPI.createRequestJoinGroup(req.ctx, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/group/:groupId/join-request', (request, response) => {
+  PrincipalsAPI.createRequestJoinGroup(request.ctx, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -426,13 +432,13 @@ OAE.tenantRouter.on('post', '/api/group/:groupId/join-request', (req, res) => {
  * @HttpResponse                400                     Invalid groupId specified
  * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
  */
-OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/mine', (req, res) => {
-  PrincipalsAPI.getJoinGroupRequest(req.ctx, req.params.groupId, (err, request) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/mine', (request, response) => {
+  PrincipalsAPI.getJoinGroupRequest(request.ctx, request.params.groupId, (error, request) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(request);
+    return response.status(200).send(request);
   });
 });
 
@@ -450,22 +456,22 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/mine', (req, res) =
  * @HttpResponse                400                     Invalid groupId specified
  * @HttpResponse                401                     You have to be logged in to be able to create a request to join a group
  */
-OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
 
   PrincipalsAPI.getJoinGroupRequests(
-    req.ctx,
+    request.ctx,
     {
-      groupId: req.params.groupId,
-      start: req.query.start,
+      groupId: request.params.groupId,
+      start: request.query.start,
       limit
     },
-    (err, requests, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, requests, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).send({ results: requests, nextToken });
+      return response.status(200).send({ results: requests, nextToken });
     }
   );
 });
@@ -486,21 +492,21 @@ OAE.tenantRouter.on('get', '/api/group/:groupId/join-request/all', (req, res) =>
  * @HttpResponse                400                     Invalid status specified
  * @HttpResponse                401                     You have to be logged in to be able to leave a group
  */
-OAE.tenantRouter.on('put', '/api/group/:groupId/join-request', (req, res) => {
+OAE.tenantRouter.on('put', '/api/group/:groupId/join-request', (request, response) => {
   PrincipalsAPI.updateJoinGroupByRequest(
-    req.ctx,
+    request.ctx,
     {
-      groupId: req.params.groupId,
-      principalId: req.body.principalId,
-      role: req.body.role,
-      status: req.body.status
+      groupId: request.params.groupId,
+      principalId: request.body.principalId,
+      role: request.body.role,
+      status: request.body.status
     },
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).end();
+      return response.status(200).end();
     }
   );
 });

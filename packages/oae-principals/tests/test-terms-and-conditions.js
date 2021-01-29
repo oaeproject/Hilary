@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-
+import { afterEach, describe, before, it } from 'mocha';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -33,7 +33,7 @@ describe('Terms and Conditions', () => {
   /**
    * Function that will fill up the rest contexts
    */
-  before(callback => {
+  before((callback) => {
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
@@ -43,19 +43,19 @@ describe('Terms and Conditions', () => {
   /**
    * Function that will disable and clear the Terms and Conditions after each test
    */
-  afterEach(callback => {
+  afterEach((callback) => {
     ConfigTestUtil.clearConfigAndWait(
       asCambridgeTenantAdmin,
       null,
       ['oae-principals/termsAndConditions/enabled'],
-      err => {
-        assert.notExists(err);
+      (error) => {
+        assert.notExists(error);
         ConfigTestUtil.clearConfigAndWait(
           asCambridgeTenantAdmin,
           null,
           ['oae-principals/termsAndConditions/text'],
-          err => {
-            assert.notExists(err);
+          (error) => {
+            assert.notExists(error);
             return callback();
           }
         );
@@ -73,16 +73,16 @@ describe('Terms and Conditions', () => {
    * @param  {Function}       callback        Standard callback function
    * @throws {Error}                          Assertion error is thrown if the config update does not return as the `expectSuccess` variable declares
    */
-  const enableAndSetTC = function(ctx, locale, text, expectSuccess, callback) {
+  const enableAndSetTC = function (ctx, locale, text, expectSuccess, callback) {
     // Enable the Terms and Conditions
     const update = {};
     update['oae-principals/termsAndConditions/enabled'] = true;
     update['oae-principals/termsAndConditions/text/' + locale] = text;
-    ConfigTestUtil.updateConfigAndWait(asCambridgeTenantAdmin, null, update, err => {
+    ConfigTestUtil.updateConfigAndWait(asCambridgeTenantAdmin, null, update, (error) => {
       if (expectSuccess) {
-        assert.notExists(err);
+        assert.notExists(error);
       } else {
-        assert.ok(err);
+        assert.ok(error);
       }
 
       return callback();
@@ -92,14 +92,14 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies that user need to accept the Terms and Conditions when creating an account
    */
-  it('verify users need to accept the Terms and Conditions when creating an account', callback => {
+  it('verify users need to accept the Terms and Conditions when creating an account', (callback) => {
     // Disable reCaptcha
     ConfigTestUtil.updateConfigAndWait(
       asCambridgeTenantAdmin,
       null,
       { 'oae-principals/recaptcha/enabled': false },
-      err => {
-        assert.notExists(err);
+      (error) => {
+        assert.notExists(error);
 
         // Enable the Terms and Conditions and publish a text
         enableAndSetTC(asCambridgeTenantAdmin, 'default', 'legalese', true, () => {
@@ -107,9 +107,9 @@ describe('Terms and Conditions', () => {
           const username = TestsUtil.generateRandomText(5);
           const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
           RestAPI.User.createUser(asCambridgeAnonymousUser, username, 'password', 'Test User', email, {}, (
-            err /* , userObj */
+            error /* , userObj */
           ) => {
-            assert.strictEqual(err.code, 400);
+            assert.strictEqual(error.code, 400);
             RestAPI.User.createUser(
               asCambridgeAnonymousUser,
               username,
@@ -117,8 +117,8 @@ describe('Terms and Conditions', () => {
               'Test User',
               email,
               { acceptedTC: false },
-              (err /* , userObj */) => {
-                assert.strictEqual(err.code, 400);
+              (error /* , userObj */) => {
+                assert.strictEqual(error.code, 400);
                 RestAPI.User.createUser(
                   asCambridgeAnonymousUser,
                   username,
@@ -126,8 +126,8 @@ describe('Terms and Conditions', () => {
                   'Test User',
                   email,
                   { acceptedTC: 'wrong' },
-                  (err /* , userObj */) => {
-                    assert.strictEqual(err.code, 400);
+                  (error /* , userObj */) => {
+                    assert.strictEqual(error.code, 400);
 
                     RestAPI.User.createUser(
                       asCambridgeAnonymousUser,
@@ -136,19 +136,19 @@ describe('Terms and Conditions', () => {
                       'Test User',
                       email,
                       { acceptedTC: true },
-                      (err, userObj) => {
-                        assert.notExists(err);
-                        assert.strictEqual(typeof userObj.acceptedTC, 'number');
-                        assert.ok(userObj.acceptedTC <= Date.now());
-                        assert.strictEqual(userObj.needsToAcceptTC, false);
+                      (error, userObject) => {
+                        assert.notExists(error);
+                        assert.strictEqual(typeof userObject.acceptedTC, 'number');
+                        assert.ok(userObject.acceptedTC <= Date.now());
+                        assert.strictEqual(userObject.needsToAcceptTC, false);
 
                         // Re-enable the reCaptcha checks
                         ConfigTestUtil.updateConfigAndWait(
                           asCambridgeTenantAdmin,
                           null,
                           { 'oae-principals/recaptcha/enabled': true },
-                          err => {
-                            assert.notExists(err);
+                          (error_) => {
+                            assert.notExists(error_);
                             callback();
                           }
                         );
@@ -167,9 +167,9 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies that users cannot interact with the system when a Terms and Conditions comes into effect
    */
-  it('verify users need to accept the Terms and Conditions before they can interact with the system', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify users need to accept the Terms and Conditions before they can interact with the system', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: mrvisser } = users;
 
       // Enable the Terms and Conditions and publish a text
@@ -186,26 +186,26 @@ describe('Terms and Conditions', () => {
             viewers: [],
             folders: []
           },
-          (err, link) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 419);
+          (error, link) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 419);
             assert.ok(!link);
 
-            RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(mrvisser.restContext, (error, data) => {
+              assert.notExists(error);
               assert.ok(data.needsToAcceptTC);
 
               // Verify there is nothing in this user's library
-              RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
-                assert.notExists(err);
+              RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (error, library) => {
+                assert.notExists(error);
                 assert.strictEqual(library.results.length, 0);
 
                 // Accept the Terms and Conditions for the cam tenant.
-                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, mrvisser.user.id, err => {
-                  assert.notExists(err);
+                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, mrvisser.user.id, (error_) => {
+                  assert.notExists(error_);
 
-                  RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(mrvisser.restContext, (error, data) => {
+                    assert.notExists(error);
                     assert.ok(!data.needsToAcceptTC);
 
                     // Verify that it is now possible to perform POST requests
@@ -220,97 +220,108 @@ describe('Terms and Conditions', () => {
                         viewers: [],
                         folders: []
                       },
-                      (err, createdLink) => {
-                        assert.notExists(err);
-                        RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
-                          assert.notExists(err);
-                          assert.strictEqual(library.results.length, 1);
+                      (error, createdLink) => {
+                        assert.notExists(error);
+                        RestAPI.Content.getLibrary(
+                          mrvisser.restContext,
+                          mrvisser.user.id,
+                          null,
+                          10,
+                          (error, library) => {
+                            assert.notExists(error);
+                            assert.strictEqual(library.results.length, 1);
 
-                          // Update the Terms and Conditions, ensuring we wait long enough to get a new timestamp
-                          setTimeout(
-                            enableAndSetTC,
-                            500,
-                            asCambridgeTenantAdmin,
-                            'default',
-                            'new legalese',
-                            true,
-                            () => {
-                              // Mrvisser needs to re-accept the Terms and Conditions before he can continue working on the system
-                              RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-                                assert.notExists(err);
-                                assert.ok(data.needsToAcceptTC);
+                            // Update the Terms and Conditions, ensuring we wait long enough to get a new timestamp
+                            setTimeout(
+                              enableAndSetTC,
+                              500,
+                              asCambridgeTenantAdmin,
+                              'default',
+                              'new legalese',
+                              true,
+                              () => {
+                                // Mrvisser needs to re-accept the Terms and Conditions before he can continue working on the system
+                                RestAPI.User.getMe(mrvisser.restContext, (error, data) => {
+                                  assert.notExists(error);
+                                  assert.ok(data.needsToAcceptTC);
 
-                                RestAPI.Content.createLink(
-                                  mrvisser.restContext,
-                                  {
-                                    displayName: 'Yahoo',
-                                    description: 'Yahoo',
-                                    visibility: PUBLIC,
-                                    link: 'http://uk.yahoo.com',
-                                    managers: [],
-                                    viewers: [],
-                                    folders: []
-                                  },
-                                  (err, link) => {
-                                    assert.ok(err);
-                                    assert.strictEqual(err.code, 419);
-                                    assert.ok(!link);
+                                  RestAPI.Content.createLink(
+                                    mrvisser.restContext,
+                                    {
+                                      displayName: 'Yahoo',
+                                      description: 'Yahoo',
+                                      visibility: PUBLIC,
+                                      link: 'http://uk.yahoo.com',
+                                      managers: [],
+                                      viewers: [],
+                                      folders: []
+                                    },
+                                    (error, link) => {
+                                      assert.ok(error);
+                                      assert.strictEqual(error.code, 419);
+                                      assert.ok(!link);
 
-                                    // DELETEs should not be possible
-                                    RestAPI.Content.deleteContent(mrvisser.restContext, createdLink.id, err => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 419);
+                                      // DELETEs should not be possible
+                                      RestAPI.Content.deleteContent(mrvisser.restContext, createdLink.id, (error_) => {
+                                        assert.ok(error_);
+                                        assert.strictEqual(error_.code, 419);
 
-                                      // Sanity check that re-accepting it, allows mrvisser to perform POST requests again
-                                      setTimeout(
-                                        RestAPI.User.acceptTermsAndConditions,
-                                        200,
-                                        mrvisser.restContext,
-                                        mrvisser.user.id,
-                                        err => {
-                                          assert.notExists(err);
-                                          setTimeout(RestAPI.User.getMe, 1000, mrvisser.restContext, (err, data) => {
-                                            assert.notExists(err);
-                                            assert.ok(!data.needsToAcceptTC);
-
-                                            // Verify that the user is now able to perform POST requests
-                                            RestAPI.Content.createLink(
+                                        // Sanity check that re-accepting it, allows mrvisser to perform POST requests again
+                                        setTimeout(
+                                          RestAPI.User.acceptTermsAndConditions,
+                                          200,
+                                          mrvisser.restContext,
+                                          mrvisser.user.id,
+                                          (error_) => {
+                                            assert.notExists(error_);
+                                            setTimeout(
+                                              RestAPI.User.getMe,
+                                              1000,
                                               mrvisser.restContext,
-                                              {
-                                                displayName: 'Yahoo',
-                                                description: 'Yahoo',
-                                                visibility: PUBLIC,
-                                                link: 'http://uk.yahoo.com',
-                                                managers: [],
-                                                viewers: [],
-                                                folders: []
-                                              },
-                                              (err, link) => {
-                                                assert.notExists(err);
-                                                RestAPI.Content.getLibrary(
-                                                  mrvisser.restContext,
-                                                  mrvisser.user.id,
-                                                  null,
-                                                  10,
-                                                  (err, library) => {
-                                                    assert.notExists(err);
-                                                    assert.strictEqual(library.results.length, 2);
+                                              (error, data) => {
+                                                assert.notExists(error);
+                                                assert.ok(!data.needsToAcceptTC);
 
-                                                    // DELETEs should be possible
-                                                    RestAPI.Content.deleteContent(
+                                                // Verify that the user is now able to perform POST requests
+                                                RestAPI.Content.createLink(
+                                                  mrvisser.restContext,
+                                                  {
+                                                    displayName: 'Yahoo',
+                                                    description: 'Yahoo',
+                                                    visibility: PUBLIC,
+                                                    link: 'http://uk.yahoo.com',
+                                                    managers: [],
+                                                    viewers: [],
+                                                    folders: []
+                                                  },
+                                                  (error, link) => {
+                                                    assert.notExists(error);
+                                                    RestAPI.Content.getLibrary(
                                                       mrvisser.restContext,
-                                                      link.id,
-                                                      err => {
-                                                        assert.notExists(err);
-                                                        RestAPI.Content.getLibrary(
+                                                      mrvisser.user.id,
+                                                      null,
+                                                      10,
+                                                      (error, library) => {
+                                                        assert.notExists(error);
+                                                        assert.strictEqual(library.results.length, 2);
+
+                                                        // DELETEs should be possible
+                                                        RestAPI.Content.deleteContent(
                                                           mrvisser.restContext,
-                                                          mrvisser.user.id,
-                                                          null,
-                                                          10,
-                                                          (err, library) => {
-                                                            assert.notExists(err);
-                                                            assert.strictEqual(library.results.length, 1);
-                                                            callback();
+                                                          link.id,
+                                                          (error_) => {
+                                                            assert.notExists(error_);
+                                                            RestAPI.Content.getLibrary(
+                                                              mrvisser.restContext,
+                                                              mrvisser.user.id,
+                                                              null,
+                                                              10,
+                                                              (error, library) => {
+                                                                assert.notExists(error);
+                                                                assert.strictEqual(library.results.length, 1);
+                                                                callback();
+                                                              }
+                                                            );
                                                           }
                                                         );
                                                       }
@@ -319,16 +330,16 @@ describe('Terms and Conditions', () => {
                                                 );
                                               }
                                             );
-                                          });
-                                        }
-                                      );
-                                    });
-                                  }
-                                );
-                              });
-                            }
-                          );
-                        });
+                                          }
+                                        );
+                                      });
+                                    }
+                                  );
+                                });
+                              }
+                            );
+                          }
+                        );
                       }
                     );
                   });
@@ -344,9 +355,9 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies that anonymous users don't need to accept the Terms and Conditions
    */
-  it("verify anonymous users don't need to accept the Terms and Conditions", callback => {
-    RestAPI.User.getMe(asCambridgeAnonymousUser, (err, data) => {
-      assert.notExists(err);
+  it("verify anonymous users don't need to accept the Terms and Conditions", (callback) => {
+    RestAPI.User.getMe(asCambridgeAnonymousUser, (error, data) => {
+      assert.notExists(error);
       assert.ok(!data.needsToAcceptTC);
       callback();
     });
@@ -356,20 +367,20 @@ describe('Terms and Conditions', () => {
    * Test that verifies that admins don't need to accept the Terms and Conditions to
    * interact with the system
    */
-  it("verify admins don't need to accept the Terms and Conditions", callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it("verify admins don't need to accept the Terms and Conditions", (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: mrvisser } = users;
 
       // Enable the Terms and Conditions and publish a text
       enableAndSetTC(asCambridgeTenantAdmin, 'default', 'legalese', true, () => {
         // Make mrvisser a tenantAdmin
-        RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, mrvisser.user.id, true, err => {
-          assert.notExists(err);
+        RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, mrvisser.user.id, true, (error_) => {
+          assert.notExists(error_);
 
           // Verify that mrvisser doesn't need to accept the Terms and Conditions
-          RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-            assert.notExists(err);
+          RestAPI.User.getMe(mrvisser.restContext, (error, data) => {
+            assert.notExists(error);
             assert.ok(!data.needsToAcceptTC);
 
             // Verify that mrvisser is able to perform POST requests without having accepted the Terms and Conditions
@@ -384,27 +395,27 @@ describe('Terms and Conditions', () => {
                 viewers: [],
                 folders: []
               },
-              (err, link) => {
-                assert.notExists(err);
-                RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
-                  assert.notExists(err);
+              (error, link) => {
+                assert.notExists(error);
+                RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (error, library) => {
+                  assert.notExists(error);
                   assert.strictEqual(library.results.length, 1);
 
                   // Verify that mrvisser is able to perform DELETE requests without having accepted the Terms and Conditions
-                  RestAPI.Content.deleteContent(mrvisser.restContext, link.id, err => {
-                    assert.notExists(err);
-                    RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (err, library) => {
-                      assert.notExists(err);
+                  RestAPI.Content.deleteContent(mrvisser.restContext, link.id, (error_) => {
+                    assert.notExists(error_);
+                    RestAPI.Content.getLibrary(mrvisser.restContext, mrvisser.user.id, null, 10, (error, library) => {
+                      assert.notExists(error);
                       assert.strictEqual(library.results.length, 0);
 
                       // Demote mrvisser to a normal user
-                      RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, mrvisser.user.id, false, err => {
-                        assert.notExists(err);
+                      RestAPI.User.setTenantAdmin(asCambridgeTenantAdmin, mrvisser.user.id, false, (error_) => {
+                        assert.notExists(error_);
 
                         // Because mrvisser hasn't accepted the Terms and Conditions yet, he cannot interact with the system
                         // When the user tries to *do* anything, he needs to accept the Terms and Conditions
-                        RestAPI.User.getMe(mrvisser.restContext, (err, data) => {
-                          assert.notExists(err);
+                        RestAPI.User.getMe(mrvisser.restContext, (error, data) => {
+                          assert.notExists(error);
                           assert.ok(data.needsToAcceptTC);
                           RestAPI.Content.createLink(
                             mrvisser.restContext,
@@ -417,9 +428,9 @@ describe('Terms and Conditions', () => {
                               viewers: [],
                               folders: []
                             },
-                            (err, link) => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 419);
+                            (error, link) => {
+                              assert.ok(error);
+                              assert.strictEqual(error.code, 419);
                               assert.ok(!link);
 
                               // Verify nothing extra got added to the library
@@ -428,8 +439,8 @@ describe('Terms and Conditions', () => {
                                 mrvisser.user.id,
                                 null,
                                 10,
-                                (err, library) => {
-                                  assert.notExists(err);
+                                (error, library) => {
+                                  assert.notExists(error);
                                   assert.strictEqual(library.results.length, 0);
                                   callback();
                                 }
@@ -452,30 +463,30 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies some basic validation on the Terms and Conditions endpoint
    */
-  it('verify basic validation on the Terms and Conditions endpoint', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify basic validation on the Terms and Conditions endpoint', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: mrvisser, 1: nico } = users;
 
       // Trying to accept the T&C when they are disabled results in an error
-      RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, mrvisser.user.id, err => {
-        assert.strictEqual(err.code, 400);
+      RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, mrvisser.user.id, (error_) => {
+        assert.strictEqual(error_.code, 400);
 
         // Enable the T&C
         enableAndSetTC(asCambridgeTenantAdmin, 'default', 'Default legalese', true, () => {
           // Mrvisser should not be allowed to accept the Terms and Conditions for Nico
-          RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, nico.user.id, err => {
-            assert.strictEqual(err.code, 401);
+          RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, nico.user.id, (error_) => {
+            assert.strictEqual(error_.code, 401);
 
             // Anonymous users can't accept anything
-            RestAPI.User.acceptTermsAndConditions(asCambridgeAnonymousUser, mrvisser.user.id, err => {
-              assert.strictEqual(err.code, 401);
+            RestAPI.User.acceptTermsAndConditions(asCambridgeAnonymousUser, mrvisser.user.id, (error_) => {
+              assert.strictEqual(error_.code, 401);
 
               // Some basic validation
-              RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'not a user id', err => {
-                assert.strictEqual(err.code, 400);
-                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'g:camtest:not-a-user-id', err => {
-                  assert.strictEqual(err.code, 400);
+              RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'not a user id', (error_) => {
+                assert.strictEqual(error_.code, 400);
+                RestAPI.User.acceptTermsAndConditions(mrvisser.restContext, 'g:camtest:not-a-user-id', (error_) => {
+                  assert.strictEqual(error_.code, 400);
                   callback();
                 });
               });
@@ -489,37 +500,37 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies the Terms and Conditions endpoint takes a locale parameter
    */
-  it('verify retrieving the Terms and Conditions can be localized', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify retrieving the Terms and Conditions can be localized', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: mrvisser } = users;
 
       // Mrvisser lives in Canada, apparently
-      RestAPI.User.updateUser(mrvisser.restContext, mrvisser.user.id, { locale: 'en_CA' }, err => {
-        assert.notExists(err);
+      RestAPI.User.updateUser(mrvisser.restContext, mrvisser.user.id, { locale: 'en_CA' }, (error_) => {
+        assert.notExists(error_);
 
         // Enable the Terms and Conditions and create a couple of localized versions
         enableAndSetTC(asCambridgeTenantAdmin, 'default', 'Default legalese', true, () => {
           enableAndSetTC(asCambridgeTenantAdmin, 'en_GB', 'British English legalese', true, () => {
             enableAndSetTC(asCambridgeTenantAdmin, 'en_CA', 'Canadian English legalese', true, () => {
               // Verify the default locale
-              RestAPI.User.getTermsAndConditions(asCambridgeAnonymousUser, null, (err, data) => {
-                assert.notExists(err);
+              RestAPI.User.getTermsAndConditions(asCambridgeAnonymousUser, null, (error, data) => {
+                assert.notExists(error);
                 assert.strictEqual(data.text, 'Default legalese');
 
                 // If no locale is specified, the user's locale should be used
-                RestAPI.User.getTermsAndConditions(mrvisser.restContext, null, (err, data) => {
-                  assert.notExists(err);
+                RestAPI.User.getTermsAndConditions(mrvisser.restContext, null, (error, data) => {
+                  assert.notExists(error);
                   assert.strictEqual(data.text, 'Canadian English legalese');
 
                   // If a locale is specified, that should take preference over the user's locale
-                  RestAPI.User.getTermsAndConditions(mrvisser.restContext, 'en_GB', (err, data) => {
-                    assert.notExists(err);
+                  RestAPI.User.getTermsAndConditions(mrvisser.restContext, 'en_GB', (error, data) => {
+                    assert.notExists(error);
                     assert.strictEqual(data.text, 'British English legalese');
 
                     // If a locale is specialized for which no Terms and Conditions is available, the default Terms and Conditions should be returned
-                    RestAPI.User.getTermsAndConditions(mrvisser.restContext, 'fr_FR', (err, data) => {
-                      assert.notExists(err);
+                    RestAPI.User.getTermsAndConditions(mrvisser.restContext, 'fr_FR', (error, data) => {
+                      assert.notExists(error);
                       assert.strictEqual(data.text, 'Default legalese');
 
                       // Create an anonymous request context that sends an `Accept-Language: en_CA` header
@@ -528,8 +539,8 @@ describe('Terms and Conditions', () => {
                         hostHeader: global.oaeTests.tenants.cam.host,
                         additionalHeaders: { 'Accept-Language': 'en-gb' }
                       });
-                      RestAPI.User.getTermsAndConditions(acceptLanguageRestContext, null, (err, data) => {
-                        assert.notExists(err);
+                      RestAPI.User.getTermsAndConditions(acceptLanguageRestContext, null, (error, data) => {
+                        assert.notExists(error);
                         assert.strictEqual(data.text, 'British English legalese');
                         return callback();
                       });
@@ -547,12 +558,12 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies the lastUpdate changes when the Terms and Conditions are changed
    */
-  it('verify the lastUpdate timestamp changes after updating the Terms and Conditions', callback => {
+  it('verify the lastUpdate timestamp changes after updating the Terms and Conditions', (callback) => {
     // Set a Terms and Conditions
     enableAndSetTC(asCambridgeTenantAdmin, 'default', 'Default legalese', true, () => {
       // Get the Terms and Conditions
-      setTimeout(RestAPI.User.getTermsAndConditions, 200, asCambridgeAnonymousUser, null, (err, firstTC) => {
-        assert.notExists(err);
+      setTimeout(RestAPI.User.getTermsAndConditions, 200, asCambridgeAnonymousUser, null, (error, firstTC) => {
+        assert.notExists(error);
         assert.strictEqual(firstTC.text, 'Default legalese');
         assert.ok(firstTC.lastUpdate);
         assert.ok(firstTC.lastUpdate <= Date.now());
@@ -560,8 +571,8 @@ describe('Terms and Conditions', () => {
 
         // Update the Terms and Conditions
         enableAndSetTC(asCambridgeTenantAdmin, 'default', 'Other legalese', true, () => {
-          setTimeout(RestAPI.User.getTermsAndConditions, 200, asCambridgeAnonymousUser, null, (err, updatedTC) => {
-            assert.notExists(err);
+          setTimeout(RestAPI.User.getTermsAndConditions, 200, asCambridgeAnonymousUser, null, (error, updatedTC) => {
+            assert.notExists(error);
             assert.strictEqual(updatedTC.text, 'Other legalese');
             assert.ok(updatedTC.lastUpdate);
             assert.ok(updatedTC.lastUpdate <= Date.now());
@@ -577,29 +588,29 @@ describe('Terms and Conditions', () => {
   /**
    * Test that verifies the Terms and Conditions are suppressed in the config when requested by a regular user
    */
-  it('verify the Terms and Conditions are suppressed in the config', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify the Terms and Conditions are suppressed in the config', (callback) => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: homer } = users;
 
       // Anonymous users should not see it
-      RestAPI.Config.getTenantConfig(asCambridgeAnonymousUser, null, (err, config) => {
-        assert.notExists(err);
+      RestAPI.Config.getTenantConfig(asCambridgeAnonymousUser, null, (error, config) => {
+        assert.notExists(error);
         assert.isNotOk(config['oae-principals'].termsAndConditions.text);
 
         // Regular users shouldn't see it either
-        RestAPI.Config.getTenantConfig(homer.restContext, null, (err, config) => {
-          assert.notExists(err);
+        RestAPI.Config.getTenantConfig(homer.restContext, null, (error, config) => {
+          assert.notExists(error);
           assert.isNotOk(config['oae-principals'].termsAndConditions.text);
 
           // Tenant admins should be able to see it
-          RestAPI.Config.getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-            assert.notExists(err);
+          RestAPI.Config.getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+            assert.notExists(error);
             assert.isObject(config['oae-principals'].termsAndConditions.text);
 
             // Global admins should be able to see it
-            RestAPI.Config.getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-              assert.notExists(err);
+            RestAPI.Config.getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+              assert.notExists(error);
               assert.isObject(config['oae-principals'].termsAndConditions.text);
               return callback();
             });

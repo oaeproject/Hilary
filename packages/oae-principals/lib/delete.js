@@ -13,30 +13,32 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import Counter from 'oae-util/lib/counter';
 
 import * as AuthzAPI from 'oae-authz';
 
 import { logger } from 'oae-logger';
-import { PrincipalsConstants } from './constants';
-import PrincipalsEmitter from './internal/emitter';
+import { PrincipalsConstants } from './constants.js';
+import PrincipalsEmitter from './internal/emitter.js';
 
 const groupDeleteLog = logger('group-delete');
 const groupRestoreLog = logger('group-restore');
 
-// Manage all handlers that have been registered for performing operations when a principal has been
-// deleted or restored in the system
+/**
+ * Manage all handlers that have been registered for performing operations when a principal has been
+ *  deleted or restored in the system
+ */
 const _groupDeleteHandlers = {};
 const _groupRestoreHandlers = {};
 
 // Keep track of in-flight local deletes for test purposes
 const deleteCounter = new Counter();
 
-/// //////////////
-// API METHODS //
-/// //////////////
+/**
+ * API methods
+ */
 
 /**
  * Register a handler that will be invoked when a group is deleted. This provides the ability to
@@ -55,11 +57,11 @@ const deleteCounter = new Counter();
  * @param  {Function}       handler.callback            Standard consumer callback. Your handler method should invoke this callback when processing has completed
  * @param  {Object[]}       handler.callback.errs       An array of errors that occurred while trying to perform the group delete processing. Your handler should provide this to the caller so centralized error logging can be performed
  */
-const registerGroupDeleteHandler = function(name, handler) {
+const registerGroupDeleteHandler = function (name, handler) {
   if (_groupDeleteHandlers[name]) {
-    throw new Error(util.format('Attempted to register multiple group delete handlers for name "%s"', name));
+    throw new Error(format('Attempted to register multiple group delete handlers for name "%s"', name));
   } else if (!_.isFunction(handler)) {
-    throw new TypeError(util.format('Attempted to register non-function group delete handler for name "%s"', name));
+    throw new TypeError(format('Attempted to register non-function group delete handler for name "%s"', name));
   }
 
   _groupDeleteHandlers[name] = handler;
@@ -82,11 +84,11 @@ const registerGroupDeleteHandler = function(name, handler) {
  * @param  {Function}       handler.callback            Standard consumer callback. Your handler method should invoke this callback when processing has completed
  * @param  {Object[]}       handler.callback.errs       An array of errors that occurred while trying to perform the group restore processing. Your handler should provide this to the caller so centralized error logging can be performed
  */
-const registerGroupRestoreHandler = function(name, handler) {
+const registerGroupRestoreHandler = function (name, handler) {
   if (_groupRestoreHandlers[name]) {
-    throw new Error(util.format('Attempted to register multiple group restore handlers for name "%s"', name));
+    throw new Error(format('Attempted to register multiple group restore handlers for name "%s"', name));
   } else if (!_.isFunction(handler)) {
-    throw new TypeError(util.format('Attempted to register non-function group restore handler for name "%s"', name));
+    throw new TypeError(format('Attempted to register non-function group restore handler for name "%s"', name));
   }
 
   _groupRestoreHandlers[name] = handler;
@@ -97,7 +99,7 @@ const registerGroupRestoreHandler = function(name, handler) {
  *
  * @param  {Group}  group   The group for which to invoke the delete handlers
  */
-const invokeGroupDeleteHandlers = function(group) {
+const invokeGroupDeleteHandlers = function (group) {
   _invokeGroupHandlers(groupDeleteLog, _groupDeleteHandlers, group);
 };
 
@@ -106,7 +108,7 @@ const invokeGroupDeleteHandlers = function(group) {
  *
  * @param  {Group}  group   The group for which to invoke the delete handlers
  */
-const invokeGroupRestoreHandlers = function(group) {
+const invokeGroupRestoreHandlers = function (group) {
   _invokeGroupHandlers(groupRestoreLog, _groupRestoreHandlers, group);
 };
 
@@ -115,7 +117,7 @@ const invokeGroupRestoreHandlers = function(group) {
  *
  * @param  {Function}   callback    Invoked when all delete tasks have completed. If there are no pending delete tasks, it will be invoked immediately
  */
-const whenDeletesComplete = function(callback) {
+const whenDeletesComplete = function (callback) {
   deleteCounter.whenZero(callback);
 };
 
@@ -128,25 +130,25 @@ const whenDeletesComplete = function(callback) {
  * @param  {Group}      group       The group that is the target of the operation
  * @api private
  */
-const _invokeGroupHandlers = function(log, handlers, group) {
+const _invokeGroupHandlers = function (log, handlers, group) {
   // Indicate we have an asynchronous task that needs to complete before deletes are finished
   // processing
   deleteCounter.incr();
 
   // Get both the members and memberships graph of the group so that the handlers can use that
   // information to determine if any associations need to be destroyed
-  AuthzAPI.getPrincipalMembershipsGraph(group.id, (err, membershipsGraph) => {
-    if (err) {
+  AuthzAPI.getPrincipalMembershipsGraph(group.id, (error, membershipsGraph) => {
+    if (error) {
       return log().error(
-        { err, groupId: group.id },
+        { err: error, groupId: group.id },
         'An unexpected error occurred while getting the authz memberships graph'
       );
     }
 
-    AuthzAPI.getAuthzMembersGraph([group.id], (err, membersGraph) => {
-      if (err) {
+    AuthzAPI.getAuthzMembersGraph([group.id], (error, membersGraph) => {
+      if (error) {
         return log().error(
-          { err, groupId: group.id },
+          { err: error, groupId: group.id },
           'An unexpected error occurred while getting the authz members graph'
         );
       }
@@ -171,7 +173,7 @@ const _invokeGroupHandlers = function(log, handlers, group) {
  * @param  {...Object}      args        A variable number of arguments for the handler depending on its type
  * @api private
  */
-const _invokeHandlers = function(...args) {
+const _invokeHandlers = function (...args) {
   const [log, handlers, principal] = args;
   // Const args = Array.prototype.slice.call(arguments);
   // The arguments for the handler (including the `principal`) start from the 2nd argument and
@@ -185,7 +187,7 @@ const _invokeHandlers = function(...args) {
     deleteCounter.incr();
 
     // Add the callback function to the handlerArgs
-    const thisHandlerArgs = handlerArgs.concat(errs => {
+    const thisHandlerArgs = handlerArgs.concat((errs) => {
       if (!errs) {
         errs = [];
       } else if (!_.isArray(errs)) {

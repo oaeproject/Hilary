@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars, import/namespace */
+/* eslint-disable no-unused-vars */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as AuthenticationAPI from 'oae-authentication';
 import * as TenantsAPI from 'oae-tenants';
@@ -40,13 +40,13 @@ import * as memberships from 'oae-principals/lib/libraries/memberships';
 
 // Initialize principals delete capabilities
 import * as deleted from 'oae-principals/lib/delete';
-import * as Cron from './cron';
+import * as Cron from './cron.js';
 
 let globalContext = {};
 
 export function init(config, callback) {
-  _ensureGlobalAdmin(config, function(err) {
-    if (err) return callback(err);
+  _ensureGlobalAdmin(config, function (error) {
+    if (error) return callback(error);
 
     return Cron.programUserDeletionTask(globalContext, callback);
   });
@@ -61,10 +61,10 @@ export function init(config, callback) {
  * @param  {Object}      callback.err    An error that occurred, if any
  * @api private
  */
-const _ensureGlobalAdmin = function(config, callback) {
+const _ensureGlobalAdmin = function (config, callback) {
   // Mock a global admin request context so we can create a proper global administrator in the system
   const globalTenant = TenantsAPI.getTenant(config.servers.globalAdminAlias);
-  const globalAdminId = util.format('u:%s:admin', globalTenant.alias);
+  const globalAdminId = format('u:%s:admin', globalTenant.alias);
   const globalAdmin = new User(globalTenant.alias, globalAdminId, 'Global Administrator', null, {
     visibility: AuthzConstants.visibility.PRIVATE,
     isGlobalAdmin: true

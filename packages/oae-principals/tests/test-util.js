@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-
+import { describe, before, it } from 'mocha';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -34,17 +34,17 @@ describe('Principals', () => {
   /**
    * Function that will fill up the anonymous and the tenant admin context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up global admin rest context
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Fill up the rest context for our test user
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: john } = users;
       asJonhFromCambridge = john.restContext;
-      RestAPI.User.getMe(asJonhFromCambridge, err => {
-        assert.notExists(err);
+      RestAPI.User.getMe(asJonhFromCambridge, (error_) => {
+        assert.notExists(error_);
         return callback();
       });
     });
@@ -57,10 +57,10 @@ describe('Principals', () => {
      * @param  {Object}                 callback.principals     Object where the keys are identifiers for the created principals and the values are
      *                                                          are the actual group/user context objects
      */
-    const createUsersAndGroup = function(callback) {
+    const createUsersAndGroup = function (callback) {
       const createdPrincipals = {};
 
-      const createPrincipal = function(type, identifier, metadata) {
+      const createPrincipal = function (type, identifier, metadata) {
         const principalId = TestsUtil.generateTestUserId(identifier);
         if (type === 'group') {
           RestAPI.Group.createGroup(
@@ -71,9 +71,9 @@ describe('Principals', () => {
             'yes',
             [],
             [],
-            (err, groupObj) => {
-              assert.notExists(err);
-              createdPrincipals[identifier] = groupObj;
+            (error, groupObject) => {
+              assert.notExists(error);
+              createdPrincipals[identifier] = groupObject;
               if (equals(7, length(keys(createdPrincipals)))) {
                 callback(createdPrincipals);
               }
@@ -88,9 +88,9 @@ describe('Principals', () => {
             metadata,
             email,
             {},
-            (err, userObj) => {
-              assert.notExists(err);
-              const userContext = new Context(global.oaeTests.tenants.cam, userObj);
+            (error, userObject) => {
+              assert.notExists(error);
+              const userContext = new Context(global.oaeTests.tenants.cam, userObject);
               createdPrincipals[identifier] = userContext;
               if (equals(7, length(keys(createdPrincipals)))) {
                 callback(createdPrincipals);
@@ -115,11 +115,11 @@ describe('Principals', () => {
     /**
      * Test that verifies the working of the getPrincipal utility function
      */
-    it('verify get principal', callback => {
-      createUsersAndGroup(createdPrincipals => {
+    it('verify get principal', (callback) => {
+      createUsersAndGroup((createdPrincipals) => {
         // Get an existing user
-        PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals.nicolaas.user().id, (err, user) => {
-          assert.notExists(err);
+        PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals.nicolaas.user().id, (error, user) => {
+          assert.notExists(error);
           assert.ok(user);
           assert.strictEqual(user.id, createdPrincipals.nicolaas.user().id);
           assert.strictEqual(user.displayName, 'Nicolaas Matthijs');
@@ -130,29 +130,33 @@ describe('Principals', () => {
           );
 
           // Get a non-existing user
-          PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-user', (err, user) => {
-            assert.ok(err);
+          PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-user', (error, user) => {
+            assert.ok(error);
             assert.ok(!user);
 
             // Get an existing group
-            PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, createdPrincipals['oae-team'].id, (err, group) => {
-              assert.notExists(err);
-              assert.ok(group);
-              assert.strictEqual(group.id, createdPrincipals['oae-team'].id);
-              assert.strictEqual(group.displayName, 'OAE Team');
-              assert.strictEqual(group.resourceType, 'group');
-              assert.strictEqual(
-                group.profilePath,
-                '/group/' + group.tenant.alias + '/' + AuthzUtil.getResourceFromId(group.id).resourceId
-              );
+            PrincipalsUtil.getPrincipal(
+              createdPrincipals.nicolaas,
+              createdPrincipals['oae-team'].id,
+              (error, group) => {
+                assert.notExists(error);
+                assert.ok(group);
+                assert.strictEqual(group.id, createdPrincipals['oae-team'].id);
+                assert.strictEqual(group.displayName, 'OAE Team');
+                assert.strictEqual(group.resourceType, 'group');
+                assert.strictEqual(
+                  group.profilePath,
+                  '/group/' + group.tenant.alias + '/' + AuthzUtil.getResourceFromId(group.id).resourceId
+                );
 
-              // Get a non-existing group
-              PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-group', (err, group) => {
-                assert.ok(err);
-                assert.ok(!group);
-                callback();
-              });
-            });
+                // Get a non-existing group
+                PrincipalsUtil.getPrincipal(createdPrincipals.nicolaas, 'non-existing-group', (error, group) => {
+                  assert.ok(error);
+                  assert.ok(!group);
+                  callback();
+                });
+              }
+            );
           });
         });
       });
@@ -162,14 +166,14 @@ describe('Principals', () => {
      * Test that verifies the working of the getPrincipals utility function, allowing the retrieval of
      * multiple principals at once
      */
-    it('verify get principals', callback => {
-      createUsersAndGroup(createdPrincipals => {
+    it('verify get principals', (callback) => {
+      createUsersAndGroup((createdPrincipals) => {
         // Get existing users
         PrincipalsUtil.getPrincipals(
           createdPrincipals.nicolaas,
           [createdPrincipals.nicolaas.user().id, createdPrincipals.simon.user().id, createdPrincipals.bert.user().id],
-          (err, users) => {
-            assert.notExists(err);
+          (error, users) => {
+            assert.notExists(error);
             assert.ok(users);
             assert.lengthOf(keys(users), 3);
             assert.strictEqual(users[createdPrincipals.nicolaas.user().id].id, createdPrincipals.nicolaas.user().id);
@@ -180,8 +184,8 @@ describe('Principals', () => {
             PrincipalsUtil.getPrincipals(
               createdPrincipals.nicolaas,
               [createdPrincipals['oae-team'].id, createdPrincipals['backend-team'].id],
-              (err, groups) => {
-                assert.notExists(err);
+              (error, groups) => {
+                assert.notExists(error);
                 assert.ok(groups);
                 assert.lengthOf(keys(groups), 2);
                 assert.strictEqual(groups[createdPrincipals['oae-team'].id].id, createdPrincipals['oae-team'].id);
@@ -200,8 +204,8 @@ describe('Principals', () => {
                     createdPrincipals['backend-team'].id,
                     createdPrincipals.branden.user().id
                   ],
-                  (err, principals) => {
-                    assert.notExists(err);
+                  (error, principals) => {
+                    assert.notExists(error);
                     assert.ok(principals);
                     assert.lengthOf(keys(principals), 5);
                     assert.strictEqual(
@@ -233,16 +237,16 @@ describe('Principals', () => {
                         'u:cam:non-existing-user',
                         createdPrincipals.simon.user().id
                       ],
-                      (err, users) => {
-                        assert.notExists(err);
+                      (error, users) => {
+                        assert.notExists(error);
                         assert.lengthOf(keys(users), 2);
 
                         // Get existing groups, of which some don't exist
                         PrincipalsUtil.getPrincipals(
                           createdPrincipals.nicolaas,
                           [createdPrincipals['oae-team'].id, 'u:cam:non-existing-group'],
-                          (err, groups) => {
-                            assert.notExists(err);
+                          (error, groups) => {
+                            assert.notExists(error);
                             assert.lengthOf(keys(groups), 1);
 
                             // Get existing users/groups, of which some don't exist
@@ -255,8 +259,8 @@ describe('Principals', () => {
                                 createdPrincipals.simon.user().id,
                                 'u:cam:non-existing-group'
                               ],
-                              (err, principals) => {
-                                assert.notExists(err);
+                              (error, principals) => {
+                                assert.notExists(error);
                                 assert.lengthOf(keys(principals), 3);
                                 return callback();
                               }

@@ -32,10 +32,11 @@ const { argv } = require('optimist')
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
 
-// Determine whether or not we should drop the keyspace before the test. In cases
-// where we want to set up the schema by another means (e.g., to test unit tests
-// over migrations), it is handy to use a schema that was pre-arranged for the
-// test
+/**
+ * Determine whether or not we should drop the keyspace before the test. In cases
+ * where we want to set up the schema by another means (e.g., to test unit tests
+ *  over migrations), it is handy to use a schema that was pre-arranged for the test
+ */
 const dropKeyspaceBeforeTest = process.env.OAE_TEST_DROP_KEYSPACE_BEFORE !== 'false';
 
 // First set up the keyspace and all of the column families required for all of the different OAE modules
@@ -72,8 +73,10 @@ afterEach(function(callback) {
   return callback();
 });
 
-// Executed once all of the tests for all of the different modules have finished running or
-// when one of the tests has caused an error. Drop the keyspace after all the tests are done
+/**
+ * Executed once all of the tests for all of the different modules have finished running or
+ * when one of the tests has caused an error. Drop the keyspace after all the tests are done
+ */
 after(callback => {
   // Unset an env var for running tests once they are over
   process.env.OAE_TESTS_RUNNING = '';

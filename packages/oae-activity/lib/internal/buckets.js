@@ -14,7 +14,7 @@
  */
 
 import crypto from 'crypto';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Locking from 'oae-util/lib/locking';
@@ -53,13 +53,13 @@ OAE.registerPreShutdownHandler('oae-activity-buckets', null, callback => {
  * @param  {Number}     numberOfBuckets     The maximum number of buckets that can be created
  * @return {Number}                         The bucket number that identifies the given string
  */
-const getBucketNumber = function(str, numberOfBuckets) {
+const getBucketNumber = function(string, numberOfBuckets) {
   const sum = crypto.createHash('md5');
-  sum.update(str);
+  sum.update(string);
 
   // Slice the last 4 characters of the hex to avoid integer overflow. This will give max 2^16 buckets
   const hex = sum.digest('hex').slice(-4);
-  return parseInt(hex, 16) % numberOfBuckets;
+  return Number.parseInt(hex, 16) % numberOfBuckets;
 };
 
 /**
@@ -91,9 +91,9 @@ const collectAllBuckets = function(
 ) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Error collecting buckets');
+    function(error) {
+      if (error) {
+        log().error({ err: error }, 'Error collecting buckets');
       }
     };
 
@@ -103,7 +103,7 @@ const collectAllBuckets = function(
     currentConcurrentCollectionCount: 0,
     collectionExpiry,
     collector,
-    telemetry: TelemetryAPI.telemetry(util.format('bucket-%s', type))
+    telemetry: TelemetryAPI.telemetry(format('bucket-%s', type))
   };
 
   // Ensure we don't surpass the maximum number of concurrent collections
@@ -125,12 +125,12 @@ const collectAllBuckets = function(
   log().trace({ type }, 'Beginning collection of %s buckets', bucketNumbers.length);
 
   // Perform a collection cycle on the bucket numbers
-  _collectBuckets(type, bucketNumbers, err => {
+  _collectBuckets(type, bucketNumbers, error => {
     log().trace({ type }, 'Completed collection cycle');
 
     // Mark that this collection cycle has completed, whether or not there was an error
     bucketsInfo[type].currentConcurrentCollectionCount--;
-    return callback(err);
+    return callback(error);
   });
 };
 
@@ -153,11 +153,11 @@ const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
   }
 
   const bucketNumber = bucketNumbers.pop();
-  _collectBucket(type, bucketNumber, err => {
-    if (err) {
-      log().warn({ err, bucketNumber, type }, 'Error collecting aggregate bucket');
+  _collectBucket(type, bucketNumber, error => {
+    if (error) {
+      log().warn({ err: error, bucketNumber, type }, 'Error collecting aggregate bucket');
       bucketsInfo[type].telemetry.incr('collection.error.count');
-      _errs.push(err);
+      _errs.push(error);
     }
 
     return _collectBuckets(type, bucketNumbers, callback, _errs);
@@ -192,36 +192,36 @@ const _collectBucket = function(type, bucketNumber, callback) {
   const lockKey = _getLockKey(type, bucketNumber);
   let hadLock = true;
 
-  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (err, lock) => {
-    if (err) {
+  Locking.acquire(lockKey, bucketInfo.collectionExpiry, (error, lock) => {
+    if (error) {
       // We could not acquire a lock, someone else came around and managed to snag the bucket
-      return callback(err);
+      return callback(error);
     }
 
     log().trace({ lockId: lock.value, type }, 'Acquired a lock on bucket number %s', bucketNumber);
 
     // We acquired the lock, perform a collection iteration
-    bucketInfo.collector(bucketNumber, (collectionErr, finished) => {
+    bucketInfo.collector(bucketNumber, (collectionError, finished) => {
       // We want to ensure we release the bucket, whether we received an error or not
-      Locking.release(lock, (releaseErr /* ,hadLock */) => {
-        if (collectionErr) {
-          return callback(collectionErr);
+      Locking.release(lock, (releaseError /* ,hadLock */) => {
+        if (collectionError) {
+          return callback(collectionError);
         }
 
         // Determines whether or not we owned the lock at the time that we released it
-        if (releaseErr) {
+        if (releaseError) {
           // if releasing the lock failed, then we probably didn't have it in the first place
           hadLock = false;
 
           log().warn(
-            { err: releaseErr, type },
+            { err: releaseError, type },
             'An unexpected error occurred while releasing the lock from bucket number %s',
             bucketNumber
           );
 
           // If there was an error releasing the lock, worst case scenario would be that the lock eventually expires
           // and a cluster node picks it up soon after that and continues processing
-          return callback(releaseErr);
+          return callback(releaseError);
         }
 
         log().trace(
@@ -266,7 +266,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
  * @api private
  */
 const _getLockKey = function(type, bucketNumber) {
-  return util.format('oae-activity:%s:lock-%s', type, bucketNumber);
+  return format('oae-activity:%s:lock-%s', type, bucketNumber);
 };
 
 export { getBucketNumber, collectAllBuckets };

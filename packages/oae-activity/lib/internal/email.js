@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
+import { filter, pipe, keys, isEmpty } from 'ramda';
 
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -37,12 +38,12 @@ import { logger } from 'oae-logger';
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityModel from 'oae-activity/lib/model';
 import * as ActivityUtil from 'oae-activity/lib/util';
-import * as ActivitySystemConfig from './config';
-import * as ActivityTransformer from './transformer';
-import ActivityEmitter from './emitter';
-import * as ActivityDAO from './dao';
-import * as ActivityBuckets from './buckets';
-import * as ActivityAggregator from './aggregator';
+import * as ActivitySystemConfig from './config.js';
+import * as ActivityTransformer from './transformer.js';
+import ActivityEmitter from './emitter.js';
+import * as ActivityDAO from './dao.js';
+import * as ActivityBuckets from './buckets.js';
+import * as ActivityAggregator from './aggregator.js';
 
 const Telemetry = telemetry('activity-email');
 const TenantConfig = setUpConfig('oae-tenants');
@@ -68,18 +69,18 @@ const scheduledEmailsCounter = new Counter();
  * When activities get delivered to a stream, we check if any were delivered to users their
  * `email` stream and queue the user IDs for email delivery
  */
-ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivities => {
-  const emailRecipientIds = _.chain(deliveredActivities)
-    .keys()
-    .filter(_isEmailRecipientId)
-    .filter(emailRecipientId => {
+ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivities) => {
+  const emailRecipientIds = pipe(
+    keys,
+    filter(_isEmailRecipientId),
+    filter((emailRecipientId) => {
       // Only keep email recipients who have an entry for an email stream delivery
       return deliveredActivities[emailRecipientId].email;
     })
-    .value();
+  )(deliveredActivities);
 
   // If there were no activities delivered in email streams we can stop here
-  if (_.isEmpty(emailRecipientIds)) {
+  if (isEmpty(emailRecipientIds)) {
     return;
   }
 
@@ -87,17 +88,17 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
 
   // Get the full resource representation of each recipient. For user accounts, we need to know
   // their email preference so we can schedule their email appropriately
-  _getEmailRecipientResources(emailRecipientIds, (err, recipients) => {
-    if (err) {
+  _getEmailRecipientResources(emailRecipientIds, (error, recipients) => {
+    if (error) {
       scheduledEmailsCounter.decr();
       return log().error(
-        { err, emailRecipientIds: recipients },
+        { err: error, emailRecipientIds: recipients },
         'Failed to get the email preference field for all the users in this activity'
       );
     }
 
     // Filter out recipients that should not get emails
-    const recipientsToQueue = _.filter(recipients, emailRecipient => {
+    const recipientsToQueue = _.filter(recipients, (emailRecipient) => {
       return (
         !emailRecipient.deleted &&
         emailRecipient.email &&
@@ -106,17 +107,17 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
     });
 
     const emailBuckets = {};
-    _.each(recipientsToQueue, recipient => {
+    _.each(recipientsToQueue, (recipient) => {
       const bucketId = _createEmailBucketIdForRecipient(recipient);
       emailBuckets[bucketId] = emailBuckets[bucketId] || [];
       emailBuckets[bucketId].push(recipient.id);
     });
 
-    ActivityDAO.saveQueuedUserIdsForEmail(emailBuckets, err => {
-      if (err) {
+    ActivityDAO.saveQueuedUserIdsForEmail(emailBuckets, (error_) => {
+      if (error_) {
         scheduledEmailsCounter.decr();
         return log().error(
-          { err, deliveredActivities },
+          { err: error_, deliveredActivities },
           'Unable to store the IDs of the users who need to receive mail'
         );
       }
@@ -148,10 +149,10 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, newUser, old
 
   // Take the user out of the old bucket
   const oldBucketId = _createEmailBucketIdForRecipient(oldUser);
-  ActivityDAO.unqueueUsersForEmail(oldBucketId, [oldUser.id], err => {
-    if (err) {
+  ActivityDAO.unqueueUsersForEmail(oldBucketId, [oldUser.id], (error) => {
+    if (error) {
       return log().error(
-        { err, user: oldUser.id },
+        { err: error, user: oldUser.id },
         'Unable to unqueue a user from an email bucket when they changed their email preference'
       );
 
@@ -167,9 +168,9 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, newUser, old
     const newBucketId = _createEmailBucketIdForRecipient(newUser);
     const emailBucket = {};
     emailBucket[newBucketId] = [newUser.id];
-    ActivityDAO.saveQueuedUserIdsForEmail(emailBucket, err => {
-      if (err) {
-        log().error({ err, user: newUser.id }, 'Could not re-queue the user for email');
+    ActivityDAO.saveQueuedUserIdsForEmail(emailBucket, (error) => {
+      if (error) {
+        log().error({ err: error, user: newUser.id }, 'Could not re-queue the user for email');
       }
 
       return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
@@ -193,21 +194,21 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, newUser, old
  * @param  {Function}   [callback]      Invoked when collection is complete
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const collectAllBuckets = function(callback) {
+const collectAllBuckets = function (callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Failed to collect all mail buckets');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'Failed to collect all mail buckets');
       }
     };
 
   const errs = [];
   let count = 0;
 
-  const allDone = function(err) {
-    if (err) {
-      errs.push(err);
+  const allDone = function (error) {
+    if (error) {
+      errs.push(error);
     }
 
     count++;
@@ -258,7 +259,7 @@ const collectAllBuckets = function(callback) {
  * @param  {Boolean}    callback.finished   Indicates that this bucket is drained or has been skipped in which case it should not be retried either
  * @api private
  */
-const _collectImmediateBucket = function(bucketNumber, callback) {
+const _collectImmediateBucket = function (bucketNumber, callback) {
   collectMails(bucketNumber, PrincipalsConstants.emailPreferences.IMMEDIATE, null, null, callback);
 };
 
@@ -271,7 +272,7 @@ const _collectImmediateBucket = function(bucketNumber, callback) {
  * @param  {Boolean}    callback.finished   Indicates that this bucket is drained or has been skipped in which case it should not be retried either
  * @api private
  */
-const _collectDailyBucket = function(bucketNumber, callback) {
+const _collectDailyBucket = function (bucketNumber, callback) {
   if (_isDailyCycle()) {
     const now = new TZ.timezone.Date('UTC');
     const dateWithAnHour = new TZ.timezone.Date(now.getTime() + 60 * 60 * 1000, 'UTC');
@@ -296,7 +297,7 @@ const _collectDailyBucket = function(bucketNumber, callback) {
  * @param  {Boolean}    callback.finished   Indicates that this bucket is drained or has been skipped in which case it should not be retried either
  * @api private
  */
-const _collectWeeklyBucket = function(bucketNumber, callback) {
+const _collectWeeklyBucket = function (bucketNumber, callback) {
   if (_isWeeklyCycle()) {
     const now = new TZ.timezone.Date('UTC');
     const dateWithAnHour = new TZ.timezone.Date(now.getTime() + 60 * 60 * 1000, 'UTC');
@@ -318,7 +319,7 @@ const _collectWeeklyBucket = function(bucketNumber, callback) {
  * @return {Boolean}    Whether or not daily mails should be sent out now
  * @api private
  */
-const _isDailyCycle = function() {
+const _isDailyCycle = function () {
   const config = ActivitySystemConfig.getConfig();
   const now = new TZ.timezone.Date('UTC');
 
@@ -336,7 +337,7 @@ const _isDailyCycle = function() {
  * @return {Boolean}    Whether or not weekly mails should be sent out now
  * @api private
  */
-const _isWeeklyCycle = function() {
+const _isWeeklyCycle = function () {
   const config = ActivitySystemConfig.getConfig();
   const now = new TZ.timezone.Date('UTC');
   const today = now.getDay();
@@ -373,7 +374,7 @@ const _isWeeklyCycle = function() {
  * @param  {Boolean}        callback.finished       Indicates that this bucket is drained or has been skipped in which case it should not be retried either
  * @param  {Resource[]}     callback.recipients     The recipients (users or email profiles) that received an email
  */
-const collectMails = function(bucketNumber, emailPreference, dayOfWeek, hour, callback) {
+const collectMails = function (bucketNumber, emailPreference, dayOfWeek, hour, callback) {
   const collectionStart = Date.now();
   log().trace(
     'Collecting batch of %s users from bucket number %s:%s',
@@ -387,13 +388,13 @@ const collectMails = function(bucketNumber, emailPreference, dayOfWeek, hour, ca
 
   // Get the timestamp which we consider to be the cut-off point for activities. Older activities will not be included
   const oldestActivityTimestamp = _getCollectionCycleStart(emailPreference);
-  _collectMails(bucketId, oldestActivityTimestamp, null, (err, recipients) => {
-    if (err) {
-      return callback(err);
+  _collectMails(bucketId, oldestActivityTimestamp, null, (error, recipients) => {
+    if (error) {
+      return callback(error);
     }
 
-    Telemetry.incr(util.format('sent.%s.count', emailPreference), recipients.length);
-    Telemetry.appendDuration(util.format('sent.%s.time', emailPreference), collectionStart);
+    Telemetry.incr(format('sent.%s.count', emailPreference), recipients.length);
+    Telemetry.appendDuration(format('sent.%s.time', emailPreference), collectionStart);
     return callback(null, true, recipients);
   });
 };
@@ -417,7 +418,7 @@ const collectMails = function(bucketNumber, emailPreference, dayOfWeek, hour, ca
  * @param  {Resource}   callback.recipients         The recipients that received an email
  * @api private
  */
-const _collectMails = function(
+const _collectMails = function (
   bucketId,
   oldestActivityTimestamp,
   start,
@@ -432,9 +433,9 @@ const _collectMails = function(
     bucketId,
     start,
     MAX_COLLECTION_BATCH_SIZE,
-    (err, recipientIds, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, recipientIds, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(recipientIds)) {
@@ -442,7 +443,7 @@ const _collectMails = function(
       }
 
       const recipientIdsByActivityStreamIds = _.chain(recipientIds)
-        .map(recipientId => {
+        .map((recipientId) => {
           return [
             ActivityUtil.createActivityStreamId(recipientId, ActivityConstants.streams.EMAIL),
             recipientId
@@ -454,9 +455,9 @@ const _collectMails = function(
       ActivityDAO.getActivitiesFromStreams(
         _.keys(recipientIdsByActivityStreamIds),
         oldestActivityTimestamp,
-        (err, activitiesPerStream) => {
-          if (err) {
-            return callback(err);
+        (error, activitiesPerStream) => {
+          if (error) {
+            return callback(error);
           }
 
           // Will hold the activities (keyed per stream) who have no activities within the grace period
@@ -468,7 +469,7 @@ const _collectMails = function(
           // 3. Filter the activity streams to those who have no activities within the grace period
           const threshold = Date.now() - ActivitySystemConfig.getConfig().mail.gracePeriod * 1000;
           _.each(activitiesPerStream, (activities, activityStreamId) => {
-            const hasRecentActivity = _.find(activities, activity => {
+            const hasRecentActivity = _.find(activities, (activity) => {
               return activity.published > threshold;
             });
 
@@ -485,15 +486,15 @@ const _collectMails = function(
           // so that the next e-mail doesn't contain the same activities
           ActivityDAO.resetAggregationForActivityStreams(
             _.keys(activitiesPerMailableStreams),
-            err => {
-              if (err) {
-                return callback(err);
+            (error_) => {
+              if (error_) {
+                return callback(error_);
               }
 
               // 5. Remove the users we'll email from the buckets
-              ActivityDAO.unqueueUsersForEmail(bucketId, recipientIdsToMail, err => {
-                if (err) {
-                  return callback(err);
+              ActivityDAO.unqueueUsersForEmail(bucketId, recipientIdsToMail, (error_) => {
+                if (error_) {
+                  return callback(error_);
                 }
 
                 // 6. Delete these activities as we will be pushing them out
@@ -504,23 +505,23 @@ const _collectMails = function(
                     ActivityConstants.properties.OAE_ACTIVITY_ID
                   );
                 });
-                ActivityDAO.deleteActivities(activitiesPerStreamToDelete, err => {
-                  if (err) {
-                    return callback(err);
+                ActivityDAO.deleteActivities(activitiesPerStreamToDelete, (error_) => {
+                  if (error_) {
+                    return callback(error_);
                   }
 
                   // Get all the recipient profiles
-                  _getEmailRecipientResources(recipientIdsToMail, (err, recipients) => {
-                    if (err) {
+                  _getEmailRecipientResources(recipientIdsToMail, (error, recipients) => {
+                    if (error) {
                       log().error(
-                        { err, recipientIds: recipientIdsToMail },
+                        { err: error, recipientIds: recipientIdsToMail },
                         'Failed to get the recipients when sending email'
                       );
-                      return callback(err);
+                      return callback(error);
                     }
 
                     // Keep track of whom we need to email
-                    const recipientsToMail = _.filter(recipients, recipient => {
+                    const recipientsToMail = _.filter(recipients, (recipient) => {
                       // Although it's very unlikely that a user who changed their email preferences would end up here,
                       // we take it into account as it would be really unfortunate to send them any further email. Additionally,
                       // if the email stream for the user was empty (because they marked their notifications as read), we can't
@@ -536,7 +537,7 @@ const _collectMails = function(
                     });
 
                     // Transform the recipients array so the activities are included
-                    const toMail = _.map(recipientsToMail, recipient => {
+                    const toMail = _.map(recipientsToMail, (recipient) => {
                       const emailActivityStreamId = ActivityUtil.createActivityStreamId(
                         recipient.id,
                         ActivityConstants.streams.EMAIL
@@ -548,9 +549,9 @@ const _collectMails = function(
                     });
 
                     // 7. Send out the emails
-                    _mailAll(toMail, err => {
-                      if (err) {
-                        return callback(err);
+                    _mailAll(toMail, (error_) => {
+                      if (error_) {
+                        return callback(error_);
                       }
 
                       _collectedRecipients = _collectedRecipients.concat(recipientsToMail);
@@ -586,19 +587,19 @@ const _collectMails = function(
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _mailAll = function(toMail, callback) {
+const _mailAll = function (toMail, callback) {
   if (_.isEmpty(toMail)) {
     return callback();
   }
 
   const to = toMail.pop();
-  _mail(to.recipient, to.activities, err => {
-    if (err) {
+  _mail(to.recipient, to.activities, (error) => {
+    if (error) {
       // Warn that this user is not going to receive an email, however we can continue sending
       // other emails
       log().warn(
         {
-          err,
+          err: error,
           to
         },
         'An error occurred while sending an email to a user'
@@ -618,7 +619,7 @@ const _mailAll = function(toMail, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _mail = function(recipient, activities, callback) {
+const _mail = function (recipient, activities, callback) {
   // Given that we support weekly deliveries, there is a possibility that there are 2 activities
   // present in the activity stream that could aggregate
   const aggregatedActivities = _aggregate(recipient.id, activities);
@@ -629,7 +630,7 @@ const _mail = function(recipient, activities, callback) {
   const ctx = new Context(tenant, recipient);
   if (!tenant.active) {
     return callback(
-      new Error(util.format('Tried to email a user in a disabled tenancy %s', tenant.alias))
+      new Error(format('Tried to email a user in a disabled tenancy %s', tenant.alias))
     );
   }
 
@@ -637,27 +638,23 @@ const _mail = function(recipient, activities, callback) {
     ctx,
     aggregatedActivities,
     ActivityConstants.transformerTypes.ACTIVITYSTREAMS,
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       const baseUrl = TenantsUtil.getBaseUrl(tenant);
       let invitationUrl = null;
       if (AuthzUtil.isEmail(recipient.id)) {
-        const invitationTokenParam = encodeURIComponent(recipient.token);
-        const invitationEmailParam = encodeURIComponent(recipient.email);
-        const signupRedirectUrl = util.format(
+        const invitationTokenParameter = encodeURIComponent(recipient.token);
+        const invitationEmailParameter = encodeURIComponent(recipient.email);
+        const signupRedirectUrl = format(
           '/?invitationToken=%s&invitationEmail=%s',
-          invitationTokenParam,
-          invitationEmailParam
+          invitationTokenParameter,
+          invitationEmailParameter
         );
 
-        invitationUrl = util.format(
-          '%s/signup?url=%s',
-          baseUrl,
-          encodeURIComponent(signupRedirectUrl)
-        );
+        invitationUrl = format('%s/signup?url=%s', baseUrl, encodeURIComponent(signupRedirectUrl));
       }
 
       // Transform the activities in a simple model that the templates can use to generate the email
@@ -675,9 +672,9 @@ const _mail = function(recipient, activities, callback) {
       // Generate a unique fingerprint for this mail so we don't accidentally send it out multiple times
       // We cannot use the activityId as each activity gets a new ID when routed and/or aggregated
       // See https://github.com/oaeproject/Hilary/pull/759 for more information
-      let emailHash = util.format('%s#', recipient.id);
-      _.each(aggregatedActivities, activity => {
-        emailHash += util.format(
+      let emailHash = format('%s#', recipient.id);
+      _.each(aggregatedActivities, (activity) => {
+        emailHash += format(
           '%s:%s#',
           activity[ActivityConstants.properties.OAE_ACTIVITY_TYPE],
           activity.published
@@ -715,13 +712,13 @@ const _mail = function(recipient, activities, callback) {
  * @return {Activity[]}                     The aggregated activities
  * @private
  */
-const _aggregate = function(userId, activities) {
+const _aggregate = function (userId, activities) {
   // Unroll the `activities` so it does not contain any aggregates
   const unrolledActivities = _unrollActivities(activities);
 
   // Convert the set of unrolled activities into a set of "routed activities"
   // so we can generate the aggregates for it
-  const routedActivities = _.map(unrolledActivities, activity => {
+  const routedActivities = _.map(unrolledActivities, (activity) => {
     return {
       route: userId,
       activity
@@ -735,9 +732,9 @@ const _aggregate = function(userId, activities) {
   const aggregatedActivities = [];
 
   // Pass 1: Select all the multi-aggregates and push them into the aggregated activities set
-  _.each(aggregates, aggregate => {
+  _.each(aggregates, (aggregate) => {
     if (aggregate.activityIds.length > 1) {
-      _.each(aggregate.activityIds, aggregatedActivityId => {
+      _.each(aggregate.activityIds, (aggregatedActivityId) => {
         aggregatedActivityIds.push(aggregatedActivityId);
       });
 
@@ -746,7 +743,7 @@ const _aggregate = function(userId, activities) {
   });
 
   // Pass 2: Select all the single-aggregates, filter out those that are consumed in a multi-aggregate and push the remainder in the aggregated activities set
-  _.each(aggregates, aggregate => {
+  _.each(aggregates, (aggregate) => {
     if (
       aggregate.activityIds.length === 1 &&
       !_.contains(aggregatedActivityIds, aggregate.activityIds[0])
@@ -769,7 +766,7 @@ const _aggregate = function(userId, activities) {
  *
  * @param  {Function}   handler     The handler to invoke when all activity delivery events have been processed
  */
-const whenEmailsScheduled = function(handler) {
+const whenEmailsScheduled = function (handler) {
   scheduledEmailsCounter.whenZero(handler);
 };
 
@@ -780,7 +777,7 @@ const whenEmailsScheduled = function(handler) {
  * @return {Activity}                       The activity object
  * @api private
  */
-const _createActivityFromAggregate = function(aggregate) {
+const _createActivityFromAggregate = function (aggregate) {
   const actor = ActivityAggregator.createActivityEntity(_.values(aggregate.actors));
   const object = ActivityAggregator.createActivityEntity(_.values(aggregate.objects));
   const target = ActivityAggregator.createActivityEntity(_.values(aggregate.targets));
@@ -804,9 +801,9 @@ const _createActivityFromAggregate = function(aggregate) {
  * @return {Activity[]}                             The expanded activities that do not contain aggregates
  * @api private
  */
-const _unrollActivities = function(aggregatedActivities) {
+const _unrollActivities = function (aggregatedActivities) {
   const activities = [];
-  _.each(aggregatedActivities, activity => {
+  _.each(aggregatedActivities, (activity) => {
     const actorEntities = _getEntities(activity.actor);
     const objectEntities = _getEntities(activity.object);
     const targetEntities = _getEntities(activity.target);
@@ -852,7 +849,7 @@ const _unrollActivities = function(aggregatedActivities) {
  * @return {ActivityEntity[]}               An array of `ActivityEntity` objects
  * @api private
  */
-const _getEntities = function(entity) {
+const _getEntities = function (entity) {
   if (!entity) {
     return [];
   }
@@ -876,7 +873,7 @@ const _getEntities = function(entity) {
  * @param  {Resource[]}     callback.recipients     The recipients profiles derived from the user ids and emails
  * @api private
  */
-const _getEmailRecipientResources = function(emailRecipientIds, callback) {
+const _getEmailRecipientResources = function (emailRecipientIds, callback) {
   const recipientIdsPartitioned = _.partition(emailRecipientIds, AuthzUtil.isUserId);
   const userIds = _.first(recipientIdsPartitioned);
   const emails = _.last(recipientIdsPartitioned);
@@ -886,14 +883,14 @@ const _getEmailRecipientResources = function(emailRecipientIds, callback) {
     !_.isEmpty(emails),
     AuthzInvitationsDAO.getTokensByEmails,
     emails,
-    (err, tokensByEmail) => {
-      if (err) {
-        return callback(err);
+    (error, tokensByEmail) => {
+      if (error) {
+        return callback(error);
       }
 
       // Derive a resource profile for the email, where the tenant is the tenant whose configured
       // email domain matches the email address
-      const emailResources = _.map(emails, email => {
+      const emailResources = _.map(emails, (email) => {
         return {
           id: email,
           tenant: TenantsAPI.getTenantByEmail(email),
@@ -909,18 +906,12 @@ const _getEmailRecipientResources = function(emailRecipientIds, callback) {
         PrincipalsDAO.getPrincipals,
         userIds,
         ['principalId', 'tenantAlias', 'deleted', 'email', 'emailPreference'],
-        (err, usersById) => {
-          if (err) {
-            return callback(err);
+        (error, usersById) => {
+          if (error) {
+            return callback(error);
           }
 
-          return callback(
-            null,
-            _.chain(usersById)
-              .values()
-              .union(emailResources)
-              .value()
-          );
+          return callback(null, _.chain(usersById).values().union(emailResources).value());
         }
       );
     }
@@ -934,7 +925,7 @@ const _getEmailRecipientResources = function(emailRecipientIds, callback) {
  * @param  {Boolean}                Whether or not the route id is a potential email recipient (i.e., an email address or a user id)
  * @api private
  */
-const _isEmailRecipientId = function(routeId) {
+const _isEmailRecipientId = function (routeId) {
   return AuthzUtil.isUserId(routeId) || AuthzUtil.isEmail(routeId);
 };
 
@@ -945,7 +936,7 @@ const _isEmailRecipientId = function(routeId) {
  * @return {String}                 The ID of the email bucket that this user should go in
  * @api private
  */
-const _createEmailBucketIdForRecipient = function(recipient) {
+const _createEmailBucketIdForRecipient = function (recipient) {
   const timezone = TenantConfig.getValue(recipient.tenant.alias, 'timezone', 'timezone');
   const bucketNumber = _getBucketNumber(recipient.id);
 
@@ -1002,7 +993,7 @@ const _createEmailBucketIdForRecipient = function(recipient) {
  * @return {Number}                         The timestamp for the oldest activity that should be included in the current collection cycle
  * @api private
  */
-const _getCollectionCycleStart = function(emailPreference) {
+const _getCollectionCycleStart = function (emailPreference) {
   if (emailPreference === PrincipalsConstants.emailPreferences.IMMEDIATE) {
     return Date.now() - ONE_HOUR_IN_MS;
   }
@@ -1026,23 +1017,17 @@ const _getCollectionCycleStart = function(emailPreference) {
  * @return {String}                         The ID of the email bucket that this user should go in
  * @api private
  */
-const _createEmailBucketId = function(bucketNumber, emailPreference, dayOfWeek, hour) {
+const _createEmailBucketId = function (bucketNumber, emailPreference, dayOfWeek, hour) {
   if (emailPreference === PrincipalsConstants.emailPreferences.IMMEDIATE) {
-    return util.format('oae-activity-email:%s:%s', bucketNumber, emailPreference);
+    return format('oae-activity-email:%s:%s', bucketNumber, emailPreference);
   }
 
   if (emailPreference === PrincipalsConstants.emailPreferences.DAILY) {
-    return util.format('oae-activity-email:%s:%s:%d', bucketNumber, emailPreference, hour);
+    return format('oae-activity-email:%s:%s:%d', bucketNumber, emailPreference, hour);
   }
 
   if (emailPreference === PrincipalsConstants.emailPreferences.WEEKLY) {
-    return util.format(
-      'oae-activity-email:%s:%s:%d:%d',
-      bucketNumber,
-      emailPreference,
-      dayOfWeek,
-      hour
-    );
+    return format('oae-activity-email:%s:%s:%d:%d', bucketNumber, emailPreference, dayOfWeek, hour);
   }
 };
 
@@ -1053,7 +1038,7 @@ const _createEmailBucketId = function(bucketNumber, emailPreference, dayOfWeek, 
  * @return {String}             The email bucket number
  * @api private
  */
-const _getBucketNumber = function(userId) {
+const _getBucketNumber = function (userId) {
   const numberOfBuckets = ActivitySystemConfig.getConfig().numberOfProcessingBuckets;
   return ActivityBuckets.getBucketNumber(userId, numberOfBuckets);
 };

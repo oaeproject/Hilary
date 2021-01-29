@@ -13,24 +13,24 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars, import/namespace */
+/* eslint-disable no-unused-vars */
 
 import * as ActivityAPI from 'oae-activity';
-import * as ActivityPush from './internal/push';
+import * as ActivityPush from './internal/push.js';
 
 // Register some of the default streams
-import * as Activity from './activity';
+import * as Activity from './activity.js';
 
 // Bind the notification event listeners
-import * as Notifications from './internal/notifications';
+import * as Notifications from './internal/notifications.js';
 
 // Bind the email event listeners
-import * as Email from './internal/email';
+import * as Email from './internal/email.js';
 
 export function init(config, callback) {
-  ActivityAPI.refreshConfiguration(config.activity, err => {
-    if (err) {
-      return callback(err);
+  ActivityAPI.refreshConfiguration(config.activity, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Configure the push notifications

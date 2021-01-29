@@ -225,9 +225,11 @@ const setUpTenants = function(callback) {
           assert.notExists(err);
           global.oaeTests.tenants.gt = tenant;
 
-          // Create a tenant with a hostname set to 'localhost:2001' (ie: the host/port
-          // combination where the server is running on). This allows tests to use
-          // the cross tenant sign authentication
+          /**
+           * Create a tenant with a hostname set to 'localhost:2001' (ie: the host/port
+           * combination where the server is running on). This allows tests to use
+           * the cross tenant sign authentication
+           */
           TenantsTestUtil.createTenantAndWait(
             globalAdminRestContext,
             'localhost',
@@ -1309,8 +1311,10 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
             _bindRequestLogger();
           });
 
-          // Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
-          // This will always be fired after OAE.init has successfully finished.
+          /**
+           * Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
+           * This will always be fired after OAE.init has successfully finished.
+           */
           MQ.emitter.on('ready', err => {
             if (err) return callback(new Error(err.msg));
 

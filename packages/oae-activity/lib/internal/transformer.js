@@ -21,7 +21,7 @@ import { logger } from 'oae-logger';
 import * as TenantsAPI from 'oae-tenants';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityRegistry from './registry';
+import * as ActivityRegistry from './registry.js';
 
 const log = logger('oae-activity-push');
 
@@ -65,28 +65,28 @@ const transformActivities = function(ctx, activities, transformerType, callback)
   }
 
   const objectTypes = _.keys(activityEntitiesByObjectType);
-  let errOccurred = null;
-  let numProcessed = 0;
+  let errorOccurred = null;
+  let numberProcessed = 0;
 
   /*!
    * Handles the callback for when a set of entities for an object type have been transformed.
    */
-  const _handleTransform = function(err, objectType, transformedActivityEntities) {
-    if (errOccurred) {
+  const _handleTransform = function(error, objectType, transformedActivityEntities) {
+    if (errorOccurred) {
       // Do nothing because we've already err'd
       return;
     }
 
-    if (err) {
-      errOccurred = err;
-      return callback(err);
+    if (error) {
+      errorOccurred = error;
+      return callback(error);
     }
 
     // Record the transformed entities
     transformedActivityEntitiesByObjectType[objectType] = transformedActivityEntities;
 
-    numProcessed++;
-    if (numProcessed === objectTypes.length) {
+    numberProcessed++;
+    if (numberProcessed === objectTypes.length) {
       _transformActivities(transformedActivityEntitiesByObjectType, activities);
       return callback();
     }
@@ -99,9 +99,9 @@ const transformActivities = function(ctx, activities, transformerType, callback)
       transformer(
         ctx,
         activityEntitiesByObjectType[objectType],
-        (err, transformedActivityEntities) => {
-          if (err) {
-            return callback(err);
+        (error, transformedActivityEntities) => {
+          if (error) {
+            return callback(error);
           }
 
           // Ensure all transformed entities have at least the objectType and the oae:id
@@ -130,7 +130,7 @@ const transformActivities = function(ctx, activities, transformerType, callback)
             });
           });
 
-          return _handleTransform(err, objectType, transformedActivityEntities);
+          return _handleTransform(error, objectType, transformedActivityEntities);
         }
       );
     });

@@ -36,9 +36,9 @@ let tenantServer = null;
 let tenantRouter = null;
 let globalAdminRouter = null;
 
-/// ////////////////////////
-// Setting up the server //
-/// ////////////////////////
+/**
+ * Setting up the server
+ */
 
 /**
  * This function will initialize OAE. First of all, the global  and run the global admin server, as well as execute the application lifecycle of all the

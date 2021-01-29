@@ -22,10 +22,10 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityUtil from 'oae-activity/lib/util';
-import ActivityEmitter from './emitter';
+import ActivityEmitter from './emitter.js';
 
-import * as ActivityDAO from './dao';
-import * as ActivityAggregator from './aggregator';
+import * as ActivityDAO from './dao.js';
+import * as ActivityAggregator from './aggregator.js';
 
 const log = logger('oae-activity-notifications');
 
@@ -37,7 +37,7 @@ const notificationsCounter = new Counter();
  * When a batch of activities are delivered, we check if there are any notifications in there and
  * increment all the target user notification counters.
  */
-ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivityInfos => {
+ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivityInfos) => {
   // Figure out by how much to increment user notifications, if at all
   const userIdsIncrBy = {};
   _.each(deliveredActivityInfos, (streams, resourceId) => {
@@ -53,10 +53,10 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
   notificationsCounter.incr();
 
   // All users receiving notifications will have their "notifications unread" counter incremented
-  incrementNotificationsUnread(userIdsIncrBy, err => {
-    if (err) {
+  incrementNotificationsUnread(userIdsIncrBy, (error) => {
+    if (error) {
       log().error(
-        { err: new Error(err.msg), userIdsIncrBy },
+        { err: new Error(error.msg), userIdsIncrBy },
         'Could not mark notifications as unread'
       );
     }
@@ -74,7 +74,7 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Number}     callback.lastReadTime   The timestamp (millis since epoch) that was persisted as the time at which the notifications were last read
  */
-const markNotificationsRead = function(user, callback) {
+const markNotificationsRead = function (user, callback) {
   // In addition to the notification count, the lastReadTime will help determine which of the notifications are
   // new and which are not.
   const lastReadTime = Date.now();
@@ -84,15 +84,15 @@ const markNotificationsRead = function(user, callback) {
   };
 
   // Clear all the notifications unread to 0
-  ActivityDAO.clearNotificationsUnreadCount(user.id, err => {
-    if (err) {
-      return callback(err);
+  ActivityDAO.clearNotificationsUnreadCount(user.id, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Update the notifications values in the basic profile
-    PrincipalsDAO.updatePrincipal(user.id, profileFields, err => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.updatePrincipal(user.id, profileFields, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // We can return here as resetting the activity aggregation and removing the
@@ -112,9 +112,9 @@ const markNotificationsRead = function(user, callback) {
       // marks his notifications as read between the activity ocurring and the time the email would've gone out
       if (user.emailPreference === PrincipalsConstants.emailPreferences.IMMEDIATE) {
         const emailActivityStreamId = ActivityUtil.createActivityStreamId(user.id, 'email');
-        ActivityDAO.clearActivityStream(emailActivityStreamId, err => {
-          if (err) {
-            log().warn({ err }, 'Could not clear the email activity stream');
+        ActivityDAO.clearActivityStream(emailActivityStreamId, (error) => {
+          if (error) {
+            log().warn({ err: error }, 'Could not clear the email activity stream');
           }
         });
       }
@@ -129,7 +129,7 @@ const markNotificationsRead = function(user, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const incrementNotificationsUnread = function(userIdIncrs, callback) {
+const incrementNotificationsUnread = function (userIdIncrs, callback) {
   /*!
    * First update the cached new notification counts, then update Cassandra. Some very clear drawbacks here but
    * are considered acceptable:
@@ -139,9 +139,9 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
    *  2.  If Redis is completely flushed or crashes with no disk storage, kiss all your counts good-bye. Will not
    *      become accurate again for a user until they "mark as read".
    */
-  ActivityDAO.incrementNotificationsUnreadCounts(userIdIncrs, (err, newValues) => {
-    if (err) {
-      return callback(err);
+  ActivityDAO.incrementNotificationsUnreadCounts(userIdIncrs, (error, newValues) => {
+    if (error) {
+      return callback(error);
     }
 
     let todo = _.keys(newValues).length;
@@ -156,12 +156,12 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
      *
      * @param  {Object}     err     An error that occurred, if any.
      */
-    const _monitorUpdatePrincipal = function(err) {
+    const _monitorUpdatePrincipal = function (error) {
       if (complete) {
         // Nothing to do.
-      } else if (err) {
+      } else if (error) {
         complete = true;
-        return callback(err);
+        return callback(error);
       } else {
         todo--;
         if (todo === 0) {
@@ -189,7 +189,7 @@ const incrementNotificationsUnread = function(userIdIncrs, callback) {
  *
  * @param  {Function}   handler     The function to invoke when there are 0 notifications being processed
  */
-const whenNotificationsEmpty = function(handler) {
+const whenNotificationsEmpty = function (handler) {
   notificationsCounter.whenZero(handler);
 };
 

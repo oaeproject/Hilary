@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, beforeEach, it } from 'mocha';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 import * as EmailTestsUtil from 'oae-email/lib/test/util';
@@ -41,7 +42,7 @@ describe('Notifications', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
@@ -51,12 +52,12 @@ describe('Notifications', () => {
     /**
      * Test that verifies anonymous cannot get a notification stream
      */
-    it('verify anonymous cannot get a notification stream', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, err => {
-        assert.notExists(err);
-        RestAPI.Activity.getNotificationStream(anonymousCamRestContext, null, (err, response) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+    it('verify anonymous cannot get a notification stream', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error) => {
+        assert.notExists(error);
+        RestAPI.Activity.getNotificationStream(anonymousCamRestContext, null, (error, response) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
           assert.ok(!response);
           return callback();
         });
@@ -66,9 +67,9 @@ describe('Notifications', () => {
     /**
      * Test that verifies notifications are not sent to the actor of an activity.
      */
-    it('verify a notification is never sent to the actor of an activity', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify a notification is never sent to the actor of an activity', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, createdUsers) => {
+        assert.notExists(error);
         const { 0: mrvisser, 1: simong } = createdUsers;
 
         // Create content with simong as a user
@@ -83,15 +84,15 @@ describe('Notifications', () => {
             viewers: [simong.user.id],
             folders: []
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Sanity check that the content is in simong's notification stream
             ActivityTestsUtil.collectAndGetNotificationStream(
               simong.restContext,
               null,
-              (err, notificationStream) => {
-                assert.notExists(err);
+              (error, notificationStream) => {
+                assert.notExists(error);
                 assert.strictEqual(notificationStream.items.length, 1);
                 assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
                 assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
@@ -100,8 +101,8 @@ describe('Notifications', () => {
                 ActivityTestsUtil.collectAndGetNotificationStream(
                   mrvisser.restContext,
                   null,
-                  (err, notificationStream) => {
-                    assert.notExists(err);
+                  (error, notificationStream) => {
+                    assert.notExists(error);
                     assert.strictEqual(notificationStream.items.length, 0);
                     return callback();
                   }
@@ -116,9 +117,9 @@ describe('Notifications', () => {
     /**
      * Test that verifies a notification is sent to users when a content item is created with them as a member
      */
-    it('verify a notification is sent when creating content with a user member', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify a notification is sent when creating content with a user member', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, createdUsers) => {
+        assert.notExists(error);
         const { 0: mrvisser, 1: simong } = createdUsers;
 
         // Create content with simong as a user and verify it winds up in the notification stream
@@ -133,14 +134,14 @@ describe('Notifications', () => {
             viewers: [simong.user.id],
             folders: []
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             ActivityTestsUtil.collectAndGetNotificationStream(
               simong.restContext,
               null,
-              (err, notificationStream) => {
-                assert.notExists(err);
+              (error, notificationStream) => {
+                assert.notExists(error);
                 assert.strictEqual(notificationStream.items.length, 1);
                 assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
                 assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
@@ -155,14 +156,14 @@ describe('Notifications', () => {
     /**
      * Test that verifies that receiving non-aggregating notifications will appropriately update the unreadNotificationsCount
      */
-    it('verify unread notifications count', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify unread notifications count', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, createdUsers) => {
+        assert.notExists(error);
         const { 0: mrvisser, 1: simong } = createdUsers;
 
         // Ensure simong's notifications unread count starts at 0
-        RestAPI.User.getMe(simong.restContext, (err, me) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(simong.restContext, (error, me) => {
+          assert.notExists(error);
           assert.ok(!me.notificationsUnread);
 
           // Mrvisser shares a content item with simong, it should generate a notification
@@ -177,16 +178,16 @@ describe('Notifications', () => {
               viewers: [simong.user.id],
               folders: []
             },
-            (err /* , link0 */) => {
-              assert.notExists(err);
+            (error /* , link0 */) => {
+              assert.notExists(error);
               ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (
-                err /* , notificationStream */
+                error /* , notificationStream */
               ) => {
-                assert.notExists(err);
+                assert.notExists(error);
 
                 // Ensure simong's notifications unread count is now 1
-                RestAPI.User.getMe(simong.restContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(simong.restContext, (error, me) => {
+                  assert.notExists(error);
                   assert.strictEqual(me.notificationsUnread, 1);
 
                   // Mrvisser shares another item with simong
@@ -201,24 +202,24 @@ describe('Notifications', () => {
                       viewers: [simong.user.id],
                       folders: []
                     },
-                    (err /* , link1 */) => {
-                      assert.notExists(err);
+                    (error /* , link1 */) => {
+                      assert.notExists(error);
                       ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (
-                        err /* , notificationStream */
+                        error /* , notificationStream */
                       ) => {
-                        assert.notExists(err);
+                        assert.notExists(error);
 
                         // Since it aggregates with the previous, simong's notifications count should still be 1
-                        RestAPI.User.getMe(simong.restContext, (err, me) => {
-                          assert.notExists(err);
+                        RestAPI.User.getMe(simong.restContext, (error, me) => {
+                          assert.notExists(error);
                           assert.strictEqual(me.notificationsUnread, 1);
 
                           // Simon resets his notifications by reading them. This resets both the count and aggregation
-                          RestAPI.Activity.markNotificationsRead(simong.restContext, err => {
-                            assert.notExists(err);
+                          RestAPI.Activity.markNotificationsRead(simong.restContext, (error_) => {
+                            assert.notExists(error_);
                             // Ensure the notification count resets to 0
-                            RestAPI.User.getMe(simong.restContext, (err, me) => {
-                              assert.notExists(err);
+                            RestAPI.User.getMe(simong.restContext, (error, me) => {
+                              assert.notExists(error);
                               assert.strictEqual(me.notificationsUnread, 0);
 
                               /*!
@@ -244,8 +245,8 @@ describe('Notifications', () => {
                                   viewers: [simong.user.id],
                                   folders: []
                                 },
-                                (err, link2) => {
-                                  assert.notExists(err);
+                                (error, link2) => {
+                                  assert.notExists(error);
                                   RestAPI.Content.createLink(
                                     mrvisser.restContext,
                                     {
@@ -257,13 +258,13 @@ describe('Notifications', () => {
                                       viewers: [simong.user.id],
                                       folders: []
                                     },
-                                    (err, link3) => {
-                                      assert.notExists(err);
+                                    (error, link3) => {
+                                      assert.notExists(error);
                                       ActivityTestsUtil.collectAndGetNotificationStream(
                                         simong.restContext,
                                         null,
-                                        (err, notificationStream) => {
-                                          assert.notExists(err);
+                                        (error, notificationStream) => {
+                                          assert.notExists(error);
 
                                           // Sanity check that these items are a single aggregate activity
                                           assert.strictEqual(notificationStream.items.length, 2);
@@ -280,8 +281,8 @@ describe('Notifications', () => {
                                           assert.ok(contains(link3.id, linkIdsInFeed));
 
                                           // Ensure that simon's notification count increments by only 1
-                                          RestAPI.User.getMe(simong.restContext, (err, me) => {
-                                            assert.notExists(err);
+                                          RestAPI.User.getMe(simong.restContext, (error, me) => {
+                                            assert.notExists(error);
                                             assert.strictEqual(me.notificationsUnread, 1);
 
                                             return callback();
@@ -311,10 +312,10 @@ describe('Notifications', () => {
     /**
      * Test that verifies anonymous cannot mark a notification stream as read
      */
-    it('verify anonymous cannot mark a notification stream as read', callback => {
-      RestAPI.Activity.markNotificationsRead(anonymousCamRestContext, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 401);
+    it('verify anonymous cannot mark a notification stream as read', (callback) => {
+      RestAPI.Activity.markNotificationsRead(anonymousCamRestContext, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 401);
         return callback();
       });
     });
@@ -322,13 +323,13 @@ describe('Notifications', () => {
     /**
      * Test that verifies marking notifications as read and counts work.
      */
-    it('verify toggling of notifications read', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 2, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify toggling of notifications read', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, createdUsers) => {
+        assert.notExists(error);
         const { 0: mrvisser, 1: simong } = createdUsers;
 
-        RestAPI.User.getMe(simong.restContext, (err, me) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(simong.restContext, (error, me) => {
+          assert.notExists(error);
           assert.ok(!me.notificationsUnread);
           assert.ok(!me.notificationsLastRead);
 
@@ -344,37 +345,37 @@ describe('Notifications', () => {
               viewers: [simong.user.id],
               folders: []
             },
-            (err, firstContentObj) => {
-              assert.notExists(err);
+            (error, firstContentObject) => {
+              assert.notExists(error);
 
               // Ensure the notification gets delivered
               ActivityTestsUtil.collectAndGetNotificationStream(
                 simong.restContext,
                 null,
-                (err, notificationStream) => {
-                  assert.notExists(err);
+                (error, notificationStream) => {
+                  assert.notExists(error);
                   assert.strictEqual(notificationStream.items.length, 1);
                   assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
                   assert.strictEqual(
                     notificationStream.items[0].object['oae:id'],
-                    firstContentObj.id
+                    firstContentObject.id
                   );
 
                   // Verify the notificationsUnread status
-                  RestAPI.User.getMe(simong.restContext, (err, me) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(simong.restContext, (error, me) => {
+                    assert.notExists(error);
 
                     // We now have unread notifications, but still no "lastRead" status
                     assert.strictEqual(me.notificationsUnread, 1);
                     assert.strictEqual(me.notificationsLastRead, undefined);
 
-                    ActivityTestsUtil.markNotificationsAsRead(simong.restContext, result => {
+                    ActivityTestsUtil.markNotificationsAsRead(simong.restContext, (result) => {
                       const { lastReadTime } = result;
                       assert.strictEqual(lastReadTime, OaeUtil.getNumberParam(lastReadTime));
 
                       // Verify the notificationsLastRead status
-                      RestAPI.User.getMe(simong.restContext, (err, me) => {
-                        assert.notExists(err);
+                      RestAPI.User.getMe(simong.restContext, (error, me) => {
+                        assert.notExists(error);
 
                         // We now have no unread notifications, and a lastRead status
                         assert.strictEqual(me.notificationsUnread, 0);
@@ -392,8 +393,8 @@ describe('Notifications', () => {
                             viewers: [simong.user.id],
                             folders: []
                           },
-                          (err, secondContentObj) => {
-                            assert.notExists(err);
+                          (error, secondContentObject) => {
+                            assert.notExists(error);
 
                             RestAPI.Content.createLink(
                               mrvisser.restContext,
@@ -406,22 +407,22 @@ describe('Notifications', () => {
                                 viewers: [simong.user.id],
                                 folders: []
                               },
-                              (err, thirdContentObj) => {
-                                assert.notExists(err);
+                              (error, thirdContentObject) => {
+                                assert.notExists(error);
 
                                 // Ensure the notifications get delivered but don't aggregate with the older "marked as read" item
                                 ActivityTestsUtil.collectAndGetNotificationStream(
                                   simong.restContext,
                                   null,
-                                  (err, notificationStream) => {
-                                    assert.notExists(err);
+                                  (error, notificationStream) => {
+                                    assert.notExists(error);
                                     assert.strictEqual(notificationStream.items.length, 2);
                                     ActivityTestsUtil.assertActivity(
                                       notificationStream.items[0],
                                       'content-create',
                                       'create',
                                       mrvisser.user.id,
-                                      [secondContentObj.id, thirdContentObj.id],
+                                      [secondContentObject.id, thirdContentObject.id],
                                       simong.user.id
                                     );
                                     ActivityTestsUtil.assertActivity(
@@ -429,13 +430,13 @@ describe('Notifications', () => {
                                       'content-create',
                                       'create',
                                       mrvisser.user.id,
-                                      firstContentObj.id,
+                                      firstContentObject.id,
                                       simong.user.id
                                     );
 
                                     // Verify the notificationsUnread is incremented and notificationsLastRead status
-                                    RestAPI.User.getMe(simong.restContext, (err, me) => {
-                                      assert.notExists(err);
+                                    RestAPI.User.getMe(simong.restContext, (error, me) => {
+                                      assert.notExists(error);
 
                                       // We now have unread notifications, and a lastRead status
                                       assert.strictEqual(me.notificationsUnread, 1);
@@ -457,8 +458,8 @@ describe('Notifications', () => {
                                               viewers: [simong.user.id],
                                               folders: []
                                             },
-                                            (err, fourthContentObj) => {
-                                              assert.notExists(err);
+                                            (error, fourthContentObject) => {
+                                              assert.notExists(error);
 
                                               RestAPI.Discussions.createDiscussion(
                                                 mrvisser.restContext,
@@ -467,15 +468,15 @@ describe('Notifications', () => {
                                                 'private',
                                                 [],
                                                 [simong.user.id],
-                                                (err, discussion) => {
-                                                  assert.notExists(err);
+                                                (error, discussion) => {
+                                                  assert.notExists(error);
 
                                                   // Ensure the notifications get delivered but don't aggregate with the older "marked as read" item
                                                   ActivityTestsUtil.collectAndGetNotificationStream(
                                                     simong.restContext,
                                                     null,
-                                                    (err, notificationStream) => {
-                                                      assert.notExists(err);
+                                                    (error, notificationStream) => {
+                                                      assert.notExists(error);
                                                       assert.strictEqual(
                                                         notificationStream.items.length,
                                                         4
@@ -492,15 +493,15 @@ describe('Notifications', () => {
                                                         'content-create',
                                                         'create',
                                                         mrvisser.user.id,
-                                                        fourthContentObj.id,
+                                                        fourthContentObject.id,
                                                         simong.user.id
                                                       );
 
                                                       // Verify the unread notifications has incremented
                                                       RestAPI.User.getMe(
                                                         simong.restContext,
-                                                        (err, me) => {
-                                                          assert.notExists(err);
+                                                        (error, me) => {
+                                                          assert.notExists(error);
 
                                                           // We now have 2 unread notifications
                                                           assert.strictEqual(
@@ -548,9 +549,9 @@ describe('Notifications', () => {
      * Test that verifies that when the activity router gets stuck and keeps reprocessing
      * the same activity feed, we don't generate emails for each one
      */
-    it('verify mails for the same activity and the same user are only sent once', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 3, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify mails for the same activity and the same user are only sent once', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 3, (error, createdUsers) => {
+        assert.notExists(error);
         const { 0: simong, 1: mrvisser, 2: nico } = createdUsers;
 
         // Give mrvisser and nico an email address
@@ -558,14 +559,14 @@ describe('Notifications', () => {
           mrvisser.restContext,
           mrvisser.user.id,
           { emailPreference: 'immediate' },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
             RestAPI.User.updateUser(
               nico.restContext,
               nico.user.id,
               { emailPreference: 'immediate' },
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
 
                 // Create a piece of content and make nico and mrvisser managers. They should each get an e-mail
                 RestAPI.Content.createLink(
@@ -579,11 +580,11 @@ describe('Notifications', () => {
                     viewers: [],
                     folders: []
                   },
-                  (err, link) => {
-                    assert.notExists(err);
+                  (error, link) => {
+                    assert.notExists(error);
 
                     // Assert that both nico and mrvisser received an e-mail, but noone else
-                    EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                    EmailTestsUtil.collectAndFetchAllEmails((messages) => {
                       assert.strictEqual(messages.length, 2);
                       assert.ok(
                         contains(messages[0].to[0].address, [mrvisser.user.email, nico.user.email])
@@ -609,15 +610,15 @@ describe('Notifications', () => {
                         actorResource,
                         objectResource
                       );
-                      ActivityRouter.routeActivity(seed, err => {
-                        assert.notExists(err);
-                        ActivityRouter.routeActivity(seed, err => {
-                          assert.notExists(err);
-                          ActivityRouter.routeActivity(seed, err => {
-                            assert.notExists(err);
+                      ActivityRouter.routeActivity(seed, (error_) => {
+                        assert.notExists(error_);
+                        ActivityRouter.routeActivity(seed, (error_) => {
+                          assert.notExists(error_);
+                          ActivityRouter.routeActivity(seed, (error_) => {
+                            assert.notExists(error_);
 
                             // Assert that only 1 mail got sent to both nico and mrvisser
-                            EmailTestsUtil.collectAndFetchAllEmails(messages => {
+                            EmailTestsUtil.collectAndFetchAllEmails((messages) => {
                               assert.strictEqual(messages.length, 2);
                               assert.ok(
                                 contains(messages[0].to[0].address, [

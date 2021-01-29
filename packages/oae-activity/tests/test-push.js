@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { describe, before, it } from 'mocha';
 import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
@@ -49,7 +50,7 @@ describe('Activity push', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
@@ -58,15 +59,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that messages that are sent by a client need to have an ID
      */
-    it('verify missing id results in an immediate disconnect', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify missing id results in an immediate disconnect', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, meData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, meData) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -75,7 +76,7 @@ describe('Activity push', () => {
               signature: meData.signature
             }
           };
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             const socket = client.getRawSocket();
 
             let receivedMessages = 0;
@@ -87,7 +88,7 @@ describe('Activity push', () => {
               callback();
             });
 
-            client.on('message', message => {
+            client.on('message', (message) => {
               // Ensure we only get one message
               assert.strictEqual(receivedMessages, 0);
               assert.strictEqual(message.error.code, 400);
@@ -104,15 +105,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that non JSON messages get rejected
      */
-    it('verify a malformed message results in an immediate disconnect', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify a malformed message results in an immediate disconnect', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, meData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, meData) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -121,7 +122,7 @@ describe('Activity push', () => {
               signature: meData.signature
             }
           };
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             const socket = client.getRawSocket();
 
             let receivedMessages = 0;
@@ -133,7 +134,7 @@ describe('Activity push', () => {
               callback();
             });
 
-            client.on('message', message => {
+            client.on('message', (message) => {
               // Ensure we only get one message
               assert.strictEqual(receivedMessages, 0);
               assert.strictEqual(message.error.code, 400);
@@ -150,8 +151,8 @@ describe('Activity push', () => {
     /**
      * Test that verifies the sockets gets closed when the client does not provide their authentication credentials within a reasonable timeframe
      */
-    it('verify authentication timeout', callback => {
-      getPushClient(client => {
+    it('verify authentication timeout', (callback) => {
+      getPushClient((client) => {
         client.on('close', () => {
           return callback();
         });
@@ -163,11 +164,11 @@ describe('Activity push', () => {
     /**
      * Test that verifies that the very first frame that gets sent has to be an authentication frame
      */
-    it('verify no authentication frame results in a disconnect', callback => {
-      getPushClient(client => {
-        client.sendMessage('foo', {}, (err /* , msg */) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+    it('verify no authentication frame results in a disconnect', (callback) => {
+      getPushClient((client) => {
+        client.sendMessage('foo', {}, (error /* , msg */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
         });
 
         const timeoutID = setTimeout(() => {
@@ -184,15 +185,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that an invalid user id results in an error
      */
-    it('verify an invalid user id results in a error', callback => {
-      getPushClient(client => {
+    it('verify an invalid user id results in a error', (callback) => {
+      getPushClient((client) => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
         client.sendMessage('authentication', { userId: 'not-a-user-id', signature: {} }, (
-          err /* , data */
+          error /* , data */
         ) => {
-          assert.strictEqual(err.code, 400);
+          assert.strictEqual(error.code, 400);
           receivedResponse = true;
         });
 
@@ -206,13 +207,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that an invalid signature results in an error
      */
-    it('verify a missing signature results in a error', callback => {
-      getPushClient(client => {
+    it('verify a missing signature results in a error', (callback) => {
+      getPushClient((client) => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (err /* , data */) => {
-          assert.strictEqual(err.code, 400);
+        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (
+          error /* , data */
+        ) => {
+          assert.strictEqual(error.code, 400);
           receivedResponse = true;
         });
 
@@ -226,25 +229,25 @@ describe('Activity push', () => {
     /**
      * Test that verifies that clients can authenticate themselves on the socket
      */
-    it('verify authentication', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify authentication', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, meData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, meData) => {
+          assert.notExists(error);
 
-          getPushClient(client => {
+          getPushClient((client) => {
             /**
              * The first message should always be the authentication message
              * If not, the backend should close the socket.
              */
             client.authenticate(meData.id, meData.tenant.alias, meData.signature, (
-              err /* , data */
+              error /* , data */
             ) => {
-              assert.notExists(err);
+              assert.notExists(error);
 
               client.close(callback);
             });
@@ -258,15 +261,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies the subscription validation
      */
-    it('verify validation', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify validation', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -276,18 +279,18 @@ describe('Activity push', () => {
             }
           };
 
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             // Registering on an unknown feed should result in an error
             client.subscribe(johnDoe.user.id, 'unknown', { some: 'token' }, null, (
-              err /* , msg */
+              error /* , msg */
             ) => {
-              assert.strictEqual(err.code, 400);
+              assert.strictEqual(error.code, 400);
 
               // Specifying an unknown format should result in a validation error
               client.subscribe(johnDoe.user.id, 'activity', { some: 'token' }, 'unknown format', (
-                err /* , msg */
+                error /* , msg */
               ) => {
-                assert.strictEqual(err.code, 400);
+                assert.strictEqual(error.code, 400);
 
                 client.close(callback);
               });
@@ -300,15 +303,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies subscribing and authorization on activity streams
      */
-    it('verify subscribing and authorization on activity streams', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify subscribing and authorization on activity streams', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe, 1: janeDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -318,16 +321,16 @@ describe('Activity push', () => {
             }
           };
 
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             // johnDoe cannot subscribe on jane's feed
             client.subscribe(janeDoe.user.id, 'activity', johnDoeData.signature, null, (
-              err /* , msg */
+              error /* , msg */
             ) => {
-              assert.strictEqual(err.code, 401);
+              assert.strictEqual(error.code, 401);
 
               // He can register for his own feed without a token since he's authenticated on the socket
-              client.subscribe(johnDoe.user.id, 'activity', null, null, (err /* , msg */) => {
-                assert.notExists(err);
+              client.subscribe(johnDoe.user.id, 'activity', null, null, (error /* , msg */) => {
+                assert.notExists(error);
 
                 // He can register on a group feed
                 createGroup(
@@ -338,16 +341,16 @@ describe('Activity push', () => {
                   'yes',
                   [],
                   [],
-                  (err, group) => {
-                    assert.notExists(err);
+                  (error, group) => {
+                    assert.notExists(error);
 
-                    getGroup(asJohnDoe, group.id, (err, group) => {
-                      assert.notExists(err);
+                    getGroup(asJohnDoe, group.id, (error, group) => {
+                      assert.notExists(error);
 
                       client.subscribe(group.id, 'activity', group.signature, null, (
-                        err /* , msg */
+                        error /* , msg */
                       ) => {
-                        assert.notExists(err);
+                        assert.notExists(error);
 
                         client.close(callback);
                       });
@@ -364,15 +367,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies subscribing and authorization on notification streams
      */
-    it('verify subscribing and authorization on notification streams', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify subscribing and authorization on notification streams', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe, 1: janeDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -382,12 +385,12 @@ describe('Activity push', () => {
             }
           };
 
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             // johnDoe cannot subscribe on Jane's feed
             client.subscribe(janeDoe.user.id, 'notification', johnDoeData.signature, null, (
-              err /* , msg */
+              error /* , msg */
             ) => {
-              assert.strictEqual(err.code, 401);
+              assert.strictEqual(error.code, 401);
 
               // Groups don't have notification feeds
               createGroup(
@@ -398,22 +401,22 @@ describe('Activity push', () => {
                 'yes',
                 [],
                 [],
-                (err, group) => {
-                  assert.notExists(err);
+                (error, group) => {
+                  assert.notExists(error);
 
-                  getGroup(asJohnDoe, group.id, (err, group) => {
-                    assert.notExists(err);
+                  getGroup(asJohnDoe, group.id, (error, group) => {
+                    assert.notExists(error);
 
                     client.subscribe(group.id, 'notification', group.signature, null, (
-                      err /* , msg */
+                      error /* , msg */
                     ) => {
-                      assert.strictEqual(err.code, 400);
+                      assert.strictEqual(error.code, 400);
 
                       // He can register for his own feed without a token since he's authenticated on the socket
                       client.subscribe(johnDoe.user.id, 'notification', null, null, (
-                        err /* , msg */
+                        error /* , msg */
                       ) => {
-                        assert.notExists(err);
+                        assert.notExists(error);
 
                         client.close(callback);
                       });
@@ -430,15 +433,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that you only get activities that occur on the subscribed resources
      */
-    it('verify segregation', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify segregation', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           createLink(
             asJohnDoe,
@@ -451,11 +454,11 @@ describe('Activity push', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, yahooLink) => {
-              assert.notExists(err);
+            (error, yahooLink) => {
+              assert.notExists(error);
 
-              getContent(asJohnDoe, yahooLink.id, (err, yahooLink) => {
-                assert.notExists(err);
+              getContent(asJohnDoe, yahooLink.id, (error, yahooLink) => {
+                assert.notExists(error);
 
                 createLink(
                   asJohnDoe,
@@ -468,15 +471,15 @@ describe('Activity push', () => {
                     viewers: NO_VIEWERS,
                     folders: NO_FOLDERS
                   },
-                  (err, googleLink) => {
-                    assert.notExists(err);
+                  (error, googleLink) => {
+                    assert.notExists(error);
 
-                    getContent(asJohnDoe, googleLink.id, (err, googleLink) => {
-                      assert.notExists(err);
+                    getContent(asJohnDoe, googleLink.id, (error, googleLink) => {
+                      assert.notExists(error);
 
                       // Route and deliver activities
-                      collectAndGetActivityStream(asJohnDoe, null, null, err => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asJohnDoe, null, null, (error_) => {
+                        assert.notExists(error_);
 
                         // Subscribe on the Yahoo link
                         const data = {
@@ -494,10 +497,10 @@ describe('Activity push', () => {
                           ]
                         };
 
-                        getFullySetupPushClient(data, client => {
+                        getFullySetupPushClient(data, (client) => {
                           // Wait for a bit so the content create notification is sent
                           setTimeout(() => {
-                            client.on('message', message => {
+                            client.on('message', (message) => {
                               if (message) {
                                 assert.fail(
                                   'No activities should be pushed to this stream as nothing happened on the "yahoo" link'
@@ -510,12 +513,12 @@ describe('Activity push', () => {
                               asJohnDoe,
                               googleLink.id,
                               { displayName: 'Google woo' },
-                              err => {
-                                assert.notExists(err);
+                              (error_) => {
+                                assert.notExists(error_);
 
                                 // Route and deliver activities
-                                collectAndGetActivityStream(asJohnDoe, null, null, err => {
-                                  assert.notExists(err);
+                                collectAndGetActivityStream(asJohnDoe, null, null, (error_) => {
+                                  assert.notExists(error_);
 
                                   client.close(callback);
                                 });
@@ -537,15 +540,15 @@ describe('Activity push', () => {
     /**
      * Test that verifies that multiple clients can listen on the same feed
      */
-    it('verify multiple clients on same feed', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify multiple clients on same feed', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           // Get 2 clients
           const data = {
@@ -568,12 +571,12 @@ describe('Activity push', () => {
             ]
           };
 
-          collectAndGetActivityStream(asJohnDoe, null, null, err => {
-            assert.notExists(err);
+          collectAndGetActivityStream(asJohnDoe, null, null, (error_) => {
+            assert.notExists(error_);
 
             // Setup the clients
-            getFullySetupPushClient(data, clientA => {
-              getFullySetupPushClient(data, clientB => {
+            getFullySetupPushClient(data, (clientA) => {
+              getFullySetupPushClient(data, (clientB) => {
                 // Do something that ends up in the `activity`  activitystream
                 createLink(
                   asJohnDoe,
@@ -586,22 +589,22 @@ describe('Activity push', () => {
                     viewers: NO_VIEWERS,
                     folders: NO_FOLDERS
                   },
-                  (err /* , link */) => {
-                    assert.notExists(err);
+                  (error /* , link */) => {
+                    assert.notExists(error);
                   }
                 );
 
                 let clientAReceived = false;
                 let clientBReceived = false;
 
-                clientA.once('message', message => {
+                clientA.once('message', (message) => {
                   assert.notExists(message.error);
                   clientAReceived = true;
                   if (and(clientAReceived, clientBReceived)) {
                     bothReceived();
                   }
                 });
-                clientB.once('message', message => {
+                clientB.once('message', (message) => {
                   assert.notExists(message.error);
                   clientBReceived = true;
                   if (and(clientAReceived, clientBReceived)) {
@@ -612,7 +615,7 @@ describe('Activity push', () => {
                 /**
                  * Gets executed when both client A and B have received their message
                  */
-                const bothReceived = function() {
+                const bothReceived = function () {
                   // If we close client B, only A should receive a message
                   clientB.close(() => {
                     clientB.on('message', () => {
@@ -633,12 +636,12 @@ describe('Activity push', () => {
                         viewers: NO_VIEWERS,
                         folders: NO_FOLDERS
                       },
-                      (err /* , link */) => {
-                        assert.notExists(err);
+                      (error /* , link */) => {
+                        assert.notExists(error);
                       }
                     );
 
-                    clientA.once('message', message => {
+                    clientA.once('message', (message) => {
                       assert.ok(!message.error);
                       clientA.close(callback);
                     });
@@ -651,16 +654,16 @@ describe('Activity push', () => {
       });
     });
 
-    it('verify the activity entities format can be specified', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify the activity entities format can be specified', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge } = users;
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
 
-        RestAPI.User.getMe(asHomer, (err, homerInfo) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(asHomer, (error, homerInfo) => {
+          assert.notExists(error);
 
           /*
            * Register a push client for homer who is subscribed to his activitystream
@@ -688,7 +691,7 @@ describe('Activity push', () => {
             ]
           };
 
-          ActivityTestUtil.getFullySetupPushClient(data, client => {
+          ActivityTestUtil.getFullySetupPushClient(data, (client) => {
             /*
              * Marge will now create a discussion and share it with Homer
              * this will trigger an activity that gets delivered on both streams
@@ -698,8 +701,8 @@ describe('Activity push', () => {
               asMarge,
               marge.user.id,
               { visibility: 'private' },
-              (err, updatedUser) => {
-                assert.notExists(err);
+              (error, updatedUser) => {
+                assert.notExists(error);
                 marge.user = updatedUser;
                 let discussion = null;
 
@@ -710,19 +713,19 @@ describe('Activity push', () => {
                   'public',
                   [],
                   [homer.user.id],
-                  (err, _discussion) => {
-                    assert.notExists(err);
+                  (error, _discussion) => {
+                    assert.notExists(error);
                     discussion = _discussion;
 
                     // Force a collection cycle as notifications only get delivered upon aggregation
-                    ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, err => {
-                      assert.notExists(err);
+                    ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, (error_) => {
+                      assert.notExists(error_);
                     });
                   }
                 );
 
                 let activitiesReceived = 0;
-                client.on('message', message => {
+                client.on('message', (message) => {
                   activitiesReceived++;
 
                   assert.ok(message.activities);
@@ -761,7 +764,7 @@ describe('Activity push', () => {
                       'tenant',
                       'lastModified'
                     ];
-                    forEach(key => {
+                    forEach((key) => {
                       assert.ok(
                         contains(key, allowedActorProperties),
                         key + ' is not allowed on an internally formatted activity entity'
@@ -801,7 +804,7 @@ describe('Activity push', () => {
                       'objectType',
                       'oae:id'
                     ];
-                    forEach(key => {
+                    forEach((key) => {
                       assert.ok(
                         contains(key, allowedObjectProperties),
                         key + ' is not allowed on an internally formatted activity entity'
@@ -833,7 +836,7 @@ describe('Activity push', () => {
                         'oae:tenant'
                       ];
 
-                      forEach(key => {
+                      forEach((key) => {
                         assert.ok(
                           contains(key, allowedActorProperties),
                           key +
@@ -881,7 +884,7 @@ describe('Activity push', () => {
                         'id',
                         'oae:tenant'
                       ];
-                      forEach(key => {
+                      forEach((key) => {
                         assert.ok(
                           contains(key, allowedObjectProperties),
                           key +
@@ -905,16 +908,16 @@ describe('Activity push', () => {
     /**
      * Test that verifies a socket can subscribe for the same activity stream twice but with a different format
      */
-    it('verify a subscription can be made to the same activity stream with a different format', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify a subscription can be made to the same activity stream with a different format', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe, 1: janeDoe } = users;
         const asJohnDoe = johnDoe.restContext;
         const asJaneDoe = janeDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           /*
            * Register a push client for johnDoe who is subscribed to:
@@ -951,7 +954,7 @@ describe('Activity push', () => {
           };
 
           // Setup the client
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             // Create/share a discussion with johnDoe
             createDiscussion(
               asJaneDoe,
@@ -960,12 +963,12 @@ describe('Activity push', () => {
               'public',
               [],
               [johnDoe.user.id],
-              (err /* , discussion */) => {
-                assert.notExists(err);
+              (error /* , discussion */) => {
+                assert.notExists(error);
 
                 // Force a collection cycle as notifications are sent out on aggregation
-                collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
-                  assert.notExists(err);
+                collectAndGetNotificationStream(asJohnDoe, null, (error /* , activityStream */) => {
+                  assert.notExists(error);
                 });
               }
             );
@@ -976,7 +979,7 @@ describe('Activity push', () => {
               internal: 0,
               activitystreams: 0
             };
-            client.on('message', message => {
+            client.on('message', (message) => {
               activitiesReceived++;
               formatReceived[message.format]++;
 
@@ -995,16 +998,16 @@ describe('Activity push', () => {
     /**
      * Test that verifies that messages sent after the aggregation phase indicate whether they aggregated with an older activity
      */
-    it('verify aggregation phase messages indicate whether the activity aggregated with an older activity', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify aggregation phase messages indicate whether the activity aggregated with an older activity', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe, 1: janeDoe } = users;
         const asJohnDoe = johnDoe.restContext;
         const asJaneDoe = janeDoe.restContext;
 
-        getMe(asJohnDoe, (err, johnDoeData) => {
-          assert.notExists(err);
+        getMe(asJohnDoe, (error, johnDoeData) => {
+          assert.notExists(error);
 
           /*
            * Register a push client for mrvisser who is subscribed to:
@@ -1029,7 +1032,7 @@ describe('Activity push', () => {
           };
 
           // Setup the client
-          getFullySetupPushClient(data, client => {
+          getFullySetupPushClient(data, (client) => {
             // Create/share a discussion with johnDoe
             createDiscussion(
               asJaneDoe,
@@ -1038,12 +1041,12 @@ describe('Activity push', () => {
               'public',
               [],
               [johnDoe.user.id],
-              (err /* , discussion */) => {
-                assert.notExists(err);
+              (error /* , discussion */) => {
+                assert.notExists(error);
 
                 // We need to force a collection cycle as the notification stream gets pushed out after the aggregation phase
-                collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
-                  assert.notExists(err);
+                collectAndGetNotificationStream(asJohnDoe, null, (error /* , activityStream */) => {
+                  assert.notExists(error);
                 });
               }
             );
@@ -1052,7 +1055,7 @@ describe('Activity push', () => {
              * As this is the first discussion_created activity in mrvisser's notification stream it
              * can't aggregate with any other activities. That should be indicated on the push message
              */
-            client.once('message', message => {
+            client.once('message', (message) => {
               assert.ok(message);
               assert.strictEqual(message.numNewActivities, 1);
 
@@ -1065,19 +1068,21 @@ describe('Activity push', () => {
                 'public',
                 [],
                 [johnDoe.user.id],
-                (err /* , discussion */) => {
-                  assert.notExists(err);
+                (error /* , discussion */) => {
+                  assert.notExists(error);
                   /**
                    * We need to force a collection cycle as the notification
                    * stream gets pushed out after the aggregation phase
                    */
-                  collectAndGetNotificationStream(asJohnDoe, null, (err /* , activityStream */) => {
-                    assert.notExists(err);
+                  collectAndGetNotificationStream(asJohnDoe, null, (
+                    error /* , activityStream */
+                  ) => {
+                    assert.notExists(error);
                   });
                 }
               );
 
-              client.once('message', message => {
+              client.once('message', (message) => {
                 assert.ok(message);
                 assert.strictEqual(message.numNewActivities, 0);
 
@@ -1087,8 +1092,8 @@ describe('Activity push', () => {
                  * should result in a "new activity". However, if 2 activities aggregate in-memory in the
                  * aggregation phase, they should be counted as 1
                  */
-                RestAPI.Activity.markNotificationsRead(asJohnDoe, err => {
-                  assert.notExists(err);
+                RestAPI.Activity.markNotificationsRead(asJohnDoe, (error_) => {
+                  assert.notExists(error_);
                   createDiscussion(
                     asJaneDoe,
                     'Test discussion',
@@ -1096,8 +1101,8 @@ describe('Activity push', () => {
                     'public',
                     [],
                     [johnDoe.user.id],
-                    (err /* , discussion */) => {
-                      assert.notExists(err);
+                    (error /* , discussion */) => {
+                      assert.notExists(error);
                       createDiscussion(
                         asJaneDoe,
                         'Test discussion',
@@ -1105,24 +1110,24 @@ describe('Activity push', () => {
                         'public',
                         [],
                         [johnDoe.user.id],
-                        (err /* , discussion */) => {
-                          assert.notExists(err);
+                        (error /* , discussion */) => {
+                          assert.notExists(error);
                           collectAndGetNotificationStream(asJohnDoe, null, (
-                            err /* , activityStream */
+                            error /* , activityStream */
                           ) => {
-                            assert.notExists(err);
+                            assert.notExists(error);
                           });
                         }
                       );
 
-                      client.once('message', message => {
+                      client.once('message', (message) => {
                         assert.ok(message);
                         assert.strictEqual(message.numNewActivities, 1);
 
                         // If 2 disjoint activities get delivered to the notification stream, the
                         // number of new activities should be 2
-                        markNotificationsRead(asJohnDoe, err => {
-                          assert.notExists(err);
+                        markNotificationsRead(asJohnDoe, (error_) => {
+                          assert.notExists(error_);
                           createDiscussion(
                             asJaneDoe,
                             'Test discussion',
@@ -1130,8 +1135,8 @@ describe('Activity push', () => {
                             'public',
                             [],
                             [johnDoe.user.id],
-                            (err /* , discussion */) => {
-                              assert.notExists(err);
+                            (error /* , discussion */) => {
+                              assert.notExists(error);
                               createLink(
                                 asJaneDoe,
                                 {
@@ -1143,19 +1148,19 @@ describe('Activity push', () => {
                                   viewers: [johnDoe.user.id],
                                   folders: []
                                 },
-                                (err /* , discussion */) => {
-                                  assert.notExists(err);
+                                (error /* , discussion */) => {
+                                  assert.notExists(error);
                                   collectAndGetNotificationStream(asJohnDoe, null, (
-                                    err /* , activityStream */
+                                    error /* , activityStream */
                                   ) => {
-                                    assert.notExists(err);
+                                    assert.notExists(error);
                                   });
                                 }
                               );
                             }
                           );
 
-                          client.once('message', message => {
+                          client.once('message', (message) => {
                             assert.ok(message);
                             assert.strictEqual(message.numNewActivities, 2);
                             assert.lengthOf(message.activities, 2);

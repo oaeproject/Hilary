@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import bunyan from 'bunyan';
 
@@ -29,7 +29,7 @@ const loggers = {};
  *
  * @param  {Object}     newConfig   The new configuration to apply to all the loggers
  */
-const refreshLogConfiguration = function(newConfig) {
+const refreshLogConfiguration = function (newConfig) {
   logger('oae-logger')().info('Refreshing log configuration');
   config = newConfig;
   _refreshLogConfigurations();
@@ -41,7 +41,7 @@ const refreshLogConfiguration = function(newConfig) {
  * @param  {String}     name   The name of the logger, this name will be used to identify this logger for potentially custom log configuration
  * @return {Function}          A function that can be used to retrieve the logger takes argument `ctx`
  */
-const logger = function(name = SYSTEM_LOGGER_NAME) {
+const logger = function (name = SYSTEM_LOGGER_NAME) {
   // Lazy-load the logger and cache it so new loggers don't have to be recreated all the time
   if (!loggers[name]) {
     loggers[name] = _createLogger(name);
@@ -51,7 +51,7 @@ const logger = function(name = SYSTEM_LOGGER_NAME) {
   // configuration on the fly. At the moment the "ctx" param is not used, however it is planned to be able to have
   // tenant/user-specific configuration or ctx-specific information in the log entries
   // eslint-disable-next-line no-unused-vars
-  return function(ctx) {
+  return function (ctx) {
     return loggers[name];
   };
 };
@@ -61,7 +61,7 @@ const logger = function(name = SYSTEM_LOGGER_NAME) {
  *
  * @api private
  */
-const _refreshLogConfigurations = function() {
+const _refreshLogConfigurations = function () {
   _.each(loggers, (logger, name) => {
     loggers[name] = _createLogger(name);
   });
@@ -74,7 +74,7 @@ const _refreshLogConfigurations = function() {
  * @return {Object}     logger  The logging object
  * @api private
  */
-const _createLogger = function(name) {
+const _createLogger = function (name) {
   const _config = _.extend({}, config || _resolveBootstrapLoggerConfig());
   _config.name = name;
 
@@ -92,7 +92,7 @@ const _createLogger = function(name) {
  * @return {Object}    The log configuration to use by default
  * @api private
  */
-const _resolveBootstrapLoggerConfig = function() {
+const _resolveBootstrapLoggerConfig = function () {
   const bootstrapConfig = {
     streams: [
       {
@@ -122,18 +122,18 @@ const _resolveBootstrapLoggerConfig = function() {
  * @return {Function}                       A wrapped error logger
  * @api private
  */
-const _wrapErrorFunction = function(loggerName, errorFunction) {
+const _wrapErrorFunction = function (loggerName, errorFunction) {
   /*!
    * Keep track of the error count with the telemetry API before handing control back to Bunyan
    */
-  const wrapperErrorFunction = function(...args) {
+  const wrapperErrorFunction = function (...args) {
     const Telemetry = require('oae-telemetry').telemetry('logger');
 
     // Increase the general error count that keeps track of the number of errors throughout the application
     Telemetry.incr('error.count');
 
     // Increase the error count for this specific logger
-    Telemetry.incr(util.format('error.%s.count', loggerName));
+    Telemetry.incr(format('error.%s.count', loggerName));
 
     // Pass control back to bunyan who can log the message
     return errorFunction.apply(this, args);

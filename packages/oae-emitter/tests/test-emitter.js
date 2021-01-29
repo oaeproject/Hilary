@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import _ from 'underscore';
 import * as EmitterAPI from 'oae-emitter';
 
@@ -26,16 +27,16 @@ describe('EventEmitter', () => {
     /**
      * Test that verifies that all `on` handlers are invoked just like a regular EventEmitter
      */
-    it('verify all "on" handlers are invoked with specified arguments', callback => {
+    it('verify all "on" handlers are invoked with specified arguments', (callback) => {
       const emitter = new EventEmitter();
 
       let results = [];
 
-      emitter.on('a', function(...args) {
+      emitter.on('a', function (...args) {
         results = union(results, args);
       });
 
-      emitter.on('b', function(...args) {
+      emitter.on('b', function (...args) {
         results = union(results, args);
       });
 
@@ -55,12 +56,12 @@ describe('EventEmitter', () => {
      * Test that verifies that both `on` and `when` handlers are invoked with the supplied
      * arguments
      */
-    it('verify all "on" and "when" handlers are invoked with specified arguments', callback => {
+    it('verify all "on" and "when" handlers are invoked with specified arguments', (callback) => {
       const emitter = new EventEmitter();
 
       let results = [];
 
-      emitter.on('a', arg => {
+      emitter.on('a', (arg) => {
         results.push('a1' + arg);
       });
 
@@ -77,7 +78,7 @@ describe('EventEmitter', () => {
         });
       });
 
-      emitter.on('b', arg => {
+      emitter.on('b', (arg) => {
         results.push('b1' + arg);
       });
 
@@ -119,7 +120,7 @@ describe('EventEmitter', () => {
     /**
      * Test that verifies that the handler callback gets invoked, even if there are no handlers
      */
-    it('verify callback is invoked with no listeners', callback => {
+    it('verify callback is invoked with no listeners', (callback) => {
       new EventEmitter().emit('a', 'blah', 'blah', () => {
         new EventEmitter().emit('a', 5, () => {
           new EventEmitter().emit(
@@ -139,7 +140,7 @@ describe('EventEmitter', () => {
      * Test that verifies that the handler callback gets invoked when there are only `on`
      * listeners bound to the emitter
      */
-    it('verify callback is invoked with only "on" listeners', callback => {
+    it('verify callback is invoked with only "on" listeners', (callback) => {
       const emitter = new EventEmitter();
 
       emitter.on('a', () => {});
@@ -164,7 +165,7 @@ describe('EventEmitter', () => {
      * Test that verifies that the handler callback gets invoked when there are only `when`
      * handlers bound to the emitter
      */
-    it('verify callback is invoked with only "when" handlers', callback => {
+    it('verify callback is invoked with only "when" handlers', (callback) => {
       const emitter = new EventEmitter();
 
       emitter.when('a', (arg0, arg1, arg2, done) => {
@@ -194,7 +195,7 @@ describe('EventEmitter', () => {
      * Test that verifies that the handler callback gets invoked only after all `when` handlers
      * have finished processing and invoked their callbacks
      */
-    it('verify callback is invoked with both "on" and "when" handlers', callback => {
+    it('verify callback is invoked with both "on" and "when" handlers', (callback) => {
       const emitter = new EventEmitter();
 
       let successfulACounter = 0;
@@ -208,10 +209,10 @@ describe('EventEmitter', () => {
         });
       });
 
-      emitter.emit('a', 'blah', 'blah', 'blah', errs => {
+      emitter.emit('a', 'blah', 'blah', 'blah', (errs) => {
         assert.notExists(errs);
         assert.strictEqual(successfulACounter, 1);
-        emitter.emit('a', 5, 4, 3, errs => {
+        emitter.emit('a', 5, 4, 3, (errs) => {
           assert.notExists(errs);
           assert.strictEqual(successfulACounter, 2);
           emitter.emit(
@@ -219,11 +220,11 @@ describe('EventEmitter', () => {
             {},
             [],
             () => {},
-            errs => {
+            (errs) => {
               assert.notExists(errs);
               assert.strictEqual(successfulACounter, 3);
 
-              emitter.emit('a', null, undefined, false, errs => {
+              emitter.emit('a', null, undefined, false, (errs) => {
                 assert.notExists(errs);
                 assert.strictEqual(successfulACounter, 4);
 
@@ -239,45 +240,45 @@ describe('EventEmitter', () => {
      * Test that verifies that handler errors will be aggregated and supplied to the emit
      * callback
      */
-    it('verify errors from "when" handlers are aggregated', callback => {
+    it('verify errors from "when" handlers are aggregated', (callback) => {
       const emitter = new EventEmitter();
 
       let successfulACounter = 0;
 
-      emitter.when('a', done => {
+      emitter.when('a', (done) => {
         process.nextTick(() => {
           successfulACounter++;
           return done();
         });
       });
 
-      emitter.when('a', done => {
+      emitter.when('a', (done) => {
         process.nextTick(() => {
           return done('a1');
         });
       });
 
-      emitter.when('a', done => {
+      emitter.when('a', (done) => {
         process.nextTick(() => {
           successfulACounter++;
           return done();
         });
       });
 
-      emitter.when('a', done => {
+      emitter.when('a', (done) => {
         process.nextTick(() => {
           return done('a2');
         });
       });
 
-      emitter.when('a', done => {
+      emitter.when('a', (done) => {
         process.nextTick(() => {
           successfulACounter++;
           return done();
         });
       });
 
-      emitter.emit('a', errs => {
+      emitter.emit('a', (errs) => {
         assert.isArray(errs);
         assert.deepStrictEqual(errs.sort(), ['a1', 'a2']);
         assert.strictEqual(successfulACounter, 3);

@@ -14,7 +14,7 @@
  */
 
 import events from 'events';
-import util from 'util';
+import { inherits, format } from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
@@ -33,12 +33,12 @@ const log = logger('oae-emitter');
  * event processing is complete. It is assumed that `on` events have completed processing when they
  * finish their synchronous `tick` of code.
  */
-const EventEmitter = function() {
+const EventEmitter = function () {
   events.EventEmitter.call(this);
   this._when = {};
 };
 
-util.inherits(EventEmitter, events.EventEmitter);
+inherits(EventEmitter, events.EventEmitter);
 
 /**
  * Emit an event, handing the event data to both the listeners bound with `on` as well as the
@@ -48,15 +48,13 @@ util.inherits(EventEmitter, events.EventEmitter);
  * @param  {Args}       [args...]       A variable number of arguments for the event handler, if any
  * @param  {Function}   [callback]      Standard callback function. Invoked when all `when` handlers have completed their task
  */
-EventEmitter.prototype.emit = function(...args) {
-  /* Name, [args...], [callback] */
+EventEmitter.prototype.emit = function (...args) {
   const self = this;
-  // Const args = _.toArray(arguments);
 
   // The name is required and must be the first argument
   const name = args.shift();
   if (!_.isString(name)) {
-    throw new TypeError(util.format('Expected a string for event "name", but got: %s', JSON.stringify(name, null, 2)));
+    throw new TypeError(format('Expected a string for event "name", but got: %s', JSON.stringify(name, null, 2)));
   }
 
   // First invoke the core event listeners
@@ -64,12 +62,9 @@ EventEmitter.prototype.emit = function(...args) {
 
   // The consumer callback is optional, and is always the last parameter if the last parameter is
   // a function
-  const consumerCallback = _.chain(args)
-    .last()
-    .isFunction()
-    .value()
+  const consumerCallback = _.chain(args).last().isFunction().value()
     ? args.pop()
-    : function(errs) {
+    : function (errs) {
         if (errs) {
           log().error({ errs, name }, 'Unhandled error(s) occurred processing `when` handlers');
         }
@@ -93,10 +88,10 @@ EventEmitter.prototype.emit = function(...args) {
 
   // The handler callback is invoked when each handler finishes its job. It simply builds the
   // array of handler errors if applicable
-  const _handlerCallback = function(err, result) {
-    if (err) {
+  const _handlerCallback = function (error, result) {
+    if (error) {
       handlerErrs = handlerErrs || [];
-      handlerErrs.push(err);
+      handlerErrs.push(error);
     } else if (result) {
       handlerResults = handlerResults || [];
       handlerResults.push(result);
@@ -106,7 +101,7 @@ EventEmitter.prototype.emit = function(...args) {
   };
 
   // Finally invoke each handler, shielding each one from exceptions by other handlers
-  _.each(handlers, handler => {
+  _.each(handlers, (handler) => {
     process.nextTick(() => {
       return handler.apply(self, args.concat(_handlerCallback));
     });
@@ -124,7 +119,7 @@ EventEmitter.prototype.emit = function(...args) {
  * @param  {Function}   handler.done        The handler must invoke this `done` callback when complete
  * @param  {Object}     handler.err         An error that should be provided by the handler, if any
  */
-EventEmitter.prototype.when = function(name, handler) {
+EventEmitter.prototype.when = function (name, handler) {
   if (!_.isString(name)) {
     throw new TypeError('Can only bind "when" handler for event whose name is a string');
   } else if (!_.isFunction(handler)) {

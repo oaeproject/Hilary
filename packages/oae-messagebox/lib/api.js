@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
@@ -38,8 +38,8 @@ import { isPast } from 'date-fns';
 import { compose, not, head } from 'ramda';
 import isInt from 'validator/lib/isInt';
 import isIn from 'validator/lib/isIn';
-import * as MessageBoxModel from './model';
-import { MessageBoxConstants } from './constants';
+import * as MessageBoxModel from './model.js';
+import { MessageBoxConstants } from './constants.js';
 
 const log = logger('oae-messagebox-api');
 
@@ -73,9 +73,7 @@ const MessageBoxAPI = new EmitterAPI.EventEmitter();
  * return  {String}                            Updated message with links replaced
  * @api private
  */
-const replaceLinks = function(body) {
-  body = body || '';
-
+const replaceLinks = function (body = '') {
   // Replace any matched URLs with relative links in markdown format
   return body.replace(REGEXP_LINK, (fullMatch, preURLChar, host, path, postURLChar, offset) => {
     // If the host doesn't match an OAE tenant we disregard it as it is an external link
@@ -102,7 +100,7 @@ const replaceLinks = function(body) {
         let lines = preMatchBody.split('\n');
         lines = lines.slice(lastParaLine, -1);
         // Check that all lines in this block start with 4 spaces
-        const allLinesStartWith4Spaces = _.every(lines, line => {
+        const allLinesStartWith4Spaces = _.every(lines, (line) => {
           return line.slice(0, 4) === '    ';
         });
         inBlockQuote = _.isEmpty(lines) || allLinesStartWith4Spaces;
@@ -147,8 +145,8 @@ const replaceLinks = function(body) {
  * @param  {Object}     [callback.err]          An error that occurred, if any
  * @param  {Message}    [callback.message]      The message model object that was persisted
  */
-const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
-  opts = opts || {};
+const createMessage = function (messageBoxId, createdBy, body, options, callback) {
+  options = options || {};
 
   try {
     unless(isNotNull, {
@@ -166,37 +164,37 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       msg: 'The body of the message must be specified.'
     })(body);
 
-    const isReplyToDefined = Boolean(opts.replyToCreated);
+    const isReplyToDefined = Boolean(options.replyToCreated);
     unless(bothCheck(isReplyToDefined, isNotNull), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should not be null nor undefined.'
-    })(opts.replyToCreated);
+    })(options.replyToCreated);
 
     unless(bothCheck(isReplyToDefined, isString), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should not be a String.'
-    })(opts.replyToCreated);
+    })(options.replyToCreated);
 
     unless(bothCheck(isReplyToDefined, isInt), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it should be an integer.'
-    })(opts.replyToCreated);
+    })(options.replyToCreated);
 
     unless(bothCheck(isReplyToDefined, isPast), {
       code: 400,
       msg: 'If the replyToCreated optional parameter is specified, it cannot be in the future.'
-    })(new Date(parseInt(opts.replyToCreated, 10)));
+    })(new Date(Number.parseInt(options.replyToCreated, 10)));
   } catch (error) {
     return callback(error);
   }
 
-  const replyToCreated = OaeUtil.getNumberParam(opts.replyToCreated);
+  const replyToCreated = OaeUtil.getNumberParam(options.replyToCreated);
   const replyToMessageId = replyToCreated ? _createMessageId(messageBoxId, replyToCreated) : null;
 
   // Fetch the threadKey of the parent so we can nest under it
-  _getMessageThreadKey(replyToMessageId, (err, replyToThreadKey) => {
-    if (err) {
-      return callback(err);
+  _getMessageThreadKey(replyToMessageId, (error, replyToThreadKey) => {
+    if (error) {
+      return callback(error);
     }
 
     // Generate an ID that can be used for locking and is as specific as possible.
@@ -255,15 +253,15 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
       };
 
       // First insert the new message object, if this fails we do not want to update the messagebox index
-      Cassandra.runQuery(createMessageQuery.query, createMessageQuery.parameters, err => {
-        if (err) {
-          return callback(err);
+      Cassandra.runQuery(createMessageQuery.query, createMessageQuery.parameters, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Update the messagebox index, so this message will turn up in queries for all messages in the messagebox
-        Cassandra.runQuery(indexMessageQuery.query, indexMessageQuery.parameters, err => {
-          if (err) {
-            return callback(err);
+        Cassandra.runQuery(indexMessageQuery.query, indexMessageQuery.parameters, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           // Asynchronously update the recent contributions
@@ -292,10 +290,10 @@ const createMessage = function(messageBoxId, createdBy, body, opts, callback) {
  * @param  {String}        callback.lockToken  The lockToken that can be used to release the acquired lock
  * @api private
  */
-const _lockUniqueTimestamp = function(id, timestamp, callback) {
+const _lockUniqueTimestamp = function (id, timestamp, callback) {
   const key = 'oae-messagebox:' + id + ':' + timestamp;
-  Locking.acquire(key, 1, (err, lock) => {
-    if (err) {
+  Locking.acquire(key, 1, (error, lock) => {
+    if (error) {
       // Migration from redback to redlock:
       // This should only occur if Redis is down, just return the requested ts
       // In that case, one should `return callback(timestamp, lockToken);`
@@ -318,7 +316,7 @@ const _lockUniqueTimestamp = function(id, timestamp, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const updateMessageBody = function(messageBoxId, created, newBody, callback) {
+const updateMessageBody = function (messageBoxId, created, newBody, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -359,9 +357,9 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
   // permission issues
   const body = replaceLinks(newBody);
 
-  Cassandra.runQuery('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     MessageBoxAPI.emit(MessageBoxConstants.events.UPDATED_MESSAGE, messageId, newBody);
@@ -382,11 +380,11 @@ const updateMessageBody = function(messageBoxId, created, newBody, callback) {
  * @param  {Message[]}  callback.messages   An array of messages
  * @param  {String}     callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, callback) {
+const getMessagesFromMessageBox = function (messageBoxId, start, limit, options, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10);
-  opts = opts || {};
-  opts.scrubDeleted = opts.scrubDeleted !== false;
+  options = options || {};
+  options.scrubDeleted = options.scrubDeleted !== false;
 
   try {
     unless(isNotNull, {
@@ -397,16 +395,16 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
     return callback(error);
   }
 
-  _getThreadKeysFromMessageBox(messageBoxId, start, limit, (err, threadKeys, nextToken) => {
-    if (err) {
-      return callback(err);
+  _getThreadKeysFromMessageBox(messageBoxId, start, limit, (error, threadKeys, nextToken) => {
+    if (error) {
+      return callback(error);
     }
 
     // Will maintain the output order of the messages according to their threadkey
     const createdTimestamps = _.map(threadKeys, _parseCreatedFromThreadKey);
-    getMessages(messageBoxId, createdTimestamps, { scrubDeleted: opts.scrubDeleted }, (err, messages) => {
-      if (err) {
-        return callback(err);
+    getMessages(messageBoxId, createdTimestamps, { scrubDeleted: options.scrubDeleted }, (error, messages) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, messages, nextToken);
@@ -429,9 +427,9 @@ const getMessagesFromMessageBox = function(messageBoxId, start, limit, opts, cal
  * @param  {Object}             callback.err        An error that occurred, if any
  * @param  {Message[]}          callback.messages   An array of messages, ordered in the same way as the createdTimestamps array.
  */
-const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
-  opts = opts || {};
-  opts.scrubDeleted = opts.scrubDeleted !== false;
+const getMessages = function (messageBoxId, createdTimestamps, options, callback) {
+  options = options || {};
+  options.scrubDeleted = options.scrubDeleted !== false;
 
   try {
     unless(isNotNull, {
@@ -439,7 +437,7 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
       msg: 'A messageBoxId must be specified.'
     })(messageBoxId);
 
-    createdTimestamps.forEach(timestamp => {
+    createdTimestamps.forEach((timestamp) => {
       unless(isNotNull, {
         code: 400,
         msg: 'A timestamp cannot be null.'
@@ -453,19 +451,19 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
       unless(isPast, {
         code: 400,
         msg: 'A timestamp cannot be in the future.'
-      })(new Date(parseInt(timestamp, 10)));
+      })(new Date(Number.parseInt(timestamp, 10)));
     });
   } catch (error) {
     return callback(error);
   }
 
   // Convert messagebox + createdTimestamps into the compound key containing the two
-  const messageIds = _.map(createdTimestamps, created => {
+  const messageIds = _.map(createdTimestamps, (created) => {
     return _createMessageId(messageBoxId, created);
   });
 
   // Delegate to getMessagesById to fetch by the actual message ids
-  getMessagesById(messageIds, { scrubDeleted: opts.scrubDeleted }, callback);
+  getMessagesById(messageIds, { scrubDeleted: options.scrubDeleted }, callback);
 };
 
 /**
@@ -486,28 +484,28 @@ const getMessages = function(messageBoxId, createdTimestamps, opts, callback) {
  * @param  {Object}             callback.err        An error that occurred, if any
  * @param  {Object}             callback.messages   A hash mapping messageId -> Message for each requested message
  */
-const getMessagesById = function(messageIds, opts, callback) {
-  opts = opts || {};
-  opts.scrubDeleted = opts.scrubDeleted !== false;
+const getMessagesById = function (messageIds, options, callback) {
+  options = options || {};
+  options.scrubDeleted = options.scrubDeleted !== false;
 
   if (_.isEmpty(messageIds)) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery('SELECT * FROM "Messages" WHERE "id" IN ?', [messageIds], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "Messages" WHERE "id" IN ?', [messageIds], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     const messages = [];
-    _.each(rows, row => {
+    _.each(rows, (row) => {
       row = Cassandra.rowToHash(row);
       let message = _storageHashToMessage(row.id, row);
 
       // The message will be null here if it didn't actually exist, or had recently been deleted
       if (message) {
         // Scrub the message if we have specified to do so
-        if (opts.scrubDeleted && message.deleted) {
+        if (options.scrubDeleted && message.deleted) {
           message = _scrubMessage(message);
         }
 
@@ -542,8 +540,8 @@ const getMessagesById = function(messageIds, opts, callback) {
  * @param  {String}         callback.deleteType A value indicating what type of delete finally took place. If it was a hard delete, it will be `MessageBoxConstants.deleteTypes.HARD`, if soft-deleted it will be `MessageBoxConstants.deleteTypes.SOFT`
  * @param  {String}         [callback.message]  If a soft-delete took place, this parameter will be the new representation of the deleted message object
  */
-const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
-  opts = opts || {};
+const deleteMessage = function (messageBoxId, createdTimestamp, options, callback) {
+  options = options || {};
 
   try {
     unless(isNotNull, {
@@ -566,26 +564,26 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
       msg: 'The createdTimestamp cannot be in the future.'
     })(createdTimestamp);
 
-    const isDeleteTypeDefined = Boolean(opts.deleteType);
+    const isDeleteTypeDefined = Boolean(options.deleteType);
     const deleteValues = _.values(MessageBoxConstants.deleteTypes);
     unless(bothCheck(isDeleteTypeDefined, isIn), {
       code: 400,
       msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
-    })(opts.deleteType, deleteValues);
+    })(options.deleteType, deleteValues);
   } catch (error) {
     return callback(error);
   }
 
-  getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (err, messages) => {
-    if (err) return callback(err);
+  getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (error, messages) => {
+    if (error) return callback(error);
 
     if (not(head(messages))) return callback({ code: 404, msg: 'Message not found.' });
 
     const message = messages[0];
     if (message) {
-      if (opts.deleteType === MessageBoxConstants.deleteTypes.HARD) {
-        return _hardDelete(message, err => {
-          if (!err) {
+      if (options.deleteType === MessageBoxConstants.deleteTypes.HARD) {
+        return _hardDelete(message, (error_) => {
+          if (!error_) {
             MessageBoxAPI.emit(
               MessageBoxConstants.events.DELETED_MESSAGE,
               message.id,
@@ -593,13 +591,13 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
             );
           }
 
-          callback(err, MessageBoxConstants.deleteTypes.HARD);
+          callback(error_, MessageBoxConstants.deleteTypes.HARD);
         });
       }
 
-      if (opts.deleteType === MessageBoxConstants.deleteTypes.SOFT) {
-        return _softDelete(message, (err, msg) => {
-          if (!err) {
+      if (options.deleteType === MessageBoxConstants.deleteTypes.SOFT) {
+        return _softDelete(message, (error, message_) => {
+          if (!error) {
             MessageBoxAPI.emit(
               MessageBoxConstants.events.DELETED_MESSAGE,
               message.id,
@@ -607,16 +605,16 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
             );
           }
 
-          callback(err, MessageBoxConstants.deleteTypes.SOFT, msg);
+          callback(error, MessageBoxConstants.deleteTypes.SOFT, message_);
         });
       }
 
-      return _leafDelete(message, (err, deleteType, msg) => {
-        if (!err) {
+      return _leafDelete(message, (error, deleteType, message_) => {
+        if (!error) {
           MessageBoxAPI.emit(MessageBoxConstants.events.DELETED_MESSAGE, message.id, deleteType);
         }
 
-        callback(err, deleteType, msg);
+        callback(error, deleteType, message_);
       });
     }
 
@@ -636,11 +634,11 @@ const deleteMessage = function(messageBoxId, createdTimestamp, opts, callback) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  * @param  {String[]}   callback.recentContributions    An array of principal IDs specifying the recent contributions.
  */
-const getRecentContributions = function(messageBoxId, start, limit, callback) {
+const getRecentContributions = function (messageBoxId, start, limit, callback) {
   // For this use-case, we want the limit to be quite large since it
   // will fuel things like activity routing. Maybe 100, or more?
   limit = OaeUtil.getNumberParam(limit, 5, 1, 100);
-  start = start ? util.format('%s:%s', start.userId, start.created) : '';
+  start = start ? format('%s:%s', start.userId, start.created) : '';
 
   try {
     unless(isNotNull, {
@@ -660,13 +658,13 @@ const getRecentContributions = function(messageBoxId, start, limit, callback) {
     limit,
     { reversed: true },
     // eslint-disable-next-line no-unused-vars
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Extract the contributor ids as the results
-      const recentContributions = _.map(rows, row => {
+      const recentContributions = _.map(rows, (row) => {
         return row.get('contributorId');
       });
 
@@ -684,15 +682,15 @@ const getRecentContributions = function(messageBoxId, start, limit, callback) {
  * @param  {String}     [callback.threadKey]    The threadKey of the message. If the message did not exist, will be undefined.
  * @api private
  */
-const _getMessageThreadKey = function(messageId, callback) {
+const _getMessageThreadKey = function (messageId, callback) {
   // The message id is not specified, simply return with nothing.
   if (!messageId) {
     return callback();
   }
 
-  Cassandra.runQuery('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -715,13 +713,13 @@ const _getMessageThreadKey = function(messageId, callback) {
  * @param  {Message}    [callback.message]  If the delete was a "soft" delete, returns the scrubbed message model of the now-deleted message
  * @api private
  */
-const _leafDelete = function(message, callback) {
+const _leafDelete = function (message, callback) {
   const threadKeyWithoutPipe = message.threadKey.split('|')[0];
 
   // Check to see if this message has a reply. If so, we will soft delete, if not we hard delete
-  _getThreadKeysFromMessageBox(message.messageBoxId, message.threadKey, 1, (err, threadKeys) => {
-    if (err) {
-      return callback(err);
+  _getThreadKeysFromMessageBox(message.messageBoxId, message.threadKey, 1, (error, threadKeys) => {
+    if (error) {
+      return callback(error);
     }
 
     let hasReply = false;
@@ -733,17 +731,17 @@ const _leafDelete = function(message, callback) {
 
     // Perform the appropriate delete operation based on whether or not there is a reply
     if (hasReply) {
-      _softDelete(message, (err, message) => {
-        if (err) {
-          return callback(err);
+      _softDelete(message, (error, message) => {
+        if (error) {
+          return callback(error);
         }
 
         return callback(null, MessageBoxConstants.deleteTypes.SOFT, message);
       });
     } else {
-      _hardDelete(message, err => {
-        if (err) {
-          return callback(err);
+      _hardDelete(message, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         return callback(null, MessageBoxConstants.deleteTypes.HARD);
@@ -767,7 +765,7 @@ const _leafDelete = function(message, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _hardDelete = function(message, callback) {
+const _hardDelete = function (message, callback) {
   const { threadKey, messageBoxId } = message;
   const createdTimestamp = message.created;
 
@@ -775,24 +773,24 @@ const _hardDelete = function(message, callback) {
   Cassandra.runQuery(
     'INSERT INTO "MessageBoxMessagesDeleted" ("messageBoxId", "createdTimestamp", "value") VALUES (?, ?, ?)',
     [messageBoxId, createdTimestamp, '1'],
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Delete the index entry from the messagebox. This fixes things like paging so this comment does not get returned in feeds anymore
       Cassandra.runQuery(
         'DELETE FROM "MessageBoxMessages" WHERE "messageBoxId" = ? AND "threadKey" = ?',
         [messageBoxId, threadKey],
-        err => {
-          if (err) {
-            return callback(err);
+        (error) => {
+          if (error) {
+            return callback(error);
           }
 
           // Proceed to flag the message as deleted, but we still don't hard-delete its contents
-          _softDelete(message, err => {
-            if (err) {
-              return callback(err);
+          _softDelete(message, (error) => {
+            if (error) {
+              return callback(error);
             }
 
             return callback();
@@ -813,14 +811,14 @@ const _hardDelete = function(message, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _softDelete = function(message, callback) {
+const _softDelete = function (message, callback) {
   const messageId = message.id;
   const deletedTimestamp = Date.now().toString();
 
   // Set the deleted flag to the current timestamp
-  Cassandra.runQuery('UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?', [deletedTimestamp, messageId], err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?', [deletedTimestamp, messageId], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     message.deleted = deletedTimestamp;
@@ -843,7 +841,7 @@ const _softDelete = function(message, callback) {
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getThreadKeysFromMessageBox = function(messageBoxId, start, limit, callback) {
+const _getThreadKeysFromMessageBox = function (messageBoxId, start, limit, callback) {
   // Fetch `limit` number of message ids from the message box
   Cassandra.runPagedQuery(
     'MessageBoxMessages',
@@ -853,12 +851,12 @@ const _getThreadKeysFromMessageBox = function(messageBoxId, start, limit, callba
     start,
     limit,
     { reversed: true },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      const threadKeys = _.map(rows, row => {
+      const threadKeys = _.map(rows, (row) => {
         return row.get('threadKey');
       });
 
@@ -875,7 +873,7 @@ const _getThreadKeysFromMessageBox = function(messageBoxId, start, limit, callba
  * @return {Message}                    The message model object the storage hash represents
  * @api private
  */
-const _storageHashToMessage = function(messageId, hash) {
+const _storageHashToMessage = function (messageId, hash) {
   let message = null;
 
   // Use threadKey as a slug column to ensure that this hash was an existing message
@@ -909,8 +907,8 @@ const _storageHashToMessage = function(messageId, hash) {
  * @return {String}                         A unique messagebox id
  * @api private
  */
-const _createMessageId = function(messageBoxId, created) {
-  return util.format('%s#%s', messageBoxId, created);
+const _createMessageId = function (messageBoxId, created) {
+  return format('%s#%s', messageBoxId, created);
 };
 
 /**
@@ -920,12 +918,9 @@ const _createMessageId = function(messageBoxId, created) {
  * @return {String}                 The messagebox id in the message id
  * @api private
  */
-const _parseMessageBoxIdFromMessageId = function(messageId) {
+const _parseMessageBoxIdFromMessageId = function (messageId) {
   // The id of the messagebox is everything up to the last '#' of the message id
-  return messageId
-    .split('#')
-    .slice(0, -1)
-    .join('#');
+  return messageId.split('#').slice(0, -1).join('#');
 };
 
 /**
@@ -936,9 +931,9 @@ const _parseMessageBoxIdFromMessageId = function(messageId) {
  * @return {String}                             The threadKey for the child message
  * @api private
  */
-const _appendToThreadKey = function(parentThreadKey, childCreated) {
+const _appendToThreadKey = function (parentThreadKey, childCreated) {
   const parentThreadKeyWithoutPipe = parentThreadKey.split('|')[0];
-  return util.format('%s#%s|', parentThreadKeyWithoutPipe, childCreated);
+  return format('%s#%s|', parentThreadKeyWithoutPipe, childCreated);
 };
 
 /**
@@ -949,7 +944,7 @@ const _appendToThreadKey = function(parentThreadKey, childCreated) {
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _parseCreatedFromMessageId = function(messageId) {
+const _parseCreatedFromMessageId = function (messageId) {
   return messageId.split('#').pop();
 };
 
@@ -960,7 +955,7 @@ const _parseCreatedFromMessageId = function(messageId) {
  * @return {String}                 The timestamp (millis since the epoch) of the message
  * @api private
  */
-const _parseCreatedFromThreadKey = function(threadKey) {
+const _parseCreatedFromThreadKey = function (threadKey) {
   // The created timestamp is the timestamp of the deepest message in the threadKey hierarchy
   const timestampWithPipe = threadKey.split('#').pop();
   return timestampWithPipe.split('|')[0];
@@ -973,7 +968,7 @@ const _parseCreatedFromThreadKey = function(threadKey) {
  * @return {Number}                 The level of the message
  * @api private
  */
-const _getLevelFromThreadKey = function(threadKey) {
+const _getLevelFromThreadKey = function (threadKey) {
   // Extract the depth of this message from the threadKey hierarchy. Top-level messages are depth 0
   return threadKey.split('#').length - 1;
 };
@@ -986,7 +981,7 @@ const _getLevelFromThreadKey = function(threadKey) {
  * @return {Message}                The message object with its data scrubbed as though it were deleted
  * @api private
  */
-const _scrubMessage = function(message) {
+const _scrubMessage = function (message) {
   return _.pick(message, 'id', 'messageBoxId', 'threadKey', 'created', 'replyTo', 'deleted', 'level');
 };
 
@@ -997,7 +992,7 @@ const _scrubMessage = function(message) {
  * @return {String}                     The created timestamp of the message to which the specified threadKey is a reply. If not a reply, this will return null
  * @api private
  */
-const _parseReplyToTimestampFromThreadKey = function(threadKey) {
+const _parseReplyToTimestampFromThreadKey = function (threadKey) {
   // Converts: "timestamp1#timestamp2#timestamp3|" -> [ "timestamp1", "timestamp2", "timestamp3" ]
   const hierarchy = threadKey.split('|')[0].split('#');
   if (hierarchy.length > 1) {

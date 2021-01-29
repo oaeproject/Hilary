@@ -15,7 +15,7 @@
 
 /* eslint-disable camelcase */
 
-import util from 'util';
+import { format } from 'util';
 
 /**
  * The LTI tool model.
@@ -29,8 +29,8 @@ import util from 'util';
  * @param  {Number}     [opts.displayName]     The name of the LTI tool
  * @param  {Number}     [opts.description]     A description of the LTI tool
  */
-const LtiTool = function(id, groupId, launchUrl, secret, consumerKey, opts) {
-  opts = opts || {};
+const LtiTool = function (id, groupId, launchUrl, secret, consumerKey, options) {
+  options = options || {};
 
   const that = {};
   that.id = id;
@@ -38,12 +38,12 @@ const LtiTool = function(id, groupId, launchUrl, secret, consumerKey, opts) {
   that.launchUrl = launchUrl;
   that.secret = secret;
   that.consumerKey = consumerKey;
-  that.displayName = opts.displayName;
-  that.description = opts.description;
+  that.displayName = options.displayName;
+  that.description = options.description;
 
   // The profilePath is in format `/lti/{tenantAlias}/{resourceId}/{id}`
   const split = groupId.split(':');
-  that.profilePath = util.format('/lti/%s/%s/%s', split[1], split[2], id);
+  that.profilePath = format('/lti/%s/%s/%s', split[1], split[2], id);
   that.resourceType = 'ltitool';
 
   return that;
@@ -60,7 +60,15 @@ const LtiTool = function(id, groupId, launchUrl, secret, consumerKey, opts) {
  * @param  {String} groupId             The globally unique id for the group that owns the tool
  * @param  {Object} principal           The object representing the user launching the tool
  */
-const LtiLaunchParams = function(tool, version, tenantAlias, groupDisplayName, isGroupManager, groupId, principal) {
+const LtiLaunchParameters = function (
+  tool,
+  version,
+  tenantAlias,
+  groupDisplayName,
+  isGroupManager,
+  groupId,
+  principal
+) {
   const that = {};
   that.oauth_consumer_key = tool.consumerKey;
   that.oauth_nonce = Date.now();
@@ -103,14 +111,14 @@ const LtiLaunchParams = function(tool, version, tenantAlias, groupDisplayName, i
  * @param  {LtiTool}         tool           An LtiTool object
  * @param  {LtiLaunchParams} launchParams   An LtiLaunchParams object
  */
-const LtiToolLaunchParams = function(tool, launchParams) {
-  launchParams = launchParams || {};
+const LtiToolLaunchParameters = function (tool, launchParameters) {
+  launchParameters = launchParameters || {};
 
   const that = {};
   that.tool = tool;
-  that.launchParams = launchParams;
+  that.launchParams = launchParameters;
 
   return that;
 };
 
-export { LtiLaunchParams, LtiToolLaunchParams, LtiTool };
+export { LtiLaunchParameters as LtiLaunchParams, LtiToolLaunchParameters as LtiToolLaunchParams, LtiTool };

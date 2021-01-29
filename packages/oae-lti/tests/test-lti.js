@@ -14,7 +14,8 @@
  */
 
 import { assert } from 'chai';
-import util from 'util';
+import { describe, before, it } from 'mocha';
+import { format } from 'util';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -39,14 +40,14 @@ describe('LTI tools', () => {
   /**
    * Function that will create a user that will be used inside of the tests
    */
-  before(callback => {
+  before((callback) => {
     // Create all the REST contexts before each test
     asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Create the REST context for our test user
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: jane } = users;
       asJane = jane.restContext;
 
@@ -61,7 +62,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that LTI tool creation is successful when all of the parameters have been provided
      */
-    it('verify that LTI tool creation succeeds given a valid request', callback => {
+    it('verify that LTI tool creation succeeds given a valid request', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -70,8 +71,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -85,8 +86,8 @@ describe('LTI tools', () => {
             key,
             'LTI tool title',
             'LTI tool description',
-            (err, ltiTool) => {
-              assert.notExists(err);
+            (error, ltiTool) => {
+              assert.notExists(error);
               assert.strictEqual(ltiTool.groupId, group.id);
               assert.strictEqual(ltiTool.launchUrl, launchUrl);
               assert.strictEqual(ltiTool.displayName, 'LTI tool title');
@@ -102,7 +103,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that a LTI tool can be created without a description
      */
-    it('verify that missing description is accepted', callback => {
+    it('verify that missing description is accepted', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -111,8 +112,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -126,8 +127,8 @@ describe('LTI tools', () => {
             key,
             'LTI tool title',
             null,
-            (err, toolObject) => {
-              assert.notExists(err);
+            (error, toolObject) => {
+              assert.notExists(error);
               assert.strictEqual(toolObject.description, '');
 
               // Verify that an empty description is acceptable as well
@@ -139,8 +140,8 @@ describe('LTI tools', () => {
                 key,
                 'LTI tool title',
                 '',
-                (err, toolObject) => {
-                  assert.notExists(err);
+                (error, toolObject) => {
+                  assert.notExists(error);
                   assert.strictEqual(toolObject.description, '');
 
                   return callback();
@@ -155,7 +156,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that creating a LTI tool with no launchUrl is not possible
      */
-    it('verify that missing launchUrl is not accepted', callback => {
+    it('verify that missing launchUrl is not accepted', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -164,18 +165,18 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const secret = 'secret';
           const key = '12345';
 
           createLtiTool(asCambridgeTenantAdmin, group.id, '', secret, key, 'LTI tool title', null, (
-            err /* , toolObject */
+            error /* , toolObject */
           ) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
-            assert.strictEqual(err.msg, 'You need to provide a launch URL for this LTI tool');
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
+            assert.strictEqual(error.msg, 'You need to provide a launch URL for this LTI tool');
 
             return callback();
           });
@@ -186,7 +187,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that creating a LTI tool with no OAUTH secret is not possible
      */
-    it('verify that missing OAUTH secret is not accepted', callback => {
+    it('verify that missing OAUTH secret is not accepted', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -195,18 +196,18 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const key = '12345';
 
           createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, null, key, 'LTI tool title', null, (
-            err /* , toolObject */
+            error /* , toolObject */
           ) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
-            assert.strictEqual(err.msg, 'You need to provide an OAUTH secret for this LTI tool');
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
+            assert.strictEqual(error.msg, 'You need to provide an OAUTH secret for this LTI tool');
 
             return callback();
           });
@@ -217,7 +218,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that creating a LTI tool with no OAUTH consumer key is not possible
      */
-    it('verify that missing OAUTH consumer key is not accepted', callback => {
+    it('verify that missing OAUTH consumer key is not accepted', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -226,18 +227,18 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
 
           createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, secret, null, 'LTI tool title', null, (
-            err /* , toolObject */
+            error /* , toolObject */
           ) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
-            assert.strictEqual(err.msg, 'You need to provide an OAUTH consumer key for this LTI tool');
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
+            assert.strictEqual(error.msg, 'You need to provide an OAUTH consumer key for this LTI tool');
 
             return callback();
           });
@@ -248,7 +249,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that a non-manager of a group can not create a LTI tool
      */
-    it('verify that a non-manager can not create LTI tool', callback => {
+    it('verify that a non-manager can not create LTI tool', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -257,8 +258,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -272,10 +273,10 @@ describe('LTI tools', () => {
             key,
             'LTI tool title',
             'LTI tool description',
-            (err /* , toolObject */) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
-              assert.strictEqual(err.msg, 'The current user is not authorized to create an LTI tool');
+            (error /* , toolObject */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
+              assert.strictEqual(error.msg, 'The current user is not authorized to create an LTI tool');
 
               return callback();
             }
@@ -287,7 +288,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies LTI tools can not be created in deleted groups
      */
-    it('verify that a LTI tool can not be created in a deleted group', callback => {
+    it('verify that a LTI tool can not be created in a deleted group', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -296,11 +297,11 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
-          deleteGroup(asCambridgeTenantAdmin, group.id, err => {
-            assert.notExists(err);
+          deleteGroup(asCambridgeTenantAdmin, group.id, (error_) => {
+            assert.notExists(error_);
 
             const launchUrl = 'http://lti.launch.url';
             const secret = 'secret';
@@ -314,10 +315,10 @@ describe('LTI tools', () => {
               key,
               'LTI tool title',
               'LTI tool description',
-              (err /* , toolObject */) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 404);
-                assert.strictEqual(err.msg, "Couldn't find group: " + group.id);
+              (error /* , toolObject */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 404);
+                assert.strictEqual(error.msg, "Couldn't find group: " + group.id);
 
                 return callback();
               }
@@ -333,7 +334,7 @@ describe('LTI tools', () => {
      * Test that verifies that an existing LTI tool can be successfully retrieved and launch data
      * created
      */
-    it('verify retrieved LTI tool launch data', callback => {
+    it('verify retrieved LTI tool launch data', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -342,8 +343,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -351,15 +352,15 @@ describe('LTI tools', () => {
           const title = 'LTI tool title';
           const description = 'LTI tool description';
 
-          createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, secret, key, title, description, (err, tool) => {
-            assert.notExists(err);
+          createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, secret, key, title, description, (error, tool) => {
+            assert.notExists(error);
 
-            joinGroup(asJane, group.id, err => {
-              assert.notExists(err);
+            joinGroup(asJane, group.id, (error_) => {
+              assert.notExists(error_);
 
               // Get the LTI tool and verify its model
-              getLtiTool(asJane, group.id, tool.id, (err, data) => {
-                assert.notExists(err);
+              getLtiTool(asJane, group.id, tool.id, (error, data) => {
+                assert.notExists(error);
 
                 const ltiLaunchData = data.launchParams;
                 assert.strictEqual(ltiLaunchData.oauth_consumer_key, key);
@@ -385,11 +386,11 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that a non-existing LTI tool cannot be retrieved
      */
-    it('verify non existing LTI tool can not be retrieved', callback => {
+    it('verify non existing LTI tool can not be retrieved', (callback) => {
       // Invalid group identifier
-      getLtiTool(asCambridgeTenantAdmin, 'g:camtest:not-exists', '12345', (err, ltiTool) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 404);
+      getLtiTool(asCambridgeTenantAdmin, 'g:camtest:not-exists', '12345', (error, ltiTool) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 404);
         assert.notExists(ltiTool);
 
         createGroup(
@@ -400,11 +401,11 @@ describe('LTI tools', () => {
           JOINABLE,
           NO_MANAGERS,
           NO_MEMBERS,
-          (err, group) => {
+          (error, group) => {
             // Non existing tool
-            getLtiTool(asCambridgeTenantAdmin, group.id, 'not-a-tool', (err, ltiTool) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 404);
+            getLtiTool(asCambridgeTenantAdmin, group.id, 'not-a-tool', (error, ltiTool) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 404);
               assert.notExists(ltiTool);
 
               return callback();
@@ -419,7 +420,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that all LTI tools linked to a group can be successfully retrieved
      */
-    it('verify retrieving LTI tools for a group', callback => {
+    it('verify retrieving LTI tools for a group', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -428,7 +429,7 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
+        (error, group) => {
           const secret = 'secret';
           const title = 'LTI tool title';
           const description = 'LTI tool description';
@@ -441,8 +442,8 @@ describe('LTI tools', () => {
             '12345',
             title,
             description,
-            (err, tool1) => {
-              assert.notExists(err);
+            (error, tool1) => {
+              assert.notExists(error);
 
               createLtiTool(
                 asCambridgeTenantAdmin,
@@ -452,19 +453,19 @@ describe('LTI tools', () => {
                 '12346',
                 title,
                 description,
-                (err, tool2) => {
-                  assert.notExists(err);
+                (error, tool2) => {
+                  assert.notExists(error);
 
                   // Get the LTI tools for the group
-                  getLtiTools(asCambridgeTenantAdmin, group.id, (err, ltiTools) => {
-                    assert.notExists(err);
+                  getLtiTools(asCambridgeTenantAdmin, group.id, (error, ltiTools) => {
+                    assert.notExists(error);
                     assert.lengthOf(ltiTools.results, 2);
                     const tool = ltiTools.results[0];
                     assert.strictEqual(tool.groupId, group.id);
 
                     // Check that OAUTH secret is not included in the returned object
                     assert.notExists(tool.secret);
-                    const isIdPartOf = id => compose(contains(id), pluck('id'), prop('results'))(ltiTools);
+                    const isIdPartOf = (id) => compose(contains(id), pluck('id'), prop('results'))(ltiTools);
                     assert.ok(isIdPartOf(tool1.id));
                     assert.ok(isIdPartOf(tool2.id));
 
@@ -481,13 +482,13 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that LTI tools are not retrieved for erroneous groups
      */
-    it('verify retrieving LTI tools are not retrieved for erroneous groups', callback => {
+    it('verify retrieving LTI tools are not retrieved for erroneous groups', (callback) => {
       // Test that tools are not retrieved for non-existing groups
       const notExists = 'g:camtest:not-exists';
-      getLtiTools(asCambridgeTenantAdmin, notExists, (err /* , ltiTools */) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 404);
-        assert.strictEqual(err.msg, 'Could not find principal with id ' + notExists);
+      getLtiTools(asCambridgeTenantAdmin, notExists, (error /* , ltiTools */) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 404);
+        assert.strictEqual(error.msg, 'Could not find principal with id ' + notExists);
 
         // Test that tools are not retrieved for deleted groups
         createGroup(
@@ -498,7 +499,7 @@ describe('LTI tools', () => {
           JOINABLE,
           NO_MANAGERS,
           NO_MEMBERS,
-          (err, group) => {
+          (error, group) => {
             const secret = 'secret';
             const title = 'LTI tool title';
             const description = 'LTI tool description';
@@ -511,8 +512,8 @@ describe('LTI tools', () => {
               '12345',
               title,
               description,
-              (err /* , tool1 */) => {
-                assert.notExists(err);
+              (error /* , tool1 */) => {
+                assert.notExists(error);
 
                 createLtiTool(
                   asCambridgeTenantAdmin,
@@ -522,16 +523,16 @@ describe('LTI tools', () => {
                   '12346',
                   title,
                   description,
-                  (err /* , tool2 */) => {
-                    assert.notExists(err);
+                  (error /* , tool2 */) => {
+                    assert.notExists(error);
 
-                    deleteGroup(asCambridgeTenantAdmin, group.id, err => {
-                      assert.notExists(err);
+                    deleteGroup(asCambridgeTenantAdmin, group.id, (error_) => {
+                      assert.notExists(error_);
 
-                      getLtiTools(asCambridgeTenantAdmin, group.id, (err /* , ltiTools */) => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 404);
-                        assert.strictEqual(err.msg, "Couldn't find group: " + group.id);
+                      getLtiTools(asCambridgeTenantAdmin, group.id, (error /* , ltiTools */) => {
+                        assert.ok(error);
+                        assert.strictEqual(error.code, 404);
+                        assert.strictEqual(error.msg, "Couldn't find group: " + group.id);
 
                         // Test that an empty array is returned for a group with no tools
                         createGroup(
@@ -542,11 +543,11 @@ describe('LTI tools', () => {
                           JOINABLE,
                           NO_MANAGERS,
                           NO_MEMBERS,
-                          (err, group) => {
-                            assert.notExists(err);
+                          (error, group) => {
+                            assert.notExists(error);
 
-                            getLtiTools(asCambridgeTenantAdmin, group.id, (err, ltiTools) => {
-                              assert.notExists(err);
+                            getLtiTools(asCambridgeTenantAdmin, group.id, (error, ltiTools) => {
+                              assert.notExists(error);
                               assert.lengthOf(ltiTools.results, 0);
 
                               return callback();
@@ -569,7 +570,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that LTI tools can be deleted
      */
-    it('verify that LTI tools can be deleted', callback => {
+    it('verify that LTI tools can be deleted', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -578,8 +579,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -593,25 +594,25 @@ describe('LTI tools', () => {
             key,
             'LTI tool title',
             'LTI tool description',
-            (err, tool) => {
-              assert.notExists(err);
+            (error, tool) => {
+              assert.notExists(error);
               const { id } = tool;
 
               // Assert the tool exists and can be fetched
-              getLtiTool(asCambridgeTenantAdmin, group.id, id, (err, data) => {
-                assert.notExists(err);
+              getLtiTool(asCambridgeTenantAdmin, group.id, id, (error, data) => {
+                assert.notExists(error);
                 const ltiLaunchData = data.launchParams;
                 assert.strictEqual(ltiLaunchData.oauth_consumer_key, key);
                 assert.strictEqual(ltiLaunchData.resource_link_id, id);
 
-                deleteLtiTool(asCambridgeTenantAdmin, group.id, id, err => {
-                  assert.notExists(err);
+                deleteLtiTool(asCambridgeTenantAdmin, group.id, id, (error_) => {
+                  assert.notExists(error_);
 
                   // Assert the tool can no longer be fetched
-                  getLtiTool(asCambridgeTenantAdmin, group.id, id, (err /* , data */) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 404);
-                    assert.strictEqual(err.msg, util.format('Could not find LTI tool %s for group %s', id, group.id));
+                  getLtiTool(asCambridgeTenantAdmin, group.id, id, (error /* , data */) => {
+                    assert.ok(error);
+                    assert.strictEqual(error.code, 404);
+                    assert.strictEqual(error.msg, format('Could not find LTI tool %s for group %s', id, group.id));
 
                     return callback();
                   });
@@ -626,7 +627,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies that a non-manager of a group can not delete a LTI tool
      */
-    it('verify that a non-manager can not delete LTI tool', callback => {
+    it('verify that a non-manager can not delete LTI tool', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -635,8 +636,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
@@ -650,13 +651,13 @@ describe('LTI tools', () => {
             key,
             'LTI tool title',
             'LTI tool description',
-            (err, tool) => {
-              assert.notExists(err);
+            (error, tool) => {
+              assert.notExists(error);
 
-              deleteLtiTool(asCambridgeAnonymousUser, group.id, tool.id, err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
-                assert.strictEqual(err.msg, 'The current user does not have access to manage this resource');
+              deleteLtiTool(asCambridgeAnonymousUser, group.id, tool.id, (error_) => {
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 401);
+                assert.strictEqual(error_.msg, 'The current user does not have access to manage this resource');
 
                 return callback();
               });
@@ -669,7 +670,7 @@ describe('LTI tools', () => {
     /**
      * Test that verifies LTI tools can not be deleted in deleted groups
      */
-    it('verify that a LTI tool can not be deleted in a deleted group', callback => {
+    it('verify that a LTI tool can not be deleted in a deleted group', (callback) => {
       createGroup(
         asCambridgeTenantAdmin,
         'This is a group',
@@ -678,8 +679,8 @@ describe('LTI tools', () => {
         JOINABLE,
         NO_MANAGERS,
         NO_MEMBERS,
-        (err, group) => {
-          assert.notExists(err);
+        (error, group) => {
+          assert.notExists(error);
 
           createLtiTool(
             asCambridgeTenantAdmin,
@@ -689,16 +690,16 @@ describe('LTI tools', () => {
             '12345',
             'LTI tool title',
             'LTI tool description',
-            (err, tool) => {
-              assert.notExists(err);
+            (error, tool) => {
+              assert.notExists(error);
 
-              deleteGroup(asCambridgeTenantAdmin, group.id, err => {
-                assert.notExists(err);
+              deleteGroup(asCambridgeTenantAdmin, group.id, (error_) => {
+                assert.notExists(error_);
 
-                deleteLtiTool(asCambridgeTenantAdmin, group.id, tool.id, err => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 404);
-                  assert.strictEqual(err.msg, util.format("Couldn't find group: %s", group.id));
+                deleteLtiTool(asCambridgeTenantAdmin, group.id, tool.id, (error_) => {
+                  assert.ok(error_);
+                  assert.strictEqual(error_.code, 404);
+                  assert.strictEqual(error_.msg, format("Couldn't find group: %s", group.id));
 
                   return callback();
                 });

@@ -14,7 +14,7 @@
  */
 
 import * as OAE from 'oae-util/lib/oae';
-import * as LtiApi from './api';
+import * as LtiApi from './api.js';
 
 /**
  * @REST getLtiTool
@@ -31,13 +31,13 @@ import * as LtiApi from './api';
  * @HttpResponse                        404                 The LTI tool could not be found
  * @HttpResponse                        401                 The current user does not have access to this LTI tool
  */
-OAE.tenantRouter.on('get', '/api/lti/:groupId/:id', (req, res) => {
-  LtiApi.getLtiTool(req.ctx, req.params.id, req.params.groupId, (err, tool) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/lti/:groupId/:id', (request, response) => {
+  LtiApi.getLtiTool(request.ctx, request.params.id, request.params.groupId, (error, tool) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(tool);
+    return response.status(200).send(tool);
   });
 });
 
@@ -64,18 +64,26 @@ OAE.tenantRouter.on('get', '/api/lti/:groupId/:id', (req, res) => {
  * @HttpResponse                400                     You need to provide an OAUTH consumer key this LTI tool
  * @HttpResponse                401                     Unauthorized
  */
-OAE.tenantRouter.on('post', '/api/lti/:groupId/create', (req, res) => {
-  const opts = {
-    displayName: req.body.displayName,
-    description: req.body.description
+OAE.tenantRouter.on('post', '/api/lti/:groupId/create', (request, response) => {
+  const options = {
+    displayName: request.body.displayName,
+    description: request.body.description
   };
-  LtiApi.addLtiTool(req.ctx, req.params.groupId, req.body.url, req.body.secret, req.body.key, opts, (err, tool) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  LtiApi.addLtiTool(
+    request.ctx,
+    request.params.groupId,
+    request.body.url,
+    request.body.secret,
+    request.body.key,
+    options,
+    (error, tool) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(201).send(tool);
-  });
+      return response.status(201).send(tool);
+    }
+  );
 });
 
 /**
@@ -92,13 +100,13 @@ OAE.tenantRouter.on('post', '/api/lti/:groupId/create', (req, res) => {
  * @HttpResponse                400                         Must provide a groupId
  * @HttpResponse                404                         No LTI tools were found for the given group
  */
-OAE.tenantRouter.on('get', '/api/lti/:groupId', (req, res) => {
-  LtiApi.getLtiTools(req.ctx, req.params.groupId, (err, results) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/lti/:groupId', (request, response) => {
+  LtiApi.getLtiTools(request.ctx, request.params.groupId, (error, results) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send({ results });
+    return response.status(200).send({ results });
   });
 });
 
@@ -115,12 +123,12 @@ OAE.tenantRouter.on('get', '/api/lti/:groupId', (req, res) => {
  * @HttpResponse                401         You do not have access to delete this LTI tool
  * @HttpResponse                404         The LTI tool did not exist
  */
-OAE.tenantRouter.on('delete', '/api/lti/:groupId/:id', (req, res) => {
-  LtiApi.deleteLtiTool(req.ctx, req.params.id, req.params.groupId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/lti/:groupId/:id', (request, response) => {
+  LtiApi.deleteLtiTool(request.ctx, request.params.id, request.params.groupId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });

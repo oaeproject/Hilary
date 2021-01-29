@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { not } from 'ramda';
 
 import * as TestsUtil from 'oae-tests/lib/util';
@@ -34,7 +35,7 @@ describe('Library Indexing', () => {
     /**
      * Test that verifies we cannot register two library indexes of the same name
      */
-    it('verify cannot register two library indexes of the same name', callback => {
+    it('verify cannot register two library indexes of the same name', (callback) => {
       registerLibraryIndex(testName, { pageResources() {} });
 
       assert.throws(() => {
@@ -47,7 +48,7 @@ describe('Library Indexing', () => {
     /**
      * Test that verifies we cannot register a library with no pageResources function
      */
-    it('verify cannot register a library index that has no ability to page resources', callback => {
+    it('verify cannot register a library index that has no ability to page resources', (callback) => {
       assert.throws(() => {
         registerLibraryIndex(generateRandomText(), {});
       });
@@ -60,7 +61,7 @@ describe('Library Indexing', () => {
     /**
      * Test that verifies purging a library index results in it being rebuilt
      */
-    it('verify a library index is cleared when purged and then rebuilt when queried', callback => {
+    it('verify a library index is cleared when purged and then rebuilt when queried', (callback) => {
       /*!
        * Convenience function to create a light-weight resource with just an id, tenant alias
        * and visibility
@@ -70,7 +71,7 @@ describe('Library Indexing', () => {
        * @param  {String}     visibility      The visibility of the resource
        * @return {Object}                     The light weight resource object
        */
-      const _resource = function(id, tenantAlias, visibility) {
+      const _resource = function (id, tenantAlias, visibility) {
         return {
           id,
           tenant: {
@@ -110,21 +111,21 @@ describe('Library Indexing', () => {
       });
 
       // Ensure that some arbitrary library in this index is currently stale
-      isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
-        assert.notExists(err);
+      isStale(testName, SOME_LIBRARY, PRIVATE, (error, isItStale) => {
+        assert.notExists(error);
         assert.strictEqual(isItStale, true);
 
-        isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
-          assert.notExists(err);
+        isStale(testName, SOME_LIBRARY, LOGGEDIN, (error, isItStale) => {
+          assert.notExists(error);
           assert.strictEqual(isItStale, true);
 
-          isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
-            assert.notExists(err);
+          isStale(testName, SOME_LIBRARY, PUBLIC, (error, isItStale) => {
+            assert.notExists(error);
             assert.strictEqual(isItStale, true);
 
             // Query the index and make sure we get the items
-            list(testName, SOME_LIBRARY, PRIVATE, { limit: 10 }, (err, entries) => {
-              assert.notExists(err);
+            list(testName, SOME_LIBRARY, PRIVATE, { limit: 10 }, (error, entries) => {
+              assert.notExists(error);
 
               assert.lengthOf(entries, 3);
               assert.deepStrictEqual(entries[0], { resourceId: 'c', value: 1 });
@@ -132,33 +133,33 @@ describe('Library Indexing', () => {
               assert.deepStrictEqual(entries[2], { resourceId: 'a', value: 1 });
 
               // Ensure that each library index list is no longer stale
-              isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
-                assert.notExists(err);
+              isStale(testName, SOME_LIBRARY, PRIVATE, (error, isItStale) => {
+                assert.notExists(error);
                 assert.strictEqual(isItStale, false);
 
-                isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
-                  assert.notExists(err);
+                isStale(testName, SOME_LIBRARY, LOGGEDIN, (error, isItStale) => {
+                  assert.notExists(error);
                   assert.strictEqual(isItStale, false);
 
-                  isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
-                    assert.notExists(err);
+                  isStale(testName, SOME_LIBRARY, PUBLIC, (error, isItStale) => {
+                    assert.notExists(error);
                     assert.strictEqual(isItStale, false);
 
                     // Purge the full library
-                    purge(testName, SOME_LIBRARY, err => {
-                      assert.notExists(err);
+                    purge(testName, SOME_LIBRARY, (error_) => {
+                      assert.notExists(error_);
 
                       // Ensure that each library index list is stale once again
-                      isStale(testName, SOME_LIBRARY, PRIVATE, (err, isItStale) => {
-                        assert.notExists(err);
+                      isStale(testName, SOME_LIBRARY, PRIVATE, (error, isItStale) => {
+                        assert.notExists(error);
                         assert.strictEqual(isItStale, true);
 
-                        isStale(testName, SOME_LIBRARY, LOGGEDIN, (err, isItStale) => {
-                          assert.notExists(err);
+                        isStale(testName, SOME_LIBRARY, LOGGEDIN, (error, isItStale) => {
+                          assert.notExists(error);
                           assert.strictEqual(isItStale, true);
 
-                          isStale(testName, SOME_LIBRARY, PUBLIC, (err, isItStale) => {
-                            assert.notExists(err);
+                          isStale(testName, SOME_LIBRARY, PUBLIC, (error, isItStale) => {
+                            assert.notExists(error);
                             assert.strictEqual(isItStale, true);
 
                             return callback();

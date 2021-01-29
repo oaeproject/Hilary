@@ -14,7 +14,7 @@
  */
 
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import sharp from 'sharp';
 import request from 'request';
@@ -37,7 +37,7 @@ const log = logger('oae-preview-processor');
  * @param  {Object}   callback.err      An error that occurred, if any
  * @param  {String}   callback.path     The path on disk where the file is stored.
  */
-const downloadRemoteFile = function(url, path, callback) {
+const downloadRemoteFile = function (url, path, callback) {
   let called = false;
   const stream = fs.createWriteStream(path);
   stream.on('close', () => {
@@ -47,14 +47,14 @@ const downloadRemoteFile = function(url, path, callback) {
       callback(null, path);
     }
   });
-  stream.on('error', err => {
+  stream.on('error', (error) => {
     IO.destroyStream(stream);
-    log().error({ err, url }, 'Unable to download the file due to a streaming error');
+    log().error({ err: error, url }, 'Unable to download the file due to a streaming error');
     if (!called) {
       called = true;
       callback({
         code: 500,
-        msg: 'The stream errored out when trying to save a remote file: ' + err
+        msg: 'The stream errored out when trying to save a remote file: ' + error
       });
     }
   });
@@ -62,14 +62,14 @@ const downloadRemoteFile = function(url, path, callback) {
   // Download it.
   log().trace('Downloading %s to %s', url, path);
   // Create a new jar so we don't accidentally leak a session.
-  const opts = {
+  const options = {
     url,
     jar: request.jar()
   };
   // eslint-disable-next-line no-unused-vars
-  const req = request(opts, (err, response) => {
-    if (err) {
-      log().error({ err, url }, 'Unable to download the file due to a request error.');
+  const request_ = request(options, (error, response) => {
+    if (error) {
+      log().error({ err: error, url }, 'Unable to download the file due to a request error.');
       if (!called) {
         called = true;
         callback({ code: 500, msg: 'Unable to download the file.' });
@@ -78,7 +78,7 @@ const downloadRemoteFile = function(url, path, callback) {
   });
 
   // Pipe the file too the stream
-  req.pipe(stream);
+  request_.pipe(stream);
 };
 
 /**
@@ -97,7 +97,7 @@ const downloadRemoteFile = function(url, path, callback) {
  * @param  {Function}           callback                Standard callback function
  * @param  {Object}             callback.err            An error that occurred, if any
  */
-const generatePreviewsFromImage = function(ctx, path, options, callback) {
+const generatePreviewsFromImage = function (ctx, path, options, callback) {
   options = options || {};
   options.removeInput = _.isBoolean(options.removeInput) ? options.removeInput : false;
 
@@ -105,15 +105,15 @@ const generatePreviewsFromImage = function(ctx, path, options, callback) {
   // and to make the whole preview process more performant (orienting images is very slow).
   // We also re-use the extension if one is available
   const extension = ImageUtil.getImageExtension(path, '.jpg');
-  const fixedPath = util.format('%s/fixed%s', ctx.baseDir, extension);
-  const opts = {
+  const fixedPath = format('%s/fixed%s', ctx.baseDir, extension);
+  const options_ = {
     outputPath: fixedPath,
     removeInput: options.removeInput
   };
   // eslint-disable-next-line no-unused-vars
-  ImageUtil.autoOrient(path, opts, (err, fixedFile) => {
-    if (err) {
-      return callback(err);
+  ImageUtil.autoOrient(path, options_, (error, fixedFile) => {
+    if (error) {
+      return callback(error);
     }
 
     // Generate different sizes.
@@ -134,9 +134,9 @@ const generatePreviewsFromImage = function(ctx, path, options, callback) {
         size: 'small'
       }
     ];
-    _resizeImages(ctx, fixedPath, sizes, err => {
-      if (err) {
-        return callback(err);
+    _resizeImages(ctx, fixedPath, sizes, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Intelligently crop out a part of the image.
@@ -155,19 +155,19 @@ const generatePreviewsFromImage = function(ctx, path, options, callback) {
  * @param  {Object}              callback.err    An error that occurred, if any
  * @api private
  */
-const _resizeImages = function(ctx, path, sizes, callback) {
+const _resizeImages = function (ctx, path, sizes, callback) {
   let todo = sizes.length;
   let called = false;
 
   // Get the source size first, so we don't accidentally upscale an image that is smaller than the target size.
-  sharp(path).metadata((err, metainfo) => {
-    if (err) {
+  sharp(path).metadata((error, metainfo) => {
+    if (error) {
       called = true;
-      log().error({ err, path, contentId: ctx.content.id }, 'Could not retrieve the size for this image.');
-      return callback({ code: 500, msg: err.message });
+      log().error({ err: error, path, contentId: ctx.content.id }, 'Could not retrieve the size for this image.');
+      return callback({ code: 500, msg: error.message });
     }
 
-    sizes.forEach(size => {
+    sizes.forEach((size) => {
       let ratio = metainfo.height / size.height;
       // If both sides are smaller we don't have to do anything.
       if (size.width > metainfo.width && size.height > metainfo.height) {
@@ -187,13 +187,11 @@ const _resizeImages = function(ctx, path, sizes, callback) {
       size.height = Math.floor(metainfo.height / ratio);
 
       // Perform the actual resize.
-      _resize(ctx, path, size, err => {
+      _resize(ctx, path, size, (error_) => {
         todo--;
-        if (err) {
-          if (!called) {
-            called = true;
-            return callback(err);
-          }
+        if (error_ && !called) {
+          called = true;
+          return callback(error_);
         }
 
         if (todo === 0 && !called) {
@@ -222,7 +220,7 @@ const _resizeImages = function(ctx, path, sizes, callback) {
  * @param  {Object}              callback.err    An error that occurred, if any
  * @api private
  */
-const _resize = function(ctx, path, size, callback) {
+const _resize = function (ctx, path, size, callback) {
   let inputPath = path;
   if (path.lastIndexOf('.gif') === path.length - 4) {
     // If we're dealing with a GIF, we use the first frame
@@ -230,18 +228,18 @@ const _resize = function(ctx, path, size, callback) {
   }
 
   log().trace({ contentId: ctx.contentId }, 'Resizing image %s to %s x %s', inputPath, size.width, size.height);
-  ImageUtil.resizeImage(inputPath, size, (err, file) => {
-    if (err) {
-      return callback(err);
+  ImageUtil.resizeImage(inputPath, size, (error, file) => {
+    if (error) {
+      return callback(error);
     }
 
     // Move the resized image to the base directory for this piece of content
     const prefix = size.prefix || '';
     const extension = ImageUtil.getImageExtension(path, '.jpg');
     const outputPath = ctx.baseDir + '/' + prefix + size.size + extension;
-    IO.moveFile(file.path, outputPath, err => {
-      if (err) {
-        return callback(err);
+    IO.moveFile(file.path, outputPath, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Add it to the set of previews that should be attached to it
@@ -275,15 +273,15 @@ const _resize = function(ctx, path, size, callback) {
  * @param  {Object}             callback.err    An error that occurred, if any
  * @api private
  */
-const _cropThumbnail = function(ctx, path, cropMode, callback) {
+const _cropThumbnail = function (ctx, path, cropMode, callback) {
   // Do a proper JPG conversion so we don't end up with `thumbnail.jpg` which are really GIFs masking as JPGs
-  ImageUtil.convertToJPG(path, (err, jpgFile) => {
-    if (err) {
-      return callback(err);
+  ImageUtil.convertToJPG(path, (error, jpgFile) => {
+    if (error) {
+      return callback(error);
     }
 
     // Crop the square thumbnail. We *always* crop a thumbnail, if the source image is too small, we'll just have to stretch it
-    const opts = {
+    const options = {
       allowStretching: true,
       cropMode
     };
@@ -292,11 +290,11 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
       jpgFile.path,
       PreviewConstants.SIZES.IMAGE.THUMBNAIL,
       PreviewConstants.SIZES.IMAGE.THUMBNAIL,
-      opts,
+      options,
       'thumbnail.jpg',
-      (err, thumbnailPath) => {
-        if (err) {
-          return callback(err);
+      (error_, thumbnailPath) => {
+        if (error_) {
+          return callback(error_);
         }
 
         if (!thumbnailPath) {
@@ -310,17 +308,17 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
         }
 
         // Now, crop the large rectangle for activity feeds. We only create this if the source image is large enough
-        opts.allowStretching = false;
+        options.allowStretching = false;
         _cropIntelligently(
           ctx,
           jpgFile.path,
           PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
           PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT,
-          opts,
+          options,
           'wide.jpg',
-          (err, widePath) => {
-            if (err) {
-              return callback(err);
+          (error, widePath) => {
+            if (error) {
+              return callback(error);
             }
 
             // If the source image is smaller then the target rectangle, the path will be null
@@ -354,12 +352,12 @@ const _cropThumbnail = function(ctx, path, cropMode, callback) {
  * @param  {String}             callback.path           The full path where the subimage can be found. If the base image was too small, this will be null (no error, will be passed)
  * @api private
  */
-const _cropIntelligently = function(ctx, path, width, height, opts, filename, callback) {
+const _cropIntelligently = function (ctx, path, width, height, options, filename, callback) {
   log().trace({ contentId: ctx.contentId }, 'Cropping image: %s', path);
-  opts = opts || {};
-  sharp(path).metadata((err, metainfo) => {
-    if (err) {
-      log().error({ err }, 'Could not get the image size for the large image.');
+  options = options || {};
+  sharp(path).metadata((error, metainfo) => {
+    if (error) {
+      log().error({ err: error }, 'Could not get the image size for the large image.');
       return callback({ code: 500, msg: 'Could not get the image size for the large image.' });
     }
 
@@ -367,7 +365,7 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
     const imageHeight = metainfo.height;
 
     // Ignore if the image is too small.
-    if (!opts.allowStretching && (imageWidth < width || imageHeight < height)) {
+    if (!options.allowStretching && (imageWidth < width || imageHeight < height)) {
       return callback(null, null);
     }
 
@@ -379,15 +377,15 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
     const cropWidth = Math.floor(width * ratio);
     const cropHeight = Math.floor(height * ratio);
 
-    if (!opts.cropMode) {
+    if (!options.cropMode) {
       // In landscape mode we crop out a box the size of the image height in the (absolute) center of the image.
       if (imageWidth > imageHeight) {
-        opts.cropMode = 'CENTER';
+        options.cropMode = 'CENTER';
 
         // In portrait mode we crop out a box the size of the image width at the top of the image.
         // This is to get the top of the page for content items such as PDFs, Office files, ...
       } else {
-        opts.cropMode = 'TOP';
+        options.cropMode = 'TOP';
       }
     }
 
@@ -399,24 +397,24 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
       height: cropHeight
     };
 
-    if (opts.cropMode === 'CENTER') {
+    if (options.cropMode === 'CENTER') {
       selectedArea.x = Math.floor((imageWidth - cropWidth) / 2);
       selectedArea.y = Math.floor((imageHeight - cropHeight) / 3);
     }
 
     // Crop the correct square.
-    ImageUtil.cropAndResize(path, selectedArea, [{ width, height }], (err, files) => {
-      if (err) {
-        log().error({ err }, 'Could not crop the image.');
-        return callback(err);
+    ImageUtil.cropAndResize(path, selectedArea, [{ width, height }], (error, files) => {
+      if (error) {
+        log().error({ err: error }, 'Could not crop the image.');
+        return callback(error);
       }
 
       // Move the files to the thumbnail path
       const key = width + 'x' + height;
       const croppedPath = ctx.baseDir + '/' + filename;
-      IO.moveFile(files[key].path, croppedPath, err => {
-        if (err) {
-          return callback(err);
+      IO.moveFile(files[key].path, croppedPath, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         callback(null, croppedPath);
@@ -425,13 +423,9 @@ const _cropIntelligently = function(ctx, path, width, height, opts, filename, ca
   });
 };
 
-const test = (contentObj, fileTypeIsValid) => {
+const test = (contentObject, fileTypeIsValid) => {
   let testCode = null;
-  if (contentObj.resourceSubType === 'file' && fileTypeIsValid) {
-    testCode = 10;
-  } else {
-    testCode = -1;
-  }
+  testCode = contentObject.resourceSubType === 'file' && fileTypeIsValid ? 10 : -1;
 
   return testCode;
 };

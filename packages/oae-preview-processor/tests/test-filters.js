@@ -14,13 +14,14 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
 import { Content } from 'oae-content/lib/model';
 import { FilterGenerator } from 'oae-preview-processor/lib/filters';
 
 const isNotEmpty = compose(not, isEmpty);
-const isFalse = x => equals(false, x);
-const isTrue = x => equals(true, x);
+const isFalse = (x) => equals(false, x);
+const isTrue = (x) => equals(true, x);
 
 describe('Preview processor - filters', () => {
   /**
@@ -42,7 +43,7 @@ describe('Preview processor - filters', () => {
    * @return {Object[]} Returns an array of mocked content items that each has at least one revision
    * @api private
    */
-  const _getMockData = function() {
+  const _getMockData = function () {
     // Fake 5 content items
     const content = [
       new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3'),
@@ -64,7 +65,7 @@ describe('Preview processor - filters', () => {
     ];
 
     // Make sure we create the contentId field because we need it for the contentIdFilter test
-    forEach(eachContent => {
+    forEach((eachContent) => {
       eachContent.contentId = eachContent.id;
     }, content);
 
@@ -162,7 +163,7 @@ describe('Preview processor - filters', () => {
       }
     ];
     // Populate each piece of content's tenantAlias
-    forEach(eachContent => {
+    forEach((eachContent) => {
       eachContent.tenantAlias = eachContent.tenant.alias;
     }, content);
 
@@ -173,7 +174,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies that at least 1 filter should be specified
      */
-    it('Missing filters', callback => {
+    it('Missing filters', (callback) => {
       const filters = {};
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(filterGenerator.hasErrors());
@@ -185,7 +186,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies that unknown filters trigger a validation error
      */
-    it('Unknown filters', callback => {
+    it('Unknown filters', (callback) => {
       let filters = {
         content: {
           unknown: 'foo'
@@ -220,7 +221,7 @@ describe('Preview processor - filters', () => {
      * @param  {Object[]}   expectations.revisionsStage     An array of objects. One object per content item that is supposed to remain after the revision filtering stage. The `contentId` value determines which content ID should remain and the `revisions` holds an array of revision IDs that should remain
      * @api private
      */
-    const _filterAndAssert = function(filters, expectations) {
+    const _filterAndAssert = function (filters, expectations) {
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(isFalse(filterGenerator.hasErrors()));
       assert.strictEqual(filterGenerator.needsRevisions(), expectations.needsRevisions);
@@ -252,7 +253,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter by both content and revision properties
      */
-    it('filter by content.resourceSubType and revision.mime', callback => {
+    it('filter by content.resourceSubType and revision.mime', (callback) => {
       const filters = {
         content: {
           resourceSubType: 'file'
@@ -273,7 +274,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter by tenant
      */
-    it('filter by content.tenantAlias', callback => {
+    it('filter by content.tenantAlias', (callback) => {
       const filters = {
         content: {
           tenant: 'camtest'
@@ -296,7 +297,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter by the content creator
      */
-    it('filter by content.createdBy', callback => {
+    it('filter by content.createdBy', (callback) => {
       const filters = {
         content: {
           createdBy: 'u:camtest:simon'
@@ -317,7 +318,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter by contentId
      */
-    it('filter by content.contentId', done => {
+    it('filter by content.contentId', (done) => {
       const filters = {
         content: {
           contentId: 'c:camtest:d'
@@ -335,7 +336,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter by the revision creator
      */
-    it('filter by revision.createdBy', callback => {
+    it('filter by revision.createdBy', (callback) => {
       const filters = {
         revision: {
           createdBy: 'u:camtest:simon'
@@ -356,7 +357,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter revisions on the created timestamp
      */
-    it('filter by revision.createdBefore', callback => {
+    it('filter by revision.createdBefore', (callback) => {
       const filters = {
         revision: {
           createdBefore: times.B
@@ -373,7 +374,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter revisions on the created timestamp
      */
-    it('filter by revision.createdAfter', callback => {
+    it('filter by revision.createdAfter', (callback) => {
       const filters = {
         revision: {
           createdAfter: times.D
@@ -393,7 +394,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter revisions on the mimetype
      */
-    it('filter by revision.mime', callback => {
+    it('filter by revision.mime', (callback) => {
       const filters = {
         revision: {
           mime: ['application/pdf', 'video/mp4']
@@ -413,7 +414,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter content on its preview status
      */
-    it('filter by content.previews.status', callback => {
+    it('filter by content.previews.status', (callback) => {
       const filters = {
         content: {
           previewsStatus: 'error'
@@ -445,7 +446,7 @@ describe('Preview processor - filters', () => {
     /**
      * Test that verifies you can filter revisions on their preview status
      */
-    it('filter by revision.previews.status', callback => {
+    it('filter by revision.previews.status', (callback) => {
       // Filter on pdf and word files
       const filters = {
         revision: {

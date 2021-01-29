@@ -15,9 +15,10 @@
 
 /* eslint-disable camelcase */
 import { assert } from 'chai';
+import { after, afterEach, beforeEach, describe, before, it } from 'mocha';
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
+import { format } from 'util';
 import sharp from 'sharp';
 import { keys, equals, find, toUpper, not, compose, head, values, prop } from 'ramda';
 
@@ -67,7 +68,7 @@ describe('Preview processor', () => {
   let camAdminRestContext = null;
   let anonymousRestContext = null;
 
-  before(callback => {
+  before((callback) => {
     signedAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -83,12 +84,12 @@ describe('Preview processor', () => {
       'oae-preview-processor/slideshare/apikey': 'd1ELqsL0',
       'oae-preview-processor/youtube/key': 'youtube-key'
     };
-    ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, 'admin', update, err => {
-      assert.notExists(err);
+    ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, 'admin', update, (error) => {
+      assert.notExists(error);
 
       // Log in the admin so his cookie jar is set up appropriately
-      RestAPI.User.getMe(signedAdminRestContext, (err /* , meObj */) => {
-        assert.notExists(err);
+      RestAPI.User.getMe(signedAdminRestContext, (error /* , meObj */) => {
+        assert.notExists(error);
         defaultConfig = PreviewAPI.getConfiguration();
 
         callback();
@@ -96,11 +97,11 @@ describe('Preview processor', () => {
     });
   });
 
-  after(callback => {
+  after((callback) => {
     // Revert back to local storage.
     const update = { 'oae-content/storage/backend': 'local' };
-    ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, 'admin', update, err => {
-      assert.notExists(err);
+    ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, 'admin', update, (error) => {
+      assert.notExists(error);
       callback();
     });
   });
@@ -139,33 +140,33 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the processors are unregistered correctly and that the score as returned from the `test` function is respected
      */
-    it('verify that processors can be unregistered', callback => {
+    it('verify that processors can be unregistered', (callback) => {
       // Register some processors, each with a different test score
       PreviewAPI.registerProcessor('verify-pp-20', {
         testval: 20,
-        test(ctx, contentObj, callback) {
+        test(ctx, contentObject, callback) {
           callback(null, 20);
         },
         generatePreviews() {}
       });
       PreviewAPI.registerProcessor('verify-pp-30', {
         testval: 30,
-        test(ctx, contentObj, callback) {
+        test(ctx, contentObject, callback) {
           callback(null, 30);
         },
         generatePreviews() {}
       });
       PreviewAPI.registerProcessor('verify-pp--1', {
         testval: -1,
-        test(ctx, contentObj, callback) {
+        test(ctx, contentObject, callback) {
           callback(null, -1);
         },
         generatePreviews() {}
       });
 
       // Create a piece of content as a regular user
-      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
-        assert.ok(not(err));
+      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, response) => {
+        assert.ok(not(error));
         const restCtx = compose(prop('restContext'), head, values)(response);
 
         RestAPI.Content.createFile(
@@ -179,17 +180,17 @@ describe('Preview processor', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
             // Generate a mock preview context
             const mockCtx = {
-              content: contentObj,
+              content: contentObject,
               revision: {}
             };
             // The processor who returns 30 should be on top
-            PreviewAPI.getProcessor(mockCtx, contentObj, (err, processor) => {
-              assert.notExists(err);
+            PreviewAPI.getProcessor(mockCtx, contentObject, (error, processor) => {
+              assert.notExists(error);
               assert.strictEqual(processor.testval, 30);
 
               // Unregister our processors
@@ -245,14 +246,14 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the Office PP can detect if it is configured correctly
      */
-    it('verify the Office PP can detect if it is configured correctly', callback => {
+    it('verify the Office PP can detect if it is configured correctly', (callback) => {
       const config = {
         binary: 'some-none-existinant-binary',
         timeout: 120000
       };
-      PreviewOffice.init(config, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 500);
+      PreviewOffice.init(config, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 500);
         return callback();
       });
     });
@@ -260,15 +261,15 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the PDF PP can detect if it is configured correctly
      */
-    it('verify the PDF PP can detect if it is configured correctly', callback => {
+    it('verify the PDF PP can detect if it is configured correctly', (callback) => {
       const config = {
         pdfPreview: {
           /* No viewport defined */
         }
       };
-      PreviewPDF.init(config, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 500);
+      PreviewPDF.init(config, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 500);
         return callback();
       });
     });
@@ -282,22 +283,22 @@ describe('Preview processor', () => {
    * @param  {Stream}      stream             The stream that points to the file that should be uploaded
    * @param  {Function}    callback           Standard callback function
    */
-  const _createContentAndWait = function(resourceSubType, link, stream, callback) {
+  const _createContentAndWait = function (resourceSubType, link, stream, callback) {
     // When the queue is empty, we create a piece of content for which we can generate preview items
     MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simon } = users;
         const restCtx = simon.restContext;
 
-        const contentCreated = function(err, contentObj) {
-          assert.notExists(err);
+        const contentCreated = function (error, contentObject) {
+          assert.notExists(error);
 
           // Wait until the PP items have been generated
           MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
             // Ensure the preview items are there
-            RestAPI.Content.getContent(restCtx, contentObj.id, (err, updatedContent) => {
-              assert.notExists(err);
+            RestAPI.Content.getContent(restCtx, contentObject.id, (error, updatedContent) => {
+              assert.notExists(error);
               callback(restCtx, updatedContent);
             });
           });
@@ -341,23 +342,23 @@ describe('Preview processor', () => {
             [],
             [],
             [],
-            (err, contentObj) => {
-              assert.notExists(err);
-              RestAPI.Content.joinCollabDoc(restCtx, contentObj.id, (err /* , data */) => {
-                assert.notExists(err);
+            (error, contentObject) => {
+              assert.notExists(error);
+              RestAPI.Content.joinCollabDoc(restCtx, contentObject.id, (error /* , data */) => {
+                assert.notExists(error);
 
                 // Put some text in the document, as we would otherwise ignore the document
-                const etherpadClient = Etherpad.getClient(contentObj.id);
+                const etherpadClient = Etherpad.getClient(contentObject.id);
                 const args = {
-                  padID: contentObj.etherpadPadId,
+                  padID: contentObject.etherpadPadId,
                   text: 'Sweet update'
                 };
-                etherpadClient.setText(args, err => {
-                  assert.notExists(err);
+                etherpadClient.setText(args, (error_) => {
+                  assert.notExists(error_);
 
                   // Create a new revision, as the document would otherwise be ignored by the PP
-                  ContentTestUtil.publishCollabDoc(contentObj.id, simon.user.id, err => {
-                    return contentCreated(err, contentObj);
+                  ContentTestUtil.publishCollabDoc(contentObject.id, simon.user.id, (error_) => {
+                    return contentCreated(error_, contentObject);
                   });
                 });
               });
@@ -378,20 +379,20 @@ describe('Preview processor', () => {
    * @param  {Folder}         callback.folder                         The folder object that includes the new preview images
    * @param  {RestContext}    callback.contentCreatorRestContext      The rest context of the user that created the content items
    */
-  const _createContentAndAddToFolder = function(restContext, folder, callback) {
+  const _createContentAndAddToFolder = function (restContext, folder, callback) {
     // Create an image file and let the PP process it
     _createContentAndWait('file', null, getImageStream, (contentCreatorRestContext, content) => {
       assert.strictEqual(content.previews.status, 'done');
 
       // Add the image to the folder. Do NOT use the FoldersTestUtil method as that purges
       // the folder content library, which could cause intermittent test failures
-      RestAPI.Folders.addContentItemsToFolder(restContext, folder.id, [content.id], err => {
-        assert.notExists(err);
+      RestAPI.Folders.addContentItemsToFolder(restContext, folder.id, [content.id], (error) => {
+        assert.notExists(error);
 
         // Wait till the folder is processed
         FoldersPreviews.whenPreviewsComplete(() => {
           // Assert the preview images have been generated
-          FoldersTestUtil.assertGetFolderSucceeds(restContext, folder.id, folder => {
+          FoldersTestUtil.assertGetFolderSucceeds(restContext, folder.id, (folder) => {
             assert.ok(folder.previews);
             assert.ok(folder.previews.thumbnailUrl);
             assert.ok(folder.previews.wideUrl);
@@ -412,7 +413,7 @@ describe('Preview processor', () => {
    * @param  {Response}       callback.response   The full response object
    * @throws {Error}                              An assertion error gets thrown if the file could not be downloaded
    */
-  const _verifySignedUriDownload = function(restContext, downloadUrl, callback) {
+  const _verifySignedUriDownload = function (restContext, downloadUrl, callback) {
     // Verify we can download it.
     const parsedUrl = new URL(downloadUrl, 'http://localhost');
     RestUtil.performRestRequest(
@@ -420,8 +421,8 @@ describe('Preview processor', () => {
       '/api/download/signed',
       'GET',
       TestsUtil.objectifySearchParams(parsedUrl.searchParams),
-      (err, body, response) => {
-        assert.notExists(err);
+      (error, body, response) => {
+        assert.notExists(error);
         assert.strictEqual(response.statusCode, 200);
         assert.ok(body);
         return callback(body, response);
@@ -433,7 +434,7 @@ describe('Preview processor', () => {
     /*!
      * Enable the Preview Processor if the config specifies we can run with it enabled
      */
-    beforeEach(callback => {
+    beforeEach((callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -444,9 +445,9 @@ describe('Preview processor', () => {
         PreviewTestUtil.purgeRegeneratePreviewsQueue(() => {
           PreviewTestUtil.purgeFoldersPreviewsQueue(() => {
             // Enable the Preview Processor
-            PreviewAPI.enable(err => {
-              if (err) {
-                return callback(new Error(err.msg));
+            PreviewAPI.enable((error) => {
+              if (error) {
+                return callback(new Error(error.msg));
               }
 
               return callback();
@@ -459,16 +460,16 @@ describe('Preview processor', () => {
     /*!
      * Disable the Preview Processor in case we enabled it earlier
      */
-    afterEach(callback => {
+    afterEach((callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
       // Disable the API
-      PreviewAPI.disable(err => {
-        if (err) {
-          return callback(new Error(err.msg));
+      PreviewAPI.disable((error) => {
+        if (error) {
+          return callback(new Error(error.msg));
         }
 
         return callback();
@@ -478,7 +479,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the image processor.
      */
-    it('verify image processing works', callback => {
+    it('verify image processing works', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -498,7 +499,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that animated images get converted to single frame images for thumbnail images
      */
-    it('verify animated images get converted to single frame images for thumbnail images', callback => {
+    it('verify animated images get converted to single frame images for thumbnail images', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -511,8 +512,8 @@ describe('Preview processor', () => {
         assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
 
         // Download the thumbnail to a temporary file
-        const tmpFile = Tempfile.createTempFile();
-        const stream = fs.createWriteStream(tmpFile.path);
+        const temporaryFile = Tempfile.createTempFile();
+        const stream = fs.createWriteStream(temporaryFile.path);
         request({
           jar: restCtx.cookieJar,
           url: 'http://localhost:2001' + content.previews.thumbnailUrl,
@@ -523,13 +524,13 @@ describe('Preview processor', () => {
         }).pipe(stream);
         stream.on('finish', () => {
           // Verify that this is a JPG image
-          sharp(tmpFile.path).metadata((err, info) => {
-            assert.notExists(err);
+          sharp(temporaryFile.path).metadata((error, info) => {
+            assert.notExists(error);
             assert.strictEqual(toUpper(info.format), 'JPEG');
 
             // Clean up the temp file
-            tmpFile.remove(err => {
-              assert.notExists(err);
+            temporaryFile.remove((error) => {
+              assert.notExists(error);
               callback();
             });
           });
@@ -540,7 +541,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the office processor.
      */
-    it('verify office processing works', function(callback) {
+    it('verify office processing works', function (callback) {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -570,7 +571,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the PDF processor
      */
-    it('verify pdf processing works', function(callback) {
+    it('verify pdf processing works', function (callback) {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -592,27 +593,27 @@ describe('Preview processor', () => {
             assert.ok(content.previews.mediumUrl);
             _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
               // Verify we have all our files
-              RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (err, previews) => {
-                assert.notExists(err);
+              RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (error, previews) => {
+                assert.notExists(error);
 
                 // The PDF has 1 page, there should only be 1 corresponding HTML file
-                assert.ok(find(eachFile => equals(eachFile.filename, 'page.1.svg'), previews.files));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'page.2.svg'), previews.files)));
+                assert.ok(find((eachFile) => equals(eachFile.filename, 'page.1.svg'), previews.files));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'page.2.svg'), previews.files)));
 
                 // The PDF has 1 page, there should only be 1 corresponding txt file
-                assert.ok(find(eachFile => equals(eachFile.filename, 'page.1.svg'), previews.files));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'page.2.svg'), previews.files)));
+                assert.ok(find((eachFile) => equals(eachFile.filename, 'page.1.svg'), previews.files));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'page.2.svg'), previews.files)));
 
                 // There should be 1 plain.txt file
-                assert.ok(find(file => equals(file.filename, 'plain.txt'), previews.files));
+                assert.ok(find((file) => equals(file.filename, 'plain.txt'), previews.files));
 
                 // There should not be any original individual CSS files
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'base.css'), previews.files)));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'base.min.css'), previews.files)));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'fancy.css'), previews.files)));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'fancy.min.css'), previews.files)));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'lines.css'), previews.files)));
-                assert.ok(not(find(eachFile => equals(eachFile.filename, 'lines.min.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'base.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'base.min.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'fancy.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'fancy.min.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'lines.css'), previews.files)));
+                assert.ok(not(find((eachFile) => equals(eachFile.filename, 'lines.min.css'), previews.files)));
                 callback();
               });
             });
@@ -624,7 +625,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies multiple pages with the PDF processor
      */
-    it('verify multiple pages pdf processing works', function(callback) {
+    it('verify multiple pages pdf processing works', function (callback) {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -647,20 +648,20 @@ describe('Preview processor', () => {
             assert.ok(content.previews.mediumUrl);
             _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
               // Verify we have all our files
-              RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (err, previews) => {
-                assert.notExists(err);
+              RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (error, previews) => {
+                assert.notExists(error);
 
                 // The PDF has 2 pages, there should be 2 corresponding HTML files
-                assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
-                assert.ok(find(file => equals(file.filename, 'page.2.svg'), previews.files));
+                assert.ok(find((file) => equals(file.filename, 'page.1.svg'), previews.files));
+                assert.ok(find((file) => equals(file.filename, 'page.2.svg'), previews.files));
 
                 // There should not be any original individual CSS files
-                assert.ok(not(find(file => equals(file.filename, 'base.css'), previews.files)));
-                assert.ok(not(find(file => equals(file.filename, 'base.min.css'), previews.files)));
-                assert.ok(not(find(file => equals(file.filename, 'fancy.css'), previews.files)));
-                assert.ok(not(find(file => equals(file.filename, 'fancy.min.css'), previews.files)));
-                assert.ok(not(find(file => equals(file.filename, 'lines.css'), previews.files)));
-                assert.ok(not(find(file => equals(file.filename, 'lines.min.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'base.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'base.min.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'fancy.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'fancy.min.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'lines.css'), previews.files)));
+                assert.ok(not(find((file) => equals(file.filename, 'lines.min.css'), previews.files)));
                 callback();
               });
             });
@@ -672,7 +673,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that when a PDF is uploaded as the new version of a piece of content, the old previews metadata is overwritten
      */
-    it('verify uploading new pdf revision', function(callback) {
+    it('verify uploading new pdf revision', function (callback) {
       // Ignore this test if the PP is disabled
       if (not(defaultConfig.previews.enabled)) return callback();
 
@@ -684,36 +685,36 @@ describe('Preview processor', () => {
         assert.strictEqual(content.previews.pageCount, 2);
 
         // Verify we have all our files
-        RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (err, previews) => {
-          assert.notExists(err);
+        RestAPI.Content.getPreviewItems(restCtx, content.id, content.latestRevisionId, (error, previews) => {
+          assert.notExists(error);
 
           // The PDF has 2 pages, there should be 2 corresponding HTML files
-          assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
-          assert.ok(find(file => equals(file.filename, 'page.2.svg'), previews.files));
+          assert.ok(find((file) => equals(file.filename, 'page.1.svg'), previews.files));
+          assert.ok(find((file) => equals(file.filename, 'page.2.svg'), previews.files));
 
           // Now upload a new revision which only has one page in it
-          RestAPI.Content.updateFileBody(restCtx, content.id, getPDFStream, err => {
-            assert.notExists(err);
+          RestAPI.Content.updateFileBody(restCtx, content.id, getPDFStream, (error_) => {
+            assert.notExists(error_);
 
             // Wait till the file has been processed
             MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Verify the previous metadata is gone
-              RestAPI.Content.getContent(restCtx, content.id, (err, updatedContentObj) => {
-                assert.notExists(err);
-                assert.strictEqual(updatedContentObj.previews.status, 'done');
-                assert.strictEqual(updatedContentObj.previews.pageCount, 1);
+              RestAPI.Content.getContent(restCtx, content.id, (error, updatedContentObject) => {
+                assert.notExists(error);
+                assert.strictEqual(updatedContentObject.previews.status, 'done');
+                assert.strictEqual(updatedContentObject.previews.pageCount, 1);
 
                 // Verify the previous preview files are gone
                 RestAPI.Content.getPreviewItems(
                   restCtx,
                   content.id,
-                  updatedContentObj.latestRevisionId,
-                  (err, previews) => {
-                    assert.notExists(err);
+                  updatedContentObject.latestRevisionId,
+                  (error, previews) => {
+                    assert.notExists(error);
 
                     // The PDF has 1 pages, there should only be one corresponding HTML file
-                    assert.ok(find(file => equals(file.filename, 'page.1.svg'), previews.files));
-                    assert.ok(not(find(file => equals(file.filename, 'page.2.svg'), previews.files)));
+                    assert.ok(find((file) => equals(file.filename, 'page.1.svg'), previews.files));
+                    assert.ok(not(find((file) => equals(file.filename, 'page.2.svg'), previews.files)));
                     callback();
                   }
                 );
@@ -727,7 +728,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor.
      */
-    it('verify default link processing works', callback => {
+    it('verify default link processing works', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -757,7 +758,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor checks if the site is embeddable
      */
-    it('verify default link processing checks if a url is embeddable in an iframe', callback => {
+    it('verify default link processing checks if a url is embeddable in an iframe', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -770,27 +771,27 @@ describe('Preview processor', () => {
           let contentDisposition = null;
 
           // Add an endpoint to the mocked server that redirects to the second mocked server
-          app.get('/redirect', (req, res) => {
-            res.redirect('http://localhost:' + port2);
+          app.get('/redirect', (request_, response) => {
+            response.redirect('http://localhost:' + port2);
           });
 
           // Deny iframe embedding for all URLs
-          app.use((req, res /* , next */) => {
+          app.use((request_, response /* , next */) => {
             if (xFrameOptions) {
-              res.set('x-frame-options', xFrameOptions);
+              response.set('x-frame-options', xFrameOptions);
             }
 
             if (contentDisposition) {
-              res.set('Content-Disposition', contentDisposition);
+              response.set('Content-Disposition', contentDisposition);
             }
 
-            return res.send('This is the best page on the webz');
+            return response.send('This is the best page on the webz');
           });
 
           // Second mock server will always set X-Frame-Options to SAMEORIGIN
-          app2.use((req, res /* , next */) => {
-            res.set('x-frame-options', 'SAMEORIGIN');
-            return res.send('This is the second best page on the webz');
+          app2.use((request_, response /* , next */) => {
+            response.set('x-frame-options', 'SAMEORIGIN');
+            return response.send('This is the second best page on the webz');
           });
 
           // Our mocked server will disallow embedding any page in an iframe
@@ -845,7 +846,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor checks if the site is available over HTTPS
      */
-    it('verify default link processing checks if a url is available over HTTPS', callback => {
+    it('verify default link processing checks if a url is available over HTTPS', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -878,7 +879,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor handles HEAD failures
      */
-    it('verify default link processing can handle HEAD failures', callback => {
+    it('verify default link processing can handle HEAD failures', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -887,12 +888,12 @@ describe('Preview processor', () => {
       // Create a new express application to a PP
       TestsUtil.createTestServer((app, server, port) => {
         // Destroy the connection to create an erroneous HEAD request
-        app.head('/', (req, res) => {
-          res.connection.destroy();
+        app.head('/', (request_, response) => {
+          response.connection.destroy();
         });
 
-        app.get('/', (req, res) => {
-          res.sendStatus(200);
+        app.get('/', (request_, response) => {
+          response.sendStatus(200);
         });
 
         // Although the HEAD request fails, the preview processing should complete correctly and the link should be marked as non-embeddable
@@ -920,15 +921,15 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor only handles http urls.
      */
-    it('verify default link processing only handles http(s)', callback => {
+    it('verify default link processing only handles http(s)', (callback) => {
       const content = { resourceSubType: 'link', link: 'file://localhost/etc/passwd' };
-      PreviewDefaultLinks.test(null, content, (err, score) => {
-        assert.notExists(err);
+      PreviewDefaultLinks.test(null, content, (error, score) => {
+        assert.notExists(error);
         assert.strictEqual(score, -1);
 
         content.link = 'ftp://localhost:21/etc/passwd';
-        PreviewDefaultLinks.test(null, content, (err, score) => {
-          assert.notExists(err);
+        PreviewDefaultLinks.test(null, content, (error, score) => {
+          assert.notExists(error);
           assert.strictEqual(score, -1);
           callback();
         });
@@ -938,7 +939,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies blank thumbnails don't get added for unsupported mime types
      */
-    it('verify default link processing does not attach blank thumbnails', callback => {
+    it('verify default link processing does not attach blank thumbnails', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -963,7 +964,7 @@ describe('Preview processor', () => {
      *
      * @api private
      */
-    const _mockYoutube = function() {
+    const _mockYoutube = function () {
       // Ensure we can still perform regular HTTP requests during our tests
       nock.enableNetConnect();
 
@@ -1024,7 +1025,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the youtube processor and assures that metadata is retrieved/set.
      */
-    it('verify youtube link processing works', callback => {
+    it('verify youtube link processing works', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1101,10 +1102,10 @@ describe('Preview processor', () => {
      * @param  {Function}   serverStartedCallback.closeServer           Call this function when the unit test is over and the mocked API can be closed
      * @param  {Function}   serverStartedCallback.closeServer.done      This function gets called when the server has been closed
      */
-    const _mockSlideShareIfNecessary = function(serverStartedCallback) {
+    const _mockSlideShareIfNecessary = function (serverStartedCallback) {
       // If we're running an integration test we don't have to mock the API and can return immediately
       if (TestsUtil.isIntegrationTest()) {
-        serverStartedCallback(serverClosedCallback => {
+        serverStartedCallback((serverClosedCallback) => {
           return serverClosedCallback();
         });
         return;
@@ -1122,10 +1123,10 @@ describe('Preview processor', () => {
      * @param  {Function}   serverStartedCallback.closeServer           Call this function when the unit test is over and the mocked API can be closed
      * @param  {Function}   serverStartedCallback.closeServer.done      This function gets called when the server has been closed
      */
-    const _mockSlideShare = function(returnError, returnBadData, serverStartedCallback) {
+    const _mockSlideShare = function (returnError, returnBadData, serverStartedCallback) {
       TestsUtil.createTestServer((app, server, port) => {
         // Mock the `get_slideshow` REST endpoint
-        app.get('/api/2/get_slideshow', (req, res) => {
+        app.get('/api/2/get_slideshow', (request_, response) => {
           let xml = '';
 
           if (returnError) {
@@ -1142,15 +1143,15 @@ describe('Preview processor', () => {
             xml += '</Slideshow>';
           }
 
-          return res.status(200).send(xml);
+          return response.status(200).send(xml);
         });
 
         // Configure the SlideShare link processor's API url to our mocked API
-        const apiUrl = util.format('http://localhost:%s/api/2/', port);
+        const apiUrl = format('http://localhost:%s/api/2/', port);
         PreviewSlideShare.setApiURL(apiUrl);
 
         // Pass control back so we can continue the unit test
-        serverStartedCallback(serverClosedCallback => {
+        serverStartedCallback((serverClosedCallback) => {
           // Close down our http server
           server.close(serverClosedCallback);
         });
@@ -1160,14 +1161,14 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the SlideShare link processor can correctly retrieve metadata about SlideShare links
      */
-    it('verify SlideShare link processing works', callback => {
+    it('verify SlideShare link processing works', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
       // Mock the slideshare service if we're running integration tests
-      _mockSlideShareIfNecessary(closeServer => {
+      _mockSlideShareIfNecessary((closeServer) => {
         _createContentAndWait(
           'link',
           'http://www.slideshare.net/nicolaasmatthijs/apereo-oae-state-of-the-project?search_from=3',
@@ -1201,13 +1202,13 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the SlideShare link processor can handle API errors
      */
-    it('verify SlideShare link processing can handle API errors', callback => {
+    it('verify SlideShare link processing can handle API errors', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      _mockSlideShare(true, false, closeServer => {
+      _mockSlideShare(true, false, (closeServer) => {
         _createContentAndWait(
           'link',
           'http://www.slideshare.net/nicolaasmatthijs/apereo-oae-state-of-the-project?search_from=3',
@@ -1224,13 +1225,13 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the SlideShare link processor can handle the API returning bad/malformed data
      */
-    it('verify SlideShare link processing can handle bad data', callback => {
+    it('verify SlideShare link processing can handle bad data', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      _mockSlideShare(false, true, closeServer => {
+      _mockSlideShare(false, true, (closeServer) => {
         _createContentAndWait(
           'link',
           'http://www.slideshare.net/nicolaasmatthijs/apereo-oae-state-of-the-project?search_from=3',
@@ -1254,10 +1255,10 @@ describe('Preview processor', () => {
      * @param  {Function}   serverStartedCallback.closeServer                   Call this function when the unit test is over and the mocked API can be closed
      * @param  {Function}   serverStartedCallback.closeServer.done              This function gets called when the server has been closed
      */
-    const _mockFlickrIfNecessary = function(serverStartedCallback) {
+    const _mockFlickrIfNecessary = function (serverStartedCallback) {
       // If we're running an integration test we don't have to mock the API and can return immediately
       if (TestsUtil.isIntegrationTest()) {
-        serverStartedCallback({}, serverClosedCallback => {
+        serverStartedCallback({}, (serverClosedCallback) => {
           return serverClosedCallback();
         });
         return;
@@ -1276,7 +1277,7 @@ describe('Preview processor', () => {
      * @param  {Function}   serverStartedCallback.closeServer                   Call this function when the unit test is over and the mocked API can be closed
      * @param  {Function}   serverStartedCallback.closeServer.done              This function gets called when the server has been closed
      */
-    const _mockFlickr = function(serverStartedCallback) {
+    const _mockFlickr = function (serverStartedCallback) {
       TestsUtil.createTestServer((app, server, port) => {
         // Can be modified by the `serverStartedCallback`
         const expectedResponses = {
@@ -1285,36 +1286,36 @@ describe('Preview processor', () => {
           image: 'ok'
         };
 
-        app.get('/image', (req, res) => {
+        app.get('/image', (request_, response) => {
           if (expectedResponses.image.error) {
-            res.connection.destroy();
+            response.connection.destroy();
           } else {
-            res.sendFile(path.join(__dirname, '/data/image.png'));
+            response.sendFile(path.join(__dirname, '/data/image.png'));
           }
         });
 
         // Mock the `get_slideshow` REST endpoint
-        app.get('/services/rest/', (req, res) => {
+        app.get('/services/rest/', (request_, response) => {
           // Regardless of the method, an api_key needs to be present
-          assert.ok(req.query.api_key);
+          assert.ok(request_.query.api_key);
 
           // We only deal with json
-          assert.strictEqual(req.query.format, 'json');
+          assert.strictEqual(request_.query.format, 'json');
 
-          if (req.query.method === 'flickr.photos.getInfo') {
+          if (request_.query.method === 'flickr.photos.getInfo') {
             // A photo_id needs to be present
-            assert.ok(req.query.photo_id);
+            assert.ok(request_.query.photo_id);
 
             if (expectedResponses.photo === 'error') {
-              res.connection.destroy();
+              response.connection.destroy();
             } else if (expectedResponses.photo === 'bad_status_code') {
-              res.sendStatus(404);
+              response.sendStatus(404);
             } else if (expectedResponses.photo === 'bad_json') {
-              res.send('This is not JSON');
+              response.send('This is not JSON');
             } else if (expectedResponses.photo === 'no_photo_object') {
-              res.send({ foo: 'bar' });
+              response.send({ foo: 'bar' });
             } else {
-              res.send({
+              response.send({
                 photo: {
                   id: '8949876197',
                   server: '3736',
@@ -1333,20 +1334,20 @@ describe('Preview processor', () => {
                 }
               });
             }
-          } else if (req.query.method === 'flickr.photosets.getInfo') {
+          } else if (request_.query.method === 'flickr.photosets.getInfo') {
             // A photo_id needs to be present
-            assert.ok(req.query.photoset_id);
+            assert.ok(request_.query.photoset_id);
 
             if (expectedResponses.photoset === 'error') {
-              res.connection.destroy();
+              response.connection.destroy();
             } else if (expectedResponses.photoset === 'bad_status_code') {
-              res.sendStatus(404);
+              response.sendStatus(404);
             } else if (expectedResponses.photoset === 'bad_json') {
-              res.send('This is not JSON');
+              response.send('This is not JSON');
             } else if (expectedResponses.photoset === 'no_photoset_object') {
-              res.send({ foo: 'bar' });
+              response.send({ foo: 'bar' });
             } else {
-              res.send({
+              response.send({
                 photoset: {
                   id: '72057594140880342',
                   primary: '150332756',
@@ -1372,14 +1373,14 @@ describe('Preview processor', () => {
         });
 
         // Configure the Flickr link processor's API url to our mocked API
-        const apiUrl = util.format('http://localhost:%s/services/rest/', port);
-        let imageUrl = util.format('http://localhost:%s/image', port);
+        const apiUrl = format('http://localhost:%s/services/rest/', port);
+        let imageUrl = format('http://localhost:%s/image', port);
         imageUrl += '?farm=%s&server=%s&id=%s&secret=%s';
         PreviewFlickr.setApiUrl(apiUrl);
         PreviewFlickr.setImageUrl(imageUrl);
 
         // Pass control back so we can continue the unit test
-        serverStartedCallback(expectedResponses, serverClosedCallback => {
+        serverStartedCallback(expectedResponses, (serverClosedCallback) => {
           // Close down our http server
           server.close(serverClosedCallback);
         });
@@ -1389,7 +1390,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the flickr photo processor and assures that metadata is retrieved/set.
      */
-    it('verify flickr photo link processing works', callback => {
+    it('verify flickr photo link processing works', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1443,7 +1444,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the flickr set processor and assures that metadata is retrieved/set.
      */
-    it('verify flickr set link processing works', callback => {
+    it('verify flickr set link processing works', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1476,7 +1477,7 @@ describe('Preview processor', () => {
       });
     });
 
-    it('verify flickr link processing can handle API errors', callback => {
+    it('verify flickr link processing can handle API errors', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1586,7 +1587,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the vimeo processor and assures that metadata is retrieved/set.
      */
-    it('verify vimeo link processing works', callback => {
+    it('verify vimeo link processing works', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1618,7 +1619,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the collaborative document processor works.
      */
-    it('verify collaborative document processing works', callback => {
+    it('verify collaborative document processing works', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1639,14 +1640,14 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the collaborative document processor works.
      */
-    it('verify unpublished collaborative documents are ignored', callback => {
+    it('verify unpublished collaborative documents are ignored', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, response) => {
+        assert.notExists(error);
         const restCtx = compose(prop('restContext'), head, values)(response);
 
         RestAPI.Content.createCollabDoc(
@@ -1658,14 +1659,14 @@ describe('Preview processor', () => {
           [],
           [],
           [],
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
             // Wait till it has been processed.
             MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Ensure the preview items are there.
-              RestAPI.Content.getContent(restCtx, contentObj.id, (err, updatedContent) => {
-                assert.notExists(err);
+              RestAPI.Content.getContent(restCtx, contentObject.id, (error, updatedContent) => {
+                assert.notExists(error);
                 assert.strictEqual(updatedContent.previews.status, 'ignored');
                 assert.ok(!updatedContent.previews.thumbnailUrl);
                 callback();
@@ -1679,7 +1680,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that the preview status of a piece of content is set to ignored if no PP can handle it.
      */
-    it('verify zip files get ignored', callback => {
+    it('verify zip files get ignored', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1697,20 +1698,20 @@ describe('Preview processor', () => {
      * on the content object. This is an important distinction as `content.mime` points to the mimetype of the *latest*
      * revision, which is not necessarily the revision the PP might be processing.
      */
-    it('verify content with multiple revisions of different mime types', callback => {
+    it('verify content with multiple revisions of different mime types', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
       // Disable the PP first, so we can generate 2 revisions without the PP starting at the first one
-      PreviewAPI.disable(err => {
-        assert.notExists(err);
+      PreviewAPI.disable((error) => {
+        assert.notExists(error);
 
         // Create a piece of content with 2 separate mime types
         MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-          TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, response) => {
-            assert.notExists(err);
+          TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, response) => {
+            assert.notExists(error);
             const restCtx = compose(prop('restContext'), head, values)(response);
 
             // Create the initial revision as a zip file. ZIP is used as this gets ignored by the
@@ -1726,66 +1727,71 @@ describe('Preview processor', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, contentObj) => {
-                assert.notExists(err);
+              (error, contentObject) => {
+                assert.notExists(error);
 
                 // Create the second revision as an image file.
-                RestAPI.Content.updateFileBody(restCtx, contentObj.id, getImageStream, (err, updatedContentObj) => {
-                  assert.notExists(err);
+                RestAPI.Content.updateFileBody(
+                  restCtx,
+                  contentObject.id,
+                  getImageStream,
+                  (error, updatedContentObject) => {
+                    assert.notExists(error);
 
-                  // Purge the pending previews from the queue
-                  PreviewTestUtil.purgePreviewsQueue(err => {
-                    assert.notExists(err);
+                    // Purge the pending previews from the queue
+                    PreviewTestUtil.purgePreviewsQueue((error_) => {
+                      assert.notExists(error_);
 
-                    // Enable previews so we can handle the reprocessing
-                    PreviewAPI.enable(err => {
-                      assert.notExists(err);
+                      // Enable previews so we can handle the reprocessing
+                      PreviewAPI.enable((error_) => {
+                        assert.notExists(error_);
 
-                      // Re-process the revisions
-                      RestAPI.Previews.reprocessPreview(
-                        signedAdminRestContext,
-                        contentObj.id,
-                        contentObj.latestRevisionId,
-                        err => {
-                          assert.notExists(err);
-                          setTimeout(() => {
-                            RestAPI.Previews.reprocessPreview(
-                              signedAdminRestContext,
-                              contentObj.id,
-                              updatedContentObj.latestRevisionId,
-                              err => {
-                                assert.notExists(err);
-                                MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-                                  // The revisions should have been processed, fetch their metadata.
-                                  RestAPI.Content.getRevision(
-                                    restCtx,
-                                    contentObj.id,
-                                    contentObj.latestRevisionId,
-                                    (err, revision) => {
-                                      assert.notExists(err);
-                                      assert.strictEqual(revision.previews.status, 'ignored');
+                        // Re-process the revisions
+                        RestAPI.Previews.reprocessPreview(
+                          signedAdminRestContext,
+                          contentObject.id,
+                          contentObject.latestRevisionId,
+                          (error_) => {
+                            assert.notExists(error_);
+                            setTimeout(() => {
+                              RestAPI.Previews.reprocessPreview(
+                                signedAdminRestContext,
+                                contentObject.id,
+                                updatedContentObject.latestRevisionId,
+                                (error_) => {
+                                  assert.notExists(error_);
+                                  MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
+                                    // The revisions should have been processed, fetch their metadata.
+                                    RestAPI.Content.getRevision(
+                                      restCtx,
+                                      contentObject.id,
+                                      contentObject.latestRevisionId,
+                                      (error, revision) => {
+                                        assert.notExists(error);
+                                        assert.strictEqual(revision.previews.status, 'ignored');
 
-                                      RestAPI.Content.getRevision(
-                                        restCtx,
-                                        contentObj.id,
-                                        updatedContentObj.latestRevisionId,
-                                        (err, revision) => {
-                                          assert.notExists(err);
-                                          assert.strictEqual(revision.previews.status, 'done');
-                                          callback();
-                                        }
-                                      );
-                                    }
-                                  );
-                                });
-                              }
-                            );
-                          }, 2000);
-                        }
-                      );
+                                        RestAPI.Content.getRevision(
+                                          restCtx,
+                                          contentObject.id,
+                                          updatedContentObject.latestRevisionId,
+                                          (error, revision) => {
+                                            assert.notExists(error);
+                                            assert.strictEqual(revision.previews.status, 'done');
+                                            callback();
+                                          }
+                                        );
+                                      }
+                                    );
+                                  });
+                                }
+                              );
+                            }, 2000);
+                          }
+                        );
+                      });
                     });
-                  });
-                });
+                  }
+                );
               }
             );
           });
@@ -1796,14 +1802,14 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that previews for folders can be generated
      */
-    it('verify folder processing', callback => {
+    it('verify folder processing', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -1815,15 +1821,15 @@ describe('Preview processor', () => {
           'public',
           [],
           [],
-          folder => {
+          (folder) => {
             // Upload an image and add it to the folder
             _createContentAndAddToFolder(simong.restContext, folder, (content1, folder) => {
               assert.ok(folder.previews);
               assert.ok(folder.previews.thumbnailUrl);
               assert.ok(folder.previews.wideUrl);
               // Assert the previews can be downloaded
-              _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, thumbnail1 => {
-                _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, wide1 => {
+              _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, (thumbnail1) => {
+                _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, (wide1) => {
                   // Upload another image
                   _createContentAndAddToFolder(simong.restContext, folder, (content2, folder) => {
                     assert.ok(folder.previews);
@@ -1831,8 +1837,8 @@ describe('Preview processor', () => {
                     assert.ok(folder.previews.wideUrl);
 
                     // Assert the new previews can be downloaded
-                    _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, thumbnail2 => {
-                      _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, wide2 => {
+                    _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, (thumbnail2) => {
+                      _verifySignedUriDownload(simong.restContext, folder.previews.thumbnailUrl, (wide2) => {
                         // Assert these preview images are different
                         assert.notStrictEqual(thumbnail1, thumbnail2);
                         assert.notStrictEqual(wide1, wide2);
@@ -1845,7 +1851,7 @@ describe('Preview processor', () => {
                           () => {
                             // Wait until the folder is processed
                             FoldersPreviews.whenPreviewsComplete(() => {
-                              FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, folder => {
+                              FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, (folder) => {
                                 assert.ok(folder.previews);
                                 assert.ok(folder.previews.thumbnailUrl);
                                 assert.ok(folder.previews.wideUrl);
@@ -1874,7 +1880,7 @@ describe('Preview processor', () => {
                                               FoldersTestUtil.assertGetFolderSucceeds(
                                                 simong.restContext,
                                                 folder.id,
-                                                folder => {
+                                                (folder) => {
                                                   assert.ok(folder.previews);
                                                   assert.ok(!folder.previews.thumbnailUrl);
                                                   assert.ok(!folder.previews.wideUrl);
@@ -1907,7 +1913,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that folders are reprocessed when their visibility changes
      */
-    it('verify folders are reprocessed when their visibility changes', callback => {
+    it('verify folders are reprocessed when their visibility changes', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -1917,8 +1923,8 @@ describe('Preview processor', () => {
       _createContentAndWait('file', null, getImageStream, (restCtxPublic, publicContent) => {
         // Upload another image and make it private
         _createContentAndWait('file', null, getImageStream, (restCtxPrivate, privateContent) => {
-          RestAPI.Content.updateContent(restCtxPrivate, privateContent.id, { visibility: 'private' }, err => {
-            assert.notExists(err);
+          RestAPI.Content.updateContent(restCtxPrivate, privateContent.id, { visibility: 'private' }, (error) => {
+            assert.notExists(error);
 
             // Create a folder to test with
             FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1928,32 +1934,32 @@ describe('Preview processor', () => {
               'private',
               [],
               [],
-              folder => {
+              (folder) => {
                 // Add the content items. Do NOT use the FoldersTestUtil method as that purges
                 // the folder content library, which could cause intermittent test failures
                 RestAPI.Folders.addContentItemsToFolder(
                   restCtxPrivate,
                   folder.id,
                   [publicContent.id, privateContent.id],
-                  err => {
-                    assert.notExists(err);
+                  (error) => {
+                    assert.notExists(error);
 
                     // Wait until the folder has been processed
                     FoldersPreviews.whenPreviewsComplete(() => {
                       // At this point, the folder should use both content items their thumbnails
-                      FoldersTestUtil.assertGetFolderSucceeds(restCtxPrivate, folder.id, folder => {
+                      FoldersTestUtil.assertGetFolderSucceeds(restCtxPrivate, folder.id, (folder) => {
                         assert.ok(folder.previews);
                         assert.ok(folder.previews.thumbnailUrl);
                         assert.ok(folder.previews.wideUrl);
 
                         // Make the folder public
-                        RestAPI.Folders.updateFolder(restCtxPrivate, folder.id, { visibility: 'public' }, err => {
-                          assert.notExists(err);
+                        RestAPI.Folders.updateFolder(restCtxPrivate, folder.id, { visibility: 'public' }, (error) => {
+                          assert.notExists(error);
 
                           // Wait until the folder has been reprocessed
                           FoldersPreviews.whenPreviewsComplete(() => {
                             // Get the updated folder metadata
-                            FoldersTestUtil.assertGetFolderSucceeds(restCtxPrivate, folder.id, updatedFolder => {
+                            FoldersTestUtil.assertGetFolderSucceeds(restCtxPrivate, folder.id, (updatedFolder) => {
                               /**
                                * Because the folder has been made public, the private content item's thumbnail cannot be used.
                                * This should cause the thumbnail url to be different
@@ -1980,14 +1986,14 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that folders are reprocessed when the visibility of one of its content items changes
      */
-    it('verify folders are reprocessed when the visibility of one of its content items changes', callback => {
+    it('verify folders are reprocessed when the visibility of one of its content items changes', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -1999,7 +2005,7 @@ describe('Preview processor', () => {
           'public',
           [],
           [],
-          folder => {
+          (folder) => {
             // Upload an image and add it to the folder
             _createContentAndAddToFolder(simong.restContext, folder, (content, folder, contentCreatorRestContext) => {
               assert.ok(folder.previews);
@@ -2007,22 +2013,27 @@ describe('Preview processor', () => {
               assert.ok(folder.previews.wideUrl);
 
               // Make the content item private
-              RestAPI.Content.updateContent(contentCreatorRestContext, content.id, { visibility: 'private' }, err => {
-                assert.notExists(err);
+              RestAPI.Content.updateContent(
+                contentCreatorRestContext,
+                content.id,
+                { visibility: 'private' },
+                (error_) => {
+                  assert.notExists(error_);
 
-                // Wait until the folder has been processed
-                FoldersPreviews.whenPreviewsComplete(() => {
-                  // Get the updated folder metadata
-                  FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, folder => {
-                    assert.ok(folder.previews);
+                  // Wait until the folder has been processed
+                  FoldersPreviews.whenPreviewsComplete(() => {
+                    // Get the updated folder metadata
+                    FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, (folder) => {
+                      assert.ok(folder.previews);
 
-                    // Because the content item has been made private, we cannot use it for the folder's preview images
-                    assert.ok(!folder.previews.thumbnailUrl);
-                    assert.ok(!folder.previews.wideUrl);
-                    return callback();
+                      // Because the content item has been made private, we cannot use it for the folder's preview images
+                      assert.ok(!folder.previews.thumbnailUrl);
+                      assert.ok(!folder.previews.wideUrl);
+                      return callback();
+                    });
                   });
-                });
-              });
+                }
+              );
             });
           }
         );
@@ -2040,14 +2051,14 @@ describe('Preview processor', () => {
      * @param  {Content}    callback.file       The created file
      * @param  {Content}    callback.link       The created link
      */
-    const _setupForReprocessing = function(enableProcessor, callback) {
+    const _setupForReprocessing = function (enableProcessor, callback) {
       // Disable preview processing so we don't immediately process our piece of content
-      PreviewAPI.disable(err => {
-        assert.notExists(err);
+      PreviewAPI.disable((error) => {
+        assert.notExists(error);
 
         // Purge all task queues
-        MQ.purgeAllBoundQueues(err => {
-          assert.notExists(err);
+        MQ.purgeAllBoundQueues((error) => {
+          assert.notExists(error);
 
           // Make sure all tasks are done
           MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
@@ -2055,12 +2066,12 @@ describe('Preview processor', () => {
               MQTestUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 MQTestUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
                   // Trash all the content items
-                  Cassandra.runQuery('TRUNCATE "Content"', [], err => {
-                    assert.notExists(err);
+                  Cassandra.runQuery('TRUNCATE "Content"', [], (error) => {
+                    assert.notExists(error);
 
                     // Create a piece of content that we can reprocess
-                    TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, users) => {
-                      assert.notExists(err);
+                    TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, users) => {
+                      assert.notExists(error);
 
                       const { 0: user } = users;
 
@@ -2075,8 +2086,8 @@ describe('Preview processor', () => {
                           viewers: NO_VIEWERS,
                           folders: NO_FOLDERS
                         },
-                        (err, content) => {
-                          assert.notExists(err);
+                        (error, content) => {
+                          assert.notExists(error);
 
                           // Create a link, we'll use it as a sanity check to ensure only file types got reprocessed
                           RestAPI.Content.createLink(
@@ -2090,17 +2101,17 @@ describe('Preview processor', () => {
                               viewers: NO_VIEWERS,
                               folders: NO_FOLDERS
                             },
-                            (err, link) => {
-                              assert.notExists(err);
+                            (error, link) => {
+                              assert.notExists(error);
 
                               // Purge everything with a delay to ensure the 2 files have been submit for processing
-                              setTimeout(PreviewTestUtil.purgePreviewsQueue, 1000, err => {
-                                assert.notExists(err);
+                              setTimeout(PreviewTestUtil.purgePreviewsQueue, 1000, (error_) => {
+                                assert.notExists(error_);
 
                                 // Enable the preview processor if so desired
                                 if (enableProcessor) {
-                                  PreviewAPI.enable(err => {
-                                    assert.notExists(err);
+                                  PreviewAPI.enable((error_) => {
+                                    assert.notExists(error_);
                                     return callback(user, content, link);
                                   });
                                 } else {
@@ -2132,11 +2143,11 @@ describe('Preview processor', () => {
      * @param  {Function}       [callback]      Invoked after the reprocessing rest request has been executed
      * @param  {Object}         [callback.err]  An error that occurred invokeing the reprocess previews rest request, if any
      */
-    const _reprocessWithHandler = function(restCtx, filters, handler, callback) {
+    const _reprocessWithHandler = function (restCtx, filters, handler, callback) {
       callback =
         callback ||
-        function(err) {
-          assert.notExists(err);
+        function (error) {
+          assert.notExists(error);
         };
 
       /*!
@@ -2146,17 +2157,17 @@ describe('Preview processor', () => {
        * @param  {Object}     data            The MQ data for the message
        * @param  {Function}   mqCallback      The function to invoke to acknowledge handling the message
        */
-      const _handler = function(data, mqCallback) {
+      const _handler = function (data, mqCallback) {
         mqCallback();
         return handler(data);
       };
 
       // Unbind and rebind a process-all handler
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-        assert.notExists(err);
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (error) => {
+        assert.notExists(error);
 
-        MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handler, err => {
-          assert.notExists(err);
+        MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handler, (error) => {
+          assert.notExists(error);
 
           RestAPI.Previews.reprocessPreviews(restCtx, filters, callback);
         });
@@ -2166,61 +2177,61 @@ describe('Preview processor', () => {
     /**
      * Verify that a single content item and revision can be reprocessed
      */
-    it('verify reprocess previews validation and authorization', callback => {
+    it('verify reprocess previews validation and authorization', (callback) => {
       // This can run, even if previews are disabled
 
       // Verify anonymous, regular users and tenant admins from other tenants cannot reprocess previews
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: user } = values(users);
         RestAPI.Previews.reprocessPreview(
           user.restContext,
           'c:camtest:someContent',
           'rev:camtest:someRevision',
-          err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
+          (error_) => {
+            assert.ok(error_);
+            assert.strictEqual(error_.code, 401);
 
             RestAPI.Previews.reprocessPreview(
               anonymousRestContext,
               'c:camtest:someContent',
               'rev:camtest:someRevision',
-              err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+              (error_) => {
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 401);
 
                 RestAPI.Previews.reprocessPreview(
                   camAdminRestContext,
                   'c:other:someContent',
                   'rev:other:someRevision',
-                  err => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 401);
+                  (error_) => {
+                    assert.ok(error_);
+                    assert.strictEqual(error_.code, 401);
 
                     // Verify validation of content and revision ids
                     RestAPI.Previews.reprocessPreview(
                       camAdminRestContext,
                       'notAContentId',
                       'rev:camtest:someRevision',
-                      err => {
-                        assert.ok(err);
-                        assert.strictEqual(err.code, 400);
+                      (error_) => {
+                        assert.ok(error_);
+                        assert.strictEqual(error_.code, 400);
 
                         RestAPI.Previews.reprocessPreview(
                           camAdminRestContext,
                           'c:camtest:someContent',
                           'notARevisionId',
-                          err => {
-                            assert.ok(err);
-                            assert.strictEqual(err.code, 400);
+                          (error_) => {
+                            assert.ok(error_);
+                            assert.strictEqual(error_.code, 400);
 
                             // Sanity check the validation and authorization
                             RestAPI.Previews.reprocessPreview(
                               camAdminRestContext,
                               'c:camtest:someContent',
                               'rev:camtest:someRevision',
-                              err => {
-                                assert.notExists(err);
+                              (error_) => {
+                                assert.notExists(error_);
                                 return callback();
                               }
                             );
@@ -2240,7 +2251,7 @@ describe('Preview processor', () => {
     /**
      * Verify forcing a reprocessing of a preview results in the preview being reprocessed
      */
-    it('verify reprocessing a preview processes the revision preview', callback => {
+    it('verify reprocessing a preview processes the revision preview', (callback) => {
       // Ignore this test if the PP is disabled.
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2249,13 +2260,13 @@ describe('Preview processor', () => {
       // Set ourselves up for quick reprocessing
       _setupForReprocessing(true, (user, content) => {
         // Force the previews to generate
-        RestAPI.Previews.reprocessPreview(signedAdminRestContext, content.id, content.latestRevisionId, err => {
-          assert.notExists(err);
+        RestAPI.Previews.reprocessPreview(signedAdminRestContext, content.id, content.latestRevisionId, (error) => {
+          assert.notExists(error);
 
           // Wait for the preview to finish generating
           MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
-            RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
-              assert.notExists(err);
+            RestAPI.Content.getContent(user.restContext, content.id, (error, content) => {
+              assert.notExists(error);
 
               assert.ok(content.previews);
               assert.strictEqual(content.previews.status, 'done');
@@ -2269,12 +2280,12 @@ describe('Preview processor', () => {
     /**
      * Test that verifies when previews are reprocessed through the REST endpoint, a task is triggered.
      */
-    it('verify reprocessing previews triggers an mq task', callback => {
+    it('verify reprocessing previews triggers an mq task', (callback) => {
       // this timeout allows us to wait for disconnection to come into effect before subscribe again
       const TIMEOUT = 500;
       // Verify sending a single filter with a single value
       let filters = { content_previewsStatus: 'error' };
-      _reprocessWithHandler(globalAdminRestContext, filters, data => {
+      _reprocessWithHandler(globalAdminRestContext, filters, (data) => {
         assert.ok(data);
         assert.ok(data.filters);
         assert.ok(data.filters.content);
@@ -2282,7 +2293,7 @@ describe('Preview processor', () => {
 
         // Verify sending a single filter with multiple values
         filters = { content_previewsStatus: ['error', 'done', 'pending'] };
-        setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
+        setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, (data) => {
           assert.ok(data);
           assert.ok(data.filters);
           assert.ok(data.filters.content);
@@ -2296,7 +2307,7 @@ describe('Preview processor', () => {
             content_previewsStatus: ['error', 'done', 'pending'],
             content_resourceSubType: ['file', 'link']
           };
-          setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
+          setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, (data) => {
             assert.ok(data);
             assert.ok(data.filters);
             assert.ok(data.filters.content);
@@ -2314,7 +2325,7 @@ describe('Preview processor', () => {
               content_resourceSubType: ['file', 'link'],
               revision_mime: ['application/pdf', 'application/msword']
             };
-            setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, data => {
+            setTimeout(_reprocessWithHandler, TIMEOUT, globalAdminRestContext, filters, (data) => {
               assert.ok(data);
               assert.ok(data.filters);
               assert.ok(data.filters.content);
@@ -2338,45 +2349,45 @@ describe('Preview processor', () => {
     /**
      * Test that verifies only global admin users can reprocess previews
      */
-    it('verify non-global admin users cannot reprocess previews', callback => {
+    it('verify non-global admin users cannot reprocess previews', (callback) => {
       /*!
        * Task handler that will fail the test if invoked.
        *
        * @see MQ#bind
        */
-      const _handleTaskFail = function(/* data */) {
+      const _handleTaskFail = function (/* data */) {
         assert.fail('Did not expect the task to be invoked.');
       };
 
       // Generate a normal user with which to try and reprocess previews
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
 
         const userRestCtx = users[head(keys(users))].restContext;
 
         // Verify that an anonymous user-tenant user cannot reprocess previews
-        _reprocessWithHandler(anonymousRestContext, null, _handleTaskFail, err => {
-          assert.ok(err);
+        _reprocessWithHandler(anonymousRestContext, null, _handleTaskFail, (error_) => {
+          assert.ok(error_);
 
           // Verify that an anonymous global-tenant user cannot reprocess previews
           RestAPI.Previews.reprocessPreviews(
             TestsUtil.createGlobalRestContext(),
             { content_resourceSubType: 'file' },
-            err => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 401);
+            (error_) => {
+              assert.ok(error_);
+              assert.strictEqual(error_.code, 401);
 
               // Verify that a regular user cannot generate a task
-              RestAPI.Previews.reprocessPreviews(userRestCtx, null, err => {
-                assert.ok(err);
+              RestAPI.Previews.reprocessPreviews(userRestCtx, null, (error_) => {
+                assert.ok(error_);
 
                 // Verify that a tenant admin cannot generate a task
-                RestAPI.Previews.reprocessPreviews(camAdminRestContext, null, err => {
-                  assert.ok(err);
+                RestAPI.Previews.reprocessPreviews(camAdminRestContext, null, (error_) => {
+                  assert.ok(error_);
 
                   // Unbind our handler, so we don't trip over the next test
-                  MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-                    assert.notExists(err);
+                  MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (error_) => {
+                    assert.notExists(error_);
                     return callback();
                   });
                 });
@@ -2390,7 +2401,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the filters are validated for correctness
      */
-    it('verify parameter validation for reprocessing previews requests', callback => {
+    it('verify parameter validation for reprocessing previews requests', (callback) => {
       /*!
        * Task handler that will fail the test if invoked.
        *
@@ -2401,20 +2412,20 @@ describe('Preview processor', () => {
       };
 
       // Providing no filters must be an oversight and is invalid
-      _reprocessWithHandler(globalAdminRestContext, null, _handleTaskFail, err => {
-        assert.strictEqual(err.code, 400);
+      _reprocessWithHandler(globalAdminRestContext, null, _handleTaskFail, (error) => {
+        assert.strictEqual(error.code, 400);
 
         // Providing unknown filters is totally unacceptable
-        RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { foo: 'bar' }, err => {
-          assert.strictEqual(err.code, 400);
-          RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { content_foo: 'bar' }, err => {
-            assert.strictEqual(err.code, 400);
-            RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { revision_foo: 'bar' }, err => {
-              assert.strictEqual(err.code, 400);
+        RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { foo: 'bar' }, (error) => {
+          assert.strictEqual(error.code, 400);
+          RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { content_foo: 'bar' }, (error) => {
+            assert.strictEqual(error.code, 400);
+            RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { revision_foo: 'bar' }, (error) => {
+              assert.strictEqual(error.code, 400);
 
               // Unbind our handler, so we don't trip over the next test
-              MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-                assert.notExists(err);
+              MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (error) => {
+                assert.notExists(error);
                 return callback();
               });
             });
@@ -2426,29 +2437,29 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that all content is reprocessed
      */
-    it('verify validation of reprocessing previews tasks', callback => {
+    it('verify validation of reprocessing previews tasks', (callback) => {
       // Purge everything
-      PreviewTestUtil.purgePreviewsQueue(err => {
-        assert.notExists(err);
+      PreviewTestUtil.purgePreviewsQueue((error) => {
+        assert.notExists(error);
         // Enable previews so we can handle the reprocessing
-        PreviewAPI.enable(err => {
-          assert.notExists(err);
+        PreviewAPI.enable((error) => {
+          assert.notExists(error);
 
           // Unbind the PP first, so we can listen for incoming generate previews task
-          MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
-            assert.notExists(err);
+          MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, (error) => {
+            assert.notExists(error);
 
             // It's possible the PP started processing on old item, wait till it's done so it doesn't mess up this test
             MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Bind our own listener that will keep track of content that needs reprocessing (it should always be empty)
               const contentToBeReprocessed = [];
-              const reprocessTracker = function(data, callback) {
+              const reprocessTracker = function (data, callback) {
                 contentToBeReprocessed.push(data);
                 callback();
               };
 
-              MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, reprocessTracker, err => {
-                assert.notExists(err);
+              MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, reprocessTracker, (error) => {
+                assert.notExists(error);
 
                 // Missing filters is invalid
                 MQ.submit(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, JSON.stringify({}), () => {
@@ -2495,25 +2506,25 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that a push notification is sent out on preview generation completion
      */
-    it('verify a push notification is sent out on preview generation completion', callback => {
+    it('verify a push notification is sent out on preview generation completion', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
       }
 
-      PreviewTestUtil.purgePreviewsQueue(err => {
-        assert.notExists(err);
+      PreviewTestUtil.purgePreviewsQueue((error) => {
+        assert.notExists(error);
 
-        TestsUtil.generateTestUsers(signedAdminRestContext, 1, (err, users) => {
-          assert.notExists(err);
+        TestsUtil.generateTestUsers(signedAdminRestContext, 1, (error, users) => {
+          assert.notExists(error);
 
           const { 0: mrvisser } = users;
 
-          RestAPI.User.getMe(mrvisser.restContext, (err, mrvisserFullMeData) => {
-            assert.notExists(err);
+          RestAPI.User.getMe(mrvisser.restContext, (error, mrvisserFullMeData) => {
+            assert.notExists(error);
             // Re-enable the processor so the file can be processed
-            PreviewAPI.enable(err => {
-              assert.notExists(err);
+            PreviewAPI.enable((error_) => {
+              assert.notExists(error_);
 
               // Create a file that we can process
               RestAPI.Content.createFile(
@@ -2527,12 +2538,12 @@ describe('Preview processor', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, contentObj) => {
-                  assert.notExists(err);
+                (error, contentObject) => {
+                  assert.notExists(error);
 
                   // Setup a client that listens to the content's activity stream
-                  RestAPI.Content.getContent(mrvisser.restContext, contentObj.id, (err, contentObj) => {
-                    assert.notExists(err);
+                  RestAPI.Content.getContent(mrvisser.restContext, contentObject.id, (error, contentObject) => {
+                    assert.notExists(error);
                     const data = {
                       authentication: {
                         userId: mrvisserFullMeData.id,
@@ -2541,15 +2552,15 @@ describe('Preview processor', () => {
                       },
                       streams: [
                         {
-                          resourceId: contentObj.id,
+                          resourceId: contentObject.id,
                           streamType: 'activity',
-                          token: contentObj.signature,
+                          token: contentObject.signature,
                           transformer: 'internal'
                         }
                       ]
                     };
-                    ActivityTestsUtil.getFullySetupPushClient(data, client => {
-                      client.on('message', message => {
+                    ActivityTestsUtil.getFullySetupPushClient(data, (client) => {
+                      client.on('message', (message) => {
                         if (
                           message.activities[0] &&
                           message.activities[0]['oae:activityType'] === 'previews-finished'
@@ -2578,7 +2589,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that previews can be reprocessed by passing in a content filter
      */
-    it('verify reprocessing previews with a content filter', callback => {
+    it('verify reprocessing previews with a content filter', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2587,18 +2598,18 @@ describe('Preview processor', () => {
       // Set ourselves up for quick reprocessing
       _setupForReprocessing(true, (user, content, link) => {
         // Reprocess all content items that are files
-        RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { content_resourceSubType: 'file' }, err => {
-          assert.notExists(err);
+        RestAPI.Previews.reprocessPreviews(globalAdminRestContext, { content_resourceSubType: 'file' }, (error) => {
+          assert.notExists(error);
           MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
             MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
               // Assert that we reprocessed the file content object
-              RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
-                assert.notExists(err);
+              RestAPI.Content.getContent(user.restContext, content.id, (error, content) => {
+                assert.notExists(error);
                 assert.strictEqual(content.previews.status, 'done');
 
                 // Assert that we did not reprocess the link object
-                RestAPI.Content.getContent(user.restContext, link.id, (err, link) => {
-                  assert.notExists(err);
+                RestAPI.Content.getContent(user.restContext, link.id, (error, link) => {
+                  assert.notExists(error);
                   assert.strictEqual(link.previews.status, 'pending');
                   return callback();
                 });
@@ -2612,7 +2623,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that previews can be reprocessed by passing in a revision filter
      */
-    it('verify reprocessing previews with a revision filter', callback => {
+    it('verify reprocessing previews with a revision filter', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2623,23 +2634,23 @@ describe('Preview processor', () => {
         // Wait at least 10ms before creating the new revision so we don't accidentally create a second revision at the exact same time as the original one
         setTimeout(() => {
           // Create a new revision
-          RestAPI.Content.updateFileBody(user.restContext, content.id, getImageGIFStream, (err, updatedContent) => {
-            assert.notExists(err);
+          RestAPI.Content.updateFileBody(user.restContext, content.id, getImageGIFStream, (error, updatedContent) => {
+            assert.notExists(error);
             const secondRevisionCreated = updatedContent.created;
 
             // Avoid processing the new revision just yet as we want the reprocessPreviews to handle that
-            PreviewTestUtil.purgePreviewsQueue(err => {
-              assert.notExists(err);
+            PreviewTestUtil.purgePreviewsQueue((error_) => {
+              assert.notExists(error_);
 
               // Re-enable the preview processor with an empty preview queue
-              PreviewAPI.enable(err => {
-                assert.notExists(err);
+              PreviewAPI.enable((error_) => {
+                assert.notExists(error_);
 
                 // Wait for any potential previews to finish as a sanity-check. There shouldn't be, though
                 MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                   // Ensure that no previews have been processed yet
-                  RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (err, data) => {
-                    assert.notExists(err);
+                  RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (error, data) => {
+                    assert.notExists(error);
 
                     assert.isNotOk(data.results[0].previews);
                     assert.isNotOk(data.results[1].previews);
@@ -2648,14 +2659,14 @@ describe('Preview processor', () => {
                     RestAPI.Previews.reprocessPreviews(
                       globalAdminRestContext,
                       { revision_createdAfter: secondRevisionCreated - 1 },
-                      err => {
-                        assert.notExists(err);
+                      (error_) => {
+                        assert.notExists(error_);
                         // Give all preview tasks a chance to complete
                         MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                           MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                             // Assert that we only reprocessed the last revision
-                            RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (err, data) => {
-                              assert.notExists(err);
+                            RestAPI.Content.getRevisions(user.restContext, content.id, null, null, (error, data) => {
+                              assert.notExists(error);
 
                               // The latest revision (first in the list) should have previews associated to it
                               assert.ok(data.results[0].previews);
@@ -2681,7 +2692,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies that folders are reprocessed when one of the content items it contains is reprocessed
      */
-    it('verify folders are reprocessed when one of the content items it contains is processed', callback => {
+    it('verify folders are reprocessed when one of the content items it contains is processed', (callback) => {
       // Ignore this test if the PP is disabled
       if (!defaultConfig.previews.enabled) {
         return callback();
@@ -2697,42 +2708,42 @@ describe('Preview processor', () => {
           'public',
           [],
           [],
-          folder => {
+          (folder) => {
             /**
              * Add the content item to the folder.
              * Do NOT use the FoldersTestUtil method as that purges the folder content library,
              * which could cause intermittent test failures
              */
-            RestAPI.Folders.addContentItemsToFolder(user.restContext, folder.id, [content.id], err => {
-              assert.notExists(err);
+            RestAPI.Folders.addContentItemsToFolder(user.restContext, folder.id, [content.id], (error) => {
+              assert.notExists(error);
 
               // Purge all queues
-              PreviewTestUtil.purgePreviewsQueue(err => {
-                assert.notExists(err);
-                PreviewTestUtil.purgeFoldersPreviewsQueue(err => {
-                  assert.notExists(err);
+              PreviewTestUtil.purgePreviewsQueue((error) => {
+                assert.notExists(error);
+                PreviewTestUtil.purgeFoldersPreviewsQueue((error) => {
+                  assert.notExists(error);
 
                   // Enable the PP
-                  PreviewAPI.enable(err => {
-                    assert.notExists(err);
+                  PreviewAPI.enable((error) => {
+                    assert.notExists(error);
 
                     // Reprocess all content items that are files
                     RestAPI.Previews.reprocessPreviews(
                       globalAdminRestContext,
                       { content_resourceSubType: 'file' },
-                      err => {
-                        assert.notExists(err);
+                      (error) => {
+                        assert.notExists(error);
                         MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, () => {
                           MQTestUtil.whenBothTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                             // Assert that we reprocessed the file content object
-                            RestAPI.Content.getContent(user.restContext, content.id, (err, content) => {
-                              assert.notExists(err);
+                            RestAPI.Content.getContent(user.restContext, content.id, (error, content) => {
+                              assert.notExists(error);
                               assert.strictEqual(content.previews.status, 'done');
 
                               // Wait until the folder has been processed
                               FoldersPreviews.whenPreviewsComplete(() => {
                                 // Get the updated folder metadata
-                                FoldersTestUtil.assertGetFolderSucceeds(user.restContext, folder.id, folder => {
+                                FoldersTestUtil.assertGetFolderSucceeds(user.restContext, folder.id, (folder) => {
                                   assert.ok(folder.previews);
                                   assert.ok(folder.previews.thumbnailUrl);
                                   assert.ok(folder.previews.wideUrl);
@@ -2765,12 +2776,12 @@ describe('Preview processor', () => {
       /**
        * Test that verifies remote files can be downloaded
        */
-      it('verify remote files can be downloaded', callback => {
-        const tmpFile = Tempfile.createTempFile();
-        downloadRemoteFile('http://localhost:2000/api/me', tmpFile.path, (err, path) => {
-          assert.notExists(err);
-          fs.readFile(path, 'utf8', (err, data) => {
-            assert.notExists(err);
+      it('verify remote files can be downloaded', (callback) => {
+        const temporaryFile = Tempfile.createTempFile();
+        downloadRemoteFile('http://localhost:2000/api/me', temporaryFile.path, (error, path) => {
+          assert.notExists(error);
+          fs.readFile(path, 'utf8', (error, data) => {
+            assert.notExists(error);
 
             // Verify there is some data there.
             assert.ok(data);
@@ -2780,8 +2791,8 @@ describe('Preview processor', () => {
             assert.ok(data.anon);
 
             // Remove the temporary file
-            tmpFile.remove(err => {
-              assert.notExists(err);
+            temporaryFile.remove((error) => {
+              assert.notExists(error);
               callback();
             });
           });

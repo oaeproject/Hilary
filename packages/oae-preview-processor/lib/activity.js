@@ -19,7 +19,7 @@ import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 import { Context } from 'oae-context';
 import { ActivityConstants } from 'oae-activity/lib/constants';
-import PreviewConstants from './constants';
+import PreviewConstants from './constants.js';
 
 PreviewProcessorAPI.emitter.on(PreviewConstants.EVENTS.PREVIEWS_FINISHED, (content, revision, status) => {
   /**

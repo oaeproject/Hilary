@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-export default {
+const constants = {
   TYPES: {
     IMAGE: [
       'application/dicom',
@@ -182,3 +182,4 @@ export default {
     ]
   }
 };
+export default constants;

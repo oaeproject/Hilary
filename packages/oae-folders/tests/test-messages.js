@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
@@ -32,7 +33,7 @@ describe('Folders', () => {
    * Set up all the REST contexts for admin and anonymous users with which we
    * will invoke requests
    */
-  before(done => {
+  before((done) => {
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return done();
   });
@@ -41,9 +42,9 @@ describe('Folders', () => {
     /**
      * Test that verifies input validation when creating a message
      */
-    it('verify message creation validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify message creation validation', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user1 } = users;
 
@@ -55,7 +56,7 @@ describe('Folders', () => {
           PUBLIC,
           [],
           [],
-          folder => {
+          (folder) => {
             // Test invalid folder id
             FoldersTestUtil.assertCreateMessageFails(user1.restContext, 'not-a-valid-id', 'a body', null, 400, () => {
               // Test not existing folder id
@@ -81,7 +82,7 @@ describe('Folders', () => {
                             folder.id,
                             'a body',
                             null,
-                            message => {
+                            (message) => {
                               assert.ok(message);
                               return callback();
                             }
@@ -101,7 +102,7 @@ describe('Folders', () => {
     /**
      * Test that verifies the model of created messages, and permissions of creating messages on different types of folders
      */
-    it('verify creating a message, model and permissions', callback => {
+    it('verify creating a message, model and permissions', (callback) => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((
         publicTenant,
         publicTenant1,
@@ -129,7 +130,7 @@ describe('Folders', () => {
                   publicTenant.publicFolder.id,
                   'Top-level message',
                   null,
-                  message => {
+                  (message) => {
                     assert.ok(message);
 
                     // This is the expected messagebox id of the folder
@@ -140,7 +141,7 @@ describe('Folders', () => {
                     assert.strictEqual(message.threadKey, message.created + '|');
                     assert.strictEqual(message.body, 'Top-level message');
                     assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
-                    assert.notStrictEqual(parseInt(message.created, 10), NaN);
+                    assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
                     assert.strictEqual(message.level, 0);
                     assert.ok(!message.replyTo);
 
@@ -150,7 +151,7 @@ describe('Folders', () => {
                       publicTenant.publicFolder.id,
                       'Reply message',
                       message.created,
-                      replyMessage => {
+                      (replyMessage) => {
                         assert.ok(replyMessage);
 
                         // This is the expected replyMessagebox id of the folder
@@ -159,7 +160,7 @@ describe('Folders', () => {
                         assert.strictEqual(replyMessage.threadKey, message.created + '#' + replyMessage.created + '|');
                         assert.strictEqual(replyMessage.body, 'Reply message');
                         assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
-                        assert.notStrictEqual(parseInt(replyMessage.created, 10), NaN);
+                        assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
                         assert.strictEqual(replyMessage.level, 1);
                         assert.ok(replyMessage.replyTo, message.created);
 
@@ -169,7 +170,7 @@ describe('Folders', () => {
                           publicTenant.publicFolder.id,
                           'Message from external user',
                           null,
-                          message => {
+                          (message) => {
                             assert.ok(message);
 
                             // Cross-tenant user from public tenant cannot post to a loggedin folder
@@ -208,7 +209,7 @@ describe('Folders', () => {
                                               publicTenant.privateFolder.id,
                                               'Message from external user',
                                               null,
-                                              message => {
+                                              (message) => {
                                                 assert.ok(message);
 
                                                 // Can post to folder as admin
@@ -217,7 +218,7 @@ describe('Folders', () => {
                                                   publicTenant.privateFolder.id,
                                                   'Message from tenant admin user',
                                                   null,
-                                                  message => {
+                                                  (message) => {
                                                     assert.ok(message);
                                                     return callback();
                                                   }
@@ -248,9 +249,9 @@ describe('Folders', () => {
     /**
      * Test that verifies that messages contain user profile pictures
      */
-    it('verify messages contain user profile pictures', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify messages contain user profile pictures', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: bert, 1: nicolaas } = users;
 
@@ -263,8 +264,8 @@ describe('Folders', () => {
 
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 150, height: 150 };
-        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, err => {
-          assert.notExists(err);
+        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, (error_) => {
+          assert.notExists(error_);
 
           // Create a folder and share it with a user that has no profile picture
           FoldersTestUtil.assertCreateFolderSucceeds(
@@ -274,14 +275,14 @@ describe('Folders', () => {
             PUBLIC,
             [],
             [nicolaas],
-            folder => {
+            (folder) => {
               // Add a message to the folder as a user with a profile picture
               FoldersTestUtil.assertCreateMessageSucceeds(
                 bert.restContext,
                 folder.id,
                 'Message body 1',
                 null,
-                message => {
+                (message) => {
                   // Assert that the picture URLs are present
                   assert.ok(message.createdBy);
                   assert.ok(message.createdBy.picture);
@@ -295,7 +296,7 @@ describe('Folders', () => {
                     folder.id,
                     'Message body 2',
                     message.created,
-                    reply => {
+                    (reply) => {
                       // Assert that the picture URLs are present
                       assert.ok(reply.createdBy);
                       assert.ok(reply.createdBy.picture);
@@ -309,7 +310,7 @@ describe('Folders', () => {
                         folder.id,
                         'Message body 3',
                         null,
-                        message => {
+                        (message) => {
                           // Assert that no picture URLs are present
                           assert.ok(message.createdBy);
                           assert.ok(message.createdBy.picture);
@@ -323,7 +324,7 @@ describe('Folders', () => {
                             folder.id,
                             'Message body 4',
                             message.created,
-                            reply => {
+                            (reply) => {
                               // Assert that no picture URLs are present
                               assert.ok(reply.createdBy);
                               assert.ok(reply.createdBy.picture);
@@ -337,9 +338,9 @@ describe('Folders', () => {
                                 folder.id,
                                 null,
                                 10,
-                                messages => {
+                                (messages) => {
                                   assert.strictEqual(messages.results.length, 4);
-                                  _.each(messages.results, message => {
+                                  _.each(messages.results, (message) => {
                                     assert.ok(message.createdBy);
                                     assert.ok(message.createdBy.picture);
 
@@ -381,9 +382,9 @@ describe('Folders', () => {
     /**
      * Test that verifies a folder is updated at most every hour as a result of new message postings
      */
-    it('verify folder update threshold with messages', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify folder update threshold with messages', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -395,7 +396,7 @@ describe('Folders', () => {
           PUBLIC,
           [],
           [],
-          folder => {
+          (folder) => {
             const lastModified1 = folder.lastModified;
 
             // Create a message to test with
@@ -406,14 +407,14 @@ describe('Folders', () => {
               null,
               (/* message */) => {
                 // Ensure lastModified didn't change because it is within the one hour threshold
-                FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, folder => {
-                  assert.notExists(err);
+                FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, (folder) => {
+                  assert.notExists(error);
                   assert.strictEqual(folder.lastModified, lastModified1.toString());
 
                   // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
                   const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
-                  FoldersDAO.updateFolder(folder, { lastModified: lastModified0 }, (err, folder) => {
-                    assert.notExists(err);
+                  FoldersDAO.updateFolder(folder, { lastModified: lastModified0 }, (error, folder) => {
+                    assert.notExists(error);
                     assert.strictEqual(folder.lastModified, lastModified0);
 
                     // Message again, this time the lastModified should update
@@ -429,8 +430,8 @@ describe('Folders', () => {
                           200,
                           simong.restContext,
                           folder.id,
-                          folder => {
-                            assert.ok(parseInt(folder.lastModified, 10) > parseInt(lastModified1, 10));
+                          (folder) => {
+                            assert.ok(Number.parseInt(folder.lastModified, 10) > Number.parseInt(lastModified1, 10));
 
                             // Note at this time, since the lastModified of the folder updated under the hood without
                             // a library update, the library of user should 2 versions of this folder. Lets see if it
@@ -440,7 +441,7 @@ describe('Folders', () => {
                               simong.user.id,
                               null,
                               null,
-                              items => {
+                              (items) => {
                                 assert.strictEqual(items.results.length, 1);
                                 return callback();
                               }
@@ -463,9 +464,9 @@ describe('Folders', () => {
     /**
      * Test that verifies input validation of listing messages from a folder
      */
-    it('verify list messages validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify list messages validation', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -477,14 +478,14 @@ describe('Folders', () => {
           PUBLIC,
           [],
           [],
-          folder => {
+          (folder) => {
             // Validate invalid folder id
             FoldersTestUtil.assertGetMessagesFails(simong.restContext, 'not-a-valid-id', null, null, 400, () => {
               // Non-existing folder
               FoldersTestUtil.assertGetMessagesFails(simong.restContext, 'f:foo:bar', null, null, 404, () => {
                 // Sanity-check
-                FoldersTestUtil.assertGetMessagesSucceeds(simong.restContext, folder.id, null, null, messages => {
-                  assert.notExists(err);
+                FoldersTestUtil.assertGetMessagesSucceeds(simong.restContext, folder.id, null, null, (messages) => {
+                  assert.notExists(error);
                   assert.ok(messages);
                   return callback();
                 });
@@ -498,7 +499,7 @@ describe('Folders', () => {
     /**
      * Test that verifies the model of messages, and permissions for accessing them
      */
-    it('verify listing messages, model and permissions', callback => {
+    it('verify listing messages, model and permissions', (callback) => {
       /*!
        * Ensure that the message model is correct between the message to test and the message against which to test.
        *
@@ -508,7 +509,7 @@ describe('Folders', () => {
        * @param  {Boolean}    userScrubbed            Whether or not the createdBy field should have scrubbed user data
        * @throws {Error}                              Throws an assertion error if the data fails assertions
        */
-      const _assertMessageModel = function(messageToTest, messageToTestAgainst, creatorToTestAgainst, userScrubbed) {
+      const _assertMessageModel = function (messageToTest, messageToTestAgainst, creatorToTestAgainst, userScrubbed) {
         // Verify message model
         assert.strictEqual(messageToTest.id, messageToTestAgainst.id);
         assert.strictEqual(messageToTest.messageBoxId, messageToTestAgainst.messageBoxId);
@@ -542,26 +543,26 @@ describe('Folders', () => {
           publicTenant.publicFolder.id,
           'Message1 parent on public',
           null,
-          publicMessage1 => {
+          (publicMessage1) => {
             FoldersTestUtil.assertCreateMessageSucceeds(
               publicTenant.loggedinUser.restContext,
               publicTenant.publicFolder.id,
               'Message1 reply on public',
               publicMessage1.created,
-              replyPublicMessage1 => {
+              (replyPublicMessage1) => {
                 FoldersTestUtil.assertCreateMessageSucceeds(
                   publicTenant.loggedinUser.restContext,
                   publicTenant.publicFolder.id,
                   'Message2 parent on public',
                   null,
-                  publicMessage2 => {
+                  (publicMessage2) => {
                     // Create message on the loggedin folder
                     FoldersTestUtil.assertCreateMessageSucceeds(
                       publicTenant.loggedinUser.restContext,
                       publicTenant.loggedinFolder.id,
                       'Message on loggedin',
                       null,
-                      loggedinMessage => {
+                      (loggedinMessage) => {
                         // Share and post message on the private folder
                         FoldersTestUtil.assertShareFolderSucceeds(
                           publicTenant.adminRestContext,
@@ -574,14 +575,14 @@ describe('Folders', () => {
                               publicTenant.privateFolder.id,
                               'Message on private',
                               null,
-                              privateMessage => {
+                              (privateMessage) => {
                                 // Anonymous can read on public, but not loggedin or private
                                 FoldersTestUtil.assertGetMessagesSucceeds(
                                   publicTenant.anonymousRestContext,
                                   publicTenant.publicFolder.id,
                                   null,
                                   null,
-                                  messages => {
+                                  (messages) => {
                                     assert.ok(messages);
                                     assert.strictEqual(messages.results.length, 3);
 
@@ -625,7 +626,7 @@ describe('Folders', () => {
                                               publicTenant.loggedinFolder.id,
                                               null,
                                               null,
-                                              messages => {
+                                              (messages) => {
                                                 assert.ok(messages);
                                                 assert.strictEqual(messages.results.length, 1);
 
@@ -651,7 +652,7 @@ describe('Folders', () => {
                                                       publicTenant.privateFolder.id,
                                                       null,
                                                       null,
-                                                      messages => {
+                                                      (messages) => {
                                                         assert.ok(messages);
                                                         assert.strictEqual(messages.results.length, 1);
 
@@ -669,7 +670,7 @@ describe('Folders', () => {
                                                           publicTenant.publicFolder.id,
                                                           null,
                                                           2,
-                                                          messages => {
+                                                          (messages) => {
                                                             assert.ok(messages);
                                                             assert.strictEqual(
                                                               messages.nextToken,
@@ -698,7 +699,7 @@ describe('Folders', () => {
                                                               publicTenant.publicFolder.id,
                                                               publicMessage1.threadKey,
                                                               2,
-                                                              messages => {
+                                                              (messages) => {
                                                                 assert.ok(messages);
                                                                 assert.strictEqual(messages.results.length, 1);
                                                                 assert.ok(!messages.nextToken);
@@ -748,9 +749,9 @@ describe('Folders', () => {
     /**
      * Test that verifies input validation of deleting messages from a folder
      */
-    it('verify delete message validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify delete message validation', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -762,9 +763,9 @@ describe('Folders', () => {
           PUBLIC,
           [],
           [],
-          folder => {
+          (folder) => {
             // Create message on the folder to delete
-            FoldersTestUtil.assertCreateMessageSucceeds(simong.restContext, folder.id, 'a message', null, message => {
+            FoldersTestUtil.assertCreateMessageSucceeds(simong.restContext, folder.id, 'a message', null, (message) => {
               // Validate invalid folder id
               FoldersTestUtil.assertDeleteMessageFails(
                 simong.restContext,
@@ -793,7 +794,7 @@ describe('Folders', () => {
                               folder.id,
                               null,
                               2,
-                              messages => {
+                              (messages) => {
                                 assert.strictEqual(messages.results.length, 1);
                                 return callback();
                               }
@@ -814,7 +815,7 @@ describe('Folders', () => {
     /**
      * Test that verifies the logic of deleting messages, and the model and permissions for the operation
      */
-    it('verify deleting messages, model and permissions', callback => {
+    it('verify deleting messages, model and permissions', (callback) => {
       FoldersTestUtil.setupMultiTenantPrivacyEntities((
         publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
       ) => {
@@ -834,19 +835,19 @@ describe('Folders', () => {
               publicTenant.privateFolder.id,
               'Message1 parent on public',
               null,
-              publicMessage1 => {
+              (publicMessage1) => {
                 FoldersTestUtil.assertCreateMessageSucceeds(
                   publicTenant.loggedinUser.restContext,
                   publicTenant.privateFolder.id,
                   'Message1 reply on public',
                   publicMessage1.created,
-                  replyPublicMessage1 => {
+                  (replyPublicMessage1) => {
                     FoldersTestUtil.assertCreateMessageSucceeds(
                       publicTenant.loggedinUser.restContext,
                       publicTenant.privateFolder.id,
                       'Message2 parent on public',
                       null,
-                      publicMessage2 => {
+                      (publicMessage2) => {
                         // Verify anonymous cannot delete a message
                         FoldersTestUtil.assertDeleteMessageFails(
                           publicTenant.anonymousRestContext,
@@ -866,15 +867,17 @@ describe('Folders', () => {
                                   publicTenant.privateUser.restContext,
                                   publicTenant.privateFolder.id,
                                   publicMessage1.created,
-                                  message => {
+                                  (message) => {
                                     // Ensure the deleted message model
                                     assert.strictEqual(message.id, publicMessage1.id);
                                     assert.strictEqual(message.messageBoxId, publicMessage1.messageBoxId);
                                     assert.strictEqual(message.threadKey, publicMessage1.threadKey);
                                     assert.strictEqual(message.created, publicMessage1.created);
                                     assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                    assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                    assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                    assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                    assert.ok(
+                                      Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                    );
                                     assert.strictEqual(message.level, publicMessage1.level);
                                     assert.ok(!message.body);
                                     assert.ok(!message.createdBy);
@@ -885,7 +888,7 @@ describe('Folders', () => {
                                       publicTenant.privateFolder.id,
                                       null,
                                       null,
-                                      items => {
+                                      (items) => {
                                         assert.lengthOf(items.results, 3);
 
                                         const message = items.results[1];
@@ -894,8 +897,10 @@ describe('Folders', () => {
                                         assert.strictEqual(message.threadKey, publicMessage1.threadKey);
                                         assert.strictEqual(message.created, publicMessage1.created);
                                         assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                        assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                        assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                        assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                        assert.ok(
+                                          Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                        );
                                         assert.strictEqual(message.level, publicMessage1.level);
                                         assert.isNotOk(message.body);
                                         assert.isNotOk(message.createdBy);
@@ -905,7 +910,7 @@ describe('Folders', () => {
                                           publicTenant.loggedinUser.restContext,
                                           publicTenant.privateFolder.id,
                                           replyPublicMessage1.created,
-                                          message => {
+                                          (message) => {
                                             assert.isNotOk(message);
 
                                             // We re-delete this one, but it should actually do a hard delete this time as there are no children
@@ -913,7 +918,7 @@ describe('Folders', () => {
                                               publicTenant.loggedinUser.restContext,
                                               publicTenant.privateFolder.id,
                                               publicMessage1.created,
-                                              message => {
+                                              (message) => {
                                                 assert.isNotOk(message);
 
                                                 // Perform a hard-delete on this leaf message. This also tests admin can delete
@@ -921,7 +926,7 @@ describe('Folders', () => {
                                                   publicTenant.adminRestContext,
                                                   publicTenant.privateFolder.id,
                                                   publicMessage2.created,
-                                                  message => {
+                                                  (message) => {
                                                     assert.isNotOk(message);
 
                                                     // Should be no more messages in the folder as they should have all been de-indexed by hard deletes
@@ -930,7 +935,7 @@ describe('Folders', () => {
                                                       publicTenant.privateFolder.id,
                                                       null,
                                                       null,
-                                                      items => {
+                                                      (items) => {
                                                         assert.lengthOf(items.results, 0);
                                                         return callback();
                                                       }

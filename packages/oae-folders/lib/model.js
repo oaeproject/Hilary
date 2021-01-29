@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 
@@ -31,7 +31,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
  * @param  {Number}     lastModified    The timestamp (millis since epoch) that the folder was last modified
  * @param  {Object}     previews        The previews object for this folder
  */
-const Folder = function(
+const Folder = function (
   tenant,
   id,
   groupId,
@@ -55,7 +55,7 @@ const Folder = function(
   that.created = created;
   that.lastModified = lastModified;
   that.previews = previews;
-  that.profilePath = util.format('/folder/%s/%s', tenant.alias, resourceId);
+  that.profilePath = format('/folder/%s/%s', tenant.alias, resourceId);
   that.resourceType = 'folder';
   return that;
 };

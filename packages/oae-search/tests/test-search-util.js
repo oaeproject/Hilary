@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import { Context } from 'oae-context';
 import { SearchConstants } from 'oae-search/lib/constants';
@@ -68,18 +69,18 @@ describe('Search Util', () => {
     /**
      * Test that verifies falsey and empty values to getSearchParams
      */
-    it('verify unspecified query params', callback => {
-      let params = getSearchParams();
-      assert.isObject(params);
-      assert.isEmpty(params);
+    it('verify unspecified query params', (callback) => {
+      let parameters = getSearchParams();
+      assert.isObject(parameters);
+      assert.isEmpty(parameters);
 
-      params = getSearchParams(null);
-      assert.isObject(params);
-      assert.isEmpty(params);
+      parameters = getSearchParams(null);
+      assert.isObject(parameters);
+      assert.isEmpty(parameters);
 
-      params = getSearchParams({});
-      assert.isObject(params);
-      assert.isEmpty(params);
+      parameters = getSearchParams({});
+      assert.isObject(parameters);
+      assert.isEmpty(parameters);
 
       return callback();
     });
@@ -87,8 +88,8 @@ describe('Search Util', () => {
     /**
      * Test that verifies all parameters are extracted from the hash.
      */
-    it('verify all values', callback => {
-      const params = getSearchParams({
+    it('verify all values', (callback) => {
+      const parameters = getSearchParams({
         query: {
           q: 'qVal',
           start: 'startVal',
@@ -98,11 +99,11 @@ describe('Search Util', () => {
         }
       });
 
-      assert.strictEqual(params.q, 'qVal');
-      assert.strictEqual(params.start, 'startVal');
-      assert.strictEqual(params.limit, 'limitVal');
-      assert.strictEqual(params.sort, 'sortVal');
-      assert.strictEqual(params.rogue, undefined);
+      assert.strictEqual(parameters.q, 'qVal');
+      assert.strictEqual(parameters.start, 'startVal');
+      assert.strictEqual(parameters.limit, 'limitVal');
+      assert.strictEqual(parameters.sort, 'sortVal');
+      assert.strictEqual(parameters.rogue, undefined);
 
       return callback();
     });
@@ -110,14 +111,14 @@ describe('Search Util', () => {
     /**
      * Test that verifies a hash with no values can be specified without an error.
      */
-    it('verify empty query params', callback => {
-      const params = getSearchParams({ query: {} });
+    it('verify empty query params', (callback) => {
+      const parameters = getSearchParams({ query: {} });
 
-      assert.strictEqual(params.q, undefined);
-      assert.strictEqual(params.start, undefined);
-      assert.strictEqual(params.limit, undefined);
-      assert.strictEqual(params.sort, undefined);
-      assert.strictEqual(params.rogue, undefined);
+      assert.strictEqual(parameters.q, undefined);
+      assert.strictEqual(parameters.start, undefined);
+      assert.strictEqual(parameters.limit, undefined);
+      assert.strictEqual(parameters.sort, undefined);
+      assert.strictEqual(parameters.rogue, undefined);
 
       return callback();
     });
@@ -127,7 +128,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a single parameter filter object is returned in the filter
      */
-    it('verify one param', callback => {
+    it('verify one param', (callback) => {
       const filter = filterOr({ param: 'Arbitrary object should be returned' });
 
       assert.exists(filter);
@@ -140,7 +141,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies two filter object are returned in the filter
      */
-    it('verify two params', callback => {
+    it('verify two params', (callback) => {
       const filter = filterOr(
         { one: 'Arbitrary object should be returned' },
         { other: 'Arbitrary object should be returned' }
@@ -158,7 +159,7 @@ describe('Search Util', () => {
      * Test that verifies parameters that are a mix of unspecified and filter objects returns only the filter
      * objects. Order is not important.
      */
-    it('verify mixed null params', callback => {
+    it('verify mixed null params', (callback) => {
       const filter = filterOr(null, { key: VALUE }, undefined, { key: VALUE });
 
       assert.exists(filter);
@@ -173,7 +174,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies no filter object parameters results in an unspecified value being returned
      */
-    it('verify empty params', callback => {
+    it('verify empty params', (callback) => {
       assert.notExists(filterOr());
 
       return callback();
@@ -184,7 +185,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a single parameter filter object is returned in the filter
      */
-    it('verify one param', callback => {
+    it('verify one param', (callback) => {
       const filter = filterAnd({ param: 'Arbitrary object should be returned' });
 
       assert.exists(filter);
@@ -197,7 +198,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a single parameter filter object is returned in the filter
      */
-    it('verify two params', callback => {
+    it('verify two params', (callback) => {
       const filter = filterAnd(
         { one: 'Arbitrary object should be returned' },
         { other: 'Arbitrary object should be returned' }
@@ -215,7 +216,7 @@ describe('Search Util', () => {
      * Test that verifies parameters that are a mix of unspecified and filter objects returns only the filter
      * objects. Order is not important.
      */
-    it('verify mixed null params', callback => {
+    it('verify mixed null params', (callback) => {
       const filter = filterAnd(null, { key: VALUE }, undefined, { key: VALUE });
 
       assert.ok(filter);
@@ -230,7 +231,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies no filter object parameters results in an unspecified value being returned
      */
-    it('verify empty params', callback => {
+    it('verify empty params', (callback) => {
       assert.notExists(filterAnd());
 
       return callback();
@@ -241,7 +242,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a filter object is returned wrapped in a 'not' filter
      */
-    it('verify a not filter', callback => {
+    it('verify a not filter', (callback) => {
       const filter = filterNot({ key: VALUE });
       const mustNot = prop('must_not', filter);
 
@@ -255,7 +256,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies an falsey value is returned when specifying a falsey parameter to filterNot
      */
-    it('verify falsey not filter', callback => {
+    it('verify falsey not filter', (callback) => {
       assert.notExists(filterNot());
 
       return callback();
@@ -266,7 +267,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a single parameter filter object is returned in the filter
      */
-    it('verify one term', callback => {
+    it('verify one term', (callback) => {
       const filter = filterTerms(KEY, [VALUE]);
 
       assert.ok(filter);
@@ -280,7 +281,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies filter terms with unspecified terms array returns a falsey result
      */
-    it('verify unspecified term values', callback => {
+    it('verify unspecified term values', (callback) => {
       const filter = filterTerms(KEY);
 
       assert.isNotOk(getKey(filter));
@@ -291,7 +292,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies filter terms with empty terms array returns a falsey result
      */
-    it('verify empty term values', callback => {
+    it('verify empty term values', (callback) => {
       assert.isNotOk(filterTerms(KEY, []));
 
       return callback();
@@ -301,7 +302,7 @@ describe('Search Util', () => {
      * Test that verifies if the value is an object, it is treated as a terms lookup by
      * returning the object as-is in the terms filter
      */
-    it('verify object for values returns object verbatim', callback => {
+    it('verify object for values returns object verbatim', (callback) => {
       const filter = filterTerms(KEY, {
         index: 'test-index',
         type: 'test-type',
@@ -334,7 +335,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies a single parameter filter object is returned in the filter
      */
-    it('verify with a term', callback => {
+    it('verify with a term', (callback) => {
       const filter = filterTerm(KEY, VALUE);
 
       assert.exists(filter);
@@ -347,7 +348,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies filter terms with unspecified terms array returns a falsey result
      */
-    it('verify unspecified term value', callback => {
+    it('verify unspecified term value', (callback) => {
       assert.isNotOk(filterTerm(KEY));
 
       return callback();
@@ -360,7 +361,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies creating a resources filter
      */
-    it('verify creating a resource filter', callback => {
+    it('verify creating a resource filter', (callback) => {
       // Ensure unspecified resource types searches all undeleted resources
       const filterUnspecifiedResources = filterResources();
       assert.lengthOf(mustConditions(filterUnspecifiedResources), 2);
@@ -408,13 +409,13 @@ describe('Search Util', () => {
     /**
      * Test that verifies anonymous and global admin user have no explicit access
      */
-    it('verify anonymous and global admin user receive no filter for explicit access', callback => {
-      filterExplicitAccess(createGlobalAdminContext(), index, (err, filter) => {
-        assert.isNotOk(err);
+    it('verify anonymous and global admin user receive no filter for explicit access', (callback) => {
+      filterExplicitAccess(createGlobalAdminContext(), index, (error, filter) => {
+        assert.isNotOk(error);
         assert.isNotOk(filter);
 
-        filterExplicitAccess(new Context(global.oaeTests.tenants.cam), index, (err, filter) => {
-          assert.isNotOk(err);
+        filterExplicitAccess(new Context(global.oaeTests.tenants.cam), index, (error, filter) => {
+          assert.isNotOk(error);
           assert.isNotOk(filter);
 
           return callback();
@@ -427,7 +428,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies creating a child query
      */
-    it('verify creating a has_child query', callback => {
+    it('verify creating a has_child query', (callback) => {
       // Ensure specifying no query string results in no query object
       assert.isNotOk(createHasChildQuery(TYPE, null, SCORE_TYPE));
 
@@ -446,7 +447,7 @@ describe('Search Util', () => {
     /**
      * Test that verifies creating a query
      */
-    it('verify createQuery', callback => {
+    it('verify createQuery', (callback) => {
       // Sanity check creating with an object
       createQuery({});
 
@@ -466,7 +467,7 @@ describe('Search Util', () => {
      * Test that verifies valid values, invalid values, emptyvalues, null and undefined
      * for SearchUtil.getQueryParam
      */
-    it('verify getQueryParam', callback => {
+    it('verify getQueryParam', (callback) => {
       assert.strictEqual(getQueryParam(CATS, DOGS), CATS);
       assert.strictEqual(getQueryParam(CATS), CATS);
       assert.strictEqual(getQueryParam('', CATS), CATS);
@@ -483,7 +484,7 @@ describe('Search Util', () => {
      * Test that verifies valid values, invalid values, emptyvalues, null and undefined
      * for SearchUtil.getSortDirParam
      */
-    it('verify getSortDirParam', callback => {
+    it('verify getSortDirParam', (callback) => {
       const oneValidType = SearchConstants.sort.direction.ASC;
       const anotherValidType = SearchConstants.sort.direction.DESC;
 
@@ -505,7 +506,7 @@ describe('Search Util', () => {
      * Test that verifies valid values, invalid values, empty values and default values for
      * SearchUtil.getScopeParam
      */
-    it('verify getScopeParam', callback => {
+    it('verify getScopeParam', (callback) => {
       const tenantAlias = global.oaeTests.tenants.cam.alias;
       assert.strictEqual(getScopeParam(), SearchConstants.general.SCOPE_ALL);
       assert.strictEqual(getScopeParam(INVALID), SearchConstants.general.SCOPE_ALL);

@@ -31,7 +31,7 @@ import { SearchResult } from 'oae-search/lib/model';
 const { transformSearchResults } = SearchUtil;
 
 import * as MQ from 'oae-util/lib/mq';
-import * as client from './internal/elasticsearch';
+import * as client from './internal/elasticsearch.js';
 
 import { DiscussionsConstants } from 'oae-discussions/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -75,7 +75,7 @@ const searchDocumentTransformers = {
    * @see registerSearchDocumentTransformer
    */
   '*'(ctx, docs, callback) {
-    const result = map(doc => mergeAll([doc.fields, { id: doc._id }]), docs);
+    const result = map((doc) => mergeAll([doc.fields, { id: doc._id }]), docs);
     return callback(null, result);
   }
 };
@@ -152,7 +152,7 @@ const SearchAPI = new EmitterAPI.EventEmitter();
  * @param  {Object}    transformer.callback.docs   The view model, keyed by document _id, that were translated from the hash of search documents
  * @throws {Error}                                 An error that is thrown if there is already a transformer registered for the given type
  */
-const registerSearchDocumentTransformer = function(typeName, transformer) {
+const registerSearchDocumentTransformer = function (typeName, transformer) {
   if (searchDocumentTransformers[typeName]) {
     throw new Error('Document transformer for type ' + typeName + ' already exists');
   }
@@ -173,7 +173,7 @@ const registerSearchDocumentTransformer = function(typeName, transformer) {
  * @param  {Object[]}  producer.callback.docs       The documents to be indexed
  * @throws {Error}                                  An error that is thrown if there is already a producer registered for the given type
  */
-const registerSearchDocumentProducer = function(typeName, producer) {
+const registerSearchDocumentProducer = function (typeName, producer) {
   if (searchDocumentProducers[typeName]) {
     throw new Error('Document producer for type ' + typeName + ' already exists');
   }
@@ -204,7 +204,7 @@ const registerSearchDocumentProducer = function(typeName, producer) {
  * @param  {Object}    postProcessor.callback.results      The processed results
  * @throws {Error}                                         An error that is thrown if there is already a search registered by the given name
  */
-const registerSearch = function(typeName, queryBuilder, postProcessor) {
+const registerSearch = function (typeName, queryBuilder, postProcessor) {
   if (searches[typeName]) {
     throw new Error('Search type ' + typeName + ' already exists');
   }
@@ -213,7 +213,7 @@ const registerSearch = function(typeName, queryBuilder, postProcessor) {
     queryBuilder,
     postProcessor:
       postProcessor ||
-      function(ctx, opts, results, callback) {
+      function (ctx, options, results, callback) {
         return callback(null, results);
       }
   };
@@ -227,7 +227,7 @@ const registerSearch = function(typeName, queryBuilder, postProcessor) {
  * @param  {Function}   handler.callback        The callback function that should be invoked when reindexing has been completed
  * @param  {Object}     handler.callback.err    An error that occurred during reindexing, if any
  */
-const registerReindexAllHandler = function(handlerId, handler) {
+const registerReindexAllHandler = function (handlerId, handler) {
   if (reindexAllHandlers[handlerId]) {
     throw new Error('Reindex-all handler with id ' + handlerId + ' already exists');
   }
@@ -250,18 +250,18 @@ const registerReindexAllHandler = function(handlerId, handler) {
  * @param  {Function}   [callback]                          Standard callback function, invoked when the child search document mapping has been created
  * @param  {Object}     [callback.err]                      An error that occurred, if any
  */
-const registerChildSearchDocument = function(name, options, callback) {
+const registerChildSearchDocument = function (name, options, callback) {
   if (childSearchDocuments[name]) {
-    const err = new Error('Child search document mapping with name "' + name + '" already exists');
-    log().error({ err, name }, 'Attempted to register duplicate child search document');
-    return callback({ code: 400, msg: err.message });
+    const error = new Error('Child search document mapping with name "' + name + '" already exists');
+    log().error({ err: error, name }, 'Attempted to register duplicate child search document');
+    return callback({ code: 400, msg: error.message });
   }
 
   // Determine the resource types we will support
   let resourceTypes = null;
   if (R.is(Array, options.resourceTypes) && not(R.isEmpty(options.resourceTypes))) {
     resourceTypes = {};
-    forEach(eachResourceType => {
+    forEach((eachResourceType) => {
       resourceTypes = assoc(eachResourceType, true, resourceTypes);
     }, options.resourceTypes);
   }
@@ -275,9 +275,9 @@ const registerChildSearchDocument = function(name, options, callback) {
   // The callback defaults to a function that simply logs the fact that an error occurred
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'An unexpected error occurred while creating a child search document mapping');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'An unexpected error occurred while creating a child search document mapping');
       }
     };
 
@@ -293,7 +293,7 @@ const registerChildSearchDocument = function(name, options, callback) {
  * @param  {Object}     searchConfig    The search configuration object, as per `config.js`
  * @param  {Function}   callback        Standard callback function
  */
-const refreshSearchConfiguration = function(searchConfig, callback) {
+const refreshSearchConfiguration = function (searchConfig, callback) {
   index = searchConfig.index;
   const processIndexJobs = searchConfig.processIndexJobs !== false;
 
@@ -329,8 +329,8 @@ const refreshSearchConfiguration = function(searchConfig, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const buildIndex = (destroy, callback) => {
-  _ensureIndex(index.name, index.settings, destroy, err => {
-    if (err) return callback(err);
+  _ensureIndex(index.name, index.settings, destroy, (error) => {
+    if (error) return callback(error);
 
     return _ensureSearchSchema(null, callback);
   });
@@ -351,7 +351,7 @@ const buildIndex = (destroy, callback) => {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.result     The retrieved search results
  */
-const search = function(ctx, searchType, opts, callback) {
+const search = function (ctx, searchType, options, callback) {
   const registeredSearch = searches[searchType];
   if (!registeredSearch) {
     return callback({ code: 400, msg: 'Search "' + searchType + '" is not a valid search type.' });
@@ -361,40 +361,40 @@ const search = function(ctx, searchType, opts, callback) {
    * We need the index field down the call hierarchy so we're adding it here
    * and collecting it in the `filterExplicitAccess` function later
    */
-  opts.index = index.name;
+  options.index = index.name;
 
   // Invoke the search plugin to get the query object
-  registeredSearch.queryBuilder(ctx, opts, (err, queryBody) => {
-    if (err) return callback(err);
+  registeredSearch.queryBuilder(ctx, options, (error, queryBody) => {
+    if (error) return callback(error);
     if (!queryBody) callback(null, new SearchResult(0, []));
 
     // Query only the document fields stored in the index, and not the _source and others
-    opts.storedFields = '*';
+    options.storedFields = '*';
 
     // Perform the search with the query data
-    client.search(queryBody, opts, (err, elasticSearchResponse) => {
-      if (err) {
-        log().error({ err }, 'An unexpected error occurred performing a search');
+    client.search(queryBody, options, (error, elasticSearchResponse) => {
+      if (error) {
+        log().error({ err: error }, 'An unexpected error occurred performing a search');
         return callback({ code: 500, msg: 'An unexpected error occurred performing the search' });
       }
 
-      elasticSearchResponse.body.hits.hits = map(eachHit => {
+      elasticSearchResponse.body.hits.hits = map((eachHit) => {
         eachHit.fields._extra[0] = JSON.parse(eachHit.fields._extra[0]);
         return eachHit;
       }, elasticSearchResponse.body.hits.hits);
 
-      transformSearchResults(ctx, searchDocumentTransformers, elasticSearchResponse, (err, transformedResults) => {
-        if (err) return callback(err);
+      transformSearchResults(ctx, searchDocumentTransformers, elasticSearchResponse, (error, transformedResults) => {
+        if (error) return callback(error);
 
         // Ensure we scrub any `_extra` field from all results
-        forEach(doc => {
+        forEach((doc) => {
           delete doc._extra;
         }, transformedResults.results);
 
-        SearchAPI.emit(SearchConstants.events.SEARCH, ctx, searchType, opts, transformedResults);
+        SearchAPI.emit(SearchConstants.events.SEARCH, ctx, searchType, options, transformedResults);
 
         // Perform post-processing (if any)
-        return registeredSearch.postProcessor(ctx, opts, transformedResults, callback);
+        return registeredSearch.postProcessor(ctx, options, transformedResults, callback);
       });
     });
   });
@@ -408,7 +408,7 @@ const search = function(ctx, searchType, opts, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const postReindexAllTask = function(ctx, callback) {
+const postReindexAllTask = function (ctx, callback) {
   if (!ctx.user() || !ctx.user().isGlobalAdmin()) {
     return callback({ code: 401, msg: 'Only global administrator can trigger a full reindex.' });
   }
@@ -428,14 +428,14 @@ const postReindexAllTask = function(ctx, callback) {
  * @param  {Function}           [callback]          Standard callback function, invoked when the task has been submit
  * @param  {Object}             [callback.err]      An error that occurred, if any
  */
-const postIndexTask = function(resourceType, resources, index, callback) {
+const postIndexTask = function (resourceType, resources, index, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             resourceType,
             resources,
             index
@@ -447,17 +447,17 @@ const postIndexTask = function(resourceType, resources, index, callback) {
 
   try {
     const code = 400;
-    let msg = 'Must specify a resource type';
-    unless(isNotEmpty, { code, msg })(resourceType);
-    msg = '"resources" parameter must be an array';
-    unless(isArray, { code, msg })(resources);
-    msg = '"index" parameter must be an object';
-    unless(isObject, { code, msg })(index);
-    msg = '"resources" parameter must be an array with one or more entries';
-    unless(isArrayNotEmpty, { code, msg })(resources);
-    msg = 'Each index resource must have an id';
-    resources.forEach(resource => {
-      unless(isNotEmpty, { code, msg })(resource.id);
+    let message = 'Must specify a resource type';
+    unless(isNotEmpty, { code, msg: message })(resourceType);
+    message = '"resources" parameter must be an array';
+    unless(isArray, { code, msg: message })(resources);
+    message = '"index" parameter must be an object';
+    unless(isObject, { code, msg: message })(index);
+    message = '"resources" parameter must be an array with one or more entries';
+    unless(isArrayNotEmpty, { code, msg: message })(resources);
+    message = 'Each index resource must have an id';
+    resources.forEach((resource) => {
+      unless(isNotEmpty, { code, msg: message })(resource.id);
     });
   } catch (error) {
     return callback(error);
@@ -478,7 +478,7 @@ const postIndexTask = function(resourceType, resources, index, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const postDeleteTask = function(id, children, callback) {
+const postDeleteTask = function (id, children, callback) {
   return MQ.submit(SearchConstants.mq.TASK_DELETE_DOCUMENT, JSON.stringify({ id, children }), callback);
 };
 
@@ -493,16 +493,16 @@ const postDeleteTask = function(id, children, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @api private
  */
-const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
+const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
   if (destroy) {
     log().info('Destroying index "%s"', indexName);
-    client.deleteIndex(indexName, err => {
-      if (err) return callback(err);
+    client.deleteIndex(indexName, (error) => {
+      if (error) return callback(error);
 
-      client.createIndex(indexName, indexSettings, err => {
-        if (err) {
-          log().error({ err }, 'Error recreating index "%s" after deletion.', indexName);
-          return callback(err);
+      client.createIndex(indexName, indexSettings, (error) => {
+        if (error) {
+          log().error({ err: error }, 'Error recreating index "%s" after deletion.', indexName);
+          return callback(error);
         }
 
         /**
@@ -510,8 +510,8 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
          * Check the documentation:
          * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
          */
-        client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren, err => {
-          if (err) return callback(err);
+        client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren, (error) => {
+          if (error) return callback(error);
 
           log().info('Recreated index "%s" after deletion', indexName);
           return callback();
@@ -519,10 +519,10 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
       });
     });
   } else {
-    client.createIndex(indexName, indexSettings, err => {
-      if (err) {
-        log().error({ err }, 'Error creating index "%s"', indexName);
-        return callback(err);
+    client.createIndex(indexName, indexSettings, (error) => {
+      if (error) {
+        log().error({ err: error }, 'Error creating index "%s"', indexName);
+        return callback(error);
       }
 
       return callback();
@@ -539,8 +539,8 @@ const _ensureIndex = function(indexName, indexSettings, destroy, callback) {
  */
 const _ensureSearchSchema = (names, callback) => {
   if (!names) {
-    return client.putMapping(require('./schema/resourceSchema'), null, err => {
-      if (err) return callback(err);
+    return client.putMapping(require('./schema/resourceSchema'), null, (error) => {
+      if (error) return callback(error);
 
       return _ensureSearchSchema(keys(childSearchDocuments), callback);
     });
@@ -549,8 +549,8 @@ const _ensureSearchSchema = (names, callback) => {
   if (isEmpty(names)) return callback();
 
   const name = names.shift();
-  return _createChildSearchDocumentMapping(childSearchDocuments[name].schema, err => {
-    if (err) return callback(err);
+  return _createChildSearchDocumentMapping(childSearchDocuments[name].schema, (error) => {
+    if (error) return callback(error);
 
     // Recursively create the next child document schema mapping
     return _ensureSearchSchema(names, callback);
@@ -578,12 +578,12 @@ const _createChildSearchDocumentMapping = (schema, callback) => {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _handleReindexAllTask = function(data, callback) {
+const _handleReindexAllTask = function (data, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling reindex-all task');
+    function (error) {
+      if (error) {
+        log().error({ err: error, data }, 'Error handling reindex-all task');
       }
     };
 
@@ -592,22 +592,22 @@ const _handleReindexAllTask = function(data, callback) {
   }
 
   // Invoke all handlers and return to the caller when they have all completed (or we get an error)
-  let numToProcess = _.keys(reindexAllHandlers).length;
+  let numberToProcess = _.keys(reindexAllHandlers).length;
   let complete = false;
   _.each(reindexAllHandlers, (handler /* , handlerId */) => {
-    handler(err => {
+    handler((error) => {
       if (complete) {
         // Do nothing, we've already returned to the caller
         return;
       }
 
-      if (err) {
+      if (error) {
         complete = true;
-        return callback(err);
+        return callback(error);
       }
 
-      numToProcess--;
-      if (numToProcess === 0) {
+      numberToProcess--;
+      if (numberToProcess === 0) {
         log().info({ handlers: _.keys(reindexAllHandlers) }, 'Finished submitting all items for re-indexing');
         complete = true;
         return callback();
@@ -626,12 +626,12 @@ const _handleReindexAllTask = function(data, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _handleDeleteDocumentTask = function(data, callback) {
+const _handleDeleteDocumentTask = function (data, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling search document delete task.');
+    function (error) {
+      if (error) {
+        log().error({ err: error, data }, 'Error handling search document delete task.');
       }
     };
 
@@ -663,7 +663,7 @@ const _handleDeleteDocumentTask = function(data, callback) {
   // For each specified sets of children document ids, delete them
   if (data.children) {
     _.each(data.children, (ids, documentType) => {
-      _.each(ids, id => {
+      _.each(ids, (id) => {
         deletes.push({
           deleteType: 'id',
           documentType,
@@ -688,7 +688,7 @@ const _handleDeleteDocumentTask = function(data, callback) {
  * @param  {Function}   callback                    Standard callback function
  * @api private
  */
-const _deleteAll = function(deletes, callback) {
+const _deleteAll = function (deletes, callback) {
   if (isEmpty(deletes)) return callback();
 
   const del = deletes.shift();
@@ -699,8 +699,8 @@ const _deleteAll = function(deletes, callback) {
    *
    * @param  {Object}     err     An error that occurred, if any
    */
-  const _handleDocumentsDeleted = err => {
-    if (err) log().error({ err, operation: del }, 'Error deleting a document from the search index');
+  const _handleDocumentsDeleted = (error) => {
+    if (error) log().error({ err: error, operation: del }, 'Error deleting a document from the search index');
 
     return _deleteAll(deletes, callback);
   };
@@ -725,14 +725,14 @@ const _deleteAll = function(deletes, callback) {
  * @param  {Object}             callback.err    An error that occurred, if any
  * @api private
  */
-const _handleIndexDocumentTask = function(data, callback) {
+const _handleIndexDocumentTask = function (data, callback) {
   const isTrue = equals(true);
 
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling search indexing task.');
+    function (error) {
+      if (error) {
+        log().error({ err: error, data }, 'Error handling search indexing task.');
       }
     };
 
@@ -740,7 +740,7 @@ const _handleIndexDocumentTask = function(data, callback) {
 
   const resourcesToIndex = {};
   const resourceChildrenToIndex = {};
-  forEach(resource => {
+  forEach((resource) => {
     data.index = defaultTo({}, data.index);
     data.index.children = defaultTo({}, data.index.children);
 
@@ -769,7 +769,7 @@ const _handleIndexDocumentTask = function(data, callback) {
     // Keep track of all child documents that need to be indexed
     _.chain(data.index.children)
       .keys()
-      .each(documentType => {
+      .each((documentType) => {
         resourceChildrenToIndex[documentType] = resourceChildrenToIndex[documentType] || [];
         resourceChildrenToIndex[documentType].push(resource);
       });
@@ -780,13 +780,13 @@ const _handleIndexDocumentTask = function(data, callback) {
    * Check the documentation:
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
    */
-  _produceAllResourceDocuments(resourcesToIndex, (err, resourceDocs) => {
-    if (err) return callback(err);
+  _produceAllResourceDocuments(resourcesToIndex, (error, resourceDocs) => {
+    if (error) return callback(error);
 
     log().trace({ data, resourceDocs }, 'Produced top-level resource docs');
 
-    _produceAllChildDocuments(resourceChildrenToIndex, (err, childResourceDocs) => {
-      if (err) return callback(err);
+    _produceAllChildDocuments(resourceChildrenToIndex, (error, childResourceDocs) => {
+      if (error) return callback(error);
 
       log().trace({ data, childResourceDocs }, 'Produced child resource docs');
 
@@ -796,19 +796,19 @@ const _handleIndexDocumentTask = function(data, callback) {
 
       if (theresMoreThanOneDoc) {
         const ops = SearchUtil.createBulkIndexOperations(allDocs);
-        client.bulk(ops, err => {
-          if (err) {
-            log().error({ err, ops }, 'Error indexing %s documents', allDocs.length);
+        client.bulk(ops, (error_) => {
+          if (error_) {
+            log().error({ err: error_, ops }, 'Error indexing %s documents', allDocs.length);
           } else {
             log().debug('Successfully indexed %s documents', allDocs.length);
           }
 
-          return callback(err);
+          return callback(error_);
         });
       } else {
         const topDoc = head(allDocs);
         const { id } = topDoc;
-        let opts = {};
+        let options = {};
 
         /* One has got to do this when indexing docs with join
          * https://www.elastic.co/guide/en/elasticsearch/reference/7.x/parent-join.html
@@ -824,19 +824,19 @@ const _handleIndexDocumentTask = function(data, callback) {
          * It is required to index the lineage of a parent in the same shard so you
          * must always route child documents using their greater parent id.
          */
-        opts = assoc('routing', topDoc._parent.parent, opts);
+        options = assoc('routing', topDoc._parent.parent, options);
 
         // These properties go in the request metadata, not the actual document
         delete topDoc.id;
 
-        client.runIndex(topDoc._type, id, topDoc, opts, err => {
-          if (err) {
-            log().error({ err, id, doc: topDoc, opts }, 'Error indexing a document');
+        client.runIndex(topDoc._type, id, topDoc, options, (error_) => {
+          if (error_) {
+            log().error({ err: error_, id, doc: topDoc, opts: options }, 'Error indexing a document');
           } else {
             log().debug('Successfully indexed a document');
           }
 
-          return callback(err);
+          return callback(error_);
         });
       }
     });
@@ -852,7 +852,7 @@ const _handleIndexDocumentTask = function(data, callback) {
  * @param  {Object[]}   callback.documents      The resource search documents that were produced
  * @api private
  */
-const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resourceTypes, _documents) {
+const _produceAllResourceDocuments = function (resourcesToIndex, callback, _resourceTypes, _documents) {
   _resourceTypes = _resourceTypes || _.keys(resourcesToIndex);
   _documents = _documents || [];
 
@@ -866,11 +866,11 @@ const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resou
     searchDocumentProducer(resourcesToIndex[resourceType], (errs, documents) => {
       // Some resources might have triggered an error. We log those here,
       // but we try to include any documents that were generated
-      _.each(errs, err => {
-        log().error({ err }, 'Error producing search documents from resources');
+      _.each(errs, (error) => {
+        log().error({ err: error }, 'Error producing search documents from resources');
       });
 
-      documents = _.map(documents, doc => {
+      documents = _.map(documents, (doc) => {
         const newDoc = _.extend({}, doc, {
           type: SearchConstants.search.MAPPING_RESOURCE,
           resourceType
@@ -906,7 +906,7 @@ const _produceAllResourceDocuments = function(resourcesToIndex, callback, _resou
  * @param  {Object[]}   callback.documents          The resource child search documents that were produced
  * @api private
  */
-const _produceAllChildDocuments = function(resourceChildrenToIndex, callback, _documentTypes, _documents) {
+const _produceAllChildDocuments = function (resourceChildrenToIndex, callback, _documentTypes, _documents) {
   _documentTypes = _documentTypes || _.keys(resourceChildrenToIndex);
   _documents = _documents || [];
 
@@ -919,8 +919,8 @@ const _produceAllChildDocuments = function(resourceChildrenToIndex, callback, _d
     childSearchDocumentProducer(resourceChildrenToIndex[documentType], (errs, documents) => {
       // Some resources might have triggered an error. We log those here,
       // but we try to include any documents that were generated
-      _.each(errs, err => {
-        log().error({ err }, 'Error producing child search documents from resources');
+      _.each(errs, (error) => {
+        log().error({ err: error }, 'Error producing child search documents from resources');
       });
 
       _documents = _.union(_documents, documents);

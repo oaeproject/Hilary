@@ -15,6 +15,7 @@
 
 import * as DiscussionsAPI from 'oae-discussions';
 
+import { forEach, forEachObjIndexed } from 'ramda';
 import _ from 'underscore';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -45,33 +46,33 @@ import * as OaeUtil from 'oae-util/lib/util';
  * @HttpResponse                    400                 One or more target members being granted access do not exist
  * @HttpResponse                    401                 Anonymous users cannot create a discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/create', (req, res) => {
+OAE.tenantRouter.on('post', '/api/discussion/create', (request, response) => {
   // Ensure proper arrays for the additional members
-  req.body.managers = OaeUtil.toArray(req.body.managers);
-  req.body.members = OaeUtil.toArray(req.body.members);
+  request.body.managers = OaeUtil.toArray(request.body.managers);
+  request.body.members = OaeUtil.toArray(request.body.members);
 
   // Construct a hash for additional members that maps each user to their role
   const roles = {};
-  _.each(req.body.managers, manager => {
+  forEach((manager) => {
     roles[manager] = AuthzConstants.role.MANAGER;
-  });
-  _.each(req.body.members, member => {
+  }, request.body.managers);
+  forEach((member) => {
     roles[member] = AuthzConstants.role.MEMBER;
-  });
+  }, request.body.members);
 
   DiscussionsAPI.Discussions.createDiscussion(
-    req.ctx,
-    req.body.displayName,
-    req.body.description,
-    req.body.visibility,
+    request.ctx,
+    request.body.displayName,
+    request.body.description,
+    request.body.visibility,
     roles,
     null,
-    (err, discussion) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, discussion) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send(discussion);
+      response.status(200).send(discussion);
     }
   );
 });
@@ -101,14 +102,19 @@ OAE.tenantRouter.on('post', '/api/discussion/create', (req, res) => {
  * @HttpResponse                    401                 You are not authorized to update this discussion
  * @HttpResponse                    404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/:discussionId', (req, res) => {
-  DiscussionsAPI.Discussions.updateDiscussion(req.ctx, req.params.discussionId, req.body, (err, discussion) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId', (request, response) => {
+  DiscussionsAPI.Discussions.updateDiscussion(
+    request.ctx,
+    request.params.discussionId,
+    request.body,
+    (error, discussion) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send(discussion);
-  });
+      response.status(200).send(discussion);
+    }
+  );
 });
 
 /**
@@ -125,13 +131,13 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId', (req, res) => {
  * @HttpResponse                401                 You are not authorized to delete this discussion
  * @HttpResponse                404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('delete', '/api/discussion/:discussionId', (req, res) => {
-  DiscussionsAPI.Discussions.deleteDiscussion(req.ctx, req.params.discussionId, (err, message) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/discussion/:discussionId', (request, response) => {
+  DiscussionsAPI.Discussions.deleteDiscussion(request.ctx, request.params.discussionId, (error, message) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(message);
+    return response.status(200).send(message);
   });
 });
 
@@ -151,19 +157,19 @@ OAE.tenantRouter.on('delete', '/api/discussion/:discussionId', (req, res) => {
  * @HttpResponse                        400                 A user or group id must be provided
  * @HttpResponse                        401                 You do not have have access to this library
  */
-OAE.tenantRouter.on('get', '/api/discussion/library/:principalId', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
+OAE.tenantRouter.on('get', '/api/discussion/library/:principalId', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 12, 1, 25);
   DiscussionsAPI.Discussions.getDiscussionsLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.query.start,
+    request.ctx,
+    request.params.principalId,
+    request.query.start,
     limit,
-    (err, discussions, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, discussions, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: discussions, nextToken });
+      response.status(200).send({ results: discussions, nextToken });
     }
   );
 });
@@ -186,17 +192,17 @@ OAE.tenantRouter.on('get', '/api/discussion/library/:principalId', (req, res) =>
  * @HttpResponse                        401                 You are not authorized to remove a discussion from this library
  * @HttpResponse                        404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('delete', '/api/discussion/library/:principalId/:discussionId', (req, res) => {
+OAE.tenantRouter.on('delete', '/api/discussion/library/:principalId/:discussionId', (request, response) => {
   DiscussionsAPI.Discussions.removeDiscussionFromLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.params.discussionId,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.params.principalId,
+    request.params.discussionId,
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).end();
+      response.status(200).end();
     }
   );
 });
@@ -216,13 +222,13 @@ OAE.tenantRouter.on('delete', '/api/discussion/library/:principalId/:discussionI
  * @HttpResponse                        401                 You are not authorized to view this discussion
  * @HttpResponse                        404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('get', '/api/discussion/:discussionId', (req, res) => {
-  DiscussionsAPI.Discussions.getFullDiscussionProfile(req.ctx, req.params.discussionId, (err, discussion) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/discussion/:discussionId', (request, response) => {
+  DiscussionsAPI.Discussions.getFullDiscussionProfile(request.ctx, request.params.discussionId, (error, discussion) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(discussion);
+    response.status(200).send(discussion);
   });
 });
 
@@ -247,16 +253,16 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId', (req, res) => {
  * @HttpResponse                        401                 You are not authorized to share this discussion
  * @HttpResponse                        404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/:discussionId/share', (req, res) => {
-  let members = OaeUtil.toArray(req.body.members);
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId/share', (request, response) => {
+  let members = OaeUtil.toArray(request.body.members);
   members = _.compact(members);
 
-  DiscussionsAPI.Discussions.shareDiscussion(req.ctx, req.params.discussionId, members, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  DiscussionsAPI.Discussions.shareDiscussion(request.ctx, request.params.discussionId, members, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -282,20 +288,25 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/share', (req, res) =>
  * @HttpResponse                            401                 You are not authorized to update the permissions of this discussion
  * @HttpResponse                            404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/:discussionId/members', (req, res) => {
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId/members', (request, response) => {
   // Parse the incoming false values
   const permissionUpdates = {};
-  _.each(req.body, (value, key) => {
+  forEachObjIndexed((value, key) => {
     permissionUpdates[key] = OaeUtil.castToBoolean(value);
-  });
+  }, request.body);
 
-  DiscussionsAPI.Discussions.setDiscussionPermissions(req.ctx, req.params.discussionId, permissionUpdates, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  DiscussionsAPI.Discussions.setDiscussionPermissions(
+    request.ctx,
+    request.params.discussionId,
+    permissionUpdates,
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
+
+      response.status(200).end();
     }
-
-    res.status(200).end();
-  });
+  );
 });
 
 /**
@@ -315,19 +326,19 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/members', (req, res) 
  * @HttpResponse                        401                 You are not authorized to view this discussion
  * @HttpResponse                        404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('get', '/api/discussion/:discussionId/members', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/discussion/:discussionId/members', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   DiscussionsAPI.Discussions.getDiscussionMembers(
-    req.ctx,
-    req.params.discussionId,
-    req.query.start,
+    request.ctx,
+    request.params.discussionId,
+    request.query.start,
     limit,
-    (err, members, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, members, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: members, nextToken });
+      response.status(200).send({ results: members, nextToken });
     }
   );
 });
@@ -347,14 +358,18 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId/members', (req, res) =
  * @HttpResponse                        401                 You are not allowed to get invitations for this discussion
  * @HttpResponse                        404                 Discussion not available
  */
-OAE.tenantRouter.on('get', '/api/discussion/:discussionId/invitations', (req, res) => {
-  DiscussionsAPI.Discussions.getDiscussionInvitations(req.ctx, req.params.discussionId, (err, invitations) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/discussion/:discussionId/invitations', (request, response) => {
+  DiscussionsAPI.Discussions.getDiscussionInvitations(
+    request.ctx,
+    request.params.discussionId,
+    (error, invitations) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).send({ results: invitations });
-  });
+      return response.status(200).send({ results: invitations });
+    }
+  );
 });
 
 /**
@@ -375,14 +390,19 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId/invitations', (req, re
  * @HttpResponse                        404                 Discussion not available
  * @HttpResponse                        404                 No invitation for the specified email exists for the discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/:discussionId/invitations/:email/resend', (req, res) => {
-  DiscussionsAPI.Discussions.resendDiscussionInvitation(req.ctx, req.params.discussionId, req.params.email, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId/invitations/:email/resend', (request, response) => {
+  DiscussionsAPI.Discussions.resendDiscussionInvitation(
+    request.ctx,
+    request.params.discussionId,
+    request.params.email,
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).end();
-  });
+      return response.status(200).end();
+    }
+  );
 });
 
 /**
@@ -406,19 +426,19 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/invitations/:email/re
  * @HttpResponse                        401                 You are not authorized to view this discussion
  * @HttpResponse                        404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('get', '/api/discussion/:discussionId/messages', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/discussion/:discussionId/messages', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   DiscussionsAPI.Discussions.getMessages(
-    req.ctx,
-    req.params.discussionId,
-    req.query.start,
+    request.ctx,
+    request.params.discussionId,
+    request.query.start,
     limit,
-    (err, messages, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, messages, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: messages, nextToken });
+      response.status(200).send({ results: messages, nextToken });
     }
   );
 });
@@ -445,18 +465,18 @@ OAE.tenantRouter.on('get', '/api/discussion/:discussionId/messages', (req, res) 
  * @HttpResponse                401                 You are not authorized to post messages to this discussion
  * @HttpResponse                404                 Could not find the specified discussion
  */
-OAE.tenantRouter.on('post', '/api/discussion/:discussionId/messages', (req, res) => {
+OAE.tenantRouter.on('post', '/api/discussion/:discussionId/messages', (request, response) => {
   DiscussionsAPI.Discussions.createMessage(
-    req.ctx,
-    req.params.discussionId,
-    req.body.body,
-    req.body.replyTo,
-    (err, message) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.params.discussionId,
+    request.body.body,
+    request.body.replyTo,
+    (error, message) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send(message);
+      response.status(200).send(message);
     }
   );
 });
@@ -481,12 +501,17 @@ OAE.tenantRouter.on('post', '/api/discussion/:discussionId/messages', (req, res)
  * @HttpResponse                        404                 Could not find the specified discussion
  * @HttpResponse                        404                 Could not find the specified message
  */
-OAE.tenantRouter.on('delete', '/api/discussion/:discussionId/messages/:created', (req, res) => {
-  DiscussionsAPI.Discussions.deleteMessage(req.ctx, req.params.discussionId, req.params.created, (err, message) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('delete', '/api/discussion/:discussionId/messages/:created', (request, response) => {
+  DiscussionsAPI.Discussions.deleteMessage(
+    request.ctx,
+    request.params.discussionId,
+    request.params.created,
+    (error, message) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send(message);
-  });
+      response.status(200).send(message);
+    }
+  );
 });

@@ -15,6 +15,7 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
@@ -26,7 +27,7 @@ describe('Discussion Library Search', () => {
   // let asCambridgeAnonymousUser = null;
   let asCambridgeAdminUser = null;
 
-  before(done => {
+  before((done) => {
     // asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeAdminUser = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     done();
@@ -36,9 +37,9 @@ describe('Discussion Library Search', () => {
     /**
      * A test that verifies a discussion library can be searched through
      */
-    it('verify searching through a discussion library', callback => {
-      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify searching through a discussion library', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -53,13 +54,13 @@ describe('Discussion Library Search', () => {
           'public',
           null,
           null,
-          (err, discussionA) => {
-            assert.notExists(err);
+          (error, discussionA) => {
+            assert.notExists(error);
 
             RestAPI.Discussions.createDiscussion(simong.restContext, randomTextB, randomTextB, 'public', null, null, (
-              err /* , discussionB */
+              error /* , discussionB */
             ) => {
-              assert.notExists(err);
+              assert.notExists(error);
 
               // Ensure that the randomTextA discussion returns and scores better than randomTextB
               SearchTestsUtil.searchAll(
@@ -67,8 +68,8 @@ describe('Discussion Library Search', () => {
                 'discussion-library',
                 [simong.user.id],
                 { q: randomTextA },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
                   assert.ok(results.results);
 
                   const doc = results.results[0];

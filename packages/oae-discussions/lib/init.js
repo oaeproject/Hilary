@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable no-unused-vars */
-import * as DiscussionsSearch from './search';
+import * as DiscussionsSearch from './search.js';
 
 export function init(config, callback) {
   // Register the library functionality

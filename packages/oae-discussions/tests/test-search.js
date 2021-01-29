@@ -15,6 +15,7 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
@@ -27,7 +28,7 @@ describe('Discussion Search', () => {
   // REST contexts we can use to do REST requests
   let asCambridgeAdminUser = null;
 
-  before(done => {
+  before((done) => {
     asCambridgeAdminUser = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     done();
   });
@@ -45,9 +46,9 @@ describe('Discussion Search', () => {
     /**
      * A test that verifies a discussion item is indexable and searchable.
      */
-    it('verify indexing of a discussion', callback => {
-      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify indexing of a discussion', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user } = users;
 
@@ -59,16 +60,16 @@ describe('Discussion Search', () => {
           'public',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
 
             SearchTestsUtil.searchAll(
               user.restContext,
               'general',
               null,
               { resourceTypes: 'discussion', q: randomText },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
 
                 const doc = _getDocument(results.results, discussion.id);
                 assert.ok(doc);
@@ -92,9 +93,9 @@ describe('Discussion Search', () => {
     /**
      * Verifies that updating a discussion, updates the search index
      */
-    it('verify updating the metadata for a discussion, updates the index', callback => {
-      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify updating the metadata for a discussion, updates the index', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeAdminUser, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user } = users;
 
@@ -108,23 +109,23 @@ describe('Discussion Search', () => {
           'public',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
 
             RestAPI.Discussions.updateDiscussion(
               user.restContext,
               discussion.id,
               { displayName: randomText2, description: randomText2 },
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
 
                 SearchTestsUtil.searchAll(
                   user.restContext,
                   'general',
                   null,
                   { resourceTypes: 'discussion', q: randomText2 },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     const doc = _getDocument(results.results, discussion.id);
                     assert.ok(doc);
                     assert.strictEqual(doc.displayName, randomText2);

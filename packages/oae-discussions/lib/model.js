@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 
@@ -30,7 +30,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
  * @param  {Number}         lastModified    The timestamp (millis since epoch) at which the discussion was last modified (or received the last message)
  * @return {Discussion}                     The discussion with the data provided
  */
-const Discussion = function(tenant, id, createdBy, displayName, description, visibility, created, lastModified) {
+const Discussion = function (tenant, id, createdBy, displayName, description, visibility, created, lastModified) {
   const { resourceId } = AuthzUtil.getResourceFromId(id);
   const that = {};
   that.tenant = tenant;
@@ -41,7 +41,7 @@ const Discussion = function(tenant, id, createdBy, displayName, description, vis
   that.visibility = visibility;
   that.created = created;
   that.lastModified = lastModified;
-  that.profilePath = util.format('/discussion/%s/%s', tenant.alias, resourceId);
+  that.profilePath = format('/discussion/%s/%s', tenant.alias, resourceId);
   that.resourceType = 'discussion';
   return that;
 };

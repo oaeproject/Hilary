@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { initializeDocs } from './api';
+import { initializeDocs } from './api.js';
 
-export const init = function(config, callback) {
+export const init = function (config, callback) {
   initializeDocs(config.ui, callback);
 };

@@ -24,13 +24,13 @@ import * as ConfigAPI from 'oae-config';
  * @param  {Response}   res     The Express Response object to which to send the response
  * @api private
  */
-const _handleGetSchema = function(req, res) {
-  ConfigAPI.getSchema(req.ctx, (err, schema) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleGetSchema = function (request, response) {
+  ConfigAPI.getSchema(request.ctx, (error, schema) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(schema);
+    return response.status(200).send(schema);
   });
 };
 
@@ -60,17 +60,17 @@ OAE.tenantRouter.on('get', '/api/config/schema', _handleGetSchema);
  * @param  {Response}           res                         The Express Response object to which to send the response
  * @api private
  */
-const _handleClearConfig = function(req, res) {
+const _handleClearConfig = function (request, response) {
   // If the tenant alias is specified in the request parameters, use it. Otherwise
   // we use the current tenant in context
-  const tenantAlias = req.params.tenantAlias || req.ctx.tenant().alias;
-  const configFields = OaeUtil.toArray(req.body.configFields);
-  ConfigAPI.clearConfig(req.ctx, tenantAlias, configFields, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  const tenantAlias = request.params.tenantAlias || request.ctx.tenant().alias;
+  const configFields = OaeUtil.toArray(request.body.configFields);
+  ConfigAPI.clearConfig(request.ctx, tenantAlias, configFields, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 };
 
@@ -126,16 +126,16 @@ OAE.globalAdminRouter.on('post', '/api/config/:tenantAlias/clear', _handleClearC
  * @param  {Response}           res                         The Express Response object to which to send the response
  * @api private
  */
-const _handleGetConfig = function(req, res) {
+const _handleGetConfig = function (request, response) {
   // If the tenant alias is specified in the request parameters, use it. Otherwise
   // we use the current tenant in context
-  const tenantAlias = req.params.tenantAlias || req.ctx.tenant().alias;
-  ConfigAPI.getTenantConfig(req.ctx, tenantAlias, (err, config) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  const tenantAlias = request.params.tenantAlias || request.ctx.tenant().alias;
+  ConfigAPI.getTenantConfig(request.ctx, tenantAlias, (error, config) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(config);
+    return response.status(200).send(config);
   });
 };
 
@@ -179,16 +179,16 @@ OAE.globalAdminRouter.on('get', '/api/config/:tenantAlias', _handleGetConfig);
  * @param  {Response}           res                         The Express Response object to which to send the response
  * @api private
  */
-const _handleUpdateConfig = function(req, res) {
+const _handleUpdateConfig = function (request, response) {
   // If the tenant alias is specified in the request parameters, use it. Otherwise
   // we use the current tenant in context
-  const tenantAlias = req.params.tenantAlias || req.ctx.tenant().alias;
-  ConfigAPI.updateConfig(req.ctx, tenantAlias, req.body, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  const tenantAlias = request.params.tenantAlias || request.ctx.tenant().alias;
+  ConfigAPI.updateConfig(request.ctx, tenantAlias, request.body, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 };
 

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import clone from 'clone';
 
@@ -62,11 +62,11 @@ const eventEmitter = new EmitterAPI.EventEmitter();
  *
  * @param  {String}  tenantAlias  The message sent out to the cluster, provides the alias of the tenant for which a config value changed (e.g. `cam`)
  */
-Pubsub.emitter.on('oae-config', tenantAlias => {
+Pubsub.emitter.on('oae-config', (tenantAlias) => {
   // Update the tenant configuration that was updated
-  updateTenantConfig(tenantAlias, err => {
-    if (err) {
-      return log().error({ err, tenantAlias }, 'Error refreshing cached configuration after update');
+  updateTenantConfig(tenantAlias, (error) => {
+    if (error) {
+      return log().error({ err: error, tenantAlias }, 'Error refreshing cached configuration after update');
     }
 
     eventEmitter.emit('update', tenantAlias);
@@ -84,7 +84,7 @@ Pubsub.emitter.on('oae-config', tenantAlias => {
  * @return {Function}   getValue    Function that returns the cached a cached config value from the provided module
  * @throws {Error}                  Error thrown when no module id has been provided
  */
-const setUpConfig = function(moduleId) {
+const setUpConfig = function (moduleId) {
   // Parameter validation
   if (!moduleId) {
     throw new Error('A module id must be provided');
@@ -134,7 +134,7 @@ const setUpConfig = function(moduleId) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.schema     The config schema
  */
-const getSchema = function(ctx, callback) {
+const getSchema = function (ctx, callback) {
   if (!ctx.user() || !ctx.user().isAdmin(ctx.tenant().alias)) {
     return callback({ code: 401, msg: 'Only global and tenant admin can get the config schema' });
   }
@@ -156,7 +156,7 @@ const getSchema = function(ctx, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.config     JSON object representing the full cached tenant config
  */
-const getTenantConfig = function(ctx, tenantAlias, callback) {
+const getTenantConfig = function (ctx, tenantAlias, callback) {
   // Parameter validation
   const { isNotEmpty, unless } = validator;
   try {
@@ -211,7 +211,7 @@ const getTenantConfig = function(ctx, tenantAlias, callback) {
  * @return {Date}       configValueInfo.timestamp   When the value was last updated. If never updated, then this date will be the epoch
  * @api private
  */
-const _resolveConfigValueInfo = function(tenantAlias, moduleKey, featureKey, elementKey) {
+const _resolveConfigValueInfo = function (tenantAlias, moduleKey, featureKey, elementKey) {
   const element = _element(moduleKey, featureKey, elementKey);
   if (!element) {
     return null;
@@ -254,13 +254,13 @@ const _resolveConfigValueInfo = function(tenantAlias, moduleKey, featureKey, ele
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const initConfig = function(_config, callback) {
+const initConfig = function (_config, callback) {
   // Default callback
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'An error occured whilst initializing the configuration');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'An error occured whilst initializing the configuration');
       }
     };
 
@@ -279,19 +279,19 @@ const initConfig = function(_config, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const updateTenantConfig = function(tenantAlias, callback) {
+const updateTenantConfig = function (tenantAlias, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, tenantAlias }, 'An error occured while caching a tenant config');
+    function (error) {
+      if (error) {
+        log().error({ err: error, tenantAlias }, 'An error occured while caching a tenant config');
       }
     };
 
   eventEmitter.emit('preCache', tenantAlias);
-  _getPersistentTenantConfig(tenantAlias, (err, persistentConfig) => {
-    if (err) {
-      return callback(err);
+  _getPersistentTenantConfig(tenantAlias, (error, persistentConfig) => {
+    if (error) {
+      return callback(error);
     }
 
     cachedTenantConfigValues[tenantAlias] = persistentConfig;
@@ -311,7 +311,7 @@ const updateTenantConfig = function(tenantAlias, callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _cacheSchema = function(callback) {
+const _cacheSchema = function (callback) {
   // Get the available module
   const modules = Modules.getAvailableModules();
   const toDo = modules.length;
@@ -324,17 +324,17 @@ const _cacheSchema = function(callback) {
    *
    * @param  {String}     module      The module we're getting the configuration for. e.g., `oae-principals`
    */
-  const getModuleSchema = function(module) {
+  const getModuleSchema = function (module) {
     const dir = OaeUtil.getNodeModulesDir() + module + '/config/';
     // Get a list of the available config files
-    IO.getFileListForFolder(dir, (err, configFiles) => {
+    IO.getFileListForFolder(dir, (error, configFiles) => {
       if (complete) {
         return;
       }
 
-      if (err) {
+      if (error) {
         complete = true;
-        return callback(err);
+        return callback(error);
       }
 
       // Require all of them
@@ -381,21 +381,21 @@ const _cacheSchema = function(callback) {
  * @param  {Object}     [callback.err]  An error that occurred, if any
  * @api private
  */
-const _cacheAllTenantConfigs = function(callback) {
+const _cacheAllTenantConfigs = function (callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'An error occured whilst caching all tenant configs');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'An error occured whilst caching all tenant configs');
       }
     };
 
   // Indicate that config values are about to be re-cached
   eventEmitter.emit('preCache');
 
-  _getAllPersistentTenantConfigs((err, persistentConfigsByTenantAlias) => {
-    if (err) {
-      return callback(err);
+  _getAllPersistentTenantConfigs((error, persistentConfigsByTenantAlias) => {
+    if (error) {
+      return callback(error);
     }
 
     cachedTenantConfigValues = persistentConfigsByTenantAlias;
@@ -414,13 +414,13 @@ const _cacheAllTenantConfigs = function(callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.tenantConfigs  An object keyed by tenant alias, whose value is a key value pair of `configKey->value` for each stored configuration value for the tenant
  */
-const _getAllPersistentTenantConfigs = function(callback) {
+const _getAllPersistentTenantConfigs = function (callback) {
   Cassandra.runAutoPagedQuery(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config"',
     null,
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _rowsToConfig(rows));
@@ -437,13 +437,13 @@ const _getAllPersistentTenantConfigs = function(callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.tenantConfig   An object keyed by configKey whose value is the value set for the tenant
  */
-const _getPersistentTenantConfig = function(alias, callback) {
+const _getPersistentTenantConfig = function (alias, callback) {
   Cassandra.runQuery(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config" WHERE "tenantAlias" = ?',
     [alias],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _rowsToConfig(rows)[alias] || {});
@@ -459,10 +459,10 @@ const _getPersistentTenantConfig = function(alias, callback) {
  * @return {Object}         An object keyed by tenant alias, whose value is a key value pair of `configKey->value` for each stored configuration value for the tenant
  * @api private
  */
-const _rowsToConfig = function(rows) {
+const _rowsToConfig = function (rows) {
   const persistentConfig = {};
 
-  _.each(rows, row => {
+  _.each(rows, (row) => {
     const hash = Cassandra.rowToHash(row);
     const key = hash.configKey;
     let { value } = hash;
@@ -501,7 +501,7 @@ const _rowsToConfig = function(rows) {
  * @return {Object}                 The deserialized result, depending on the element type
  * @api private
  */
-const _deserializeConfigValue = function(element, value) {
+const _deserializeConfigValue = function (element, value) {
   // If the value starts with a `{` it's probably an element that has optional keys. So we
   // convert it to an object
   if (value[0] === '{') {
@@ -515,8 +515,8 @@ const _deserializeConfigValue = function(element, value) {
 
   // Deserialize the value using the schema element
   if (_.isObject(value)) {
-    _.each(value, (val, optionalKey) => {
-      value[optionalKey] = element.deserialize(val);
+    _.each(value, (value_, optionalKey) => {
+      value[optionalKey] = element.deserialize(value_);
     });
   } else {
     value = element.deserialize(value);
@@ -547,7 +547,7 @@ const _deserializeConfigValue = function(element, value) {
  * @return {Boolean}                    Returns `true` if the user is allowed to update the configuration value, `false` if not allowed
  * @api private
  */
-const _canUpdateConfigValue = function(ctx, tenantAlias, moduleId, feature, element) {
+const _canUpdateConfigValue = function (ctx, tenantAlias, moduleId, feature, element) {
   const configElement = _element(moduleId, feature, element);
   if (!configElement) {
     return false;
@@ -577,7 +577,7 @@ const _canUpdateConfigValue = function(ctx, tenantAlias, moduleId, feature, elem
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const updateConfig = function(ctx, tenantAlias, configValues, callback) {
+const updateConfig = function (ctx, tenantAlias, configValues, callback) {
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
@@ -602,21 +602,21 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
 
       unless(isDefined, {
         code: 400,
-        msg: util.format('The configuration value for "%s" must be specified', configFieldName)
+        msg: format('The configuration value for "%s" must be specified', configFieldName)
       })(configFieldValue);
 
       const parts = configFieldName.split('/');
       if (!_element(parts[0], parts[1], parts[2])) {
         return callback({
           code: 404,
-          msg: util.format('Config key "%s" does not exist', configFieldName)
+          msg: format('Config key "%s" does not exist', configFieldName)
         });
       }
 
       if (!_canUpdateConfigValue(ctx, tenantAlias, parts[0], parts[1], parts[2])) {
         return callback({
           code: 401,
-          msg: util.format('User is not allowed to update config value "%s"', configFieldName)
+          msg: format('User is not allowed to update config value "%s"', configFieldName)
         });
       }
     }
@@ -669,9 +669,9 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
   eventEmitter.emit('preUpdate', tenantAlias);
 
   // Perform all the config field updates
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     Pubsub.publish('oae-config', tenantAlias);
@@ -688,7 +688,7 @@ const updateConfig = function(ctx, tenantAlias, configValues, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const clearConfig = function(ctx, tenantAlias, configFields, callback) {
+const clearConfig = function (ctx, tenantAlias, configFields, callback) {
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only authorized tenant admins can change config values' });
   }
@@ -721,14 +721,14 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
       if (!_element(configField[0], configField[1], configField[2])) {
         return callback({
           code: 404,
-          msg: util.format('Config value "%s" does not exist', configFields[i])
+          msg: format('Config value "%s" does not exist', configFields[i])
         });
       }
 
       if (!_canUpdateConfigValue(ctx, tenantAlias, configField[0], configField[1], configField[2])) {
         return callback({
           code: 401,
-          msg: util.format('User is not allowed to update config value "%s"', configFields[i])
+          msg: format('User is not allowed to update config value "%s"', configFields[i])
         });
       }
     }
@@ -738,7 +738,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
 
   // Keep track of what changes that should happen to the row
   const rowChanges = {};
-  _.each(configFields, key => {
+  _.each(configFields, (key) => {
     const parts = key.split('/');
     const module = parts[0];
     const feature = parts[1];
@@ -790,9 +790,9 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
   // Indicate that config values are about to be cleared
   eventEmitter.emit('preClear', tenantAlias);
 
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     Pubsub.publish('oae-config', tenantAlias);
@@ -809,7 +809,7 @@ const clearConfig = function(ctx, tenantAlias, configFields, callback) {
  * @return {Boolean}                Returns `true` if the configuration element exists, `false` otherwise
  * @api private
  */
-const _element = function(moduleId, feature, element) {
+const _element = function (moduleId, feature, element) {
   return (
     cachedGlobalSchema[moduleId] &&
     cachedGlobalSchema[moduleId][feature] &&
@@ -827,8 +827,8 @@ const _element = function(moduleId, feature, element) {
  * @return {String}                 A string that can be used as a column name to store a value for this element in Cassandra
  * @api private
  */
-const _generateColumnKey = function(module, feature, element) {
-  return util.format('%s/%s/%s', module, feature, element);
+const _generateColumnKey = function (module, feature, element) {
+  return format('%s/%s/%s', module, feature, element);
 };
 
 /**
@@ -844,7 +844,7 @@ const _generateColumnKey = function(module, feature, element) {
  * @return {String}     parsed.element  The id of the element
  * @api private
  */
-const _parseColumnKey = function(columnKey) {
+const _parseColumnKey = function (columnKey) {
   const split = columnKey.split('/');
   return {
     module: split[0],

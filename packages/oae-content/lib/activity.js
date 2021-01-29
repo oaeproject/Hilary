@@ -26,13 +26,13 @@ import * as ContentAPI from 'oae-content';
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ContentConstants } from 'oae-content/lib/constants';
-import * as Etherpad from './internal/etherpad';
-import * as ContentUtil from './internal/util';
-import * as ContentDAO from './internal/dao';
+import * as Etherpad from './internal/etherpad.js';
+import * as ContentUtil from './internal/util.js';
+import * as ContentDAO from './internal/dao.js';
 
-/// /////////////////
-// CONTENT-CREATE //
-/// /////////////////
+/**
+ * Content create
+ */
 
 ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_CREATE, {
   groupBy: [{ actor: true, target: true }],
@@ -74,7 +74,7 @@ ContentAPI.emitter.on(
     // Get the extra members
     const extraMembers = _.chain(memberChangeInfo.changes)
       .keys()
-      .filter(member => {
+      .filter((member) => {
         return member !== ctx.user().id;
       })
       .value();
@@ -158,11 +158,10 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContent,
 
   // We discriminate between general updates and visibility changes. If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
   let activityType = null;
-  if (newContent.visibility === oldContent.visibility) {
-    activityType = ContentConstants.activity.ACTIVITY_CONTENT_UPDATE;
-  } else {
-    activityType = ContentConstants.activity.ACTIVITY_CONTENT_UPDATE_VISIBILITY;
-  }
+  activityType =
+    newContent.visibility === oldContent.visibility
+      ? ContentConstants.activity.ACTIVITY_CONTENT_UPDATE
+      : ContentConstants.activity.ACTIVITY_CONTENT_UPDATE_VISIBILITY;
 
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
@@ -206,13 +205,13 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_REVI
 ContentAPI.emitter.on(
   ContentConstants.events.UPDATED_CONTENT_BODY,
   // eslint-disable-next-line no-unused-vars
-  (ctx, newContentObj, oldContentObj, revision) => {
+  (ctx, newContentObject, oldContentObject, revision) => {
     const millis = Date.now();
     const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
       user: ctx.user()
     });
-    const objectResource = new ActivityModel.ActivitySeedResource('content', newContentObj.id, {
-      content: newContentObj
+    const objectResource = new ActivityModel.ActivitySeedResource('content', newContentObject.id, {
+      content: newContentObject
     });
     const activitySeed = new ActivityModel.ActivitySeed(
       ContentConstants.activity.ACTIVITY_CONTENT_REVISION,
@@ -228,13 +227,13 @@ ContentAPI.emitter.on(
 /*!
  * Post a content-revision activity when a user has made an edit to a collaborative document (even though there is technically no new revision)
  */
-ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABDOC, (ctx, contentObj) => {
+ContentAPI.emitter.on(ContentConstants.events.EDITED_COLLABDOC, (ctx, contentObject) => {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
     user: ctx.user()
   });
-  const objectResource = new ActivityModel.ActivitySeedResource('content', contentObj.id, {
-    content: contentObj
+  const objectResource = new ActivityModel.ActivitySeedResource('content', contentObject.id, {
+    content: contentObject
   });
   const activitySeed = new ActivityModel.ActivitySeed(
     ContentConstants.activity.ACTIVITY_CONTENT_REVISION,
@@ -278,13 +277,13 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_REST
 ContentAPI.emitter.on(
   ContentConstants.events.RESTORED_REVISION,
   // eslint-disable-next-line no-unused-vars
-  (ctx, newContentObj, oldContentObj, restoredRevision) => {
+  (ctx, newContentObject, oldContentObject, restoredRevision) => {
     const millis = Date.now();
     const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
       user: ctx.user()
     });
-    const objectResource = new ActivityModel.ActivitySeedResource('content', newContentObj.id, {
-      content: newContentObj
+    const objectResource = new ActivityModel.ActivitySeedResource('content', newContentObject.id, {
+      content: newContentObject
     });
     const activitySeed = new ActivityModel.ActivitySeed(
       ContentConstants.activity.ACTIVITY_CONTENT_RESTORED_REVISION,
@@ -418,8 +417,8 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_UPDA
 /*!
  * Post a content-share or content-add-to-library activity based on content sharing
  */
-ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, content, memberChangeInfo, opts) => {
-  if (opts.invitation) {
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, content, memberChangeInfo, options) => {
+  if (options.invitation) {
     // If this member update came from an invitation, we bypass adding activity as there is a
     // dedicated activity for that
     return;
@@ -438,7 +437,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, con
 
   // When a user is added, it is considered either a content-share or a content-add-to-library activity, depending on if the
   // added user is the current user in context
-  _.each(addedMemberIds, memberId => {
+  _.each(addedMemberIds, (memberId) => {
     if (memberId === ctx.user().id) {
       // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
@@ -470,7 +469,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, con
   });
 
   // When a user's role is updated, we fire a "content-update-member-role" activity
-  _.each(updatedMemberIds, memberId => {
+  _.each(updatedMemberIds, (memberId) => {
     const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
     ActivityAPI.postActivity(
@@ -495,7 +494,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, con
  * Produces a persistent 'content' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentProducer = function(resource, callback) {
+const _contentProducer = function (resource, callback) {
   const content = resource.resourceData && resource.resourceData.content ? resource.resourceData.content : null;
 
   // If the content item was fired with the resource, use it instead of fetching
@@ -503,9 +502,9 @@ const _contentProducer = function(resource, callback) {
     return callback(null, ContentUtil.createPersistentContentActivityEntity(content));
   }
 
-  ContentDAO.Content.getContent(resource.resourceId, (err, content) => {
-    if (err) {
-      return callback(err);
+  ContentDAO.Content.getContent(resource.resourceId, (error, content) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, ContentUtil.createPersistentContentActivityEntity(content));
@@ -516,16 +515,16 @@ const _contentProducer = function(resource, callback) {
  * Produces an persistent activity entity that represents a comment that was posted
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentCommentProducer = function(resource, callback) {
+const _contentCommentProducer = function (resource, callback) {
   const { message, contentId } = resource.resourceData;
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) {
-      return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) {
+      return callback(error);
     }
 
-    MessageBoxUtil.createPersistentMessageActivityEntity(message, (err, entity) => {
-      if (err) {
-        return callback(err);
+    MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
+      if (error) {
+        return callback(error);
       }
 
       // Store the content id and visibility on the entity as these are required for routing the activities.
@@ -541,7 +540,7 @@ const _contentCommentProducer = function(resource, callback) {
  * Transform the content persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentTransformer = function(ctx, activityEntities, callback) {
+const _contentTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   // Collect all the revision ids so we can fetch their preview data
@@ -558,9 +557,9 @@ const _contentTransformer = function(ctx, activityEntities, callback) {
   allRevisionIds = _.uniq(allRevisionIds);
 
   // Fetch the previews and attach them to the transformed entities
-  ContentDAO.Previews.getPreviewUris(allRevisionIds, (err, previews) => {
-    if (err) {
-      return callback(err);
+  ContentDAO.Previews.getPreviewUris(allRevisionIds, (error, previews) => {
+    if (error) {
+      return callback(error);
     }
 
     _.each(activityEntities, (entities, activityId) => {
@@ -583,7 +582,7 @@ const _contentTransformer = function(ctx, activityEntities, callback) {
  * Transform the content persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentInternalTransformer = function(ctx, activityEntities, callback) {
+const _contentInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   // Collect all the revision ids so we can fetch their preview data
@@ -603,13 +602,13 @@ const _contentInternalTransformer = function(ctx, activityEntities, callback) {
   ContentDAO.Revisions.getMultipleRevisions(
     allRevisionIds,
     { fields: ['revisionId', 'previews'] },
-    (err, revisions) => {
-      if (err) {
-        return callback(err);
+    (error, revisions) => {
+      if (error) {
+        return callback(error);
       }
 
       const previews = {};
-      _.each(revisions, revision => {
+      _.each(revisions, (revision) => {
         previews[revision.revisionId] = revision.previews;
       });
 
@@ -636,11 +635,11 @@ const _contentInternalTransformer = function(ctx, activityEntities, callback) {
  * Transform the comment persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentCommentTransformer = function(ctx, activityEntities, callback) {
+const _contentCommentTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       const contentId = entity.message.messageBoxId;
       const contentResource = AuthzUtil.getResourceFromId(contentId);
@@ -662,11 +661,11 @@ const _contentCommentTransformer = function(ctx, activityEntities, callback) {
  * Transform the comment persistent activity entities into OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _contentCommentInternalTransformer = function(ctx, activityEntities, callback) {
+const _contentCommentInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][
         entityId
@@ -721,9 +720,9 @@ ActivityAPI.registerActivityEntityAssociation('content', 'members-by-role', (ass
  * Register an association that presents all the indirect members of a content item
  */
 ActivityAPI.registerActivityEntityAssociation('content', 'members', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.flatten(_.values(membersByRole)));
@@ -734,9 +733,9 @@ ActivityAPI.registerActivityEntityAssociation('content', 'members', (association
  * Register an association that presents all the managers of a content item
  */
 ActivityAPI.registerActivityEntityAssociation('content', 'managers', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
@@ -753,14 +752,14 @@ ActivityAPI.registerActivityEntityAssociation('content', 'online-authors', (asso
   }
 
   // Grab the authors who are currently in the collaborative document
-  Etherpad.getOnlineAuthors(entity.content.id, entity.content.etherpadPadId, (err, onlineAuthorIds) => {
-    if (err) {
-      return callback(err);
+  Etherpad.getOnlineAuthors(entity.content.id, entity.content.etherpadPadId, (error, onlineAuthorIds) => {
+    if (error) {
+      return callback(error);
     }
 
-    ContentDAO.Etherpad.getUserIds(onlineAuthorIds, (err, userIds) => {
-      if (err) {
-        return callback(err);
+    ContentDAO.Etherpad.getUserIds(onlineAuthorIds, (error, userIds) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _.values(userIds));

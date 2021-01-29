@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import { equals, keys, forEach } from 'ramda';
@@ -42,12 +43,12 @@ describe('Content DAO', () => {
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
-  before(callback => {
+  before((callback) => {
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
     // Log in the tenant admin so their cookie jar is set up appropriately
-    getMe(asCambridgeTenantAdmin, (err /* , me */) => {
-      assert.notExists(err);
+    getMe(asCambridgeTenantAdmin, (error /* , me */) => {
+      assert.notExists(error);
       callback();
     });
   });
@@ -60,10 +61,10 @@ describe('Content DAO', () => {
   /**
    * Test that verifies the iterateAll functionality of the content DAO
    */
-  it('verify ContentDAO iterateAll functionality', callback => {
+  it('verify ContentDAO iterateAll functionality', (callback) => {
     const contentName = generateTestUserId('content-name');
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer } = users;
       const asHomer = homer.restContext;
@@ -80,17 +81,17 @@ describe('Content DAO', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, link) => {
-          assert.notExists(err);
+        (error, link) => {
+          assert.notExists(error);
 
           let foundLink = false;
 
           /*!
            * Verifies that only the contentId is returned in the content row
            */
-          const _onEach = function(contentRows, done) {
+          const _onEach = function (contentRows, done) {
             // Ensure we only get the contentId of the content item
-            forEach(contentRow => {
+            forEach((contentRow) => {
               assert.lengthOf(keys(contentRow), 1, 'Expected to have only one key on the content row, the content id');
               assert.ok(contentRow.contentId, 'Expected the row to have contentId');
 
@@ -104,8 +105,8 @@ describe('Content DAO', () => {
           };
 
           // Verify the link information when we iterate over it
-          iterateAll(null, 100, _onEach, err => {
-            assert.isNotOk(err, JSON.stringify(err, null, 4));
+          iterateAll(null, 100, _onEach, (error_) => {
+            assert.isNotOk(error_, JSON.stringify(error_, null, 4));
             assert.ok(foundLink, 'Expected to find the link we just created');
 
             foundLink = false;
@@ -114,9 +115,9 @@ describe('Content DAO', () => {
              * Verifies that only the contentId and displayName of the content rows are returned, and that they are
              * accurate.
              */
-            const _onEach = function(contentRows, done) {
+            const _onEach = function (contentRows, done) {
               // Ensure we only get the contentId and displayName of the content item
-              forEach(contentRow => {
+              forEach((contentRow) => {
                 assert.lengthOf(
                   keys(contentRow),
                   2,
@@ -136,8 +137,8 @@ describe('Content DAO', () => {
             };
 
             // Do the same thing but fetch the contentId and the displayName, and ensure they match
-            iterateAll(['contentId', 'displayName'], 100, _onEach, err => {
-              assert.isNotOk(err, JSON.stringify(err, null, 4));
+            iterateAll(['contentId', 'displayName'], 100, _onEach, (error_) => {
+              assert.isNotOk(error_, JSON.stringify(error_, null, 4));
               assert.ok(foundLink, 'Expected to find the link we just created');
               return callback();
             });
@@ -150,9 +151,9 @@ describe('Content DAO', () => {
   /**
    * Test that verifies the RevisionDAO getAllRevisionsForContent functionality
    */
-  it('verify RevisionDAO getAllRevisionsForContent functionality', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify RevisionDAO getAllRevisionsForContent functionality', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer } = users;
       const asHomer = homer.restContext;
@@ -168,28 +169,28 @@ describe('Content DAO', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj);
+        (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject);
 
-          updateFileBody(asHomer, contentObj.id, getStream, err => {
-            assert.notExists(err);
-            updateFileBody(asHomer, contentObj.id, getStream, err => {
-              assert.notExists(err);
-              updateFileBody(asHomer, contentObj.id, getStream, err => {
-                assert.notExists(err);
-                updateFileBody(asHomer, contentObj.id, getStream, err => {
-                  assert.notExists(err);
+          updateFileBody(asHomer, contentObject.id, getStream, (error_) => {
+            assert.notExists(error_);
+            updateFileBody(asHomer, contentObject.id, getStream, (error_) => {
+              assert.notExists(error_);
+              updateFileBody(asHomer, contentObject.id, getStream, (error_) => {
+                assert.notExists(error_);
+                updateFileBody(asHomer, contentObject.id, getStream, (error_) => {
+                  assert.notExists(error_);
 
-                  getAllRevisionsForContent([contentObj.id], (err, data) => {
-                    assert.notExists(err);
-                    assert.ok(data[contentObj.id]);
-                    assert.ok(data[contentObj.id].length, 5);
+                  getAllRevisionsForContent([contentObject.id], (error, data) => {
+                    assert.notExists(error);
+                    assert.ok(data[contentObject.id]);
+                    assert.ok(data[contentObject.id].length, 5);
 
-                    forEach(revision => {
-                      assert.strictEqual(revision.contentId, contentObj.id);
+                    forEach((revision) => {
+                      assert.strictEqual(revision.contentId, contentObject.id);
                       assert.strictEqual(revision.filename, 'apereo.jpg');
-                    }, data[contentObj.id]);
+                    }, data[contentObject.id]);
 
                     return callback();
                   });

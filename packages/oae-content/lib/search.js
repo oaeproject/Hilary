@@ -29,7 +29,7 @@ import * as ContentAPI from 'oae-content';
 import * as ContentDAO from 'oae-content/lib/internal/dao';
 import * as ContentUtil from 'oae-content/lib/internal/util';
 import { ContentConstants } from 'oae-content/lib/constants';
-import * as contentBodySchema from './search/schema/contentBodySchema';
+import * as contentBodySchema from './search/schema/contentBodySchema.js';
 
 const log = logger('content-search');
 
@@ -62,7 +62,7 @@ import {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-export const init = function(callback) {
+export const init = function (callback) {
   const contentBodyChildSearchDocumentOptions = {
     resourceTypes: ['content'],
     schema: contentBodySchema,
@@ -74,9 +74,9 @@ export const init = function(callback) {
   SearchAPI.registerChildSearchDocument(
     ContentConstants.search.MAPPING_CONTENT_BODY,
     contentBodyChildSearchDocumentOptions,
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       return MessageBoxSearch.registerMessageSearchDocument(
@@ -137,7 +137,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, con
 /*!
  * When a content item's preview finishes updating, we must reindex its resource document
  */
-ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, content => {
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, (content) => {
   SearchAPI.postIndexTask('content', [{ id: content.id }], {
     resource: true,
     children: {
@@ -153,8 +153,8 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, content =
 ContentAPI.emitter.on(
   ContentConstants.events.UPDATED_CONTENT_BODY,
   // eslint-disable-next-line no-unused-vars
-  (ctx, newContentObj, oldContentObj, revision) => {
-    SearchAPI.postIndexTask('content', [{ id: newContentObj.id }], {
+  (ctx, newContentObject, oldContentObject, revision) => {
+    SearchAPI.postIndexTask('content', [{ id: newContentObject.id }], {
       resource: true
     });
   }
@@ -167,8 +167,8 @@ ContentAPI.emitter.on(
 ContentAPI.emitter.on(
   ContentConstants.events.RESTORED_REVISION,
   // eslint-disable-next-line no-unused-vars
-  (ctx, newContentObj, oldContentObj, restoredRevision) => {
-    SearchAPI.postIndexTask('content', [{ id: newContentObj.id }], {
+  (ctx, newContentObject, oldContentObject, restoredRevision) => {
+    SearchAPI.postIndexTask('content', [{ id: newContentObject.id }], {
       resource: true
     });
   }
@@ -177,8 +177,8 @@ ContentAPI.emitter.on(
 /*!
  * When a content item is deleted, we must cascade delete its resource document and all its children
  */
-ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj) => {
-  SearchAPI.postDeleteTask(contentObj.id);
+ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObject) => {
+  SearchAPI.postDeleteTask(contentObject.id);
 });
 
 /*!
@@ -219,7 +219,7 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
  * @see SearchAPI#registerChildSearchDocument
  * @api private
  */
-const _produceContentCommentDocuments = function(resources, callback, _documents, _errs) {
+const _produceContentCommentDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -241,9 +241,9 @@ const _produceContentCommentDocuments = function(resources, callback, _documents
     ContentConstants.search.MAPPING_CONTENT_COMMENT,
     resource.id,
     resource.id,
-    (err, documents) => {
-      if (err) {
-        _errs = _.union(_errs, [err]);
+    (error, documents) => {
+      if (error) {
+        _errs = _.union(_errs, [error]);
       }
 
       _documents = _.union(_documents, documents);
@@ -258,7 +258,7 @@ const _produceContentCommentDocuments = function(resources, callback, _documents
  * @see SearchAPI#registerChildSearchDocument
  * @api private
  */
-const _produceContentBodyDocuments = function(resources, callback, _documents, _errs) {
+const _produceContentBodyDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -266,9 +266,9 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
 
   const resource = resources.pop();
   // Get the latest revision
-  ContentDAO.Revisions.getRevisions(resource.id, null, 1, null, (err, revisions) => {
-    if (err) {
-      _errs = _.union(_errs, [err]);
+  ContentDAO.Revisions.getRevisions(resource.id, null, 1, null, (error, revisions) => {
+    if (error) {
+      _errs = _.union(_errs, [error]);
       return _produceContentBodyDocuments(resources, callback, _documents, _errs);
     }
 
@@ -286,21 +286,21 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
       return _produceContentBodyDocuments(resources, callback, _documents, _errs);
     }
 
-    ContentDAO.Previews.getContentPreview(revision.previewsId, 'plain.txt', (err, preview) => {
-      if (err) {
-        _errs = _.union(_errs, [err]);
+    ContentDAO.Previews.getContentPreview(revision.previewsId, 'plain.txt', (error, preview) => {
+      if (error) {
+        _errs = _.union(_errs, [error]);
         return _produceContentBodyDocuments(resources, callback, _documents, _errs);
       }
 
       const { tenantAlias } = getResourceFromId(revision.previewsId);
-      ContentUtil.getStorageBackend(null, preview.uri).get(tenantAlias, preview.uri, (err, file) => {
-        if (err) {
-          _errs = _.union(_errs, [err]);
+      ContentUtil.getStorageBackend(null, preview.uri).get(tenantAlias, preview.uri, (error, file) => {
+        if (error) {
+          _errs = _.union(_errs, [error]);
           return _produceContentBodyDocuments(resources, callback, _documents, _errs);
         }
 
-        fs.readFile(file.path, (err, data) => {
-          if (!err) {
+        fs.readFile(file.path, (error, data) => {
+          if (!error) {
             const childDoc = SearchUtil.createChildSearchDocument(
               ContentConstants.search.MAPPING_CONTENT_BODY,
               resource.id,
@@ -311,9 +311,9 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
           }
 
           // In all cases, the file should be removed again
-          fs.unlink(file.path, err => {
-            if (err) {
-              _errs = _.union(_errs, [err]);
+          fs.unlink(file.path, (error_) => {
+            if (error_) {
+              _errs = _.union(_errs, [error_]);
             }
 
             // Move on to the next file
@@ -331,15 +331,15 @@ const _produceContentBodyDocuments = function(resources, callback, _documents, _
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceContentSearchDocuments = function(resources, callback) {
+const _produceContentSearchDocuments = function (resources, callback) {
   if (_.isEmpty(resources)) {
     return callback(null, []);
   }
 
   const docs = [];
-  _getContentItems(resources, (err, contentItems) => {
-    if (err) {
-      return callback([err]);
+  _getContentItems(resources, (error, contentItems) => {
+    if (error) {
+      return callback([error]);
 
       // If the content items could not be found, there isn't much we can do
     }
@@ -348,12 +348,12 @@ const _produceContentSearchDocuments = function(resources, callback) {
       return callback(null, docs);
     }
 
-    _getRevisionItems(contentItems, (err, revisionsById) => {
-      if (err) {
-        return callback([err]);
+    _getRevisionItems(contentItems, (error, revisionsById) => {
+      if (error) {
+        return callback([error]);
       }
 
-      _.each(contentItems, contentItem => {
+      _.each(contentItems, (contentItem) => {
         docs.push(_produceContentSearchDocument(contentItem, revisionsById[contentItem.latestRevisionId]));
       });
 
@@ -370,10 +370,10 @@ const _produceContentSearchDocuments = function(resources, callback) {
  * @return {Object}                     An object where the key is a revisionId and the value the corresponding revision. If none of the content items are collaborative documents, the object will be empty.
  * @api private
  */
-const _getRevisionItems = function(contentItems, callback) {
+const _getRevisionItems = function (contentItems, callback) {
   // Check if we need to fetch revisions
   const revisionsToRetrieve = [];
-  _.each(contentItems, content => {
+  _.each(contentItems, (content) => {
     if (isResourceACollabDoc(content.resourceSubType) || isResourceACollabSheet(content.resourceSubType)) {
       revisionsToRetrieve.push(content.latestRevisionId);
     }
@@ -386,9 +386,9 @@ const _getRevisionItems = function(contentItems, callback) {
   ContentDAO.Revisions.getMultipleRevisions(
     revisionsToRetrieve,
     { fields: ['revisionId', 'etherpadHtml', 'ethercalcHtml'] },
-    (err, revisions) => {
-      if (err) {
-        return callback(err);
+    (error, revisions) => {
+      if (error) {
+        return callback(error);
       }
 
       const revisionsById = _.indexBy(revisions, 'revisionId');
@@ -406,12 +406,12 @@ const _getRevisionItems = function(contentItems, callback) {
  * @param  {Content[]}  callback.contentItems       An array of content items that were present in the `resources` object.
  * @api private
  */
-const _getContentItems = function(resources, callback) {
+const _getContentItems = function (resources, callback) {
   // For indexing resources that have content items attached, return the content item. For those that don't,
   // aggregate the ids so the content items may be fetched
   let contentIdsToFetch = [];
   let contentItems = [];
-  _.each(resources, resource => {
+  _.each(resources, (resource) => {
     if (resource.content) {
       contentItems.push(resource.content);
     } else {
@@ -428,9 +428,9 @@ const _getContentItems = function(resources, callback) {
   }
 
   // Get the content objects
-  ContentDAO.Content.getMultipleContentItems(contentIdsToFetch, null, (err, extraContentItems) => {
-    if (err) {
-      return callback(err);
+  ContentDAO.Content.getMultipleContentItems(contentIdsToFetch, null, (error, extraContentItems) => {
+    if (error) {
+      return callback(error);
     }
 
     // Filter the null values from the multiple content items array
@@ -450,7 +450,7 @@ const _getContentItems = function(resources, callback) {
  * @return {Object}                 A search document
  * @api private
  */
-const _produceContentSearchDocument = function(content, revision) {
+const _produceContentSearchDocument = function (content, revision) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
   let fullText = _.compact([content.displayName, content.description]).join(' ');
   if (isResourceACollabDoc(content.resourceSubType) && revision && revision.etherpadHtml) {
@@ -510,7 +510,7 @@ SearchAPI.registerSearchDocumentProducer('content', _produceContentSearchDocumen
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformContentDocuments = function(ctx, docs, callback) {
+const _transformContentDocuments = function (ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
     const scalarFields = map(head, doc.fields);
     const extraFields = compose(defaultToEmptyObject, head, path(['fields', '_extra']))(doc);
@@ -525,7 +525,7 @@ const _transformContentDocuments = function(ctx, docs, callback) {
     const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const signThumbnail = result => {
+    const signThumbnail = (result) => {
       if (and(thumbnailUrl, result.lastModified)) {
         return assoc('thumbnailUrl', getSignedDownloadUrl(ctx, thumbnailUrl), result);
       }
@@ -551,7 +551,7 @@ SearchAPI.registerSearchDocumentTransformer('content', _transformContentDocument
  * Reindex all handler
  */
 
-SearchAPI.registerReindexAllHandler('content', callback => {
+SearchAPI.registerReindexAllHandler('content', (callback) => {
   /*!
    * Handles each iteration of the ContentDAO iterate all method, firing tasks for all content to
    * be reindexed.
@@ -559,10 +559,10 @@ SearchAPI.registerReindexAllHandler('content', callback => {
    * @see ContentDAO.Content#iterateAll
    * @api private
    */
-  const _onEach = function(contentRows, done) {
+  const _onEach = function (contentRows, done) {
     // Batch up this iteration of task resources
     const contentResources = [];
-    _.each(contentRows, contentRow => {
+    _.each(contentRows, (contentRow) => {
       contentResources.push({ id: contentRow.contentId });
     });
 

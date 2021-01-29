@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -38,7 +38,7 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {String}     latestRevisionId    The id of the current content item revision
  * @param  {Object}     previews            The thumbnails for the content item
  */
-const Content = function(
+const Content = function (
   tenantAlias,
   id,
   visibility,
@@ -86,8 +86,8 @@ const Content = function(
  * @param  {String}     opts.previewsId     The storage directory of the previews of the revision, within the content item
  * @param  {String}     [opts.filename]     If the revision is a file upload, it would be expected it has a `filename` attribute
  */
-const Revision = function(contentId, revisionId, createdBy, created, opts) {
-  const that = _.extend({}, opts);
+const Revision = function (contentId, revisionId, createdBy, created, options) {
+  const that = _.extend({}, options);
   that.contentId = contentId;
   that.revisionId = revisionId;
   that.createdBy = createdBy;
@@ -120,7 +120,7 @@ const Revision = function(contentId, revisionId, createdBy, created, opts) {
  * @param  {String}     strategy        The name of the strategy to use to download the file, as per the method summary
  * @param  {String}     target          The target at which to download the file, as per the method summary
  */
-const DownloadStrategy = function(strategy, target) {
+const DownloadStrategy = function (strategy, target) {
   const that = {};
   that.strategy = strategy;
   that.target = target;
@@ -136,8 +136,8 @@ const DownloadStrategy = function(strategy, target) {
  * @return {String}                 The download path for the content revision
  * @api private
  */
-const _getDownloadPath = function(contentId, revisionId) {
-  return util.format('/api/content/%s/download/%s', contentId, revisionId);
+const _getDownloadPath = function (contentId, revisionId) {
+  return format('/api/content/%s/download/%s', contentId, revisionId);
 };
 
 export { Content, Revision, DownloadStrategy };

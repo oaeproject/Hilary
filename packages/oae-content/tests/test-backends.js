@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before, afterEach } from 'mocha';
 import { forEach, nth, head, last, length } from 'ramda';
 
 import * as BackendsUtil from 'oae-content/lib/backends/util';
@@ -52,7 +53,7 @@ describe('Content Backends', () => {
         'A URI should have some kind of hashing in it which generated more than 3 levels'
       );
 
-      forEach(eachPart => {
+      forEach((eachPart) => {
         assert.isNotEmpty(eachPart, 'Each part of the URI should be non-empty.');
       }, result);
     });
@@ -86,7 +87,7 @@ describe('Content Backends', () => {
         'A URI should have some kind of hashing in it which generated more than 4 levels if a prefix is specified'
       );
 
-      forEach(eachPart => {
+      forEach((eachPart) => {
         assert.isNotEmpty(eachPart, 'Each part of the URI should be non-empty.');
       }, result);
     });
@@ -116,7 +117,7 @@ describe('Content Backends', () => {
         'A URI should have some kind of hashing in it which generated more than 3 levels'
       );
 
-      forEach(eachPart => {
+      forEach((eachPart) => {
         assert.isNotEmpty(eachPart, 'Each part of the URI should be non-empty.');
       }, result);
     });
@@ -144,7 +145,7 @@ describe('Content Backends', () => {
         'A URI should have some kind of hashing in it which generated more than 3 levels'
       );
 
-      forEach(eachPart => {
+      forEach((eachPart) => {
         assert.isNotEmpty(eachPart, 'Each part of the URI should be non-empty.');
       }, result);
     });
@@ -154,7 +155,7 @@ describe('Content Backends', () => {
     /**
      * Verifies the remote backend is able to return a proper download link
      */
-    it('verify remote backend is able to return a download link', callback => {
+    it('verify remote backend is able to return a download link', (callback) => {
       const uri = 'remote:http://www.apereo.org/favicon.ico';
       const downloadStrategy = getDownloadStrategy(null, uri);
 
@@ -167,9 +168,9 @@ describe('Content Backends', () => {
     /**
      * Test that verifies that storing content items is not implemented
      */
-    it('verify storing content items is not implemented', callback => {
-      store(null, { name: 'foo' }, null, err => {
-        assert.strictEqual(err.code, 501);
+    it('verify storing content items is not implemented', (callback) => {
+      store(null, { name: 'foo' }, null, (error) => {
+        assert.strictEqual(error.code, 501);
 
         return callback();
       });
@@ -178,9 +179,9 @@ describe('Content Backends', () => {
     /**
      * Test that verifies that getting content items is not implemented
      */
-    it('verify getting content items is not implemented', callback => {
-      get(null, 'remote#www.google.com', err => {
-        assert.strictEqual(err.code, 501);
+    it('verify getting content items is not implemented', (callback) => {
+      get(null, 'remote#www.google.com', (error) => {
+        assert.strictEqual(error.code, 501);
 
         return callback();
       });
@@ -189,9 +190,9 @@ describe('Content Backends', () => {
     /**
      * Test that verifies that removing content items is not implemented
      */
-    it('verify removing content items is not implemented', callback => {
-      remove(null, 'remote#www.google.com', err => {
-        assert.strictEqual(err.code, 501);
+    it('verify removing content items is not implemented', (callback) => {
+      remove(null, 'remote#www.google.com', (error) => {
+        assert.strictEqual(error.code, 501);
 
         return callback();
       });
@@ -201,17 +202,17 @@ describe('Content Backends', () => {
   describe('Local backend', () => {
     let _originalRootDir = null;
 
-    before(callback => {
+    before((callback) => {
       // Grab the original root directory before we change it in the tests
       _originalRootDir = LocalBackend.getRootDirectory();
 
       return callback();
     });
 
-    afterEach(callback => {
+    afterEach((callback) => {
       // Reset the root directory to its original value
-      LocalBackend.init(_originalRootDir, err => {
-        assert.notExists(err);
+      LocalBackend.init(_originalRootDir, (error) => {
+        assert.notExists(error);
 
         return callback();
       });
@@ -221,9 +222,9 @@ describe('Content Backends', () => {
       /**
        * Test that verifies an error properly bubbles up the stack
        */
-      it('verify error handling', callback => {
-        LocalBackend.init('\0', err => {
-          assert.strictEqual(err.code, 500);
+      it('verify error handling', (callback) => {
+        LocalBackend.init('\0', (error) => {
+          assert.strictEqual(error.code, 500);
 
           return callback();
         });
@@ -234,11 +235,11 @@ describe('Content Backends', () => {
       /**
        * Test that verifies an error properly bubbles up the stack
        */
-      it('verify error handling', callback => {
+      it('verify error handling', (callback) => {
         const uri = 'local#/non/existing/file';
 
-        LocalBackend.get(null, uri, (err, file) => {
-          assert.ok(err);
+        LocalBackend.get(null, uri, (error, file) => {
+          assert.ok(error);
           assert.isNotOk(file);
 
           return callback();

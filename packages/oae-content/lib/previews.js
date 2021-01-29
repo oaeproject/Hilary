@@ -16,19 +16,19 @@
 import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 import { ContentConstants } from 'oae-content/lib/constants';
-import * as ContentAPI from './api';
+import * as ContentAPI from './api.js';
 
 ContentAPI.emitter.on(ContentConstants.events.CREATED_CONTENT, (ctx, content, revision) => {
   PreviewProcessorAPI.submitForProcessing(content.id, revision.revisionId);
 });
 
-ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObject, oldContentObject) => {
   /*
    * This event gets emitted when the content metadata gets updated.
    * We only need to check links here.
    */
-  if (newContentObj.resourceSubType === 'link' && newContentObj.link !== oldContentObj.link) {
-    PreviewProcessorAPI.submitForProcessing(newContentObj.id, oldContentObj.latestRevisionId);
+  if (newContentObject.resourceSubType === 'link' && newContentObject.link !== oldContentObject.link) {
+    PreviewProcessorAPI.submitForProcessing(newContentObject.id, oldContentObject.latestRevisionId);
   }
 });
 
@@ -36,7 +36,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentO
 ContentAPI.emitter.on(
   ContentConstants.events.UPDATED_CONTENT_BODY,
   // eslint-disable-next-line no-unused-vars
-  (ctx, newContentObj, oldContentObj, revision) => {
-    PreviewProcessorAPI.submitForProcessing(newContentObj.id, newContentObj.latestRevisionId);
+  (ctx, newContentObject, oldContentObject, revision) => {
+    PreviewProcessorAPI.submitForProcessing(newContentObject.id, newContentObject.latestRevisionId);
   }
 );

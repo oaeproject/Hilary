@@ -15,6 +15,7 @@
 /* eslint-disable camelcase */
 
 import { assert } from 'chai';
+import { describe, it, before, beforeEach } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import { flush } from 'oae-util/lib/redis';
@@ -85,7 +86,7 @@ describe('File previews', () => {
   /**
    * Fill up the contexts
    */
-  before(callback => {
+  before((callback) => {
     // Fill up global admin rest context
     asGlobalAdmin = createGlobalAdminRestContext();
     // Fill up the anonymous context
@@ -106,19 +107,19 @@ describe('File previews', () => {
     };
 
     // Login on the camtest tenant
-    loginOnTenant(asGlobalAdmin, 'localhost', null, (err, ctx) => {
-      assert.notExists(err);
+    loginOnTenant(asGlobalAdmin, 'localhost', null, (error, ctx) => {
+      assert.notExists(error);
       asGlobalAdminOnTenant = ctx;
 
-      getMe(asGlobalAdminOnTenant, (err, user) => {
-        assert.notExists(err);
+      getMe(asGlobalAdminOnTenant, (error, user) => {
+        assert.notExists(error);
         assert.isNotOk(user.anon);
         flush(callback);
       });
     });
   });
 
-  beforeEach(done => {
+  beforeEach((done) => {
     flush(done);
   });
 
@@ -144,9 +145,9 @@ describe('File previews', () => {
    * @param  {Object}      callback.content        Content object as returned by `RestAPI.ContentcreateFile`.
    * @param  {Object}      callback.previews       Previews object as returned by `RestAPI.ContentgetPreviewItems`.
    */
-  const createPreviews = callback => {
-    generateTestUsers(asGlobalAdminOnTenant, 2, (err, users) => {
-      assert.notExists(err);
+  const createPreviews = (callback) => {
+    generateTestUsers(asGlobalAdminOnTenant, 2, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer, 1: marge } = users;
       const asHomer = homer.restContext;
@@ -163,32 +164,32 @@ describe('File previews', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj.id);
-          assert.strictEqual(contentObj.previews.status, PENDING);
+        (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject.id);
+          assert.strictEqual(contentObject.previews.status, PENDING);
 
           // Add some preview items.
           setPreviewItems(
             asGlobalAdminOnTenant,
-            contentObj.id,
-            contentObj.latestRevisionId,
+            contentObject.id,
+            contentObject.latestRevisionId,
             DONE,
             suitable_files,
             suitable_sizes,
             {},
             {},
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Get a list of preview items.
-              getPreviewItems(asHomer, contentObj.id, contentObj.latestRevisionId, (err, previews) => {
-                assert.notExists(err);
+              getPreviewItems(asHomer, contentObject.id, contentObject.latestRevisionId, (error, previews) => {
+                assert.notExists(error);
                 assert.lengthOf(previews.files, 2);
 
                 // Ensure that the thumbnail and status parameters are set
-                getContent(asHomer, contentObj.id, (err, updatedContent) => {
-                  assert.notExists(err);
+                getContent(asHomer, contentObject.id, (error, updatedContent) => {
+                  assert.notExists(error);
                   assert.isNotOk(updatedContent.previews.thumbnailUri);
                   assert.ok(updatedContent.previews.thumbnailUrl);
                   assert.strictEqual(updatedContent.previews.status, DONE);
@@ -212,8 +213,8 @@ describe('File previews', () => {
    * that the preview links are tied to the context of the user
    * who requested the link.
    */
-  it('verify uploading a preview', callback => {
-    createPreviews((contexts, contentObj, previews) => {
+  it('verify uploading a preview', (callback) => {
+    createPreviews((contexts, contentObject, previews) => {
       const { homer, marge } = contexts;
       const asHomer = homer.restContext;
       const asMarge = marge.restContext;
@@ -221,26 +222,26 @@ describe('File previews', () => {
       // Only global admins should be allowed to create previews.
       setPreviewItems(
         asCambridgeAnonymousUser,
-        contentObj.id,
-        contentObj.latestRevisionId,
+        contentObject.id,
+        contentObject.latestRevisionId,
         DONE,
         suitable_files,
         suitable_sizes,
         {},
         {},
-        err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+        (error) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
 
           // Download one.
           downloadPreviewItem(
             asHomer,
-            contentObj.id,
-            contentObj.latestRevisionId,
+            contentObject.id,
+            contentObject.latestRevisionId,
             previews.files[0].filename,
             previews.signature,
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
               assert.isNotOk(body); // Nginx streams the actual file body, the app server just returns a 204.
               assert.strictEqual(response.statusCode, 204);
               assert.ok(response.headers['x-accel-redirect']);
@@ -248,12 +249,12 @@ describe('File previews', () => {
               // Make sure that nobody else can see a private item, even if they have the signature.
               downloadPreviewItem(
                 asMarge,
-                contentObj.id,
-                contentObj.latestRevisionId,
+                contentObject.id,
+                contentObject.latestRevisionId,
                 previews.files[0].filename,
                 previews.signature,
-                (err, body /* , response */) => {
-                  assert.strictEqual(err.code, 401);
+                (error, body /* , response */) => {
+                  assert.strictEqual(error.code, 401);
                   assert.isNotOk(body);
 
                   callback();
@@ -269,7 +270,7 @@ describe('File previews', () => {
   /**
    * Test that verifies that when a revision is restored, the previews are properly carried over from the source revision, and are accessible by the user
    */
-  it('verify downloading preview of a restored revision', callback => {
+  it('verify downloading preview of a restored revision', (callback) => {
     createPreviews((contexts, content /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
@@ -277,12 +278,12 @@ describe('File previews', () => {
       const firstRevisionId = content.latestRevisionId;
 
       // Get the previews of the first revision. We will ensure that the restored revision are the same
-      getPreviewItems(asHomer, content.id, firstRevisionId, (err, firstRevisionPreviews) => {
-        assert.notExists(err);
+      getPreviewItems(asHomer, content.id, firstRevisionId, (error, firstRevisionPreviews) => {
+        assert.notExists(error);
 
         // Update the file body, creating a new revision
-        updateFileBody(asHomer, content.id, getFileStream, (err, content) => {
-          assert.notExists(err);
+        updateFileBody(asHomer, content.id, getFileStream, (error, content) => {
+          assert.notExists(error);
 
           // Finish processing the previews for the new revision
           setPreviewItems(
@@ -294,16 +295,16 @@ describe('File previews', () => {
             suitable_sizes,
             {},
             {},
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Restore to the first revision
-              restoreRevision(asHomer, content.id, firstRevisionId, (err, revision3) => {
-                assert.notExists(err);
+              restoreRevision(asHomer, content.id, firstRevisionId, (error, revision3) => {
+                assert.notExists(error);
 
                 // Get the preview items of the 3rd revision (restored from first), and verify that the model is the same
-                getPreviewItems(asHomer, content.id, revision3.revisionId, (err, thirdRevisionPreviews) => {
-                  assert.notExists(err);
+                getPreviewItems(asHomer, content.id, revision3.revisionId, (error, thirdRevisionPreviews) => {
+                  assert.notExists(error);
                   assert.strictEqual(firstRevisionPreviews.files.length, thirdRevisionPreviews.files.length);
 
                   // Get the medium picture of the first and third revisions
@@ -328,8 +329,8 @@ describe('File previews', () => {
                     revision3.revisionId,
                     thirdRevisionMediumPicture.filename,
                     thirdRevisionPreviews.signature,
-                    (err, body, response) => {
-                      assert.notExists(err);
+                    (error, body, response) => {
+                      assert.notExists(error);
                       assert.strictEqual(response.statusCode, 204);
                       assert.ok(response.headers['x-accel-redirect']);
 
@@ -351,9 +352,9 @@ describe('File previews', () => {
   /**
    * Downloading a preview item that doesn't exist, should result in a 404.
    */
-  it('verify download non-existing previews is handled correctly', callback => {
-    generateTestUsers(asGlobalAdminOnTenant, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify download non-existing previews is handled correctly', (callback) => {
+    generateTestUsers(asGlobalAdminOnTenant, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: marge } = users;
       const asMarge = marge.restContext;
@@ -369,25 +370,25 @@ describe('File previews', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj.id);
-          assert.strictEqual(contentObj.previews.status, PENDING);
+        (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject.id);
+          assert.strictEqual(contentObject.previews.status, PENDING);
 
           // Get a list of preview items.
-          getPreviewItems(asMarge, contentObj.id, contentObj.latestRevisionId, (err, previews) => {
-            assert.notExists(err);
+          getPreviewItems(asMarge, contentObject.id, contentObject.latestRevisionId, (error, previews) => {
+            assert.notExists(error);
             assert.isEmpty(previews.files, 0);
 
             // Downloading a preview item that doesn't exist, should result in a 404.
             downloadPreviewItem(
               asMarge,
-              contentObj.id,
-              contentObj.latestRevisionId,
+              contentObject.id,
+              contentObject.latestRevisionId,
               'does-not-exist.png',
               previews.signature,
-              (err, body /* , response */) => {
-                assert.strictEqual(err.code, 404);
+              (error, body /* , response */) => {
+                assert.strictEqual(error.code, 404);
                 assert.isNotOk(body);
 
                 callback();
@@ -402,9 +403,9 @@ describe('File previews', () => {
   /**
    * Verify that the request parameters of adding preview items are validated.
    */
-  it('verify uploading preview parameter validation', callback => {
-    generateTestUsers(asGlobalAdminOnTenant, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify uploading preview parameter validation', (callback) => {
+    generateTestUsers(asGlobalAdminOnTenant, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: marge } = users;
       const asMarge = marge.restContext;
@@ -420,39 +421,49 @@ describe('File previews', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj.id);
-          assert.strictEqual(contentObj.previews.status, PENDING);
+        (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject.id);
+          assert.strictEqual(contentObject.previews.status, PENDING);
 
-          getRevisions(asMarge, contentObj.id, null, 1, (err, revisions) => {
-            assert.notExists(err);
+          getRevisions(asMarge, contentObject.id, null, 1, (error, revisions) => {
+            assert.notExists(error);
             const { revisionId } = revisions.results[0];
 
             // A valid call as a sanity check.
-            setPreviewItems(asGlobalAdminOnTenant, contentObj.id, revisionId, DONE, {}, {}, {}, {}, err => {
-              assert.notExists(err);
+            setPreviewItems(asGlobalAdminOnTenant, contentObject.id, revisionId, DONE, {}, {}, {}, {}, (error_) => {
+              assert.notExists(error_);
 
               // Invalid contentId.
-              setPreviewItems(asGlobalAdminOnTenant, 'blah', revisionId, 'foo', {}, {}, {}, {}, err => {
-                assert.strictEqual(err.code, 400);
+              setPreviewItems(asGlobalAdminOnTenant, 'blah', revisionId, 'foo', {}, {}, {}, {}, (error_) => {
+                assert.strictEqual(error_.code, 400);
 
                 // Bad status parameter.
-                setPreviewItems(asGlobalAdminOnTenant, contentObj.id, revisionId, 'foo', {}, {}, {}, {}, err => {
-                  assert.strictEqual(err.code, 400);
+                setPreviewItems(
+                  asGlobalAdminOnTenant,
+                  contentObject.id,
+                  revisionId,
+                  'foo',
+                  {},
+                  {},
+                  {},
+                  {},
+                  (error_) => {
+                    assert.strictEqual(error_.code, 400);
 
-                  // Non existing piece of content.
-                  setPreviewItems(asGlobalAdminOnTenant, 'c:foo:bar', revisionId, DONE, {}, {}, {}, {}, err => {
-                    assert.strictEqual(err.code, 404);
+                    // Non existing piece of content.
+                    setPreviewItems(asGlobalAdminOnTenant, 'c:foo:bar', revisionId, DONE, {}, {}, {}, {}, (error_) => {
+                      assert.strictEqual(error_.code, 404);
 
-                    // Missing revision
-                    setPreviewItems(asGlobalAdminOnTenant, 'c:foo:bar', null, DONE, {}, {}, {}, {}, err => {
-                      assert.strictEqual(err.code, 404);
+                      // Missing revision
+                      setPreviewItems(asGlobalAdminOnTenant, 'c:foo:bar', null, DONE, {}, {}, {}, {}, (error_) => {
+                        assert.strictEqual(error_.code, 404);
 
-                      callback();
+                        callback();
+                      });
                     });
-                  });
-                });
+                  }
+                );
               });
             });
           });
@@ -464,9 +475,9 @@ describe('File previews', () => {
   /**
    * Verify that setting the preview status gets propaged to the content objects.
    */
-  it('verify setting preview status', callback => {
-    generateTestUsers(asGlobalAdminOnTenant, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify setting preview status', (callback) => {
+    generateTestUsers(asGlobalAdminOnTenant, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: lisa } = users;
       const asLisa = lisa.restContext;
@@ -482,21 +493,21 @@ describe('File previews', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj.id);
-          assert.strictEqual(contentObj.previews.status, PENDING);
+        (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject.id);
+          assert.strictEqual(contentObject.previews.status, PENDING);
 
-          getRevisions(asGlobalAdminOnTenant, contentObj.id, null, 1, (err, revisions) => {
-            assert.notExists(err);
+          getRevisions(asGlobalAdminOnTenant, contentObject.id, null, 1, (error, revisions) => {
+            assert.notExists(error);
             const { revisionId } = revisions.results[0];
 
-            setPreviewItems(asGlobalAdminOnTenant, contentObj.id, revisionId, IGNORED, {}, {}, {}, {}, err => {
-              assert.notExists(err);
+            setPreviewItems(asGlobalAdminOnTenant, contentObject.id, revisionId, IGNORED, {}, {}, {}, {}, (error_) => {
+              assert.notExists(error_);
 
-              getContent(asLisa, contentObj.id, (err, updatedContentObj) => {
-                assert.notExists(err);
-                assert.strictEqual(updatedContentObj.previews.status, IGNORED);
+              getContent(asLisa, contentObject.id, (error, updatedContentObject) => {
+                assert.notExists(error);
+                assert.strictEqual(updatedContentObject.previews.status, IGNORED);
 
                 callback();
               });
@@ -510,38 +521,48 @@ describe('File previews', () => {
   /**
    * Verify that only setting the preview status removes older preview items
    */
-  it('verify setting preview status removes older preview items', callback => {
-    createPreviews((contexts, contentObj /* , previews */) => {
+  it('verify setting preview status removes older preview items', (callback) => {
+    createPreviews((contexts, contentObject /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
-      setPreviewItems(asGlobalAdminOnTenant, contentObj.id, contentObj.latestRevisionId, ERROR, {}, {}, {}, {}, err => {
-        assert.notExists(err);
+      setPreviewItems(
+        asGlobalAdminOnTenant,
+        contentObject.id,
+        contentObject.latestRevisionId,
+        ERROR,
+        {},
+        {},
+        {},
+        {},
+        (error) => {
+          assert.notExists(error);
 
-        // Get a list of preview items, there should be none.
-        getPreviewItems(asHomer, contentObj.id, contentObj.latestRevisionId, (err, previews) => {
-          assert.notExists(err);
-          assert.isEmpty(previews.files);
+          // Get a list of preview items, there should be none.
+          getPreviewItems(asHomer, contentObject.id, contentObject.latestRevisionId, (error, previews) => {
+            assert.notExists(error);
+            assert.isEmpty(previews.files);
 
-          getContent(asHomer, contentObj.id, (err, content) => {
-            assert.notExists(err);
-            assert.strictEqual(content.previews.total, 0);
-            assert.strictEqual(content.previews.status, ERROR);
-            assert.isNotOk(content.previews.thumbnailUri);
-            assert.isNotOk(content.previews.thumbnailUrl);
+            getContent(asHomer, contentObject.id, (error, content) => {
+              assert.notExists(error);
+              assert.strictEqual(content.previews.total, 0);
+              assert.strictEqual(content.previews.status, ERROR);
+              assert.isNotOk(content.previews.thumbnailUri);
+              assert.isNotOk(content.previews.thumbnailUrl);
 
-            callback();
+              callback();
+            });
           });
-        });
-      });
+        }
+      );
     });
   });
 
   /**
    * Verify that uploading new preview items removes the old ones.
    */
-  it('verify uploading new preview items removes older preview items and the thumbnailUrl', callback => {
-    createPreviews((contexts, contentObj /* , previews */) => {
+  it('verify uploading new preview items removes older preview items and the thumbnailUrl', (callback) => {
+    createPreviews((contexts, contentObject /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
@@ -550,23 +571,23 @@ describe('File previews', () => {
 
       setPreviewItems(
         asGlobalAdminOnTenant,
-        contentObj.id,
-        contentObj.latestRevisionId,
+        contentObject.id,
+        contentObject.latestRevisionId,
         DONE,
         files,
         sizes,
         {},
         {},
-        err => {
-          assert.notExists(err);
+        (error) => {
+          assert.notExists(error);
 
           // Get a list of preview items, there should only be one
-          getPreviewItems(asHomer, contentObj.id, contentObj.latestRevisionId, (err, previews) => {
-            assert.notExists(err);
+          getPreviewItems(asHomer, contentObject.id, contentObject.latestRevisionId, (error, previews) => {
+            assert.notExists(error);
             assert.lengthOf(previews.files, 1);
 
-            getContent(asHomer, contentObj.id, (err, content) => {
-              assert.notExists(err);
+            getContent(asHomer, contentObject.id, (error, content) => {
+              assert.notExists(error);
               assert.strictEqual(content.previews.total, 1);
               assert.isNotOk(content.previews.thumbnailUri);
               assert.isNotOk(content.previews.thumbnailUrl);
@@ -584,9 +605,9 @@ describe('File previews', () => {
   /**
    * A test that verifies that link updates result in a resetted previews object
    */
-  it('verify updating a link resets the previews object', callback => {
-    generateTestUsers(asGlobalAdminOnTenant, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify updating a link resets the previews object', (callback) => {
+    generateTestUsers(asGlobalAdminOnTenant, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer } = users;
       const asHomer = homer.restContext;
@@ -602,15 +623,15 @@ describe('File previews', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
+        (error, contentObject) => {
+          assert.notExists(error);
 
           // Verify that a new link results in an empty previews object
-          updateContent(asHomer, contentObj.id, { link: 'http://www.google.com' }, err => {
-            assert.notExists(err);
-            getContent(asHomer, contentObj.id, (err, contentObj) => {
-              assert.notExists(err);
-              assert.strictEqual(contentObj.previews.status, PENDING);
+          updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (error_) => {
+            assert.notExists(error_);
+            getContent(asHomer, contentObject.id, (error, contentObject) => {
+              assert.notExists(error);
+              assert.strictEqual(contentObject.previews.status, PENDING);
 
               /**
                * Verify that an update with the same link doesn't change the previews object
@@ -618,21 +639,21 @@ describe('File previews', () => {
                */
               setPreviewItems(
                 asGlobalAdminOnTenant,
-                contentObj.id,
-                contentObj.latestRevisionId,
+                contentObject.id,
+                contentObject.latestRevisionId,
                 DONE,
                 {},
                 {},
                 {},
                 {},
-                err => {
-                  assert.notExists(err);
-                  updateContent(asHomer, contentObj.id, { link: 'http://www.google.com' }, err => {
-                    assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
+                  updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (error_) => {
+                    assert.notExists(error_);
 
-                    getContent(asHomer, contentObj.id, (err, contentObj) => {
-                      assert.notExists(err);
-                      assert.strictEqual(contentObj.previews.status, DONE);
+                    getContent(asHomer, contentObject.id, (error, contentObject) => {
+                      assert.notExists(error);
+                      assert.strictEqual(contentObject.previews.status, DONE);
 
                       return callback();
                     });
@@ -649,73 +670,73 @@ describe('File previews', () => {
   /**
    * Verifies that the request parameters when downloading a preview are validated.
    */
-  it('verify preview download parameter validation', callback => {
-    createPreviews((contexts, contentObj, previews) => {
+  it('verify preview download parameter validation', (callback) => {
+    createPreviews((contexts, contentObject, previews) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
       // Ensure that the file can be downloaded.
       downloadPreviewItem(
         asHomer,
-        contentObj.id,
-        contentObj.latestRevisionId,
+        contentObject.id,
+        contentObject.latestRevisionId,
         previews.files[0].filename,
         previews.signature,
-        (err, body, response) => {
-          assert.notExists(err);
+        (error, body, response) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 204);
 
           // Missing parameters
           downloadPreviewItem(
             asHomer,
-            contentObj.id,
-            contentObj.latestRevisionId,
+            contentObject.id,
+            contentObject.latestRevisionId,
             previews.files[0].filename,
             { signature: previews.signature.signature },
-            (err, body /* , response */) => {
-              assert.strictEqual(err.code, 401);
+            (error, body /* , response */) => {
+              assert.strictEqual(error.code, 401);
               assert.isNotOk(body);
 
               downloadPreviewItem(
                 asHomer,
-                contentObj.id,
-                contentObj.latestRevisionId,
+                contentObject.id,
+                contentObject.latestRevisionId,
                 previews.files[0].filename,
                 { expires: previews.signature.expires },
-                (err, body /* , response */) => {
-                  assert.strictEqual(err.code, 401);
+                (error, body /* , response */) => {
+                  assert.strictEqual(error.code, 401);
                   assert.isNotOk(body);
 
                   // Wrong signature
                   downloadPreviewItem(
                     asHomer,
-                    contentObj.id,
-                    contentObj.latestRevisionId,
+                    contentObject.id,
+                    contentObject.latestRevisionId,
                     previews.files[0].filename,
                     { signature: 'wrong', expires: previews.signature.expires },
-                    (err, body /* , response */) => {
-                      assert.ok(err.code, 401);
+                    (error, body /* , response */) => {
+                      assert.ok(error.code, 401);
                       assert.isNotOk(body);
 
                       // Malformed IDs
                       downloadPreviewItem(
                         asHomer,
                         'invalid content id',
-                        contentObj.latestRevisionId,
+                        contentObject.latestRevisionId,
                         previews.files[0].filename,
                         previews.signature,
-                        (err, body /* , response */) => {
-                          assert.strictEqual(err.code, 400);
+                        (error, body /* , response */) => {
+                          assert.strictEqual(error.code, 400);
                           assert.isNotOk(body);
 
                           downloadPreviewItem(
                             asHomer,
-                            contentObj.id,
+                            contentObject.id,
                             'invalid revision id',
                             previews.files[0].filename,
                             previews.signature,
-                            (err, body /* , response */) => {
-                              assert.strictEqual(err.code, 400);
+                            (error, body /* , response */) => {
+                              assert.strictEqual(error.code, 400);
                               assert.isNotOk(body);
 
                               return callback();
@@ -741,7 +762,7 @@ describe('File previews', () => {
    * @param  {String}         downloadUrl     The signed URL that should be verified
    * @param  {Function}       callback        Standard callback function
    */
-  const _verifySignedDownloadUrl = function(restContext, downloadUrl, callback) {
+  const _verifySignedDownloadUrl = function (restContext, downloadUrl, callback) {
     // Verify we can download it
     const parsedUrl = new URL(downloadUrl, 'http://localhost');
     RestUtil.performRestRequest(
@@ -749,8 +770,8 @@ describe('File previews', () => {
       '/api/download/signed',
       'GET',
       objectifySearchParams(parsedUrl.searchParams),
-      (err, body, response) => {
-        assert.notExists(err);
+      (error, body, response) => {
+        assert.notExists(error);
         assert.strictEqual(response.statusCode, 204);
 
         return callback();
@@ -761,24 +782,24 @@ describe('File previews', () => {
   /**
    * A test that verifies that thumbnail originating from another tenant can be downloaded
    */
-  it('verify previews are downloadable from another tenant', callback => {
+  it('verify previews are downloadable from another tenant', (callback) => {
     /**
      * Create a tenant on the localhost tenant. We need to create it on the localhost tenant
      * as that's the only one we can verify the actual downloading of images works during unit tests
      */
-    createPreviews((contexts, contentObj /* , previews */) => {
+    createPreviews((contexts, contentObject /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
       // Share the item with Lisa, who is a user in the Cambridge tenant
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: lisa } = users;
         const asLisa = lisa.restContext;
 
-        shareContent(asHomer, contentObj.id, [lisa.user.id], err => {
-          assert.notExists(err);
+        shareContent(asHomer, contentObject.id, [lisa.user.id], (error_) => {
+          assert.notExists(error_);
 
           // Lisa should receive an activity that Homer shared a piece of content with him
           setTimeout(
@@ -787,31 +808,34 @@ describe('File previews', () => {
             asLisa,
             lisa.user.id,
             null,
-            (err, activityStream) => {
-              assert.notExists(err);
+            (error, activityStream) => {
+              assert.notExists(error);
 
-              const activity = find(pathSatisfies(equals(contentObj.id), ['object', 'oae:id']), activityStream.items);
+              const activity = find(
+                pathSatisfies(equals(contentObject.id), ['object', 'oae:id']),
+                activityStream.items
+              );
               assert.ok(activity);
 
               // Verify the activity
               _verifySignedDownloadUrl(asLisa, activity.object.image.url, () => {
                 // Verify the thumbnailUrl is on the content profile, but not the back-end uri
-                getContent(asLisa, contentObj.id, (err, contentObjOnCamTenant) => {
-                  assert.notExists(err);
-                  assert.isNotOk(contentObjOnCamTenant.previews.thumbnailUri);
-                  assert.ok(contentObjOnCamTenant.previews.thumbnailUrl);
+                getContent(asLisa, contentObject.id, (error, contentObjectOnCamTenant) => {
+                  assert.notExists(error);
+                  assert.isNotOk(contentObjectOnCamTenant.previews.thumbnailUri);
+                  assert.ok(contentObjectOnCamTenant.previews.thumbnailUrl);
 
-                  _verifySignedDownloadUrl(asLisa, contentObjOnCamTenant.previews.thumbnailUrl, () => {
+                  _verifySignedDownloadUrl(asLisa, contentObjectOnCamTenant.previews.thumbnailUrl, () => {
                     // Verify the thumbnailUrl in search results
                     const randomText = generateRandomText(5);
-                    updateContent(asHomer, contentObj.id, { displayName: randomText }, (
-                      err /* , updatedContentObj */
+                    updateContent(asHomer, contentObject.id, { displayName: randomText }, (
+                      error /* , updatedContentObj */
                     ) => {
-                      assert.notExists(err);
+                      assert.notExists(error);
 
-                      searchAll(asLisa, GENERAL, null, { resourceTypes: CONTENT, q: randomText }, (err, results) => {
-                        assert.notExists(err);
-                        const doc = find(propSatisfies(equals(contentObj.id), 'id'), results.results);
+                      searchAll(asLisa, GENERAL, null, { resourceTypes: CONTENT, q: randomText }, (error, results) => {
+                        assert.notExists(error);
+                        const doc = find(propSatisfies(equals(contentObject.id), 'id'), results.results);
                         assert.ok(doc);
 
                         return _verifySignedDownloadUrl(asLisa, doc.thumbnailUrl, callback);
@@ -830,14 +854,14 @@ describe('File previews', () => {
   /**
    * A test that verifies whether or not thumbnail URLs are present on a revision object
    */
-  it('verify thumbnail and medium URLs are present on the revision object', callback => {
+  it('verify thumbnail and medium URLs are present on the revision object', (callback) => {
     createPreviews((contexts, content /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
       // Verify a list of revisions
-      getRevisions(asHomer, content.id, null, null, (err, revisions) => {
-        assert.notExists(err);
+      getRevisions(asHomer, content.id, null, null, (error, revisions) => {
+        assert.notExists(error);
         assert.isNotOk(revisions.results[0].thumbnailUri);
         assert.ok(revisions.results[0].thumbnailUrl);
         assert.isNotOk(revisions.results[0].mediumUri);
@@ -846,8 +870,8 @@ describe('File previews', () => {
         _verifySignedDownloadUrl(asHomer, revisions.results[0].thumbnailUrl, () => {
           _verifySignedDownloadUrl(asHomer, revisions.results[0].mediumUrl, () => {
             // Verify a single revision
-            getRevision(asHomer, content.id, revisions.results[0].revisionId, (err, revision) => {
-              assert.notExists(err);
+            getRevision(asHomer, content.id, revisions.results[0].revisionId, (error, revision) => {
+              assert.notExists(error);
               assert.isNotOk(revision.thumbnailUri);
               assert.ok(revision.thumbnailUrl);
               assert.isNotOk(revision.mediumUri);
@@ -857,8 +881,8 @@ describe('File previews', () => {
               _verifySignedDownloadUrl(asHomer, revision.thumbnailUrl, () => {
                 _verifySignedDownloadUrl(asHomer, revision.mediumUrl, () => {
                   // Restore the revision
-                  restoreRevision(asHomer, content.id, revisions.results[0].revisionId, (err, restoredRevision) => {
-                    assert.notExists(err);
+                  restoreRevision(asHomer, content.id, revisions.results[0].revisionId, (error, restoredRevision) => {
+                    assert.notExists(error);
 
                     // Make sure the restored revision contains all the image urls and not the back-end uris
                     assert.ok(restoredRevision);
@@ -882,59 +906,67 @@ describe('File previews', () => {
   /**
    * Test that verifies that when a revision is restored, the content item is reindexed
    */
-  it('verify restoring a revision results in an updated thumbnail url for the search document', callback => {
-    createPreviews((contexts, contentObj /* , previews */) => {
+  it('verify restoring a revision results in an updated thumbnail url for the search document', (callback) => {
+    createPreviews((contexts, contentObject /* , previews */) => {
       const { homer } = contexts;
       const asHomer = homer.restContext;
 
-      updateFileBody(asHomer, contentObj.id, getOAELogoStream, (err, contentObj) => {
-        assert.notExists(err);
+      updateFileBody(asHomer, contentObject.id, getOAELogoStream, (error, contentObject_) => {
+        assert.notExists(error);
 
         // Set the preview items for the second revision
         setPreviewItems(
           asGlobalAdminOnTenant,
-          contentObj.id,
-          contentObj.latestRevisionId,
+          contentObject_.id,
+          contentObject_.latestRevisionId,
           DONE,
           suitable_files,
           suitable_sizes,
           {},
           {},
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Do a search and assert that we have a thumbnail
-            searchAll(asHomer, GENERAL, null, { resourceTypes: CONTENT, q: contentObj.description }, (err, results) => {
-              assert.notExists(err);
-              const contentDocA = find(propSatisfies(equals(contentObj.id), 'id'), results.results);
-              assert.ok(contentDocA);
-              assert.ok(contentDocA.thumbnailUrl);
+            searchAll(
+              asHomer,
+              GENERAL,
+              null,
+              { resourceTypes: CONTENT, q: contentObject_.description },
+              (error, results) => {
+                assert.notExists(error);
+                const contentDocA = find(propSatisfies(equals(contentObject_.id), 'id'), results.results);
+                assert.ok(contentDocA);
+                assert.ok(contentDocA.thumbnailUrl);
 
-              // Get the revisions so we can restore the first one
-              getRevisions(asHomer, contentObj.id, null, null, (err, revisions) => {
-                assert.notExists(err);
-                restoreRevision(asHomer, contentObj.id, revisions.results[1].revisionId, (err /* , revisionObj */) => {
-                  assert.notExists(err);
+                // Get the revisions so we can restore the first one
+                getRevisions(asHomer, contentObject_.id, null, null, (error, revisions) => {
+                  assert.notExists(error);
+                  restoreRevision(asHomer, contentObject_.id, revisions.results[1].revisionId, (
+                    error /* , revisionObj */
+                  ) => {
+                    assert.notExists(error);
 
-                  // Do a search and assert that a different thumbnail URL is returend
-                  searchAll(
-                    asHomer,
-                    GENERAL,
-                    null,
-                    { resourceTypes: CONTENT, q: contentObj.description },
-                    (err, results) => {
-                      assert.notExists(err);
-                      const contentDocB = find(propSatisfies(equals(contentObj.id), 'id'), results.results);
-                      assert.ok(contentDocB);
-                      assert.ok(contentDocB.thumbnailUrl);
-                      assert.notStrictEqual(contentDocA.thumbnailUrl, contentDocB.thumbnailUrl);
+                    // Do a search and assert that a different thumbnail URL is returend
+                    searchAll(
+                      asHomer,
+                      GENERAL,
+                      null,
+                      { resourceTypes: CONTENT, q: contentObject_.description },
+                      (error, results) => {
+                        assert.notExists(error);
+                        const contentDocB = find(propSatisfies(equals(contentObject_.id), 'id'), results.results);
+                        assert.ok(contentDocB);
+                        assert.ok(contentDocB.thumbnailUrl);
+                        assert.notStrictEqual(contentDocA.thumbnailUrl, contentDocB.thumbnailUrl);
 
-                      return callback();
-                    }
-                  );
+                        return callback();
+                      }
+                    );
+                  });
                 });
-              });
-            });
+              }
+            );
           }
         );
       });

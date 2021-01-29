@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -57,24 +58,24 @@ describe('Authentication', () => {
 
     // Verify that an error is thrown when a malformed id was specified
     RestAPI.Authentication.getUserLoginIds(globalAdminRestContext, 'not an id', (
-      err /* , loginIds */
+      error /* , loginIds */
     ) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, 400);
+      assert.ok(error);
+      assert.strictEqual(error.code, 400);
 
       // Verify that an error is thrown when a non-user id is specified
       RestAPI.Authentication.getUserLoginIds(globalAdminRestContext, 'g:not:a-user-id', (
-        err /* , loginIds */
+        error /* , loginIds */
       ) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
 
         // Verify that an error is thrown when an non existing user id was specified
         RestAPI.Authentication.getUserLoginIds(globalAdminRestContext, 'u:camtest:abcdefghij', (
-          err /* , loginIds */
+          error /* , loginIds */
         ) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 404);
+          assert.ok(error);
+          assert.strictEqual(error.code, 404);
 
           // Create a test user
           RestAPI.User.createUser(
@@ -84,44 +85,44 @@ describe('Authentication', () => {
             'Test User',
             email,
             null,
-            (err, createdUser) => {
-              assert.notExists(err);
+            (error, createdUser) => {
+              assert.notExists(error);
 
               // Verify that an error is thrown when an anonymous user on the global admin router requests the login ids for the test user
               RestAPI.Authentication.getUserLoginIds(anonymousGlobalRestContext, createdUser.id, (
-                err /* , loginIds */
+                error /* , loginIds */
               ) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+                assert.ok(error);
+                assert.strictEqual(error.code, 401);
 
                 // Verify that an error is thrown when an anonymous user on the tenant router requests the login ids for the test user
                 RestAPI.Authentication.getUserLoginIds(anonymousCamRestContext, createdUser.id, (
-                  err /* , loginIds */
+                  error /* , loginIds */
                 ) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 401);
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 401);
 
                   // Verify that an error is thrown when an unauthorized tenant admin requests the login ids for the test user
                   RestAPI.Authentication.getUserLoginIds(gtAdminRestContext, createdUser.id, (
-                    err /* , loginIds */
+                    error /* , loginIds */
                   ) => {
-                    assert.ok(err);
-                    assert.strictEqual(err.code, 401);
+                    assert.ok(error);
+                    assert.strictEqual(error.code, 401);
 
                     // Verify that a tenant admin can request the login ids for the test user
                     RestAPI.Authentication.getUserLoginIds(
                       camAdminRestContext,
                       createdUser.id,
-                      (err, loginIds) => {
-                        assert.notExists(err);
+                      (error, loginIds) => {
+                        assert.notExists(error);
                         assert.ok(loginIds);
 
                         // Verify that a global admin can request the login ids for the test user
                         RestAPI.Authentication.getUserLoginIds(
                           globalAdminRestContext,
                           createdUser.id,
-                          (err, loginIds) => {
-                            assert.notExists(err);
+                          (error, loginIds) => {
+                            assert.notExists(error);
                             assert.ok(loginIds);
 
                             return callback();
@@ -158,15 +159,15 @@ describe('Authentication', () => {
       'Test User',
       email,
       null,
-      (err, createdUser) => {
-        assert.notExists(err);
+      (error, createdUser) => {
+        assert.notExists(error);
 
         // Verify that a global admin can request the login ids for the test user
         RestAPI.Authentication.getUserLoginIds(
           globalAdminRestContext,
           createdUser.id,
-          (err, loginIds) => {
-            assert.notExists(err);
+          (error, loginIds) => {
+            assert.notExists(error);
             assert.ok(loginIds);
             assert.ok(loginIds.local);
             assert.strictEqual(loginIds.local, username.toLowerCase());

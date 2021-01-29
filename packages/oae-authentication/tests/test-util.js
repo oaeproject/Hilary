@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { keys } from 'ramda';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 

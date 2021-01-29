@@ -14,7 +14,6 @@
  */
 
 import * as OAE from 'oae-util/lib/oae';
-
 import * as ResourceActions from 'oae-resource/lib/actions';
 
 /**
@@ -32,12 +31,10 @@ import * as ResourceActions from 'oae-resource/lib/actions';
  * @HttpResponse                        401                 You must be authenticated to accept an invitation
  * @HttpResponse                        404                 The token did not reference any existing invitation
  */
-OAE.tenantRouter.on('post', '/api/invitation/accept', (req, res) => {
-  ResourceActions.acceptInvitation(req.ctx, req.body.token, (err, email, resources) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/invitation/accept', (request, response) => {
+  ResourceActions.acceptInvitation(request.ctx, request.body.token, (error, email, resources) => {
+    if (error) return response.status(error.code).send(error.msg);
 
-    return res.status(200).send({ email, resources });
+    return response.status(200).send({ email, resources });
   });
 });

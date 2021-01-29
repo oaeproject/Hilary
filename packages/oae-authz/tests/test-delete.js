@@ -14,12 +14,13 @@
  */
 
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import { describe, it } from 'mocha';
 
 describe('Authz Delete', () => {
   /**
    * Test that verifies marking resource ids as deleted works as expected
    */
-  it('verify it successfully marks a resource id as deleted', callback => {
+  it('verify it successfully marks a resource id as deleted', (callback) => {
     const group1 = 'g:oae-ad:d1';
     const group2 = 'g:oae-ad:d2';
 
@@ -43,7 +44,7 @@ describe('Authz Delete', () => {
   /**
    * Test that verifies restoring resource ids works as expected
    */
-  it('verify it successfully restores a resource id', callback => {
+  it('verify it successfully restores a resource id', (callback) => {
     const group1 = 'g:oae-ad:r1';
     const group2 = 'g:oae-ad:r2';
 

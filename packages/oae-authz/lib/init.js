@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import * as AuthzSearch from './search';
-// eslint-disable-next-line no-unused-vars, import/namespace
-import * as AuthzActivity from './activity';
+import * as AuthzSearch from './search.js';
+// eslint-disable-next-line no-unused-vars
+import * as AuthzActivity from './activity.js';
 
 export function init(config, callback) {
   return AuthzSearch.init(callback);

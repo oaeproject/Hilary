@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
+import { map, pipe, filter, pluck, union } from 'ramda';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -38,9 +39,9 @@ import { logger } from 'oae-logger';
 
 const log = logger('oae-authz-api');
 
-/// //////////////////////
-// ROLES & PERMISSIONS //
-/// //////////////////////
+/**
+ * Roles & permissions
+ */
 
 /**
  * Determine the direct role assigned to a principal on a specified resource.
@@ -52,10 +53,10 @@ const log = logger('oae-authz-api');
  * @param  {String}     callback.role   The role of the principal on the resource. If the principal has no role or there is an error performing the check, role will be null.
  * @api private
  */
-const _getDirectRole = function(principalId, resourceId, callback) {
-  getDirectRoles([principalId], resourceId, (err, roles) => {
-    if (err) {
-      return callback(err);
+const _getDirectRole = function (principalId, resourceId, callback) {
+  getDirectRoles([principalId], resourceId, (error, roles) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, roles[principalId]);
@@ -71,7 +72,7 @@ const _getDirectRole = function(principalId, resourceId, callback) {
  * @param  {Object}       callback.err    An error that occurred, if any
  * @param  {Object}       callback.roles  A hash keyed by principal id, with value set to the role they have directly on the resource. If the principal has no role or there is an error performing the check, role will be null.
  **/
-const getDirectRoles = function(principalIds, resourceId, callback) {
+const getDirectRoles = function (principalIds, resourceId, callback) {
   try {
     unless(isArrayNotEmpty, {
       code: 400,
@@ -83,7 +84,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
       msg: 'Invalid non-user resource id provided'
     })(resourceId);
 
-    principalIds.forEach(principalId => {
+    principalIds.forEach((principalId) => {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id provided'
@@ -96,13 +97,13 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
   Cassandra.runQuery(
     'SELECT "memberId", "role" FROM "AuthzMembers" WHERE "resourceId" = ? AND "memberId" IN ?',
     [resourceId, principalIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       const roles = {};
-      _.each(rows, row => {
+      _.each(rows, (row) => {
         row = Cassandra.rowToHash(row);
         roles[row.memberId] = row.role;
       });
@@ -122,7 +123,7 @@ const getDirectRoles = function(principalIds, resourceId, callback) {
  * @param  {Object}       callback.err      An error that occurred, if any
  * @param  {String[]}     callback.roles    An array containing all the roles the principal has on the resource.
  */
-const getAllRoles = function(principalId, resourceId, callback) {
+const getAllRoles = function (principalId, resourceId, callback) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -138,15 +139,15 @@ const getAllRoles = function(principalId, resourceId, callback) {
   }
 
   // Get the direct role of the user
-  _getDirectRole(principalId, resourceId, (err, directRole) => {
-    if (err) {
-      return callback(err);
+  _getDirectRole(principalId, resourceId, (error, directRole) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the indirect roles of the user.
-    _getIndirectRoles(principalId, resourceId, (err, roles) => {
-      if (err) {
-        return callback(err);
+    _getIndirectRoles(principalId, resourceId, (error, roles) => {
+      if (error) {
+        return callback(error);
       }
 
       // Add the direct role (if any.)
@@ -170,11 +171,11 @@ const getAllRoles = function(principalId, resourceId, callback) {
  * @param  {String[]}     callback.roles  An array containing all the roles the principal has on the resource by virtue of indirect group inheritance.
  * @api private
  */
-const _getIndirectRoles = function(principalId, resourceId, callback) {
+const _getIndirectRoles = function (principalId, resourceId, callback) {
   // Get the groups that are directly associated to the resource
-  _getResourceGroupMembers(resourceId, (err, groups) => {
-    if (err) {
-      return callback(err);
+  _getResourceGroupMembers(resourceId, (error, groups) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(groups)) {
@@ -185,9 +186,9 @@ const _getIndirectRoles = function(principalId, resourceId, callback) {
     const groupIds = _.keys(groups);
 
     // Make sure that the user's memberships have been exploded and cached
-    _checkGroupMembershipsForUser(principalId, groupIds, (err, memberships) => {
-      if (err) {
-        return callback(err);
+    _checkGroupMembershipsForUser(principalId, groupIds, (error, memberships) => {
+      if (error) {
+        return callback(error);
       }
 
       // Add the roles of the matching groups
@@ -212,7 +213,7 @@ const _getIndirectRoles = function(principalId, resourceId, callback) {
  * @param  {Object}       callback.roles  A JSON object where the keys are the group ids of the groups directly associated to the resource and the value is the role of that group
  * @api private
  */
-const _getResourceGroupMembers = function(resourceId, callback) {
+const _getResourceGroupMembers = function (resourceId, callback) {
   // Get the groups that are directly associated to the resource
   const start = AuthzConstants.principalTypes.GROUP + ':';
   const end = start + '|';
@@ -225,14 +226,14 @@ const _getResourceGroupMembers = function(resourceId, callback) {
     start,
     10000,
     { end },
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       // Convert all roles to an object mapping memberId -> role
       const associatedGroups = {};
-      _.each(rows, row => {
+      _.each(rows, (row) => {
         row = Cassandra.rowToHash(row);
         associatedGroups[row.memberId] = row.role;
       });
@@ -252,7 +253,7 @@ const _getResourceGroupMembers = function(resourceId, callback) {
  * @param  {Object}      callback.err        An error that occurred, if any
  * @param  {Boolean}     callback.hasRole    Whether or not the principal has the specified role on the resource
  */
-const hasRole = function(principalId, resourceId, role, callback) {
+const hasRole = function (principalId, resourceId, role, callback) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -284,7 +285,7 @@ const hasRole = function(principalId, resourceId, role, callback) {
  * @param  {Object}      callback.err        An error that occurred, if any
  * @param  {Boolean}     callback.hasRole    Whether or not the principal has a role on the resource
  */
-const hasAnyRole = function(principalId, resourceId, callback) {
+const hasAnyRole = function (principalId, resourceId, callback) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -313,11 +314,11 @@ const hasAnyRole = function(principalId, resourceId, callback) {
  * @param  {Boolean}      callback.hasRole    Whether or not the principal has the specified role on the resource
  * @api private
  */
-const _hasRole = function(principalId, resourceId, role, callback) {
+const _hasRole = function (principalId, resourceId, role, callback) {
   // Check for a direct role first
-  _getDirectRole(principalId, resourceId, (err, directRole) => {
-    if (err) {
-      return callback(err);
+  _getDirectRole(principalId, resourceId, (error, directRole) => {
+    if (error) {
+      return callback(error);
     }
 
     if (directRole && (role === null || directRole === role)) {
@@ -325,9 +326,9 @@ const _hasRole = function(principalId, resourceId, role, callback) {
     }
 
     // If no direct role assignment is found, we try to find a role through an indirect membership
-    _getIndirectRoles(principalId, resourceId, (err, roles) => {
-      if (err) {
-        return callback(err);
+    _getIndirectRoles(principalId, resourceId, (error, roles) => {
+      if (error) {
+        return callback(error);
       }
 
       // If a role is found and we are just looking for any role
@@ -356,7 +357,7 @@ const _hasRole = function(principalId, resourceId, role, callback) {
  * @param  {Object}     callback.err                            An error that occurred, if any
  * @param  {String}     callback.userGroupMembershipsChanged    An array of user ids whose group memberships have been changed as a result of this role change. This is only relevant if the `resourceId` is a group
  */
-const updateRoles = function(resourceId, changes, callback) {
+const updateRoles = function (resourceId, changes, callback) {
   const roleChanges = _.keys(changes);
 
   try {
@@ -370,7 +371,7 @@ const updateRoles = function(resourceId, changes, callback) {
       msg: 'At least one role change needs to be applied'
     })(roleChanges);
 
-    roleChanges.forEach(principalId => {
+    roleChanges.forEach((principalId) => {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
@@ -399,7 +400,7 @@ const updateRoles = function(resourceId, changes, callback) {
  * @param  {String}     callback.userGroupMembershipsChanged    An array of user ids whose group memberships have been changed as a result of this role change. This is only relevant if the `resourceId` is a group
  * @api private
  */
-const _updateRoles = function(resourceId, changes, callback) {
+const _updateRoles = function (resourceId, changes, callback) {
   // Aggregate all role changes queries to the AuthzRoles and AuthzMembers tables. These are the
   // canonical data-tables that represent resource membership
   let queries = _.chain(changes)
@@ -464,18 +465,18 @@ const _updateRoles = function(resourceId, changes, callback) {
   // the `graph` returned will be empty and there will be no recursive members list. In this case
   // most of the operations below will naturally be no-ops and we'll eventually just execute the
   // queries we have
-  getAuthzMembersGraph(_.keys(groupsToInvalidate), (err, graph) => {
-    if (err) {
-      return callback(err);
+  getAuthzMembersGraph(_.keys(groupsToInvalidate), (error, graph) => {
+    if (error) {
+      return callback(error);
     }
 
     // Extract just the user ids from the nodes and combine them with the users who had direct
     // role changes
-    usersToInvalidate = _.chain(graph.getNodes())
-      .pluck('id')
-      .filter(AuthzUtil.isUserId)
-      .union(usersToInvalidate)
-      .value();
+    usersToInvalidate = pipe(
+      pluck('id'),
+      filter(AuthzUtil.isUserId),
+      union(usersToInvalidate)
+    )(graph.getNodes());
 
     // Create a cache invalidation query for each user we need to invalidate, joining it with
     // the list of memberships update queries we already need to execute
@@ -483,9 +484,9 @@ const _updateRoles = function(resourceId, changes, callback) {
 
     // Finally execute all the queries and return the final list of invalidated users to the
     // caller
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, usersToInvalidate);
@@ -506,24 +507,24 @@ const _updateRoles = function(resourceId, changes, callback) {
  * @param  {Object[]}    callback.members        Array of objects for each of the direct member of the resource. Each object has an 'id' key containing the principal id of the member and a 'role' key containing the role of that principal
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getAllAuthzMembers = function(resourceId, callback /* , _members, _nextToken */) {
+const getAllAuthzMembers = function (resourceId, callback /* , _members, _nextToken */) {
   Cassandra.runAllPagesQuery(
     'AuthzMembers',
     'resourceId',
     resourceId,
     'memberId',
     null,
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
-      const members = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .map(hash => {
+      const members = pipe(
+        map(Cassandra.rowToHash),
+        map((hash) => {
           return { id: hash.memberId, role: hash.role };
         })
-        .value();
+      )(rows);
       return callback(null, members);
     }
   );
@@ -540,7 +541,7 @@ const getAllAuthzMembers = function(resourceId, callback /* , _members, _nextTok
  * @param  {Object[]}    callback.members        Array of objects for each of the direct member of the resource. Each object has an 'id' key containing the principal id of the member and a 'role' key containing the role of that principal
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getAuthzMembers = function(resourceId, start, limit, callback) {
+const getAuthzMembers = function (resourceId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
@@ -561,13 +562,13 @@ const getAuthzMembers = function(resourceId, start, limit, callback) {
     start,
     limit,
     null,
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Build the members array from the rows
-      const members = _.map(rows, row => {
+      const members = _.map(rows, (row) => {
         row = Cassandra.rowToHash(row);
         return { id: row.memberId, role: row.role };
       });
@@ -590,14 +591,14 @@ const getAuthzMembers = function(resourceId, start, limit, callback) {
  * @param  {String[]}    callback.memberships   Array of group ids containing all the groups from the provided list that the user is a member of
  * @api private
  */
-const _checkGroupMembershipsForUser = function(userId, groupIds, callback) {
+const _checkGroupMembershipsForUser = function (userId, groupIds, callback) {
   // Check if the memberships cache is populated
   Cassandra.runQuery(
     'SELECT "groupId" FROM "AuthzMembershipsCache" WHERE "principalId" = ? LIMIT 1',
     [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       // There are columns in the cache, so we use it as-is
@@ -605,12 +606,12 @@ const _checkGroupMembershipsForUser = function(userId, groupIds, callback) {
         Cassandra.runQuery(
           'SELECT "groupId" FROM "AuthzMembershipsCache" WHERE "principalId" = ? AND "groupId" IN ?',
           [userId, groupIds],
-          (err, rows) => {
-            if (err) {
-              return callback(err);
+          (error, rows) => {
+            if (error) {
+              return callback(error);
             }
 
-            const memberships = _.map(rows, row => {
+            const memberships = _.map(rows, (row) => {
               return row.get('groupId');
             });
 
@@ -620,9 +621,9 @@ const _checkGroupMembershipsForUser = function(userId, groupIds, callback) {
 
         // There are no columns, we need to explode the user's group memberships
       } else {
-        _explodeGroupMemberships(userId, (err, graph) => {
-          if (err) {
-            return callback(err);
+        _explodeGroupMemberships(userId, (error, graph) => {
+          if (error) {
+            return callback(error);
           }
 
           // The memberships are the nodes flattened from the graph, with the subject user
@@ -650,11 +651,11 @@ const _checkGroupMembershipsForUser = function(userId, groupIds, callback) {
  * @param  {AuthzGraph} callback.graph  The full memberships graph of the user
  * @api private
  */
-const _explodeGroupMemberships = function(principalId, callback) {
+const _explodeGroupMemberships = function (principalId, callback) {
   // Get the full exploded membership list for the user
-  _getAuthzGroupMembershipsGraph([principalId], (err, graph) => {
-    if (err) {
-      return callback(err);
+  _getAuthzGroupMembershipsGraph([principalId], (error, graph) => {
+    if (error) {
+      return callback(error);
     }
 
     // Create a collection of all memberships and just the indirect memberships
@@ -663,7 +664,7 @@ const _explodeGroupMemberships = function(principalId, callback) {
     _.chain(graph.getNodes())
       .pluck('id')
       .without(principalId)
-      .each(groupId => {
+      .each((groupId) => {
         allMemberships.push(groupId);
         if (!graph.getEdge(principalId, groupId)) {
           // A group membership is indirect if there is no membership edge that links it
@@ -679,12 +680,12 @@ const _explodeGroupMemberships = function(principalId, callback) {
     }
 
     // Save the full memberships cache to cassandra for this principal
-    const authzMembershipsCacheQueries = _.map(allMemberships, groupId => {
+    const authzMembershipsCacheQueries = _.map(allMemberships, (groupId) => {
       // For each group, get the direct members (nodes for which there is an "inbound" edge)
       // that are relevant in the memberships graph and their roles. We will JSON encode and
       // store them in the cache so that we can reconstruct the graph quickly
       const memberRoles = _.chain(graph.getInEdgesOf(groupId))
-        .map(edge => {
+        .map((edge) => {
           return { memberId: edge.from.id, role: edge.role };
         })
         .value();
@@ -696,7 +697,7 @@ const _explodeGroupMemberships = function(principalId, callback) {
       };
     });
 
-    const authzMembershipsIndirectCacheQueries = _.map(indirectMemberships, groupId => {
+    const authzMembershipsIndirectCacheQueries = _.map(indirectMemberships, (groupId) => {
       return {
         query:
           'INSERT INTO "AuthzMembershipsIndirectCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
@@ -707,9 +708,9 @@ const _explodeGroupMemberships = function(principalId, callback) {
     // Update both the full memberships cache and the dedicated indirect cache with the exploded memberships
     Cassandra.runBatchQuery(
       _.union(authzMembershipsCacheQueries, authzMembershipsIndirectCacheQueries),
-      err => {
-        if (err) {
-          return callback(err);
+      (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         return callback(null, graph);
@@ -745,7 +746,7 @@ const _explodeGroupMemberships = function(principalId, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @param  {AuthzGraph}     callback.graph  The members graph of the given resource
  */
-const getAuthzMembersGraph = function(resourceIds, callback, _graph, _resourceIds) {
+const getAuthzMembersGraph = function (resourceIds, callback, _graph, _resourceIds) {
   _graph = _graph || new AuthzGraph();
   _resourceIds = _resourceIds || resourceIds.slice();
   if (_.isEmpty(_resourceIds)) {
@@ -759,13 +760,13 @@ const getAuthzMembersGraph = function(resourceIds, callback, _graph, _resourceId
   _graph.addNode(resourceId);
 
   // Get the members of the current resource
-  getAuthzMembers(resourceId, null, 10000, (err, members) => {
-    if (err) {
-      return callback(err);
+  getAuthzMembers(resourceId, null, 10000, (error, members) => {
+    if (error) {
+      return callback(error);
     }
 
     // Add each member to the current members graph and associate the appropriate edges
-    _.each(members, member => {
+    _.each(members, (member) => {
       const node = _graph.addNode(member.id);
       _graph.addEdge(member.id, resourceId, { role: member.role });
 
@@ -803,7 +804,7 @@ const getAuthzMembersGraph = function(resourceIds, callback, _graph, _resourceId
  * @param  {Object}         callback.err    An error that occurred, if any
  * @param  {AuthzGraph}     callback.graph  The memberships graph of the given principal
  */
-const getPrincipalMembershipsGraph = function(principalId, callback) {
+const getPrincipalMembershipsGraph = function (principalId, callback) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -820,9 +821,9 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
     principalId,
     'groupId',
     null,
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -844,7 +845,7 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
 
       // For every entry in the memberships cache, we need to extract its relevant members and
       // create the membership relations
-      _.each(rows, row => {
+      _.each(rows, (row) => {
         // The id of a group that the `principalId` is directly or indirectly a member
         const groupId = row.get('groupId');
 
@@ -863,7 +864,7 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
         }
 
         graph.addNode(groupId);
-        _.each(memberRoles, memberRole => {
+        _.each(memberRoles, (memberRole) => {
           graph.addNode(memberRole.memberId);
           graph.addEdge(memberRole.memberId, groupId, { role: memberRole.role });
         });
@@ -871,9 +872,9 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
 
       // Fail the request if we cannot parse the encoded memberships graph
       if (!_.isEmpty(graphParseErrs)) {
-        _.each(graphParseErrs, graphParseErr => {
+        _.each(graphParseErrs, (graphParseError) => {
           log().error(
-            graphParseErr,
+            graphParseError,
             'An error occurred parsing a memberships graph from the authz memberships cache'
           );
         });
@@ -897,7 +898,7 @@ const getPrincipalMembershipsGraph = function(principalId, callback) {
  * @param  {String[]}       callback.groups     An array of group ids representing the groups to which the user belongs, either directly or indirectly
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getPrincipalMemberships = function(principalId, start, limit, callback) {
+const getPrincipalMemberships = function (principalId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
@@ -918,15 +919,15 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
     start,
     limit,
     null,
-    (err, rows, nextToken, startMatched) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken, startMatched) => {
+      if (error) {
+        return callback(error);
       }
 
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we can
         // use the data we have
-        const groupIds = _.map(rows, row => {
+        const groupIds = _.map(rows, (row) => {
           return row.get('groupId');
         });
 
@@ -935,9 +936,9 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
 
       // If no rows were fetched, we must populate the cache, and we can use the graph we have
       // from the cache result
-      _explodeGroupMemberships(principalId, (err, graph) => {
-        if (err) {
-          return callback(err);
+      _explodeGroupMemberships(principalId, (error, graph) => {
+        if (error) {
+          return callback(error);
         }
 
         // Flatten the graph nodes into just their ids, and remove the current principal
@@ -973,7 +974,7 @@ const getPrincipalMemberships = function(principalId, start, limit, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {String[]}       callback.groupIds       An array of group ids representing all the indirect groups to which the user belongs
  */
-const getAllIndirectPrincipalMemberships = function(principalId, callback, _groupIds, _nextToken) {
+const getAllIndirectPrincipalMemberships = function (principalId, callback, _groupIds, _nextToken) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -988,9 +989,9 @@ const getAllIndirectPrincipalMemberships = function(principalId, callback, _grou
     return callback(null, _groupIds);
   }
 
-  getIndirectPrincipalMemberships(principalId, _nextToken, 100, (err, groupIds, nextToken) => {
-    if (err) {
-      return callback(err);
+  getIndirectPrincipalMemberships(principalId, _nextToken, 100, (error, groupIds, nextToken) => {
+    if (error) {
+      return callback(error);
     }
 
     return getAllIndirectPrincipalMemberships(
@@ -1013,7 +1014,7 @@ const getAllIndirectPrincipalMemberships = function(principalId, callback, _grou
  * @param  {String[]}       callback.groupIds       An array of group ids representing the indirect groups to which the user belongs
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getIndirectPrincipalMemberships = function(principalId, start, limit, callback) {
+const getIndirectPrincipalMemberships = function (principalId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
@@ -1045,7 +1046,7 @@ const getIndirectPrincipalMemberships = function(principalId, start, limit, call
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getIndirectPrincipalMembershipsFromCache = function(principalId, start, limit, callback) {
+const _getIndirectPrincipalMembershipsFromCache = function (principalId, start, limit, callback) {
   Cassandra.runPagedQuery(
     'AuthzMembershipsIndirectCache',
     'principalId',
@@ -1054,15 +1055,15 @@ const _getIndirectPrincipalMembershipsFromCache = function(principalId, start, l
     start,
     limit,
     null,
-    (err, rows, nextToken, startMatched) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken, startMatched) => {
+      if (error) {
+        return callback(error);
       }
 
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we
         // can use the data we have
-        const groupIds = _.map(rows, row => {
+        const groupIds = _.map(rows, (row) => {
           return row.get('groupId');
         });
 
@@ -1088,15 +1089,15 @@ const _getIndirectPrincipalMembershipsFromCache = function(principalId, start, l
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getIndirectPrincipalMembershipsByExplosion = function(principalId, start, limit, callback) {
-  _explodeGroupMemberships(principalId, (err, graph) => {
-    if (err) {
-      return callback(err);
+const _getIndirectPrincipalMembershipsByExplosion = function (principalId, start, limit, callback) {
+  _explodeGroupMemberships(principalId, (error, graph) => {
+    if (error) {
+      return callback(error);
     }
 
     // Filter the memberships to only groups that are indirectly associated to the user
     const indirectMemberships = _.chain(graph.getNodes())
-      .filter(node => {
+      .filter((node) => {
         const isPrincipalId = node.id === principalId;
         const isDirect = graph.getEdge(principalId, node.id);
 
@@ -1136,12 +1137,12 @@ const _getIndirectPrincipalMembershipsByExplosion = function(principalId, start,
  * @param  {AuthzGraph}     callback.graph  The graph of memberships for all provided principal ids
  * @api private
  */
-const _getAuthzGroupMembershipsGraph = function(principalIds, callback, _graph) {
+const _getAuthzGroupMembershipsGraph = function (principalIds, callback, _graph) {
   if (!_graph) {
     // Seed our graph with the initial principal ids as nodes. We assume no membership
     // relationships between them at this point
     _graph = new AuthzGraph();
-    _.each(principalIds, principalId => {
+    _.each(principalIds, (principalId) => {
       _graph.addNode(principalId);
     });
   }
@@ -1155,9 +1156,9 @@ const _getAuthzGroupMembershipsGraph = function(principalIds, callback, _graph) 
   getRolesForPrincipalsAndResourceType(
     principalIds,
     AuthzConstants.resourceTypes.GROUP,
-    (err, principalParentRole) => {
-      if (err) {
-        return callback(err);
+    (error, principalParentRole) => {
+      if (error) {
+        return callback(error);
       }
 
       // For each group membership, add an entry to the graph, keeping track of the role. For all
@@ -1195,9 +1196,9 @@ const _getAuthzGroupMembershipsGraph = function(principalIds, callback, _graph) 
  * @return {Object[]}               The Cassandra queries that can be used to invalidate the memberships cache for the users
  * @api private
  */
-const _getInvalidateMembershipsCacheQueries = function(userIds) {
+const _getInvalidateMembershipsCacheQueries = function (userIds) {
   return _.chain(userIds)
-    .map(userId => {
+    .map((userId) => {
       return [
         {
           query: 'DELETE FROM "AuthzMembershipsCache" WHERE "principalId" = ?',
@@ -1220,7 +1221,7 @@ const _getInvalidateMembershipsCacheQueries = function(userIds) {
  * For parameters, see AuthzAPI#getRolesForPrincipalAndResourceType. This method uses all but the
  * `start` and `limit`, as they are not relevant when fetching all entries.
  */
-const getAllRolesForPrincipalAndResourceType = function(principalId, resourceType, callback) {
+const getAllRolesForPrincipalAndResourceType = function (principalId, resourceType, callback) {
   try {
     unless(isPrincipalId, {
       code: 400,
@@ -1238,8 +1239,8 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
   // We append a '|' to the "end" range, as | has a high ASCII alphabetical ordering. This may not suffice if resourceIds have
   // multi-byte characters, which is technically possible. Unfortunately, I don't think there is a better way to do this with
   // CQL.
-  const start = util.format('%s:', resourceType);
-  const end = util.format('%s:|', resourceType);
+  const start = format('%s:', resourceType);
+  const end = format('%s:|', resourceType);
 
   Cassandra.runAllPagesQuery(
     'AuthzRoles',
@@ -1247,12 +1248,12 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
     principalId,
     'resourceId',
     { start, end },
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
-      const roles = _.map(rows, row => {
+      const roles = _.map(rows, (row) => {
         return {
           id: row.get('resourceId'),
           role: row.get('role')
@@ -1278,7 +1279,7 @@ const getAllRolesForPrincipalAndResourceType = function(principalId, resourceTyp
  * @param  {String}     callback.roles[i].role  The role the principal has on the resource
  * @param  {String}     callback.nextToken      A value that can be used as the `start` parameter for another invokation that will fetch the next page of items
  */
-const getRolesForPrincipalAndResourceType = function(
+const getRolesForPrincipalAndResourceType = function (
   principalId,
   resourceType,
   start,
@@ -1317,13 +1318,13 @@ const getRolesForPrincipalAndResourceType = function(
     start,
     limit,
     { end },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Build the response roles array
-      const roles = _.map(rows, row => {
+      const roles = _.map(rows, (row) => {
         return {
           id: row.get('resourceId'),
           role: row.get('role')
@@ -1364,7 +1365,7 @@ const getRolesForPrincipalAndResourceType = function(
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.entries    A JSON Object representing the roles associated to the users
  */
-const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType, callback) {
+const getRolesForPrincipalsAndResourceType = function (principalIds, resourceType, callback) {
   principalIds = principalIds || [];
 
   try {
@@ -1378,7 +1379,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
       msg: 'At least one principal Id needs to be passed in'
     })(principalIds);
 
-    principalIds.forEach(principalId => {
+    principalIds.forEach((principalId) => {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
@@ -1395,27 +1396,25 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
   const end = start + '|';
 
   let finished = false;
-  let numCompleted = 0;
+  let numberCompleted = 0;
   const entries = {};
-  _.each(principalIds, principalId => {
+  _.each(principalIds, (principalId) => {
     Cassandra.runAllPagesQuery(
       'AuthzRoles',
       'principalId',
       principalId,
       'resourceId',
       { start, end },
-      (err, rows) => {
-        if (err) {
-          if (!finished) {
-            finished = true;
-            return callback(err);
-          }
+      (error, rows) => {
+        if (error && !finished) {
+          finished = true;
+          return callback(error);
         }
 
-        numCompleted++;
+        numberCompleted++;
 
         // Aggregate all resources from all the resource roles into the entries hash
-        _.each(rows, row => {
+        _.each(rows, (row) => {
           const resourceId = row.get('resourceId');
           const role = row.get('role');
 
@@ -1425,7 +1424,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
         });
 
         // If this was the final response we were waiting for, invoke the callback
-        if (!finished && numCompleted === principalIds.length) {
+        if (!finished && numberCompleted === principalIds.length) {
           finished = true;
           return callback(null, entries);
         }
@@ -1443,7 +1442,7 @@ const getRolesForPrincipalsAndResourceType = function(principalIds, resourceType
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {IdChangeInfo}   callback.idChangeInfo   The id change info, describing the member id changes made to the resource members
  */
-const computeMemberRolesAfterChanges = function(resourceId, memberRoles, opts, callback) {
+const computeMemberRolesAfterChanges = function (resourceId, memberRoles, options, callback) {
   // When the resource id is not specified, we perform the computation as though the members list is empty
   OaeUtil.invokeIfNecessary(
     resourceId,
@@ -1451,19 +1450,19 @@ const computeMemberRolesAfterChanges = function(resourceId, memberRoles, opts, c
     resourceId,
     null,
     10000,
-    (err, memberIdsWithRoleBefore) => {
-      if (err) {
-        return callback(err);
+    (error, memberIdsWithRoleBefore) => {
+      if (error) {
+        return callback(error);
       }
 
       // Convert the member ids + role array into the permission change object
       const memberRolesBefore = _.chain(memberIdsWithRoleBefore)
         .indexBy('id')
-        .mapObject(memberIdWithRole => {
+        .mapObject((memberIdWithRole) => {
           return memberIdWithRole.role;
         })
         .value();
-      return callback(null, AuthzUtil.computeRoleChanges(memberRolesBefore, memberRoles, opts));
+      return callback(null, AuthzUtil.computeRoleChanges(memberRolesBefore, memberRoles, options));
     }
   );
 };
@@ -1483,10 +1482,10 @@ const computeMemberRolesAfterChanges = function(resourceId, memberRoles, opts, c
  * @param  {String}     callback.effectiveRole  The effective role of the user in context, as determined by the rolesPriority
  * @param  {Boolean}    callback.canInteract    Whether or not the user can interact
  */
-const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
-  resolveImplicitRole(user, resource, rolesPriority, (err, implicitRole, canInteract) => {
-    if (err) {
-      return callback(err);
+const resolveEffectiveRole = function (user, resource, rolesPriority, callback) {
+  resolveImplicitRole(user, resource, rolesPriority, (error, implicitRole, canInteract) => {
+    if (error) {
+      return callback(error);
     }
 
     if (implicitRole === _.last(rolesPriority)) {
@@ -1505,9 +1504,9 @@ const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
     }
 
     // If we get here, it would be prudent to check if this user has granted access to the target resource
-    getAllRoles(user.id, AuthzUtil.getAuthzId(resource), (err, roles) => {
-      if (err) {
-        return callback(err);
+    getAllRoles(user.id, AuthzUtil.getAuthzId(resource), (error, roles) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(roles)) {
@@ -1517,7 +1516,7 @@ const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
 
       // The resolved role is the one at the highest index of the passed in rolesPriority array.
       let highestIndex = _.indexOf(rolesPriority, implicitRole);
-      _.each(roles, role => {
+      _.each(roles, (role) => {
         highestIndex = Math.max(highestIndex, _.indexOf(rolesPriority, role));
       });
 
@@ -1560,7 +1559,7 @@ const resolveEffectiveRole = function(user, resource, rolesPriority, callback) {
  * @param  {String}     callback.implicitRole   The implicit (minimum) role the user in context has on the resource. An anonymous user has no role.
  * @param  {Boolean}    callback.canInteract    Determines whether or not the user in context can implicitly interact with the resource
  */
-const resolveImplicitRole = function(principal, resource, rolesPriority, callback) {
+const resolveImplicitRole = function (principal, resource, rolesPriority, callback) {
   if (!principal) {
     // This is an anonymous user
     if (resource.visibility === AuthzConstants.visibility.PUBLIC) {

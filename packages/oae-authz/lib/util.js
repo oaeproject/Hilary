@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { pipe, pluck, filter } from 'ramda';
 import _ from 'underscore';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -25,7 +26,7 @@ import * as AuthzModel from 'oae-authz/lib/model';
  * @param  {String}      id     A resouce id
  * @return {Resource}           A AuthzModel.Resource object derived from this id
  */
-const getResourceFromId = function(id) {
+const getResourceFromId = function (id) {
   return unpackId(AuthzModel.Resource, id);
 };
 
@@ -35,7 +36,7 @@ const getResourceFromId = function(id) {
  * @param  {String}     id      A principal id
  * @return {Principal}          A AuthzModel.Principal object derived from this id
  */
-const getPrincipalFromId = function(id) {
+const getPrincipalFromId = function (id) {
   return unpackId(AuthzModel.Principal, id);
 };
 
@@ -47,7 +48,7 @@ const getPrincipalFromId = function(id) {
  * @param  {String}     instanceId      The ID of the principal or resource instance
  * @return {String}                     The ID constructed from the given parameters, i.e., "type:tenantAlias:instanceId"
  */
-const toId = function(type, tenantAlias, instanceId) {
+const toId = function (type, tenantAlias, instanceId) {
   return type + ':' + tenantAlias + ':' + instanceId;
 };
 
@@ -57,7 +58,7 @@ const toId = function(type, tenantAlias, instanceId) {
  * @param  {String}     groupId     The group id to check
  * @return {Boolean}                Whether or not the id is a group id
  */
-const isGroupId = function(groupId) {
+const isGroupId = function (groupId) {
   return isResourceId(groupId) && groupId.indexOf(AuthzConstants.resourceTypes.GROUP + ':') === 0;
 };
 
@@ -67,7 +68,7 @@ const isGroupId = function(groupId) {
  * @param  {String}     userId  The id of the principal
  * @return {Boolean}            Whether or not the id is a user id
  */
-const isUserId = function(userId) {
+const isUserId = function (userId) {
   return isResourceId(userId) && userId.indexOf(AuthzConstants.principalTypes.USER + ':') === 0;
 };
 
@@ -77,7 +78,7 @@ const isUserId = function(userId) {
  * @param  {String}     resourceId      The string to validate
  * @return {Boolean}                    Whether or not the string is a valid email
  */
-const isEmail = function(email) {
+const isEmail = function (email) {
   return _.isString(email) && email.split('@').length === 2;
 };
 
@@ -103,12 +104,12 @@ const isEmail = function(email) {
  * @return {String}     [target.principalId]    If this target referenced a principal, then this is the principal id
  * @return {String}     [target.email]          The email that was referenced
  */
-const parseShareTarget = function(shareTargetStr) {
-  if (!_.isString(shareTargetStr)) {
+const parseShareTarget = function (shareTargetString) {
+  if (!_.isString(shareTargetString)) {
     return null;
   }
 
-  const shareTargetSplit = shareTargetStr.split(':');
+  const shareTargetSplit = shareTargetString.split(':');
   if (isEmail(shareTargetSplit[0])) {
     const email = shareTargetSplit[0].toLowerCase();
 
@@ -121,8 +122,8 @@ const parseShareTarget = function(shareTargetStr) {
     if (isUserId(userId)) {
       return { email, principalId: userId };
     }
-  } else if (isPrincipalId(shareTargetStr)) {
-    return { principalId: shareTargetStr };
+  } else if (isPrincipalId(shareTargetString)) {
+    return { principalId: shareTargetString };
   }
 
   return null;
@@ -134,7 +135,7 @@ const parseShareTarget = function(shareTargetStr) {
  * @param  {Object}     resource    The resource to validate
  * @return {Boolean}                Whether or not the object is a valid resource
  */
-const isResource = function(resource) {
+const isResource = function (resource) {
   return (
     _.isObject(resource) &&
     (isResourceId(resource.id) || _.isString(resource.email)) &&
@@ -150,7 +151,7 @@ const isResource = function(resource) {
  * @param  {String}     principalId     The id of the principal
  * @return {Boolean}                    Whether or not the id is a principal id
  */
-const isPrincipalId = function(principalId) {
+const isPrincipalId = function (principalId) {
   return isGroupId(principalId) || isUserId(principalId);
 };
 
@@ -160,7 +161,7 @@ const isPrincipalId = function(principalId) {
  * @param  {String}     resourceId      The string to validate
  * @return {Boolean}                    Whether or not the string is a valid resource id
  */
-const isResourceId = function(resourceId) {
+const isResourceId = function (resourceId) {
   return _.isString(resourceId) && resourceId.split(':').length >= 3;
 };
 
@@ -170,7 +171,7 @@ const isResourceId = function(resourceId) {
  * @param  {String}     resourceId      The string to validate
  * @return {Boolean}                    Whether or not the string is a valid role
  */
-const isRole = function(role) {
+const isRole = function (role) {
   return _.contains(AuthzConstants.role.ALL_PRIORITY, role);
 };
 
@@ -180,7 +181,7 @@ const isRole = function(role) {
  * @param  {String}     resourceId      The string to validate
  * @return {Boolean}                    Whether or not the string is a valid visibility
  */
-const isVisibility = function(visibility) {
+const isVisibility = function (visibility) {
   return _.contains(AuthzConstants.visibility.ALL_PRIORITY, visibility);
 };
 
@@ -189,7 +190,7 @@ const isVisibility = function(visibility) {
  *
  * @api private
  */
-const unpackId = function(type, id) {
+const unpackId = function (type, id) {
   const split = id.split(':');
   // eslint-disable-next-line new-cap
   return new type(split[0], split[1], split.slice(2).join(':'));
@@ -201,11 +202,8 @@ const unpackId = function(type, id) {
  * @param  {Group|User}     principals      The principals from which to find the group ids
  * @return {String[]}                       The ids of the groups in the given set of principals
  */
-const getGroupIds = function(principals) {
-  return _.chain(principals)
-    .pluck('id')
-    .filter(isGroupId)
-    .value();
+const getGroupIds = function (principals) {
+  return pipe(pluck('id'), filter(isGroupId))(principals);
 };
 
 /**
@@ -216,15 +214,15 @@ const getGroupIds = function(principals) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String[]}   callback.ids    The ids from the original list that aren't deleted
  */
-const filterDeletedIds = function(ids, callback) {
-  AuthzDelete.isDeleted(ids, (err, deletedIds) => {
-    if (err) {
-      return callback(err);
+const filterDeletedIds = function (ids, callback) {
+  AuthzDelete.isDeleted(ids, (error, deletedIds) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(
       null,
-      _.filter(ids, id => {
+      _.filter(ids, (id) => {
         return !deletedIds[id];
       })
     );
@@ -244,9 +242,9 @@ const filterDeletedIds = function(ids, callback) {
  * @param  {Boolean}        [opts.promoteOnly]  When `true`, indicates that only changes that signify a role addition or promotion should be acknowledged. Any changes that are not promotions would then simply be dropped. Default: `false`
  * @return {IdChangeInfo}                       The computed change information
  */
-const computeRoleChanges = function(rolesBefore, roleChanges, opts) {
-  opts = opts || {};
-  opts.promoteOnly = opts.promoteOnly || false;
+const computeRoleChanges = function (rolesBefore, roleChanges, options) {
+  options = options || {};
+  options.promoteOnly = options.promoteOnly || false;
 
   const result = {
     changes: _.extend({}, roleChanges),
@@ -264,7 +262,7 @@ const computeRoleChanges = function(rolesBefore, roleChanges, opts) {
   // If we're only taking into consideration promotions, remove any role changes that are removals
   // or already exist as an inferior role in the `rolesBefore` collection
   const rolesPriority = AuthzConstants.role.ALL_PRIORITY;
-  if (opts.promoteOnly) {
+  if (options.promoteOnly) {
     _.each(result.changes, (role, id) => {
       if (role === false) {
         delete result.changes[id];
@@ -308,7 +306,7 @@ const computeRoleChanges = function(rolesBefore, roleChanges, opts) {
  * @param  {Resource}   resource    The resource whose authz id to get
  * @return {String}                 The resource id to use for authz membership look-ups
  */
-const getAuthzId = function(resource) {
+const getAuthzId = function (resource) {
   return resource.groupId || resource.id;
 };
 

@@ -14,11 +14,12 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { Validator as v } from 'oae-authz/lib/validator';
 
 describe('Authz-Validator', () => {
   describe('#isResourceId()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isResourceId(undefined));
       assert.isFalse(v.isResourceId(null));
       assert.isFalse(v.isResourceId(''));
@@ -31,7 +32,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isPrincipalId()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isPrincipalId(undefined));
       assert.isFalse(v.isPrincipalId(null));
       assert.isFalse(v.isPrincipalId(''));
@@ -45,7 +46,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isGroupId()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isGroupId(undefined));
       assert.isFalse(v.isGroupId(null));
       assert.isFalse(v.isGroupId(''));
@@ -60,7 +61,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isUserId()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isUserId(undefined));
       assert.isFalse(v.isUserId(null));
       assert.isFalse(v.isUserId(''));
@@ -75,7 +76,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isNonUserResourceId()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isNonUserResourceId(undefined));
       assert.isFalse(v.isNonUserResourceId(null));
       assert.isFalse(v.isNonUserResourceId(''));
@@ -90,7 +91,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isValidRole()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isValidRole(undefined));
       assert.isFalse(v.isValidRole(null));
       assert.isFalse(v.isValidRole(''));
@@ -103,7 +104,7 @@ describe('Authz-Validator', () => {
   });
 
   describe('#isValidRoleChange()', () => {
-    it('verify general functionality', callback => {
+    it('verify general functionality', (callback) => {
       assert.isFalse(v.isValidRoleChange(undefined));
       assert.isFalse(v.isValidRoleChange(null));
       assert.isFalse(v.isValidRoleChange(''));

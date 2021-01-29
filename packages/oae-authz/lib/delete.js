@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import { defaultTo, isEmpty, forEach, pipe, map, filter, pluck } from 'ramda';
 
 import { logger } from 'oae-logger';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import { rowToHash, runQuery } from 'oae-util/lib/cassandra';
 
 const log = logger('authz-delete');
 
@@ -27,19 +27,17 @@ const log = logger('authz-delete');
  * @param  {Function}   [callback]      Standard callback function
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const setDeleted = function(resourceId, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        return log().error(
-          { err, resourceId },
-          'An error occurred while trying to set a resource as deleted'
-        );
-      }
-    };
+const setDeleted = function (resourceId, callback) {
+  callback = defaultTo((error) => {
+    if (error) {
+      log().error(
+        { err: error, resourceId },
+        'An error occurred while trying to set a resource as deleted'
+      );
+    }
+  }, callback);
 
-  return Cassandra.runQuery(
+  return runQuery(
     'UPDATE "AuthzDeleted" SET "deleted" = ? WHERE "resourceId" = ?',
     [true, resourceId],
     callback
@@ -53,23 +51,17 @@ const setDeleted = function(resourceId, callback) {
  * @param  {Function}   [callback]      Standard callback function
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const unsetDeleted = function(resourceId, callback) {
-  callback =
-    callback ||
-    function(err) {
-      if (err) {
-        return log().error(
-          { err, resourceId },
-          'An error occurred while trying to unset a resource as deleted'
-        );
-      }
-    };
+const unsetDeleted = function (resourceId, callback) {
+  callback = defaultTo((error) => {
+    if (error) {
+      return log().error(
+        { err: error, resourceId },
+        'An error occurred while trying to unset a resource as deleted'
+      );
+    }
+  }, callback);
 
-  return Cassandra.runQuery(
-    'DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?',
-    [resourceId],
-    callback
-  );
+  return runQuery('DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?', [resourceId], callback);
 };
 
 /**
@@ -80,29 +72,25 @@ const unsetDeleted = function(resourceId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.deleted    A hash keyed by resource id, whose value is `true` if the resource has been deleted
  */
-const isDeleted = function(resourceIds, callback) {
-  if (_.isEmpty(resourceIds)) {
-    return callback(null, {});
-  }
+const isDeleted = function (resourceIds, callback) {
+  if (isEmpty(resourceIds)) return callback(null, {});
 
-  Cassandra.runQuery(
+  runQuery(
     'SELECT "resourceId", "deleted" FROM "AuthzDeleted" WHERE "resourceId" in ?',
     [resourceIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
+    (error, rows) => {
+      if (error) return callback(error);
 
       const deletedResourceIds = {};
-      _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .filter(row => {
-          return row.deleted === true;
-        })
-        .pluck('resourceId')
-        .each(resourceId => {
-          deletedResourceIds[resourceId] = true;
-        });
+      const transformedRows = pipe(
+        map(rowToHash),
+        filter((row) => row.deleted === true),
+        pluck('resourceId')
+      )(rows);
+
+      forEach((resourceId) => {
+        deletedResourceIds[resourceId] = true;
+      }, transformedRows);
 
       return callback(null, deletedResourceIds);
     }

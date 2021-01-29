@@ -15,6 +15,7 @@
 
 import * as AuthzAPI from 'oae-authz';
 
+import { pluck, filter, forEach, pipe, isEmpty, map, union, propEq } from 'ramda';
 import _ from 'underscore';
 
 import { AuthzConstants } from 'oae-authz/lib/constants';
@@ -42,14 +43,14 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
  * @param  {Boolean}    callback.permissions.canSetRoles    Whether or not the current user can set roles on the resource
  * @param  {String}     callback.effectiveRole              The effective role of the user in context
  */
-const resolveEffectivePermissions = function(ctx, resource, callback) {
+const resolveEffectivePermissions = function (ctx, resource, callback) {
   AuthzAPI.resolveEffectiveRole(
     ctx.user(),
     resource,
     AuthzConstants.role.ALL_PRIORITY,
-    (err, effectiveRole, canInteract) => {
-      if (err) {
-        return callback(err);
+    (error, effectiveRole, canInteract) => {
+      if (error) {
+        return callback(error);
       }
 
       const canView = _.isString(effectiveRole);
@@ -92,15 +93,15 @@ const resolveEffectivePermissions = function(ctx, resource, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    Thrown if the permission check fails
  */
-const canManage = function(ctx, resource, callback) {
-  const permissionErr = {
+const canManage = function (ctx, resource, callback) {
+  const permissionError = {
     code: 401,
     msg: 'The current user does not have access to manage this resource'
   };
   const user = ctx.user();
   if (!user) {
     // Anonymous can never manage
-    return callback(permissionErr);
+    return callback(permissionError);
   }
 
   AuthzAPI.resolveImplicitRole(
@@ -108,9 +109,9 @@ const canManage = function(ctx, resource, callback) {
     resource,
     AuthzConstants.role.ALL_PRIORITY,
     // eslint-disable-next-line no-unused-vars
-    (err, implicitRole, canInteract) => {
-      if (err) {
-        return callback(err);
+    (error, implicitRole, canInteract) => {
+      if (error) {
+        return callback(error);
       }
 
       if (implicitRole === AuthzConstants.role.MANAGER) {
@@ -120,7 +121,7 @@ const canManage = function(ctx, resource, callback) {
 
       if (AuthzUtil.isUserId(resource.id)) {
         // It is not possible to have an explicit role on a user, short-circuit here
-        return callback(permissionErr);
+        return callback(permissionError);
       }
 
       // By this point, we can only manage if we have explicit manager role
@@ -128,13 +129,13 @@ const canManage = function(ctx, resource, callback) {
         user.id,
         AuthzUtil.getAuthzId(resource),
         AuthzConstants.role.MANAGER,
-        (err, hasRole) => {
-          if (err) {
-            return callback(err);
+        (error, hasRole) => {
+          if (error) {
+            return callback(error);
           }
 
           if (!hasRole) {
-            return callback(permissionErr);
+            return callback(permissionError);
           }
 
           return callback();
@@ -153,31 +154,31 @@ const canManage = function(ctx, resource, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    Thrown if the permission check fails
  */
-const canManageMessage = function(ctx, parentResource, message, callback) {
-  const permissionErr = {
+const canManageMessage = function (ctx, parentResource, message, callback) {
+  const permissionError = {
     code: 401,
     msg: 'The current user does not have access to delete this message'
   };
   if (!ctx.user()) {
     // Anonymous can never manage a message
-    return callback(permissionErr);
+    return callback(permissionError);
   }
 
-  resolveEffectivePermissions(ctx, parentResource, (err, permissions) => {
-    if (err) {
-      return callback(err);
+  resolveEffectivePermissions(ctx, parentResource, (error, permissions) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!permissions.canInteract) {
       // If the user cannot interact, they cannot manage the message even if they were the
       // author
-      return callback(permissionErr);
+      return callback(permissionError);
     }
 
     if (ctx.user().id !== message.createdBy && !permissions.canManage) {
       // The user cannot delete the message if they weren't the author and if they can't
       // manage the parent resource
-      return callback(permissionErr);
+      return callback(permissionError);
     }
 
     // The user can interact with the parent resource, and is either the author of the message
@@ -194,8 +195,8 @@ const canManageMessage = function(ctx, parentResource, message, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    Thrown if the permission check fails
  */
-const canView = function(ctx, resource, callback) {
-  const permissionErr = {
+const canView = function (ctx, resource, callback) {
+  const permissionError = {
     code: 401,
     msg: 'The current user does not have access to this resource'
   };
@@ -205,9 +206,9 @@ const canView = function(ctx, resource, callback) {
     resource,
     [AuthzConstants.role.VIEWER],
     // eslint-disable-next-line no-unused-vars
-    (err, implicitRole, canInteract) => {
-      if (err) {
-        return callback(err);
+    (error, implicitRole, canInteract) => {
+      if (error) {
+        return callback(error);
       }
 
       if (implicitRole) {
@@ -218,22 +219,22 @@ const canView = function(ctx, resource, callback) {
 
       if (!user) {
         // Anonymous user with no implicit access cannot view
-        return callback(permissionErr);
+        return callback(permissionError);
       }
 
       if (AuthzUtil.isUserId(resource.id)) {
         // Users can't have explicit access, therefore we can short-circuit here
-        return callback(permissionErr);
+        return callback(permissionError);
       }
 
       // By this point, we only have access to view if we have a role on the item
-      AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (err, hasAnyRole) => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (error, hasAnyRole) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!hasAnyRole) {
-          return callback(permissionErr);
+          return callback(permissionError);
         }
 
         return callback();
@@ -250,10 +251,10 @@ const canView = function(ctx, resource, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    Thrown if the permission check fails
  */
-const canEdit = function(ctx, resource, callback) {
-  resolveEffectivePermissions(ctx, resource, (err, permissions) => {
-    if (err) {
-      return callback(err);
+const canEdit = function (ctx, resource, callback) {
+  resolveEffectivePermissions(ctx, resource, (error, permissions) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!permissions.canEdit) {
@@ -285,13 +286,13 @@ const canEdit = function(ctx, resource, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   The members change info that should be applied to complete the share
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    The email change info that should be applied to perform the necessary invitations
  */
-const canShare = function(ctx, resource, targets, role, callback) {
+const canShare = function (ctx, resource, targets, role, callback) {
   targets = targets || [];
 
   // Determine what access, if any, the user in context has on the resource
-  resolveEffectivePermissions(ctx, resource, (err, permissions) => {
-    if (err) {
-      return callback(err);
+  resolveEffectivePermissions(ctx, resource, (error, permissions) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!permissions.canShare) {
@@ -302,7 +303,7 @@ const canShare = function(ctx, resource, targets, role, callback) {
     }
 
     // Apply the share role to all the targets
-    _.each(targets, target => {
+    _.each(targets, (target) => {
       target.role = role;
     });
 
@@ -312,9 +313,9 @@ const canShare = function(ctx, resource, targets, role, callback) {
       resource,
       targets,
       { promoteOnly: true },
-      (err, memberChangeInfo, emailChangeInfo) => {
-        if (err) {
-          return callback(err);
+      (error, memberChangeInfo, emailChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         if (permissions.canManage) {
@@ -325,11 +326,11 @@ const canShare = function(ctx, resource, targets, role, callback) {
 
         // The user is not a manager, so we should ensure that whomever they are adding as a
         // share target already has implicit access
-        const addedPrincipals = _.chain(emailChangeInfo.emails.added)
-          .map(_emailToResource)
-          .union(memberChangeInfo.members.added)
-          .value();
-        if (_.isEmpty(addedPrincipals)) {
+        const addedPrincipals = pipe(
+          map(_emailToResource),
+          union(memberChangeInfo.members.added)
+        )(emailChangeInfo.emails.added);
+        if (isEmpty(addedPrincipals)) {
           // If there are no actual changes to make, then this is basically an empty share
           // which should be fine
           return callback(null, memberChangeInfo, emailChangeInfo);
@@ -354,14 +355,14 @@ const canShare = function(ctx, resource, targets, role, callback) {
         });
 
         // Ensure each principal being added has implicit access to the resource already
-        _.each(addedPrincipals, addedPrincipal => {
+        _.each(addedPrincipals, (addedPrincipal) => {
           AuthzAPI.resolveImplicitRole(
             addedPrincipal,
             resource,
             [AuthzConstants.role.VIEWER],
-            (err, implicitRole, canInteract) => {
-              if (err) {
-                invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = err;
+            (error, implicitRole, canInteract) => {
+              if (error) {
+                invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = error;
               } else if (!canInteract) {
                 invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = {
                   code: 401,
@@ -392,7 +393,7 @@ const canShare = function(ctx, resource, targets, role, callback) {
  * @param  {Object}             callback.err                Thrown if the permission check fails
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   The member change info describing the role state change
  */
-const canJoin = function(ctx, resource, callback) {
+const canJoin = function (ctx, resource, callback) {
   const user = ctx.user();
   if (!user) {
     return callback({
@@ -413,9 +414,9 @@ const canJoin = function(ctx, resource, callback) {
   ];
 
   // If the resource is joinable, and the current user can interact with it, then it is joinable
-  canInteract(ctx, resource, err => {
-    if (err) {
-      return callback(err);
+  canInteract(ctx, resource, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Validate the role changes. This is always going to succeed because the only role being
@@ -426,9 +427,9 @@ const canJoin = function(ctx, resource, callback) {
       resource,
       targetRoles,
       { promoteOnly: false },
-      (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
+      (error, memberChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         if (_.isEmpty(memberChangeInfo.members.added)) {
@@ -462,9 +463,9 @@ const canJoin = function(ctx, resource, callback) {
  * @param  {Object}     callback.memberRoles    An object keyed by principal id whose value are roles of the final membership state of the resource after the removal is applied
  * @param  {String}     callback.role           The current role held by the principal, before any remove operation is applied
  */
-const canRemoveRole = function(ctx, principal, resource, callback) {
-  canManage(ctx, principal, err => {
-    if (err && err.code === 401) {
+const canRemoveRole = function (ctx, principal, resource, callback) {
+  canManage(ctx, principal, (error) => {
+    if (error && error.code === 401) {
       // Better contextualize this error message to indicate principal instead of resource
       return callback({
         code: 401,
@@ -472,8 +473,8 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
       });
     }
 
-    if (err) {
-      return callback(err);
+    if (error) {
+      return callback(error);
     }
 
     const targetRoles = [
@@ -488,9 +489,9 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
       resource,
       targetRoles,
       { promoteOnly: false },
-      (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
+      (error, memberChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         if (_.isEmpty(memberChangeInfo.members.removed)) {
@@ -536,10 +537,10 @@ const canRemoveRole = function(ctx, principal, resource, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo               Describes the changes to be made to the resource members as a result of setting these roles
  * @param  {EmailChangeInfo}    callback.emailChangeInfo                Describes the changes to be made to the resource invitations as a result of setting these roles
  */
-const canSetRoles = function(ctx, resource, targetRoles, callback) {
-  canManage(ctx, resource, err => {
-    if (err) {
-      return callback(err);
+const canSetRoles = function (ctx, resource, targetRoles, callback) {
+  canManage(ctx, resource, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     _validateRoleChanges(
@@ -547,9 +548,9 @@ const canSetRoles = function(ctx, resource, targetRoles, callback) {
       resource,
       targetRoles,
       { promoteOnly: false },
-      (err, memberChangeInfo, emailChangeInfo) => {
-        if (err) {
-          return callback(err);
+      (error, memberChangeInfo, emailChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         if (
@@ -586,7 +587,7 @@ const canSetRoles = function(ctx, resource, targetRoles, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo           Describes what memberships to apply to the newly created resource
  * @param  {EmailChangeInfo}    callback.emailChangeInfo            Describes what invitations to apply to the newly created resource
  */
-const canCreate = function(ctx, targetRoles, callback) {
+const canCreate = function (ctx, targetRoles, callback) {
   if (!ctx.user()) {
     return callback({ code: 401, msg: 'Anonymous users are not authorized to create resources' });
   }
@@ -596,9 +597,9 @@ const canCreate = function(ctx, targetRoles, callback) {
     null,
     targetRoles,
     { promoteOnly: false },
-    (err, memberChangeInfo, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
+    (error, memberChangeInfo, emailChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, memberChangeInfo, emailChangeInfo);
@@ -615,7 +616,7 @@ const canCreate = function(ctx, targetRoles, callback) {
  * @param  {Object}                 callback.err                        Thrown if any of the permission checks fail
  * @param  {Object}                 [callback.err.invalidResources]     If specified, indicates the resource with which the user in context couldn't interact. The object is keyed by resource id, whose value is the error that caused the failure
  */
-const canInteract = function(ctx, resources, callback) {
+const canInteract = function (ctx, resources, callback) {
   if (!_.isArray(resources)) {
     return canInteract(ctx, _.compact([resources]), callback);
   }
@@ -624,23 +625,23 @@ const canInteract = function(ctx, resources, callback) {
     return callback();
   }
 
-  const permissionErr = {
+  const permissionError = {
     code: 401,
     msg: 'The current user does not have access to interact with these resources'
   };
   const resourceErrs = {};
   const _done = _.after(resources.length, () => {
     if (!_.isEmpty(resourceErrs)) {
-      return callback(_.extend(permissionErr, { invalidResources: resourceErrs }));
+      return callback(_.extend(permissionError, { invalidResources: resourceErrs }));
     }
 
     return callback();
   });
 
-  _.each(resources, resource => {
-    _canInteract(ctx, resource, err => {
-      if (err) {
-        resourceErrs[resource.id] = err;
+  _.each(resources, (resource) => {
+    _canInteract(ctx, resource, (error) => {
+      if (error) {
+        resourceErrs[resource.id] = error;
       }
 
       return _done();
@@ -665,10 +666,10 @@ const canInteract = function(ctx, resources, callback) {
  * @param  {EmailChangeInfo}    callback.emailChangeInfo            The email change info describing the invitation changes that should be applied
  * @api private
  */
-const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback) {
+const _validateRoleChanges = function (ctx, resource, targetRoles, options, callback) {
   // Separate target roles into a list that targets existing principals, and one that targets
   // email invitations
-  targetRoles = _.partition(targetRoles, targetRole => {
+  targetRoles = _.partition(targetRoles, (targetRole) => {
     return targetRole.principal;
   });
   const principalTargetRoles = _.first(targetRoles);
@@ -679,13 +680,13 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
   // addresses that match known tenant email domains should still get an
   // invitation. Email addresses that wind up on the guest tenant should
   // be disallowed however.
-  const guestEmails = _.chain(emailTargetRoles)
-    .pluck('email')
-    .map(TenantsAPI.getTenantByEmail)
-    .filter({ isGuestTenant: true })
-    .value();
+  const guestEmails = pipe(
+    pluck('email'),
+    map(TenantsAPI.getTenantByEmail),
+    filter(propEq('isGuestTenant', true))
+  )(emailTargetRoles);
 
-  if (!_.isEmpty(guestEmails) && !TenantsUtil.canInviteGuests(ctx.user().tenant.alias)) {
+  if (!isEmpty(guestEmails) && !TenantsUtil.canInviteGuests(ctx.user().tenant.alias)) {
     return callback({
       code: 401,
       invalidPrincipals: guestEmails,
@@ -696,7 +697,7 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
   // Get the principal ids that were accompanied with a valid email assertion, thus bypassing
   // target interaction checks for it
   const validatedPrincipalIds = {};
-  _.each(principalTargetRoles, principalTargetRole => {
+  _.each(principalTargetRoles, (principalTargetRole) => {
     const { principal } = principalTargetRole;
     const validationEmail = principalTargetRole.email;
     if (principal.email && principal.email === validationEmail) {
@@ -705,32 +706,37 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
   });
 
   // Determine how the principal target role changes, if any, would impact the members
-  _computeMemberRolesAfterChanges(resource, principalTargetRoles, opts, (err, memberChangeInfo) => {
-    if (err) {
-      return callback(err);
-    }
+  _computeMemberRolesAfterChanges(
+    resource,
+    principalTargetRoles,
+    options,
+    (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
+      }
 
-    // Determine how the email target role changes, if any, would impact the invitations
-    _computeInvitationRolesAfterChanges(
-      resource,
-      emailTargetRoles,
-      opts,
-      (err, emailChangeInfo) => {
-        if (err) {
-          return callback(err);
-        }
+      // Determine how the email target role changes, if any, would impact the invitations
+      _computeInvitationRolesAfterChanges(
+        resource,
+        emailTargetRoles,
+        options,
+        (error, emailChangeInfo) => {
+          if (error) {
+            return callback(error);
+          }
 
-        // Discern between profiles that we are sharing with that require full profile
-        // interaction checks (i.e., profile visibility and tenant interaction) v.s. those that
-        // need only tenant interaction checks. If a client correctly identified a user by their
-        // email address, then we should bypass profile interaction checks, however tenant
-        // privacy should still avoid cross-pollination of collaboration
-        const checkProfileInteraction = [];
-        const checkTenantInteraction = [];
-        _.chain(emailChangeInfo.emails.added)
-          .map(_emailToResource)
-          .union(memberChangeInfo.members.added)
-          .each(resource => {
+          // Discern between profiles that we are sharing with that require full profile
+          // interaction checks (i.e., profile visibility and tenant interaction) v.s. those that
+          // need only tenant interaction checks. If a client correctly identified a user by their
+          // email address, then we should bypass profile interaction checks, however tenant
+          // privacy should still avoid cross-pollination of collaboration
+          const checkProfileInteraction = [];
+          const checkTenantInteraction = [];
+          const transformed = pipe(
+            map(_emailToResource),
+            union(memberChangeInfo.members.added)
+          )(emailChangeInfo.emails.added);
+          forEach((resource) => {
             if (validatedPrincipalIds[resource.id]) {
               // The resource id was validated with a matching email, we will only do a
               // tenant interaction check
@@ -740,38 +746,40 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
               // profile interaction check
               checkProfileInteraction.push(resource);
             }
-          })
-          .value();
+          }, transformed);
 
-        // First check profile interaction
-        canInteract(ctx, checkProfileInteraction, err => {
-          const interactionErr = {
-            code: 401,
-            msg: 'The current user does not have access to add the specified principals'
-          };
+          // First check profile interaction
+          canInteract(ctx, checkProfileInteraction, (error_) => {
+            const interactionError = {
+              code: 401,
+              msg: 'The current user does not have access to add the specified principals'
+            };
 
-          if (err && err.code === 401) {
-            // Contextualize the error a bit better than the generic `canInteract` error
-            return callback(_.extend({ invalidPrincipals: err.invalidResources }, interactionErr));
-          }
+            if (error_ && error_.code === 401) {
+              // Contextualize the error a bit better than the generic `canInteract` error
+              return callback(
+                _.extend({ invalidPrincipals: error_.invalidResources }, interactionError)
+              );
+            }
 
-          if (err) {
-            return callback(err);
-          }
+            if (error_) {
+              return callback(error_);
+            }
 
-          // Then check the resources that require only tenant interaction checks
-          const invalidPrincipals = _.filter(checkTenantInteraction, resource => {
-            return !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias);
+            // Then check the resources that require only tenant interaction checks
+            const invalidPrincipals = _.filter(checkTenantInteraction, (resource) => {
+              return !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias);
+            });
+            if (!_.isEmpty(invalidPrincipals)) {
+              return callback(_.extend({ invalidPrincipals }, interactionError));
+            }
+
+            return callback(null, memberChangeInfo, emailChangeInfo);
           });
-          if (!_.isEmpty(invalidPrincipals)) {
-            return callback(_.extend({ invalidPrincipals }, interactionErr));
-          }
-
-          return callback(null, memberChangeInfo, emailChangeInfo);
-        });
-      }
-    );
-  });
+        }
+      );
+    }
+  );
 };
 
 /**
@@ -783,8 +791,8 @@ const _validateRoleChanges = function(ctx, resource, targetRoles, opts, callback
  * @param  {Object}     callback.err    Thrown if the interaction check fails
  * @api private
  */
-const _canInteract = function(ctx, resource, callback) {
-  const permissionErr = {
+const _canInteract = function (ctx, resource, callback) {
+  const permissionError = {
     code: 401,
     msg: 'The current user does not have access to interact with this resource'
   };
@@ -795,22 +803,22 @@ const _canInteract = function(ctx, resource, callback) {
     user,
     resource,
     [AuthzConstants.role.VIEWER],
-    (err, implicitRole, canInteract) => {
-      if (err) {
-        return callback(err);
+    (error, implicitRole, canInteract) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!canInteract) {
         if (!user) {
           // Anonymous users will not have an explicit role on anything, so we can
           // short-circuit
-          return callback(permissionErr);
+          return callback(permissionError);
         }
 
         if ((!resource.id && resource.email) || AuthzUtil.isUserId(resource.id)) {
           // If the target resource is a user (local or invited by email address) then we
           // cannot have an explicit role. So short-circuit
-          return callback(permissionErr);
+          return callback(permissionError);
         }
       } else if (canInteract) {
         // If we can implicitly interact, there is no reason to check explicit access
@@ -820,13 +828,13 @@ const _canInteract = function(ctx, resource, callback) {
       // We are an authenticated user, checking interaction on a non-user resource, and we do not
       // have implicit ability to interact. Check explicit access to figure out if we can interact
       // VIA role assignment
-      AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (err, hasAnyRole) => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.hasAnyRole(user.id, AuthzUtil.getAuthzId(resource), (error, hasAnyRole) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!hasAnyRole) {
-          return callback(permissionErr);
+          return callback(permissionError);
         }
 
         return callback();
@@ -848,26 +856,28 @@ const _canInteract = function(ctx, resource, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   Describes the canonical changes that the target role changes would apply to the members of this resource
  * @api private
  */
-const _computeMemberRolesAfterChanges = function(resource, principalTargetRoles, opts, callback) {
+const _computeMemberRolesAfterChanges = function (
+  resource,
+  principalTargetRoles,
+  options,
+  callback
+) {
   if (_.isEmpty(principalTargetRoles)) {
     return callback(null, AuthzModel.MemberChangeInfo.empty());
   }
 
   const roleChanges = {};
-  _.each(principalTargetRoles, principalTargetRole => {
+  _.each(principalTargetRoles, (principalTargetRole) => {
     roleChanges[principalTargetRole.principal.id] = principalTargetRole.role;
   });
 
   const authzId = resource ? AuthzUtil.getAuthzId(resource) : null;
-  AuthzAPI.computeMemberRolesAfterChanges(authzId, roleChanges, opts, (err, idChangeInfo) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.computeMemberRolesAfterChanges(authzId, roleChanges, options, (error, idChangeInfo) => {
+    if (error) {
+      return callback(error);
     }
 
-    const principalsById = _.chain(principalTargetRoles)
-      .pluck('principal')
-      .indexBy('id')
-      .value();
+    const principalsById = _.chain(principalTargetRoles).pluck('principal').indexBy('id').value();
 
     return callback(
       null,
@@ -889,13 +899,18 @@ const _computeMemberRolesAfterChanges = function(resource, principalTargetRoles,
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the canonical changes that the target role changes would apply to the invitations of this resource
  * @api private
  */
-const _computeInvitationRolesAfterChanges = function(resource, emailTargetRoles, opts, callback) {
+const _computeInvitationRolesAfterChanges = function (
+  resource,
+  emailTargetRoles,
+  options,
+  callback
+) {
   if (_.isEmpty(emailTargetRoles)) {
     return callback(null, AuthzModel.EmailChangeInfo.empty());
   }
 
   const roleChanges = {};
-  _.each(emailTargetRoles, emailTargetRole => {
+  _.each(emailTargetRoles, (emailTargetRole) => {
     roleChanges[emailTargetRole.email] = emailTargetRole.role;
   });
 
@@ -903,7 +918,7 @@ const _computeInvitationRolesAfterChanges = function(resource, emailTargetRoles,
   return AuthzInvitationsUtil.computeInvitationRolesAfterChanges(
     authzId,
     roleChanges,
-    opts,
+    options,
     callback
   );
 };
@@ -916,7 +931,7 @@ const _computeInvitationRolesAfterChanges = function(resource, emailTargetRoles,
  * @return {Resource}           The resource that represents the given email address
  * @api private
  */
-const _emailToResource = function(email) {
+const _emailToResource = function (email) {
   // We represent a transient email invitation as a resource that has an `email` instead of an
   // `id`. We can reference it as being public since the email user will explicitly decide if they
   // want to accept an interaction

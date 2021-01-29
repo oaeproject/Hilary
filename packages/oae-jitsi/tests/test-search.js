@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';
@@ -10,23 +11,23 @@ const { createMeeting, updateMeeting } = RestAPI.MeetingsJitsi;
 describe('Meeting Search', () => {
   let camAdminRestContext = null;
 
-  before(callback => {
+  before((callback) => {
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
   describe('Indexing', () => {
-    it('verify a meeting is correctly indexed when it is created', callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify a meeting is correctly indexed when it is created', (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: homer } = users;
         const asHomer = homer.restContext;
 
         // Create a meeting
         const randomText = TestsUtil.generateRandomText(25);
 
-        createMeeting(asHomer, randomText, randomText, false, false, 'public', null, null, (err, meeting) => {
-          assert.notExists(err);
+        createMeeting(asHomer, randomText, randomText, false, false, 'public', null, null, (error, meeting) => {
+          assert.notExists(error);
 
           // Ensure the meeting has been correctly indexed
           SearchTestsUtil.searchAll(
@@ -34,8 +35,8 @@ describe('Meeting Search', () => {
             'general',
             null,
             { resourceTypes: 'meeting-jitsi', q: randomText },
-            (err, results) => {
-              assert.notExists(err);
+            (error, results) => {
+              assert.notExists(error);
               assert.ok(results.results);
 
               const doc = results.results[0];
@@ -58,9 +59,9 @@ describe('Meeting Search', () => {
       });
     });
 
-    it("verify updating the meeting's metadata updates the index", callback => {
-      TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+    it("verify updating the meeting's metadata updates the index", (callback) => {
+      TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: homer } = users;
         const asHomer = homer.restContext;
 
@@ -68,12 +69,12 @@ describe('Meeting Search', () => {
         const randomTextA = TestsUtil.generateRandomText(25);
         const randomTextB = TestsUtil.generateRandomText(25);
 
-        createMeeting(asHomer, randomTextA, randomTextA, false, false, 'public', null, null, (err, meeting) => {
-          assert.notExists(err);
+        createMeeting(asHomer, randomTextA, randomTextA, false, false, 'public', null, null, (error, meeting) => {
+          assert.notExists(error);
 
           // Update the meeting's metadata
-          updateMeeting(asHomer, meeting.id, { displayName: randomTextB, description: randomTextB }, err => {
-            assert.notExists(err);
+          updateMeeting(asHomer, meeting.id, { displayName: randomTextB, description: randomTextB }, (error_) => {
+            assert.notExists(error_);
 
             // Ensure the meeting is correctly indexed
             SearchTestsUtil.searchAll(
@@ -81,8 +82,8 @@ describe('Meeting Search', () => {
               'general',
               null,
               { resourceTypes: 'meeting-jitsi', q: randomTextB },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(results.results);
 
                 const doc = results.results[0];

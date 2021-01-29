@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
@@ -34,7 +34,7 @@ const log = logger('meeting-jitsi-search');
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
     ['meeting-jitsi'],
@@ -55,7 +55,7 @@ const init = function(callback) {
  * @see MessageBoxSearch.registerMessageSearchDocument
  * @api private
  */
-const _produceMeetingMessageDocuments = function(resources, callback, _documents, _errs) {
+const _produceMeetingMessageDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
 
   if (_.isEmpty(resources)) {
@@ -79,9 +79,9 @@ const _produceMeetingMessageDocuments = function(resources, callback, _documents
     MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
     resource.id,
     resource.id,
-    (err, documents) => {
-      if (err) {
-        _errs = _.union(_errs, [err]);
+    (error, documents) => {
+      if (error) {
+        _errs = _.union(_errs, [error]);
       }
 
       _documents = _.union(_documents, documents);
@@ -96,10 +96,10 @@ const _produceMeetingMessageDocuments = function(resources, callback, _documents
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceMeetingSearchDocuments = function(resources, callback) {
-  _getMeetings(resources, (err, meetings) => {
-    if (err) {
-      return callback([err]);
+const _produceMeetingSearchDocuments = function (resources, callback) {
+  _getMeetings(resources, (error, meetings) => {
+    if (error) {
+      return callback([error]);
     }
 
     if (_.isEmpty(meetings)) {
@@ -118,11 +118,11 @@ const _produceMeetingSearchDocuments = function(resources, callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _getMeetings = function(resources, callback) {
+const _getMeetings = function (resources, callback) {
   let meetings = [];
   const meetingIdsToFetch = [];
 
-  _.each(resources, resource => {
+  _.each(resources, (resource) => {
     if (resource.meeting) {
       meetings.push(resource.meeting);
     } else {
@@ -134,9 +134,9 @@ const _getMeetings = function(resources, callback) {
     return callback(null, meetings);
   }
 
-  MeetingsDAO.getMeetingsById(meetingIdsToFetch, (err, extraMeetings) => {
-    if (err) {
-      return callback(err);
+  MeetingsDAO.getMeetingsById(meetingIdsToFetch, (error, extraMeetings) => {
+    if (error) {
+      return callback(error);
     }
 
     // Some meetings might have already been deleted
@@ -156,7 +156,7 @@ const _getMeetings = function(resources, callback) {
  * @return {SearchDoc}                  The produced search document.
  * @api private
  */
-const _produceMeetingSearchDocument = function(meeting) {
+const _produceMeetingSearchDocument = function (meeting) {
   // Allow full-text search on name and description, but only if they are specified
   const fullText = _.compact([meeting.displayName, meeting.description]).join(' ');
 
@@ -203,7 +203,7 @@ SearchAPI.registerSearchDocumentProducer('meeting-jitsi', _produceMeetingSearchD
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformMeetingDocuments = function(ctx, docs, callback) {
+const _transformMeetingDocuments = function (ctx, docs, callback) {
   const transformeDocs = {};
 
   _.each(docs, (doc, docId) => {
@@ -222,11 +222,7 @@ const _transformMeetingDocuments = function(ctx, docs, callback) {
     // Add the full tenant object and profile path
     _.extend(result, {
       tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
-      profilePath: util.format(
-        '/meeting-jitsi/%s/%s',
-        result.tenantAlias,
-        AuthzUtil.getResourceFromId(result.id).resourceId
-      )
+      profilePath: format('/meeting-jitsi/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
     });
 
     transformeDocs[docId] = result;
@@ -313,7 +309,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (ctx, m
 // REINDEX ALL HANDLER //
 /// //////////////////////
 
-SearchAPI.registerReindexAllHandler('meeting-jitsi', callback => {
+SearchAPI.registerReindexAllHandler('meeting-jitsi', (callback) => {
   /*
    * Handles each iteration of the MeetingDAO iterate all method, firing tasks for all meetings to
    * be reindexed.
@@ -321,11 +317,11 @@ SearchAPI.registerReindexAllHandler('meeting-jitsi', callback => {
    * @see MeetingDAO#iterateAll
    * @api private
    */
-  const _onEach = function(meetingRows, done) {
+  const _onEach = function (meetingRows, done) {
     // Batch up this iteration of task resources
     const meetingResources = [];
 
-    _.each(meetingRows, meetingRow => {
+    _.each(meetingRows, (meetingRow) => {
       meetingResources.push({ id: meetingRow.id });
     });
 

@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 
-const Meeting = function(
+const Meeting = function (
   tenant,
   id,
   createdBy,
@@ -41,7 +41,7 @@ const Meeting = function(
   that.visibility = visibility;
   that.created = created;
   that.lastModified = lastModified;
-  that.profilePath = util.format('/meeting-jitsi/%s/%s', tenant.alias, resourceId);
+  that.profilePath = format('/meeting-jitsi/%s/%s', tenant.alias, resourceId);
   that.resourceType = 'meeting-jitsi';
 
   return that;

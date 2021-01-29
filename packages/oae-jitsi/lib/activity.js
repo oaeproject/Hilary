@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as ActivityAPI from 'oae-activity';
@@ -26,14 +26,14 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as MeetingsDAO from './internal/dao';
-import * as MeetingsAPI from './api';
+import * as MeetingsDAO from './internal/dao.js';
+import * as MeetingsAPI from './api.js';
 
-import { MeetingsConstants } from './constants';
+import { MeetingsConstants } from './constants.js';
 
-/// /////////////////
-// MEETING-CREATE //
-/// /////////////////
+/**
+ * Meeting create
+ */
 
 ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_CREATE, {
   groupBy: [{ actor: true }],
@@ -73,7 +73,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, 
   // Get the extra members
   const extraMembers = _.chain(memberChangeInfo.changes)
     .keys()
-    .filter(member => {
+    .filter((member) => {
       return member !== ctx.user().id;
     })
     .value();
@@ -159,8 +159,8 @@ ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_ADD
 /**
  * Post a meeting-share, meeting-add-to-library or meeting-update-member role activity based on meeting sharing
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, meeting, memberChangeInfo, opts) => {
-  if (opts.invitation) {
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, meeting, memberChangeInfo, options) => {
+  if (options.invitation) {
     // If this member update came from an invitation, we bypass adding activity as there is a
     // dedicated activity for that
     return;
@@ -177,7 +177,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, m
     'meeting-jitsi': meeting
   });
   // For users that are newly added to the meeting, post either a share or "add to library" activity, depending on context
-  _.each(addedPrincipalIds, principalId => {
+  _.each(addedPrincipalIds, (principalId) => {
     if (principalId === ctx.user().id) {
       // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
@@ -209,7 +209,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, m
   });
 
   // For users whose role changed, post the meeting-update-member-role activity
-  _.each(updatedPrincipalIds, principalId => {
+  _.each(updatedPrincipalIds, (principalId) => {
     const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
     const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
     ActivityAPI.postActivity(
@@ -282,11 +282,10 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, newMeetin
   // We discriminate between general updates and visibility changes.
   // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
   let activityType = null;
-  if (newMeeting.visibility === oldMeeting.visibility) {
-    activityType = MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE;
-  } else {
-    activityType = MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY;
-  }
+  activityType =
+    newMeeting.visibility === oldMeeting.visibility
+      ? MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE
+      : MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY;
 
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
@@ -366,7 +365,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, m
  * Produces a persistent 'meeting' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingProducer = function(resource, callback) {
+const _meetingProducer = function (resource, callback) {
   const meeting =
     resource.resourceData && resource.resourceData['meeting-jitsi'] ? resource.resourceData['meeting-jitsi'] : null;
 
@@ -375,9 +374,9 @@ const _meetingProducer = function(resource, callback) {
     return callback(null, _createPersistentMeetingActivityEntity(meeting));
   }
 
-  MeetingsDAO.getMeeting(resource.resourceId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  MeetingsDAO.getMeeting(resource.resourceId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createPersistentMeetingActivityEntity(meeting));
@@ -388,16 +387,16 @@ const _meetingProducer = function(resource, callback) {
  * Produces an persistent activity entity that represents a message that was posted
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingMessageProducer = function(resource, callback) {
+const _meetingMessageProducer = function (resource, callback) {
   const { message, meetingId } = resource.resourceData;
-  MeetingsDAO.getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  MeetingsDAO.getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
-    MessageBoxUtil.createPersistentMessageActivityEntity(message, (err, entity) => {
-      if (err) {
-        return callback(err);
+    MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
+      if (error) {
+        return callback(error);
       }
 
       // Store the meeting id and visibility on the entity as these are required for routing the activities
@@ -416,7 +415,7 @@ const _meetingMessageProducer = function(resource, callback) {
  * @return {Object}                         An object containing the entity data that can be transformed into a UI meeting activity entity
  * @api private
  */
-const _createPersistentMeetingActivityEntity = function(meeting) {
+const _createPersistentMeetingActivityEntity = function (meeting) {
   return new ActivityModel.ActivityEntity('meeting-jitsi', meeting.id, meeting.visibility, {
     'meeting-jitsi': meeting
   });
@@ -426,7 +425,7 @@ const _createPersistentMeetingActivityEntity = function(meeting) {
  * Transform the meeting persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingTransformer = function(ctx, activityEntities, callback) {
+const _meetingTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   _.each(activityEntities, (entities, activityId) => {
@@ -445,15 +444,15 @@ const _meetingTransformer = function(ctx, activityEntities, callback) {
  * Transform the persisted message activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingMessageTransformer = function(ctx, activityEntities, callback) {
+const _meetingMessageTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       const { meetingId } = entity;
       const resource = AuthzUtil.getResourceFromId(meetingId);
-      const profilePath = util.format('/meeting-jitsi/%s/%s', resource.tenanAlias, resource.resourceId);
+      const profilePath = format('/meeting-jitsi/%s/%s', resource.tenanAlias, resource.resourceId);
       const urlFormat = '/api/meeting-jitsi/' + meetingId + '/messages/%s';
       transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
         ctx,
@@ -470,7 +469,7 @@ const _meetingMessageTransformer = function(ctx, activityEntities, callback) {
  * Transform the meeting persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingInternalTransformer = function(ctx, activityEntities, callback) {
+const _meetingInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   _.each(activityEntities, (entities, activityId) => {
@@ -489,11 +488,11 @@ const _meetingInternalTransformer = function(ctx, activityEntities, callback) {
  * Transform the persisted message activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _meetingMessageInternalTransformer = function(ctx, activityEntities, callback) {
+const _meetingMessageInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][
         entityId
@@ -512,7 +511,7 @@ const _meetingMessageInternalTransformer = function(ctx, activityEntities, callb
  * @param  {Object}            entity      The persistent activity entity to transform
  * @return {ActivityEntity}                The activity entity that represents the given meeting item
  */
-const _transformPersistentMeetingActivityEntity = function(ctx, entity) {
+const _transformPersistentMeetingActivityEntity = function (ctx, entity) {
   const meeting = entity['meeting-jitsi'];
 
   // Generate URLs for this activity
@@ -522,14 +521,14 @@ const _transformPersistentMeetingActivityEntity = function(ctx, entity) {
   const resource = AuthzUtil.getResourceFromId(meeting.id);
   const profileUrl = baseUrl + '/meeting-jitsi/' + resource.tenantAlias + '/' + resource.resourceId;
 
-  const opts = {};
-  opts.url = profileUrl;
-  opts.displayName = meeting.displayName;
-  opts.ext = {};
-  opts.ext[ActivityConstants.properties.OAE_ID] = meeting.id;
-  opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = meeting.visibility;
-  opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = meeting.profilePath;
-  return new ActivityModel.ActivityEntity('meeting-jitsi', globalId, meeting.visibility, opts);
+  const options = {};
+  options.url = profileUrl;
+  options.displayName = meeting.displayName;
+  options.ext = {};
+  options.ext[ActivityConstants.properties.OAE_ID] = meeting.id;
+  options.ext[ActivityConstants.properties.OAE_VISIBILITY] = meeting.visibility;
+  options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = meeting.profilePath;
+  return new ActivityModel.ActivityEntity('meeting-jitsi', globalId, meeting.visibility, options);
 };
 
 ActivityAPI.registerActivityEntityType('meeting-jitsi', {
@@ -584,9 +583,9 @@ ActivityAPI.registerActivityEntityAssociation(
  * Register an association that presents all the indirect members of a meeting
  */
 ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'members', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.flatten(_.values(membersByRole)));
@@ -597,9 +596,9 @@ ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'members', (assoc
  * Register an association that presents all the managers of a meeting
  */
 ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'managers', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, membersByRole[MeetingsConstants.roles.MANAGER]);

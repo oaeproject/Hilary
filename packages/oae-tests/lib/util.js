@@ -16,7 +16,7 @@
 import path from 'path';
 import { assert } from 'chai';
 import stream from 'stream';
-import util from 'util';
+import { format } from 'util';
 
 import async from 'async';
 import _ from 'underscore';
@@ -52,7 +52,7 @@ import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import { User } from 'oae-principals/lib/model';
 
 import { logger } from 'oae-logger';
-import { config } from '../../../config';
+import { config } from '../../../config.js';
 
 const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
@@ -93,7 +93,7 @@ const atLeastOne = defaultTo(1);
  * @param  {HttpServer} callback.server     The HTTP Server object that is listening
  * @param  {Number}     callback.port       The port on which the server is listening
  */
-const createTestServer = function(callback, _attempts) {
+const createTestServer = function (callback, _attempts) {
   _attempts = OaeUtil.getNumberParam(_attempts, 0);
   if (_attempts === 10) {
     assert.fail('Could not start a test web server in 10 attempts');
@@ -128,7 +128,7 @@ const createTestServer = function(callback, _attempts) {
  * @param  {Function}   callback    Standard callback function
  * @throws {Error}                  An assertion error is thrown if an unexpected error occurs
  */
-const clearAllData = function(callback) {
+const clearAllData = function (callback) {
   const columnFamiliesToClear = [
     'Content',
     'Discussions',
@@ -146,14 +146,14 @@ const clearAllData = function(callback) {
     // Flush the data from redis, so we can recreate our admins
     // And by doing that we also clean the preview processing queues
     // instead of waiting on them to be empty
-    Redis.flush(err => {
-      assert.notExists(err);
+    Redis.flush((error) => {
+      assert.notExists(error);
 
       // Mock a global admin request context so we can create a proper global administrator in the system
       const globalContext = createGlobalAdminContext();
 
       // Create the global admin user if they don't exist yet with the username "administrator"
-      const opts = {
+      const options = {
         email: generateTestEmailAddress()
       };
       AuthenticationAPI.getOrCreateGlobalAdminUser(
@@ -161,9 +161,9 @@ const clearAllData = function(callback) {
         'administrator',
         'administrator',
         'Global Administrator',
-        opts,
-        err => {
-          assert.notExists(err);
+        options,
+        (error) => {
+          assert.notExists(error);
 
           // Re-create the tenant administrators
           return _setUpTenantAdmins(callback);
@@ -175,11 +175,11 @@ const clearAllData = function(callback) {
   SearchTestUtil.whenIndexingComplete(() => {
     LibraryAPI.Index.whenUpdatesComplete(() => {
       // Truncate each column family
-      _.each(columnFamiliesToClear, cf => {
-        const query = util.format('TRUNCATE "%s"', cf);
+      _.each(columnFamiliesToClear, (cf) => {
+        const query = format('TRUNCATE "%s"', cf);
 
-        Cassandra.runQuery(query, [], err => {
-          assert.notExists(err);
+        Cassandra.runQuery(query, [], (error) => {
+          assert.notExists(error);
           return truncated();
         });
       });
@@ -194,7 +194,7 @@ const clearAllData = function(callback) {
  * @param  {Function}       callback    Standard callback function
  * @throws {Error}                      An assertion error is thrown when an unexpected error occurs
  */
-const setUpTenants = function(callback) {
+const setUpTenants = function (callback) {
   global.oaeTests = { tenants: {} };
 
   // Create the Global Tenant admin context to authenticate with
@@ -210,8 +210,8 @@ const setUpTenants = function(callback) {
     'Cambridge University Test',
     'cambridge.oae.com',
     { emailDomains: 'cam.ac.uk' },
-    (err, tenant) => {
-      assert.notExists(err);
+    (error, tenant) => {
+      assert.notExists(error);
       global.oaeTests.tenants.cam = tenant;
 
       // Create the Georgia Tech tenant
@@ -221,8 +221,8 @@ const setUpTenants = function(callback) {
         'Georgia Tech Test',
         'gt.oae.com',
         { emailDomains: 'gatech.edu' },
-        (err, tenant) => {
-          assert.notExists(err);
+        (error, tenant) => {
+          assert.notExists(error);
           global.oaeTests.tenants.gt = tenant;
 
           /**
@@ -236,8 +236,8 @@ const setUpTenants = function(callback) {
             'Tenant with a hostname set to localhost',
             'localhost:2001',
             null,
-            (err, tenant) => {
-              assert.notExists(err);
+            (error, tenant) => {
+              assert.notExists(error);
               global.oaeTests.tenants.localhost = tenant;
 
               // Set up the tenant admins
@@ -257,19 +257,19 @@ const setUpTenants = function(callback) {
  * @throws {Error}                      An assertion error is thrown when an unexpected error occurs
  * @api private
  */
-const _setUpTenantAdmins = callback => {
+const _setUpTenantAdmins = (callback) => {
   const camTenant = global.oaeTests.tenants.cam;
   const gtTenant = global.oaeTests.tenants.gt;
   const localTenant = global.oaeTests.tenants.localhost;
 
-  _setupTenantAdmin(camTenant, err => {
-    assert.ok(!err, JSON.stringify(err));
+  _setupTenantAdmin(camTenant, (error) => {
+    assert.ok(!error, JSON.stringify(error));
 
-    _setupTenantAdmin(gtTenant, err => {
-      assert.notExists(err);
+    _setupTenantAdmin(gtTenant, (error) => {
+      assert.notExists(error);
 
-      _setupTenantAdmin(localTenant, err => {
-        assert.notExists(err);
+      _setupTenantAdmin(localTenant, (error) => {
+        assert.notExists(error);
 
         return callback();
       });
@@ -285,7 +285,7 @@ const _setUpTenantAdmins = callback => {
  * @throws {Error}                      An assertion error is thrown when an unexpected error occurs
  * @api private
  */
-const _setupTenantAdmin = function(tenant, callback) {
+const _setupTenantAdmin = function (tenant, callback) {
   const adminLoginId = new LoginId(tenant.alias, AuthenticationConstants.providers.LOCAL, 'administrator', {
     password: 'administrator'
   });
@@ -293,8 +293,8 @@ const _setupTenantAdmin = function(tenant, callback) {
   const email = generateTestEmailAddress(null, tenant.emailDomains[0]);
 
   const ctx = createTenantAdminContext(tenant);
-  AuthenticationAPI.createUser(ctx, adminLoginId, displayName, { email }, (err, createdUser) => {
-    assert.notExists(err);
+  AuthenticationAPI.createUser(ctx, adminLoginId, displayName, { email }, (error, createdUser) => {
+    assert.notExists(error);
 
     return PrincipalsAPI.setTenantAdmin(ctx, createdUser.id, true, callback);
   });
@@ -322,8 +322,8 @@ const generateTestUsers = (restCtx, numberOfUsers, ...args) => {
       return callback(null, createdUsers);
     });
   } else {
-    generateSingleTestUser(restCtx, (err, user) => {
-      if (err) return callback(err);
+    generateSingleTestUser(restCtx, (error, user) => {
+      if (error) return callback(error);
 
       createdUsers.push({
         user,
@@ -352,26 +352,26 @@ const generateSingleTestUser = (restCtx, callback) => {
   /*
    * Ensure that the provided rest context has been authenticated before trying to use it to create users
    */
-  _ensureAuthenticated(restCtx, err => {
-    if (err) return callback(err);
+  _ensureAuthenticated(restCtx, (error) => {
+    if (error) return callback(error);
 
     /**
      * Get the tenant information so we can generate an email address that
      * belongs to the configured tenant email domain (if any)
      */
-    getTenant(restCtx, NO_ALIAS, (err, tenant) => {
-      if (err) return callback(err);
+    getTenant(restCtx, NO_ALIAS, (error, tenant) => {
+      if (error) return callback(error);
 
       const username = generateTestUserId('random-user');
       const displayName = generateTestGroupId('random-user');
       const email = generateTestEmailAddress(username, compose(head, prop('emailDomains'))(tenant));
 
-      createUser(restCtx, username, 'password', displayName, email, NO_OPTIONS, (err, user) => {
-        if (err) return callback(err);
+      createUser(restCtx, username, 'password', displayName, email, NO_OPTIONS, (error, user) => {
+        if (error) return callback(error);
 
         // Manually verify the user their email address
-        setEmailAddress(user, toLower(email), (err, user) => {
-          assert.notExists(err);
+        setEmailAddress(user, toLower(email), (error, user) => {
+          assert.notExists(error);
 
           user.username = username;
 
@@ -402,8 +402,8 @@ const generateTestGroups = (restContext, numberOfGroups, ...args) => {
       return callback(null, createdGroups);
     });
   } else {
-    generateSingleTestGroup(restContext, (err, group) => {
-      if (err) return callback(err);
+    generateSingleTestGroup(restContext, (error, group) => {
+      if (error) return callback(error);
       createdGroups.push({ restContext, group });
 
       // Recursively continue creating users
@@ -431,10 +431,10 @@ const generateSingleTestGroup = (restContext, callback) => {
     YES,
     NO_MANAGERS,
     NO_MEMBERS,
-    (err, group) => {
-      assert.ok(not(err));
-      getGroup(restContext, group.id, (err, fullGroupProfile) => {
-        assert.ok(not(err));
+    (error, group) => {
+      assert.ok(not(error));
+      getGroup(restContext, group.id, (error, fullGroupProfile) => {
+        assert.ok(not(error));
 
         return callback(null, fullGroupProfile);
       });
@@ -453,7 +453,7 @@ const generateSingleTestGroup = (restContext, callback) => {
  * @param  {RestContext}   callback.tenantAdminRestContext The rest context that can be used to make requests on behalf of the tenant administrator
  * @param  {User}          callback.tenantAdmin            The user object representing the tenant
  */
-const createTenantWithAdmin = function(tenantAlias, tenantHost, callback) {
+const createTenantWithAdmin = function (tenantAlias, tenantHost, callback) {
   const adminCtx = createGlobalAdminRestContext();
   TenantsTestUtil.createTenantAndWait(
     adminCtx,
@@ -461,62 +461,67 @@ const createTenantWithAdmin = function(tenantAlias, tenantHost, callback) {
     tenantAlias,
     tenantHost,
     { emailDomains: tenantHost },
-    (err, tenant) => {
-      if (err) {
-        return callback(err);
+    (error, tenant) => {
+      if (error) {
+        return callback(error);
       }
 
       // Disable reCaptcha so we can create a user
-      ConfigTestUtil.updateConfigAndWait(adminCtx, tenantAlias, { 'oae-principals/recaptcha/enabled': false }, err => {
-        if (err) {
-          return callback(err);
-        }
+      ConfigTestUtil.updateConfigAndWait(
+        adminCtx,
+        tenantAlias,
+        { 'oae-principals/recaptcha/enabled': false },
+        (error_) => {
+          if (error_) {
+            return callback(error_);
+          }
 
-        // Create the user and make them a tenant administrator
-        const anonymousCtx = createTenantRestContext(tenantHost);
-        const email = generateTestEmailAddress('administrator', 'domain.' + tenantHost).toLowerCase();
-        RestAPI.User.createUser(
-          anonymousCtx,
-          'administrator',
-          'administrator',
-          'Tenant Administrator',
-          email,
-          null,
-          (err, tenantAdmin) => {
-            if (err) {
-              return callback(err);
-            }
-
-            // Verify their email address
-            PrincipalsDAO.setEmailAddress(tenantAdmin, email, (err, tenantAdmin) => {
-              if (err) {
-                return callback(err);
+          // Create the user and make them a tenant administrator
+          const anonymousCtx = createTenantRestContext(tenantHost);
+          const email = generateTestEmailAddress('administrator', 'domain.' + tenantHost).toLowerCase();
+          RestAPI.User.createUser(
+            anonymousCtx,
+            'administrator',
+            'administrator',
+            'Tenant Administrator',
+            email,
+            null,
+            (error, tenantAdmin) => {
+              if (error) {
+                return callback(error);
               }
 
-              RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, err => {
-                if (err) {
-                  return callback(err);
+              // Verify their email address
+              PrincipalsDAO.setEmailAddress(tenantAdmin, email, (error, tenantAdmin) => {
+                if (error) {
+                  return callback(error);
                 }
 
-                // Re-enable reCaptcha
-                const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
-                ConfigTestUtil.updateConfigAndWait(
-                  tenantAdminRestCtx,
-                  null,
-                  { 'oae-principals/recaptcha/enabled': true },
-                  err => {
-                    if (err) {
-                      return callback(err);
-                    }
-
-                    return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                RestAPI.User.setTenantAdmin(adminCtx, tenantAdmin.id, true, (error_) => {
+                  if (error_) {
+                    return callback(error_);
                   }
-                );
+
+                  // Re-enable reCaptcha
+                  const tenantAdminRestCtx = createTenantAdminRestContext(tenantHost);
+                  ConfigTestUtil.updateConfigAndWait(
+                    tenantAdminRestCtx,
+                    null,
+                    { 'oae-principals/recaptcha/enabled': true },
+                    (error_) => {
+                      if (error_) {
+                        return callback(error_);
+                      }
+
+                      return callback(null, tenant, tenantAdminRestCtx, tenantAdmin);
+                    }
+                  );
+                });
               });
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     }
   );
 };
@@ -534,8 +539,8 @@ const generateGroupHierarchy = (restCtx, groupIds, role, callback) => {
 
   const membershipChanges = {};
   membershipChanges[groupIds[1]] = role;
-  setGroupMembers(restCtx, groupIds[0], membershipChanges, err => {
-    assert.notExists(err);
+  setGroupMembers(restCtx, groupIds[0], membershipChanges, (error) => {
+    assert.notExists(error);
 
     // Recurse, removing the first group
     return generateGroupHierarchy(restCtx, groupIds.slice(1), role, callback);
@@ -549,10 +554,7 @@ const generateGroupHierarchy = (restCtx, groupIds, role, callback) => {
  * @param  {String}     [seed]  The seed / prefix of the name. Defaults to "name"
  * @return {String}             A unique Cassandra object name
  */
-const generateTestCassandraName = function(seed) {
-  seed = seed || 'name';
-  return util.format('%s_%s', seed, ShortId.generate().replace(/-/g, '_'));
-};
+const generateTestCassandraName = (seed = 'name') => format('%s_%s', seed, ShortId.generate().replace(/-/g, '_'));
 
 /**
  * Generate a unique ElasticSearch object name. This will ensure a unique name that does not contain
@@ -561,10 +563,7 @@ const generateTestCassandraName = function(seed) {
  * @param  {String}     [seed]  The seed / prefix of the name. Defaults to "name"
  * @return {String}             A unique ElasticSearch object name
  */
-const generateTestElasticSearchName = function(seed) {
-  seed = seed || 'name';
-  return util.format('%s_%s', seed, ShortId.generate().toLowerCase());
-};
+const generateTestElasticSearchName = (seed = 'name') => format('%s_%s', seed, ShortId.generate().toLowerCase());
 
 /**
  * Generate a random unique user id that can be used inside of tests
@@ -572,10 +571,7 @@ const generateTestElasticSearchName = function(seed) {
  * @param  {String}     [seed]  String that should be used as the first part of the generated user id. Defaults to "user"
  * @return {String}             A random user id
  */
-const generateTestUserId = function(seed) {
-  seed = seed || 'user';
-  return util.format('%s-%s', seed, ShortId.generate());
-};
+const generateTestUserId = (seed = 'user') => format('%s-%s', seed, ShortId.generate());
 
 /**
  * Generate a random unique group id that can be used inside of tests
@@ -583,10 +579,7 @@ const generateTestUserId = function(seed) {
  * @param  {String}     [seed]  String that should be used as the first part of the generated group id. Defaults to "group"
  * @return {String}             A random group id
  */
-const generateTestGroupId = function(seed) {
-  seed = seed || 'group';
-  return util.format('%s-%s', seed, ShortId.generate());
-};
+const generateTestGroupId = (seed = 'group') => format('%s-%s', seed, ShortId.generate());
 
 /**
  * Generate a unique and random email address based on an optional seed
@@ -595,11 +588,8 @@ const generateTestGroupId = function(seed) {
  * @param  {String}     [domain]    The domain on which to put the email. Defaults to "oae-email.com"
  * @return {String}                 A random email address
  */
-const generateTestEmailAddress = function(seed, domain) {
-  seed = seed || 'email';
-  domain = domain || 'oae-email.com';
-  return util.format('%s_%s@%s', seed, ShortId.generate(), domain);
-};
+const generateTestEmailAddress = (seed = 'email', domain = 'oae-email.com') =>
+  format('%s_%s@%s', seed, ShortId.generate(), domain);
 
 /**
  * Create a Rest Context object that represents an anonymous or logged in user and can be used for tests
@@ -609,7 +599,7 @@ const generateTestEmailAddress = function(seed, domain) {
  * @param  {String}         [password]       Password for the user performing the request. This should be null for an anonymous user
  * @return {RestContext}                     Rest Context object that represents the anonymous or logged in user user on the provided tenant
  */
-const createTenantRestContext = function(host, username, password) {
+const createTenantRestContext = function (host, username, password) {
   return new RestContext('http://localhost:2001', {
     username,
     userPassword: password,
@@ -623,7 +613,7 @@ const createTenantRestContext = function(host, username, password) {
  * @param  {String}         host             Tenant URL for the tenant on which we want to perform a REST call
  * @return {RestContext}                     Rest Context object that represents the admin user on the provided tenant
  */
-const createTenantAdminRestContext = function(host) {
+const createTenantAdminRestContext = function (host) {
   return createTenantRestContext(host, 'administrator', 'administrator');
 };
 
@@ -635,7 +625,7 @@ const createTenantAdminRestContext = function(host) {
  * @param  {String}         [password]       Password for the user performing the request. This should be null for an anonymous user
  * @return {RestContext}                     Rest Context object that represents the anonymous or logged in user on the global admin server
  */
-const createGlobalRestContext = function(username, password) {
+const createGlobalRestContext = function (username, password) {
   return new RestContext('http://localhost:2000', {
     username,
     userPassword: password
@@ -648,7 +638,7 @@ const createGlobalRestContext = function(username, password) {
  *
  * @return {RestContext}                     Rest Context object that represents the global admin user on the provided tenant
  */
-const createGlobalAdminRestContext = function() {
+const createGlobalAdminRestContext = function () {
   return createGlobalRestContext('administrator', 'administrator');
 };
 
@@ -658,8 +648,8 @@ const createGlobalAdminRestContext = function() {
  * @param  {Tenant}    tenant  The tenant for which the context should be an administrator
  * @return {Context}           The api context that represents an administrator of the tenant
  */
-const createTenantAdminContext = function(tenant) {
-  const email = util.format('tenant-admin-%s', tenant.alias);
+const createTenantAdminContext = function (tenant) {
+  const email = format('tenant-admin-%s', tenant.alias);
   return new Context(
     tenant,
     new User(tenant.alias, 'u:' + tenant.alias + ':admin', 'Tenant Administrator', email, {
@@ -673,7 +663,7 @@ const createTenantAdminContext = function(tenant) {
  *
  * @return {Context}           The api context that represents an administrator of the tenant
  */
-const createGlobalAdminContext = function() {
+const createGlobalAdminContext = function () {
   const globalTenant = global.oaeTests.tenants.global;
   const globalAdminId = 'u:' + globalTenant.alias + ':admin';
   const globalUser = new User(globalTenant.alias, globalAdminId, 'Global Administrator', 'admin@example.com', {
@@ -691,11 +681,11 @@ const createGlobalAdminContext = function() {
  * @param  {User}           callback.user   The user associated to the request context
  * @throws {Error}                          Throws an assertion error if there is an issue fetching the user
  */
-const getUserFromRestContext = function(restCtx, callback) {
-  RestAPI.User.getMe(restCtx, (err, me) => {
-    assert.notExists(err);
-    RestAPI.User.getUser(restCtx, me.id, (err, user) => {
-      assert.notExists(err);
+const getUserFromRestContext = function (restCtx, callback) {
+  RestAPI.User.getMe(restCtx, (error, me) => {
+    assert.notExists(error);
+    RestAPI.User.getUser(restCtx, me.id, (error, user) => {
+      assert.notExists(error);
       return callback(user);
     });
   });
@@ -712,14 +702,14 @@ const getUserFromRestContext = function(restCtx, callback) {
  * @param  {String}     [callback...]           Subsequent resource ids as additional parameters
  * @return {String[]}                           Returns all generated resource ids
  */
-const generateResourceIds = function(n, resourceType, tenantAlias, callback) {
+const generateResourceIds = function (n, resourceType, tenantAlias, callback) {
   resourceType = resourceType || 'g';
   tenantAlias = tenantAlias || 'oae';
-  callback = callback || function() {};
+  callback = callback || function () {};
 
   const resourceIds = [];
   for (let i = 0; i < n; i++) {
-    resourceIds.push(util.format('%s:%s:%s', resourceType, tenantAlias, ShortId.generate()));
+    resourceIds.push(format('%s:%s:%s', resourceType, tenantAlias, ShortId.generate()));
   }
 
   callback.apply(this, resourceIds);
@@ -734,7 +724,7 @@ const generateResourceIds = function(n, resourceType, tenantAlias, callback) {
  * @param  {Number} [numberOfWords]     The amount of words you wish to generate. Default: 1
  * @return {String}                     A randomly generated string with `numberOfWords` in it
  */
-const generateRandomText = function(numberOfWords) {
+const generateRandomText = function (numberOfWords) {
   numberOfWords = OaeUtil.getNumberParam(numberOfWords, 1, 1);
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const text = [];
@@ -761,8 +751,8 @@ const generateRandomText = function(numberOfWords) {
  * @param  {Number}     bytes       The number of bytes that should be published over the stream
  * @return {Function}               A function that returns the stream
  */
-const createFileReadableStream = function(filename, size) {
-  return function() {
+const createFileReadableStream = function (filename, size) {
+  return function () {
     // We'll implement a readable stream that generates the data
     const rs = new stream.Stream();
 
@@ -770,17 +760,17 @@ const createFileReadableStream = function(filename, size) {
     rs.path = '/foo/bar/' + filename;
 
     // When we add a stream to request it gets delayed first, so we need to implement the `pause` method
-    rs.pause = function() {};
+    rs.pause = function () {};
 
     // Once `resume` has been called we can start emitting data
-    rs.resume = function() {
+    rs.resume = function () {
       /**
        * Generate dummy data to be written out in the stream
        *
        * @param  {Number} toGenerate   The amount of data to generate
        * @return {String}              A string with exactly `toGen` characters in it
        */
-      const generateData = function(toGenerate) {
+      const generateData = function (toGenerate) {
         let data = '';
         for (let i = 0; i < toGenerate; i++) {
           data += '0';
@@ -846,7 +836,7 @@ const createFileReadableStream = function(filename, size) {
  * @param  {Function}   callback    Standard callback function
  * @throws {Error}                  An assertion error is thrown if something does not get created properly
  */
-const setupMultiTenantPrivacyEntities = function(callback) {
+const setupMultiTenantPrivacyEntities = function (callback) {
   _createMultiPrivacyTenants((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
@@ -871,7 +861,7 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createMultiPrivacyTenants = function(callback) {
+const _createMultiPrivacyTenants = function (callback) {
   const publicTenantAlias = TenantsTestUtil.generateTestTenantAlias(PUBLIC);
   const publicTenant1Alias = TenantsTestUtil.generateTestTenantAlias('public1');
   const privateTenantAlias = TenantsTestUtil.generateTestTenantAlias(PRIVATE);
@@ -924,12 +914,12 @@ const _createMultiPrivacyTenants = function(callback) {
  * @throws {Error}                      An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _setupTenant = function(tenant, callback) {
+const _setupTenant = function (tenant, callback) {
   _createMultiPrivacyUsers(tenant, (publicUser, loggedinUser, privateUser) => {
     tenant.publicUser = publicUser;
     tenant.loggedinUser = loggedinUser;
     tenant.privateUser = privateUser;
-    _createMultiPrivacyGroups(tenant, allGroups => {
+    _createMultiPrivacyGroups(tenant, (allGroups) => {
       const {
         publicGroup,
         loggedinJoinableGroupByRequest,
@@ -959,10 +949,10 @@ const _setupTenant = function(tenant, callback) {
  * @throws {Error}                          An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createMultiPrivacyUsers = function(tenant, callback) {
-  _createUserWithVisibility(tenant, PUBLIC, publicUser => {
-    _createUserWithVisibility(tenant, LOGGEDIN, loggedinUser => {
-      _createUserWithVisibility(tenant, PRIVATE, privateUser => {
+const _createMultiPrivacyUsers = function (tenant, callback) {
+  _createUserWithVisibility(tenant, PUBLIC, (publicUser) => {
+    _createUserWithVisibility(tenant, LOGGEDIN, (loggedinUser) => {
+      _createUserWithVisibility(tenant, PRIVATE, (privateUser) => {
         return callback(publicUser, loggedinUser, privateUser);
       });
     });
@@ -980,8 +970,8 @@ const _createMultiPrivacyUsers = function(tenant, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createUserWithVisibility = function(tenant, visibility, callback) {
-  const randomId = util.format('%s-%s', visibility, ShortId.generate());
+const _createUserWithVisibility = function (tenant, visibility, callback) {
+  const randomId = format('%s-%s', visibility, ShortId.generate());
   const username = 'username-' + randomId;
   const password = 'password-' + randomId;
   const displayName = 'displayName-' + randomId;
@@ -994,8 +984,8 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
     displayName,
     email,
     { visibility, publicAlias },
-    (err, user) => {
-      assert.notExists(err);
+    (error, user) => {
+      assert.notExists(error);
       return callback({
         user,
         restContext: createTenantRestContext(tenant.adminRestContext.hostHeader, username, password)
@@ -1012,12 +1002,12 @@ const _createUserWithVisibility = function(tenant, visibility, callback) {
  * @throws {Error}                          An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createMultiPrivacyGroups = function(tenant, callback) {
+const _createMultiPrivacyGroups = function (tenant, callback) {
   const groupsToBeCreated = _getGroupsToBeCreated(tenant);
   async.eachOfSeries(
     groupsToBeCreated,
     (eachGroup, key, done) => {
-      _createGroupWithVisibility(tenant, eachGroup, createdGroup => {
+      _createGroupWithVisibility(tenant, eachGroup, (createdGroup) => {
         groupsToBeCreated[key] = createdGroup;
         done();
       });
@@ -1028,7 +1018,7 @@ const _createMultiPrivacyGroups = function(tenant, callback) {
   );
 };
 
-const _getGroupsToBeCreated = function(tenant) {
+const _getGroupsToBeCreated = function (tenant) {
   return {
     publicGroup: { visibility: PUBLIC, memberPrincipalId: tenant.publicUser.user.id, joinable: JOINABLE_BY_REQUEST },
     loggedinJoinableGroupByRequest: {
@@ -1073,9 +1063,9 @@ const _getGroupsToBeCreated = function(tenant) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createGroupWithVisibility = function(tenant, group, callback) {
+const _createGroupWithVisibility = function (tenant, group, callback) {
   const { visibility, memberPrincipalId, joinable } = group;
-  const randomId = util.format('%s-%s', visibility, ShortId.generate());
+  const randomId = format('%s-%s', visibility, ShortId.generate());
   const displayName = 'displayName-' + randomId;
   const description = 'description-' + randomId;
   RestAPI.Group.createGroup(
@@ -1086,8 +1076,8 @@ const _createGroupWithVisibility = function(tenant, group, callback) {
     joinable,
     [],
     [memberPrincipalId],
-    (err, newGroup) => {
-      assert.notExists(err);
+    (error, newGroup) => {
+      assert.notExists(error);
       return callback(newGroup);
     }
   );
@@ -1103,15 +1093,15 @@ const _createGroupWithVisibility = function(tenant, group, callback) {
  * @throws {Error}                                      An assertion error is thrown if there is an issue creating the tenant
  * @api private
  */
-const _createPrivateTenant = function(tenantAlias, callback) {
+const _createPrivateTenant = function (tenantAlias, callback) {
   _createPublicTenant(tenantAlias, PRIVATE, (tenant, tenantAdmin) => {
     // Only global admins can update tenant privacy, so use that
     ConfigTestUtil.updateConfigAndWait(
       createGlobalAdminRestContext(),
       tenant.alias,
       { 'oae-tenants/tenantprivacy/tenantprivate': true },
-      err => {
-        assert.notExists(err);
+      (error) => {
+        assert.notExists(error);
         return callback(tenant, tenantAdmin);
       }
     );
@@ -1129,12 +1119,12 @@ const _createPrivateTenant = function(tenantAlias, callback) {
  * @throws {Error}                                      An assertion error is thrown if there is an issue creating the tenant
  * @api private
  */
-const _createPublicTenant = function(tenantAlias, hostSeed, callback) {
+const _createPublicTenant = function (tenantAlias, hostSeed, callback) {
   createTenantWithAdmin(
     tenantAlias,
     TenantsTestUtil.generateTestTenantHost(hostSeed, generateRandomText()),
-    (err, tenant, tenantAdminRestCtx, tenantAdminUser) => {
-      assert.notExists(err);
+    (error, tenant, tenantAdminRestCtx, tenantAdminUser) => {
+      assert.notExists(error);
       return callback(tenant, { user: tenantAdminUser, restContext: tenantAdminRestCtx });
     }
   );
@@ -1148,15 +1138,15 @@ const _createPublicTenant = function(tenantAlias, hostSeed, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _ensureAuthenticated = function(restCtx, callback) {
+const _ensureAuthenticated = function (restCtx, callback) {
   if (restCtx.cookieJar) {
     return callback();
   }
 
   // eslint-disable-next-line no-unused-vars
-  RestAPI.User.getMe(restCtx, (err, me) => {
-    if (err) {
-      return callback(err);
+  RestAPI.User.getMe(restCtx, (error, me) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();
@@ -1168,7 +1158,7 @@ const _ensureAuthenticated = function(restCtx, callback) {
  *
  * @return {Object}    config    JSON object containing configuration values for Cassandra, Redis, logging and telemetry
  */
-const createInitialTestConfig = function() {
+const createInitialTestConfig = function () {
   // Require the configuration file, from here on the configuration should be
   // passed around instead of required
   const envConfig = require('../../../' + (process.env.NODE_ENV || 'local')).config;
@@ -1251,7 +1241,7 @@ const createInitialTestConfig = function() {
  *
  * @api private
  */
-const _bindRequestLogger = function() {
+const _bindRequestLogger = function () {
   const requestLog = require('oae-logger').logger('request-log');
 
   RestUtil.emitter.on('request', (restCtx, url, method, data) => {
@@ -1266,15 +1256,15 @@ const _bindRequestLogger = function() {
     );
   });
 
-  RestUtil.emitter.on('response', (body, res) => {
-    requestLog().trace({ res, body }, 'REST Request complete');
+  RestUtil.emitter.on('response', (body, response) => {
+    requestLog().trace({ res: response, body }, 'REST Request complete');
   });
 
-  RestUtil.emitter.on('error', (err, body, res) => {
+  RestUtil.emitter.on('error', (error, body, response) => {
     requestLog().error(
       {
-        err,
-        res,
+        err: error,
+        res: response,
         body
       },
       'An error occurred sending a REST request'
@@ -1294,19 +1284,19 @@ const _bindRequestLogger = function() {
  * @param  {Boolean}     dropKeyspaceBeforeTest    Whether or not we should drop the keyspace before the test.
  * @param  {Function}    callback                  Standard callback function
  */
-const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
-  Cassandra.init(config.cassandra, err => {
-    if (err) return callback(new Error(err.msg || err.message));
+const setUpBeforeTests = function (config, dropKeyspaceBeforeTest, callback) {
+  Cassandra.init(config.cassandra, (error) => {
+    if (error) return callback(new Error(error.msg || error.message));
 
-    const done = function(err) {
-      if (err) return callback(new Error(err.msg));
+    const done = function (error) {
+      if (error) return callback(new Error(error.msg));
 
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {
         Cassandra.close(() => {
           // Initialize the application modules
-          OAE.init(config, err => {
-            if (err) return callback(new Error(err.msg));
+          OAE.init(config, (error_) => {
+            if (error_) return callback(new Error(error_.msg));
 
             _bindRequestLogger();
           });
@@ -1315,16 +1305,16 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
            * Defer the test setup until after the task handlers are successfully bound and all the queues are drained.
            * This will always be fired after OAE.init has successfully finished.
            */
-          MQ.emitter.on('ready', err => {
-            if (err) return callback(new Error(err.msg));
+          MQ.emitter.on('ready', (error_) => {
+            if (error_) return callback(new Error(error_.msg));
 
             // Set up a couple of test tenants
-            setUpTenants(err => {
-              if (err) return callback(new Error(err.msg));
+            setUpTenants((error_) => {
+              if (error_) return callback(new Error(error_.msg));
 
               log().info('Disabling the preview processor during tests');
-              PreviewAPI.disable(err => {
-                if (err) return callback(new Error(err.msg));
+              PreviewAPI.disable((error_) => {
+                if (error_) return callback(new Error(error_.msg));
 
                 return callback();
               });
@@ -1348,17 +1338,17 @@ const setUpBeforeTests = function(config, dropKeyspaceBeforeTest, callback) {
  *
  * @param  {Function}    callback    Standard callback function
  */
-const cleanUpAfterTests = callback => {
-  Redis.flush(err => {
-    if (err) log().error({ err }, 'Error flushing Redis data after test completion');
+const cleanUpAfterTests = (callback) => {
+  Redis.flush((error) => {
+    if (error) log().error({ err: error }, 'Error flushing Redis data after test completion');
 
     return callback();
   });
 };
 
-const cleanAllQueues = callback => {
-  MQ.purgeAllBoundQueues(err => {
-    if (err) log().error({ err }, 'Error purging redis queues');
+const cleanAllQueues = (callback) => {
+  MQ.purgeAllBoundQueues((error) => {
+    if (error) log().error({ err: error }, 'Error purging redis queues');
 
     return callback();
   });
@@ -1372,14 +1362,14 @@ const cleanAllQueues = callback => {
  *
  * @return {Boolean}    `true` when the current process is part of an integration test, `false` otherwise
  */
-const isIntegrationTest = function() {
+const isIntegrationTest = function () {
   return process.env.OAE_TEST_INTEGRATION !== 'false';
 };
 
-const objectifySearchParams = params => {
+const objectifySearchParameters = (parameters) => {
   const result = {};
-  for (const eachKey of params.keys()) {
-    result[eachKey] = params.get(eachKey);
+  for (const eachKey of parameters.keys()) {
+    result[eachKey] = parameters.get(eachKey);
   }
 
   return result;
@@ -1416,5 +1406,5 @@ export {
   cleanUpAfterTests,
   cleanAllQueues,
   isIntegrationTest,
-  objectifySearchParams
+  objectifySearchParameters as objectifySearchParams
 };

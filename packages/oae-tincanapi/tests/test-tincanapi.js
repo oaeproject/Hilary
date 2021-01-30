@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it, afterEach, after } from 'mocha';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -49,7 +50,7 @@ describe('TinCanAPI', () => {
   /**
    * Initializes the admin REST contexts
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the cam admin rest context
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
@@ -59,9 +60,9 @@ describe('TinCanAPI', () => {
     // Create a new express application to mock a Learning Record Store
     createTestServer((_app, _server, _port) => {
       server = _server;
-      _app.post('/', (req, res) => {
-        onRequest(req);
-        res.sendStatus(200);
+      _app.post('/', (request, response) => {
+        onRequest(request);
+        response.sendStatus(200);
       });
 
       // Set the endpoint for the LRS
@@ -69,8 +70,8 @@ describe('TinCanAPI', () => {
         asCambridgeTenantAdmin,
         null,
         { 'oae-tincanapi/lrs/endpoint': `http://localhost:${_port}` },
-        err => {
-          assert.notExists(err);
+        (error) => {
+          assert.notExists(error);
           callback();
         }
       );
@@ -80,9 +81,9 @@ describe('TinCanAPI', () => {
   /**
    * Disables the LRS for the tenant after each test
    */
-  afterEach(callback => {
-    updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': false }, err => {
-      assert.notExists(err);
+  afterEach((callback) => {
+    updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': false }, (error) => {
+      assert.notExists(error);
       return callback();
     });
   });
@@ -90,27 +91,27 @@ describe('TinCanAPI', () => {
   /**
    * Close the tin can api mock LRS
    */
-  after(callback => {
+  after((callback) => {
     return server.close(callback);
   });
 
   /**
    * Test that verifies that TinCan API statements are sent to a configurable LRS.
    */
-  it('verify post TinCan statements', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify post TinCan statements', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: someUser } = users;
       const asSomeUser = someUser.restContext;
 
       // Collect any existing activities so they will not interfere with this test
-      collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-        assert.notExists(err);
+      collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+        assert.notExists(error);
 
         // Enable sending activities to the LRS as the default value is false
-        updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': true }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': true }, (error_) => {
+          assert.notExists(error_);
 
           const testLinks = {};
           let activitiesCollected = false;
@@ -120,16 +121,19 @@ describe('TinCanAPI', () => {
            * Define the function that will get executed when our dummy LRS receives a request
            * This should only happen when we trigger an activity collection cycle at the end of the test
            */
-          onRequest = req => {
+          onRequest = (request) => {
             // Check each activity if it matches the original
-            forEachObjIndexed(val => {
-              assert.strictEqual(val.actor.name, someUser.user.displayName);
+            forEachObjIndexed((value) => {
+              assert.strictEqual(value.actor.name, someUser.user.displayName);
               setTimeout(() => {
-                assert.ok(testLinks[val.object.id]);
-                assert.strictEqual(val.object.definition.name['en-US'], testLinks[val.object.id].displayName);
-                assert.strictEqual(val.object.definition.description['en-US'], testLinks[val.object.id].description);
+                assert.ok(testLinks[value.object.id]);
+                assert.strictEqual(value.object.definition.name['en-US'], testLinks[value.object.id].displayName);
+                assert.strictEqual(
+                  value.object.definition.description['en-US'],
+                  testLinks[value.object.id].description
+                );
               }, 2000);
-            }, req.body);
+            }, request.body);
 
             tincanChecked = true;
 
@@ -154,8 +158,8 @@ describe('TinCanAPI', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.notExists(err);
+            (error, link) => {
+              assert.notExists(error);
 
               // Store the created link
               testLinks[link.id] = link;
@@ -172,8 +176,8 @@ describe('TinCanAPI', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, link) => {
-                  assert.notExists(err);
+                (error, link) => {
+                  assert.notExists(error);
 
                   // Store the created link
                   testLinks[link.id] = link;
@@ -190,8 +194,8 @@ describe('TinCanAPI', () => {
                       viewers: NO_VIEWERS,
                       folders: NO_FOLDERS
                     },
-                    (err, link) => {
-                      assert.notExists(err);
+                    (error, link) => {
+                      assert.notExists(error);
 
                       // Store the created link
                       testLinks[link.id] = link;
@@ -200,8 +204,8 @@ describe('TinCanAPI', () => {
                        * Force an activity collection cycle that will send the activities to our dummy LRS
                        * The test will be ended there
                        */
-                      collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+                        assert.notExists(error);
                         activitiesCollected = true;
 
                         /**
@@ -226,16 +230,16 @@ describe('TinCanAPI', () => {
   /**
    * Test that verifies that no statements are posted when the LRS is disabled
    */
-  it('verify TinCan integration enabled', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify TinCan integration enabled', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: someUser } = users;
       const asSomeUser = someUser.restContext;
 
       // Collect any existing activities so they will not interfere with this test
-      collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-        assert.notExists(err);
+      collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+        assert.notExists(error);
 
         onRequest = (/* req */) => {
           assert.fail(null, null, 'No statements should be sent when LRS integration is disabled');
@@ -253,12 +257,12 @@ describe('TinCanAPI', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err /* , link */) => {
-            assert.notExists(err);
+          (error /* , link */) => {
+            assert.notExists(error);
 
             // Force the activities
-            collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-              assert.notExists(err);
+            collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+              assert.notExists(error);
               callback();
             });
           }
@@ -270,23 +274,23 @@ describe('TinCanAPI', () => {
   /**
    * Test that verifies if statements are (not) sent when activities are received from multiple tenants with different LRS-enabled values
    */
-  it('verify permeable tenant TinCan statements', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify permeable tenant TinCan statements', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: someUser } = users;
       const asSomeUser = someUser.restContext;
 
       // Collect any existing activities so they will not interfere with this test
-      collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-        assert.notExists(err);
+      collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+        assert.notExists(error);
 
         /**
          * Enable sending activities to the LRS as the default value is false
          * Note that we only enable it for the Cambridge tenant
          */
-        updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': true }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-tincanapi/lrs/enabled': true }, (error_) => {
+          assert.notExists(error_);
 
           let activitiesCollected = false;
           let tincanChecked = false;
@@ -295,12 +299,12 @@ describe('TinCanAPI', () => {
            * Define the function that will get executed when our dummy LRS receives a request
            * This should only happen when we trigger an activity collection cycle at the end of the test
            */
-          onRequest = function(req) {
+          onRequest = function (request) {
             // Check each activity if it matches the original
-            forEachObjIndexed(val => {
-              assert.strictEqual(val.actor.name, someUser.user.displayName);
-              assert.strictEqual(val.actor.account.name, someUser.user.publicAlias);
-            }, req.body);
+            forEachObjIndexed((value) => {
+              assert.strictEqual(value.actor.name, someUser.user.displayName);
+              assert.strictEqual(value.actor.account.name, someUser.user.publicAlias);
+            }, request.body);
 
             tincanChecked = true;
 
@@ -325,12 +329,12 @@ describe('TinCanAPI', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err /* , link */) => {
-              assert.notExists(err);
+            (error /* , link */) => {
+              assert.notExists(error);
 
               // Create a new user on the GT tenant
-              generateTestUsers(asGeorgiaTechTenantAdmin, 1, (err, users) => {
-                assert.notExists(err);
+              generateTestUsers(asGeorgiaTechTenantAdmin, 1, (error, users) => {
+                assert.notExists(error);
 
                 // Store the gtUser
                 const { 0: someUserFromGeorgiaTech } = users;
@@ -348,15 +352,15 @@ describe('TinCanAPI', () => {
                     viewers: NO_VIEWERS,
                     folders: NO_FOLDERS
                   },
-                  (err /* , link */) => {
-                    assert.notExists(err);
+                  (error /* , link */) => {
+                    assert.notExists(error);
 
                     /**
                      * Force an activity collection cycle. It doesn't really matter which restContext we pass in,
                      * as that is only used to retrieve the activity stream
                      */
-                    collectAndGetActivityStream(asSomeUser, null, null, (err /* , activityStream */) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asSomeUser, null, null, (error /* , activityStream */) => {
+                      assert.notExists(error);
 
                       activitiesCollected = true;
 

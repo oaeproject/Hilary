@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { initializeTinCanAPI } from './api';
+import { initializeTinCanAPI } from './api.js';
 
 export function init(config, callback) {
   initializeTinCanAPI(config.tincanapi, callback);

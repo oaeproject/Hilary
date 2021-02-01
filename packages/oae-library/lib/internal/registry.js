@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 const libraryIndexes = {};
@@ -26,11 +26,9 @@ const registerLibraryIndex = function (name, options) {
   options = options || {};
 
   if (libraryIndexes[name]) {
-    throw new Error(util.format('Attempted to register duplicate library index with name "%s"', name));
+    throw new Error(format('Attempted to register duplicate library index with name "%s"', name));
   } else if (!_.isFunction(options.pageResources)) {
-    throw new TypeError(
-      util.format('Attempted to register library index "%s" that has no "pageResources" function', name)
-    );
+    throw new TypeError(format('Attempted to register library index "%s" that has no "pageResources" function', name));
   }
 
   libraryIndexes[name] = options;

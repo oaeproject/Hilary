@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -143,10 +144,10 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
   // If `fields` was specified, we select only the fields specified. Otherwise we select all (i.e., *)
   if (fields) {
     const columns = _.map(fields, (field) => {
-      return util.format('"%s"', field);
+      return format('"%s"', field);
     });
 
-    query = util.format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
+    query = format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
   } else {
     query = 'SELECT * FROM "Discussions" WHERE "id" IN ?';
   }

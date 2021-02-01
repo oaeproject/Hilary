@@ -14,7 +14,7 @@
  */
 
 import url from 'url';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 
@@ -433,7 +433,7 @@ const _isHtmlDocument = function (content) {
  * @api private
  */
 const _wrapInHtmlBody = function (content) {
-  return util.format('<!DOCTYPE HTML><html><body>%s</body></html>', content);
+  return format('<!DOCTYPE HTML><html><body>%s</body></html>', content);
 };
 
 /**

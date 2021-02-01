@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
@@ -86,7 +86,7 @@ const getMultipleContentItems = function (contentIds, fields, callback) {
 
     // Always fetch the content id
     fields = _.union(fields, ['contentId']);
-    query = util.format('SELECT "%s" FROM "Content" WHERE "contentId" IN ?', fields.join('","'));
+    query = format('SELECT "%s" FROM "Content" WHERE "contentId" IN ?', fields.join('","'));
   } else {
     query = 'SELECT * FROM "Content" WHERE "contentId" IN ?';
   }

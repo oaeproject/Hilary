@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
@@ -95,11 +96,11 @@ const getMultipleRevisions = function (revisionIds, options, callback) {
 
     // Always fetch the revisionId
     options.fields = _.union(options.fields, ['revisionId']);
-    columns = util.format('"%s"', options.fields.join('","'));
+    columns = format('"%s"', options.fields.join('","'));
   }
 
   Cassandra.runQuery(
-    util.format('SELECT %s FROM "Revisions" WHERE "revisionId" IN ?', columns),
+    format('SELECT %s FROM "Revisions" WHERE "revisionId" IN ?', columns),
     [revisionIds],
     (error, rows) => {
       if (error) {

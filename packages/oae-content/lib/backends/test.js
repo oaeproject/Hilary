@@ -22,9 +22,9 @@
  * This should only be used during unit tests and *NEVER* in production.
  */
 
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
-import * as LocalStorage from './local';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
+import * as LocalStorage from './local.js';
 
 /**
  * @borrows Interface.store as TestStorageBackend.store

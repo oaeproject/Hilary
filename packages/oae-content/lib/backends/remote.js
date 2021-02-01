@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import { ContentConstants } from '../constants';
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
+import { ContentConstants } from '../constants.js';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
 
 /**
  * This backend isn't actually able to to store or retrieve anything.

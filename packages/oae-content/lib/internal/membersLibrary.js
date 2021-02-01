@@ -20,7 +20,7 @@ import _ from 'underscore';
 import * as LibraryAPI from 'oae-library';
 
 import { logger } from 'oae-logger';
-import { ContentConstants } from '../constants';
+import { ContentConstants } from '../constants.js';
 
 const log = logger('content-memberslibrary');
 

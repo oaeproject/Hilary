@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
-import util from 'util';
+import { format } from 'util';
 import mime from 'mime';
 
 import { S3 } from 'awssum-amazon-s3';
@@ -25,16 +25,16 @@ import * as IO from 'oae-util/lib/io';
 import { logger } from 'oae-logger';
 import * as TempFile from 'oae-util/lib/tempfile';
 
-import { ContentConstants } from '../constants';
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
+import { ContentConstants } from '../constants.js';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
 
 const Config = setUpConfig('oae-content');
 const log = logger('amazon-storage');
 
-/// ///////////////////
-// Storage methods. //
-/// ///////////////////
+/**
+ * Storage methods
+ */
 
 /**
  * @borrows Interface.store as Amazons3.store
@@ -174,12 +174,12 @@ const getDownloadStrategy = function (tenantAlias, uri) {
   const s3 = _getClient(tenantAlias);
   const bucketName = _getBucketName(tenantAlias);
   const amazonUri = BackendUtil.splitUri(uri).location;
-  const stringToSign = util.format('GET\n\n\n%d\n/%s/%s', expires, bucketName, amazonUri);
+  const stringToSign = format('GET\n\n\n%d\n/%s/%s', expires, bucketName, amazonUri);
   const signature = encodeURIComponent(s3.signature(stringToSign));
 
   // Construct the signed URL
   const keyId = s3.accessKeyId();
-  const url = util.format(
+  const url = format(
     'https://%s.s3.amazonaws.com/%s?AWSAccessKeyId=%s&Signature=%s&Expires=%s',
     bucketName,
     amazonUri,

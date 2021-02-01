@@ -15,15 +15,15 @@
 
 import fs from 'fs';
 import Path from 'path';
-import util from 'util';
+import { format } from 'util';
 
 import * as IO from 'oae-util/lib/io';
 import { logger } from 'oae-logger';
 import * as TempFile from 'oae-util/lib/tempfile';
 
-import { ContentConstants } from '../constants';
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
+import { ContentConstants } from '../constants.js';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
 
 const log = logger('local-storage');
 
@@ -78,7 +78,7 @@ const store = function (tenantAlias, file, options, callback) {
   const uri = BackendUtil.generateUri(file, options);
 
   // Get the paths on disk where we'll store the file
-  const destPath = util.format('%s/%s', getRootDirectory(), uri);
+  const destPath = format('%s/%s', getRootDirectory(), uri);
   const destDir = Path.dirname(destPath);
 
   // Make sure the directory tree exists by creating them if necessary
@@ -106,7 +106,7 @@ const store = function (tenantAlias, file, options, callback) {
  */
 const get = function (tenantAlias, uri, callback) {
   // Construct the path where the file is stored
-  const path = util.format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
+  const path = format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
 
   // Copy it to a temp folder
   const filename = Path.basename(path);
@@ -127,7 +127,7 @@ const get = function (tenantAlias, uri, callback) {
  */
 const remove = function (tenantAlias, uri, callback) {
   // Construct the path where the file is stored
-  const path = util.format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
+  const path = format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
 
   // Unlink it
   fs.unlink(path, (error) => {

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
@@ -77,7 +77,7 @@ const saveAuthorId = function (authorId, userId, callback) {
  * @api private
  */
 const _getMappingKey = function (authorId) {
-  return util.format('etherpad:mapping:%s', authorId);
+  return format('etherpad:mapping:%s', authorId);
 };
 
 export { getUserIds, saveAuthorId };

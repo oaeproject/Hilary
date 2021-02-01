@@ -14,7 +14,7 @@
  */
 
 import querystring from 'querystring';
-import util from 'util';
+import { format } from 'util';
 import { setUpConfig } from 'oae-config';
 import _ from 'underscore';
 import { ContentConstants } from 'oae-content/lib/constants';
@@ -138,7 +138,7 @@ const getSignedDownloadUrl = function (ctx, uri, duration, offset) {
   // Attach the signature and expiry time to the final data object
   _.extend(data, signatureData);
 
-  return util.format('/api/download/signed?%s', querystring.stringify(data));
+  return format('/api/download/signed?%s', querystring.stringify(data));
 };
 
 /**

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import ShortId from 'shortid';
 import * as AuthzUtil from 'oae-authz/lib/util';
 
@@ -109,7 +109,7 @@ const generateUri = function (file, options) {
  * @return {String}            The partial file URI
  */
 const _hash = function (resourceType, tenantAlias, resourceId) {
-  return util.format(
+  return format(
     '%s/%s/%s/%s/%s/%s/%s',
     resourceType,
     tenantAlias,

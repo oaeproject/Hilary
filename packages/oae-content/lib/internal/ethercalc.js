@@ -18,7 +18,7 @@ import EthercalcClient from 'ethercalc-client';
 import cheerio from 'cheerio';
 import { logger } from 'oae-logger';
 
-import * as ContentDAO from './dao';
+import * as ContentDAO from './dao.js';
 import {
   curry,
   startsWith,

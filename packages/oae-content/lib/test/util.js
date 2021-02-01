@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 import async from 'async';
@@ -755,7 +755,7 @@ const _createMultiPrivacyContent = function (restCtx, callback) {
  * @api private
  */
 const _createContentWithVisibility = function (restCtx, visibility, callback) {
-  const randomId = util.format('%s-%s', visibility, ShortId.generate());
+  const randomId = format('%s-%s', visibility, ShortId.generate());
   RestAPI.Content.createLink(
     restCtx,
     {

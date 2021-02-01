@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars, import/namespace */
 
-import * as FoldersSearch from './search.js';
+import * as FoldersSearch from './search';
 
 // Register activity, library, previews and search functionality
-import * as activity from './activity.js';
-import * as library from './library.js';
-import * as previews from './previews.js';
-import * as invitations from './invitations.js';
+import * as activity from './activity';
+import * as library from './library';
+import * as previews from './previews';
+import * as invitations from './invitations';
 
 export function init(config, callback) {
   return FoldersSearch.init(callback);

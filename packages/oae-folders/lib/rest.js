@@ -42,35 +42,35 @@ import * as FoldersAPI from 'oae-folders';
  * @HttpResponse                    400                 One or more of the members you're trying to add can not be added due to tenant/visibility boundaries
  * @HttpResponse                    401                 Anonymous users cannot create folders
  */
-OAE.tenantRouter.on('post', '/api/folder', (request, response) => {
-  const managerIds = OaeUtil.toArray(request.body.managers);
-  const viewerIds = OaeUtil.toArray(request.body.viewers);
+OAE.tenantRouter.on('post', '/api/folder', (req, res) => {
+  const managerIds = OaeUtil.toArray(req.body.managers);
+  const viewerIds = OaeUtil.toArray(req.body.viewers);
 
   // Hold the user roles to initialize the folder with
   const roles = {};
 
   // Apply the manager roles
-  _.each(managerIds, (managerId) => {
+  _.each(managerIds, managerId => {
     roles[managerId] = AuthzConstants.role.MANAGER;
   });
 
   // Apply the viewer roles
-  _.each(viewerIds, (viewerId) => {
+  _.each(viewerIds, viewerId => {
     roles[viewerId] = AuthzConstants.role.VIEWER;
   });
 
   FoldersAPI.createFolder(
-    request.ctx,
-    request.body.displayName,
-    request.body.description,
-    request.body.visibility,
+    req.ctx,
+    req.body.displayName,
+    req.body.description,
+    req.body.visibility,
     roles,
-    (error, folder) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
+    (err, folder) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
       }
 
-      return response.status(201).send(folder);
+      return res.status(201).send(folder);
     }
   );
 });
@@ -87,13 +87,13 @@ OAE.tenantRouter.on('post', '/api/folder', (request, response) => {
  * @HttpResponse                    200         The folders the current user manages are returned
  * @HttpResponse                    401         Anonymous users don't manage any folders
  */
-OAE.tenantRouter.on('get', '/api/folder/managed', (request, response) => {
-  FoldersAPI.getManagedFolders(request.ctx, (error, results, nextToken) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('get', '/api/folder/managed', (req, res) => {
+  FoldersAPI.getManagedFolders(req.ctx, (err, results, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).send({ results, nextToken });
+    return res.status(200).send({ results, nextToken });
   });
 });
 
@@ -111,13 +111,13 @@ OAE.tenantRouter.on('get', '/api/folder/managed', (request, response) => {
  * @HttpResponse                    400                 An invalid folder id was provided
  * @HttpResponse                    401                 You're not allowed to access this folder
  */
-OAE.tenantRouter.on('get', '/api/folder/:folderId', (request, response) => {
-  FoldersAPI.getFullFolderProfile(request.ctx, request.params.folderId, (error, folder) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('get', '/api/folder/:folderId', (req, res) => {
+  FoldersAPI.getFullFolderProfile(req.ctx, req.params.folderId, (err, folder) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).send(folder);
+    return res.status(200).send(folder);
   });
 });
 
@@ -141,13 +141,13 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId', (request, response) => {
  * @HttpResponse                    400                 An invalid visibility was provided
  * @HttpResponse                    401                 You're not allowed to update this folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId', (request, response) => {
-  FoldersAPI.updateFolder(request.ctx, request.params.folderId, request.body, (error, updatedFolder) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('post', '/api/folder/:folderId', (req, res) => {
+  FoldersAPI.updateFolder(req.ctx, req.params.folderId, req.body, (err, updatedFolder) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).send(updatedFolder);
+    return res.status(200).send(updatedFolder);
   });
 });
 
@@ -167,20 +167,15 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId', (request, response) => {
  * @HttpResponse                    400                 An invalid visibility was provided
  * @HttpResponse                    401                 You're not allowed to update this folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/contentvisibility', (request, response) => {
-  FoldersAPI.updateFolderContentVisibility(
-    request.ctx,
-    request.params.folderId,
-    request.body.visibility,
-    (error, failedContent) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
-      }
-
-      const data = { failedContent };
-      return response.status(200).send(data);
+OAE.tenantRouter.on('post', '/api/folder/:folderId/contentvisibility', (req, res) => {
+  FoldersAPI.updateFolderContentVisibility(req.ctx, req.params.folderId, req.body.visibility, (err, failedContent) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    const data = { failedContent };
+    return res.status(200).send(data);
+  });
 });
 
 /**
@@ -199,15 +194,15 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/contentvisibility', (request,
  * @HttpResponse                    401                 You're not allowed to delete this folder
  * @HttpResponse                    404                 The folder did not exist
  */
-OAE.tenantRouter.on('delete', '/api/folder/:folderId', (request, response) => {
-  const deleteContent = OaeUtil.castToBoolean(request.body.deleteContent);
-  FoldersAPI.deleteFolder(request.ctx, request.params.folderId, deleteContent, (error, failedContent) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('delete', '/api/folder/:folderId', (req, res) => {
+  const deleteContent = OaeUtil.castToBoolean(req.body.deleteContent);
+  FoldersAPI.deleteFolder(req.ctx, req.params.folderId, deleteContent, (err, failedContent) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
     const data = { failedContent };
-    return response.status(200).send(data);
+    return res.status(200).send(data);
   });
 });
 
@@ -227,14 +222,14 @@ OAE.tenantRouter.on('delete', '/api/folder/:folderId', (request, response) => {
  * @HttpResponse                    400                 An invalid set of principals has been provided
  * @HttpResponse                    401                 You're not allowed to share this folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/share', (request, response) => {
-  const viewers = OaeUtil.toArray(request.body.viewers);
-  FoldersAPI.shareFolder(request.ctx, request.params.folderId, viewers, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('post', '/api/folder/:folderId/share', (req, res) => {
+  const viewers = OaeUtil.toArray(req.body.viewers);
+  FoldersAPI.shareFolder(req.ctx, req.params.folderId, viewers, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -254,19 +249,19 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/share', (request, response) =
  * @HttpResponse                            400                 Invalid role updates have been provided
  * @HttpResponse                            401                 You're not allowed to update the permissions for this folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/members', (request, response) => {
+OAE.tenantRouter.on('post', '/api/folder/:folderId/members', (req, res) => {
   // Parse the incoming false values
   const permissionUpdates = {};
-  _.each(request.body, (value, key) => {
+  _.each(req.body, (value, key) => {
     permissionUpdates[key] = OaeUtil.castToBoolean(value);
   });
 
-  FoldersAPI.setFolderPermissions(request.ctx, request.params.folderId, permissionUpdates, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+  FoldersAPI.setFolderPermissions(req.ctx, req.params.folderId, permissionUpdates, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -286,21 +281,15 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/members', (request, response)
  * @HttpResponse                    400                     An invalid folder id has been specified
  * @HttpResponse                    401                     You're not allowed to list the members of this folder
  */
-OAE.tenantRouter.on('get', '/api/folder/:folderId/members', (request, response) => {
-  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
-  FoldersAPI.getFolderMembers(
-    request.ctx,
-    request.params.folderId,
-    request.query.start,
-    limit,
-    (error, members, nextToken) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
-      }
-
-      return response.status(200).send({ results: members, nextToken });
+OAE.tenantRouter.on('get', '/api/folder/:folderId/members', (req, res) => {
+  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+  FoldersAPI.getFolderMembers(req.ctx, req.params.folderId, req.query.start, limit, (err, members, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: members, nextToken });
+  });
 });
 
 /**
@@ -318,13 +307,13 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/members', (request, response) 
  * @HttpResponse                        401                 You are not allowed to get invitations for this folder
  * @HttpResponse                        404                 Folder not available
  */
-OAE.tenantRouter.on('get', '/api/folder/:folderId/invitations', (request, response) => {
-  FoldersAPI.getFolderInvitations(request.ctx, request.params.folderId, (error, invitations) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('get', '/api/folder/:folderId/invitations', (req, res) => {
+  FoldersAPI.getFolderInvitations(req.ctx, req.params.folderId, (err, invitations) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).send({ results: invitations });
+    return res.status(200).send({ results: invitations });
   });
 });
 
@@ -346,13 +335,13 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/invitations', (request, respon
  * @HttpResponse                        404                 Folder not available
  * @HttpResponse                        404                 No invitation for the specified email exists for the folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/invitations/:email/resend', (request, response) => {
-  FoldersAPI.resendFolderInvitation(request.ctx, request.params.folderId, request.params.email, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('post', '/api/folder/:folderId/invitations/:email/resend', (req, res) => {
+  FoldersAPI.resendFolderInvitation(req.ctx, req.params.folderId, req.params.email, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -372,21 +361,15 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/invitations/:email/resend', (
  * @HttpResponse                        400                 An invalid principal id has been specified
  * @HttpResponse                        401                 You're not allowed to list this folder library
  */
-OAE.tenantRouter.on('get', '/api/folder/library/:principalId', (request, response) => {
-  const limit = OaeUtil.getNumberParam(request.query.limit, 12, 1, 25);
-  FoldersAPI.getFoldersLibrary(
-    request.ctx,
-    request.params.principalId,
-    request.query.start,
-    limit,
-    (error, results, nextToken) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
-      }
-
-      return response.status(200).send({ results, nextToken });
+OAE.tenantRouter.on('get', '/api/folder/library/:principalId', (req, res) => {
+  const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
+  FoldersAPI.getFoldersLibrary(req.ctx, req.params.principalId, req.query.start, limit, (err, results, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results, nextToken });
+  });
 });
 
 /**
@@ -405,13 +388,13 @@ OAE.tenantRouter.on('get', '/api/folder/library/:principalId', (request, respons
  * @HttpResponse                    400                     An invalid folder id has been specified
  * @HttpResponse                    401                     You're not allowed to delete this folder from the principal's library
  */
-OAE.tenantRouter.on('delete', '/api/folder/library/:principalId/:folderId', (request, response) => {
-  FoldersAPI.removeFolderFromLibrary(request.ctx, request.params.principalId, request.params.folderId, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('delete', '/api/folder/library/:principalId/:folderId', (req, res) => {
+  FoldersAPI.removeFolderFromLibrary(req.ctx, req.params.principalId, req.params.folderId, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -433,14 +416,14 @@ OAE.tenantRouter.on('delete', '/api/folder/library/:principalId/:folderId', (req
  * @HttpResponse                            401                 You're not allowed to add content items to this folder
  * @HttpResponse                            404                 The folder or one or more content items do not exist
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/library', (request, response) => {
-  const contentIds = OaeUtil.toArray(request.body.contentIds);
-  FoldersAPI.addContentItemsToFolder(request.ctx, request.params.folderId, contentIds, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('post', '/api/folder/:folderId/library', (req, res) => {
+  const contentIds = OaeUtil.toArray(req.body.contentIds);
+  FoldersAPI.addContentItemsToFolder(req.ctx, req.params.folderId, contentIds, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -461,14 +444,14 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/library', (request, response)
  * @HttpResponse                            401                 You're not allowed to remove content items from this folder
  * @HttpResponse                            404                 The folder or one or more content items do not exist
  */
-OAE.tenantRouter.on('delete', '/api/folder/:folderId/library', (request, response) => {
-  const contentIds = OaeUtil.toArray(request.body.contentIds);
-  FoldersAPI.removeContentItemsFromFolder(request.ctx, request.params.folderId, contentIds, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('delete', '/api/folder/:folderId/library', (req, res) => {
+  const contentIds = OaeUtil.toArray(req.body.contentIds);
+  FoldersAPI.removeContentItemsFromFolder(req.ctx, req.params.folderId, contentIds, err => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).end();
+    return res.status(200).end();
   });
 });
 
@@ -489,19 +472,19 @@ OAE.tenantRouter.on('delete', '/api/folder/:folderId/library', (request, respons
  * @HttpResponse                        400                 You do not have access to one or more of the specified content items
  * @HttpResponse                        401                 You're not allowed to list the content items in this folder
  */
-OAE.tenantRouter.on('get', '/api/folder/:folderId/library', (request, response) => {
-  const limit = OaeUtil.getNumberParam(request.query.limit, 12, 1, 25);
+OAE.tenantRouter.on('get', '/api/folder/:folderId/library', (req, res) => {
+  const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
   FoldersAPI.getFolderContentLibrary(
-    request.ctx,
-    request.params.folderId,
-    request.query.start,
+    req.ctx,
+    req.params.folderId,
+    req.query.start,
     limit,
-    (error, results, nextToken) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
+    (err, results, nextToken) => {
+      if (err) {
+        return res.status(err.code).send(err.msg);
       }
 
-      return response.status(200).send({ results, nextToken });
+      return res.status(200).send({ results, nextToken });
     }
   );
 });
@@ -524,21 +507,15 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/library', (request, response) 
  * @HttpResponse                        401                 You are not authorized to view this folder
  * @HttpResponse                        404                 Could not find the specified folder
  */
-OAE.tenantRouter.on('get', '/api/folder/:folderId/messages', (request, response) => {
-  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
-  FoldersAPI.getMessages(
-    request.ctx,
-    request.params.folderId,
-    request.query.start,
-    limit,
-    (error, messages, nextToken) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
-      }
-
-      return response.status(200).send({ results: messages, nextToken });
+OAE.tenantRouter.on('get', '/api/folder/:folderId/messages', (req, res) => {
+  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+  FoldersAPI.getMessages(req.ctx, req.params.folderId, req.query.start, limit, (err, messages, nextToken) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send({ results: messages, nextToken });
+  });
 });
 
 /**
@@ -563,20 +540,14 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/messages', (request, response)
  * @HttpResponse                401                 You are not authorized to post messages to this folder
  * @HttpResponse                404                 Could not find the specified folder
  */
-OAE.tenantRouter.on('post', '/api/folder/:folderId/messages', (request, response) => {
-  FoldersAPI.createMessage(
-    request.ctx,
-    request.params.folderId,
-    request.body.body,
-    request.body.replyTo,
-    (error, message) => {
-      if (error) {
-        return response.status(error.code).send(error.msg);
-      }
-
-      return response.status(200).send(message);
+OAE.tenantRouter.on('post', '/api/folder/:folderId/messages', (req, res) => {
+  FoldersAPI.createMessage(req.ctx, req.params.folderId, req.body.body, req.body.replyTo, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
-  );
+
+    return res.status(200).send(message);
+  });
 });
 
 /**
@@ -599,12 +570,12 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/messages', (request, response
  * @HttpResponse                        404                 Could not find the specified folder
  * @HttpResponse                        404                 Could not find the specified message
  */
-OAE.tenantRouter.on('delete', '/api/folder/:folderId/messages/:created', (request, response) => {
-  FoldersAPI.deleteMessage(request.ctx, request.params.folderId, request.params.created, (error, message) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
+OAE.tenantRouter.on('delete', '/api/folder/:folderId/messages/:created', (req, res) => {
+  FoldersAPI.deleteMessage(req.ctx, req.params.folderId, req.params.created, (err, message) => {
+    if (err) {
+      return res.status(err.code).send(err.msg);
     }
 
-    return response.status(200).send(message);
+    return res.status(200).send(message);
   });
 });

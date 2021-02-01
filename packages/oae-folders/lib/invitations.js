@@ -14,7 +14,6 @@
  */
 
 import _ from 'underscore';
-import { pipe, keys, filter, isEmpty } from 'ramda';
 
 import { logger } from 'oae-logger';
 
@@ -39,14 +38,19 @@ ResourceActions.emitter.when(
   ResourceConstants.events.ACCEPTED_INVITATION,
   (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
     // Filter the invitations and changes down to only folder invitations
-    const folderGroupIds = pipe(keys, filter(AuthzUtil.isGroupId))(memberChangeInfosByResourceId);
-    if (isEmpty(folderGroupIds)) callback();
+    const folderGroupIds = _.chain(memberChangeInfosByResourceId)
+      .keys()
+      .filter(AuthzUtil.isGroupId)
+      .value();
+    if (_.isEmpty(folderGroupIds)) {
+      return callback();
+    }
 
-    FoldersDAO.getFoldersByGroupIds(folderGroupIds, (error, folders) => {
-      if (error) {
+    FoldersDAO.getFoldersByGroupIds(folderGroupIds, (err, folders) => {
+      if (err) {
         log().warn(
           {
-            err: error,
+            err,
             folderGroupIds
           },
           'An error occurred while getting folders to update folder libraries after an invitation was accepted'
@@ -63,7 +67,7 @@ ResourceActions.emitter.when(
       callback(null, folders);
 
       // Fire members update tasks for each folder
-      _.each(folders, (folder) => {
+      _.each(folders, folder => {
         const invitationHash = _.findWhere(invitationHashes, { resourceId: folder.groupId });
         const inviterUser = inviterUsersById[invitationHash.inviterUserId];
 
@@ -87,11 +91,11 @@ ResourceActions.emitter.when(
  * When a folder is deleted, we delete all invitations associated to it
  */
 FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, memberIds, callback) => {
-  AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, (error) => {
-    if (error) {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, err => {
+    if (err) {
       log().warn(
         {
-          err: error,
+          err,
           folderId: folder.id
         },
         'An error occurred while removing invitations after a folder was deleted'
@@ -110,6 +114,6 @@ FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, me
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _isFolderId = function (folderId) {
+const _isFolderId = function(folderId) {
   return AuthzUtil.isResourceId(folderId) && folderId.indexOf('f:') === 0;
 };

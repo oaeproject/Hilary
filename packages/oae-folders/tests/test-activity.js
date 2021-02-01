@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -38,7 +37,7 @@ describe('Folders - Activity', () => {
   /*!
    * Set up an admin REST context before the tests
    */
-  before((done) => {
+  before(done => {
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return done();
   });
@@ -55,32 +54,32 @@ describe('Folders - Activity', () => {
    * @param  {Object}     callback.group1     The first group as returned by `TestsUtil.generateTestGroups`
    * @param  {Object}     callback.group2     The second group as returned by `TestsUtil.generateTestGroups`
    */
-  const _setup = function (callback) {
+  const _setup = function(callback) {
     // Generate some users
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (error, users) => {
-      assert.notExists(error);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (err, users) => {
+      assert.notExists(err);
 
       const { 0: simong, 1: nico, 2: bert, 3: stuart, 4: stephen, 5: groupMemberA, 6: groupMemberB } = users;
 
       // Generate some groups
-      TestsUtil.generateTestGroups(simong.restContext, 2, (error, groups) => {
-        assert.notExists(error);
+      TestsUtil.generateTestGroups(simong.restContext, 2, (err, groups) => {
+        assert.notExists(err);
         const { 0: groupA, 1: groupB } = groups;
 
         // Add regular members in both groups
         const groupAmembers = {};
         groupAmembers[groupMemberA.user.id] = 'member';
-        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, (error_) => {
-          assert.notExists(error_);
+        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
+          assert.notExists(err);
 
           const groupBmembers = {};
           groupBmembers[groupMemberB.user.id] = 'member';
-          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, (error_) => {
-            assert.notExists(error_);
+          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
+            assert.notExists(err);
 
             // Nico follows simong
-            RestAPI.Following.follow(nico.restContext, simong.user.id, (error_) => {
-              assert.notExists(error_);
+            RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
+              assert.notExists(err);
 
               return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
             });
@@ -94,7 +93,7 @@ describe('Folders - Activity', () => {
     /**
      * Test that verifies the folder-create activity when there are no extra members
      */
-    it('verify no extra members', (callback) => {
+    it('verify no extra members', callback => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -103,7 +102,7 @@ describe('Folders - Activity', () => {
           'public',
           [],
           [],
-          (folder) => {
+          folder => {
             // The actor should receive an activity
             ActivityTestsUtil.assertFeedContainsActivity(
               simong.restContext,
@@ -185,7 +184,7 @@ describe('Folders - Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is one extra user
      */
-    it('verify one extra user', (callback) => {
+    it('verify one extra user', callback => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -194,7 +193,7 @@ describe('Folders - Activity', () => {
           'public',
           [bert],
           [],
-          (folder) => {
+          folder => {
             // The actor should receive an activity
             ActivityTestsUtil.assertFeedContainsActivity(
               simong.restContext,
@@ -281,7 +280,7 @@ describe('Folders - Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is one extra group
      */
-    it('verify one extra group', (callback) => {
+    it('verify one extra group', callback => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -290,7 +289,7 @@ describe('Folders - Activity', () => {
           'public',
           [groupA],
           [],
-          (folder) => {
+          folder => {
             // The actor should receive an activity
             ActivityTestsUtil.assertFeedContainsActivity(
               simong.restContext,
@@ -375,7 +374,7 @@ describe('Folders - Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is more than one extra member
      */
-    it('verify more than one extra member', (callback) => {
+    it('verify more than one extra member', callback => {
       _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
         FoldersTestUtil.assertCreateFolderSucceeds(
           simong.restContext,
@@ -384,7 +383,7 @@ describe('Folders - Activity', () => {
           'public',
           [bert, groupA],
           [],
-          (folder) => {
+          folder => {
             // The actor should receive an activity
             ActivityTestsUtil.assertFeedContainsActivity(
               simong.restContext,
@@ -482,7 +481,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the update activity is generated and propagated to the correct users
    */
-  it('verify the update activity', (callback) => {
+  it('verify the update activity', callback => {
     _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
       // Simon creates a folder that Bert co-manages and Stuart and groupA can view
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -492,11 +491,11 @@ describe('Folders - Activity', () => {
         'public',
         [bert],
         [stuart, groupA],
-        (folder) => {
+        folder => {
           // Simon updates the folder's name
           const updates = { displayName: 'blabla' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (error /* , data */) => {
-            assert.notExists(error);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
+            assert.notExists(err);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -591,7 +590,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the update-visibility activity is generated and propagated to the correct users
    */
-  it('verify the update visibility activity', (callback) => {
+  it('verify the update visibility activity', callback => {
     _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB) => {
       // Simon creates a folder that Bert co-manages and Stuart and groupA can view
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -601,11 +600,11 @@ describe('Folders - Activity', () => {
         'public',
         [bert],
         [stuart, groupA],
-        (folder) => {
+        folder => {
           // Simon updates the folder's visibility
           const updates = { visibility: 'loggedin' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (error /* , data */) => {
-            assert.notExists(error);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
+            assert.notExists(err);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -700,7 +699,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the share and add-to-library activities are generated and propagated to the correct users
    */
-  it('verify the share and add-to-library activity', (callback) => {
+  it('verify the share and add-to-library activity', callback => {
     _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA /* , groupB */) => {
       // Stephen creates a folder
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -710,7 +709,7 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folder) => {
+        folder => {
           // Simon shares it with himself and Bert
           FoldersTestUtil.assertShareFolderSucceeds(
             stephen.restContext,
@@ -827,7 +826,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the update-member-role activities are generated and propagated to the correct users
    */
-  it('verify the update-member-role activity', (callback) => {
+  it('verify the update-member-role activity', callback => {
     _setup((simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA /* , groupB */) => {
       // Simon creates a folder, makes Nico a manager and Bert a member
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -837,7 +836,7 @@ describe('Folders - Activity', () => {
         'public',
         [nico],
         [bert, groupA],
-        (folder) => {
+        folder => {
           // Simon makes Bert and groupA managers
           const updates = {};
           updates[bert.user.id] = _.extend({}, bert, { role: 'manager' });
@@ -936,7 +935,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the folder-comment activities are generated and propagated to the correct users
    */
-  it('verify the folder-comment activity', (callback) => {
+  it('verify the folder-comment activity', callback => {
     _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates a folder
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -946,105 +945,99 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folder) => {
+        folder => {
           // Stuart comments on the folder
-          FoldersTestUtil.assertCreateMessageSucceeds(
-            stuart.restContext,
-            folder.id,
-            'Message body',
-            null,
-            (message) => {
-              assert.ok(message);
+          FoldersTestUtil.assertCreateMessageSucceeds(stuart.restContext, folder.id, 'Message body', null, message => {
+            assert.ok(message);
 
-              // Stuart should have a folder-comment activity
-              ActivityTestsUtil.assertFeedContainsActivity(
-                stuart.restContext,
-                stuart.user.id,
-                FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                ActivityConstants.verbs.POST,
-                stuart.user.id,
-                message.id,
-                folder.id,
-                () => {
-                  // Simon should see the activity
-                  ActivityTestsUtil.assertFeedContainsActivity(
-                    simong.restContext,
-                    simong.user.id,
-                    FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                    ActivityConstants.verbs.POST,
-                    stuart.user.id,
-                    message.id,
-                    folder.id,
-                    () => {
-                      // Unrelated users don't see it
-                      ActivityTestsUtil.assertFeedDoesNotContainActivity(
-                        bert.restContext,
-                        bert.user.id,
-                        FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                        () => {
-                          ActivityTestsUtil.assertFeedDoesNotContainActivity(
-                            stephen.restContext,
-                            stephen.user.id,
-                            FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                            () => {
-                              // When Simon makes a comment, stuart should see it as he's considered to be a recent contributor
-                              FoldersTestUtil.assertCreateMessageSucceeds(
-                                simong.restContext,
-                                folder.id,
-                                'Message body',
-                                null,
-                                (message2) => {
-                                  ActivityTestsUtil.assertFeedContainsActivity(
-                                    stuart.restContext,
-                                    stuart.user.id,
-                                    FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                                    ActivityConstants.verbs.POST,
-                                    [stuart.user.id, simong.user.id],
-                                    [message.id, message2.id],
-                                    folder.id,
-                                    () => {
-                                      // Simon should see the activity
-                                      ActivityTestsUtil.assertFeedContainsActivity(
-                                        simong.restContext,
-                                        simong.user.id,
-                                        FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                                        ActivityConstants.verbs.POST,
-                                        [stuart.user.id, simong.user.id],
-                                        [message.id, message2.id],
-                                        folder.id,
-                                        () => {
-                                          // Unrelated users don't see it
-                                          ActivityTestsUtil.assertFeedDoesNotContainActivity(
-                                            bert.restContext,
-                                            bert.user.id,
-                                            FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                                            () => {
-                                              ActivityTestsUtil.assertFeedDoesNotContainActivity(
-                                                stephen.restContext,
-                                                stephen.user.id,
-                                                FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                                                () => {
-                                                  return callback();
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+            // Stuart should have a folder-comment activity
+            ActivityTestsUtil.assertFeedContainsActivity(
+              stuart.restContext,
+              stuart.user.id,
+              FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+              ActivityConstants.verbs.POST,
+              stuart.user.id,
+              message.id,
+              folder.id,
+              () => {
+                // Simon should see the activity
+                ActivityTestsUtil.assertFeedContainsActivity(
+                  simong.restContext,
+                  simong.user.id,
+                  FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                  ActivityConstants.verbs.POST,
+                  stuart.user.id,
+                  message.id,
+                  folder.id,
+                  () => {
+                    // Unrelated users don't see it
+                    ActivityTestsUtil.assertFeedDoesNotContainActivity(
+                      bert.restContext,
+                      bert.user.id,
+                      FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                      () => {
+                        ActivityTestsUtil.assertFeedDoesNotContainActivity(
+                          stephen.restContext,
+                          stephen.user.id,
+                          FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                          () => {
+                            // When Simon makes a comment, stuart should see it as he's considered to be a recent contributor
+                            FoldersTestUtil.assertCreateMessageSucceeds(
+                              simong.restContext,
+                              folder.id,
+                              'Message body',
+                              null,
+                              message2 => {
+                                ActivityTestsUtil.assertFeedContainsActivity(
+                                  stuart.restContext,
+                                  stuart.user.id,
+                                  FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                                  ActivityConstants.verbs.POST,
+                                  [stuart.user.id, simong.user.id],
+                                  [message.id, message2.id],
+                                  folder.id,
+                                  () => {
+                                    // Simon should see the activity
+                                    ActivityTestsUtil.assertFeedContainsActivity(
+                                      simong.restContext,
+                                      simong.user.id,
+                                      FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                                      ActivityConstants.verbs.POST,
+                                      [stuart.user.id, simong.user.id],
+                                      [message.id, message2.id],
+                                      folder.id,
+                                      () => {
+                                        // Unrelated users don't see it
+                                        ActivityTestsUtil.assertFeedDoesNotContainActivity(
+                                          bert.restContext,
+                                          bert.user.id,
+                                          FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                                          () => {
+                                            ActivityTestsUtil.assertFeedDoesNotContainActivity(
+                                              stephen.restContext,
+                                              stephen.user.id,
+                                              FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
+                                              () => {
+                                                return callback();
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -1053,9 +1046,9 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the properties of a folder comment
    */
-  it('verify the folder-comment message entity model contains the correct information', (callback) => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
-      assert.notExists(error);
+  it('verify the folder-comment message entity model contains the correct information', callback => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+      assert.notExists(err);
 
       const { 0: simong, 1: nico } = users;
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1065,147 +1058,138 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folder) => {
-          FoldersTestUtil.assertCreateMessageSucceeds(
-            simong.restContext,
-            folder.id,
-            'Message body',
-            null,
-            (message) => {
-              assert.ok(message);
+        folder => {
+          FoldersTestUtil.assertCreateMessageSucceeds(simong.restContext, folder.id, 'Message body', null, message => {
+            assert.ok(message);
 
-              ActivityTestsUtil.collectAndGetActivityStream(
-                simong.restContext,
-                simong.user.id,
-                null,
-                (error, activityStream) => {
-                  assert.notExists(error);
-                  const entity = activityStream.items[0];
+            ActivityTestsUtil.collectAndGetActivityStream(
+              simong.restContext,
+              simong.user.id,
+              null,
+              (err, activityStream) => {
+                assert.notExists(err);
+                const entity = activityStream.items[0];
 
-                  // Assert the correct entities are all present
-                  ActivityTestsUtil.assertActivity(
-                    entity,
-                    'folder-comment',
-                    'post',
-                    simong.user.id,
-                    message.id,
-                    folder.id
-                  );
+                // Assert the correct entities are all present
+                ActivityTestsUtil.assertActivity(
+                  entity,
+                  'folder-comment',
+                  'post',
+                  simong.user.id,
+                  message.id,
+                  folder.id
+                );
 
-                  // Assert the folder information is available on the target
-                  assert.strictEqual(entity.target.displayName, folder.displayName);
-                  assert.strictEqual(entity.target['oae:profilePath'], folder.profilePath);
+                // Assert the folder information is available on the target
+                assert.strictEqual(entity.target.displayName, folder.displayName);
+                assert.strictEqual(entity.target['oae:profilePath'], folder.profilePath);
 
-                  // Assert the comment information is available on the object
-                  assert.strictEqual(entity.object['oae:messageBoxId'], message.messageBoxId);
-                  assert.strictEqual(entity.object['oae:threadKey'], message.threadKey);
-                  assert.strictEqual(entity.object.content, message.body);
-                  assert.strictEqual(entity.object.published, message.created);
-                  assert.strictEqual(entity.object.objectType, 'folder-comment');
-                  assert.strictEqual(
-                    entity.object.id,
-                    'http://' +
-                      global.oaeTests.tenants.cam.host +
-                      '/api/folder/' +
-                      folder.id +
-                      '/messages/' +
-                      message.created
-                  );
+                // Assert the comment information is available on the object
+                assert.strictEqual(entity.object['oae:messageBoxId'], message.messageBoxId);
+                assert.strictEqual(entity.object['oae:threadKey'], message.threadKey);
+                assert.strictEqual(entity.object.content, message.body);
+                assert.strictEqual(entity.object.published, message.created);
+                assert.strictEqual(entity.object.objectType, 'folder-comment');
+                assert.strictEqual(
+                  entity.object.id,
+                  'http://' +
+                    global.oaeTests.tenants.cam.host +
+                    '/api/folder/' +
+                    folder.id +
+                    '/messages/' +
+                    message.created
+                );
 
-                  // Nico replies
-                  FoldersTestUtil.assertCreateMessageSucceeds(
-                    nico.restContext,
-                    folder.id,
-                    'A reply',
-                    message.created,
-                    (nicosMessage) => {
-                      assert.ok(nicosMessage);
+                // Nico replies
+                FoldersTestUtil.assertCreateMessageSucceeds(
+                  nico.restContext,
+                  folder.id,
+                  'A reply',
+                  message.created,
+                  nicosMessage => {
+                    assert.ok(nicosMessage);
 
-                      ActivityTestsUtil.collectAndGetActivityStream(
-                        simong.restContext,
-                        simong.user.id,
-                        null,
-                        (error, activityStream) => {
-                          assert.notExists(error);
-                          const entity = activityStream.items[0];
+                    ActivityTestsUtil.collectAndGetActivityStream(
+                      simong.restContext,
+                      simong.user.id,
+                      null,
+                      (err, activityStream) => {
+                        assert.notExists(err);
+                        const entity = activityStream.items[0];
 
-                          // Assert the correct entities are all present. The first item should be
-                          // an aggregated `folder-comment` activity. The object and actor will now
-                          // be collections rather than a single message/person
-                          ActivityTestsUtil.assertActivity(
-                            entity,
-                            'folder-comment',
-                            'post',
-                            [simong.user.id, nico.user.id],
-                            [message.id, nicosMessage.id],
-                            folder.id
-                          );
+                        // Assert the correct entities are all present. The first item should be
+                        // an aggregated `folder-comment` activity. The object and actor will now
+                        // be collections rather than a single message/person
+                        ActivityTestsUtil.assertActivity(
+                          entity,
+                          'folder-comment',
+                          'post',
+                          [simong.user.id, nico.user.id],
+                          [message.id, nicosMessage.id],
+                          folder.id
+                        );
 
-                          // The object should be an oae:collection containing 2 messages (the original message and the reply)
-                          assert.strictEqual(entity.object.objectType, 'collection');
-                          assert.ok(entity.object['oae:collection']);
-                          assert.strictEqual(entity.object['oae:collection'].length, 2);
-                          const originalMessage = _.find(entity.object['oae:collection'], (activityMessage) => {
-                            return activityMessage['oae:id'] === message.id;
-                          });
-                          assert.ok(originalMessage);
-                          assert.strictEqual(originalMessage['oae:id'], message.id);
-                          assert.strictEqual(originalMessage.content, message.body);
-                          assert.strictEqual(originalMessage.author['oae:id'], simong.user.id);
-                          assert.strictEqual(originalMessage['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
+                        // The object should be an oae:collection containing 2 messages (the original message and the reply)
+                        assert.strictEqual(entity.object.objectType, 'collection');
+                        assert.ok(entity.object['oae:collection']);
+                        assert.strictEqual(entity.object['oae:collection'].length, 2);
+                        const originalMessage = _.find(entity.object['oae:collection'], activityMessage => {
+                          return activityMessage['oae:id'] === message.id;
+                        });
+                        assert.ok(originalMessage);
+                        assert.strictEqual(originalMessage['oae:id'], message.id);
+                        assert.strictEqual(originalMessage.content, message.body);
+                        assert.strictEqual(originalMessage.author['oae:id'], simong.user.id);
+                        assert.strictEqual(originalMessage['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
 
-                          // Assert the reply contains all the correct information
-                          const reply = _.find(entity.object['oae:collection'], (activityMessage) => {
-                            return activityMessage['oae:id'] === nicosMessage.id;
-                          });
-                          assert.ok(reply);
-                          assert.strictEqual(reply['oae:id'], nicosMessage.id);
-                          assert.strictEqual(reply['oae:messageBoxId'], nicosMessage.messageBoxId);
-                          assert.strictEqual(reply['oae:threadKey'], nicosMessage.threadKey);
-                          assert.strictEqual(reply['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
-                          assert.strictEqual(reply.content, nicosMessage.body);
-                          assert.strictEqual(reply.published, nicosMessage.created);
-                          assert.strictEqual(reply.author['oae:id'], nico.user.id);
-                          assert.ok(reply.inReplyTo);
-                          assert.strictEqual(reply.inReplyTo['oae:id'], message.id);
+                        // Assert the reply contains all the correct information
+                        const reply = _.find(entity.object['oae:collection'], activityMessage => {
+                          return activityMessage['oae:id'] === nicosMessage.id;
+                        });
+                        assert.ok(reply);
+                        assert.strictEqual(reply['oae:id'], nicosMessage.id);
+                        assert.strictEqual(reply['oae:messageBoxId'], nicosMessage.messageBoxId);
+                        assert.strictEqual(reply['oae:threadKey'], nicosMessage.threadKey);
+                        assert.strictEqual(reply['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
+                        assert.strictEqual(reply.content, nicosMessage.body);
+                        assert.strictEqual(reply.published, nicosMessage.created);
+                        assert.strictEqual(reply.author['oae:id'], nico.user.id);
+                        assert.ok(reply.inReplyTo);
+                        assert.strictEqual(reply.inReplyTo['oae:id'], message.id);
 
-                          // Verify both actors are present
-                          assert.strictEqual(entity.actor.objectType, 'collection');
-                          const simonEntity = _.find(entity.actor['oae:collection'], (userEntity) => {
-                            return userEntity['oae:id'] === simong.user.id;
-                          });
-                          assert.ok(simonEntity);
-                          assert.strictEqual(simonEntity['oae:id'], simong.user.id);
-                          assert.strictEqual(
-                            simonEntity['oae:profilePath'],
-                            '/user/' +
-                              simong.user.tenant.alias +
-                              '/' +
-                              AuthzUtil.getResourceFromId(simong.user.id).resourceId
-                          );
+                        // Verify both actors are present
+                        assert.strictEqual(entity.actor.objectType, 'collection');
+                        const simonEntity = _.find(entity.actor['oae:collection'], userEntity => {
+                          return userEntity['oae:id'] === simong.user.id;
+                        });
+                        assert.ok(simonEntity);
+                        assert.strictEqual(simonEntity['oae:id'], simong.user.id);
+                        assert.strictEqual(
+                          simonEntity['oae:profilePath'],
+                          '/user/' +
+                            simong.user.tenant.alias +
+                            '/' +
+                            AuthzUtil.getResourceFromId(simong.user.id).resourceId
+                        );
 
-                          const nicoEntity = _.find(entity.actor['oae:collection'], (userEntity) => {
-                            return userEntity['oae:id'] === nico.user.id;
-                          });
-                          assert.ok(nicoEntity);
-                          assert.strictEqual(nicoEntity['oae:id'], nico.user.id);
-                          assert.strictEqual(
-                            nicoEntity['oae:profilePath'],
-                            '/user/' +
-                              nico.user.tenant.alias +
-                              '/' +
-                              AuthzUtil.getResourceFromId(nico.user.id).resourceId
-                          );
+                        const nicoEntity = _.find(entity.actor['oae:collection'], userEntity => {
+                          return userEntity['oae:id'] === nico.user.id;
+                        });
+                        assert.ok(nicoEntity);
+                        assert.strictEqual(nicoEntity['oae:id'], nico.user.id);
+                        assert.strictEqual(
+                          nicoEntity['oae:profilePath'],
+                          '/user/' + nico.user.tenant.alias + '/' + AuthzUtil.getResourceFromId(nico.user.id).resourceId
+                        );
 
-                          return callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
+                        return callback();
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          });
         }
       );
     });
@@ -1214,7 +1198,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies the add-to-folder activities are generated and propagated to the correct users
    */
-  it('verify the add-to-folder activity', (callback) => {
+  it('verify the add-to-folder activity', callback => {
     _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates a folder and makes Bert a member
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1224,7 +1208,7 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [bert],
-        (folder) => {
+        folder => {
           // Stephen creates 2 files
           RestAPI.Content.createLink(
             stephen.restContext,
@@ -1237,8 +1221,8 @@ describe('Folders - Activity', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (error, link1) => {
-              assert.notExists(error);
+            (err, link1) => {
+              assert.notExists(err);
               RestAPI.Content.createLink(
                 stephen.restContext,
                 {
@@ -1250,8 +1234,8 @@ describe('Folders - Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (error, link2) => {
-                  assert.notExists(error);
+                (err, link2) => {
+                  assert.notExists(err);
 
                   // Simon adds the two items to the folder
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -1358,7 +1342,7 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies that the add-to-folder activities aggregate on the folder
    */
-  it('verify the add-to-folder aggregation rules', (callback) => {
+  it('verify the add-to-folder aggregation rules', callback => {
     _setup((simong, nico, bert, stuart, stephen /* , groupMemberA, groupMemberB, groupA, groupB */) => {
       // Simon creates 2 folders
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1368,7 +1352,7 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folderA) => {
+        folderA => {
           FoldersTestUtil.assertCreateFolderSucceeds(
             simong.restContext,
             'test displayName',
@@ -1376,7 +1360,7 @@ describe('Folders - Activity', () => {
             'public',
             [],
             [],
-            (folderB) => {
+            folderB => {
               // Stephen creates 2 files
               RestAPI.Content.createLink(
                 stephen.restContext,
@@ -1389,8 +1373,8 @@ describe('Folders - Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (error, link1) => {
-                  assert.notExists(error);
+                (err, link1) => {
+                  assert.notExists(err);
                   RestAPI.Content.createLink(
                     stephen.restContext,
                     {
@@ -1402,8 +1386,8 @@ describe('Folders - Activity', () => {
                       viewers: NO_VIEWERS,
                       folders: NO_FOLDERS
                     },
-                    (error, link2) => {
-                      assert.notExists(error);
+                    (err, link2) => {
+                      assert.notExists(err);
 
                       // Simon adds both files to both of his folders. This should
                       // result in 2 separate activities
@@ -1421,11 +1405,11 @@ describe('Folders - Activity', () => {
                                 simong.restContext,
                                 simong.user.id,
                                 null,
-                                (error, data) => {
-                                  assert.notExists(error);
+                                (err, data) => {
+                                  assert.notExists(err);
 
                                   // Get the add-to-folder activities
-                                  const addToFolderActivities = _.filter(data.items, (activity) => {
+                                  const addToFolderActivities = _.filter(data.items, activity => {
                                     return (
                                       activity['oae:activityType'] ===
                                       FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_FOLDER
@@ -1459,9 +1443,9 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies that previews are added to the folder entities when they are available
    */
-  it('verify previews are added when available', (callback) => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
-      assert.notExists(error);
+  it('verify previews are added when available', callback => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
 
       const { 0: simong } = users;
 
@@ -1473,39 +1457,34 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folder) => {
+        folder => {
           // Fake some previews for the folder
           const previews = {
             thumbnailUri: 'local:f/camtest/ab/cd/ef/gh/thumbnail.jpg',
             wideUri: 'local:f/camtest/ab/cd/ef/gh/wide.jpg'
           };
-          FoldersDAO.setPreviews(folder, previews, (error /* , folder */) => {
-            assert.notExists(error);
+          FoldersDAO.setPreviews(folder, previews, (err /* , folder */) => {
+            assert.notExists(err);
 
             // Get the activities
-            ActivityTestsUtil.collectAndGetActivityStream(
-              simong.restContext,
-              simong.user.id,
-              null,
-              (error, response) => {
-                assert.notExists(error);
+            ActivityTestsUtil.collectAndGetActivityStream(simong.restContext, simong.user.id, null, (err, response) => {
+              assert.notExists(err);
 
-                // Assert the activity is present
-                const createdFolderActivity = _.findWhere(response.items, {
-                  'oae:activityType': FoldersConstants.activity.ACTIVITY_FOLDER_CREATE
-                });
-                assert.ok(createdFolderActivity);
+              // Assert the activity is present
+              const createdFolderActivity = _.findWhere(response.items, {
+                'oae:activityType': FoldersConstants.activity.ACTIVITY_FOLDER_CREATE
+              });
+              assert.ok(createdFolderActivity);
 
-                // Assert the folder has a thumbnail and wide image
-                assert.ok(createdFolderActivity.object);
-                assert.ok(createdFolderActivity.object.image);
-                assert.ok(createdFolderActivity.object.image.url);
-                assert.ok(createdFolderActivity.object['oae:wideImage']);
-                assert.ok(createdFolderActivity.object['oae:wideImage'].url);
+              // Assert the folder has a thumbnail and wide image
+              assert.ok(createdFolderActivity.object);
+              assert.ok(createdFolderActivity.object.image);
+              assert.ok(createdFolderActivity.object.image.url);
+              assert.ok(createdFolderActivity.object['oae:wideImage']);
+              assert.ok(createdFolderActivity.object['oae:wideImage'].url);
 
-                return callback();
-              }
-            );
+              return callback();
+            });
           });
         }
       );
@@ -1515,9 +1494,9 @@ describe('Folders - Activity', () => {
   /**
    * Test that verifies that adding content to a folder upon creation does not result in an add-to-folder activity
    */
-  it('verify adding content to a folder upon content creation does not result in an add-to-folder activity', (callback) => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
-      assert.notExists(error);
+  it('verify adding content to a folder upon content creation does not result in an add-to-folder activity', callback => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
+      assert.notExists(err);
 
       const { 0: simong } = users;
 
@@ -1528,7 +1507,7 @@ describe('Folders - Activity', () => {
         'public',
         [],
         [],
-        (folder) => {
+        folder => {
           RestAPI.Content.createLink(
             simong.restContext,
             {
@@ -1540,15 +1519,15 @@ describe('Folders - Activity', () => {
               viewers: NO_VIEWERS,
               folders: [folder.id]
             },
-            (error /* , link1 */) => {
-              assert.notExists(error);
+            (err /* , link1 */) => {
+              assert.notExists(err);
 
               ActivityTestsUtil.collectAndGetActivityStream(
                 simong.restContext,
                 simong.user.id,
                 null,
-                (error, response) => {
-                  assert.notExists(error);
+                (err, response) => {
+                  assert.notExists(err);
 
                   // Assert the add-to-folder activity is not present
                   const addToLibraryActivity = _.findWhere(response.items, {
@@ -1578,19 +1557,19 @@ describe('Folders - Activity', () => {
    * Test that verifies that content-create activities their targets can contain folders and the activities
    * are routed to the correct activity stream
    */
-  it('verify content-create activities are routed to the correct activity streams and contain the correct target information', (callback) => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
-      assert.notExists(error);
+  it('verify content-create activities are routed to the correct activity streams and contain the correct target information', callback => {
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
+      assert.notExists(err);
 
       const { 0: simong, 1: nico, 2: bert, 3: stuart } = users;
 
-      TestsUtil.generateTestGroups(nico.restContext, 2, (error, groups) => {
-        assert.notExists(error);
+      TestsUtil.generateTestGroups(nico.restContext, 2, (err, groups) => {
+        assert.notExists(err);
 
         const { 0: nicosGroup1, 1: nicosGroup2 } = groups;
 
-        TestsUtil.generateTestGroups(bert.restContext, 1, (error, groups) => {
-          assert(!error);
+        TestsUtil.generateTestGroups(bert.restContext, 1, (err, groups) => {
+          assert(!err);
 
           const { 0: bertsGroup } = groups;
 
@@ -1601,7 +1580,7 @@ describe('Folders - Activity', () => {
             'public',
             [nicosGroup1, bertsGroup, stuart],
             [],
-            (folder1) => {
+            folder1 => {
               FoldersTestUtil.assertCreateFolderSucceeds(
                 simong.restContext,
                 'test displayName',
@@ -1609,7 +1588,7 @@ describe('Folders - Activity', () => {
                 'public',
                 [nicosGroup2],
                 [],
-                (folder2) => {
+                folder2 => {
                   RestAPI.Content.createLink(
                     simong.restContext,
                     {
@@ -1621,8 +1600,8 @@ describe('Folders - Activity', () => {
                       viewers: NO_VIEWERS,
                       folders: [folder1.id, folder2.id]
                     },
-                    (error, link) => {
-                      assert.notExists(error);
+                    (err, link) => {
+                      assert.notExists(err);
 
                       // Simon sees both folders
                       ActivityTestsUtil.assertFeedContainsActivity(

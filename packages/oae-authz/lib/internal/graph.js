@@ -21,7 +21,7 @@ import { Graph } from 'data-structures';
  * AuthzGraph inherits from the data-structures Graph and provides some additional data and function
  * sugar to perform common grahing operations. Particularly, making traversal possible.
  */
-const AuthzGraph = function() {
+const AuthzGraph = function () {
   Graph.call(this);
 };
 
@@ -32,7 +32,7 @@ util.inherits(AuthzGraph, Graph);
  *
  * @return {Boolean}    Whether or not the graph has any nodes
  */
-AuthzGraph.prototype.isEmpty = function() {
+AuthzGraph.prototype.isEmpty = function () {
   return this.nodeSize === 0;
 };
 
@@ -41,9 +41,9 @@ AuthzGraph.prototype.isEmpty = function() {
  *
  * @return {Object[]}  All nodes in the graph
  */
-AuthzGraph.prototype.getNodes = function() {
+AuthzGraph.prototype.getNodes = function () {
   const nodes = [];
-  this.forEachNode(node => {
+  this.forEachNode((node) => {
     nodes.push(node);
   });
   return nodes;
@@ -54,9 +54,9 @@ AuthzGraph.prototype.getNodes = function() {
  *
  * @return {Object[]}  All edges in the graph
  */
-AuthzGraph.prototype.getEdges = function() {
+AuthzGraph.prototype.getEdges = function () {
   const edges = [];
-  this.forEachEdge(edge => {
+  this.forEachEdge((edge) => {
     edges.push(edge);
   });
   return edges;
@@ -70,7 +70,7 @@ AuthzGraph.prototype.getEdges = function() {
  * @param  {Object}     [metadata]  Additional metadata to apply to the node. This is only applied if the node is new
  * @return {Object}                 The node object that was created. `null` if a node with the given id already existed
  */
-AuthzGraph.prototype.addNode = function(nodeId, metadata) {
+AuthzGraph.prototype.addNode = function (nodeId, metadata) {
   const node = Graph.prototype.addNode.call(this, nodeId);
   if (node) {
     if (_.isObject(metadata)) {
@@ -92,7 +92,7 @@ AuthzGraph.prototype.addNode = function(nodeId, metadata) {
  * @param  {Object}     [metadata]  Additional metadata to apply to the edge. This is only applied if the edge is new
  * @return {Object}                 The edge object if an edge was created. `null` if this edge already existed
  */
-AuthzGraph.prototype.addEdge = function(fromId, toId, metadata) {
+AuthzGraph.prototype.addEdge = function (fromId, toId, metadata) {
   const edge = Graph.prototype.addEdge.call(this, fromId, toId);
   if (edge) {
     if (_.isObject(metadata)) {
@@ -109,9 +109,9 @@ AuthzGraph.prototype.addEdge = function(fromId, toId, metadata) {
 /**
  * Get a nice string representation of the graph
  */
-AuthzGraph.prototype.toString = function() {
+AuthzGraph.prototype.toString = function () {
   const nodeStrs = _.pluck(this.getNodes(), 'id');
-  const edgeStrs = _.map(this.getEdges(), edge => {
+  const edgeStrs = _.map(this.getEdges(), (edge) => {
     return util.format('%s -> %s', edge.from.id, edge.to.id);
   });
 
@@ -125,7 +125,7 @@ AuthzGraph.prototype.toString = function() {
  * @param  {String}     nodeId  The id of the node to start with. The node identified by this id will also be the first node in the resulting array
  * @return {Node[]}             An array of nodes that were traversed
  */
-AuthzGraph.prototype.traverseIn = function(nodeId) {
+AuthzGraph.prototype.traverseIn = function (nodeId) {
   return this._traverse(nodeId, this.getInEdgesOf, 'from');
 };
 
@@ -136,7 +136,7 @@ AuthzGraph.prototype.traverseIn = function(nodeId) {
  * @param  {String}     nodeId  The id of the node to start with. The node identified by this id will also be the first node in the resulting array
  * @return {Node[]}             An array of nodes that were traversed
  */
-AuthzGraph.prototype.traverseOut = function(nodeId) {
+AuthzGraph.prototype.traverseOut = function (nodeId) {
   return this._traverse(nodeId, this.getOutEdgesOf, 'to');
 };
 
@@ -151,7 +151,7 @@ AuthzGraph.prototype.traverseOut = function(nodeId) {
  * @return {Node[]}                         The array of nodes that are visited while traversing the graph
  * @api private
  */
-AuthzGraph.prototype._traverse = function(
+AuthzGraph.prototype._traverse = function (
   nodeId,
   getEdgeFn,
   nextNodeProperty,
@@ -175,7 +175,7 @@ AuthzGraph.prototype._traverse = function(
   _.chain(getEdgeFn.call(self, nodeId))
     .pluck(nextNodeProperty)
     .pluck('id')
-    .each(nextId => {
+    .each((nextId) => {
       self._traverse(nextId, getEdgeFn, nextNodeProperty, _nodes, _visitedIds);
     });
 

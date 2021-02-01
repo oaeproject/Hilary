@@ -35,10 +35,10 @@ import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
  * @param  {Function}       callback        Invoked when all assertions pass
  * @throws {AssertionError}                 Thrown if any assertions fail
  */
-const assertSetDeletedSucceeds = function(resourceId, callback) {
+const assertSetDeletedSucceeds = function (resourceId, callback) {
   // Apply the delete operation
-  AuthzDelete.setDeleted(resourceId, err => {
-    assert.ok(!err);
+  AuthzDelete.setDeleted(resourceId, (error) => {
+    assert.ok(!error);
 
     // Verify that it shows up being deleted
     return assertIsDeletedSucceeds([resourceId], [resourceId], callback);
@@ -52,10 +52,10 @@ const assertSetDeletedSucceeds = function(resourceId, callback) {
  * @param  {Function}       callback        Invoked when all assertions pass
  * @throws {AssertionError}                 Thrown if any assertions fail
  */
-const assertUnsetDeletedSucceeds = function(resourceId, callback) {
+const assertUnsetDeletedSucceeds = function (resourceId, callback) {
   // Apply the delete operation
-  AuthzDelete.unsetDeleted(resourceId, err => {
-    assert.ok(!err);
+  AuthzDelete.unsetDeleted(resourceId, (error) => {
+    assert.ok(!error);
 
     // Verify that it doesn't show up as being deleted
     return assertIsDeletedSucceeds([resourceId], [], callback);
@@ -73,10 +73,10 @@ const assertUnsetDeletedSucceeds = function(resourceId, callback) {
  * @param  {String}         callback.token          The token that was associated to the email
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertAcceptInvitationForEmailSucceeds = function(restContext, email, callback) {
+const assertAcceptInvitationForEmailSucceeds = function (restContext, email, callback) {
   email = email.toLowerCase();
-  AuthzInvitationsDAO.getTokensByEmails([email], (err, emailTokens) => {
-    assert.ok(!err);
+  AuthzInvitationsDAO.getTokensByEmails([email], (error, emailTokens) => {
+    assert.ok(!error);
 
     const token = emailTokens[email];
     assertAcceptInvitationSucceeds(restContext, token, (result, invitations) => {
@@ -96,23 +96,23 @@ const assertAcceptInvitationForEmailSucceeds = function(restContext, email, call
  * @param  {Invitation[]}   callback.invitations    The invitations that were pending for the token
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertAcceptInvitationSucceeds = function(restContext, token, callback) {
+const assertAcceptInvitationSucceeds = function (restContext, token, callback) {
   // eslint-disable-next-line no-unused-vars
-  PrincipalsTestUtil.assertGetMeSucceeds(restContext, me => {
-    AuthzInvitationsDAO.getEmailByToken(token, (err, email) => {
-      assert.ok(!err);
+  PrincipalsTestUtil.assertGetMeSucceeds(restContext, (me) => {
+    AuthzInvitationsDAO.getEmailByToken(token, (error, email) => {
+      assert.ok(!error);
 
       // Get the invitations before accepting so we can provide them to the caller
-      AuthzInvitationsDAO.getAllInvitationsByEmail(email, (err, invitationsBefore) => {
-        assert.ok(!err);
+      AuthzInvitationsDAO.getAllInvitationsByEmail(email, (error, invitationsBefore) => {
+        assert.ok(!error);
 
         // Perform the accept action
-        RestAPI.Invitations.acceptInvitation(restContext, token, (err, result) => {
-          assert.ok(!err);
+        RestAPI.Invitations.acceptInvitation(restContext, token, (error, result) => {
+          assert.ok(!error);
 
           // Get all the invitations again and ensure they're now empty for that email
-          AuthzInvitationsDAO.getAllInvitationsByEmail(email, (err, invitationsAfter) => {
-            assert.ok(!err);
+          AuthzInvitationsDAO.getAllInvitationsByEmail(email, (error, invitationsAfter) => {
+            assert.ok(!error);
             assert.strictEqual(invitationsAfter.length, 0);
 
             // Ensure libraries and search have time to finish indexing
@@ -141,19 +141,19 @@ const assertAcceptInvitationSucceeds = function(restContext, token, callback) {
  * @param  {Invitation[]}   callback.invitations    The invitations that were pending for the token
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertAcceptInvitationFails = function(restContext, token, httpCode, callback) {
+const assertAcceptInvitationFails = function (restContext, token, httpCode, callback) {
   // Get invitations before attempting to accept, if applicable. Since this a failure scenario, it
   // is possible that the token is completely invalid
-  OaeUtil.invokeIfNecessary(token, AuthzInvitationsDAO.getEmailByToken, token, (err, email) => {
+  OaeUtil.invokeIfNecessary(token, AuthzInvitationsDAO.getEmailByToken, token, (error, email) => {
     OaeUtil.invokeIfNecessary(
       email,
       AuthzInvitationsDAO.getAllInvitationsByEmail,
       email,
-      (err, invitationsBefore) => {
+      (error, invitationsBefore) => {
         // Perform the accept
-        RestAPI.Invitations.acceptInvitation(restContext, token, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, httpCode);
+        RestAPI.Invitations.acceptInvitation(restContext, token, (error_) => {
+          assert.ok(error_);
+          assert.strictEqual(error_.code, httpCode);
 
           // Ensure we get the same result from querying invitations to ensure that failing to
           // accept the invitation did not trash them
@@ -161,7 +161,7 @@ const assertAcceptInvitationFails = function(restContext, token, httpCode, callb
             email,
             AuthzInvitationsDAO.getAllInvitationsByEmail,
             email,
-            (err, invitationsAfter) => {
+            (error, invitationsAfter) => {
               assert.deepStrictEqual(invitationsBefore, invitationsAfter);
               return callback();
             }
@@ -182,9 +182,9 @@ const assertAcceptInvitationFails = function(restContext, token, httpCode, callb
  * @param  {Invitation[]}   callback.invitations    The invitations that are pending for the resource
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetInvitationsSucceeds = function(restContext, resourceType, resourceId, callback) {
-  RestAPI.Invitations.getInvitations(restContext, resourceType, resourceId, (err, result) => {
-    assert.ok(!err);
+const assertGetInvitationsSucceeds = function (restContext, resourceType, resourceId, callback) {
+  RestAPI.Invitations.getInvitations(restContext, resourceType, resourceId, (error, result) => {
+    assert.ok(!error);
     return callback(result);
   });
 };
@@ -201,16 +201,16 @@ const assertGetInvitationsSucceeds = function(restContext, resourceType, resourc
  * @param  {Invitation[]}   callback.invitations    The invitations that are pending for the resource
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetInvitationsFails = function(
+const assertGetInvitationsFails = function (
   restContext,
   resourceType,
   resourceId,
   httpCode,
   callback
 ) {
-  RestAPI.Invitations.getInvitations(restContext, resourceType, resourceId, (err, result) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Invitations.getInvitations(restContext, resourceType, resourceId, (error, result) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     return callback(result);
   });
 };
@@ -225,15 +225,15 @@ const assertGetInvitationsFails = function(
  * @param  {Function}       callback                Invoked when all assertions pass
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertResendInvitationSucceeds = function(
+const assertResendInvitationSucceeds = function (
   restContext,
   resourceType,
   resourceId,
   email,
   callback
 ) {
-  RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, err => {
-    assert.ok(!err);
+  RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, (error) => {
+    assert.ok(!error);
     return callback();
   });
 };
@@ -250,7 +250,7 @@ const assertResendInvitationSucceeds = function(
  * @param  {Function}       callback                Invoked when all assertions pass
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertResendInvitationFails = function(
+const assertResendInvitationFails = function (
   restContext,
   resourceType,
   resourceId,
@@ -258,9 +258,9 @@ const assertResendInvitationFails = function(
   httpCode,
   callback
 ) {
-  RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, err => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Invitations.resendInvitation(restContext, resourceType, resourceId, email, (error) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     return callback();
   });
 };
@@ -274,13 +274,13 @@ const assertResendInvitationFails = function(
  * @param  {Function}       callback            Invoked when all assertions pass
  * @throws {AssertionError}                     Thrown if any assertions fail
  */
-const assertIsDeletedSucceeds = function(resourceIdsToCheck, deletedResourceIds, callback) {
-  AuthzDelete.isDeleted(resourceIdsToCheck, (err, deleted) => {
-    assert.ok(!err);
+const assertIsDeletedSucceeds = function (resourceIdsToCheck, deletedResourceIds, callback) {
+  AuthzDelete.isDeleted(resourceIdsToCheck, (error, deleted) => {
+    assert.ok(!error);
 
     // Ensure the expected resource ids and only those ones appear as being deleted
     assert.strictEqual(_.keys(deleted).length, deletedResourceIds.length);
-    _.each(deletedResourceIds, deletedResourceId => {
+    _.each(deletedResourceIds, (deletedResourceId) => {
       assert.strictEqual(deleted[deletedResourceId], true);
     });
 
@@ -297,19 +297,19 @@ const assertIsDeletedSucceeds = function(resourceIdsToCheck, deletedResourceIds,
  * @param  {AuthzGraph}     callback.graph  The members graph of the provided resource
  * @throws {AssertionError}                 Thrown if the graph wasn't as expected
  */
-const assertAuthzMembersGraphIdsEqual = function(resourceIds, expectedIds, callback) {
-  AuthzAPI.getAuthzMembersGraph(resourceIds, (err, graph) => {
-    assert.ok(!err);
+const assertAuthzMembersGraphIdsEqual = function (resourceIds, expectedIds, callback) {
+  AuthzAPI.getAuthzMembersGraph(resourceIds, (error, graph) => {
+    assert.ok(!error);
 
     const actualIds = _.chain(resourceIds)
-      .map(resourceId => {
+      .map((resourceId) => {
         // Ensure all the ids are sorted since there is no contract for traversal order
         return _.pluck(graph.traverseIn(resourceId), 'id').sort();
       })
       .value();
 
     // Ensure all the ids are sorted since there is no contract for traversal order
-    expectedIds = _.map(expectedIds, ids => {
+    expectedIds = _.map(expectedIds, (ids) => {
       return ids.slice().sort();
     });
 
@@ -327,9 +327,9 @@ const assertAuthzMembersGraphIdsEqual = function(resourceIds, expectedIds, callb
  * @param  {AuthzGraph}     callback.graph  The memberships graph of the provided principal
  * @throws {AssertionError}                 Thrown if the graph wasn't as expected
  */
-const assertPrincipalMembershipsGraphIdsEqual = function(principalId, expectedIds, callback) {
-  AuthzAPI.getPrincipalMembershipsGraph(principalId, (err, graph) => {
-    assert.ok(!err);
+const assertPrincipalMembershipsGraphIdsEqual = function (principalId, expectedIds, callback) {
+  AuthzAPI.getPrincipalMembershipsGraph(principalId, (error, graph) => {
+    assert.ok(!error);
     assert.deepStrictEqual(
       _.pluck(graph.traverseOut(principalId), 'id').sort(),
       expectedIds.slice().sort()
@@ -349,7 +349,7 @@ const assertPrincipalMembershipsGraphIdsEqual = function(principalId, expectedId
  * @param  {Object}     membershipAfterDelta    The membership after the updates (if any) are applied
  * @throws {AssertionError}                     Thrown if the membership after the delta is not equal to the initial membership with the delta applied
  */
-const assertMemberRolesEquals = function(before, delta, after) {
+const assertMemberRolesEquals = function (before, delta, after) {
   // Narrow down the deltas to only resource roles
   const principalIdDelta = {};
   _.each(delta, (role, targetId) => {
@@ -373,20 +373,17 @@ const assertMemberRolesEquals = function(before, delta, after) {
  * @param  {Object}     membershipAfterDelta    The membership after the updates (if any) are applied
  * @throws {AssertionError}                     Thrown if the membership after the delta is not equal to the initial membership with the delta applied
  */
-const assertEmailRolesEquals = function(before, delta, after) {
+const assertEmailRolesEquals = function (before, delta, after) {
   // Narrow down the deltas to only email roles
   const emails = _.chain(delta)
     .keys()
     .map(AuthzUtil.parseShareTarget)
-    .filter(target => {
+    .filter((target) => {
       return !target.principalId;
     })
     .pluck('email')
     .value();
-  delta = _.chain(delta)
-    .oaeMapKeys(_toLowerCase)
-    .pick(emails)
-    .value();
+  delta = _.chain(delta).oaeMapKeys(_toLowerCase).pick(emails).value();
   after = _.oaeMapKeys(after, _toLowerCase);
   _assertDeltaEquals(before, delta, after);
 };
@@ -398,16 +395,16 @@ const assertEmailRolesEquals = function(before, delta, after) {
  * @param  {Function}       callback    Invoked when the memberships graph has been created
  * @throws {AssertionError}             Thrown if there is an error persisting the memberships graph
  */
-const assertCreateMembershipsGraphSucceeds = function(graph, callback, _ops) {
+const assertCreateMembershipsGraphSucceeds = function (graph, callback, _ops) {
   if (!_ops) {
     _ops = _.chain(graph.getNodes())
       .pluck('id')
-      .filter(parentId => {
+      .filter((parentId) => {
         return !_.isEmpty(graph.getInEdgesOf(parentId));
       })
-      .map(parentId => {
+      .map((parentId) => {
         const roles = {};
-        _.each(graph.getInEdgesOf(parentId), edge => {
+        _.each(graph.getInEdgesOf(parentId), (edge) => {
           roles[edge.from.id] = edge.role || 'member';
         });
 
@@ -423,8 +420,8 @@ const assertCreateMembershipsGraphSucceeds = function(graph, callback, _ops) {
   }
 
   const op = _ops.shift();
-  AuthzAPI.updateRoles(op.id, op.roles, err => {
-    assert.ok(!err);
+  AuthzAPI.updateRoles(op.id, op.roles, (error) => {
+    assert.ok(!error);
     return assertCreateMembershipsGraphSucceeds(graph, callback, _ops);
   });
 };
@@ -437,9 +434,9 @@ const assertCreateMembershipsGraphSucceeds = function(graph, callback, _ops) {
  * @param  {String|Boolean}     role            The role to apply, or `false` if the change is to remove the principal from the resource
  * @return {Object}                             The role change object keyed by principal ids, where the value is the role change to apply
  */
-const createRoleChange = function(principalIds, role) {
+const createRoleChange = function (principalIds, role) {
   const roleChange = {};
-  _.each(principalIds, principalId => {
+  _.each(principalIds, (principalId) => {
     roleChange[principalId] = role;
   });
   return roleChange;
@@ -451,9 +448,9 @@ const createRoleChange = function(principalIds, role) {
  * @param  {Object[]}       members     The array of member objects containing `profile` and `role` returned from the content members library
  * @return {MemberRoles}                The member roles in the library result
  */
-const getMemberRolesFromResults = function(members) {
+const getMemberRolesFromResults = function (members) {
   const memberRoles = {};
-  _.each(members, member => {
+  _.each(members, (member) => {
     memberRoles[member.profile.id] = member.role;
   });
   return memberRoles;
@@ -465,9 +462,9 @@ const getMemberRolesFromResults = function(members) {
  * @param  {Invitation[]}   invitation  The invitations from which to extract the emails and roles
  * @return {EmailRoles}                 The email roles in the invitation list
  */
-const getEmailRolesFromResults = function(invitations) {
+const getEmailRolesFromResults = function (invitations) {
   const emailRoles = {};
-  _.each(invitations, invitation => {
+  _.each(invitations, (invitation) => {
     emailRoles[invitation.email] = invitation.role;
   });
   return emailRoles;
@@ -481,7 +478,7 @@ const getEmailRolesFromResults = function(invitations) {
  * @return {String}                     The invitation url
  * @throws {AssertionError}             Thrown if there is no invitation url
  */
-const parseInvitationUrlFromMessage = function(message) {
+const parseInvitationUrlFromMessage = function (message) {
   const match = message.html.match(
     /href="(https?:\/\/[^/]+\/signup\?url=%2F%3FinvitationToken%3D[^"]+)"/
   );
@@ -501,7 +498,7 @@ const parseInvitationUrlFromMessage = function(message) {
  * @throws {AssertionError}         Thrown if the  `delta` application does not result in the `after` roles
  * @api private
  */
-const _assertDeltaEquals = function(before, delta, after) {
+const _assertDeltaEquals = function (before, delta, after) {
   const expectedAfter = _.extend({}, before);
   _.each(delta, (role, id) => {
     if (role === false) {
@@ -521,8 +518,8 @@ const _assertDeltaEquals = function(before, delta, after) {
  * @return {String}             The string in lower case
  * @api private
  */
-const _toLowerCase = function(str) {
-  return str.toLowerCase();
+const _toLowerCase = function (string) {
+  return string.toLowerCase();
 };
 
 export {

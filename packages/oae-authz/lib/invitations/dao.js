@@ -45,17 +45,17 @@ const TOKEN_POOL = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ12345678
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.emailTokens    An object keyed by email, whose value is the invitation token associated to it
  */
-const getOrCreateTokensByEmails = function(emails, callback) {
-  getTokensByEmails(emails, (err, emailTokens) => {
-    if (err) {
-      return callback(err);
+const getOrCreateTokensByEmails = function (emails, callback) {
+  getTokensByEmails(emails, (error, emailTokens) => {
+    if (error) {
+      return callback(error);
     }
 
     const queries = [];
 
     // For each email that did not have an invitation associated to it, persist one and add it
     // to the email tokens hash
-    _.each(emails, email => {
+    _.each(emails, (email) => {
       if (!emailTokens[email]) {
         const token = chance.string({ length: 12, pool: TOKEN_POOL });
         queries.push(
@@ -76,9 +76,9 @@ const getOrCreateTokensByEmails = function(emails, callback) {
     }
 
     // Add the missing email tokens to the invitations token tables
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, emailTokens);
@@ -94,20 +94,20 @@ const getOrCreateTokensByEmails = function(emails, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.emailTokens    An object keyed by email, whose value is the invitation token associated to it
  */
-const getTokensByEmails = function(emails, callback) {
+const getTokensByEmails = function (emails, callback) {
   // Get all existing tokens for emails
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?',
     [emails],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       const emailTokens = _.chain(rows)
         .map(Cassandra.rowToHash)
         .indexBy('email')
-        .mapObject(hash => {
+        .mapObject((hash) => {
           return hash.token;
         })
         .value();
@@ -124,13 +124,13 @@ const getTokensByEmails = function(emails, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.email  The email that was associated to the token
  */
-const getEmailByToken = function(token, callback) {
+const getEmailByToken = function (token, callback) {
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?',
     [token],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -140,11 +140,7 @@ const getEmailByToken = function(token, callback) {
         });
       }
 
-      const email = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .pluck('email')
-        .first()
-        .value();
+      const email = _.chain(rows).map(Cassandra.rowToHash).pluck('email').first().value();
 
       return callback(null, email);
     }
@@ -159,10 +155,10 @@ const getEmailByToken = function(token, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    All invitations that were sent for the specified email
  */
-const getAllInvitationsByEmail = function(email, callback) {
-  _getAllInvitationResourceIdsByEmail(email, (err, invitationResourceIds) => {
-    if (err) {
-      return callback(err);
+const getAllInvitationsByEmail = function (email, callback) {
+  _getAllInvitationResourceIdsByEmail(email, (error, invitationResourceIds) => {
+    if (error) {
+      return callback(error);
     }
 
     return _getInvitations(invitationResourceIds, email, callback);
@@ -177,15 +173,15 @@ const getAllInvitationsByEmail = function(email, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    All invitations that were sent for the specified resource
  */
-const getAllInvitationsByResourceId = function(resourceId, callback, _invitations, _nextToken) {
+const getAllInvitationsByResourceId = function (resourceId, callback, _invitations, _nextToken) {
   _invitations = _invitations || [];
   _nextToken = _nextToken || '';
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" > ? ORDER BY "email" ASC LIMIT 150',
     [resourceId, _nextToken],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -212,13 +208,13 @@ const getAllInvitationsByResourceId = function(resourceId, callback, _invitation
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Object}     callback.invitationHash     The invitation storage hash associated to the given resource id and email
  */
-const getInvitation = function(resourceId, email, callback) {
+const getInvitation = function (resourceId, email, callback) {
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" = ?',
     [resourceId, email],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -244,7 +240,7 @@ const getInvitation = function(resourceId, email, callback) {
  * @param  {Object}     callback.emailTokens        An object keyed by email whose value is the associated invitation token
  * @param  {Object[]}   callback.invitationHashes   All invitations that were created for the email+roles
  */
-const createInvitations = function(resourceId, emailRoles, inviterUserId, callback) {
+const createInvitations = function (resourceId, emailRoles, inviterUserId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -274,9 +270,9 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
   }
 
   // Ensure all emails have invitation tokens that can be used to accept invitations
-  getOrCreateTokensByEmails(_.keys(emailRoles), (err, emailTokens) => {
-    if (err) {
-      return callback(err);
+  getOrCreateTokensByEmails(_.keys(emailRoles), (error, emailTokens) => {
+    if (error) {
+      return callback(error);
     }
 
     // Create the invitation storage hashes that will be persisted
@@ -291,7 +287,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
 
     // Create and run the batch set of queries that will create all the invitations
     const queries = _.chain(invitationHashes)
-      .map(hash => {
+      .map((hash) => {
         return [
           {
             query:
@@ -307,9 +303,9 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
       })
       .flatten()
       .value();
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, emailTokens, invitationHashes);
@@ -325,7 +321,7 @@ const createInvitations = function(resourceId, emailRoles, inviterUserId, callba
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const updateInvitationRoles = function(resourceId, emailRoles, callback) {
+const updateInvitationRoles = function (resourceId, emailRoles, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -387,15 +383,15 @@ const updateInvitationRoles = function(resourceId, emailRoles, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteInvitationsByResourceId = function(resourceId, callback) {
-  getAllInvitationsByResourceId(resourceId, (err, invitations) => {
-    if (err) {
-      return callback(err);
+const deleteInvitationsByResourceId = function (resourceId, callback) {
+  getAllInvitationsByResourceId(resourceId, (error, invitations) => {
+    if (error) {
+      return callback(error);
     }
 
     const changes = _.chain(invitations)
       .pluck('email')
-      .map(email => {
+      .map((email) => {
         return [email, false];
       })
       .object()
@@ -411,7 +407,7 @@ const deleteInvitationsByResourceId = function(resourceId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteInvitationsByEmail = function(email, callback) {
+const deleteInvitationsByEmail = function (email, callback) {
   try {
     unless(isEmail, {
       code: 400,
@@ -422,16 +418,16 @@ const deleteInvitationsByEmail = function(email, callback) {
   }
 
   // Get the active token for the given email
-  getOrCreateTokensByEmails([email], (err, tokenByEmail) => {
-    if (err) {
-      return callback(err);
+  getOrCreateTokensByEmails([email], (error, tokenByEmail) => {
+    if (error) {
+      return callback(error);
     }
 
     const token = tokenByEmail[email];
 
-    _getAllInvitationResourceIdsByEmail(email, (err, resourceIds) => {
-      if (err) {
-        return callback(err);
+    _getAllInvitationResourceIdsByEmail(email, (error, resourceIds) => {
+      if (error) {
+        return callback(error);
       }
 
       const queries = [
@@ -453,7 +449,7 @@ const deleteInvitationsByEmail = function(email, callback) {
       ];
 
       // Delete all the invitations entries for each resource that invited this email
-      _.each(resourceIds, resourceId => {
+      _.each(resourceIds, (resourceId) => {
         queries.push({
           query: 'DELETE FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" = ?',
           parameters: [resourceId, email]
@@ -474,21 +470,21 @@ const deleteInvitationsByEmail = function(email, callback) {
  * @param  {String[]}   callback.resourceIds    All resource ids that the specified email was invited into
  * @api private
  */
-const _getAllInvitationResourceIdsByEmail = function(email, callback, _resourceIds, _nextToken) {
+const _getAllInvitationResourceIdsByEmail = function (email, callback, _resourceIds, _nextToken) {
   _resourceIds = _resourceIds || [];
   _nextToken = _nextToken || '';
 
   let cql = 'SELECT "resourceId" FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ?';
-  const params = [email];
+  const parameters = [email];
   if (_nextToken) {
     cql += ' AND "resourceId" > ?';
-    params.push(_nextToken);
+    parameters.push(_nextToken);
   }
 
   cql += ' ORDER BY "resourceId" ASC LIMIT 100';
-  Cassandra.runQuery(cql, params, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(cql, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -496,10 +492,7 @@ const _getAllInvitationResourceIdsByEmail = function(email, callback, _resourceI
     }
 
     // Join the resource ids we just fetched with our existing list
-    const resourceIds = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .pluck('resourceId')
-      .value();
+    const resourceIds = _.chain(rows).map(Cassandra.rowToHash).pluck('resourceId').value();
     _resourceIds = _.union(_resourceIds, resourceIds);
 
     return _getAllInvitationResourceIdsByEmail(email, callback, _resourceIds, _.last(resourceIds));
@@ -516,7 +509,7 @@ const _getAllInvitationResourceIdsByEmail = function(email, callback, _resourceI
  * @param  {Object[]}   callback.invitationHashes   The invitation storage objects for the given resource ids and email
  * @api private
  */
-const _getInvitations = function(resourceIds, email, callback) {
+const _getInvitations = function (resourceIds, email, callback) {
   if (_.isEmpty(resourceIds)) {
     return callback(null, []);
   }
@@ -524,9 +517,9 @@ const _getInvitations = function(resourceIds, email, callback) {
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" IN ? AND email = ?',
     [resourceIds, email],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _.map(rows, Cassandra.rowToHash));

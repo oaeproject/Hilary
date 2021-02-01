@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { inherits, format } from 'util';
 import passport from 'passport';
 
 /**
@@ -41,7 +41,7 @@ const Strategy = function (options, verify) {
 /**
  * Inherit from `passport.Strategy`.
  */
-util.inherits(Strategy, passport.Strategy);
+inherits(Strategy, passport.Strategy);
 
 /**
  * Authenticate request based on the contents of request headers
@@ -105,12 +105,12 @@ Strategy.prototype.authenticate = function (request) {
      * at /api/auth/shibboleth/sp/callback. That callback URL should NOT be accessible via nginx
      * as that could lead to user spoofing.
      */
-    let redirectUrl = util.format(
+    let redirectUrl = format(
       '/Shibboleth.sso/Login?target=%s',
       encodeURIComponent('/api/auth/shibboleth/sp/returned')
     );
     if (self.options.idpEntityID) {
-      redirectUrl += util.format('&entityID=%s', encodeURIComponent(self.options.idpEntityID));
+      redirectUrl += format('&entityID=%s', encodeURIComponent(self.options.idpEntityID));
     }
 
     return self.redirect(redirectUrl);

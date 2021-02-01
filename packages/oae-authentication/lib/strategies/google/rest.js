@@ -32,7 +32,7 @@ const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
  * @HttpResponse                302         The user will be redirected to Google where they can log in
  * @HttpResponse                400         The authentication strategy is disabled for this tenant
  */
-OAE.tenantRouter.on('post', '/api/auth/google', (request, res, next) => {
+OAE.tenantRouter.on('post', '/api/auth/google', (request, response, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
     request.tenant,
@@ -58,7 +58,7 @@ OAE.tenantRouter.on('post', '/api/auth/google', (request, res, next) => {
   }
 
   // Perform the initial authentication step
-  AuthenticationUtil.handleExternalSetup(strategyId, options, request, res, next);
+  AuthenticationUtil.handleExternalSetup(strategyId, options, request, response, next);
 });
 
 /**
@@ -72,7 +72,7 @@ OAE.tenantRouter.on('post', '/api/auth/google', (request, res, next) => {
  * @Path        /auth/google/callback
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/google/callback', (request, res, next) => {
+OAE.tenantRouter.on('get', '/api/auth/google/callback', (request, response, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
     request.tenant,
@@ -80,7 +80,7 @@ OAE.tenantRouter.on('get', '/api/auth/google/callback', (request, res, next) => 
   );
 
   // Log the user in
-  AuthenticationUtil.handleExternalCallback(strategyId, request, res, next);
+  AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
 export default OAE;

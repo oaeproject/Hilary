@@ -17,7 +17,7 @@ import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import SignedStrategy from 'oae-authentication/lib/strategies/signed/strategy';
 
-export default function () {
+function initSignedAuth() {
   const strategy = {};
 
   /**
@@ -38,3 +38,5 @@ export default function () {
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SIGNED, strategy);
 }
+
+export default initSignedAuth;

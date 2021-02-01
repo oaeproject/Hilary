@@ -30,7 +30,7 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @HttpResponse                302         The user will be redirected to the CAS server where they can log in
  * @HttpResponse                400         The CAS authentication strategy is disabled for this tenant
  */
-OAE.tenantRouter.on('post', '/api/auth/cas', (request, res, next) => {
+OAE.tenantRouter.on('post', '/api/auth/cas', (request, response, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
     request.tenant,
@@ -38,7 +38,7 @@ OAE.tenantRouter.on('post', '/api/auth/cas', (request, res, next) => {
   );
 
   // Perform the initial authentication step
-  AuthenticationUtil.handleExternalSetup(strategyId, null, request, res, next);
+  AuthenticationUtil.handleExternalSetup(strategyId, null, request, response, next);
 });
 
 /**
@@ -52,7 +52,7 @@ OAE.tenantRouter.on('post', '/api/auth/cas', (request, res, next) => {
  * @Path        /auth/cas/callback
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/cas/callback', (request, res, next) => {
+OAE.tenantRouter.on('get', '/api/auth/cas/callback', (request, response, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
     request.tenant,
@@ -60,7 +60,7 @@ OAE.tenantRouter.on('get', '/api/auth/cas/callback', (request, res, next) => {
   );
 
   // Log the user in
-  AuthenticationUtil.handleExternalCallback(strategyId, request, res, next);
+  AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
 export default OAE;

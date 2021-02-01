@@ -27,7 +27,7 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function () {
+function initFacebookAuth() {
   const strategy = {};
 
   /**
@@ -102,3 +102,5 @@ export default function () {
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.FACEBOOK, strategy);
 }
+
+export default initFacebookAuth;

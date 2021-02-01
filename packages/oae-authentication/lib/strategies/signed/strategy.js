@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { inherits } from 'util';
 import passport from 'passport';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -30,7 +30,7 @@ const Strategy = function () {
 /**
  * Inherit from `passport.Strategy`
  */
-util.inherits(Strategy, passport.Strategy);
+inherits(Strategy, passport.Strategy);
 
 /**
  * Authenticate request based on the contents of request parameters

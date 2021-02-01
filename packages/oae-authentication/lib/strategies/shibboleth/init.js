@@ -24,14 +24,14 @@ import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-import * as ShibbolethAPI from './api';
-import ShibbolethStrategy from './strategy';
+import * as ShibbolethAPI from './api.js';
+import ShibbolethStrategy from './strategy.js';
 
 const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function (config) {
+function initShibbAuth(config) {
   // Refresh the shibboleth configuration
   ShibbolethAPI.refreshConfiguration(config);
 
@@ -216,6 +216,8 @@ export default function (config) {
   // Register our strategy
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SHIBBOLETH, strategy);
 }
+
+export default initShibbAuth;
 
 /**
  * Get the value from the attribute that best matches a configured priority list

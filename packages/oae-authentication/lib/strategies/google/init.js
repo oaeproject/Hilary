@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import passport from 'passport-google-oauth';
 
@@ -29,7 +29,7 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function () {
+function initGoogleAuth() {
   const strategy = {};
 
   /**
@@ -103,7 +103,7 @@ export default function () {
           if (!_.contains(domains, emailDomain)) {
             const error = {
               code: 400,
-              msg: util.format(
+              msg: format(
                 'You tried to sign in with an email address that belongs to a domain (%s) that is not allowed access',
                 emailDomain
               ),
@@ -143,3 +143,5 @@ export default function () {
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.GOOGLE, strategy);
 }
+
+export default initGoogleAuth;

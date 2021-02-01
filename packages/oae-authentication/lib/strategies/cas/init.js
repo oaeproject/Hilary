@@ -29,7 +29,7 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function () {
+function initCasAuth() {
   const strategy = {};
 
   /**
@@ -160,7 +160,7 @@ export default function () {
    * @param  {Request}    req     The expressJS request object
    * @param  {Response}   res     The expressJS response object
    */
-  strategy.logout = function (request, res) {
+  strategy.logout = function (request, response) {
     const tenant = request.ctx.tenant();
     const logoutUrl = AuthenticationConfig.getValue(
       tenant.alias,
@@ -170,13 +170,15 @@ export default function () {
 
     // If no logout URL is specified, we simply redirect to the index page
     if (!logoutUrl) {
-      return res.redirect('/');
+      return response.redirect('/');
     }
 
     // Otherwise we send the user off to the specified URL
-    return res.redirect(logoutUrl);
+    return response.redirect(logoutUrl);
   };
 
   // Register our strategy
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.CAS, strategy);
 }
+
+export default initCasAuth;

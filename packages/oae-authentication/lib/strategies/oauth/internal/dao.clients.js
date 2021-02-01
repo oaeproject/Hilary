@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable unicorn/no-array-callback-reference */
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 
-import { Client } from '../model';
+import { Client } from '../model.js';
 
 /**
  * Creates a client.

@@ -31,7 +31,7 @@ const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
 let globalTenantAlias = null;
 
-export default function (config) {
+function initLocalAuth(config) {
   globalTenantAlias = config.servers.globalAdminAlias;
 
   // Build up the OAE strategy.
@@ -118,3 +118,5 @@ export default function (config) {
   );
   passport.use(adminLocalPassportStrategyName, strategy.getPassportStrategy(globalTenant));
 }
+
+export default initLocalAuth;

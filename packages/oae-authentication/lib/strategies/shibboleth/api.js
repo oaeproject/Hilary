@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
@@ -69,14 +69,14 @@ const isEnabled = function (tenantAlias) {
  */
 const getServiceProviderUrl = function (ctx) {
   // The URL at which the Shibboleth SP software (`Apache` + `mod_shib`) is running
-  const spURL = util.format('https://%s', getSPHost());
+  const spURL = format('https://%s', getSPHost());
 
   // Generate a signature
   const data = { tenantAlias: ctx.tenant().alias };
   const signature = Signature.createExpiringSignature(data, 60, 60);
 
   // Create and return the full URL
-  return util.format(
+  return format(
     '%s/api/auth/shibboleth/sp?tenantAlias=%s&signature=%s&expires=%s',
     spURL,
     ctx.tenant().alias,
@@ -176,7 +176,7 @@ const getShibbolethEnabledTenant = function (tenantAlias, callback) {
 const getAuthenticatedUserRedirectUrl = function (tenant, user) {
   const data = { userId: user.id };
   const signature = Signature.createExpiringSignature(data, 60, 60);
-  return util.format(
+  return format(
     'https://%s/api/auth/shibboleth/callback?userId=%s&signature=%s&expires=%s',
     tenant.host,
     user.id,
@@ -253,7 +253,7 @@ const getUser = function (tenant, userId, signature, expires, callback) {
       if (user.deleted) {
         return callback({
           code: 401,
-          msg: util.format('Target user has been deleted: %s', userId)
+          msg: format('Target user has been deleted: %s', userId)
         });
       }
 

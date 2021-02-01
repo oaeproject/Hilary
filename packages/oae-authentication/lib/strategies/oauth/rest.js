@@ -23,8 +23,8 @@ import { logger } from 'oae-logger';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeServer from 'oae-util/lib/server';
 
-import * as OAuthDAO from './internal/dao';
-import * as OAuthAPI from './api';
+import * as OAuthDAO from './internal/dao.js';
+import * as OAuthAPI from './api.js';
 
 const ClientPasswordStrategy = OAuthPassport.Strategy;
 const log = logger('oae-authentication');
@@ -198,17 +198,17 @@ OaeServer.addSafePathPrefix('/api/auth/oauth/v2/token');
  * @HttpResponse                    400             Missing or invalid displayname was provided
  * @HttpResponse                    401             Unauthorized
  */
-OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId', (request, res) => {
+OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId', (request, response) => {
   OAuthAPI.Clients.createClient(
     request.ctx,
     request.params.userId,
     request.body.displayName,
     (error, client) => {
       if (error) {
-        return res.status(error.code).send(error.msg);
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(201).send(client);
+      response.status(201).send(client);
     }
   );
 });
@@ -226,13 +226,13 @@ OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId', (request, res) =>
  * @HttpResponse                    200             clients available
  * @HttpResponse                    401             Unauthorized
  */
-OAE.tenantRouter.on('get', '/api/auth/oauth/clients/:userId', (request, res) => {
+OAE.tenantRouter.on('get', '/api/auth/oauth/clients/:userId', (request, response) => {
   OAuthAPI.Clients.getClients(request.ctx, request.params.userId, (error, clients) => {
     if (error) {
-      return res.status(error.code).send(error.msg);
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send({ results: clients });
+    response.status(200).send({ results: clients });
   });
 });
 
@@ -252,7 +252,7 @@ OAE.tenantRouter.on('get', '/api/auth/oauth/clients/:userId', (request, res) => 
  * @HttpResponse                    200             client updated
  * @HttpResponse                    401             Unauthorized
  */
-OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (request, res) => {
+OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (request, response) => {
   OAuthAPI.Clients.updateClient(
     request.ctx,
     request.params.clientId,
@@ -260,10 +260,10 @@ OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (reques
     request.body.secret,
     (error, client) => {
       if (error) {
-        return res.status(error.code).send(error.msg);
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send(client);
+      response.status(200).send(client);
     }
   );
 });
@@ -282,13 +282,13 @@ OAE.tenantRouter.on('post', '/api/auth/oauth/clients/:userId/:clientId', (reques
  * @HttpResponse                    200             client deleted
  * @HttpResponse                    401             Unauthorized
  */
-OAE.tenantRouter.on('delete', '/api/auth/oauth/clients/:userId/:clientId', (request, res) => {
+OAE.tenantRouter.on('delete', '/api/auth/oauth/clients/:userId/:clientId', (request, response) => {
   OAuthAPI.Clients.deleteClient(request.ctx, request.params.clientId, (error) => {
     if (error) {
-      return res.status(error.code).send(error.msg);
+      return response.status(error.code).send(error.msg);
     }
 
-    res.sendStatus(200);
+    response.sendStatus(200);
   });
 });
 

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
@@ -63,7 +63,7 @@ const getSignedTenantAuthenticationRequest = function (ctx, tenantAlias, callbac
   if (!targetTenant) {
     return callback({
       code: 404,
-      msg: util.format('There is no tenant with alias "%s"', tenantAlias)
+      msg: format('There is no tenant with alias "%s"', tenantAlias)
     });
   }
 
@@ -214,7 +214,7 @@ const verifySignedAuthenticationBody = function (ctx, body, callback) {
  * @api private
  */
 const _getSignedAuthenticationUrl = function (tenant) {
-  return util.format('%s/api/auth/signed', TenantsUtil.getBaseUrl(tenant));
+  return format('%s/api/auth/signed', TenantsUtil.getBaseUrl(tenant));
 };
 
 export {

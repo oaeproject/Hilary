@@ -19,7 +19,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 
-import * as OAuthDAO from './internal/dao';
+import * as OAuthDAO from './internal/dao.js';
 
 /// //////////
 // Clients //

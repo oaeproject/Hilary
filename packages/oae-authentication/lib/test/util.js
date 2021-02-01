@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import nock from 'nock';
@@ -271,7 +271,7 @@ const _mockGoogleResponse = function (email) {
   const nock = _nock();
 
   // Mock the "get access token" request in the OAuth2 cycle
-  const accessToken = util.format('google_%s', _.random(10000));
+  const accessToken = format('google_%s', _.random(10000));
   nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, {
     // eslint-disable-next-line camelcase
     access_token: accessToken,

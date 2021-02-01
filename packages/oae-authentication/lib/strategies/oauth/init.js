@@ -22,7 +22,7 @@ import * as OAE from 'oae-util/lib/oae';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import { telemetry } from 'oae-telemetry';
 
-import * as OAuthDAO from './internal/dao';
+import * as OAuthDAO from './internal/dao.js';
 
 const BearerStrategy = passportBearer.Strategy;
 const Telemetry = telemetry('oauth');
@@ -30,7 +30,7 @@ const Telemetry = telemetry('oauth');
 // Used to check if the authorization header starts with "Bearer "
 const BEARER_REGEX = /^bearer /i;
 
-export default function () {
+function initOAuthAuth() {
   /*!
    * This strategy is used to authenticate users based on an access token (aka a bearer token).
    *
@@ -69,13 +69,13 @@ export default function () {
    * that there is a token in the request. This needs to run before any other middleware that does something with
    * the user, as this middleware will put the `user` object on the request.
    */
-  OAE.tenantServer.use((request, res, next) => {
+  OAE.tenantServer.use((request, response, next) => {
     if (!_hasAccessToken(request)) {
       // Don't invoke the OAuth workflow if there is no OAuth access token
       return next();
     }
 
-    passport.authenticate(['bearer'], { session: false })(request, res, () => {
+    passport.authenticate(['bearer'], { session: false })(request, response, () => {
       if (request.oaeAuthInfo && request.oaeAuthInfo.user) {
         Telemetry.incr('success');
 
@@ -96,6 +96,8 @@ export default function () {
     });
   });
 }
+
+export default initOAuthAuth;
 
 /**
  * Find an OAuth access token in the HTTP request.

@@ -17,7 +17,7 @@ import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 
-import { AccessToken } from '../model';
+import { AccessToken } from '../model.js';
 
 /**
  * Creates an access token

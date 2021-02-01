@@ -42,16 +42,16 @@ OaeServer.addSafePathPrefix('/api/auth/signed');
  * @HttpResponse                    401             You cannot create a signed authentication token to a tenant while impostering another user
  * @HttpResponse                    404             There is no tenant with alias ...
  */
-OAE.globalAdminRouter.on('get', '/api/auth/signed/tenant', (request, res) => {
+OAE.globalAdminRouter.on('get', '/api/auth/signed/tenant', (request, response) => {
   AuthenticationSignedUtil.getSignedTenantAuthenticationRequest(
     request.ctx,
     request.query.tenant,
     (error, requestInfo) => {
       if (error) {
-        return res.status(error.code).send(error.msg);
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).send(requestInfo);
+      return response.status(200).send(requestInfo);
     }
   );
 });
@@ -63,16 +63,16 @@ OAE.globalAdminRouter.on('get', '/api/auth/signed/tenant', (request, res) => {
  * @param  {Request}    req     Express Request object of the request
  * @param  {Response}   res     Express Response object on which to send the response
  */
-const _getBecomeUserAuthenticationRequestInfo = function (request, res) {
+const _getBecomeUserAuthenticationRequestInfo = function (request, response) {
   AuthenticationSignedUtil.getSignedBecomeUserAuthenticationRequest(
     request.ctx,
     request.query.becomeUserId,
     (error, requestInfo) => {
       if (error) {
-        return res.status(error.code).send(error.msg);
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).send(requestInfo);
+      return response.status(200).send(requestInfo);
     }
   );
 };
@@ -111,7 +111,7 @@ OAE.tenantRouter.on('get', '/api/auth/signed/become', _getBecomeUserAuthenticati
  * @HttpResponse                200                 Login succeeded
  * @HttpResponse                401                 Unauthorized
  */
-OAE.tenantRouter.on('post', '/api/auth/signed', (request, res, next) => {
+OAE.tenantRouter.on('post', '/api/auth/signed', (request, response, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
     request.tenant,
@@ -121,7 +121,7 @@ OAE.tenantRouter.on('post', '/api/auth/signed', (request, res, next) => {
   // Authenticate this request using the information
   passport.authenticate(strategyId, { successRedirect: '/', failureRedirect: '/' })(
     request,
-    res,
+    response,
     next
   );
 });

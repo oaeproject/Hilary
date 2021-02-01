@@ -37,7 +37,7 @@ const log = logger('oae-util-multipart');
  * @param  {String}     [formOptions.uploadDir]     The temporary directory to use to store the uploaded file
  * @return {Function}                               An express middleware handler that will parse the request body if it is multipart/form-data
  */
-export default function (formOptions) {
+function multipart(formOptions) {
   formOptions = formOptions || {};
   formOptions = {
     autoFiles: true,
@@ -47,7 +47,7 @@ export default function (formOptions) {
   /*!
    * Provide the middleware handler as per the export summary
    */
-  return function (request, res, next) {
+  return function (request, response, next) {
     if (request._body) {
       // The request has already been parsed, don't try to handle it
       return next();
@@ -83,7 +83,7 @@ export default function (formOptions) {
 
         // Using a 400 instead of a 500 here on the basis that if the request cannot be parsed
         // it's *probably* something the client did wrong, not the server
-        return res.status(400).send('An error ocurred while parsing the multipart form');
+        return response.status(400).send('An error ocurred while parsing the multipart form');
       }
 
       // Apply the simple fields into the body of the request
@@ -107,6 +107,8 @@ export default function (formOptions) {
     });
   };
 }
+
+export default multipart;
 
 /**
  * Multiparty always supplies its values as arrays. To be consistent with other request parsers,

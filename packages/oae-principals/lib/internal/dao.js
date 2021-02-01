@@ -44,7 +44,7 @@ const RESTRICTED_FIELDS = ['acceptedTC', 'admin:tenant', 'admin:global', 'delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error object, if any
  */
-const createUser = function(user, callback) {
+const createUser = function (user, callback) {
   const queries = [];
 
   // Persist the user object
@@ -88,7 +88,7 @@ const createUser = function(user, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Group}      callback.group      The created group
  */
-const createGroup = function(
+const createGroup = function (
   groupId,
   tenantAlias,
   displayName,
@@ -118,9 +118,9 @@ const createGroup = function(
     created
   ];
 
-  Cassandra.runQuery(query, parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const group = new Group(tenantAlias, groupId, displayName, {
@@ -144,12 +144,12 @@ const createGroup = function(
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  {User|Group}    callback.principal  The principal, either a user or a group, depending on the type of entity to which the id mapped. If the principal does not exist, this will be `null`
  */
-const getPrincipal = function(principalId, callback) {
+const getPrincipal = function (principalId, callback) {
   if (isUser(principalId)) {
     // Try and get the user from the cache first. If they aren't cached, we will fetch them from the DB and it will get cached then
-    _getUserFromRedis(principalId, (err, user) => {
-      if (err && err.code !== 404) {
-        log().error({ err }, 'Error occurred when trying to get a user from Redis.');
+    _getUserFromRedis(principalId, (error, user) => {
+      if (error && error.code !== 404) {
+        log().error({ err: error }, 'Error occurred when trying to get a user from Redis.');
       } else if (user) {
         // We found a user in the cache, immediately return it
         return callback(null, user);
@@ -176,14 +176,14 @@ const getPrincipal = function(principalId, callback) {
  * @param  {Object}     callback.err                        An error that occurred, if any
  * @param  {Object}     callback.principals                 A hash of principals, keyed by the principal id, and whose value is the principal (either user or group) to which the id mapped
  */
-const getExistingPrincipals = function(principalIds, fields, callback) {
+const getExistingPrincipals = function (principalIds, fields, callback) {
   if (_.isEmpty(principalIds)) {
     return callback(null, {});
   }
 
-  getPrincipals(principalIds, fields, (err, principalsById) => {
-    if (err) {
-      return callback(err);
+  getPrincipals(principalIds, fields, (error, principalsById) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.keys(principalsById).length !== principalIds.length) {
@@ -203,7 +203,7 @@ const getExistingPrincipals = function(principalIds, fields, callback) {
  * @param  {Object}     callback.err                        An error that occurred, if any
  * @param  {Object}     callback.principals                 A hash of principals, keyed by the principal id, and whose value is the principal (either user or group) to which the id mapped.
  */
-const getPrincipals = function(principalIds, fields, callback) {
+const getPrincipals = function (principalIds, fields, callback) {
   if (_.isEmpty(principalIds)) {
     return callback(null, {});
   }
@@ -211,15 +211,15 @@ const getPrincipals = function(principalIds, fields, callback) {
   // If we're only requesting 1 principal we can hand it off to the getPrincipal method.
   // This will try looking in the cache first, which might be faster
   if (principalIds.length === 1) {
-    getPrincipal(principalIds[0], (err, user) => {
-      if (err && err.code === 404) {
+    getPrincipal(principalIds[0], (error, user) => {
+      if (error && error.code === 404) {
         // This method never returns an error if any principals in the listing are missing,
         // even if it is just a listing of 1 principal (e.g., a library of 1 item)
         return callback(null, {});
       }
 
-      if (err) {
-        return callback(err);
+      if (error) {
+        return callback(error);
       }
 
       const users = {};
@@ -236,7 +236,7 @@ const getPrincipals = function(principalIds, fields, callback) {
   // If `fields` was specified, we select only the fields specified. Otherwise we select all (i.e., *)
   if (fields) {
     const columns = [];
-    _.map(fields, field => {
+    _.map(fields, (field) => {
       columns.push(util.format('"%s"', field));
     });
     query = 'SELECT ' + columns.join(',') + ' FROM "Principals" WHERE "principalId" IN ?';
@@ -246,16 +246,12 @@ const getPrincipals = function(principalIds, fields, callback) {
 
   parameters = [principalIds];
 
-  Cassandra.runQuery(query, parameters, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
-    const principals = _.chain(rows)
-      .map(_getPrincipalFromRow)
-      .compact()
-      .indexBy('id')
-      .value();
+    const principals = _.chain(rows).map(_getPrincipalFromRow).compact().indexBy('id').value();
 
     return callback(null, principals);
   });
@@ -269,7 +265,7 @@ const getPrincipals = function(principalIds, fields, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const updatePrincipal = function(principalId, profileFields, callback) {
+const updatePrincipal = function (principalId, profileFields, callback) {
   // Ensure the caller is not trying to set an invalid field
   const invalidKeys = _.intersection(RESTRICTED_FIELDS, _.keys(profileFields));
 
@@ -293,31 +289,31 @@ const updatePrincipal = function(principalId, profileFields, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deletePrincipal = function(principalId, callback) {
+const deletePrincipal = function (principalId, callback) {
   const deleted = Date.now();
 
   // Determine if the principal was already deleted in the authz index before we set them and flip
   // the principals deleted flag
-  AuthzDelete.isDeleted([principalId], (err, wasDeleted) => {
-    if (err) {
-      return callback(err);
+  AuthzDelete.isDeleted([principalId], (error, wasDeleted) => {
+    if (error) {
+      return callback(error);
     }
 
     // Set (or re-Set) the principal as deleted in the authz index
-    AuthzDelete.setDeleted(principalId, err => {
-      if (err) {
-        return callback(err);
+    AuthzDelete.setDeleted(principalId, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      _updatePrincipal(principalId, { deleted }, err => {
-        if (err) {
+      _updatePrincipal(principalId, { deleted }, (error_) => {
+        if (error_) {
           // If updating the principal field fails, we want to make sure we try and unset
           // the principal as being deleted if it wasn't set before
           if (!wasDeleted[principalId]) {
             AuthzDelete.unsetDeleted(principalId);
           }
 
-          return callback(err);
+          return callback(error_);
         }
 
         return callback();
@@ -333,29 +329,29 @@ const deletePrincipal = function(principalId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const restorePrincipal = function(principalId, callback) {
+const restorePrincipal = function (principalId, callback) {
   // Determine if the principal was already deleted in the authz index before we unset them and
   // flip the principals deleted flag
-  AuthzDelete.isDeleted([principalId], (err, wasDeleted) => {
-    if (err) {
-      return callback(err);
+  AuthzDelete.isDeleted([principalId], (error, wasDeleted) => {
+    if (error) {
+      return callback(error);
     }
 
     // Unset (or re-Unset) the principal as deleted in the authz index
-    AuthzDelete.unsetDeleted(principalId, err => {
-      if (err) {
-        return callback(err);
+    AuthzDelete.unsetDeleted(principalId, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      _deletePrincipalFields(principalId, ['deleted'], err => {
-        if (err) {
+      _deletePrincipalFields(principalId, ['deleted'], (error_) => {
+        if (error_) {
           // If updating the principal field fails, we want to make sure we try and re-set
           // the principal as being deleted if was set before
           if (wasDeleted[principalId]) {
             AuthzDelete.setDeleted(principalId);
           }
 
-          return callback(err);
+          return callback(error_);
         }
 
         return callback();
@@ -371,13 +367,13 @@ const restorePrincipal = function(principalId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const acceptTermsAndConditions = function(userId, callback) {
+const acceptTermsAndConditions = function (userId, callback) {
   Cassandra.runQuery(
     'UPDATE "Principals" SET "acceptedTC" = ? WHERE "principalId" = ?',
     [Date.now().toString(), userId],
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       return invalidateCachedUsers([userId], callback);
@@ -394,7 +390,7 @@ const acceptTermsAndConditions = function(userId, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const setAdmin = function(adminType, isAdmin, userId, callback) {
+const setAdmin = function (adminType, isAdmin, userId, callback) {
   // Ensure we're using a real principal id. If we weren't, we would be dangerously upserting an invalid row
   try {
     unless(isPrincipalId, {
@@ -406,9 +402,9 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
   }
 
   const query = util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
-  Cassandra.runQuery(query, [String(isAdmin), userId], err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, [String(isAdmin), userId], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return invalidateCachedUsers([userId], callback);
@@ -424,10 +420,10 @@ const setAdmin = function(adminType, isAdmin, userId, callback) {
  * @param  {String}     callback.email      The email that is associated with the token
  * @param  {String}     callback.token      The token that can be used to verify the email with
  */
-const getEmailToken = function(userId, callback) {
-  Cassandra.runQuery('SELECT * FROM "PrincipalsEmailToken" WHERE "principalId" = ?', [userId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getEmailToken = function (userId, callback) {
+  Cassandra.runQuery('SELECT * FROM "PrincipalsEmailToken" WHERE "principalId" = ?', [userId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -447,7 +443,7 @@ const getEmailToken = function(userId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteEmailToken = function(userId, callback) {
+const deleteEmailToken = function (userId, callback) {
   Cassandra.runQuery('DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?', [userId], callback);
 };
 
@@ -459,16 +455,16 @@ const deleteEmailToken = function(userId, callback) {
  * @param  {Object}     callback.err                An error object, if any
  * @param  {Object}     callback.userIdsByEmail     An object keyed by email, whose value are the user ids associated to that email
  */
-const getUserIdsByEmails = function(emails, callback) {
-  Cassandra.runQuery('SELECT * FROM "PrincipalsByEmail" WHERE "email" IN ?', [emails], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getUserIdsByEmails = function (emails, callback) {
+  Cassandra.runQuery('SELECT * FROM "PrincipalsByEmail" WHERE "email" IN ?', [emails], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     const userIdsByEmail = _.chain(rows)
       .map(Cassandra.rowToHash)
       .groupBy('email')
-      .mapObject(principalIdEmailHashes => {
+      .mapObject((principalIdEmailHashes) => {
         return _.pluck(principalIdEmailHashes, 'principalId');
       })
       .value();
@@ -485,7 +481,7 @@ const getUserIdsByEmails = function(emails, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error object, if any
  */
-const storeEmailToken = function(userId, email, token, callback) {
+const storeEmailToken = function (userId, email, token, callback) {
   const q = Cassandra.constructUpsertCQL('PrincipalsEmailToken', 'principalId', userId, {
     email,
     token
@@ -502,7 +498,7 @@ const storeEmailToken = function(userId, email, token, callback) {
  * @param  {Object}     callback.err    An error object, if any
  * @param  {User}       callback.user   The updated user
  */
-const setEmailAddress = function(user, email, callback) {
+const setEmailAddress = function (user, email, callback) {
   const queries = [];
 
   // The token is correct, change the email address
@@ -529,15 +525,15 @@ const setEmailAddress = function(user, email, callback) {
     });
   }
 
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Invalidate the cached user object as it has changed
-    _updateCachedUser(user.id, principalsUpdate, err => {
-      if (err) {
-        return callback(err);
+    _updateCachedUser(user.id, principalsUpdate, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Return the new user
@@ -563,7 +559,7 @@ const setEmailAddress = function(user, email, callback) {
  * @param  {Object}     [callback.err]          An error that occurred, while iterating rows, if any
  * @see Cassandra#iterateAll
  */
-const iterateAll = function(properties, batchSize, onEach, callback) {
+const iterateAll = function (properties, batchSize, onEach, callback) {
   // eslint-disable-next-line unicorn/explicit-length-check
   if (!properties || !properties.length) {
     properties = ['principalId'];
@@ -574,7 +570,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
    *
    * @see Cassandra#iterateAll
    */
-  const _iterateAllOnEach = function(rows, done) {
+  const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
@@ -588,7 +584,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
  * @param  {String}  groupId    A string that may or may not be a group id
  * @return {Boolean}            Whether or not the provided identifier is a group identifier.
  */
-const isGroup = function(groupId) {
+const isGroup = function (groupId) {
   return AuthzUtil.isGroupId(groupId);
 };
 
@@ -598,7 +594,7 @@ const isGroup = function(groupId) {
  * @param  {String}  userId     A string that may or may not be a user id
  * @return {Boolean}            Whether or not the provided identifier is a user identifier
  */
-const isUser = function(userId) {
+const isUser = function (userId) {
   return AuthzUtil.isUserId(userId);
 };
 
@@ -612,7 +608,7 @@ const isUser = function(userId) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _updatePrincipal = function(principalId, profileFields, callback) {
+const _updatePrincipal = function (principalId, profileFields, callback) {
   // Take out the `principalId` to avoid setting a partial cache entry. Also ensure we have a
   // `lastModified` set for the update
   profileFields = _.chain({})
@@ -631,9 +627,9 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
   }
 
   // If a change is being made to the email address, we need to update the mapping
-  _isEmailAddressUpdate(principalId, profileFields, (err, isEmailAddressUpdate, oldEmail) => {
-    if (err) {
-      return callback(err);
+  _isEmailAddressUpdate(principalId, profileFields, (error, isEmailAddressUpdate, oldEmail) => {
+    if (error) {
+      return callback(error);
     }
 
     const queries = [];
@@ -654,9 +650,9 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
     }
 
     // Execute the queries
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Update the cache, if necessary
@@ -673,29 +669,29 @@ const _updatePrincipal = function(principalId, profileFields, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const _deletePrincipalFields = function(principalId, profileFields, callback) {
+const _deletePrincipalFields = function (principalId, profileFields, callback) {
   // Remove the specified fields
   const query = util.format('DELETE "%s" FROM "Principals" where "principalId" = ?', profileFields.join('", "'));
-  Cassandra.runQuery(query, [principalId], err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, [principalId], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // If the principal is a user, invalidate their cache entry. They are being invalidated
     // rather than simply updated in the cache because we have removed fields
-    OaeUtil.invokeIfNecessary(isUser(principalId), invalidateCachedUsers, [principalId], err => {
-      if (err) {
-        return callback(err);
+    OaeUtil.invokeIfNecessary(isUser(principalId), invalidateCachedUsers, [principalId], (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // This is an update, so we also need to touch the principal
-      _updatePrincipal(principalId, {}, err => {
-        if (err) {
+      _updatePrincipal(principalId, {}, (error) => {
+        if (error) {
           // We bypass indicating an error to the consumer in this case as we have
           // successfully removed the fields in both Cassandra and the cache
           log().warn(
             {
-              err,
+              err: error,
               principalId
             },
             'An unexpected error occurred while trying to touch a principal timestamp'
@@ -719,14 +715,14 @@ const _deletePrincipalFields = function(principalId, profileFields, callback) {
  * @param  {String}     callback.oldEmail                   The user's old email address
  * @api private
  */
-const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
+const _isEmailAddressUpdate = function (principalId, profileFields, callback) {
   if (!isUser(principalId) || !profileFields.email) {
     return callback(null, false);
   }
 
-  getPrincipal(principalId, (err, user) => {
-    if (err) {
-      return callback(err);
+  getPrincipal(principalId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     if (user.email !== profileFields.email) {
@@ -746,10 +742,10 @@ const _isEmailAddressUpdate = function(principalId, profileFields, callback) {
  * @param  {Group|User}     callback.principal  The requested principal
  * @api private
  */
-const getPrincipalSkipCache = function(principalId, callback) {
-  Cassandra.runQuery('SELECT * FROM "Principals" WHERE "principalId" = ?', [principalId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getPrincipalSkipCache = function (principalId, callback) {
+  Cassandra.runQuery('SELECT * FROM "Principals" WHERE "principalId" = ?', [principalId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -780,12 +776,12 @@ const getPrincipalSkipCache = function(principalId, callback) {
  * @param  {Function}   [callback]      Standard callback function
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const _updateCachedUser = function(userId, fields, callback) {
+const _updateCachedUser = function (userId, fields, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().warn({ err }, 'Error updating cached user in Redis');
+    function (error) {
+      if (error) {
+        log().warn({ err: error }, 'Error updating cached user in Redis');
       }
     };
 
@@ -817,10 +813,10 @@ const _updateCachedUser = function(userId, fields, callback) {
  * @param  {User}       callback.principal  The requested user
  * @api private
  */
-const _getUserFromRedis = function(userId, callback) {
-  Redis.getClient().hgetall(userId, (err, hash) => {
-    if (err) {
-      return callback({ code: 500, msg: err });
+const _getUserFromRedis = function (userId, callback) {
+  Redis.getClient().hgetall(userId, (error, hash) => {
+    if (error) {
+      return callback({ code: 500, msg: error });
       // Since we also push updates into redis, use the user id as a slug to ensure that the user doesn't exist in
       // cache by virtue of an upsert
     }
@@ -840,7 +836,7 @@ const _getUserFromRedis = function(userId, callback) {
  * @return {User|Group}         A user or group object
  * @api private
  */
-const _getPrincipalFromRow = function(row) {
+const _getPrincipalFromRow = function (row) {
   if (row.count <= 1 || !row.tenantAlias) {
     return null;
   }
@@ -855,7 +851,7 @@ const _getPrincipalFromRow = function(row) {
  * @return {Group}          A group object
  * @api private
  */
-const _getGroupFromRow = function(row) {
+const _getGroupFromRow = function (row) {
   const hash = Cassandra.rowToHash(row);
 
   // Helenus returns the timestamp data-type as a string. Lets convert them to millis since the
@@ -873,7 +869,7 @@ const _getGroupFromRow = function(row) {
  * @return {User}           A User object
  * @api private
  */
-const _getUserFromRow = function(row) {
+const _getUserFromRow = function (row) {
   const hash = Cassandra.rowToHash(row);
 
   _transformUserFieldTypes(hash);
@@ -888,7 +884,7 @@ const _getUserFromRow = function(row) {
  * @param  {Object}     hash    A partial user storage object
  * @return {Object}             The hash with appropriate field types transformed
  */
-const _transformUserFieldTypes = function(hash) {
+const _transformUserFieldTypes = function (hash) {
   _timestampToMillis(hash, 'deleted');
 };
 
@@ -899,7 +895,7 @@ const _transformUserFieldTypes = function(hash) {
  * @return {User}               User object representing the created user
  * @api private
  */
-const _hashToUser = function(hash) {
+const _hashToUser = function (hash) {
   const user = new User(hash.tenantAlias, hash.principalId, hash.displayName, hash.email, {
     visibility: hash.visibility,
     deleted: hash.deleted,
@@ -928,9 +924,9 @@ const _hashToUser = function(hash) {
  * @param  {String}     key     The name of the property to convert
  * @api private
  */
-const _timestampToMillis = function(obj, key) {
-  if (obj[key]) {
-    obj[key] = new Date(obj[key]).getTime();
+const _timestampToMillis = function (object, key) {
+  if (object[key]) {
+    object[key] = new Date(object[key]).getTime();
   }
 };
 
@@ -939,7 +935,7 @@ const _timestampToMillis = function(obj, key) {
  *
  * @return {String[]}   An array of fields that are not allowed to be set by a call to `updatePrincipal`
  */
-const getRestrictedFields = function() {
+const getRestrictedFields = function () {
   return RESTRICTED_FIELDS.slice();
 };
 
@@ -950,7 +946,7 @@ const getRestrictedFields = function() {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const invalidateCachedUsers = function(userIds, callback) {
+const invalidateCachedUsers = function (userIds, callback) {
   Redis.getClient().del(userIds, callback);
 };
 
@@ -963,7 +959,7 @@ const invalidateCachedUsers = function(userIds, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error object, if any
  */
-const setLatestVisit = function(user, group, visit, callback) {
+const setLatestVisit = function (user, group, visit, callback) {
   const q = Cassandra.constructUpsertCQL('UsersGroupVisits', ['userId', 'groupId'], [user.id, group.id], {
     latestVisit: visit.getTime().toString()
   });
@@ -979,7 +975,7 @@ const setLatestVisit = function(user, group, visit, callback) {
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  [Group]         callback.groups     Groups the user has visited. If the user has visited no groups, an empty list will be returned
  */
-const getVisitedGroups = function(userId, callback) {
+const getVisitedGroups = function (userId, callback) {
   if (isUser(userId)) {
     return _getVisitedGroupsFromCassandra(userId, callback);
   }
@@ -996,17 +992,17 @@ const getVisitedGroups = function(userId, callback) {
  * @param  {Group|User}     callback.groups     The groups user has visited
  * @api private
  */
-const _getVisitedGroupsFromCassandra = function(userId, callback) {
-  Cassandra.runQuery('SELECT * FROM "UsersGroupVisits" WHERE "userId" = ?', [userId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const _getVisitedGroupsFromCassandra = function (userId, callback) {
+  Cassandra.runQuery('SELECT * FROM "UsersGroupVisits" WHERE "userId" = ?', [userId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
 
-    const groups = _.map(rows, row => {
+    const groups = _.map(rows, (row) => {
       const hash = Cassandra.rowToHash(row);
       hash.latestVisit = OaeUtil.getNumberParam(hash.latestVisit);
       return hash;
@@ -1025,18 +1021,18 @@ const _getVisitedGroupsFromCassandra = function(userId, callback) {
  * @param  [User]           callback.users      The list of users for the given tenancy
  * @api private
  */
-const getAllUsersForTenant = function(tenantAlias, callback) {
+const getAllUsersForTenant = function (tenantAlias, callback) {
   const query = 'SELECT * FROM "Principals" WHERE "tenantAlias" = ?';
-  Cassandra.runAutoPagedQuery(query, [tenantAlias], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runAutoPagedQuery(query, [tenantAlias], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
       return callback(null, []);
     }
 
-    const users = _.map(rows, row => {
+    const users = _.map(rows, (row) => {
       if (isUser(row.get('principalId'))) {
         return _getUserFromRow(row);
       }
@@ -1054,15 +1050,15 @@ const getAllUsersForTenant = function(tenantAlias, callback) {
  * @param  {Function}       callback                    Standard callback function
  * @param  {Object}         callback.err                An error that occurred, if any
  */
-const createRequestJoinGroup = function(principalId, groupId, callback) {
+const createRequestJoinGroup = function (principalId, groupId, callback) {
   const lastModified = Date.now().toString();
 
   Cassandra.runQuery(
     'INSERT INTO "GroupJoinRequestsByGroup" ("groupId", "principalId", "created_at", "updated_at", "status") VALUES (?, ?, ?, ?, ?)',
     [groupId, principalId, lastModified, lastModified, PrincipalsConstants.requestStatus.PENDING],
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback();
@@ -1078,7 +1074,7 @@ const createRequestJoinGroup = function(principalId, groupId, callback) {
  * @param  {Function}       callback                    Standard callback function
  * @param  {Object}         callback.err                An error that occurred, if any
  */
-const updateJoinGroupByRequest = function(principalId, groupId, status, callback) {
+const updateJoinGroupByRequest = function (principalId, groupId, status, callback) {
   const queries = [];
   const lastModified = Date.now().toString();
 
@@ -1089,9 +1085,9 @@ const updateJoinGroupByRequest = function(principalId, groupId, status, callback
   });
 
   // Execute the queries
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();
@@ -1106,13 +1102,13 @@ const updateJoinGroupByRequest = function(principalId, groupId, status, callback
  * @param  {Function}       callback                    Standard callback function
  * @param  {Object}         callback.err                An error that occurred, if any
  */
-const getJoinGroupRequest = function(groupId, principalId, callback) {
+const getJoinGroupRequest = function (groupId, principalId, callback) {
   Cassandra.runQuery(
     'SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ? AND "principalId" = ?',
     [groupId, principalId],
-    (err, row) => {
-      if (err) {
-        return callback(err);
+    (error, row) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(row)) {
@@ -1132,17 +1128,17 @@ const getJoinGroupRequest = function(groupId, principalId, callback) {
  * @param  {Function}       callback                    Standard callback function
  * @param  {Object}         callback.err                An error that occurred, if any
  */
-const getJoinGroupRequests = function(groupId, callback) {
-  Cassandra.runQuery('SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ?', [groupId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getJoinGroupRequests = function (groupId, callback) {
+  Cassandra.runQuery('SELECT * FROM "GroupJoinRequestsByGroup" WHERE "groupId" = ?', [groupId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
       return callback();
     }
 
-    const users = _.map(rows, row => {
+    const users = _.map(rows, (row) => {
       return Cassandra.rowToHash(row);
     });
 
@@ -1158,7 +1154,7 @@ const getJoinGroupRequests = function(groupId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const fullyDeletePrincipal = function(user, login, callback) {
+const fullyDeletePrincipal = function (user, login, callback) {
   const queries = [];
   const deleted = Date.now();
   const loginId = new LoginId(user.tenant.alias, AuthenticationConstants.providers.LOCAL, login.local);
@@ -1186,8 +1182,8 @@ const fullyDeletePrincipal = function(user, login, callback) {
     });
   }
 
-  Cassandra.runBatchQuery(queries, function(err) {
-    if (err) return callback(err);
+  Cassandra.runBatchQuery(queries, function (error) {
+    if (error) return callback(error);
 
     // Update the cache
     return OaeUtil.invokeIfNecessary(isUser(user.id), _updateCachedUser, user.id, { deleted }, callback);
@@ -1203,15 +1199,15 @@ const fullyDeletePrincipal = function(user, login, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  [User]           callback.user       The user archive creates for this tenant
  */
-const createArchivedUser = function(alias, createdUserId, callback) {
+const createArchivedUser = function (alias, createdUserId, callback) {
   // Prepare query
   const query = 'INSERT INTO "ArchiveByTenant" ("tenantAlias", "archiveId") VALUES (?, ?)';
   const parameters = [alias, createdUserId];
 
   // Run query
-  Cassandra.runQuery(query, parameters, function(err) {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, function (error) {
+    if (error) {
+      return callback(error);
     }
 
     const userArchive = { tenantAlias: alias, archiveId: createdUserId };
@@ -1228,14 +1224,14 @@ const createArchivedUser = function(alias, createdUserId, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  [Id]             callback.datas      The list of id resources that belonged to the user deleted
  */
-const getDataFromArchive = function(archiveId, principalId, callback) {
+const getDataFromArchive = function (archiveId, principalId, callback) {
   // Verify if an archive user exist
   Cassandra.runQuery(
     'SELECT * FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
     [archiveId, principalId],
-    function(err, rows) {
-      if (err) {
-        return callback(err);
+    function (error, rows) {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -1259,14 +1255,14 @@ const getDataFromArchive = function(archiveId, principalId, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  [User]           callback.users      The list of users for the given tenancy
  */
-const addDataToArchive = function(archiveId, principalId, resourceId, date, callback) {
+const addDataToArchive = function (archiveId, principalId, resourceId, date, callback) {
   const stringResource = resourceId.join();
 
   Cassandra.runQuery(
     'INSERT INTO "DataArchive" ("archiveId", "principalId", "resourceId", "deletionDate") VALUES (?, ?, ?, ?)',
     [archiveId, principalId, stringResource, date],
-    function(err) {
-      if (err) return callback(err);
+    function (error) {
+      if (error) return callback(error);
 
       return callback();
     }
@@ -1281,12 +1277,12 @@ const addDataToArchive = function(archiveId, principalId, resourceId, date, call
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
  *  */
-const removePrincipalFromDataArchive = function(archiveId, principalId, callback) {
+const removePrincipalFromDataArchive = function (archiveId, principalId, callback) {
   Cassandra.runQuery(
     'DELETE FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
     [archiveId, principalId],
-    function(err) {
-      if (err) return callback(err);
+    function (error) {
+      if (error) return callback(error);
 
       return callback();
     }
@@ -1301,9 +1297,9 @@ const removePrincipalFromDataArchive = function(archiveId, principalId, callback
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Object}         callback.userArchive    The archive of the tenant
  */
-const getArchivedUser = function(alias, callback) {
-  Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], function(err, rows) {
-    if (err) return callback(err);
+const getArchivedUser = function (alias, callback) {
+  Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], function (error, rows) {
+    if (error) return callback(error);
 
     const userArchive = _.map(rows, Cassandra.rowToHash);
     return callback(null, userArchive[0]);
@@ -1318,14 +1314,14 @@ const getArchivedUser = function(alias, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  [Object]         callback.users          A list of users
  */
-const getExpiredUser = function(actualDate, callback) {
-  Cassandra.runQuery('SELECT * FROM "DataArchive"', [], function(err, rows) {
-    if (err) return callback(err);
+const getExpiredUser = function (actualDate, callback) {
+  Cassandra.runQuery('SELECT * FROM "DataArchive"', [], function (error, rows) {
+    if (error) return callback(error);
     if (_.isEmpty(rows)) return callback(null, []);
 
     const users = _.chain(rows)
       .map(Cassandra.rowToHash)
-      .filter(user => {
+      .filter((user) => {
         return new Date(user.deletionDate) < actualDate;
       })
       .value();
@@ -1340,12 +1336,12 @@ const getExpiredUser = function(actualDate, callback) {
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
  */
-const updateUserArchiveFlag = function(principalId, callback) {
+const updateUserArchiveFlag = function (principalId, callback) {
   Cassandra.runQuery(
     'UPDATE "Principals" SET "isUserArchive" = ? WHERE "principalId" = ?',
     ['true', principalId],
-    function(err) {
-      if (err) return callback(err);
+    function (error) {
+      if (error) return callback(error);
 
       return callback();
     }

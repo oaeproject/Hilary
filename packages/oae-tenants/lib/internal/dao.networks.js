@@ -44,10 +44,10 @@ const emitter = new EmitterAPI.EventEmitter();
 /**
  * Initialize the Tenant Networks DAO.
  */
-const init = function() {
+const init = function () {
   // When an invalidate pubsub message comes in for tenant networks, clear
   // the local tenant networks caches
-  Pubsub.emitter.on('oae-tenant-networks', message => {
+  Pubsub.emitter.on('oae-tenant-networks', (message) => {
     if (message === 'invalidate') {
       _invalidateLocalCache();
     }
@@ -66,7 +66,7 @@ const init = function() {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network that was created
  */
-const createTenantNetwork = function(displayName, callback) {
+const createTenantNetwork = function (displayName, callback) {
   const tenantNetwork = new TenantNetwork(ShortId.generate(), displayName);
 
   // Create a query that can be used to create the tenant network
@@ -91,9 +91,9 @@ const createTenantNetwork = function(displayName, callback) {
   }
 
   // Execute the create query
-  Cassandra.runQuery(tenantNetworkQuery.query, tenantNetworkQuery.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(tenantNetworkQuery.query, tenantNetworkQuery.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     _invalidateAllCaches();
@@ -108,11 +108,11 @@ const createTenantNetwork = function(displayName, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Object}     callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
  */
-const getAllTenantNetworks = function(callback) {
+const getAllTenantNetworks = function (callback) {
   // Verify the cache is populated
-  _ensureCache(err => {
-    if (err) {
-      return callback(err);
+  _ensureCache((error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, clone(_cacheTenantNetworks));
@@ -127,10 +127,10 @@ const getAllTenantNetworks = function(callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network with the provided id
  */
-const getTenantNetwork = function(id, callback) {
-  _ensureCache(err => {
-    if (err) {
-      return callback(err);
+const getTenantNetwork = function (id, callback) {
+  _ensureCache((error) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!_cacheTenantNetworks[id]) {
@@ -153,17 +153,17 @@ const getTenantNetwork = function(id, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {TenantNetwork}  callback.tenantNetwork  The new tenant network, after update
  */
-const updateTenantNetwork = function(id, displayName, callback) {
+const updateTenantNetwork = function (id, displayName, callback) {
   // Ensure the tenant network we're updating exists
-  getTenantNetwork(id, (err, tenantNetwork) => {
-    if (err) {
-      return callback(err);
+  getTenantNetwork(id, (error, tenantNetwork) => {
+    if (error) {
+      return callback(error);
     }
 
     const query = Cassandra.constructUpsertCQL('TenantNetwork', 'id', id, { displayName });
-    Cassandra.runQuery(query.query, query.parameters, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runQuery(query.query, query.parameters, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       _invalidateAllCaches();
@@ -181,12 +181,12 @@ const updateTenantNetwork = function(id, displayName, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteTenantNetwork = function(id, callback) {
+const deleteTenantNetwork = function (id, callback) {
   // Ensure the tenant network exists
   // eslint-disable-next-line no-unused-vars
-  getTenantNetwork(id, (err, tenantNetwork) => {
-    if (err) {
-      return callback(err);
+  getTenantNetwork(id, (error, tenantNetwork) => {
+    if (error) {
+      return callback(error);
     }
 
     // Delete the tenant network and the associations to the child tenants
@@ -201,9 +201,9 @@ const deleteTenantNetwork = function(id, callback) {
       }
     ];
 
-    Cassandra.runBatchQuery(deleteQueries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(deleteQueries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       _invalidateAllCaches();
@@ -224,12 +224,12 @@ const deleteTenantNetwork = function(id, callback) {
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
  */
-const addTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
+const addTenantAliases = function (tenantNetworkId, tenantAliases, callback) {
   // Ensure the tenant network exists
   // eslint-disable-next-line no-unused-vars
-  getTenantNetwork(tenantNetworkId, (err, tenantNetwork) => {
-    if (err) {
-      return callback(err);
+  getTenantNetwork(tenantNetworkId, (error, tenantNetwork) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(tenantAliases)) {
@@ -237,7 +237,7 @@ const addTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
     }
 
     // Map all tenant aliases into the queries necessary to insert them all into the tenant network tenants table
-    const queries = _.map(tenantAliases, tenantAlias => {
+    const queries = _.map(tenantAliases, (tenantAlias) => {
       return Cassandra.constructUpsertCQL(
         'TenantNetworkTenants',
         ['tenantNetworkId', 'tenantAlias'],
@@ -246,9 +246,9 @@ const addTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
       );
     });
 
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       _invalidateAllCaches();
@@ -264,10 +264,10 @@ const addTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
  * @param  {Object}     callback.err                            An error that occurred, if any
  * @param  {Object}     callback.tenantNetworkTenantAliases     An object keyed by tenant network id whose value is the array of tenant aliases that belong to the tenant network
  */
-const getAllTenantNetworkTenantAliases = function(callback) {
-  _ensureCache(err => {
-    if (err) {
-      return callback(err);
+const getAllTenantNetworkTenantAliases = function (callback) {
+  _ensureCache((error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, clone(_cacheTenantAliasesByTenantNetworkId));
@@ -282,12 +282,12 @@ const getAllTenantNetworkTenantAliases = function(callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const removeTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
+const removeTenantAliases = function (tenantNetworkId, tenantAliases, callback) {
   // Ensure the tenant network exists
   // eslint-disable-next-line no-unused-vars
-  getTenantNetwork(tenantNetworkId, (err, tenantNetwork) => {
-    if (err) {
-      return callback(err);
+  getTenantNetwork(tenantNetworkId, (error, tenantNetwork) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(tenantAliases)) {
@@ -295,15 +295,15 @@ const removeTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
     }
 
     // Create and execute the delete queries
-    const queries = _.map(tenantAliases, tenantAlias => {
+    const queries = _.map(tenantAliases, (tenantAlias) => {
       return {
         query: 'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
         parameters: [tenantNetworkId, tenantAlias]
       };
     });
-    Cassandra.runBatchQuery(queries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(queries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       _invalidateAllCaches();
@@ -320,18 +320,14 @@ const removeTenantAliases = function(tenantNetworkId, tenantAliases, callback) {
  * @param  {Object}     callback.tenantNetworks     All tenant networks in cassandra keyed by their id
  * @api private
  */
-const _getAllTenantNetworksFromCassandra = function(callback) {
-  Cassandra.runQuery('SELECT * FROM "TenantNetwork"', null, (err, rows) => {
-    if (err) {
-      return callback(err);
+const _getAllTenantNetworksFromCassandra = function (callback) {
+  Cassandra.runQuery('SELECT * FROM "TenantNetwork"', null, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Convert all rows into tenant networks
-    const tenantNetworks = _.chain(rows)
-      .map(_rowToTenantNetwork)
-      .compact()
-      .indexBy('id')
-      .value();
+    const tenantNetworks = _.chain(rows).map(_rowToTenantNetwork).compact().indexBy('id').value();
     return callback(null, tenantNetworks);
   });
 };
@@ -344,7 +340,7 @@ const _getAllTenantNetworksFromCassandra = function(callback) {
  * @param  {Object}     callback.tenantNetworkAliases   An object keyed by tenant network id whose values are the arrays of tenant aliases that belong to the network
  * @api private
  */
-const _getAllTenantNetworkTenantAliasesFromCassandra = function(tenantNetworkIds, callback) {
+const _getAllTenantNetworkTenantAliasesFromCassandra = function (tenantNetworkIds, callback) {
   if (_.isEmpty(tenantNetworkIds)) {
     return callback(null, {});
   }
@@ -353,16 +349,16 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function(tenantNetworkIds
   Cassandra.runQuery(
     'SELECT "tenantNetworkId", "tenantAlias" FROM "TenantNetworkTenants" WHERE "tenantNetworkId" IN ?',
     [tenantNetworkIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       // Collect all tenant network aliases for each tenant network
       const tenantNetworkAliases = {};
       _.chain(rows)
         .map(Cassandra.rowToHash)
-        .each(rowHash => {
+        .each((rowHash) => {
           tenantNetworkAliases[rowHash.tenantNetworkId] = tenantNetworkAliases[rowHash.tenantNetworkId] || [];
           tenantNetworkAliases[rowHash.tenantNetworkId].push(rowHash.tenantAlias);
         });
@@ -379,7 +375,7 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function(tenantNetworkIds
  * @return {TenantNetwork}          The tenant network that is represented by the row of data
  * @api private
  */
-const _rowToTenantNetwork = function(row) {
+const _rowToTenantNetwork = function (row) {
   row = Cassandra.rowToHash(row);
   if (!row.displayName) {
     return null;
@@ -395,21 +391,21 @@ const _rowToTenantNetwork = function(row) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _ensureCache = function(callback) {
+const _ensureCache = function (callback) {
   if (_cacheTenantNetworks) {
     return callback();
   }
 
   // Load all known tenant networks from Cassandra
-  _getAllTenantNetworksFromCassandra((err, tenantNetworks) => {
-    if (err) {
-      return callback(err);
+  _getAllTenantNetworksFromCassandra((error, tenantNetworks) => {
+    if (error) {
+      return callback(error);
     }
 
     // Load all known tenant network tenant associations from Cassandra
-    _getAllTenantNetworkTenantAliasesFromCassandra(_.keys(tenantNetworks), (err, tenantNetworkTenantAliases) => {
-      if (err) {
-        return callback(err);
+    _getAllTenantNetworkTenantAliasesFromCassandra(_.keys(tenantNetworks), (error, tenantNetworkTenantAliases) => {
+      if (error) {
+        return callback(error);
       }
 
       // Reset the caches
@@ -419,7 +415,7 @@ const _ensureCache = function(callback) {
 
       // Build the inverted TenantAlias->TenantNetworkIds cache
       _.each(_cacheTenantAliasesByTenantNetworkId, (tenantAliases, tenantNetworkId) => {
-        _.each(tenantAliases, tenantAlias => {
+        _.each(tenantAliases, (tenantAlias) => {
           _cacheTenantNetworkIdsByTenantAlias[tenantAlias] = _cacheTenantNetworkIdsByTenantAlias[tenantAlias] || [];
           _cacheTenantNetworkIdsByTenantAlias[tenantAlias].push(tenantNetworkId);
         });
@@ -437,7 +433,7 @@ const _ensureCache = function(callback) {
  *
  * @api private
  */
-const _invalidateAllCaches = function() {
+const _invalidateAllCaches = function () {
   _invalidateLocalCache();
   Pubsub.publish('oae-tenant-networks', 'invalidate');
 };
@@ -447,7 +443,7 @@ const _invalidateAllCaches = function() {
  *
  * @api private
  */
-const _invalidateLocalCache = function() {
+const _invalidateLocalCache = function () {
   _cacheTenantNetworks = null;
   _cacheTenantAliasesByTenantNetworkId = null;
   _cacheTenantNetworkIdsByTenantAlias = null;

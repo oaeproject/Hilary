@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import { Validator as validator } from 'oae-util/lib/validator';
 const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 import * as TenantNetworksDAO from './internal/dao.networks';
-import * as TenantsAPI from './api';
+import * as TenantsAPI from './api.js';
 
 /**
  * Create a tenant network
@@ -30,7 +30,7 @@ import * as TenantsAPI from './api';
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {TenantNetwork}  callback.tenantNetwork  The tenant network that was created
  */
-const createTenantNetwork = function(ctx, displayName, callback) {
+const createTenantNetwork = function (ctx, displayName, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -56,7 +56,7 @@ const createTenantNetwork = function(ctx, displayName, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Object}     callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
  */
-const getTenantNetworks = function(ctx, callback) {
+const getTenantNetworks = function (ctx, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -66,20 +66,21 @@ const getTenantNetworks = function(ctx, callback) {
     return callback(error);
   }
 
-  TenantNetworksDAO.getAllTenantNetworks((err, tenantNetworks) => {
-    if (err) {
-      return callback(err);
+  TenantNetworksDAO.getAllTenantNetworks((error, tenantNetworks) => {
+    if (error) {
+      return callback(error);
     }
 
-    TenantNetworksDAO.getAllTenantNetworkTenantAliases((err, tenantNetworkTenantAliases) => {
-      if (err) {
-        return callback(err);
+    TenantNetworksDAO.getAllTenantNetworkTenantAliases((error, tenantNetworkTenantAliases) => {
+      if (error) {
+        return callback(error);
       }
 
       _.each(tenantNetworks, (tenantNetwork, tenantNetworkId) => {
         // Expand the tenant network aliases for each tenant network into full tenant objects
         // and apply them to the tenantNetwork object
         tenantNetwork.tenants = _.chain(tenantNetworkTenantAliases[tenantNetworkId])
+          // eslint-disable-next-line unicorn/no-array-callback-reference
           .map(TenantsAPI.getTenant)
           .compact()
           .value();
@@ -100,7 +101,7 @@ const getTenantNetworks = function(ctx, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {TenantNetwork}  callback.tenantNetwork  The updated tenant network
  */
-const updateTenantNetwork = function(ctx, id, displayName, callback) {
+const updateTenantNetwork = function (ctx, id, displayName, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -131,7 +132,7 @@ const updateTenantNetwork = function(ctx, id, displayName, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteTenantNetwork = function(ctx, id, callback) {
+const deleteTenantNetwork = function (ctx, id, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -158,7 +159,7 @@ const deleteTenantNetwork = function(ctx, id, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
+const addTenantAliases = function (ctx, tenantNetworkId, tenantAliases, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -180,10 +181,10 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
       msg: 'Must specify at least one tenant alias to add'
     })(tenantAliases);
 
-    tenantAliases.forEach(tenantAlias => {
+    tenantAliases.forEach((tenantAlias) => {
       unless(isObject, {
         code: 400,
-        msg: util.format('Tenant with alias "%s" does not exist', tenantAlias)
+        msg: format('Tenant with alias "%s" does not exist', tenantAlias)
       })(TenantsAPI.getTenant(tenantAlias));
     });
   } catch (error) {
@@ -202,7 +203,7 @@ const addTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback)
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const removeTenantAliases = function(ctx, tenantNetworkId, tenantAliases, callback) {
+const removeTenantAliases = function (ctx, tenantNetworkId, tenantAliases, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,

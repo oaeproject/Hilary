@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -65,8 +66,8 @@ describe('Tenant Landing Pages', () => {
         ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
           // Get the landing page information
           const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-          RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-            assert.notExists(err);
+          RestAPI.Tenants.getLandingPage(anonymousRestContext, (error, landingPage) => {
+            assert.notExists(error);
 
             // Only 1 block has been configured
             assert.lengthOf(landingPage, 1);
@@ -111,8 +112,8 @@ describe('Tenant Landing Pages', () => {
         ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
           // Get the landing page information
           const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-          RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-            assert.notExists(err);
+          RestAPI.Tenants.getLandingPage(anonymousRestContext, (error, landingPage) => {
+            assert.notExists(error);
 
             // Only 1 block has been configured
             assert.strictEqual(landingPage.length, 1);
@@ -136,41 +137,41 @@ describe('Tenant Landing Pages', () => {
       configUpdate['oae-tenants/block_1/text/fr_FR'] = 'French text';
       ConfigTestUtil.updateConfigAndWait(globalAdminRestContext, tenant.tenant.alias, configUpdate, () => {
         const anonymousRestContext = TestsUtil.createTenantRestContext(tenant.tenant.host);
-        RestAPI.Tenants.getLandingPage(anonymousRestContext, (err, landingPage) => {
-          assert.notExists(err);
+        RestAPI.Tenants.getLandingPage(anonymousRestContext, (error, landingPage) => {
+          assert.notExists(error);
 
           // Verify the default text was returned
           assert.strictEqual(landingPage[0].text, 'default text');
 
           // Generate some test users
-          TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (err, users) => {
-            assert.notExists(err);
+          TestsUtil.generateTestUsers(tenant.adminRestContext, 3, (error, users) => {
+            assert.notExists(error);
             const { 0: frenchUser, 1: defaultUser, 2: hindiUser } = users;
             // Set a user's locale to French
-            RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, err => {
-              assert.notExists(err);
+            RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, error_ => {
+              assert.notExists(error_);
 
               // Get the landing page information with the French user
-              RestAPI.Tenants.getLandingPage(frenchUser.restContext, (err, landingPage) => {
-                assert.notExists(err);
+              RestAPI.Tenants.getLandingPage(frenchUser.restContext, (error, landingPage) => {
+                assert.notExists(error);
 
                 // Verify the French text was returned
                 assert.strictEqual(landingPage[0].text, 'French text');
 
                 // Get the landing page information with a user who has no configured locale
-                RestAPI.Tenants.getLandingPage(defaultUser.restContext, (err, landingPage) => {
-                  assert.notExists(err);
+                RestAPI.Tenants.getLandingPage(defaultUser.restContext, (error, landingPage) => {
+                  assert.notExists(error);
 
                   // Verify the default text was returned
                   assert.strictEqual(landingPage[0].text, 'default text');
 
                   // Set a user's locale to Hindi
-                  RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, err => {
-                    assert.notExists(err);
+                  RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, error_ => {
+                    assert.notExists(error_);
 
                     // Get the landing page information with the Hindi user
-                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(err, landingPage) {
-                      assert.notExists(err);
+                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(error, landingPage) {
+                      assert.notExists(error);
 
                       // Verify the default text was returned
                       assert.strictEqual(landingPage[0].text, 'default text');
@@ -190,8 +191,8 @@ describe('Tenant Landing Pages', () => {
    * Test that verifies that blocks are not returned in the config
    */
   it('verify that blocks are not returned in the config', callback => {
-    RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (err, config) => {
-      assert.notExists(err);
+    RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (error, config) => {
+      assert.notExists(error);
       for (let i = 1; i <= 12; i++) {
         assert.ok(!config['oae-tenants']['block_' + i]);
       }

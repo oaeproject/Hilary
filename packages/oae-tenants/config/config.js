@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Fields from 'oae-config/lib/fields';
@@ -42,16 +42,16 @@ const timezoneConfigValues = _.chain(TZ.getZones())
     const offsetMinutes = Math.abs((timezone.offset % 1) * 60);
 
     const sign = timezone.offset > 0 ? '-' : '+';
-    const offsetHoursStr = offsetHours < 10 ? '0' + offsetHours.toString() : offsetHours.toString();
-    const offsetMinutesStr = offsetMinutes < 10 ? '0' + offsetMinutes.toString() : offsetMinutes.toString();
+    const offsetHoursString = offsetHours < 10 ? '0' + offsetHours.toString() : offsetHours.toString();
+    const offsetMinutesString = offsetMinutes < 10 ? '0' + offsetMinutes.toString() : offsetMinutes.toString();
 
     let offsetLabel = 'GMT';
     if (timezone.offset !== 0) {
-      offsetLabel += util.format(' %s%s:%s', sign, offsetHoursStr, offsetMinutesStr);
+      offsetLabel += format(' %s%s:%s', sign, offsetHoursString, offsetMinutesString);
     }
 
     return {
-      name: util.format('%s (%s)', timezone.id, offsetLabel).replace('_', ' '),
+      name: format('%s (%s)', timezone.id, offsetLabel).replace('_', ' '),
       value: timezone.id
     };
   })

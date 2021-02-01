@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before } from 'mocha';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -44,13 +45,13 @@ describe('Folders - Push', () => {
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
     it('verify signatures must be valid', callback => {
-      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge } = users;
 
-        RestAPI.User.getMe(homer.restContext, (err, homerInfo) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(homer.restContext, (error, homerInfo) => {
+          assert.notExists(error);
 
           const data = {
             authentication: {
@@ -73,48 +74,66 @@ describe('Folders - Push', () => {
               folder => {
                 FoldersTestUtil.assertGetFolderSucceeds(homer.restContext, folder.id, folder => {
                   // Ensure we get a 400 error with an invalid activity stream id
-                  client.subscribe(folder.id, null, folder.signature, null, err => {
-                    assert.strictEqual(err.code, 400);
+                  client.subscribe(folder.id, null, folder.signature, null, error_ => {
+                    assert.strictEqual(error_.code, 400);
 
                     // Ensure we get a 400 error with a missing resource id
-                    client.subscribe(null, 'activity', folder.signature, null, err => {
-                      assert.strictEqual(err.code, 400);
+                    client.subscribe(null, 'activity', folder.signature, null, error_ => {
+                      assert.strictEqual(error_.code, 400);
 
                       // Ensure we get a 400 error with an invalid token
-                      client.subscribe(folder.id, 'activity', { signature: folder.signature.signature }, null, err => {
-                        assert.strictEqual(err.code, 401);
-                        client.subscribe(folder.id, 'activity', { expires: folder.signature.expires }, null, err => {
-                          assert.strictEqual(err.code, 401);
-
-                          // Ensure we get a 401 error with an incorrect signature
+                      client.subscribe(
+                        folder.id,
+                        'activity',
+                        { signature: folder.signature.signature },
+                        null,
+                        error_ => {
+                          assert.strictEqual(error_.code, 401);
                           client.subscribe(
                             folder.id,
                             'activity',
-                            { expires: Date.now() + 10000, signature: 'foo' },
+                            { expires: folder.signature.expires },
                             null,
-                            err => {
-                              assert.strictEqual(err.code, 401);
+                            error_ => {
+                              assert.strictEqual(error_.code, 401);
 
-                              // Simon should not be able to use a signature that was generated for Branden
-                              FoldersTestUtil.assertGetFolderSucceeds(
-                                marge.restContext,
+                              // Ensure we get a 401 error with an incorrect signature
+                              client.subscribe(
                                 folder.id,
-                                folderForBranden => {
-                                  client.subscribe(folder.id, 'activity', folderForBranden.signature, null, err => {
-                                    assert.strictEqual(err.code, 401);
+                                'activity',
+                                { expires: Date.now() + 10000, signature: 'foo' },
+                                null,
+                                error_ => {
+                                  assert.strictEqual(error_.code, 401);
 
-                                    // Sanity check that a valid signature works
-                                    client.subscribe(folder.id, 'activity', folder.signature, null, err => {
-                                      assert.notExists(err);
-                                      return callback();
-                                    });
-                                  });
+                                  // Simon should not be able to use a signature that was generated for Branden
+                                  FoldersTestUtil.assertGetFolderSucceeds(
+                                    marge.restContext,
+                                    folder.id,
+                                    folderForBranden => {
+                                      client.subscribe(
+                                        folder.id,
+                                        'activity',
+                                        folderForBranden.signature,
+                                        null,
+                                        error_ => {
+                                          assert.strictEqual(error_.code, 401);
+
+                                          // Sanity check that a valid signature works
+                                          client.subscribe(folder.id, 'activity', folder.signature, null, error_ => {
+                                            assert.notExists(error_);
+                                            return callback();
+                                          });
+                                        }
+                                      );
+                                    }
+                                  );
                                 }
                               );
                             }
                           );
-                        });
-                      });
+                        }
+                      );
                     });
                   });
                 });
@@ -138,8 +157,8 @@ describe('Folders - Push', () => {
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
     const setupFixture = function(callback) {
-      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: branden, 1: simon } = users;
 
@@ -149,8 +168,8 @@ describe('Folders - Push', () => {
         };
 
         // Get the full profile so we have a signature to authenticate ourselves on the WS
-        RestAPI.User.getMe(simon.restContext, (err, simonFull) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(simon.restContext, (error, simonFull) => {
+          assert.notExists(error);
 
           // Create a folder and get the full folder profile so we have a signature that we can use to register for push notifications
           FoldersTestUtil.assertCreateFolderSucceeds(
@@ -207,9 +226,9 @@ describe('Folders - Push', () => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
         RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { displayName: 'Laaike whatevs' }, (
-          err /* , data */
+          error /* , data */
         ) => {
-          assert.notExists(err);
+          assert.notExists(error);
         });
 
         client.on('message', message => {
@@ -235,8 +254,8 @@ describe('Folders - Push', () => {
     it('verify visibility updates trigger a push notification', callback => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, err => {
-          assert.notExists(err);
+        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, error => {
+          assert.notExists(error);
         });
 
         client.on('message', message => {
@@ -352,8 +371,8 @@ describe('Folders - Push', () => {
             viewers: null,
             folders: [folder.id]
           },
-          (err /* , someLink */) => {
-            assert.notExists(err);
+          (error /* , someLink */) => {
+            assert.notExists(error);
           }
         );
 

@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -56,30 +57,30 @@ describe('Folders - Activity', () => {
    */
   const _setup = function(callback) {
     // Generate some users
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 7, (error, users) => {
+      assert.notExists(error);
 
       const { 0: simong, 1: nico, 2: bert, 3: stuart, 4: stephen, 5: groupMemberA, 6: groupMemberB } = users;
 
       // Generate some groups
-      TestsUtil.generateTestGroups(simong.restContext, 2, (err, groups) => {
-        assert.notExists(err);
+      TestsUtil.generateTestGroups(simong.restContext, 2, (error, groups) => {
+        assert.notExists(error);
         const { 0: groupA, 1: groupB } = groups;
 
         // Add regular members in both groups
         const groupAmembers = {};
         groupAmembers[groupMemberA.user.id] = 'member';
-        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, err => {
-          assert.notExists(err);
+        RestAPI.Group.setGroupMembers(simong.restContext, groupA.group.id, groupAmembers, error_ => {
+          assert.notExists(error_);
 
           const groupBmembers = {};
           groupBmembers[groupMemberB.user.id] = 'member';
-          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, err => {
-            assert.notExists(err);
+          RestAPI.Group.setGroupMembers(simong.restContext, groupB.group.id, groupBmembers, error_ => {
+            assert.notExists(error_);
 
             // Nico follows simong
-            RestAPI.Following.follow(nico.restContext, simong.user.id, err => {
-              assert.notExists(err);
+            RestAPI.Following.follow(nico.restContext, simong.user.id, error_ => {
+              assert.notExists(error_);
 
               return callback(simong, nico, bert, stuart, stephen, groupMemberA, groupMemberB, groupA, groupB);
             });
@@ -494,8 +495,8 @@ describe('Folders - Activity', () => {
         folder => {
           // Simon updates the folder's name
           const updates = { displayName: 'blabla' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
-            assert.notExists(err);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (error /* , data */) => {
+            assert.notExists(error);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -603,8 +604,8 @@ describe('Folders - Activity', () => {
         folder => {
           // Simon updates the folder's visibility
           const updates = { visibility: 'loggedin' };
-          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (err /* , data */) => {
-            assert.notExists(err);
+          RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (error /* , data */) => {
+            assert.notExists(error);
 
             // Simon, Nico, Bert, Stuart and groupA should've received a folder update activity
             ActivityTestsUtil.assertFeedContainsActivity(
@@ -1047,8 +1048,8 @@ describe('Folders - Activity', () => {
    * Test that verifies the properties of a folder comment
    */
   it('verify the folder-comment message entity model contains the correct information', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
 
       const { 0: simong, 1: nico } = users;
       FoldersTestUtil.assertCreateFolderSucceeds(
@@ -1066,8 +1067,8 @@ describe('Folders - Activity', () => {
               simong.restContext,
               simong.user.id,
               null,
-              (err, activityStream) => {
-                assert.notExists(err);
+              (error, activityStream) => {
+                assert.notExists(error);
                 const entity = activityStream.items[0];
 
                 // Assert the correct entities are all present
@@ -1113,8 +1114,8 @@ describe('Folders - Activity', () => {
                       simong.restContext,
                       simong.user.id,
                       null,
-                      (err, activityStream) => {
-                        assert.notExists(err);
+                      (error, activityStream) => {
+                        assert.notExists(error);
                         const entity = activityStream.items[0];
 
                         // Assert the correct entities are all present. The first item should be
@@ -1221,8 +1222,8 @@ describe('Folders - Activity', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link1) => {
-              assert.notExists(err);
+            (error, link1) => {
+              assert.notExists(error);
               RestAPI.Content.createLink(
                 stephen.restContext,
                 {
@@ -1234,8 +1235,8 @@ describe('Folders - Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, link2) => {
-                  assert.notExists(err);
+                (error, link2) => {
+                  assert.notExists(error);
 
                   // Simon adds the two items to the folder
                   FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
@@ -1373,8 +1374,8 @@ describe('Folders - Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, link1) => {
-                  assert.notExists(err);
+                (error, link1) => {
+                  assert.notExists(error);
                   RestAPI.Content.createLink(
                     stephen.restContext,
                     {
@@ -1386,8 +1387,8 @@ describe('Folders - Activity', () => {
                       viewers: NO_VIEWERS,
                       folders: NO_FOLDERS
                     },
-                    (err, link2) => {
-                      assert.notExists(err);
+                    (error, link2) => {
+                      assert.notExists(error);
 
                       // Simon adds both files to both of his folders. This should
                       // result in 2 separate activities
@@ -1405,8 +1406,8 @@ describe('Folders - Activity', () => {
                                 simong.restContext,
                                 simong.user.id,
                                 null,
-                                (err, data) => {
-                                  assert.notExists(err);
+                                (error, data) => {
+                                  assert.notExists(error);
 
                                   // Get the add-to-folder activities
                                   const addToFolderActivities = _.filter(data.items, activity => {
@@ -1444,8 +1445,8 @@ describe('Folders - Activity', () => {
    * Test that verifies that previews are added to the folder entities when they are available
    */
   it('verify previews are added when available', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: simong } = users;
 
@@ -1463,28 +1464,33 @@ describe('Folders - Activity', () => {
             thumbnailUri: 'local:f/camtest/ab/cd/ef/gh/thumbnail.jpg',
             wideUri: 'local:f/camtest/ab/cd/ef/gh/wide.jpg'
           };
-          FoldersDAO.setPreviews(folder, previews, (err /* , folder */) => {
-            assert.notExists(err);
+          FoldersDAO.setPreviews(folder, previews, (error /* , folder */) => {
+            assert.notExists(error);
 
             // Get the activities
-            ActivityTestsUtil.collectAndGetActivityStream(simong.restContext, simong.user.id, null, (err, response) => {
-              assert.notExists(err);
+            ActivityTestsUtil.collectAndGetActivityStream(
+              simong.restContext,
+              simong.user.id,
+              null,
+              (error, response) => {
+                assert.notExists(error);
 
-              // Assert the activity is present
-              const createdFolderActivity = _.findWhere(response.items, {
-                'oae:activityType': FoldersConstants.activity.ACTIVITY_FOLDER_CREATE
-              });
-              assert.ok(createdFolderActivity);
+                // Assert the activity is present
+                const createdFolderActivity = _.findWhere(response.items, {
+                  'oae:activityType': FoldersConstants.activity.ACTIVITY_FOLDER_CREATE
+                });
+                assert.ok(createdFolderActivity);
 
-              // Assert the folder has a thumbnail and wide image
-              assert.ok(createdFolderActivity.object);
-              assert.ok(createdFolderActivity.object.image);
-              assert.ok(createdFolderActivity.object.image.url);
-              assert.ok(createdFolderActivity.object['oae:wideImage']);
-              assert.ok(createdFolderActivity.object['oae:wideImage'].url);
+                // Assert the folder has a thumbnail and wide image
+                assert.ok(createdFolderActivity.object);
+                assert.ok(createdFolderActivity.object.image);
+                assert.ok(createdFolderActivity.object.image.url);
+                assert.ok(createdFolderActivity.object['oae:wideImage']);
+                assert.ok(createdFolderActivity.object['oae:wideImage'].url);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           });
         }
       );
@@ -1495,8 +1501,8 @@ describe('Folders - Activity', () => {
    * Test that verifies that adding content to a folder upon creation does not result in an add-to-folder activity
    */
   it('verify adding content to a folder upon content creation does not result in an add-to-folder activity', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: simong } = users;
 
@@ -1519,15 +1525,15 @@ describe('Folders - Activity', () => {
               viewers: NO_VIEWERS,
               folders: [folder.id]
             },
-            (err /* , link1 */) => {
-              assert.notExists(err);
+            (error /* , link1 */) => {
+              assert.notExists(error);
 
               ActivityTestsUtil.collectAndGetActivityStream(
                 simong.restContext,
                 simong.user.id,
                 null,
-                (err, response) => {
-                  assert.notExists(err);
+                (error, response) => {
+                  assert.notExists(error);
 
                   // Assert the add-to-folder activity is not present
                   const addToLibraryActivity = _.findWhere(response.items, {
@@ -1558,18 +1564,18 @@ describe('Folders - Activity', () => {
    * are routed to the correct activity stream
    */
   it('verify content-create activities are routed to the correct activity streams and contain the correct target information', callback => {
-    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
+      assert.notExists(error);
 
       const { 0: simong, 1: nico, 2: bert, 3: stuart } = users;
 
-      TestsUtil.generateTestGroups(nico.restContext, 2, (err, groups) => {
-        assert.notExists(err);
+      TestsUtil.generateTestGroups(nico.restContext, 2, (error, groups) => {
+        assert.notExists(error);
 
         const { 0: nicosGroup1, 1: nicosGroup2 } = groups;
 
-        TestsUtil.generateTestGroups(bert.restContext, 1, (err, groups) => {
-          assert(!err);
+        TestsUtil.generateTestGroups(bert.restContext, 1, (error, groups) => {
+          assert(!error);
 
           const { 0: bertsGroup } = groups;
 
@@ -1600,8 +1606,8 @@ describe('Folders - Activity', () => {
                       viewers: NO_VIEWERS,
                       folders: [folder1.id, folder2.id]
                     },
-                    (err, link) => {
-                      assert.notExists(err);
+                    (error, link) => {
+                      assert.notExists(error);
 
                       // Simon sees both folders
                       ActivityTestsUtil.assertFeedContainsActivity(

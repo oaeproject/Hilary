@@ -14,7 +14,7 @@ import * as TenantsAPI from 'oae-tenants';
 /**
  * Create a new meeting.
  */
-const createMeeting = function(createdBy, displayName, description, chat, contactList, visibility, callback) {
+const createMeeting = function (createdBy, displayName, description, chat, contactList, visibility, callback) {
   const created = Date.now().toString();
 
   const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
@@ -32,9 +32,9 @@ const createMeeting = function(createdBy, displayName, description, chat, contac
   };
 
   const query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _storageHashToMeeting(meetingId, storageHash));
@@ -44,10 +44,10 @@ const createMeeting = function(createdBy, displayName, description, chat, contac
 /**
  * Get a meeting data.
  */
-const getMeeting = function(meetingId, callback) {
-  getMeetingsById([meetingId], (err, meetings) => {
-    if (err) {
-      return callback(err);
+const getMeeting = function (meetingId, callback) {
+  getMeetingsById([meetingId], (error, meetings) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, meetings[0]);
@@ -62,7 +62,7 @@ const getMeeting = function(meetingId, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Meeting[]}      callback.meetings       The meeting objects requested, in the same order as the meeting ids
  */
-const getMeetingsById = function(meetingIds, callback) {
+const getMeetingsById = function (meetingIds, callback) {
   if (_.isEmpty(meetingIds)) {
     return callback(null, []);
   }
@@ -72,21 +72,21 @@ const getMeetingsById = function(meetingIds, callback) {
   const parameters = [];
   parameters.push(meetingIds);
 
-  Cassandra.runQuery(query, parameters, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Convert the retrieved storage hashes into the Meeting model
     const meetings = {};
     _.chain(rows)
       .map(Cassandra.rowToHash)
-      .each(row => {
+      .each((row) => {
         meetings[row.id] = _storageHashToMeeting(row.id, row);
       });
 
     // Order the meetings according to the array of meetings ids
-    const orderedMeetings = _.map(meetingIds, meetingId => {
+    const orderedMeetings = _.map(meetingIds, (meetingId) => {
       return meetings[meetingId];
     });
 
@@ -101,15 +101,15 @@ const getMeetingsById = function(meetingIds, callback) {
  * @param {any} profileFields
  * @param {any} callback
  */
-const updateMeeting = function(meeting, profileFields, callback) {
+const updateMeeting = function (meeting, profileFields, callback) {
   const storageHash = _.extend({}, profileFields);
   storageHash.lastModified = storageHash.lastModified || Date.now();
   storageHash.lastModified = storageHash.lastModified.toString();
 
   const query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createUpdatedMeetingFromStorageHash(meeting, storageHash));
@@ -124,7 +124,7 @@ const updateMeeting = function(meeting, profileFields, callback) {
  * @param {Function}    callback            Standard callback function
  * @param {Object}      callback.err        An error that occured, if any
  */
-const deleteMeeting = function(meetingId, callback) {
+const deleteMeeting = function (meetingId, callback) {
   Cassandra.runQuery('DELETE FROM "MeetingsJitsi" WHERE id = ?', [meetingId], callback);
 };
 
@@ -145,7 +145,7 @@ const deleteMeeting = function(meetingId, callback) {
  * @param  {Object}     [callback.err]          An error that occurred, while iterating rows, if any
  * @see Cassandra#iterateAll
  */
-const iterateAll = function(properties, batchSize, onEach, callback) {
+const iterateAll = function (properties, batchSize, onEach, callback) {
   if (_.isEmpty(properties)) {
     properties = ['id'];
   }
@@ -155,7 +155,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
    *
    * @see Cassandra#iterateAll
    */
-  const _iterateAllOnEach = function(rows, done) {
+  const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
@@ -173,7 +173,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
  * @param {any} tenantAlias
  * @returns
  */
-const _createMeetingId = function(tenantAlias) {
+const _createMeetingId = function (tenantAlias) {
   return AuthzUtil.toId('m', tenantAlias, ShortId.generate());
 };
 
@@ -184,7 +184,7 @@ const _createMeetingId = function(tenantAlias) {
  * @param {any} hash
  * @returns
  */
-const _storageHashToMeeting = function(meetingId, hash) {
+const _storageHashToMeeting = function (meetingId, hash) {
   return new Meeting(
     TenantsAPI.getTenant(hash.tenantAlias),
     meetingId,
@@ -206,7 +206,7 @@ const _storageHashToMeeting = function(meetingId, hash) {
  * @param {any} hash
  * @returns
  */
-const _createUpdatedMeetingFromStorageHash = function(meeting, hash) {
+const _createUpdatedMeetingFromStorageHash = function (meeting, hash) {
   // Chat and contactList are boolean values, we can make the same processing
   // with them as we do for the other string variables
   // description can be an empty string, same remark
@@ -214,23 +214,11 @@ const _createUpdatedMeetingFromStorageHash = function(meeting, hash) {
   let contactList = null;
   let description = null;
 
-  if (typeof hash.chat === 'undefined') {
-    chat = meeting.chat;
-  } else {
-    chat = hash.chat;
-  }
+  chat = typeof hash.chat === 'undefined' ? meeting.chat : hash.chat;
 
-  if (typeof hash.contactList === 'undefined') {
-    contactList = meeting.contactList;
-  } else {
-    contactList = hash.contactList;
-  }
+  contactList = typeof hash.contactList === 'undefined' ? meeting.contactList : hash.contactList;
 
-  if (typeof hash.description === 'undefined') {
-    description = meeting.description;
-  } else {
-    description = hash.description;
-  }
+  description = typeof hash.description === 'undefined' ? meeting.description : hash.description;
 
   return new Meeting(
     meeting.tenant,

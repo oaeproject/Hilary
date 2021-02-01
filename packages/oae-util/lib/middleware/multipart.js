@@ -37,7 +37,7 @@ const log = logger('oae-util-multipart');
  * @param  {String}     [formOptions.uploadDir]     The temporary directory to use to store the uploaded file
  * @return {Function}                               An express middleware handler that will parse the request body if it is multipart/form-data
  */
-export default function(formOptions) {
+export default function (formOptions) {
   formOptions = formOptions || {};
   formOptions = {
     autoFiles: true,
@@ -47,36 +47,36 @@ export default function(formOptions) {
   /*!
    * Provide the middleware handler as per the export summary
    */
-  return function(req, res, next) {
-    if (req._body) {
+  return function (request, res, next) {
+    if (request._body) {
       // The request has already been parsed, don't try to handle it
       return next();
     }
 
     // Seed the body and files of the request
-    req.body = req.body || {};
-    req.files = req.files || {};
+    request.body = request.body || {};
+    request.files = request.files || {};
 
-    if (_.contains(['GET', 'HEAD'], req.method)) {
+    if (_.contains(['GET', 'HEAD'], request.method)) {
       // Ignore GET and HEAD requests
       return next();
     }
 
-    if (!req.is('multipart/form-data')) {
+    if (!request.is('multipart/form-data')) {
       // Only handle multipart/form-data requests
       return next();
     }
 
     // Mark the request that it has been parsed
-    req._body = true;
+    request._body = true;
 
     // Delegate to multiparty to actually parse the request. That's hard :(
-    new multiparty.Form(formOptions).parse(req, (err, fields, files) => {
-      if (err) {
+    new multiparty.Form(formOptions).parse(request, (error, fields, files) => {
+      if (error) {
         log().error(
           {
-            err,
-            req
+            err: error,
+            req: request
           },
           'An unexpected error ocurred while parsing a multipart form'
         );
@@ -88,7 +88,7 @@ export default function(formOptions) {
 
       // Apply the simple fields into the body of the request
       _.each(fields, (value, key) => {
-        req.body[key] = _extractValue(value);
+        request.body[key] = _extractValue(value);
       });
 
       // Apply the files that were parsed from the request multipart body
@@ -97,9 +97,9 @@ export default function(formOptions) {
 
         if (_.isArray(value)) {
           // If the user uploaded multiple files for a key, map them all to the simple file object
-          req.files[key] = _.map(value, _mapToFile);
+          request.files[key] = _.map(value, _mapToFile);
         } else {
-          req.files[key] = _mapToFile(value);
+          request.files[key] = _mapToFile(value);
         }
       });
 
@@ -116,7 +116,7 @@ export default function(formOptions) {
  * @return {String|String[]}                Either the value itself if it actually is a multi-element array, or the first element if the array has a length of 1
  * @api private
  */
-const _extractValue = function(value) {
+const _extractValue = function (value) {
   if (_.isArray(value) && value.length === 1) {
     value = value[0];
   }
@@ -131,7 +131,7 @@ const _extractValue = function(value) {
  * @return {Object}                 The simple object to be applied to the request body
  * @api private
  */
-const _mapToFile = function(value) {
+const _mapToFile = function (value) {
   return {
     name: value.originalFilename,
     size: value.size,

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable unicorn/no-array-callback-reference */
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
 import _ from 'underscore';

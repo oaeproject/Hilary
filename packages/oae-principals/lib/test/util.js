@@ -14,9 +14,10 @@
  */
 
 /* eslint-disable no-unused-vars */
+/* eslint-disable unicorn/no-array-callback-reference */
 import assert from 'assert';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import path from 'path';
 import _ from 'underscore';
 
@@ -2103,7 +2104,7 @@ const onceVerificationEmailSent = function (email, assertions, callback) {
     if (assertions.expectAdminMessage) {
       assert.ok(
         message.html.match(/admin/),
-        util.format('Expected string "admin" in email html, but got: %s', message.html)
+        format('Expected string "admin" in email html, but got: %s', message.html)
       );
       assert.ok(message.text.match(/admin/));
     } else {
@@ -2298,23 +2299,19 @@ const assertDataIsTransferredToArchiveUser = function (ctx, deletedUser, userArc
 
   userArchive.archiveId = userArchive.user.id;
   // Create manual user
-  PrincipalsDAO.createArchivedUser(
-    userArchive.user.tenant.alias,
-    userArchive.user.id,
-    function (error, userArchiveCreated) {
-      assert.ok(!error);
-      assert.ok(userArchiveCreated);
-      DefinitiveDeletionAPI.transferUsersDataToCloneUser(
-        ctx,
-        deletedUser.user,
-        userArchiveCreated,
-        function (error, listEmail) {
-          assert.ok(!error);
-          return callback(null, userArchiveCreated, listEmail);
-        }
-      );
-    }
-  );
+  PrincipalsDAO.createArchivedUser(userArchive.user.tenant.alias, userArchive.user.id, (error, userArchiveCreated) => {
+    assert.ok(!error);
+    assert.ok(userArchiveCreated);
+    DefinitiveDeletionAPI.transferUsersDataToCloneUser(
+      ctx,
+      deletedUser.user,
+      userArchiveCreated,
+      (error, listEmail) => {
+        assert.ok(!error);
+        return callback(null, userArchiveCreated, listEmail);
+      }
+    );
+  });
 };
 
 /**
@@ -2369,7 +2366,7 @@ const generateFiles = function (restCtx, privacy, numberToCreate, callback, _cre
       viewers: null,
       folders: null
     },
-    function (error, file) {
+    (error, file) => {
       assert.ok(!error);
       _created.push(file);
       return generateFiles(restCtx, privacy, numberToCreate, callback, _created);
@@ -2391,19 +2388,11 @@ const generateDiscussions = function (restCtx, privacy, numberToCreate, callback
     return callback(null, _created);
   }
 
-  RestAPI.Discussions.createDiscussion(
-    restCtx,
-    'name',
-    'description',
-    privacy,
-    null,
-    null,
-    function (error, discussion) {
-      assert.ok(!error);
-      _created.push(discussion);
-      return generateDiscussions(restCtx, privacy, numberToCreate, callback, _created);
-    }
-  );
+  RestAPI.Discussions.createDiscussion(restCtx, 'name', 'description', privacy, null, null, (error, discussion) => {
+    assert.ok(!error);
+    _created.push(discussion);
+    return generateDiscussions(restCtx, privacy, numberToCreate, callback, _created);
+  });
 };
 
 /**
@@ -2428,7 +2417,7 @@ const generateMeetings = function (restCtx, manager, privacy, numberToCreate, ca
     return manager;
   };
 
-  MeetingAPI.createMeeting(restCtx, 'name', 'description', true, false, privacy, {}, function (error, meeting) {
+  MeetingAPI.createMeeting(restCtx, 'name', 'description', true, false, privacy, {}, (error, meeting) => {
     assert.ok(!error);
     _created.push(meeting);
     return generateMeetings(restCtx, manager, privacy, numberToCreate, callback, _created);
@@ -2460,7 +2449,7 @@ const generateLinks = function (restCtx, privacy, numberToCreate, callback, _cre
       viewers: null,
       folders: null
     },
-    function (error, link) {
+    (error, link) => {
       assert.ok(!error);
       _created.push(link);
       return generateLinks(restCtx, privacy, numberToCreate, callback, _created);
@@ -2490,7 +2479,7 @@ const generateGroups = function (restCtx, privacy, numberToCreate, callback, _cr
     'yes',
     [],
     [],
-    function (error, groupObject) {
+    (error, groupObject) => {
       assert.ok(!error);
       _created.push(groupObject);
       return generateGroups(restCtx, privacy, numberToCreate, callback, _created);
@@ -2512,18 +2501,10 @@ const generateFolders = function (user, privacy, numberToCreate, callback, _crea
     return callback(null, _created);
   }
 
-  FolderTestUtil.assertCreateFolderSucceeds(
-    user.restContext,
-    'name',
-    'description',
-    privacy,
-    [user],
-    [],
-    function (folder) {
-      _created.push(folder);
-      return generateFolders(user, privacy, numberToCreate, callback, _created);
-    }
-  );
+  FolderTestUtil.assertCreateFolderSucceeds(user.restContext, 'name', 'description', privacy, [user], [], (folder) => {
+    _created.push(folder);
+    return generateFolders(user, privacy, numberToCreate, callback, _created);
+  });
 };
 
 /**
@@ -2544,7 +2525,7 @@ const assignPermissionToContent = function (owner, contributor, right, content, 
     owner.restContext,
     content.id,
     memberUpdates,
-    function (error) {
+    (error) => {
       assert.ok(!error);
       return callback(error, content);
     }
@@ -2569,7 +2550,7 @@ const assignPermissionsToDiscussion = function (owner, contributor, right, discu
     owner.restContext,
     discussion.id,
     memberUpdates,
-    function (error) {
+    (error) => {
       assert.ok(!error);
       return callback(null, discussion);
     }
@@ -2593,7 +2574,7 @@ const assignPermissionsToMeeting = function (ctx, owner, contributor, right, mee
     return owner.user;
   };
 
-  MeetingAPI.setMeetingMembers(ctx, meeting.id, memberUpdates, function (error) {
+  MeetingAPI.setMeetingMembers(ctx, meeting.id, memberUpdates, (error) => {
     assert.ok(!error);
     return callback(null, meeting);
   });
@@ -2617,7 +2598,7 @@ const assignPermissionsToFolder = function (owner, contributor, right, folder, c
     owner.restContext,
     folder.id,
     memberUpdates,
-    function (error) {
+    (error) => {
       assert.ok(!error);
       return callback(null, folder);
     }
@@ -2645,7 +2626,7 @@ const assignPermissionsToGroup = function (owner, contributor, right, group, cal
 
   const memberUpdates = {};
   memberUpdates[contributor.user.id] = right;
-  GroupAPI.setGroupMembers(owner.restContext, group.id, memberUpdates, function (error) {
+  GroupAPI.setGroupMembers(owner.restContext, group.id, memberUpdates, (error) => {
     assert.ok(!error);
     return callback(null, group);
   });
@@ -2660,12 +2641,12 @@ const assignPermissionsToGroup = function (owner, contributor, right, group, cal
  * @throws {AssertionError}                     Thrown if the request failed
  */
 const assertDoesNotFollow = function (followerId, followedId, callback) {
-  FollowingDAO.getFollowers(followedId, null, null, function (error, followers) {
+  FollowingDAO.getFollowers(followedId, null, null, (error, followers) => {
     if (error) {
       return callback(error);
     }
 
-    const follower = _.find(followers, function (follower) {
+    const follower = _.find(followers, (follower) => {
       return follower === followerId;
     });
     assert.ok(!follower);

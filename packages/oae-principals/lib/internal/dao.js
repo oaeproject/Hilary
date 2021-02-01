@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
@@ -30,7 +31,7 @@ import { Validator as validator } from 'oae-authz/lib/validator';
 const { unless, toBoolean, isPrincipalId, isArrayEmpty } = validator;
 
 import { LoginId } from 'oae-authentication/lib/model';
-import { PrincipalsConstants } from '../constants';
+import { PrincipalsConstants } from '../constants.js';
 
 const log = logger('principals-dao');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -237,7 +238,7 @@ const getPrincipals = function (principalIds, fields, callback) {
   if (fields) {
     const columns = [];
     _.map(fields, (field) => {
-      columns.push(util.format('"%s"', field));
+      columns.push(format('"%s"', field));
     });
     query = 'SELECT ' + columns.join(',') + ' FROM "Principals" WHERE "principalId" IN ?';
   } else {
@@ -401,7 +402,7 @@ const setAdmin = function (adminType, isAdmin, userId, callback) {
     return callback(error);
   }
 
-  const query = util.format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
+  const query = format('UPDATE "Principals" SET "%s" = ? WHERE "principalId" = ?', adminType);
   Cassandra.runQuery(query, [String(isAdmin), userId], (error) => {
     if (error) {
       return callback(error);
@@ -671,7 +672,7 @@ const _updatePrincipal = function (principalId, profileFields, callback) {
  */
 const _deletePrincipalFields = function (principalId, profileFields, callback) {
   // Remove the specified fields
-  const query = util.format('DELETE "%s" FROM "Principals" where "principalId" = ?', profileFields.join('", "'));
+  const query = format('DELETE "%s" FROM "Principals" where "principalId" = ?', profileFields.join('", "'));
   Cassandra.runQuery(query, [principalId], (error) => {
     if (error) {
       return callback(error);
@@ -1182,7 +1183,7 @@ const fullyDeletePrincipal = function (user, login, callback) {
     });
   }
 
-  Cassandra.runBatchQuery(queries, function (error) {
+  Cassandra.runBatchQuery(queries, (error) => {
     if (error) return callback(error);
 
     // Update the cache
@@ -1205,7 +1206,7 @@ const createArchivedUser = function (alias, createdUserId, callback) {
   const parameters = [alias, createdUserId];
 
   // Run query
-  Cassandra.runQuery(query, parameters, function (error) {
+  Cassandra.runQuery(query, parameters, (error) => {
     if (error) {
       return callback(error);
     }
@@ -1229,7 +1230,7 @@ const getDataFromArchive = function (archiveId, principalId, callback) {
   Cassandra.runQuery(
     'SELECT * FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
     [archiveId, principalId],
-    function (error, rows) {
+    (error, rows) => {
       if (error) {
         return callback(error);
       }
@@ -1261,7 +1262,7 @@ const addDataToArchive = function (archiveId, principalId, resourceId, date, cal
   Cassandra.runQuery(
     'INSERT INTO "DataArchive" ("archiveId", "principalId", "resourceId", "deletionDate") VALUES (?, ?, ?, ?)',
     [archiveId, principalId, stringResource, date],
-    function (error) {
+    (error) => {
       if (error) return callback(error);
 
       return callback();
@@ -1281,7 +1282,7 @@ const removePrincipalFromDataArchive = function (archiveId, principalId, callbac
   Cassandra.runQuery(
     'DELETE FROM "DataArchive" WHERE "archiveId" = ? AND "principalId" = ?',
     [archiveId, principalId],
-    function (error) {
+    (error) => {
       if (error) return callback(error);
 
       return callback();
@@ -1298,7 +1299,7 @@ const removePrincipalFromDataArchive = function (archiveId, principalId, callbac
  * @param  {Object}         callback.userArchive    The archive of the tenant
  */
 const getArchivedUser = function (alias, callback) {
-  Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], function (error, rows) {
+  Cassandra.runQuery('SELECT * FROM "ArchiveByTenant" WHERE "tenantAlias" = ?', [alias], (error, rows) => {
     if (error) return callback(error);
 
     const userArchive = _.map(rows, Cassandra.rowToHash);
@@ -1315,7 +1316,7 @@ const getArchivedUser = function (alias, callback) {
  * @param  [Object]         callback.users          A list of users
  */
 const getExpiredUser = function (actualDate, callback) {
-  Cassandra.runQuery('SELECT * FROM "DataArchive"', [], function (error, rows) {
+  Cassandra.runQuery('SELECT * FROM "DataArchive"', [], (error, rows) => {
     if (error) return callback(error);
     if (_.isEmpty(rows)) return callback(null, []);
 
@@ -1340,7 +1341,7 @@ const updateUserArchiveFlag = function (principalId, callback) {
   Cassandra.runQuery(
     'UPDATE "Principals" SET "isUserArchive" = ? WHERE "principalId" = ?',
     ['true', principalId],
-    function (error) {
+    (error) => {
       if (error) return callback(error);
 
       return callback();

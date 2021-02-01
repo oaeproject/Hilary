@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
 import _ from 'underscore';
@@ -295,7 +295,7 @@ const _getMembersLibraryRank = function (groupId, principal, role) {
   // Picture visibility (which implies link visibility) is the most important, secondary
   // importance given to their link visibility. Finally, all else being equal, we prefer manager
   // profiles over members
-  return util.format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
+  return format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
 };
 
 /**

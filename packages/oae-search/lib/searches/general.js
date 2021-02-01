@@ -58,16 +58,16 @@ const RESOURCE_TYPES_ACCESS_SCOPED = [
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-export default function(ctx, opts, callback) {
+export default function (ctx, options, callback) {
   // Sanitize custom search options
-  opts = opts || {};
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
-  opts.q = SearchUtil.getQueryParam(opts.q);
-  opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
-  opts.createdBy = SearchUtil.getArrayParam(opts.createdBy);
-  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
+  options = options || {};
+  options.limit = OaeUtil.getNumberParam(options.limit, 10, 1, 25);
+  options.q = SearchUtil.getQueryParam(options.q);
+  options.resourceTypes = SearchUtil.getArrayParam(options.resourceTypes);
+  options.createdBy = SearchUtil.getArrayParam(options.createdBy);
+  options.searchAllResourceTypes = isEmpty(options.resourceTypes);
 
-  return _search(ctx, opts, callback);
+  return _search(ctx, options, callback);
 }
 
 /**
@@ -80,16 +80,16 @@ export default function(ctx, opts, callback) {
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  {SearchResult}  callback.results    An object that represents the results of the query
  */
-const _search = function(ctx, opts, callback) {
+const _search = function (ctx, options, callback) {
   // The query and filter objects for the Query DSL
-  const query = _createQuery(ctx, opts);
-  const filterByResources = filterResources(opts.resourceTypes);
+  const query = _createQuery(ctx, options);
+  const filterByResources = filterResources(options.resourceTypes);
 
-  filterScopeAndAccess(ctx, opts, _needsFilterByExplicitAccess(ctx, opts), (err, scopeAndAccessFilter) => {
-    if (err) return callback(err);
+  filterScopeAndAccess(ctx, options, _needsFilterByExplicitAccess(ctx, options), (error, scopeAndAccessFilter) => {
+    if (error) return callback(error);
 
     // Filter by created if needed
-    const createdByFilter = filterCreatedBy(ctx, opts.createdBy);
+    const createdByFilter = filterCreatedBy(ctx, options.createdBy);
 
     // Create the filtered query
     const filter = filterAnd(filterByResources, scopeAndAccessFilter, createdByFilter);
@@ -116,7 +116,7 @@ const _search = function(ctx, opts, callback) {
     };
 
     // Wrap the query and filter into the top-level Query DSL "query" object
-    return callback(null, createQuery(boostingQuery, null, opts));
+    return callback(null, createQuery(boostingQuery, null, options));
   });
 };
 
@@ -128,17 +128,17 @@ const _search = function(ctx, opts, callback) {
  * @return {Object}             The ElasticSearch query
  * @api private
  */
-const _createQuery = function(ctx, opts) {
-  const includeContent = _includesResourceType(opts, 'content');
-  const includeDiscussion = _includesResourceType(opts, 'discussion');
-  const includeFolder = _includesResourceType(opts, 'folder');
+const _createQuery = function (ctx, options) {
+  const includeContent = _includesResourceType(options, 'content');
+  const includeDiscussion = _includesResourceType(options, 'discussion');
+  const includeFolder = _includesResourceType(options, 'folder');
 
-  if (opts.q === SearchConstants.query.ALL) {
+  if (options.q === SearchConstants.query.ALL) {
     /**
      * Apparently ES no longer supports `query_string` syntax along with bool type query
      * so all in all I'm adding a `should` with a query_string in it
      */
-    return { bool: { should: [createQueryStringQuery(opts.q)], minimum_should_match: 1 } };
+    return { bool: { should: [createQueryStringQuery(options.q)], minimum_should_match: 1 } };
   }
 
   /**
@@ -148,7 +148,7 @@ const _createQuery = function(ctx, opts) {
   const boost = includeContent || includeDiscussion || includeFolder ? 5 : null;
   const query = {
     bool: {
-      should: [createQueryStringQuery(opts.q, null, boost)],
+      should: [createQueryStringQuery(options.q, null, boost)],
       minimum_should_match: 1
     }
   };
@@ -163,7 +163,7 @@ const _createQuery = function(ctx, opts) {
     query.bool.should.push(
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
-        createQueryStringQuery(opts.q, ['discussion_message_body']),
+        createQueryStringQuery(options.q, ['discussion_message_body']),
         'max'
       )
     );
@@ -171,7 +171,7 @@ const _createQuery = function(ctx, opts) {
     query.bool.should.push(
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_BODY,
-        createQueryStringQuery(opts.q, ['content_body']),
+        createQueryStringQuery(options.q, ['content_body']),
         'max',
         2
       )
@@ -188,7 +188,7 @@ const _createQuery = function(ctx, opts) {
     query.bool.should.push(
       SearchUtil.createHasChildQuery(
         DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-        createQueryStringQuery(opts.q, ['discussion_message_body']),
+        createQueryStringQuery(options.q, ['discussion_message_body']),
         'max'
       )
     );
@@ -199,7 +199,7 @@ const _createQuery = function(ctx, opts) {
     query.bool.should.push(
       createHasChildQuery(
         FoldersConstants.search.MAPPING_FOLDER_MESSAGE,
-        createQueryStringQuery(opts.q, ['body']),
+        createQueryStringQuery(options.q, ['body']),
         'max'
       )
     );
@@ -222,16 +222,13 @@ const _createQuery = function(ctx, opts) {
  * @return {Boolean}               Whether or not the query specified by this user and options requires filtering by access privileges
  * @api private
  */
-const _needsFilterByExplicitAccess = function(ctx, opts) {
+const _needsFilterByExplicitAccess = function (ctx, options) {
   const isAuthenticated = Boolean(ctx.user());
   const isNotGlobalAdmin = !isAuthenticated || !ctx.user().isGlobalAdmin();
   const includesContentOrGroups =
-    opts.searchAllResourceTypes ||
-    !_.chain(RESOURCE_TYPES_ACCESS_SCOPED)
-      .intersection(opts.resourceTypes)
-      .isEmpty()
-      .value();
-  const hasTextQuery = opts.q !== SearchConstants.query.ALL;
+    options.searchAllResourceTypes ||
+    !_.chain(RESOURCE_TYPES_ACCESS_SCOPED).intersection(options.resourceTypes).isEmpty().value();
+  const hasTextQuery = options.q !== SearchConstants.query.ALL;
   return isAuthenticated && isNotGlobalAdmin && includesContentOrGroups && hasTextQuery;
 };
 
@@ -244,6 +241,6 @@ const _needsFilterByExplicitAccess = function(ctx, opts) {
  * @return {Boolean}                    `true` if the query will include resources of the provided `resourceType`. `false` otherwise
  * @api private
  */
-const _includesResourceType = function(opts, resourceType) {
-  return opts.searchAllResourceTypes || includes(resourceType, opts.resourceTypes);
+const _includesResourceType = function (options, resourceType) {
+  return options.searchAllResourceTypes || includes(resourceType, options.resourceTypes);
 };

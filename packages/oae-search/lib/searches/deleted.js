@@ -34,14 +34,14 @@ const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterS
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-export default function(ctx, opts, callback) {
+export default function (ctx, options, callback) {
   // Sanitize custom search options
-  opts = opts || {};
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
-  opts.q = SearchUtil.getQueryParam(opts.q);
-  opts.resourceTypes = SearchUtil.getArrayParam(opts.resourceTypes);
-  opts.searchAllResourceTypes = isEmpty(opts.resourceTypes);
-  opts.sortBy = [{ deleted: SearchConstants.sort.direction.DESC }];
+  options = options || {};
+  options.limit = OaeUtil.getNumberParam(options.limit, 10, 1, 25);
+  options.q = SearchUtil.getQueryParam(options.q);
+  options.resourceTypes = SearchUtil.getArrayParam(options.resourceTypes);
+  options.searchAllResourceTypes = isEmpty(options.resourceTypes);
+  options.sortBy = [{ deleted: SearchConstants.sort.direction.DESC }];
 
   const user = ctx.user();
   if (!user || !user.isAdmin(user.tenant.alias)) {
@@ -49,20 +49,20 @@ export default function(ctx, opts, callback) {
   }
 
   // Sanitize the scope based on if the user is global or tenant admin
-  opts.scope = _resolveScope(ctx, opts.scope);
+  options.scope = _resolveScope(ctx, options.scope);
 
   // The query and filter objects for the Query DSL
-  const query = { bool: { should: [createQueryStringQuery(opts.q)] } };
-  const resourcesFilter = filterResources(opts.resourceTypes, SearchConstants.deleted.ONLY);
+  const query = { bool: { should: [createQueryStringQuery(options.q)] } };
+  const resourcesFilter = filterResources(options.resourceTypes, SearchConstants.deleted.ONLY);
 
   // Apply the scope and access filters for the deleted search
-  filterScopeAndAccess(ctx, opts, false, (err, scopeAndAccessFilter) => {
-    if (err) {
-      return callback(err);
+  filterScopeAndAccess(ctx, options, false, (error, scopeAndAccessFilter) => {
+    if (error) {
+      return callback(error);
     }
 
     const filter = filterAnd(resourcesFilter, scopeAndAccessFilter);
-    return callback(null, createQuery(query, filter, opts));
+    return callback(null, createQuery(query, filter, options));
   });
 }
 
@@ -74,7 +74,7 @@ export default function(ctx, opts, callback) {
  * @return {String}                 The scope to use for the search
  * @api private
  */
-const _resolveScope = function(ctx, scope) {
+const _resolveScope = function (ctx, scope) {
   const user = ctx.user();
   if (user.isGlobalAdmin()) {
     return scope || SearchConstants.general.SCOPE_ALL;

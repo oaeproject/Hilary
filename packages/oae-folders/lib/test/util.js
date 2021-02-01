@@ -14,8 +14,10 @@
  */
 
 /* eslint-disable no-unused-vars */
+/* eslint-disable unicorn/no-array-callback-reference */
+
 import { assert } from 'chai';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import shortid from 'shortid';
 
@@ -33,8 +35,8 @@ import * as FoldersLibrary from 'oae-folders/lib/library';
 
 import { Context } from 'oae-context';
 import { User } from 'oae-principals/lib/model';
-import * as FoldersDAO from '../internal/dao';
-import { FoldersConstants } from '../constants';
+import * as FoldersDAO from '../internal/dao.js';
+import { FoldersConstants } from '../constants.js';
 
 const TIMEOUT = 1000;
 
@@ -60,7 +62,7 @@ const generateTestFolders = function (restContext, numberFolders, callback, _fol
 
   RestAPI.Folders.createFolder(
     restContext,
-    util.format('displayName-%s', shortid.generate()),
+    format('displayName-%s', shortid.generate()),
     null,
     null,
     null,
@@ -96,7 +98,7 @@ const generateTestFoldersWithVisibility = function (restContext, numberFolders, 
 
   RestAPI.Folders.createFolder(
     restContext,
-    util.format('displayName-%s', shortid.generate()),
+    format('displayName-%s', shortid.generate()),
     null,
     visibility,
     null,
@@ -1290,7 +1292,7 @@ const _assertSearchResults = function (results, expectedFolders, missingFolders)
     assert.strictEqual(searchResult.visibility, folder.visibility);
     const tenantAlias = folder.tenant.alias;
     const { resourceId } = AuthzUtil.getResourceFromId(folder.id);
-    assert.strictEqual(searchResult.profilePath, util.format('/folder/%s/%s', tenantAlias, resourceId));
+    assert.strictEqual(searchResult.profilePath, format('/folder/%s/%s', tenantAlias, resourceId));
 
     // If the folder has a thumbnail, we assert the search result has it as well
     if (folder.previews && folder.previews.thumbnailUri) {
@@ -1627,9 +1629,9 @@ const _createMultiPrivacyFolders = function (restContext, callback) {
  * @api private
  */
 const _createFolderWithVisibility = function (restContext, visibility, callback) {
-  const randomId = util.format('%s-%s', visibility, shortid.generate());
-  const randomDisplayName = util.format('displayName-%s', randomId);
-  const randomDescription = util.format('description-%s', randomId);
+  const randomId = format('%s-%s', visibility, shortid.generate());
+  const randomDisplayName = format('displayName-%s', randomId);
+  const randomDescription = format('description-%s', randomId);
   RestAPI.Folders.createFolder(
     restContext,
     randomDisplayName,

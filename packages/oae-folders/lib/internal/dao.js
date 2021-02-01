@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -147,7 +148,7 @@ const getFolder = function (folderId, callback) {
     if (_.isEmpty(folders)) {
       return callback({
         code: 404,
-        msg: util.format('A folder with the id "%s" could not be found', folderId)
+        msg: format('A folder with the id "%s" could not be found', folderId)
       });
     }
 

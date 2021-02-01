@@ -19,7 +19,7 @@ import _ from 'underscore';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
 
-import { FoldersConstants } from '../constants';
+import { FoldersConstants } from '../constants.js';
 
 const log = logger('oae-folders-contentlibrary');
 

@@ -21,8 +21,8 @@ import * as LibraryAPI from 'oae-library';
 import * as OaeUtil from 'oae-util/lib/util';
 import { logger } from 'oae-logger';
 
-import { FoldersConstants } from '../constants';
-import * as FoldersDAO from './dao';
+import { FoldersConstants } from '../constants.js';
+import * as FoldersDAO from './dao.js';
 
 const { Long } = types;
 const log = logger('oae-folders-contentLibrary');

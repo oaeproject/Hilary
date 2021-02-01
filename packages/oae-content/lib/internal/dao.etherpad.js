@@ -29,15 +29,15 @@ const log = logger('content-dao-etherpad');
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.userIds    An object where each OAE user ID is mapped against an Etherpad author ID
  */
-const getUserIds = function(authorIds, callback) {
+const getUserIds = function (authorIds, callback) {
   if (authorIds.length === 0) {
     return callback(null, {});
   }
 
   const keys = _.map(authorIds, _getMappingKey);
-  Redis.getClient().mget(keys, (err, userIds) => {
-    if (err) {
-      log().error({ err, authorIds }, 'Failed to retrieve OAE users for a set of etherpad author ids');
+  Redis.getClient().mget(keys, (error, userIds) => {
+    if (error) {
+      log().error({ err: error, authorIds }, 'Failed to retrieve OAE users for a set of etherpad author ids');
       return callback({
         code: 500,
         msg: 'Failed to retrieve OAE users for a set of etherpad author ids'
@@ -57,11 +57,11 @@ const getUserIds = function(authorIds, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const saveAuthorId = function(authorId, userId, callback) {
+const saveAuthorId = function (authorId, userId, callback) {
   const key = _getMappingKey(authorId);
-  Redis.getClient().set(key, userId, err => {
-    if (err) {
-      log().error({ err, authorId, userId }, 'Failed to store Etherpad author mapping');
+  Redis.getClient().set(key, userId, (error) => {
+    if (error) {
+      log().error({ err: error, authorId, userId }, 'Failed to store Etherpad author mapping');
       return callback({ code: 500, msg: 'Failed to store Etherpad author mapping' });
     }
 
@@ -76,7 +76,7 @@ const saveAuthorId = function(authorId, userId, callback) {
  * @return {String}                 The Redis key used to map the Etherpad author to the corresponding OAE user ID
  * @api private
  */
-const _getMappingKey = function(authorId) {
+const _getMappingKey = function (authorId) {
   return util.format('etherpad:mapping:%s', authorId);
 };
 

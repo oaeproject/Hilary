@@ -29,10 +29,10 @@ import * as LocalStorage from './local';
 /**
  * @borrows Interface.store as TestStorageBackend.store
  */
-const store = function(tenantAlias, file, options, callback) {
-  LocalStorage.store(tenantAlias, file, options, (err, uri) => {
-    if (err) {
-      return callback(err);
+const store = function (tenantAlias, file, options, callback) {
+  LocalStorage.store(tenantAlias, file, options, (error, uri) => {
+    if (error) {
+      return callback(error);
     }
 
     uri = uri.replace('local:', 'test:');
@@ -43,21 +43,21 @@ const store = function(tenantAlias, file, options, callback) {
 /**
  * @borrows Interface.get as TestStorageBackend.get
  */
-const get = function(tenantAlias, uri, callback) {
+const get = function (tenantAlias, uri, callback) {
   LocalStorage.get(tenantAlias, uri, callback);
 };
 
 /**
  * @borrows Interface.remove as TestStorageBackend.remove
  */
-const remove = function(tenantAlias, uri, callback) {
+const remove = function (tenantAlias, uri, callback) {
   LocalStorage.remove(tenantAlias, uri, callback);
 };
 
 /**
  * @borrows Interface.getDownloadStrategy as TestStorageBackend.getDownloadStrategy
  */
-const getDownloadStrategy = function(tenantAlias, uri) {
+const getDownloadStrategy = function (tenantAlias, uri) {
   const file = LocalStorage.getRootDirectory() + '/' + BackendUtil.splitUri(uri).location;
   return new DownloadStrategy('test', file);
 };

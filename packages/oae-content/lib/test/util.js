@@ -66,7 +66,7 @@ const PUBLIC = 'public';
  * @param  {Function}   Invoked when all the entities are set up
  * @throws {Error}      An assertion error is thrown if something does not get created properly
  */
-const setupMultiTenantPrivacyEntities = function(callback) {
+const setupMultiTenantPrivacyEntities = function (callback) {
   // Create the tenants and users
   TestsUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
     // Create the content
@@ -97,7 +97,7 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @param  {Content}        callback.content    The created link
  * @throws {AssertionError}                     Thrown if any assertions fail
  */
-const assertCreateLinkSucceeds = function(
+const assertCreateLinkSucceeds = function (
   restContext,
   displayName,
   description,
@@ -108,12 +108,12 @@ const assertCreateLinkSucceeds = function(
   folderIds,
   callback
 ) {
-  PrincipalsTestUtil.assertGetMeSucceeds(restContext, me => {
+  PrincipalsTestUtil.assertGetMeSucceeds(restContext, (me) => {
     RestAPI.Content.createLink(
       restContext,
       { displayName, description, visibility, link, managers: managerIds, viewers: viewerIds, folders: folderIds },
-      (err, content) => {
-        assert.ok(!err);
+      (error, content) => {
+        assert.ok(!error);
         assert.strictEqual(content.displayName, displayName);
         assert.strictEqual(content.description, description);
         assert.strictEqual(content.visibility, visibility);
@@ -122,19 +122,19 @@ const assertCreateLinkSucceeds = function(
         const roleChanges = {};
         roleChanges[me.id] = 'manager';
 
-        _.each(managerIds, id => {
+        _.each(managerIds, (id) => {
           roleChanges[id] = 'manager';
         });
 
-        _.each(viewerIds, id => {
+        _.each(viewerIds, (id) => {
           roleChanges[id] = 'viewer';
         });
 
         // Ensure the members have the expected roles
-        getAllContentMembers(restContext, content.id, null, result => {
+        getAllContentMembers(restContext, content.id, null, (result) => {
           AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(result));
 
-          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', content.id, result => {
+          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'content', content.id, (result) => {
             AuthzTestUtil.assertEmailRolesEquals(
               {},
               roleChanges,
@@ -163,7 +163,7 @@ const assertCreateLinkSucceeds = function(
  * @param  {Function}       callback            Invoked when the create link request fails in the expected manner
  * @throws {AssertionError}                     Thrown if any assertions fail
  */
-const assertCreateLinkFails = function(
+const assertCreateLinkFails = function (
   restContext,
   displayName,
   description,
@@ -178,9 +178,9 @@ const assertCreateLinkFails = function(
   RestAPI.Content.createLink(
     restContext,
     { displayName, description, visibility, link, managers: managerIds, viewers: viewerIds, folders: folderIds },
-    (err, content) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
+    (error, content) => {
+      assert.ok(error);
+      assert.strictEqual(error.code, httpCode);
       assert.ok(!content);
       return callback();
     }
@@ -196,10 +196,10 @@ const assertCreateLinkFails = function(
  * @param  {Function}       callback        Invoked when the request fails as expected
  * @throws {AssertionError}                 Thrown if any assertions fail
  */
-const assertGetContentFails = function(restContext, contentId, httpCode, callback) {
-  RestAPI.Content.getContent(restContext, contentId, (err, content) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+const assertGetContentFails = function (restContext, contentId, httpCode, callback) {
+  RestAPI.Content.getContent(restContext, contentId, (error, content) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     assert.ok(!content);
     return callback();
   });
@@ -213,9 +213,9 @@ const assertGetContentFails = function(restContext, contentId, httpCode, callbac
  * @param  {Function}       callback            Invoked when the request fails as expected
  * @throws {AssertionError}                     Thrown if any assertions fail
  */
-const assertDeleteContentSucceeds = function(restContext, contentId, callback) {
-  RestAPI.Content.deleteContent(restContext, contentId, err => {
-    assert.ok(!err);
+const assertDeleteContentSucceeds = function (restContext, contentId, callback) {
+  RestAPI.Content.deleteContent(restContext, contentId, (error) => {
+    assert.ok(!error);
 
     // Ensure the content now gets a 404
     return assertGetContentFails(restContext, contentId, 404, callback);
@@ -231,7 +231,7 @@ const assertDeleteContentSucceeds = function(restContext, contentId, callback) {
  * @param  {String}         expectedContent     The expected contents of the etherpad document
  * @throws {AssertionError}                     Thrown if the actual content did not match the expected content
  */
-const assertEtherpadContentEquals = function(actualContent, expectedContent) {
+const assertEtherpadContentEquals = function (actualContent, expectedContent) {
   // Wrap the expected content into the etherpad document structure. Also add a line break at the
   // end of the provided content. This is not extremely robust and will likely only be valid for
   // asserting simple single-line content, so it's possible if we have more complex test cases
@@ -252,11 +252,11 @@ const assertEtherpadContentEquals = function(actualContent, expectedContent) {
  * @param  {Function}       callback        Standard callback function
  * @throws {AssertionError}                 Thrown if the the request did not fail in the expected manner
  */
-const assertGetContentMembersFails = function(restContext, contentId, start, limit, httpCode, callback) {
+const assertGetContentMembersFails = function (restContext, contentId, start, limit, httpCode, callback) {
   // eslint-disable-next-line no-unused-vars
-  RestAPI.Content.getMembers(restContext, contentId, start, limit, (err, result) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Content.getMembers(restContext, contentId, start, limit, (error, result) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     return callback();
   });
 };
@@ -276,9 +276,9 @@ const assertGetContentMembersFails = function(restContext, contentId, start, lim
  * @param  {String}         callback.result.nextToken           The token to use for the next members library request to get the next page of members
  * @throws {AssertionError}                                     Thrown if there is an error getting the content members library
  */
-const assertGetContentMembersSucceeds = function(restContext, contentId, start, limit, callback) {
-  RestAPI.Content.getMembers(restContext, contentId, start, limit, (err, result) => {
-    assert.ok(!err);
+const assertGetContentMembersSucceeds = function (restContext, contentId, start, limit, callback) {
+  RestAPI.Content.getMembers(restContext, contentId, start, limit, (error, result) => {
+    assert.ok(!error);
     assert.ok(result);
     assert.ok(_.isArray(result.results));
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
@@ -291,7 +291,7 @@ const assertGetContentMembersSucceeds = function(restContext, contentId, start, 
     }
 
     // Ensure each result has an id and a valid role
-    _.each(result.results, result => {
+    _.each(result.results, (result) => {
       assert.ok(result);
       assert.ok(result.profile);
       assert.ok(result.profile.id);
@@ -313,7 +313,7 @@ const assertGetContentMembersSucceeds = function(restContext, contentId, start, 
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error ensuring that the request fails in the specified manner
  */
-const assertUpdateContentMembersFails = function(
+const assertUpdateContentMembersFails = function (
   managerRestContext,
   actorRestContext,
   contentId,
@@ -322,26 +322,26 @@ const assertUpdateContentMembersFails = function(
   callback
 ) {
   // Get the members library so we can ensure it does not change after the failure
-  getAllContentMembers(managerRestContext, contentId, null, result => {
+  getAllContentMembers(managerRestContext, contentId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Perform the update and ensure it fails as expected
-      RestAPI.Content.updateMembers(actorRestContext, contentId, roleChanges, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Content.updateMembers(actorRestContext, contentId, roleChanges, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         // Ensure the members and invitations did not change
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             null,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllContentMembers(managerRestContext, contentId, null, result => {
+          getAllContentMembers(managerRestContext, contentId, null, (result) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               null,
@@ -351,7 +351,7 @@ const assertUpdateContentMembersFails = function(
             // Test once more that the library did not change by purging and rebuilding it
             _purgeMembersLibrary(contentId, () => {
               // Ensure the library members still did not change
-              getAllContentMembers(managerRestContext, contentId, null, result => {
+              getAllContentMembers(managerRestContext, contentId, null, (result) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   null,
@@ -377,7 +377,7 @@ const assertUpdateContentMembersFails = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error ensuring that the update members operation was successful
  */
-const assertUpdateContentMembersSucceeds = function(
+const assertUpdateContentMembersSucceeds = function (
   managerRestContext,
   actorRestContext,
   contentId,
@@ -385,25 +385,25 @@ const assertUpdateContentMembersSucceeds = function(
   callback
 ) {
   // Ensure the members library is currently built
-  getAllContentMembers(managerRestContext, contentId, null, result => {
+  getAllContentMembers(managerRestContext, contentId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Perform the update, causing the library to update on-the-fly
-      RestAPI.Content.updateMembers(actorRestContext, contentId, roleChanges, err => {
-        assert.ok(!err);
+      RestAPI.Content.updateMembers(actorRestContext, contentId, roleChanges, (error) => {
+        assert.ok(!error);
 
         // Ensure the invitations and members have the updated status
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             roleChanges,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllContentMembers(managerRestContext, contentId, null, result => {
+          getAllContentMembers(managerRestContext, contentId, null, (result) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               roleChanges,
@@ -413,7 +413,7 @@ const assertUpdateContentMembersSucceeds = function(
             // Test the library once more by purging and building the library from scratch
             _purgeMembersLibrary(contentId, () => {
               // Now that we're running with a fresh library, ensure that the members we receive are still what we expect
-              getAllContentMembers(managerRestContext, contentId, null, result => {
+              getAllContentMembers(managerRestContext, contentId, null, (result) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   roleChanges,
@@ -441,7 +441,7 @@ const assertUpdateContentMembersSucceeds = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error ensuring that the request fails in the specified manner
  */
-const assertShareContentFails = function(
+const assertShareContentFails = function (
   managerRestContext,
   actorRestContext,
   contentId,
@@ -450,26 +450,26 @@ const assertShareContentFails = function(
   callback
 ) {
   // Get the members library so we can ensure it does not change after the failure
-  getAllContentMembers(managerRestContext, contentId, null, result => {
+  getAllContentMembers(managerRestContext, contentId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Perform the update and ensure it fails as expected
-      RestAPI.Content.shareContent(actorRestContext, contentId, memberIds, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Content.shareContent(actorRestContext, contentId, memberIds, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         // Ensure the invitations and members did not change
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             null,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllContentMembers(managerRestContext, contentId, null, result => {
+          getAllContentMembers(managerRestContext, contentId, null, (result) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               null,
@@ -479,7 +479,7 @@ const assertShareContentFails = function(
             // Test once more that the library did not change by purging and rebuilding it
             _purgeMembersLibrary(contentId, () => {
               // Ensure the library members still did not change
-              getAllContentMembers(managerRestContext, contentId, null, result => {
+              getAllContentMembers(managerRestContext, contentId, null, (result) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   null,
@@ -506,36 +506,36 @@ const assertShareContentFails = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error verifying that the content item is successfully shared
  */
-const assertShareContentSucceeds = function(managerRestContext, actorRestContext, contentId, memberIds, callback) {
+const assertShareContentSucceeds = function (managerRestContext, actorRestContext, contentId, memberIds, callback) {
   // Ensure the members library is currently built
-  getAllContentMembers(managerRestContext, contentId, null, result => {
+  getAllContentMembers(managerRestContext, contentId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Build a role update object that represents the change that should occur in the share
       // operation
       const roleChange = {};
-      _.each(memberIds, memberId => {
+      _.each(memberIds, (memberId) => {
         if (!memberRolesBefore[memberId] && !emailRolesBefore[memberId]) {
           roleChange[memberId] = 'viewer';
         }
       });
 
       // Perform the share action, causing the library to update on-the-fly
-      RestAPI.Content.shareContent(actorRestContext, contentId, memberIds, err => {
-        assert.ok(!err);
+      RestAPI.Content.shareContent(actorRestContext, contentId, memberIds, (error) => {
+        assert.ok(!error);
 
         // Ensure the members and invitations had the expected updates
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'content', contentId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             roleChange,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
+          getAllContentMembers(managerRestContext, contentId, null, (membersAfterUpdate) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               roleChange,
@@ -545,7 +545,7 @@ const assertShareContentSucceeds = function(managerRestContext, actorRestContext
             // Test the library once more by purging and building the library from scratch
             _purgeMembersLibrary(contentId, () => {
               // Now that we're running with a fresh library, ensure that the members we receive are what we expect
-              getAllContentMembers(managerRestContext, contentId, null, membersAfterUpdate => {
+              getAllContentMembers(managerRestContext, contentId, null, (membersAfterUpdate) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   roleChange,
@@ -574,21 +574,21 @@ const assertShareContentSucceeds = function(managerRestContext, actorRestContext
  * @param  {Object[][]}     callback.responses  The raw response objects for each page request that was made to get the content members library
  * @throws {AssertionError}                     Thrown if an error occurrs while paging through the content members library
  */
-const getAllContentMembers = function(restContext, contentId, opts, callback, _members, _responses, _nextToken) {
+const getAllContentMembers = function (restContext, contentId, options, callback, _members, _responses, _nextToken) {
   _members = _members || [];
   _responses = _responses || [];
   if (_nextToken === null) {
     return callback(_members, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
-  assertGetContentMembersSucceeds(restContext, contentId, _nextToken, opts.batchSize, result => {
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
+  assertGetContentMembersSucceeds(restContext, contentId, _nextToken, options.batchSize, (result) => {
     _responses.push(result);
     return getAllContentMembers(
       restContext,
       contentId,
-      opts,
+      options,
       callback,
       _.union(_members, result.results),
       _responses,
@@ -608,10 +608,10 @@ const getAllContentMembers = function(restContext, contentId, opts, callback, _m
  * @param  {Object[]}       callback.contentItems   The array of content items in the library
  * @param  {Object[][]}     callback.responses      The raw response objects for each page request that was made to get the content library
  */
-const assertGetAllContentLibrarySucceeds = function(
+const assertGetAllContentLibrarySucceeds = function (
   restContext,
   principalId,
-  opts,
+  options,
   callback,
   _contentItems,
   _responses,
@@ -623,20 +623,25 @@ const assertGetAllContentLibrarySucceeds = function(
     return callback(_contentItems, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
-  assertGetContentLibrarySucceeds(restContext, principalId, { start: _nextToken, limit: opts.batchSize }, result => {
-    _responses.push(result);
-    return assertGetAllContentLibrarySucceeds(
-      restContext,
-      principalId,
-      opts,
-      callback,
-      _.union(_contentItems, result.results),
-      _responses,
-      result.nextToken
-    );
-  });
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
+  assertGetContentLibrarySucceeds(
+    restContext,
+    principalId,
+    { start: _nextToken, limit: options.batchSize },
+    (result) => {
+      _responses.push(result);
+      return assertGetAllContentLibrarySucceeds(
+        restContext,
+        principalId,
+        options,
+        callback,
+        _.union(_contentItems, result.results),
+        _responses,
+        result.nextToken
+      );
+    }
+  );
 };
 
 /**
@@ -650,10 +655,10 @@ const assertGetAllContentLibrarySucceeds = function(
  * @param  {Function}       callback            Standard callback function
  * @param  {ContentLibrary} callback.result     The content library result
  */
-const assertGetContentLibrarySucceeds = function(restContext, principalId, opts, callback) {
-  opts = opts || {};
-  RestAPI.Content.getLibrary(restContext, principalId, opts.start, opts.limit, (err, result) => {
-    assert.ok(!err);
+const assertGetContentLibrarySucceeds = function (restContext, principalId, options, callback) {
+  options = options || {};
+  RestAPI.Content.getLibrary(restContext, principalId, options.start, options.limit, (error, result) => {
+    assert.ok(!error);
     assert.ok(result);
     return callback(result);
   });
@@ -669,20 +674,20 @@ const assertGetContentLibrarySucceeds = function(restContext, principalId, opts,
  * @param  {Content}        [callback.link2]    The second link, if any
  * @param  {Content}        [callback...]       Each link is passed as a new callback argument
  */
-const generateTestLinks = function(restContext, total, callback) {
+const generateTestLinks = function (restContext, total, callback) {
   const contentItems = [];
 
   // Ensure the restContext's cookieJar is properly set up before
   // we start doing parallel requests
-  RestAPI.User.getMe(restContext, err => {
-    assert.ok(!err);
+  RestAPI.User.getMe(restContext, (error) => {
+    assert.ok(!error);
 
     const done = _.after(total, () => {
       return callback.apply(callback, contentItems);
     });
 
     // eslint-disable-next-line no-unused-vars
-    _.each(_.range(total), i => {
+    _.each(_.range(total), (i) => {
       RestAPI.Content.createLink(
         restContext,
         {
@@ -694,8 +699,8 @@ const generateTestLinks = function(restContext, total, callback) {
           viewers: [],
           folders: []
         },
-        (err, contentItem) => {
-          assert.ok(!err);
+        (error, contentItem) => {
+          assert.ok(!error);
           contentItems.push(contentItem);
           done();
         }
@@ -712,7 +717,7 @@ const generateTestLinks = function(restContext, total, callback) {
  * @throws {Error}                      An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _setupTenant = function(tenant, callback) {
+const _setupTenant = function (tenant, callback) {
   _createMultiPrivacyContent(tenant.adminRestContext, (publicContent, loggedinContent, privateContent) => {
     tenant.publicContent = publicContent;
     tenant.loggedinContent = loggedinContent;
@@ -729,10 +734,10 @@ const _setupTenant = function(tenant, callback) {
  * @throws {Error}                          An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createMultiPrivacyContent = function(restCtx, callback) {
-  _createContentWithVisibility(restCtx, 'public', publicContent => {
-    _createContentWithVisibility(restCtx, 'loggedin', loggedinContent => {
-      _createContentWithVisibility(restCtx, 'private', privateContent => {
+const _createMultiPrivacyContent = function (restCtx, callback) {
+  _createContentWithVisibility(restCtx, 'public', (publicContent) => {
+    _createContentWithVisibility(restCtx, 'loggedin', (loggedinContent) => {
+      _createContentWithVisibility(restCtx, 'private', (privateContent) => {
         return callback(publicContent, loggedinContent, privateContent);
       });
     });
@@ -749,7 +754,7 @@ const _createMultiPrivacyContent = function(restCtx, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createContentWithVisibility = function(restCtx, visibility, callback) {
+const _createContentWithVisibility = function (restCtx, visibility, callback) {
   const randomId = util.format('%s-%s', visibility, ShortId.generate());
   RestAPI.Content.createLink(
     restCtx,
@@ -762,8 +767,8 @@ const _createContentWithVisibility = function(restCtx, visibility, callback) {
       viewers: null,
       folders: []
     },
-    (err, content) => {
-      assert.ok(!err);
+    (error, content) => {
+      assert.ok(!error);
       return callback(content);
     }
   );
@@ -784,9 +789,9 @@ const _createContentWithVisibility = function(restCtx, visibility, callback) {
  * @param  {Object}         callback.array.user1        An object containing the user profile and a rest context for the first user of the set of users that was created
  * @param  {Object}         callback.data.user..        An object containing the user profile and a rest context for the next user of the set of users that was created
  */
-const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
-  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, (err, users) => {
-    assert.ok(!err);
+const createCollabDoc = function (adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
+  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, (error, users) => {
+    assert.ok(!error);
 
     const userIds = map(path(['user', 'id']), users);
     const userValues = users;
@@ -803,12 +808,12 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
       [],
       [],
       [],
-      (err, contentObj) => {
-        assert.ok(!err);
+      (error, contentObject) => {
+        assert.ok(!error);
 
         // Create a function that will get executed once each user has joined the document
         const done = _.after(nrOfJoinedUsers, () => {
-          return callback(null, _.union([contentObj, users], userValues));
+          return callback(null, _.union([contentObject, users], userValues));
         });
 
         // If no user should join the document we can return immediately
@@ -817,11 +822,11 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
         }
 
         // Join the collab doc for `nrOfJoinedUsers` users
-        const joinCollabDoc = function(i) {
+        const joinCollabDoc = function (i) {
           const restCtx = userValues[i].restContext;
           // eslint-disable-next-line no-unused-vars
-          RestAPI.Content.joinCollabDoc(restCtx, contentObj.id, (err, data) => {
-            assert.ok(!err);
+          RestAPI.Content.joinCollabDoc(restCtx, contentObject.id, (error, data) => {
+            assert.ok(!error);
             done();
           });
         };
@@ -843,13 +848,13 @@ const createCollabDoc = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, c
  * @param  {Function}   callback    Standard callback function
  * @throws {Error}                  An assertion error is thrown when something unexpected occurs
  */
-const publishCollabDoc = function(contentId, userId, callback) {
+const publishCollabDoc = function (contentId, userId, callback) {
   const data = {
     contentId,
     userId
   };
-  MQ.submit(ContentConstants.queue.ETHERPAD_PUBLISH, JSON.stringify(data), err => {
-    assert.ok(!err);
+  MQ.submit(ContentConstants.queue.ETHERPAD_PUBLISH, JSON.stringify(data), (error) => {
+    assert.ok(!error);
   });
 
   MqTestUtil.whenTasksEmpty(ContentConstants.queue.ETHERPAD_PUBLISH, () => {
@@ -872,9 +877,9 @@ const publishCollabDoc = function(contentId, userId, callback) {
  * @param  {Object}         callback.array.user1         An object containing the user profile and a rest context for the first user of the set of users that was created
  * @param  {Object}         callback.user..             An object containing the user profile and a rest context for the next user of the set of users that was created
  */
-const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
-  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function(err, users) {
-    assert.ok(!err);
+const createCollabsheet = function (adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
+  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function (error, users) {
+    assert.ok(!error);
 
     const VISIBILITY_PUBLIC = 'public';
     const userIds = map(path(['user', 'id']), users);
@@ -892,22 +897,22 @@ const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers,
       [],
       [],
       [],
-      function(err, content) {
-        assert.ok(!err);
+      function (error, content) {
+        assert.ok(!error);
 
         const restContexts = _.pluck(userValues, 'restContext');
         async.each(
           restContexts,
           (eachUserToJoin, exit) => {
-            RestAPI.Content.joinCollabDoc(eachUserToJoin, content.id, (err, data) => {
-              if (err) exit(err);
+            RestAPI.Content.joinCollabDoc(eachUserToJoin, content.id, (error, data) => {
+              if (error) exit(error);
 
-              assert.ok(!err);
+              assert.ok(!error);
               exit(null, data);
             });
           },
-          err => {
-            if (err) return callback(err);
+          (error_) => {
+            if (error_) return callback(error_);
             return callback(null, _.union([content, users], userValues));
           }
         );
@@ -927,11 +932,11 @@ const createCollabsheet = function(adminRestContext, nrOfUsers, nrOfJoinedUsers,
  * @param {Object}        callback.jsonExport     The content of the spreadsheet in JSON format
  */
 const editAndPublishCollabSheet = (editor, collabsheet, content, callback) => {
-  setSheetContents(collabsheet.ethercalcRoomId, content, err => {
-    assert.ok(!err);
+  setSheetContents(collabsheet.ethercalcRoomId, content, (error) => {
+    assert.ok(!error);
 
-    getJSON(collabsheet.ethercalcRoomId, (err, jsonExport) => {
-      assert.ok(!err);
+    getJSON(collabsheet.ethercalcRoomId, (error, jsonExport) => {
+      assert.ok(!error);
       return callback(null, jsonExport);
     });
   });
@@ -945,7 +950,7 @@ const editAndPublishCollabSheet = (editor, collabsheet, content, callback) => {
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Content}        callback.contentObj     		The created collaborative spreadsheet
  */
-const createCollabsheetForUser = function(creator, callback) {
+const createCollabsheetForUser = function (creator, callback) {
   const name = TestsUtil.generateTestUserId('collabsheet');
   RestAPI.Content.createCollabsheet(
     creator.restContext,
@@ -956,14 +961,14 @@ const createCollabsheetForUser = function(creator, callback) {
     [],
     [],
     [],
-    function(err, contentObj) {
-      assert.ok(!err);
+    function (error, contentObject) {
+      assert.ok(!error);
 
-      RestAPI.Content.joinCollabDoc(creator.restContext, contentObj.id, function(err /* data */) {
-        if (err) return callback(err);
+      RestAPI.Content.joinCollabDoc(creator.restContext, contentObject.id, function (error /* data */) {
+        if (error) return callback(error);
 
-        assert.ok(!err);
-        return callback(null, contentObj);
+        assert.ok(!error);
+        return callback(null, contentObject);
       });
     }
   );
@@ -977,7 +982,7 @@ const createCollabsheetForUser = function(creator, callback) {
  * @throws {AssertionError}         Thrown if there is an issue purging the library
  * @api private
  */
-const _purgeMembersLibrary = function(contentId, callback) {
+const _purgeMembersLibrary = function (contentId, callback) {
   LibraryTestUtil.assertPurgeFreshLibraries(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, [contentId], callback);
 };
 

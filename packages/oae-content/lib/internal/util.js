@@ -44,7 +44,7 @@ const TIME_1_WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
  * @return {Backend}            The appropriate backend
  * @throws {Error}              Thrown if there is no backend available that matches the `uri`
  */
-const getStorageBackend = function(ctx, uri) {
+const getStorageBackend = function (ctx, uri) {
   let backendName = null;
   if (uri) {
     backendName = uri.split(':')[0];
@@ -73,7 +73,7 @@ const getStorageBackend = function(ctx, uri) {
  * @param  {Number}     [duration]  The approximate time in seconds for which the generated picture URLs will be valid. The larger this value is, the more effective browser caching is on the download which is good for thumbnail images. Default: 1 week
  * @param  {Number}     [offset]    The minimum time in seconds for which the generated picture URLs will be valid. Default: 1 week
  */
-const augmentContent = function(ctx, content, duration, offset) {
+const augmentContent = function (ctx, content, duration, offset) {
   // Generate a signature for this content item. In combination with the previews object, the UI should be able to construct
   // download URLs for the preview items
   content.signature = Signature.createExpiringResourceSignature(ctx, content.id);
@@ -119,7 +119,7 @@ const augmentContent = function(ctx, content, duration, offset) {
  * @param  {Number}     [offset]    The minimum time in seconds for which the generated picture URLs will be valid. If the `duration` is `-1`, then this value has no impact. Default: 1 week
  * @return {String}                 The url that can be used in a browser to download the file
  */
-const getSignedDownloadUrl = function(ctx, uri, duration, offset) {
+const getSignedDownloadUrl = function (ctx, uri, duration, offset) {
   duration = duration || TIME_1_WEEK_IN_SECONDS;
   offset = offset || TIME_1_WEEK_IN_SECONDS;
 
@@ -151,7 +151,7 @@ const getSignedDownloadUrl = function(ctx, uri, duration, offset) {
  * @param  {String}     qs.signature    The signature string of the request
  * @return {String}                     If the request is authentic and not expired, the result is the `uri` that the user is attempting to download. Otherwise, this will return `null`
  */
-const verifySignedDownloadQueryString = function(qs) {
+const verifySignedDownloadQueryString = function (qs) {
   if (qs.expires) {
     return Signature.verifyExpiringSignature({ uri: qs.uri }, qs.expires, qs.signature) ? qs.uri : null;
   }
@@ -165,7 +165,7 @@ const verifySignedDownloadQueryString = function(qs) {
  * @param  {Content}   content      The content item that provides the data for the entity.
  * @return {Object}                 An object containing the entity data that can be transformed into a UI content activity entity
  */
-const createPersistentContentActivityEntity = function(content) {
+const createPersistentContentActivityEntity = function (content) {
   // Ensure the content item does not contain the revision HTML, as it can be
   // massive and is not needed in the activity
   content = _.omit(content, 'latestRevision');
@@ -186,7 +186,7 @@ const createPersistentContentActivityEntity = function(content) {
  * @param  {Object}             previews            An object that holds the thumbnailUri and wideUri if they are present on the revision
  * @return {ActivityEntity}                         The activity entity that represents the given content item
  */
-const transformPersistentContentActivityEntity = function(ctx, entity, previews) {
+const transformPersistentContentActivityEntity = function (ctx, entity, previews) {
   const { content } = entity;
   const tenant = ctx.tenant();
 
@@ -194,39 +194,39 @@ const transformPersistentContentActivityEntity = function(ctx, entity, previews)
   const globalId = baseUrl + '/api/content/' + content.id;
   const profileUrl = baseUrl + content.profilePath;
 
-  const opts = {};
+  const options = {};
 
   // The `content.displayName` is the displayName of the piece of content *at the time when the activity was generated*.
   // Some content items get their displayName updated via the preview processor (ex: youtube links).
   // We use the updated displayName (if it's available) as it looks nicer to the user.
-  opts.displayName = content.displayName;
-  opts.url = profileUrl;
+  options.displayName = content.displayName;
+  options.url = profileUrl;
 
-  opts.ext = {};
-  opts.ext[ActivityConstants.properties.OAE_ID] = content.id;
-  opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = content.visibility;
-  opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = content.profilePath;
-  opts.ext[ContentConstants.activity.PROP_OAE_CONTENT_TYPE] = content.resourceSubType;
-  opts.ext[ContentConstants.activity.PROP_OAE_CONTENT_MIMETYPE] = content.mime;
-  opts.ext[ContentConstants.activity.PROP_OAE_REVISION_ID] = content.latestRevisionId;
+  options.ext = {};
+  options.ext[ActivityConstants.properties.OAE_ID] = content.id;
+  options.ext[ActivityConstants.properties.OAE_VISIBILITY] = content.visibility;
+  options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = content.profilePath;
+  options.ext[ContentConstants.activity.PROP_OAE_CONTENT_TYPE] = content.resourceSubType;
+  options.ext[ContentConstants.activity.PROP_OAE_CONTENT_MIMETYPE] = content.mime;
+  options.ext[ContentConstants.activity.PROP_OAE_REVISION_ID] = content.latestRevisionId;
 
   // Create image URLs to the resources that will be valid forever
   if (previews.thumbnailUri) {
     const width = PreviewConstants.SIZES.IMAGE.THUMBNAIL;
     const thumbnailUrl = getSignedDownloadUrl(ctx, previews.thumbnailUri, -1);
-    opts.image = new ActivityModel.ActivityMediaLink(thumbnailUrl, width, width);
+    options.image = new ActivityModel.ActivityMediaLink(thumbnailUrl, width, width);
   }
 
   if (previews.wideUri) {
     const wideUrl = getSignedDownloadUrl(ctx, previews.wideUri, -1);
-    opts.ext[ContentConstants.activity.PROP_OAE_WIDE_IMAGE] = new ActivityModel.ActivityMediaLink(
+    options.ext[ContentConstants.activity.PROP_OAE_WIDE_IMAGE] = new ActivityModel.ActivityMediaLink(
       wideUrl,
       PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
       PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
     );
   }
 
-  return new ActivityModel.ActivityEntity('content', globalId, content.visibility, opts);
+  return new ActivityModel.ActivityEntity('content', globalId, content.visibility, options);
 };
 
 /**
@@ -239,7 +239,7 @@ const transformPersistentContentActivityEntity = function(ctx, entity, previews)
  * @param  {Object}            previews    An object that holds the thumbnailUri and wideUri if they are present on the revision.
  * @return {Content}                       The content object suitable for an internal stream
  */
-const transformPersistentContentActivityEntityToInternal = function(ctx, entity, previews) {
+const transformPersistentContentActivityEntityToInternal = function (ctx, entity, previews) {
   const { content } = entity;
   content.previews = _.extend(content.previews, previews);
   augmentContent(ctx, content, -1);

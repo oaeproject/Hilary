@@ -37,15 +37,15 @@ const log = logger('content-memberslibrary');
  * @param  {Object[]}   callback.principalIds   The principal ids that were listed from the library
  * @param  {String}     callback.nextToken      The token to use as the `start` parameter for the next invokation that lists the next page of results
  */
-const list = function(contentItem, visibility, opts, callback) {
+const list = function (contentItem, visibility, options, callback) {
   LibraryAPI.Index.list(
     ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME,
     contentItem.id,
     visibility,
-    _.pick(opts, 'start', 'limit'),
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    _.pick(options, 'start', 'limit'),
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _.pluck(entries, 'resourceId'), nextToken);
@@ -61,14 +61,14 @@ const list = function(contentItem, visibility, opts, callback) {
  * @param  {Function}   [callback]      Standard callback function
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const insert = function(contentItem, principals, callback) {
+const insert = function (contentItem, principals, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             contentId: contentItem.id,
             principalIds: _.pluck(principals, 'id')
           },
@@ -88,14 +88,14 @@ const insert = function(contentItem, principals, callback) {
  * @param  {Function}   [callback]      Standard callback function
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const remove = function(contentItem, principalIds, callback) {
+const remove = function (contentItem, principalIds, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             contentId: contentItem.id,
             principalIds
           },
@@ -116,8 +116,8 @@ const remove = function(contentItem, principalIds, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const _insert = function(contentItem, principals, callback) {
-  const entries = _.map(principals, principal => {
+const _insert = function (contentItem, principals, callback) {
+  const entries = _.map(principals, (principal) => {
     return {
       id: contentItem.id,
       resource: principal
@@ -137,8 +137,8 @@ const _insert = function(contentItem, principals, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const _remove = function(contentItem, principalIds, callback) {
-  const entries = _.map(principalIds, principalId => {
+const _remove = function (contentItem, principalIds, callback) {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: contentItem.id,
       resource: { id: principalId }

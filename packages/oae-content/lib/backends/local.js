@@ -43,12 +43,12 @@ let _rootDir = null;
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(rootDir, callback) {
+const init = function (rootDir, callback) {
   _rootDir = Path.resolve(rootDir);
-  _ensureDirectoryExists(_rootDir, err => {
-    if (err) {
-      log().error({ dir: _rootDir, err }, 'Could not create/find the local storage directory');
-      return callback(err);
+  _ensureDirectoryExists(_rootDir, (error) => {
+    if (error) {
+      log().error({ dir: _rootDir, err: error }, 'Could not create/find the local storage directory');
+      return callback(error);
     }
 
     callback();
@@ -60,7 +60,7 @@ const init = function(rootDir, callback) {
  *
  * @return {String}     The root directory where files will be stored
  */
-const getRootDirectory = function() {
+const getRootDirectory = function () {
   return _rootDir;
 };
 
@@ -71,7 +71,7 @@ const getRootDirectory = function() {
 /**
  * @borrows Interface.store as Local.store
  */
-const store = function(tenantAlias, file, options, callback) {
+const store = function (tenantAlias, file, options, callback) {
   options = options || {};
 
   // Generate the uri for this file
@@ -82,18 +82,18 @@ const store = function(tenantAlias, file, options, callback) {
   const destDir = Path.dirname(destPath);
 
   // Make sure the directory tree exists by creating them if necessary
-  _ensureDirectoryExists(destDir, err => {
-    if (err) {
-      log().error({ err }, 'Error ensuring directories exist %s', destDir);
-      return callback(err);
+  _ensureDirectoryExists(destDir, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Error ensuring directories exist %s', destDir);
+      return callback(error);
     }
 
     // Move the file
     log().trace('Moving %s to %s', file.path, destPath);
-    IO.moveFile(file.path, destPath, err => {
-      if (err) {
-        log().error({ err }, 'Error moving %s to %s', file.path, destPath);
-        return callback(err);
+    IO.moveFile(file.path, destPath, (error) => {
+      if (error) {
+        log().error({ err: error }, 'Error moving %s to %s', file.path, destPath);
+        return callback(error);
       }
 
       return callback(null, 'local:' + uri);
@@ -104,45 +104,45 @@ const store = function(tenantAlias, file, options, callback) {
 /**
  * @borrows Interface.get as Local.get
  */
-const get = function(tenantAlias, uri, callback) {
+const get = function (tenantAlias, uri, callback) {
   // Construct the path where the file is stored
   const path = util.format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
 
   // Copy it to a temp folder
   const filename = Path.basename(path);
-  const tmp = TempFile.createTempFile({ suffix: filename });
-  IO.copyFile(path, tmp.path, err => {
-    if (err) {
-      log().error({ err }, 'Error getting %s', path);
-      return callback(err);
+  const temporary = TempFile.createTempFile({ suffix: filename });
+  IO.copyFile(path, temporary.path, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Error getting %s', path);
+      return callback(error);
     }
 
     // Get the file size and pass it on
-    tmp.update(callback);
+    temporary.update(callback);
   });
 };
 
 /**
  * @borrows Interface.remove as Local.remove
  */
-const remove = function(tenantAlias, uri, callback) {
+const remove = function (tenantAlias, uri, callback) {
   // Construct the path where the file is stored
   const path = util.format('%s/%s', getRootDirectory(), BackendUtil.splitUri(uri).location);
 
   // Unlink it
-  fs.unlink(path, err => {
+  fs.unlink(path, (error) => {
     // If no file existed at the given path, we do not pass back an error
     // as the intent was to remove a file at that path
-    if (err && err.code === 'ENOENT') {
+    if (error && error.code === 'ENOENT') {
       log().warn({ uri, path }, 'Tried to remove a file that was no longer there');
       return callback();
 
       // Otherwise we pass back an error
     }
 
-    if (err) {
-      log().error({ err }, 'Error removing %s', path);
-      return callback({ code: 500, msg: 'Unable to remove the file: ' + err });
+    if (error) {
+      log().error({ err: error }, 'Error removing %s', path);
+      return callback({ code: 500, msg: 'Unable to remove the file: ' + error });
     }
 
     return callback();
@@ -152,7 +152,7 @@ const remove = function(tenantAlias, uri, callback) {
 /**
  * @borrows Interface.getDownloadStrategy as Local.getDownloadStrategy
  */
-const getDownloadStrategy = function(tenantAlias, uri) {
+const getDownloadStrategy = function (tenantAlias, uri) {
   return new DownloadStrategy(
     ContentConstants.backend.DOWNLOAD_STRATEGY_INTERNAL,
     '/files/' + BackendUtil.splitUri(uri).location
@@ -172,10 +172,10 @@ const getDownloadStrategy = function(tenantAlias, uri) {
  * @param  {Object}   callback.path  The path of the folder just created
  * @api private
  */
-const _ensureDirectoryExists = function(dir, callback) {
+const _ensureDirectoryExists = function (dir, callback) {
   try {
-    fs.mkdir(dir, { recursive: true }, err => {
-      if (err) return callback({ code: 500, msg: 'Unable to create directory recursively' });
+    fs.mkdir(dir, { recursive: true }, (error) => {
+      if (error) return callback({ code: 500, msg: 'Unable to create directory recursively' });
       // if (err) throw { code: 500, error: 'Unable to create directory recursively' };
       return callback(null, dir);
     });

@@ -14,8 +14,8 @@
  */
 
 import fs from 'fs';
-import { basename, resolve } from 'path';
-import util from 'util';
+import Path from 'path';
+import { format } from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import { logger } from 'oae-logger';
 import sharp from 'sharp';
@@ -56,7 +56,7 @@ const log = logger('folders-previews');
 const MONTAGE_PREVIEW_COLUMNS = 3;
 const MONTAGE_PREVIEW_ROWS = 3;
 const MONTAGE_NUMBER_PREVIEWS = 9;
-const BLANK = resolve(__dirname, '../../../static/link/blank.png');
+const BLANK = Path.resolve(__dirname, '../../../static/link/blank.png');
 
 // Auxiliary functions
 const isDefined = Boolean;
@@ -314,7 +314,7 @@ const _createMontage = function (size, paths, callback) {
         const file = {
           path,
           size: info.size,
-          name: basename(path)
+          name: Path.basename(path)
         };
 
         return callback(error, file);
@@ -476,11 +476,11 @@ const _removeOldPreview = function (ctx, folder, type, callback) {
  */
 const _storeNewPreviews = function (ctx, folder, thumbnail, wide, callback) {
   // Store the files with a unique filename
-  let filename = util.format('thumbnail_%s.jpg', Date.now());
+  let filename = format('thumbnail_%s.jpg', Date.now());
   getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (error, thumbnailUri) => {
     if (error) return callback(error);
 
-    filename = util.format('wide_%s.jpg', Date.now());
+    filename = format('wide_%s.jpg', Date.now());
     getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (error, wideUri) => {
       if (error) return callback(error);
 

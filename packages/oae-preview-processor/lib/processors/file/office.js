@@ -16,7 +16,7 @@
 import { exec } from 'child_process';
 import fs from 'fs';
 import Path from 'path';
-import util from 'util';
+import { format } from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
@@ -56,7 +56,7 @@ const init = function (config, callback) {
   const currFile = Path.resolve(__dirname, 'office.js');
   const temporaryDir = TempFile.createTempFile();
 
-  const cmd = util.format(
+  const cmd = format(
     '"%s" --headless --invisible --nologo --nolockcheck --convert-to pdf "%s" --outdir "%s"',
     config.binary,
     currFile,
@@ -136,7 +136,7 @@ const generatePreviews = function (ctx, contentObject, callback) {
  * @api private
  */
 const _convertToPdf = function (ctx, path, callback) {
-  const cmd = util.format(
+  const cmd = format(
     '"%s" --headless --invisible --nologo --nolockcheck --convert-to pdf "%s" --outdir "%s"',
     _sofficeBinary,
     path,

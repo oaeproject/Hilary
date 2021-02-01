@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import path from 'path';
 import _ from 'underscore';
 import request from 'request';
@@ -47,7 +47,7 @@ const generatePreviews = function (ctx, contentObject, callback) {
   const id = _getId(contentObject.link);
 
   // Do an API request first.
-  const apiUrl = util.format('http://vimeo.com/api/v2/video/%s.json', id);
+  const apiUrl = format('http://vimeo.com/api/v2/video/%s.json', id);
   request(apiUrl, (error, response, body) => {
     if (error || response.statusCode !== 200) {
       return callback(error || { code: response.statusCode, msg: body });

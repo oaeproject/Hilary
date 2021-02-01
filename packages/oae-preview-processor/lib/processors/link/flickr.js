@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import request from 'request';
 
 import { logger } from 'oae-logger';
@@ -142,7 +142,7 @@ const generatePreviews = function (ctx, contentObject, callback) {
 const _getFlickrPhoto = function (ctx, id, callback) {
   const config = _getConfig();
 
-  const url = util.format(
+  const url = format(
     '%s?method=flickr.photos.getInfo&api_key=%s&photo_id=%s&format=json&nojsoncallback=1',
     apiUrl,
     config.apiKey,
@@ -196,7 +196,7 @@ const _getFlickrPhoto = function (ctx, id, callback) {
  */
 const _getFlickrSet = function (ctx, id, callback) {
   const config = _getConfig();
-  const url = util.format(
+  const url = format(
     '%s?method=flickr.photosets.getInfo&api_key=%s&photoset_id=%s&format=json&nojsoncallback=1',
     apiUrl,
     config.apiKey,
@@ -260,7 +260,7 @@ const _getConfig = function () {
  * @api private
  */
 const _getImageUrl = function (farm, server, id, secret) {
-  return util.format(imageUrl, farm, server, id, secret);
+  return format(imageUrl, farm, server, id, secret);
 };
 
 /**

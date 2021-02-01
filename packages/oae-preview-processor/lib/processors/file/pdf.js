@@ -14,7 +14,7 @@
  */
 
 import fs from 'fs';
-import util from 'util';
+import { inherits, promisify, format } from 'util';
 import path from 'path';
 import stream from 'stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
@@ -23,7 +23,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
-import domStubs from './domstubs';
+import domStubs from './domstubs.js';
 import {
   curry,
   __,
@@ -41,8 +41,8 @@ import {
   compose
 } from 'ramda';
 
-const fsWriteFile = util.promisify(fs.writeFile);
-const fsMakeDir = util.promisify(fs.mkdir);
+const fsWriteFile = promisify(fs.writeFile);
+const fsMakeDir = promisify(fs.mkdir);
 
 const log = logger('oae-preview-processor');
 
@@ -71,7 +71,7 @@ ReadableSVGStream.prototype._read = function () {
   this.push(null);
 };
 
-util.inherits(ReadableSVGStream, stream.Readable);
+inherits(ReadableSVGStream, stream.Readable);
 
 /**
  * Initializes the PDF Processor. This method will check if the configuration has been set up correctly to deal with PDF files
@@ -307,8 +307,8 @@ const previewAndIndexEachPage = async function (ctx, pagesDir, pageNumber, doc) 
      * but we need only strings at the moment
      */
     const pageContents = compose(join(' '), pluck('str'))(content.items);
-    const pageName = util.format('page.%s.txt', pageNumber);
-    const pagePath = util.format('%s/%s', pagesDir, pageName);
+    const pageName = format('page.%s.txt', pageNumber);
+    const pagePath = format('%s/%s', pagesDir, pageName);
 
     pdfContents.push(pageContents);
     ctx.addPreview(pagePath, pageName);

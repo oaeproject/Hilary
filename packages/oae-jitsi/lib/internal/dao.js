@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/no-array-callback-reference */
+
 import _ from 'underscore';
 import ShortId from 'shortid';
 import { Meeting } from 'oae-jitsi/lib/model';

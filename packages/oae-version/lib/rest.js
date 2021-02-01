@@ -14,15 +14,15 @@
  */
 
 import * as OAE from 'oae-util/lib/oae';
-import * as VersionAPI from './api';
+import * as VersionAPI from './api.js';
 
-const _getVersion = async function(req, res) {
+const _getVersion = async function (request, response) {
   try {
     const repoInformation = await VersionAPI.getVersion();
-    return res.status(200).send(JSON.stringify(repoInformation));
+    return response.status(200).send(JSON.stringify(repoInformation));
   } catch {
-    const msg = 'Unable to gather repo information';
-    return res.status(500).send(msg);
+    const message = 'Unable to gather repo information';
+    return response.status(500).send(message);
   }
 };
 

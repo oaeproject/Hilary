@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -27,14 +28,14 @@ const PACKAGE_JSON = 'package.json';
 const { createTenantRestContext } = TestsUtil;
 
 describe('Git information', () => {
-  before(done => {
+  before((done) => {
     redis.flush(done);
   });
 
   /**
    * Test that verifies that the git information is returned
    */
-  it('verify that the submodules exist and are up to date', callback => {
+  it('verify that the submodules exist and are up to date', (callback) => {
     // Create various rest contexts
     const asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
 
@@ -50,8 +51,8 @@ describe('Git information', () => {
    * @throws {AssertionError}                     Thrown if any assertions fail
    */
   function _verifyVersionInformation(restContext, callback) {
-    getVersion(restContext, (err, gitRepoInformation) => {
-      assert.notExists(err);
+    getVersion(restContext, (error, gitRepoInformation) => {
+      assert.notExists(error);
 
       const repoInfo = fromJS(gitRepoInformation);
 
@@ -70,52 +71,22 @@ describe('Git information', () => {
       let submodulePath = submodules.get(submoduleName).get(PATH);
 
       assert.strictEqual(submodulePath.size, 1);
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(PACKAGE_JSON)
-      );
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(submoduleName)
-      );
+      assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
+      assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
 
       // 3akai-ux submodule
       submoduleName = '3akai-ux';
       submodulePath = submodules.get(submoduleName).get(PATH);
       assert.strictEqual(submodulePath.size, 1);
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(PACKAGE_JSON)
-      );
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(submoduleName)
-      );
+      assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
+      assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
 
       // restjsdoc submodule
       submoduleName = 'restjsdoc';
       submodulePath = submodules.get(submoduleName).get(PATH);
       assert.strictEqual(submodulePath.size, 1);
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(PACKAGE_JSON)
-      );
-      assert.ok(
-        submodulePath
-          .get(0)
-          .get(0)
-          .includes(submoduleName)
-      );
+      assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
+      assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
 
       return callback();
     });

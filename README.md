@@ -27,6 +27,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
   - [Get in touch](#get-in-touch)
 
 ## Project status
+
 <!-- current project status -->
 
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
@@ -39,6 +40,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![Known Vulnerabilities](https://snyk.io/test/github/oaeproject/Hilary/badge.svg)](https://snyk.io/test/github/oaeproject/Hilary)
 
 ## Project standards
+
 <!-- standards used in project -->
 
 [![Datree](https://img.shields.io/badge/policy%20by-datree-yellow)](https://datree.io/?src=badge)
@@ -267,7 +269,7 @@ We're looking forward to seeing your contributions to the OAE project!
 
 ### Running tests
 
-To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its path as follows: `yarn run test-module -- packages/oae-principals/tests`.
+To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its path as follows: `yarn run test-module oae-principals`.
 
 ## Get in touch
 

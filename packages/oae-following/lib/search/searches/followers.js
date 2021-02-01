@@ -36,7 +36,7 @@ const { isUserId, unless } = validator;
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  {SearchResult}  callback.results    An object that represents the results of the query
  */
-export default function (ctx, options, callback) {
+function searchFollowers(ctx, options, callback) {
   // Sanitize the search options
   options = SearchUtil.sanitizeSearchParams(options);
 
@@ -63,6 +63,8 @@ export default function (ctx, options, callback) {
     });
   });
 }
+
+export default searchFollowers;
 
 /**
  * Perform the search that searches a user's followers list

@@ -58,7 +58,7 @@ const RESOURCE_TYPES_ACCESS_SCOPED = [
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-export default function (ctx, options, callback) {
+function searchGeneral(ctx, options, callback) {
   // Sanitize custom search options
   options = options || {};
   options.limit = OaeUtil.getNumberParam(options.limit, 10, 1, 25);
@@ -69,6 +69,8 @@ export default function (ctx, options, callback) {
 
   return _search(ctx, options, callback);
 }
+
+export default searchGeneral;
 
 /**
  * Perform the search that searches a 'q' analyzed field on documents, scoping it by user access. This is delegated from the

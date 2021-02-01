@@ -34,7 +34,7 @@ const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterS
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {SearchResult}   callback.results        An object that represents the results of the query
  */
-export default function (ctx, options, callback) {
+function searchDeleted(ctx, options, callback) {
   // Sanitize custom search options
   options = options || {};
   options.limit = OaeUtil.getNumberParam(options.limit, 10, 1, 25);
@@ -65,6 +65,8 @@ export default function (ctx, options, callback) {
     return callback(null, createQuery(query, filter, options));
   });
 }
+
+export default searchDeleted;
 
 /**
  * Resolve the scope for the search based on who is performing it and how they specified the scope

@@ -17,13 +17,13 @@ import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import SignedStrategy from 'oae-authentication/lib/strategies/signed/strategy';
 
-export default function() {
+export default function () {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function() {
+  strategy.shouldBeEnabled = function () {
     // The signed strategy is always enabled.
     return true;
   };
@@ -31,7 +31,7 @@ export default function() {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function() {
+  strategy.getPassportStrategy = function () {
     return new SignedStrategy();
   };
 

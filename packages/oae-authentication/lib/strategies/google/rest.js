@@ -32,10 +32,10 @@ const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
  * @HttpResponse                302         The user will be redirected to Google where they can log in
  * @HttpResponse                400         The authentication strategy is disabled for this tenant
  */
-OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
+OAE.tenantRouter.on('post', '/api/auth/google', (request, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.GOOGLE
   );
 
@@ -48,7 +48,7 @@ OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
   // If there's only one allowed domain, add that to options as the hosted domain
   // @see https://developers.google.com/identity/protocols/OpenIDConnect#authenticationuriparameters
   const domains = AuthenticationConfig.getValue(
-    req.tenant.alias,
+    request.tenant.alias,
     AuthenticationConstants.providers.GOOGLE,
     'domains'
   ).split(',');
@@ -58,7 +58,7 @@ OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
   }
 
   // Perform the initial authentication step
-  AuthenticationUtil.handleExternalSetup(strategyId, options, req, res, next);
+  AuthenticationUtil.handleExternalSetup(strategyId, options, request, res, next);
 });
 
 /**
@@ -72,15 +72,15 @@ OAE.tenantRouter.on('post', '/api/auth/google', (req, res, next) => {
  * @Path        /auth/google/callback
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/google/callback', (req, res, next) => {
+OAE.tenantRouter.on('get', '/api/auth/google/callback', (request, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.GOOGLE
   );
 
   // Log the user in
-  AuthenticationUtil.handleExternalCallback(strategyId, req, res, next);
+  AuthenticationUtil.handleExternalCallback(strategyId, request, res, next);
 });
 
 export default OAE;

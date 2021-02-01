@@ -30,7 +30,7 @@ import passport from 'passport';
  * @param  {User}       verify.done.user                The user object
  * @param  {Boolean}    verify.done.created             Whether or not a new user was created
  */
-const Strategy = function(options, verify) {
+const Strategy = function (options, verify) {
   this.name = 'shibboleth';
   this.options = options;
   this.verify = verify;
@@ -50,7 +50,7 @@ util.inherits(Strategy, passport.Strategy);
  * @param  {Object}     options         The strategy specific options
  * @api protected
  */
-Strategy.prototype.authenticate = function(req) {
+Strategy.prototype.authenticate = function (request) {
   const self = this;
 
   /*
@@ -60,13 +60,13 @@ Strategy.prototype.authenticate = function(req) {
    *
    * It's up to the front-end load-balancer (either Apache or Nginx) to *NOT* proxy these headers.
    */
-  const sessionId = req.headers['shib-session-id'];
+  const sessionId = request.headers['shib-session-id'];
   if (sessionId) {
     // Pass the request as the first argument to the verify function if
     // `passReqToCallback` was specified
     let verifyFn = self.verify;
     if (self._passReqToCallback) {
-      verifyFn = verifyFn.bind(self, req);
+      verifyFn = verifyFn.bind(self, request);
     }
 
     /*
@@ -84,9 +84,9 @@ Strategy.prototype.authenticate = function(req) {
      * for more information. As the headers are exposed as a simple JSON object on the request, we can pass them straight
      * into the verify function, which can then take care of getting/creating the OAE user object.
      */
-    verifyFn(req.headers, (err, user) => {
-      if (err) {
-        return self.error(new Error(err.msg));
+    verifyFn(request.headers, (error, user) => {
+      if (error) {
+        return self.error(new Error(error.msg));
       }
 
       // We pass it on to passport so it can be stored in the express session object

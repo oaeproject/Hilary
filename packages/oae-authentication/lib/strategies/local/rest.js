@@ -35,13 +35,13 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @HttpResponse                200                         Login succeeded
  * @HttpResponse                401                         Unauthorized
  */
-const _handleLocalAuthentication = function(req, res, next) {
+const _handleLocalAuthentication = function (request, res, next) {
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.LOCAL
   );
-  const errorHandler = AuthenticationUtil.handlePassportError(req, res, next);
-  passport.authenticate(strategyId)(req, res, errorHandler);
+  const errorHandler = AuthenticationUtil.handlePassportError(request, res, next);
+  passport.authenticate(strategyId)(request, res, errorHandler);
 };
 
 /**
@@ -52,9 +52,9 @@ const _handleLocalAuthentication = function(req, res, next) {
  * @param  {Response}           res                         The express response object
  * @api private
  */
-const _handleLocalAuthenticationSuccess = function(req, res) {
+const _handleLocalAuthenticationSuccess = function (request, res) {
   // Simply return a 200 response with the user object
-  res.status(200).send(req.oaeAuthInfo.user);
+  res.status(200).send(request.oaeAuthInfo.user);
 };
 
 OAE.globalAdminRouter.on('post', '/api/auth/login', [
@@ -87,15 +87,15 @@ OAE.tenantRouter.on('post', '/api/auth/login', [
  * @HttpResponse                401                         You have to be logged in to be able to change a password
  * @HttpResponse                401                         You're not authorized to change this user's password
  */
-const _handleChangePassword = function(req, res) {
+const _handleChangePassword = function (request, res) {
   AuthenticationAPI.changePassword(
-    req.ctx,
-    req.params.userId,
-    req.body.oldPassword,
-    req.body.newPassword,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.params.userId,
+    request.body.oldPassword,
+    request.body.newPassword,
+    (error) => {
+      if (error) {
+        return res.status(error.code).send(error.msg);
       }
 
       return res.sendStatus(200);
@@ -116,14 +116,14 @@ OAE.tenantRouter.on('post', '/api/user/:userId/password', _handleChangePassword)
  * @param  {Response}           res                         The express response object
  * @api private
  */
-const _handleLocalUsernameExists = function(req, res) {
+const _handleLocalUsernameExists = function (request, res) {
   AuthenticationAPI.localUsernameExists(
-    req.ctx,
-    req.params.tenantAlias,
-    req.params.username,
-    (err, exists) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.params.tenantAlias,
+    request.params.username,
+    (error, exists) => {
+      if (error) {
+        return res.status(error.code).send(error.msg);
       }
 
       // If the login id doesn't exist, we send back a 404

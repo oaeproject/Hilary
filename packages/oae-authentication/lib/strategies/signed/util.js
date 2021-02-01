@@ -36,7 +36,7 @@ const TIME_1_MINUTE_IN_SECONDS = 60;
  * @param  {String}     callback.requestInfo.url    The full URL to POST to (protocol, host and path) in order to invoke the signed auth request
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
-const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback) {
+const getSignedTenantAuthenticationRequest = function (ctx, tenantAlias, callback) {
   try {
     unless(isGlobalAdministratorUser, {
       code: 401,
@@ -96,7 +96,7 @@ const getSignedTenantAuthenticationRequest = function(ctx, tenantAlias, callback
  * @param  {String}     callback.requestInfo.url    The full URL to POST to (protocol, host and path) in order to invoke the signed auth request
  * @param  {Object}     callback.requestInfo.body   The signed body of the POST request to send in order to verify the authenticity of the authentication request
  */
-const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, callback) {
+const getSignedBecomeUserAuthenticationRequest = function (ctx, becomeUserId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -127,9 +127,9 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
   }
 
   // Ensure the user exists and that the current user can become that user
-  PrincipalsDAO.getPrincipal(becomeUserId, (err, becomeUser) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(becomeUserId, (error, becomeUser) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!ctx.user().isAdmin(becomeUser.tenant.alias)) {
@@ -178,7 +178,7 @@ const getSignedBecomeUserAuthenticationRequest = function(ctx, becomeUserId, cal
  * @param  {String}     callback.userId             The id of the user who is performing the authentication (also thought of as "the user who was granted the authentication signature")
  * @param  {String}     [callback.becomeUserId]     The id of the user who the authenticating user should become, if any
  */
-const verifySignedAuthenticationBody = function(ctx, body, callback) {
+const verifySignedAuthenticationBody = function (ctx, body, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -213,7 +213,7 @@ const verifySignedAuthenticationBody = function(ctx, body, callback) {
  * @return {String}             The signed authentication URI (e.g., "https://my.oaetenant.com:8443/api/auth/signed")
  * @api private
  */
-const _getSignedAuthenticationUrl = function(tenant) {
+const _getSignedAuthenticationUrl = function (tenant) {
   return util.format('%s/api/auth/signed', TenantsUtil.getBaseUrl(tenant));
 };
 

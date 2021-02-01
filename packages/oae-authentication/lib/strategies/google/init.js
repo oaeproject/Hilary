@@ -29,13 +29,13 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function() {
+export default function () {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     return AuthenticationConfig.getValue(
       tenantAlias,
       AuthenticationConstants.providers.GOOGLE,
@@ -46,7 +46,7 @@ export default function() {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
     const key = AuthenticationConfig.getValue(
       tenant.alias,
@@ -66,7 +66,7 @@ export default function() {
 
     // Ensure we can do simple string comparisons by filtering empty domains and trimming out spaces
     domains = _.chain(domains)
-      .map(domain => {
+      .map((domain) => {
         return domain.trim().toLowerCase();
       })
       .compact()
@@ -86,7 +86,7 @@ export default function() {
 
     const passportStrategy = new GoogleStrategy(
       options,
-      (req, accessToken, refreshToken, profile, done) => {
+      (request, accessToken, refreshToken, profile, done) => {
         log().trace(
           {
             tenant,
@@ -101,7 +101,7 @@ export default function() {
         if (!_.isEmpty(domains)) {
           const emailDomain = email.split('@')[1];
           if (!_.contains(domains, emailDomain)) {
-            const err = {
+            const error = {
               code: 400,
               msg: util.format(
                 'You tried to sign in with an email address that belongs to a domain (%s) that is not allowed access',
@@ -109,7 +109,7 @@ export default function() {
               ),
               reason: 'domain_not_allowed'
             };
-            return done(err);
+            return done(error);
           }
         }
 
@@ -119,20 +119,20 @@ export default function() {
 
         // We ignore the locale returned by google because it only specifies
         // the language, but not the region which isn't very useful
-        const opts = { email };
+        const options_ = { email };
         const { picture } = profile._json;
         if (picture) {
-          opts.smallPictureUri = 'remote:' + picture;
-          opts.mediumPictureUri = 'remote:' + picture;
+          options_.smallPictureUri = 'remote:' + picture;
+          options_.mediumPictureUri = 'remote:' + picture;
         }
 
         AuthenticationUtil.handleExternalGetOrCreateUser(
-          req,
+          request,
           AuthenticationConstants.providers.GOOGLE,
           externalId,
           null,
           displayName,
-          opts,
+          options_,
           done
         );
       }

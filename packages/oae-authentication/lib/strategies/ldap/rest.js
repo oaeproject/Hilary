@@ -27,13 +27,13 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @param  {Response}   res     The express response object
  * @api private
  */
-const _handleLDAPAuthentication = function(req, res, next) {
+const _handleLDAPAuthentication = function (request, res, next) {
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.LDAP
   );
-  const errorHandler = AuthenticationUtil.handlePassportError(req, res, next);
-  passport.authenticate(strategyId)(req, res, errorHandler);
+  const errorHandler = AuthenticationUtil.handlePassportError(request, res, next);
+  passport.authenticate(strategyId)(request, res, errorHandler);
 };
 
 /**
@@ -48,9 +48,9 @@ const _handleLDAPAuthentication = function(req, res, next) {
  * @HttpResponse                200         The user succesfully logged in
  * @HttpResponse                401         Incorrect credentials were provided
  */
-OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (req, res) => {
+OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (request, res) => {
   // This callback only gets called when we log in succesfully.
-  return res.status(200).send(req.ctx.user());
+  return res.status(200).send(request.ctx.user());
 });
 
 export default OAE;

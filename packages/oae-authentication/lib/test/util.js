@@ -31,17 +31,17 @@ import { AuthenticationConstants } from 'oae-authentication/lib/constants';
  *
  * For method parameter descriptions, @see RestAPI.Config#updateConfig
  */
-const assertUpdateAuthConfigSucceeds = function(restContext, tenantAlias, configUpdate, callback) {
+const assertUpdateAuthConfigSucceeds = function (restContext, tenantAlias, configUpdate, callback) {
   // Update the config
-  ConfigTestUtil.updateConfigAndWait(restContext, tenantAlias, configUpdate, err => {
-    assert.ok(!err);
+  ConfigTestUtil.updateConfigAndWait(restContext, tenantAlias, configUpdate, (error) => {
+    assert.ok(!error);
   });
 
   // Wait until the authentication API has finished refreshing its strategies
   AuthenticationAPI.emitter.once(AuthenticationConstants.events.REFRESHED_STRATEGIES, () => {
     // Verify that the changes were persisted correctly
-    RestAPI.Config.getTenantConfig(restContext, tenantAlias, (err, config) => {
-      assert.ok(!err);
+    RestAPI.Config.getTenantConfig(restContext, tenantAlias, (error, config) => {
+      assert.ok(!error);
 
       _.each(configUpdate, (value, key) => {
         const parts = key.split('/');
@@ -62,13 +62,13 @@ const assertUpdateAuthConfigSucceeds = function(restContext, tenantAlias, config
  * @param  {Function}       callback        Invoked when the user has been logged in
  * @throws {Error}                          Thrown if the operation fails in an unexpected way
  */
-const assertLocalLoginSucceeds = function(restContext, username, password, callback) {
-  RestAPI.Authentication.login(restContext, username, password, err => {
-    assert.ok(!err);
+const assertLocalLoginSucceeds = function (restContext, username, password, callback) {
+  RestAPI.Authentication.login(restContext, username, password, (error) => {
+    assert.ok(!error);
 
     // Assert the user is logged in
-    RestAPI.User.getMe(restContext, (err, me) => {
-      assert.ok(!err);
+    RestAPI.User.getMe(restContext, (error, me) => {
+      assert.ok(!error);
       assert.ok(!me.anon);
 
       return callback();
@@ -85,19 +85,19 @@ const assertLocalLoginSucceeds = function(restContext, username, password, callb
  * @param  {RestContext}    callback.restContext    The rest context that was used to sign in through google
  * @param  {Response}       callback.response       The response that came back from the google callback endpoint
  */
-const assertGoogleLoginSucceeds = function(tenantHost, email, callback) {
+const assertGoogleLoginSucceeds = function (tenantHost, email, callback) {
   _mockGoogleResponse(email);
 
   // A user returns from Google sign-in and hits our API
   const restContext = TestsUtil.createTenantRestContext(tenantHost);
   restContext.followRedirect = false;
-  RestAPI.Authentication.googleCallback(restContext, { code: 'foo' }, (err, body, response) => {
-    assert.ok(!err);
+  RestAPI.Authentication.googleCallback(restContext, { code: 'foo' }, (error, body, response) => {
+    assert.ok(!error);
     assert.strictEqual(response.headers.location, '/');
 
     // Assert we were signed in successfully
-    RestAPI.User.getMe(restContext, (err, me) => {
-      assert.ok(!err);
+    RestAPI.User.getMe(restContext, (error, me) => {
+      assert.ok(!error);
       assert.ok(!me.anon);
       assert.strictEqual(me.email, email.toLowerCase());
       assert.strictEqual(me.authenticationStrategy, 'google');
@@ -117,19 +117,19 @@ const assertGoogleLoginSucceeds = function(tenantHost, email, callback) {
  * @param  {RestContext}    callback.restContext    The rest context that was used to attempt to sign in through google
  * @param  {Response}       callback.response       The response that came back from the google callback endpoint
  */
-const assertGoogleLoginFails = function(tenantHost, email, reason, callback) {
+const assertGoogleLoginFails = function (tenantHost, email, reason, callback) {
   _mockGoogleResponse(email);
 
   // A user returns from the Google sign-in page and hits our API
   const restContext = TestsUtil.createTenantRestContext(tenantHost);
   restContext.followRedirect = false;
-  RestAPI.Authentication.googleCallback(restContext, { code: 'foo' }, (err, body, response) => {
-    assert.ok(!err);
+  RestAPI.Authentication.googleCallback(restContext, { code: 'foo' }, (error, body, response) => {
+    assert.ok(!error);
     assert.strictEqual(response.headers.location, '/?authentication=failed&reason=' + reason);
 
     // Assert we are still anonymous
-    RestAPI.User.getMe(restContext, (err, me) => {
-      assert.ok(!err);
+    RestAPI.User.getMe(restContext, (error, me) => {
+      assert.ok(!error);
       assert.ok(me.anon);
 
       return callback(restContext, response);
@@ -150,10 +150,10 @@ const assertGoogleLoginFails = function(tenantHost, email, reason, callback) {
  * @param  {Response}       callback.response       The raw response of the authentication request (e.g., the redirect to the activity page)
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertFacebookLoginSucceeds = function(tenantHost, opts, callback) {
-  opts = opts || {};
+const assertFacebookLoginSucceeds = function (tenantHost, options, callback) {
+  options = options || {};
 
-  _mockFacebookResponse({ email: opts.email });
+  _mockFacebookResponse({ email: options.email });
 
   // A user returns from Facebook sign-in and hits our API
   const restContext = TestsUtil.createTenantRestContext(tenantHost);
@@ -161,31 +161,35 @@ const assertFacebookLoginSucceeds = function(tenantHost, opts, callback) {
 
   // Initialize the cookie jar of the rest context before we try and set
   // any cookies
-  RestAPI.User.getMe(restContext, err => {
-    assert.ok(!err);
+  RestAPI.User.getMe(restContext, (error) => {
+    assert.ok(!error);
 
     let cookie = null;
-    if (opts.redirectUrl) {
+    if (options.redirectUrl) {
       cookie = new Cookie({
         key: 'redirectUrl',
-        value: encodeURIComponent(opts.redirectUrl)
+        value: encodeURIComponent(options.redirectUrl)
       });
       restContext.cookieJar.setCookie(cookie.toString(), 'http://localhost:2000/');
     }
 
-    RestAPI.Authentication.facebookCallback(restContext, { code: 'foo' }, (err, body, response) => {
-      if (opts.redirectUrl) {
-        assert.strictEqual(response.headers.location, opts.redirectUrl);
-      } else {
-        assert.strictEqual(response.headers.location, '/');
-      }
+    RestAPI.Authentication.facebookCallback(
+      restContext,
+      { code: 'foo' },
+      (error, body, response) => {
+        if (options.redirectUrl) {
+          assert.strictEqual(response.headers.location, options.redirectUrl);
+        } else {
+          assert.strictEqual(response.headers.location, '/');
+        }
 
-      RestAPI.User.getMe(restContext, (err, me) => {
-        assert.ok(!err);
-        assert.ok(!me.anon);
-        return callback(restContext, me, response);
-      });
-    });
+        RestAPI.User.getMe(restContext, (error, me) => {
+          assert.ok(!error);
+          assert.ok(!me.anon);
+          return callback(restContext, me, response);
+        });
+      }
+    );
   });
 };
 
@@ -199,19 +203,19 @@ const assertFacebookLoginSucceeds = function(tenantHost, opts, callback) {
  * @param  {RestContext}    callback.restContext    The rest context that was used to attempt to sign in through Facebook
  * @param  {Response}       callback.response       The response that came back from the Facebook callback endpoint
  */
-const assertFacebookLoginFails = function(tenantHost, email, reason, callback) {
+const assertFacebookLoginFails = function (tenantHost, email, reason, callback) {
   _mockFacebookResponse({ email });
 
   // A user returns from the Facebook sign-in page and hits our API
   const restContext = TestsUtil.createTenantRestContext(tenantHost);
   restContext.followRedirect = false;
-  RestAPI.Authentication.facebookCallback(restContext, { code: 'foo' }, (err, body, response) => {
-    assert.ok(!err);
+  RestAPI.Authentication.facebookCallback(restContext, { code: 'foo' }, (error, body, response) => {
+    assert.ok(!error);
     assert.strictEqual(response.headers.location, '/?authentication=failed&reason=' + reason);
 
     // Assert we are still anonymous
-    RestAPI.User.getMe(restContext, (err, me) => {
-      assert.ok(!err);
+    RestAPI.User.getMe(restContext, (error, me) => {
+      assert.ok(!error);
       assert.ok(me.anon);
 
       return callback(restContext, response);
@@ -225,7 +229,7 @@ const assertFacebookLoginFails = function(tenantHost, email, reason, callback) {
  * @return {Nock}   The nock utility
  * @api private
  */
-const _nock = function() {
+const _nock = function () {
   // Ensure we can still perform regular HTTP requests
   nock.enableNetConnect();
 
@@ -240,14 +244,12 @@ const _nock = function() {
  * @param  {String}     [opts.email]    The email of the facebook user profile, if any
  * @api private
  */
-const _mockFacebookResponse = function(opts) {
-  opts = opts || {};
+const _mockFacebookResponse = function (options) {
+  options = options || {};
 
   const nock = _nock();
 
-  nock('https://graph.facebook.com')
-    .post('/v2.0/oauth/access_token')
-    .reply(200);
+  nock('https://graph.facebook.com').post('/v2.0/oauth/access_token').reply(200);
 
   nock('https://graph.facebook.com')
     .get('/v2.0/me')
@@ -255,7 +257,7 @@ const _mockFacebookResponse = function(opts) {
     .reply(200, {
       id: _.random(100000),
       name: 'I am super great',
-      email: opts.email
+      email: options.email
     });
 };
 
@@ -265,19 +267,17 @@ const _mockFacebookResponse = function(opts) {
  * @param  {String}         [email]                 The email address of the user that will sign in. If null, no email will be returned in the mocked response
  * @api private
  */
-const _mockGoogleResponse = function(email) {
+const _mockGoogleResponse = function (email) {
   const nock = _nock();
 
   // Mock the "get access token" request in the OAuth2 cycle
   const accessToken = util.format('google_%s', _.random(10000));
-  nock('https://www.googleapis.com')
-    .post('/oauth2/v4/token')
-    .reply(200, {
-      // eslint-disable-next-line camelcase
-      access_token: accessToken,
-      // eslint-disable-next-line camelcase
-      refresh_token: 'foo'
-    });
+  nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, {
+    // eslint-disable-next-line camelcase
+    access_token: accessToken,
+    // eslint-disable-next-line camelcase
+    refresh_token: 'foo'
+  });
 
   // Mock the "get user profile" request
   const mockedResponse = {

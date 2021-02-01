@@ -29,13 +29,13 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function() {
+export default function () {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     return AuthenticationConfig.getValue(
       tenantAlias,
       AuthenticationConstants.providers.CAS,
@@ -46,7 +46,7 @@ export default function() {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
     const casHost = AuthenticationConfig.getValue(
       tenant.alias,
@@ -99,7 +99,7 @@ export default function() {
         validateURL: validatePath,
         useSaml
       },
-      (req, casResponse, done) => {
+      (request, casResponse, done) => {
         log().trace(
           {
             tenant,
@@ -110,7 +110,7 @@ export default function() {
 
         const username = casResponse.user;
         let displayName = casResponse.user;
-        const opts = {
+        const options = {
           authoritative: true
         };
 
@@ -126,17 +126,27 @@ export default function() {
           }
 
           // Set the optional profile parameters
-          AuthenticationUtil.setProfileParameter(opts, 'email', mapEmail, casResponse.attributes);
-          AuthenticationUtil.setProfileParameter(opts, 'locale', mapLocale, casResponse.attributes);
+          AuthenticationUtil.setProfileParameter(
+            options,
+            'email',
+            mapEmail,
+            casResponse.attributes
+          );
+          AuthenticationUtil.setProfileParameter(
+            options,
+            'locale',
+            mapLocale,
+            casResponse.attributes
+          );
         }
 
         AuthenticationUtil.handleExternalGetOrCreateUser(
-          req,
+          request,
           AuthenticationConstants.providers.CAS,
           username,
           null,
           displayName,
-          opts,
+          options,
           done
         );
       }
@@ -150,8 +160,8 @@ export default function() {
    * @param  {Request}    req     The expressJS request object
    * @param  {Response}   res     The expressJS response object
    */
-  strategy.logout = function(req, res) {
-    const tenant = req.ctx.tenant();
+  strategy.logout = function (request, res) {
+    const tenant = request.ctx.tenant();
     const logoutUrl = AuthenticationConfig.getValue(
       tenant.alias,
       AuthenticationConstants.providers.CAS,

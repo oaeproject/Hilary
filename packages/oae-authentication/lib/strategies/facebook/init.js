@@ -27,13 +27,13 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function() {
+export default function () {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     return AuthenticationConfig.getValue(
       tenantAlias,
       AuthenticationConstants.providers.FACEBOOK,
@@ -44,7 +44,7 @@ export default function() {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
     const clientID = AuthenticationConfig.getValue(
       tenant.alias,
@@ -68,30 +68,30 @@ export default function() {
           AuthenticationConstants.providers.FACEBOOK
         )
       },
-      (req, accessToken, refreshToken, profile, done) => {
+      (request, accessToken, refreshToken, profile, done) => {
         log().trace({ tenant, profile }, 'Received Facebook authentication callback');
 
         const externalId = profile.id;
         const { displayName } = profile;
-        const opts = { locale: profile._json.locale };
+        const options = { locale: profile._json.locale };
 
         const { picture } = profile._json;
         if (picture && picture.data && picture.data.url && !picture.data.is_silhouette) {
-          opts.smallPictureUri = 'remote:' + picture.data.url;
-          opts.mediumPictureUri = 'remote:' + picture.data.url;
+          options.smallPictureUri = 'remote:' + picture.data.url;
+          options.mediumPictureUri = 'remote:' + picture.data.url;
         }
 
         if (profile.emails && profile.emails.length > 0 && profile.emails[0].value) {
-          opts.email = profile.emails[0].value;
+          options.email = profile.emails[0].value;
         }
 
         AuthenticationUtil.handleExternalGetOrCreateUser(
-          req,
+          request,
           AuthenticationConstants.providers.FACEBOOK,
           externalId,
           null,
           displayName,
-          opts,
+          options,
           done
         );
       }

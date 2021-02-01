@@ -27,20 +27,20 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function() {
+export default function () {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     return AuthenticationConfig.getValue(tenantAlias, 'ldap', 'enabled');
   };
 
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // Server config
     const url = AuthenticationConfig.getValue(tenant.alias, 'ldap', 'url');
     const adminDn = AuthenticationConfig.getValue(tenant.alias, 'ldap', 'adminDn');
@@ -82,16 +82,16 @@ export default function() {
       // Re-use the username as the external id
       const externalId = profile[mapExternalId];
       const displayName = profile[mapDisplayName];
-      const opts = {};
+      const options_ = {};
       if (mapEmail) {
-        opts.email = profile[mapEmail];
-        if (opts.email) {
-          opts.emailVerified = true;
+        options_.email = profile[mapEmail];
+        if (options_.email) {
+          options_.emailVerified = true;
         }
       }
 
       if (mapLocale) {
-        opts.locale = profile[mapLocale];
+        options_.locale = profile[mapLocale];
       }
 
       const ctx = new Context(tenant, null);
@@ -101,7 +101,7 @@ export default function() {
         externalId,
         null,
         displayName,
-        opts,
+        options_,
         done
       );
     });

@@ -30,15 +30,15 @@ import * as AuthenticationUtil from 'oae-authentication/lib/util';
  * @HttpResponse                302         The user will be redirected to Twitter where they can log in
  * @HttpResponse                400         The authentication strategy is disabled for this tenant
  */
-OAE.tenantRouter.on('post', '/api/auth/twitter', (req, res, next) => {
+OAE.tenantRouter.on('post', '/api/auth/twitter', (request, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.TWITTER
   );
 
   // Perform the initial authentication step
-  AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
+  AuthenticationUtil.handleExternalSetup(strategyId, null, request, res, next);
 });
 
 /**
@@ -52,15 +52,15 @@ OAE.tenantRouter.on('post', '/api/auth/twitter', (req, res, next) => {
  * @Path        /auth/twitter/callback
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/twitter/callback', (req, res, next) => {
+OAE.tenantRouter.on('get', '/api/auth/twitter/callback', (request, res, next) => {
   // Get the ID under which we registered this strategy for this tenant
   const strategyId = AuthenticationUtil.getStrategyId(
-    req.tenant,
+    request.tenant,
     AuthenticationConstants.providers.TWITTER
   );
 
   // Log the user in
-  AuthenticationUtil.handleExternalCallback(strategyId, req, res, next);
+  AuthenticationUtil.handleExternalCallback(strategyId, request, res, next);
 });
 
 export default OAE;

@@ -29,7 +29,7 @@ import { AccessToken } from '../model';
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {AccessToken}    callback.accessToken    The created access token
  */
-const createAccessToken = function(token, userId, clientId, callback) {
+const createAccessToken = function (token, userId, clientId, callback) {
   // Insert the token and its association to the client and user
   const queries = [
     Cassandra.constructUpsertCQL('OAuthAccessToken', 'token', token, {
@@ -44,9 +44,9 @@ const createAccessToken = function(token, userId, clientId, callback) {
     )
   ];
 
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, new AccessToken(token, userId, clientId));
@@ -61,21 +61,25 @@ const createAccessToken = function(token, userId, clientId, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {AccessToken}    callback.accessToken    The access token object which contains the user for which the token can be used
  */
-const getAccessToken = function(token, callback) {
+const getAccessToken = function (token, callback) {
   // TODO: As this gets called on every OAuth authenticated call, it might not be a bad idea to cache this in Redis
-  Cassandra.runQuery('SELECT * FROM "OAuthAccessToken" WHERE "token" = ?', [token], (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+  Cassandra.runQuery(
+    'SELECT * FROM "OAuthAccessToken" WHERE "token" = ?',
+    [token],
+    (error, rows) => {
+      if (error) {
+        return callback(error);
+      }
 
-    if (_.isEmpty(rows)) {
-      return callback(null, null);
-    }
+      if (_.isEmpty(rows)) {
+        return callback(null, null);
+      }
 
-    const hash = Cassandra.rowToHash(rows[0]);
-    const accessToken = new AccessToken(hash.token, hash.userId, hash.clientId);
-    return callback(null, accessToken);
-  });
+      const hash = Cassandra.rowToHash(rows[0]);
+      const accessToken = new AccessToken(hash.token, hash.userId, hash.clientId);
+      return callback(null, accessToken);
+    }
+  );
 };
 
 /**
@@ -87,14 +91,14 @@ const getAccessToken = function(token, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {AccessToken}    callback.accessToken    The access token object which contains the user for which the token can be used
  */
-const getAccessTokenForUserAndClient = function(userId, clientId, callback) {
+const getAccessTokenForUserAndClient = function (userId, clientId, callback) {
   // TODO: As this gets called on every OAuth authenticated call, it might not be a bad idea to cache this in Redis
   Cassandra.runQuery(
     'SELECT "token" FROM "OAuthAccessTokenByUser" WHERE "userId" = ? AND "clientId" = ?',
     [userId, clientId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {

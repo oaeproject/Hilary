@@ -22,7 +22,7 @@ import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthenticationSignedUtil from 'oae-authentication/lib/strategies/signed/util';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-const Strategy = function() {
+const Strategy = function () {
   passport.Strategy.call(this);
   this.name = 'signed';
 };
@@ -38,32 +38,32 @@ util.inherits(Strategy, passport.Strategy);
  * @param  {Request}    req     The Express Request object that is trying to authenticate
  * @api protected
  */
-Strategy.prototype.authenticate = function(req) {
+Strategy.prototype.authenticate = function (request) {
   const self = this;
 
   // Verify and extract the signed body from the request
   AuthenticationSignedUtil.verifySignedAuthenticationBody(
-    req.ctx,
-    req.body,
-    (err, userId, becomeUserId) => {
-      if (err) {
-        return self.fail(err.msg, err.code);
+    request.ctx,
+    request.body,
+    (error, userId, becomeUserId) => {
+      if (error) {
+        return self.fail(error.msg, error.code);
       }
 
       // Will hold the user and imposter (if any) for the authentication callback
-      let authObj = null;
+      let authObject = null;
       let strategyId = null;
 
       // This is a valid request, get the user and pass it on
-      PrincipalsDAO.getPrincipal(userId, (err, user) => {
-        if (err && err.code !== 404) {
+      PrincipalsDAO.getPrincipal(userId, (error_, user) => {
+        if (error_ && error_.code !== 404) {
           // Ensure there wasn't un unexpected error fetching the user
-          return self.error(new Error(err.msg));
+          return self.error(new Error(error_.msg));
         }
 
-        if (err && err.code === 404) {
+        if (error_ && error_.code === 404) {
           // Ensure the authenticating user exists
-          return self.fail(err.msg, 404);
+          return self.fail(error_.msg, 404);
         }
 
         if (!becomeUserId) {
@@ -73,22 +73,22 @@ Strategy.prototype.authenticate = function(req) {
             user.tenant,
             AuthenticationConstants.providers.SIGNED
           );
-          authObj = { user, strategyId };
-          AuthenticationUtil.logAuthenticationSuccess(req, authObj, self.name);
-          return self.success(authObj);
+          authObject = { user, strategyId };
+          AuthenticationUtil.logAuthenticationSuccess(request, authObject, self.name);
+          return self.success(authObject);
         }
 
         // If we get here we are trying to become someone, fetch that person
         // and perform the appropriate permission checks
-        PrincipalsDAO.getPrincipal(becomeUserId, (err, becomeUser) => {
-          if (err && err.code !== 404) {
+        PrincipalsDAO.getPrincipal(becomeUserId, (error_, becomeUser) => {
+          if (error_ && error_.code !== 404) {
             // Ensure there wasn't un unexpected error fetching the target user
-            return self.error(new Error(err.msg));
+            return self.error(new Error(error_.msg));
           }
 
-          if (err && err.code === 404) {
+          if (error_ && error_.code === 404) {
             // Ensure the impersonated user exists
-            return self.fail(err.msg, 404);
+            return self.fail(error_.msg, 404);
           }
 
           if (!user.isAdmin(becomeUser.tenant.alias)) {
@@ -100,9 +100,9 @@ Strategy.prototype.authenticate = function(req) {
             user.tenant,
             AuthenticationConstants.providers.SIGNED
           );
-          authObj = { user: becomeUser, imposter: user, strategyId };
-          AuthenticationUtil.logAuthenticationSuccess(req, authObj, self.name);
-          return self.success(authObj);
+          authObject = { user: becomeUser, imposter: user, strategyId };
+          AuthenticationUtil.logAuthenticationSuccess(request, authObject, self.name);
+          return self.success(authObject);
         });
       });
     }

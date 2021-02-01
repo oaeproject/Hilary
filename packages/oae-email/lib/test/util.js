@@ -32,7 +32,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
  *
  * For parameters, @see EmailAPI#sendEmail
  */
-const sendEmail = function(templateModule, templateId, toUser, data, opts, callback) {
+const sendEmail = function (templateModule, templateId, toUser, data, options, callback) {
   // Wait for all pending activities to fire, be collected, and then for all associated notifications to complete. This
   // is to avoid any notifications from other tests firing the debugSent event, which will result in us returning the
   // wrong message here.
@@ -41,8 +41,8 @@ const sendEmail = function(templateModule, templateId, toUser, data, opts, callb
       ActivityAggregator.collectAllBuckets(() => {
         ActivityNotifications.whenNotificationsEmpty(() => {
           // Send the email, and return the error if one occurs, otherwise the message will be returned
-          EmailAPI.sendEmail(templateModule, templateId, toUser, data, opts, (err, info) => {
-            if (err) return callback(err);
+          EmailAPI.sendEmail(templateModule, templateId, toUser, data, options, (error, info) => {
+            if (error) return callback(error);
 
             callback(null, info);
           });
@@ -61,7 +61,7 @@ const sendEmail = function(templateModule, templateId, toUser, data, opts, callb
  * @param  {Function}   startCallback.stop.stopCallback             Invoked when collection has stopped
  * @param  {Object[]}   startCallback.stop.stopCallback.messages    The messages that were collected during the collection time
  */
-const startCollectingEmail = function(startCallback) {
+const startCollectingEmail = function (startCallback) {
   // Start by ensuring we don't get emails that started before this collection
   // period
   collectAndFetchAllEmails(() => {
@@ -73,7 +73,7 @@ const startCollectingEmail = function(startCallback) {
      * Handle the debugSent event, filling up the messages array with the
      * messages we receive
      */
-    const _handleDebugSent = function(info) {
+    const _handleDebugSent = function (info) {
       messages.push(JSON.parse(info.message));
     };
 
@@ -82,7 +82,7 @@ const startCollectingEmail = function(startCallback) {
 
     // Invoke the consumers start callback, providing them the stop function
     // they can invoke to get the collected messages
-    startCallback(stopCallback => {
+    startCallback((stopCallback) => {
       // When the consumer invokes the stop callback, we need to make sure
       // all asyncronous processing completes to make sure we got all
       // messages sent in this time
@@ -102,8 +102,8 @@ const startCollectingEmail = function(startCallback) {
  * @param  {Function}   callback            Invoked when an email has arrived
  * @param  {Object[]}   callback.messages   The array of mails that were sent out
  */
-const waitForEmail = function(callback) {
-  collectAndFetchAllEmails(messages => {
+const waitForEmail = function (callback) {
+  collectAndFetchAllEmails((messages) => {
     if (!_.isEmpty(messages)) {
       return callback(messages);
     }
@@ -118,7 +118,7 @@ const waitForEmail = function(callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object[]}   callback.messages   An array of mails that were sent out
  */
-const collectAndFetchAllEmails = function(callback) {
+const collectAndFetchAllEmails = function (callback) {
   const messages = [];
 
   // Ensure no notifications from other tests are still processing
@@ -130,7 +130,7 @@ const collectAndFetchAllEmails = function(callback) {
           /*!
            * Handle the debugSent event, filling up the messages array with the messages we receive
            */
-          const _handleDebugSent = function(info) {
+          const _handleDebugSent = function (info) {
             messages.push(JSON.parse(info.message));
           };
 
@@ -159,11 +159,11 @@ const collectAndFetchAllEmails = function(callback) {
                   //
                   // @see https://github.com/oaeproject/Hilary/issues/1168
 
-                  _.each(messages, message => {
+                  _.each(messages, (message) => {
                     _assertEmailTemplateFieldValid(message, 'subject');
                     _assertEmailTemplateFieldValid(message, 'html');
                     _assertEmailTemplateFieldValid(message, 'text');
-                    _.each(message.html.split('\n'), line => {
+                    _.each(message.html.split('\n'), (line) => {
                       assert.ok(
                         line.length <= 500,
                         util.format(
@@ -201,7 +201,7 @@ const collectAndFetchAllEmails = function(callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object[]}   callback.messages   An array of mails that were sent out
  */
-const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, dayOfWeek, hourOfDay, callback) {
+const collectAndFetchEmailsForBucket = function (bucketNumber, emailPreference, dayOfWeek, hourOfDay, callback) {
   const messages = [];
 
   // Ensure no notifications from other tests are still processing
@@ -211,7 +211,7 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
         /*!
          * Handle the debugSent event, filling up the messages array with the messages we receive
          */
-        const _handleDebugSent = function(info) {
+        const _handleDebugSent = function (info) {
           messages.push(JSON.parse(info.message));
         };
 
@@ -221,8 +221,8 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
         // Collect the activity buckets, which will aggregate any pending activities into the proper email activity streams
         ActivityAggregator.collectAllBuckets(() => {
           // Collect and send the emails
-          ActivityEmail.collectMails(bucketNumber, emailPreference, dayOfWeek, hourOfDay, err => {
-            assert.ok(!err);
+          ActivityEmail.collectMails(bucketNumber, emailPreference, dayOfWeek, hourOfDay, (error) => {
+            assert.ok(!error);
             EmailAPI.emitter.removeListener('debugSent', _handleDebugSent);
             return callback(messages);
           });
@@ -238,14 +238,14 @@ const collectAndFetchEmailsForBucket = function(bucketNumber, emailPreference, d
  * @param  {Function}   callback    Standard callback function
  * @throws {Error}                  An assertion error is thrown if there is an issue clearing the emails
  */
-const clearEmailCollections = function(callback) {
+const clearEmailCollections = function (callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
       // Force an activity collection so all emails get scheduled
       ActivityAggregator.collectAllBuckets(() => {
         // Clear the scheduled emails from the buckets
-        Cassandra.runQuery('TRUNCATE "EmailBuckets"', [], err => {
-          assert.ok(!err);
+        Cassandra.runQuery('TRUNCATE "EmailBuckets"', [], (error) => {
+          assert.ok(!error);
 
           return callback();
         });
@@ -261,7 +261,7 @@ const clearEmailCollections = function(callback) {
  * @param  {String}         fieldName   The field name of the message to check
  * @throws {AssertionError}             Thrown if the field content is not valid
  */
-const _assertEmailTemplateFieldValid = function(mail, fieldName) {
+const _assertEmailTemplateFieldValid = function (mail, fieldName) {
   const content = mail[fieldName];
   assert.ok(
     _.isString(content),

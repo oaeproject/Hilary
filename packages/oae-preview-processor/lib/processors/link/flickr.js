@@ -26,11 +26,11 @@ const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');
 
 // A regular expression that can be used to check if a URL points to a specific photo
-const REGEX_PHOTO = /^http(s)?:\/\/(www\.)?flickr\.com\/photos\/([-_a-zA-Z0-9@]+)\/(\d+)/;
+const REGEX_PHOTO = /^http(s)?:\/\/(www\.)?flickr\.com\/photos\/([-\w@]+)\/(\d+)/;
 // A regular expression that can be used to check if a (short) URL points to a specific photo
 const REGEX_SHORT_PHOTO = /^http(s)?:\/\/flic.kr\/p\/(\w+)/;
 // A regular expression that can be used to check if a URL points to a set of photos
-const REGEX_SET = /^http(s)?:\/\/(www\.)?flickr\.com\/photos\/([-_a-zA-Z0-9@]+)\/sets\/(\d+)/;
+const REGEX_SET = /^http(s)?:\/\/(www\.)?flickr\.com\/photos\/([-\w@]+)\/sets\/(\d+)/;
 
 // The URL where the Flickr REST API can be reached
 let apiUrl = 'https://api.flickr.com/services/rest/';
@@ -43,7 +43,7 @@ let imageUrl = 'https://farm%s.static.flickr.com/%s/%s_%s_b.jpg';
  *
  * @param  {String}     _apiUrl     Defines the URL (including protocol and path) where the flickr REST API can be reached
  */
-const setApiUrl = function(_apiUrl) {
+const setApiUrl = function (_apiUrl) {
   apiUrl = _apiUrl;
 };
 
@@ -52,16 +52,16 @@ const setApiUrl = function(_apiUrl) {
  *
  * @param  {String}     _imageUrl     Defines the URL (including protocol and path) where an image can be downloaded
  */
-const setImageUrl = function(_imageUrl) {
+const setImageUrl = function (_imageUrl) {
   imageUrl = _imageUrl;
 };
 
 /**
  * @borrows Interface.test as FlickrProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   // Don't bother with non-link content items
-  if (contentObj.resourceSubType !== 'link') {
+  if (contentObject.resourceSubType !== 'link') {
     return callback(null, -1);
   }
 
@@ -72,7 +72,11 @@ const test = function(ctx, contentObj, callback) {
   }
 
   // Only allow URLs that are on the Flickr domain
-  if (REGEX_PHOTO.test(contentObj.link) || REGEX_SHORT_PHOTO.test(contentObj.link) || REGEX_SET.test(contentObj.link)) {
+  if (
+    REGEX_PHOTO.test(contentObject.link) ||
+    REGEX_SHORT_PHOTO.test(contentObject.link) ||
+    REGEX_SET.test(contentObject.link)
+  ) {
     return callback(null, 10);
   }
 
@@ -82,7 +86,7 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as FlickrProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   /*!
    * Downloads a thumbnail from flickr and processes it
    *
@@ -91,9 +95,9 @@ const generatePreviews = function(ctx, contentObj, callback) {
    * @param  {Boolean}    ignore  If this value is set to `true` we'll ignore the picture
    * @api private
    */
-  const handleDownload = function(err, opts, ignore) {
-    if (err) {
-      return callback(err);
+  const handleDownload = function (error, options, ignore) {
+    if (error) {
+      return callback(error);
     }
 
     if (ignore) {
@@ -102,17 +106,17 @@ const generatePreviews = function(ctx, contentObj, callback) {
 
     // Download it.
     const path = ctx.baseDir + '/flickr.jpg';
-    PreviewUtil.downloadRemoteFile(opts.imageUrl, path, (err, path) => {
-      if (err) {
-        return callback(err);
+    PreviewUtil.downloadRemoteFile(options.imageUrl, path, (error, path) => {
+      if (error) {
+        return callback(error);
       }
 
-      return LinkProcessorUtil.generatePreviewsFromImage(ctx, path, opts, callback);
+      return LinkProcessorUtil.generatePreviewsFromImage(ctx, path, options, callback);
     });
   };
 
   // Determine what type it is.
-  const flickr = _getType(contentObj.link);
+  const flickr = _getType(contentObject.link);
   if (flickr.type === 'photo') {
     _getFlickrPhoto(ctx, flickr.id, handleDownload);
   } else if (flickr.type === 'set') {
@@ -135,7 +139,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {Boolean}            callback.ignore     Whether or not this photo should be ignored
  * @api private
  */
-const _getFlickrPhoto = function(ctx, id, callback) {
+const _getFlickrPhoto = function (ctx, id, callback) {
   const config = _getConfig();
 
   const url = util.format(
@@ -144,16 +148,16 @@ const _getFlickrPhoto = function(ctx, id, callback) {
     config.apiKey,
     id
   );
-  request(url, (err, response, body) => {
-    if (err) {
-      log().error({ err, body }, 'An unexpected error occurred getting a Flickr photo');
-      return callback(err);
+  request(url, (error, response, body) => {
+    if (error) {
+      log().error({ err: error, body }, 'An unexpected error occurred getting a Flickr photo');
+      return callback(error);
     }
 
     if (response.statusCode !== 200) {
-      err = { code: response.statusCode, msg: body };
-      log().error({ err }, 'An unexpected error occurred getting a Flickr photo');
-      return callback(err);
+      error = { code: response.statusCode, msg: body };
+      log().error({ err: error }, 'An unexpected error occurred getting a Flickr photo');
+      return callback(error);
     }
 
     // Try and parse the Flickr response, returning with an error if it is not valid JSON
@@ -190,7 +194,7 @@ const _getFlickrPhoto = function(ctx, id, callback) {
  * @param  {Boolean}            callback.ignore     Whether or not this photo should be ignored
  * @api private
  */
-const _getFlickrSet = function(ctx, id, callback) {
+const _getFlickrSet = function (ctx, id, callback) {
   const config = _getConfig();
   const url = util.format(
     '%s?method=flickr.photosets.getInfo&api_key=%s&photoset_id=%s&format=json&nojsoncallback=1',
@@ -198,16 +202,16 @@ const _getFlickrSet = function(ctx, id, callback) {
     config.apiKey,
     id
   );
-  request(url, (err, response, body) => {
-    if (err) {
-      log().error({ err, body }, 'An unexpected error occurred getting a Flickr photo set');
-      return callback(err);
+  request(url, (error, response, body) => {
+    if (error) {
+      log().error({ err: error, body }, 'An unexpected error occurred getting a Flickr photo set');
+      return callback(error);
     }
 
     if (response.statusCode !== 200) {
-      err = { code: response.statusCode, msg: body };
-      log().error({ err }, 'An unexpected error occurred getting a Flickr photo set');
-      return callback(err);
+      error = { code: response.statusCode, msg: body };
+      log().error({ err: error }, 'An unexpected error occurred getting a Flickr photo set');
+      return callback(error);
     }
 
     // Try and parse the Flickr response, returning with an error if it is not valid JSON
@@ -238,7 +242,7 @@ const _getFlickrSet = function(ctx, id, callback) {
  * @return {Object}     The apiKey and apiSecret from the Admin UI.
  * @api private
  */
-const _getConfig = function() {
+const _getConfig = function () {
   return {
     apiKey: PreviewConfig.getValue('admin', 'flickr', 'apikey'),
     apiSecret: PreviewConfig.getValue('admin', 'flickr', 'apisecret')
@@ -255,7 +259,7 @@ const _getConfig = function() {
  * @return {String}                 The URL where the image can be downloaded
  * @api private
  */
-const _getImageUrl = function(farm, server, id, secret) {
+const _getImageUrl = function (farm, server, id, secret) {
   return util.format(imageUrl, farm, server, id, secret);
 };
 
@@ -266,7 +270,7 @@ const _getImageUrl = function(farm, server, id, secret) {
  * @return {Object}             An object that has a key `type` that is either set to `photo` or `set` and a key `id` which is set to either the photo-id or the set-id
  * @api private
  */
-const _getType = function(url) {
+const _getType = function (url) {
   // Check if it's a URL to a photo
   let match = url.match(REGEX_PHOTO);
   if (match) {
@@ -300,14 +304,11 @@ const _getType = function(url) {
  * @see {@link https://www.flickr.com/groups/api/discuss/72157616713786392/}
  * @api private
  */
-const _base58Decode = function(s) {
+const _base58Decode = function (s) {
   const alphabet = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
 
   // Reverse the string
-  const reversed = s
-    .split('')
-    .reverse()
-    .join('');
+  const reversed = s.split('').reverse().join('');
 
   // The following is an iterative process where for each character in the
   // reversed string we:
@@ -315,15 +316,15 @@ const _base58Decode = function(s) {
   //  - Get the index of the character in the alphabet                (=position)
   //  - Multiply the position with the exponentation
   //  - Add it up                                                     (=val)
-  let val = 0;
+  let value = 0;
   let exp = 1;
   for (const element of reversed) {
     const position = alphabet.indexOf(element);
-    val += exp * position;
+    value += exp * position;
     exp *= alphabet.length;
   }
 
-  return val;
+  return value;
 };
 
 export { setApiUrl, setImageUrl, test, generatePreviews };

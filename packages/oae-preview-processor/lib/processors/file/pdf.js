@@ -62,7 +62,7 @@ const isNotDefined = compose(not, isDefined);
 const appendSVG = curry(concat)(__, '.svg');
 
 // Implements https://nodejs.org/api/stream.html#stream_readable_read_size_1
-ReadableSVGStream.prototype._read = function() {
+ReadableSVGStream.prototype._read = function () {
   let chunk;
   while (differs((chunk = this.serializer.getNext()), null)) {
     if (isNotDefined(this.push(chunk))) return;
@@ -80,9 +80,9 @@ util.inherits(ReadableSVGStream, stream.Readable);
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(config, callback) {
-  const previewIsNotDefined = config => compose(not, getPath(['pdfPreview']))(config);
-  const viewportIsNotDefined = config => compose(not, getPath(['pdfPreview', 'viewportScale']))(config);
+const init = function (config, callback) {
+  const previewIsNotDefined = (config) => compose(not, getPath(['pdfPreview']))(config);
+  const viewportIsNotDefined = (config) => compose(not, getPath(['pdfPreview', 'viewportScale']))(config);
   const configIsMissing = either(isNotDefined, either(previewIsNotDefined, viewportIsNotDefined))(config);
 
   if (configIsMissing) {
@@ -99,9 +99,9 @@ const init = function(config, callback) {
 /**
  * @borrows Interface.test as PDF.test
  */
-const test = function(ctx, contentObject, callback) {
+const test = function (ctx, contentObject, callback) {
   const resourceIsFile = equals(FILE_SUBTYPE);
-  const mimeTypeIncludesPDF = mime => includes(mime, PreviewConstants.TYPES.PDF);
+  const mimeTypeIncludesPDF = (mime) => includes(mime, PreviewConstants.TYPES.PDF);
 
   if ((and(resourceIsFile(contentObject.resourceSubType)), mimeTypeIncludesPDF(ctx.revision.mime))) {
     callback(null, 10);
@@ -114,8 +114,8 @@ const test = function(ctx, contentObject, callback) {
  * @borrows Interface.generatePreviews as PDF.generatePreviews
  */
 const generatePreviews = (ctx, contentObject, callback) => {
-  ctx.download((err, path) => {
-    if (err) return callback(err);
+  ctx.download((error, path) => {
+    if (error) return callback(error);
 
     previewPDF(ctx, path, callback);
   });
@@ -125,7 +125,7 @@ const generatePreviews = (ctx, contentObject, callback) => {
  * @function loadPDFDocument
  * @param  {Object}   data    Object representing the pdf doc to load
  */
-const loadPDFDocument = async data => {
+const loadPDFDocument = async (data) => {
   // Will be using promises to load document, pages and misc data instead of
   // callback.
   const loadedPDFDocument = pdfjsLib.getDocument({
@@ -147,7 +147,7 @@ const loadPDFDocument = async data => {
  * @param  {Function}            callback        Standard callback function
  * @param  {Object}              callback.err    An error that occurred, if any
  */
-const previewPDF = async function(ctx, pdfPath, callback) {
+const previewPDF = async function (ctx, pdfPath, callback) {
   domStubs.setStubs(global);
 
   const pagesDir = path.join(ctx.baseDir, PAGES_SUBDIRECTORY);
@@ -201,9 +201,9 @@ const convertToSVG = async (page, svgPath) => {
  * @param  {Object}              callback.err    An error that occurred, if any
  * @api private
  */
-const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
-  const returnError = err => {
-    log().error({ err, contentId: ctx.contentId }, 'Could not convert a PDF page to a PNG');
+const _generateThumbnail = async function (ctx, path, pagesDir, callback) {
+  const returnError = (error) => {
+    log().error({ err: error, contentId: ctx.contentId }, 'Could not convert a PDF page to a PNG');
     return callback({ code: 500, msg: 'Could not convert a PDF page to a PNG' });
   };
 
@@ -222,8 +222,8 @@ const _generateThumbnail = async function(ctx, path, pagesDir, callback) {
 
   sharp(svgPath, { density: 150 })
     .resize(width)
-    .toFile(output, err => {
-      if (err) returnError(err);
+    .toFile(output, (error) => {
+      if (error) returnError(error);
 
       // Crop a thumbnail out of the png file
       PreviewUtil.generatePreviewsFromImage(ctx, output, { cropMode: 'TOP' }, callback);
@@ -271,7 +271,7 @@ function writeSvgToFile(svgElement, filePath) {
     writableStream.once('error', reject);
     writableStream.once('finish', resolve);
     readableSvgStream.pipe(writableStream);
-  }).catch(error => {
+  }).catch((error) => {
     readableSvgStream = null; // Explicitly null because of v8 bug 6512.
     writableStream.end();
     throw error;
@@ -285,7 +285,7 @@ function writeSvgToFile(svgElement, filePath) {
  * @param  {Number} pageNum      The page number we're dealing with
  * @param  {Object} doc          Object representing the PDF
  */
-const previewAndIndexEachPage = async function(ctx, pagesDir, pageNumber, doc) {
+const previewAndIndexEachPage = async function (ctx, pagesDir, pageNumber, doc) {
   try {
     const page = await doc.getPage(pageNumber);
     const viewport = page.getViewport({ scale: viewportScale });
@@ -330,7 +330,7 @@ const previewAndIndexEachPage = async function(ctx, pagesDir, pageNumber, doc) {
  * @param  {Number} pageNum     The page number we're dealing with
  * @param  {Object} doc          Object representing the PDF
  */
-const processAllPages = async function(ctx, pagesDir, numberPages, doc) {
+const processAllPages = async function (ctx, pagesDir, numberPages, doc) {
   for (let i = 1; i <= numberPages; i++) {
     // eslint-disable-next-line no-await-in-loop
     await previewAndIndexEachPage(ctx, pagesDir, i, doc);

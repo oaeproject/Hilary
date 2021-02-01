@@ -26,14 +26,14 @@ const VIMEO_REGEX = /^http(s)?:\/\/(www\.)?vimeo\.com\/(\d+)(\/.*)?$/;
 /**
  * @borrows Interface.test as VimeoProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   // Don't bother with non-link content items.
-  if (contentObj.resourceSubType !== 'link') {
+  if (contentObject.resourceSubType !== 'link') {
     return callback(null, -1);
   }
 
   // Check if it's a Vimeo URL.
-  if (VIMEO_REGEX.test(contentObj.link)) {
+  if (VIMEO_REGEX.test(contentObject.link)) {
     return callback(null, 10);
   }
 
@@ -43,14 +43,14 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as VimeoProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
-  const id = _getId(contentObj.link);
+const generatePreviews = function (ctx, contentObject, callback) {
+  const id = _getId(contentObject.link);
 
   // Do an API request first.
   const apiUrl = util.format('http://vimeo.com/api/v2/video/%s.json', id);
-  request(apiUrl, (err, response, body) => {
-    if (err || response.statusCode !== 200) {
-      return callback(err || { code: response.statusCode, msg: body });
+  request(apiUrl, (error, response, body) => {
+    if (error || response.statusCode !== 200) {
+      return callback(error || { code: response.statusCode, msg: body });
     }
 
     // Get Thumbnail url.
@@ -61,7 +61,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
       return callback(null, false);
     }
 
-    const opts = {
+    const options = {
       displayName: info[0].title,
       description: info[0].description
     };
@@ -69,12 +69,12 @@ const generatePreviews = function(ctx, contentObj, callback) {
     // Download it.
     const imageUrl = info[0].thumbnail_medium;
     const imgPath = path.resolve(ctx.baseDir, 'vimeo.png');
-    PreviewUtil.downloadRemoteFile(imageUrl, imgPath, (err, filePath) => {
-      if (err) {
-        return callback(err);
+    PreviewUtil.downloadRemoteFile(imageUrl, imgPath, (error_, filePath) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      LinkProcessorUtil.generatePreviewsFromImage(ctx, filePath, opts, callback);
+      LinkProcessorUtil.generatePreviewsFromImage(ctx, filePath, options, callback);
     });
   });
 };
@@ -87,7 +87,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @return {String}     The movie identifier (or null.)
  * @api private
  */
-const _getId = function(url) {
+const _getId = function (url) {
   const match = url.match(VIMEO_REGEX);
   if (match) {
     return match[3];

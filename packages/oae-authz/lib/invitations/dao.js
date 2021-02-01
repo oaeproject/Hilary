@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import Chance from 'chance';
 
@@ -136,7 +137,7 @@ const getEmailByToken = function (token, callback) {
       if (_.isEmpty(rows)) {
         return callback({
           code: 404,
-          msg: util.format('There is no email associated to the email token "%s"', token)
+          msg: format('There is no email associated to the email token "%s"', token)
         });
       }
 
@@ -173,9 +174,12 @@ const getAllInvitationsByEmail = function (email, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    All invitations that were sent for the specified resource
  */
-const getAllInvitationsByResourceId = function (resourceId, callback, _invitations, _nextToken) {
-  _invitations = _invitations || [];
-  _nextToken = _nextToken || '';
+const getAllInvitationsByResourceId = function (
+  resourceId,
+  callback,
+  _invitations = [],
+  _nextToken = ''
+) {
   Cassandra.runQuery(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" > ? ORDER BY "email" ASC LIMIT 150',
     [resourceId, _nextToken],
@@ -263,7 +267,7 @@ const createInvitations = function (resourceId, emailRoles, inviterUserId, callb
 
     unless(isUserId, {
       code: 400,
-      msg: util.format('Specified inviter id "%s" must be a valid user id')
+      msg: format('Specified inviter id "%s" must be a valid user id')
     })(inviterUserId);
   } catch (error) {
     return callback(error);
@@ -331,18 +335,18 @@ const updateInvitationRoles = function (resourceId, emailRoles, callback) {
     const validateEachRole = (role, email) => {
       unless(isEmail, {
         code: 400,
-        msg: util.format('Invalid email "%s" specified', email)
+        msg: format('Invalid email "%s" specified', email)
       })(email);
 
       unless(isValidRoleChange, {
         code: 400,
-        msg: util.format('Invalid role change "%s" specified', role)
+        msg: format('Invalid role change "%s" specified', role)
       })(role);
 
       const roleAintFalse = not(equals(role, false));
       unless(bothCheck(roleAintFalse, isString), {
         code: 400,
-        msg: util.format('Invalid role "%s" specified', role)
+        msg: format('Invalid role "%s" specified', role)
       })(role);
     };
 
@@ -470,10 +474,12 @@ const deleteInvitationsByEmail = function (email, callback) {
  * @param  {String[]}   callback.resourceIds    All resource ids that the specified email was invited into
  * @api private
  */
-const _getAllInvitationResourceIdsByEmail = function (email, callback, _resourceIds, _nextToken) {
-  _resourceIds = _resourceIds || [];
-  _nextToken = _nextToken || '';
-
+const _getAllInvitationResourceIdsByEmail = function (
+  email,
+  callback,
+  _resourceIds = [],
+  _nextToken = ''
+) {
   let cql = 'SELECT "resourceId" FROM "AuthzInvitationsResourceIdByEmail" WHERE "email" = ?';
   const parameters = [email];
   if (_nextToken) {

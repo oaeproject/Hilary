@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format, inherits } from 'util';
 import _ from 'underscore';
 import { Graph } from 'data-structures';
 
@@ -25,7 +25,7 @@ const AuthzGraph = function () {
   Graph.call(this);
 };
 
-util.inherits(AuthzGraph, Graph);
+inherits(AuthzGraph, Graph);
 
 /**
  * Determine if the graph is empty
@@ -112,7 +112,7 @@ AuthzGraph.prototype.addEdge = function (fromId, toId, metadata) {
 AuthzGraph.prototype.toString = function () {
   const nodeStrs = _.pluck(this.getNodes(), 'id');
   const edgeStrs = _.map(this.getEdges(), (edge) => {
-    return util.format('%s -> %s', edge.from.id, edge.to.id);
+    return format('%s -> %s', edge.from.id, edge.to.id);
   });
 
   return JSON.stringify({ nodes: nodeStrs, edges: edgeStrs }, null, 2);

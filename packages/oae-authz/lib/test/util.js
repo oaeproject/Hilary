@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable unicorn/no-array-callback-reference */
 import assert from 'assert';
 import _ from 'underscore';
 

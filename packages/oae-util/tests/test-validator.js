@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import { Context } from 'oae-context';
 import { Tenant } from 'oae-tenants/lib/model';
@@ -62,7 +63,7 @@ import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
-    it('verify undefined gets checked as empty', callback => {
+    it('verify undefined gets checked as empty', (callback) => {
       assert.isFalse(isEmpty(undefined));
       assert.isFalse(isEmpty(null));
       assert.isTrue(isEmpty(''));
@@ -75,7 +76,7 @@ describe('Utilities', () => {
      * Test whether or not the validator used to check for empty strings
      * is working as intended
      */
-    it('verify empty validator', callback => {
+    it('verify empty validator', (callback) => {
       assert.strictEqual(isNotEmpty('Non'), true);
       assert.strictEqual(isNotEmpty('Empty'), true);
       assert.strictEqual(isNotEmpty('String'), true);
@@ -91,7 +92,7 @@ describe('Utilities', () => {
      * Test whether or not the validator used to check for valid integers
      * is working as intended
      */
-    it('verify integer validator', callback => {
+    it('verify integer validator', (callback) => {
       // string numbers succeed
       assert.strictEqual(isInt('0'), true);
       assert.strictEqual(isInt('10'), true);
@@ -132,7 +133,7 @@ describe('Utilities', () => {
      * Test whether or not the validator used to check for valid email addresses
      * is working as intended
      */
-    it('verify email validator', callback => {
+    it('verify email validator', (callback) => {
       assert.strictEqual(isEmail('miguel.laginha@oae.project.org'), true);
       assert.strictEqual(isEmail('miguel_laginha@oae.project.org'), true);
       assert.strictEqual(isEmail('miguel@oae.project'), true);
@@ -154,7 +155,7 @@ describe('Utilities', () => {
      * is working as intended
      * @param  {Object} test     Standard nodeunit test object
      */
-    it('verify URL validator', callback => {
+    it('verify URL validator', (callback) => {
       assert.strictEqual(isURL('http://www.oaeproject.org'), true);
       assert.strictEqual(isURL('http://example.com/assert.html'), true);
       assert.strictEqual(isURL('https://oae-widgets.oaeproject.org/sdk'), true);
@@ -175,7 +176,7 @@ describe('Utilities', () => {
     /**
      * Test whether or not the validator used to check for a logged in OAE user is working as intended
      */
-    it('verify isLoggedInUser correctly validates that the context is authenticated to any tenant', callback => {
+    it('verify isLoggedInUser correctly validates that the context is authenticated to any tenant', (callback) => {
       // Valid tenant
       const tenant1 = global.oaeTests.tenants.cam;
       // Invalid tenant
@@ -210,7 +211,7 @@ describe('Utilities', () => {
      * Test that verifies the isLoggedInUser validator works when determining if a request context is authenticated to a
      * particular tenant
      */
-    it('verify isLoggedInUser correctly validates that the request context is authenticated to a particular tenant', callback => {
+    it('verify isLoggedInUser correctly validates that the request context is authenticated to a particular tenant', (callback) => {
       // Two mock tenants to validate with
       const camTenant = global.oaeTests.tenants.cam;
       const gtTenant = global.oaeTests.tenants.gt;
@@ -231,7 +232,7 @@ describe('Utilities', () => {
       return callback();
     });
 
-    it('verify timezone validation', callback => {
+    it('verify timezone validation', (callback) => {
       const validateTimeZone = (timezone, isValid) => {
         assert.strictEqual(isValidTimeZone(timezone), isValid);
       };
@@ -267,7 +268,7 @@ describe('Utilities', () => {
       validateTimeZone('', false);
       validateTimeZone(undefined, false);
       validateTimeZone(null, false);
-      validateTimeZone(NaN, false);
+      validateTimeZone(Number.NaN, false);
 
       return callback();
     });
@@ -275,7 +276,7 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isGlobalAdministratorUser
      */
-    it('verify isGlobalAdministratorUser validation', callback => {
+    it('verify isGlobalAdministratorUser validation', (callback) => {
       const globalAdminCtx = TestsUtil.createGlobalAdminContext();
       const tenantAdminCtx = TestsUtil.createTenantAdminContext(global.oaeTests.tenants.cam);
       const anonymousCtx = new Context(global.oaeTests.tenants.cam);
@@ -327,11 +328,11 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isArray
      */
-    it('verify isArray validation', callback => {
+    it('verify isArray validation', (callback) => {
       assert.strictEqual(isArray([1, 2, 3]), true);
       assert.strictEqual(isArray(), false);
       assert.strictEqual(isArray(undefined), false);
-      assert.strictEqual(isArray(NaN), false);
+      assert.strictEqual(isArray(Number.NaN), false);
       assert.strictEqual(isArray(null), false);
       assert.strictEqual(isArray(undefined), false);
       assert.strictEqual(isArray('a string'), false);
@@ -342,14 +343,14 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isBoolean
      */
-    it('verify isBoolean validation', callback => {
+    it('verify isBoolean validation', (callback) => {
       assert.strictEqual(isBoolean(true), true);
       assert.strictEqual(isBoolean(false), true);
       assert.strictEqual(isBoolean('true'), false);
       assert.strictEqual(isBoolean('false'), false);
       assert.strictEqual(isBoolean(), false);
       assert.strictEqual(isBoolean(undefined), false);
-      assert.strictEqual(isBoolean(NaN), false);
+      assert.strictEqual(isBoolean(Number.NaN), false);
       assert.strictEqual(isBoolean(0), false);
       assert.strictEqual(isBoolean(1), false);
       assert.strictEqual(isBoolean({}), false);
@@ -361,7 +362,7 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isShortString
      */
-    it('verify isShortString validation', callback => {
+    it('verify isShortString validation', (callback) => {
       const bigString = TestsUtil.generateRandomText(1001);
       try {
         assert.strictEqual(isShortString(null), false);
@@ -379,7 +380,7 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isMediumString
      */
-    it('verify isMediumString validation', callback => {
+    it('verify isMediumString validation', (callback) => {
       const bigString = TestsUtil.generateRandomText(10001);
       try {
         isMediumString(null);
@@ -397,7 +398,7 @@ describe('Utilities', () => {
     /**
      * Test that verifies validation results for a variety of inputs to validator.isLongString
      */
-    it('verify isLongString validation', callback => {
+    it('verify isLongString validation', (callback) => {
       const bigString = TestsUtil.generateRandomText(100001);
       try {
         isLongString(null);
@@ -415,39 +416,39 @@ describe('Utilities', () => {
     /**
      * Test that verifies the isDefined validation properly verifies a value is specified
      */
-    it('verify isDefined validation', callback => {
-      const err = { code: 400, msg: 'Funny error object, LOL' };
+    it('verify isDefined validation', (callback) => {
+      const error_ = { code: 400, msg: 'Funny error object, LOL' };
 
       try {
         isDefined(null);
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isDefined(undefined);
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
-        isDefined(NaN);
+        isDefined(Number.NaN);
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isDefined();
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       assert.strictEqual(isDefined(''), true);
@@ -464,48 +465,48 @@ describe('Utilities', () => {
     /**
      * Test that verifies the isHost validation properly verifies a value is a host
      */
-    it('verify isHost validation', callback => {
-      const err = { code: 400, msg: 'Funny error object, LOL' };
+    it('verify isHost validation', (callback) => {
+      const error_ = { code: 400, msg: 'Funny error object, LOL' };
 
       // A set of invalid hosts
       try {
         isHost('not a valid host');
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isHost('invalid,character.com');
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isHost('almost.but.not.quite com');
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isHost('localhost:');
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       try {
         isHost('localhost:2000:');
       } catch (error) {
         assert.ok(error);
-        assert.strictEqual(error.msg, err.msg);
-        assert.strictEqual(error.code, err.code);
+        assert.strictEqual(error.msg, error_.msg);
+        assert.strictEqual(error.code, error_.code);
       }
 
       // A set of valid hosts
@@ -595,7 +596,7 @@ describe('Utilities', () => {
       assert.strictEqual(isRoleValid(false), false);
       assert.strictEqual(isRoleValid(true), true);
       assert.strictEqual(isRoleValid(null), true);
-      assert.strictEqual(isRoleValid(NaN), true);
+      assert.strictEqual(isRoleValid(Number.NaN), true);
       assert.strictEqual(isRoleValid(undefined), true);
     });
 
@@ -609,7 +610,7 @@ describe('Utilities', () => {
       assert.strictEqual(isNotNull({}), false);
 
       assert.strictEqual(isNotNull('null'), true);
-      assert.strictEqual(isNotNull(NaN), true);
+      assert.strictEqual(isNotNull(Number.NaN), true);
       assert.strictEqual(isNotNull(true), true);
       assert.strictEqual(isNotNull(false), true);
     });
@@ -619,64 +620,64 @@ describe('Utilities', () => {
       assert.strictEqual(isNotEmpty(' '), false);
       assert.strictEqual(isNotEmpty(null), false);
       assert.strictEqual(isNotEmpty(undefined), false);
-      assert.strictEqual(isNotEmpty(NaN), false);
+      assert.strictEqual(isNotEmpty(Number.NaN), false);
 
       assert.strictEqual(isNotEmpty('something'), true);
     });
 
     it('verify unless validation', () => {
-      const e = new Error('surprise!');
-      unless(isANumber, e)(1);
-      unless(isANumber, e)(10);
-      unless(isANumber, e)(0);
-      unless(isANumber, e)(-1);
+      const error = new Error('surprise!');
+      unless(isANumber, error)(1);
+      unless(isANumber, error)(10);
+      unless(isANumber, error)(0);
+      unless(isANumber, error)(-1);
 
       try {
-        unless(isANumber, e)('1');
+        unless(isANumber, error)('1');
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)('0');
+        unless(isANumber, error)('0');
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)(null);
+        unless(isANumber, error)(null);
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)([]);
+        unless(isANumber, error)([]);
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)({});
+        unless(isANumber, error)({});
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)(false);
+        unless(isANumber, error)(false);
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)(undefined);
+        unless(isANumber, error)(undefined);
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
 
       try {
-        unless(isANumber, e)(NaN);
+        unless(isANumber, error)(Number.NaN);
       } catch (error) {
-        assert.strictEqual(error, e);
+        assert.strictEqual(error, error);
       }
     });
 
@@ -743,7 +744,7 @@ describe('Utilities', () => {
       assert.strictEqual(isIso3166Country(false), false);
       assert.strictEqual(isIso3166Country([]), false);
       assert.strictEqual(isIso3166Country({}), false);
-      assert.strictEqual(isIso3166Country(NaN), false);
+      assert.strictEqual(isIso3166Country(Number.NaN), false);
     });
 
     it('verify isObject validation', () => {
@@ -756,7 +757,7 @@ describe('Utilities', () => {
 
       assert.strictEqual(isObject(''), false);
       assert.strictEqual(isObject(null), false);
-      assert.strictEqual(isObject(NaN), false);
+      assert.strictEqual(isObject(Number.NaN), false);
       assert.strictEqual(isObject(undefined), false);
       assert.strictEqual(isObject(false), false);
     });
@@ -772,7 +773,7 @@ describe('Utilities', () => {
 
       assert.strictEqual(isModule(''), false);
       assert.strictEqual(isModule(null), false);
-      assert.strictEqual(isModule(NaN), false);
+      assert.strictEqual(isModule(Number.NaN), false);
       assert.strictEqual(isModule(undefined), false);
       assert.strictEqual(isModule(false), false);
     });
@@ -783,7 +784,7 @@ describe('Utilities', () => {
       assert.strictEqual(isANumber(10), true);
       assert.strictEqual(isANumber(-10), true);
       assert.strictEqual(isANumber(0), true);
-      assert.strictEqual(isANumber(NaN), true);
+      assert.strictEqual(isANumber(Number.NaN), true);
 
       assert.strictEqual(isANumber(''), false);
       assert.strictEqual(isANumber(' '), false);
@@ -802,7 +803,7 @@ describe('Utilities', () => {
       assert.strictEqual(isString(10), false);
       assert.strictEqual(isString(-10), false);
       assert.strictEqual(isString(0), false);
-      assert.strictEqual(isString(NaN), false);
+      assert.strictEqual(isString(Number.NaN), false);
 
       assert.strictEqual(isString(''), true);
       assert.strictEqual(isString(' '), true);
@@ -825,7 +826,7 @@ describe('Utilities', () => {
       assert.strictEqual(isArrayEmpty(null), false);
       assert.strictEqual(isArrayEmpty(undefined), false);
       assert.strictEqual(isArrayEmpty(false), false);
-      assert.strictEqual(isArrayEmpty(NaN), false);
+      assert.strictEqual(isArrayEmpty(Number.NaN), false);
     });
 
     it('verify isArrayNotEmpty validation', () => {
@@ -837,7 +838,7 @@ describe('Utilities', () => {
       assert.strictEqual(isArrayNotEmpty(null), false);
       assert.strictEqual(isArrayNotEmpty(undefined), false);
       assert.strictEqual(isArrayNotEmpty(false), false);
-      assert.strictEqual(isArrayNotEmpty(NaN), false);
+      assert.strictEqual(isArrayNotEmpty(Number.NaN), false);
     });
 
     it('verify defaultToEmptyArray validation', () => {
@@ -848,7 +849,7 @@ describe('Utilities', () => {
 
       assert.notStrictEqual(defaultToEmptyArray(null), []);
       assert.notStrictEqual(defaultToEmptyArray(undefined), []);
-      assert.notStrictEqual(defaultToEmptyArray(NaN), []);
+      assert.notStrictEqual(defaultToEmptyArray(Number.NaN), []);
       assert.notStrictEqual(defaultToEmptyArray(''), []);
     });
 
@@ -860,7 +861,7 @@ describe('Utilities', () => {
 
       assert.notStrictEqual(defaultToEmptyObject(null), {});
       assert.notStrictEqual(defaultToEmptyObject(undefined), {});
-      assert.notStrictEqual(defaultToEmptyObject(NaN), {});
+      assert.notStrictEqual(defaultToEmptyObject(Number.NaN), {});
       assert.notStrictEqual(defaultToEmptyObject(''), {});
     });
   });

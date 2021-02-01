@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as cassandra from 'cassandra-driver';
 // eslint-disable-next-line no-unused-vars
@@ -40,8 +40,8 @@ let client = null;
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const init = function(config, callback) {
-  callback = callback || function() {};
+const init = function (config, callback) {
+  callback = callback || function () {};
   CONFIG = config;
 
   log = logger('oae-cassandra');
@@ -51,19 +51,19 @@ const init = function(config, callback) {
   CONFIG.keyspace = 'system';
   client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);
 
-  client.connect(err => {
+  client.connect((error) => {
     // Immediately switch the CONFIG keyspace back to the desired keyspace
     CONFIG.keyspace = keyspace;
 
-    if (err) {
-      log().error({ err }, 'Error connecting to cassandra');
+    if (error) {
+      log().error({ err: error }, 'Error connecting to cassandra');
       return callback({ code: 500, msg: 'Error connecting to cassandra' });
     }
 
-    createKeyspace(keyspace, err => {
-      if (err) {
+    createKeyspace(keyspace, (error) => {
+      if (error) {
         close(() => {
-          callback(err);
+          callback(error);
         });
       }
 
@@ -73,7 +73,7 @@ const init = function(config, callback) {
   });
 };
 
-const _createNewClient = function(hosts, keyspace) {
+const _createNewClient = function (hosts, keyspace) {
   const loadBalancingPolicy = new cassandra.policies.loadBalancing.RoundRobinPolicy();
   const reconnectionPolicy = new cassandra.policies.reconnection.ConstantReconnectionPolicy(CONFIG.timeout);
   return new cassandra.Client({
@@ -98,10 +98,10 @@ const _createNewClient = function(hosts, keyspace) {
  *
  * @param  {Function}  callback  Standard callback function
  */
-const close = function(callback) {
-  client.shutdown(err => {
-    if (err) {
-      log().error({ err }, 'Error closing the cassandra connection pool');
+const close = function (callback) {
+  client.shutdown((error) => {
+    if (error) {
+      log().error({ err: error }, 'Error closing the cassandra connection pool');
       return callback({ code: 500, msg: 'Error closing the cassandra connection pool' });
     }
 
@@ -117,8 +117,8 @@ const close = function(callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  * @param  {Boolean}   callback.created    Specifies whether or not a keyspace was actually created.
  */
-const createKeyspace = function(keyspace, callback) {
-  callback = callback || function() {};
+const createKeyspace = function (keyspace, callback) {
+  callback = callback || function () {};
   const config = CONFIG;
 
   const options = {
@@ -131,8 +131,8 @@ const createKeyspace = function(keyspace, callback) {
 
   const query = `CREATE KEYSPACE IF NOT EXISTS "${keyspace}" WITH REPLICATION = { 'class': '${options.strategyClass}', 'replication_factor': ${options.replication} }`;
 
-  client.execute(query, err => {
-    if (err) return callback(err);
+  client.execute(query, (error) => {
+    if (error) return callback(error);
     // Pause for a second to ensure the keyspace gets agreed upon across the cluster.
     setTimeout(callback, 1000, null, true);
   });
@@ -146,11 +146,11 @@ const createKeyspace = function(keyspace, callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  * @param  {Boolean}   callback.dropped    Whether or not the keyspace was dropped
  */
-const dropKeyspace = function(name, callback) {
-  callback = callback || function() {};
-  runQuery(`DROP KEYSPACE "${name}"`, null, err => {
-    if (err) {
-      return callback(err);
+const dropKeyspace = function (name, callback) {
+  callback = callback || function () {};
+  runQuery(`DROP KEYSPACE "${name}"`, null, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, true);
@@ -165,16 +165,16 @@ const dropKeyspace = function(name, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Boolean}    callback.exists Whether or not the keyspace existed
  */
-const keyspaceExists = function(name, callback) {
+const keyspaceExists = function (name, callback) {
   const query = `SELECT keyspace_name FROM system.schema_keyspaces WHERE keyspace_name = '${name}'`;
 
-  client.execute(query, (err, results) => {
+  client.execute(query, (error, results) => {
     if (results.rowLength === 0) {
       return callback(null, false);
     }
 
-    if (err) {
-      log().error({ err, name }, 'Error while describing cassandra keyspace');
+    if (error) {
+      log().error({ err: error, name }, 'Error while describing cassandra keyspace');
       callback({ code: 500, msg: 'Error while describing cassandra keyspace' });
     }
 
@@ -188,13 +188,13 @@ const keyspaceExists = function(name, callback) {
  * @param  {String}   name     The name of the CF to check.
  * @param  {Function} callback Standard callback function
  */
-const columnFamilyExists = function(name, callback) {
+const columnFamilyExists = function (name, callback) {
   runQuery(
     `SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name = ? AND columnfamily_name = ?`,
     [CONFIG.keyspace, name],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, !_.isEmpty(rows));
@@ -208,11 +208,11 @@ const columnFamilyExists = function(name, callback) {
  * @param  {String}   name     The name of CF you wish to drop.
  * @param  {Function} callback Standard callback function
  */
-const dropColumnFamily = function(name, callback) {
+const dropColumnFamily = function (name, callback) {
   // Only drop if it exists
-  columnFamilyExists(name, (err, exists) => {
-    if (err) {
-      return callback(err);
+  columnFamilyExists(name, (error, exists) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!exists) {
@@ -222,9 +222,9 @@ const dropColumnFamily = function(name, callback) {
       });
     }
 
-    runQuery(`DROP TABLE "${name}"`, [], err => {
-      if (err) {
-        return callback(err);
+    runQuery(`DROP TABLE "${name}"`, [], (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback();
@@ -241,8 +241,8 @@ const dropColumnFamily = function(name, callback) {
  * @param  {Function}      callback        Standard callback function
  * @param  {Object}        callback.err    An error that occurred, if any
  */
-const dropColumnFamilies = function(families, callback) {
-  callback = callback || function() {};
+const dropColumnFamilies = function (families, callback) {
+  callback = callback || function () {};
   _dropColumnFamilies(families.slice(), callback);
 };
 
@@ -255,15 +255,15 @@ const dropColumnFamilies = function(families, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _dropColumnFamilies = function(families, callback) {
+const _dropColumnFamilies = function (families, callback) {
   if (_.isEmpty(families)) {
     return callback();
   }
 
   const family = families.pop();
-  dropColumnFamily(family, err => {
-    if (err) {
-      return callback(err);
+  dropColumnFamily(family, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     _dropColumnFamilies(families, callback);
@@ -281,19 +281,19 @@ const _dropColumnFamilies = function(families, callback) {
  * @param  {Object}    callback.err       Error object containing the error message
  * @param  {Boolean}   callback.created   Whether or not the column family has actually been created
  */
-const createColumnFamily = function(name, cql, callback) {
-  callback = callback || function() {};
-  columnFamilyExists(name, (err, exists) => {
-    if (err) {
-      return callback(err);
+const createColumnFamily = function (name, cql, callback) {
+  callback = callback || function () {};
+  columnFamilyExists(name, (error, exists) => {
+    if (error) {
+      return callback(error);
     }
 
     if (exists) {
       callback(null, false);
     } else {
-      runQuery(cql, false, err => {
-        if (err) {
-          return callback(err);
+      runQuery(cql, false, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         callback(null, true);
@@ -311,8 +311,8 @@ const createColumnFamily = function(name, cql, callback) {
  * @param  {Function}      callback        Standard callback function
  * @param  {Object}        callback.err    An error that occurred, if any
  */
-const createColumnFamilies = function(families, callback) {
-  callback = callback || function() {};
+const createColumnFamilies = function (families, callback) {
+  callback = callback || function () {};
   const keys = _.keys(families).slice();
   _createColumnFamilies(keys, families, callback);
 };
@@ -326,15 +326,15 @@ const createColumnFamilies = function(families, callback) {
  * @param  {Object}        callback.err    An error that occurred, if any
  * @api private
  */
-const _createColumnFamilies = function(keys, families, callback) {
+const _createColumnFamilies = function (keys, families, callback) {
   if (_.isEmpty(keys)) {
     return callback();
   }
 
   const cfKey = keys.pop();
-  createColumnFamily(cfKey, families[cfKey], err => {
-    if (err) {
-      return callback(err);
+  createColumnFamily(cfKey, families[cfKey], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     _createColumnFamilies(keys, families, callback);
@@ -349,7 +349,7 @@ const _createColumnFamilies = function(keys, families, callback) {
  * @param  {Function} callback      Standard callback function
  * @param  {Object}   callback.err  An error that occurred, if any
  */
-const runQuery = function(query, parameters, callback) {
+const runQuery = function (query, parameters, callback) {
   if (query.indexOf('SELECT') === 0) {
     Telemetry.incr('read.count');
   } else {
@@ -368,7 +368,7 @@ const runQuery = function(query, parameters, callback) {
  * @param  {type} callback.err      An error that occurred, if any
  * @param  {type} callback.rows     The rows returned by the CQL query
  */
-const runAutoPagedQuery = function(query, parameters, callback) {
+const runAutoPagedQuery = function (query, parameters, callback) {
   if (query.indexOf('SELECT') === 0) {
     Telemetry.incr('read.count');
   } else {
@@ -378,14 +378,14 @@ const runAutoPagedQuery = function(query, parameters, callback) {
   const rows = [];
   client
     .stream(query, parameters, { prepare: true })
-    .on('readable', function() {
+    .on('readable', function () {
       let row;
       while ((row = this.read())) {
         rows.push(row);
       }
     })
-    .on('error', err => {
-      callback(err);
+    .on('error', (error) => {
+      callback(error);
     })
     .on('end', () => {
       // Emitted when all rows have been retrieved and read
@@ -400,8 +400,8 @@ const runAutoPagedQuery = function(query, parameters, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const runBatchQuery = function(queries, callback) {
-  callback = callback || function() {};
+const runBatchQuery = function (queries, callback) {
+  callback = callback || function () {};
 
   if (_.isEmpty(queries)) {
     return callback();
@@ -409,13 +409,13 @@ const runBatchQuery = function(queries, callback) {
 
   Telemetry.incr('write.count', queries.length);
 
-  queries = _.map(queries, eachQueryElement => {
+  queries = _.map(queries, (eachQueryElement) => {
     return { query: eachQueryElement.query, params: eachQueryElement.parameters };
   });
 
-  client.batch(queries, { prepare: true }, (err, result) => {
-    if (err) {
-      return callback(err);
+  client.batch(queries, { prepare: true }, (error, result) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, result.rows);
@@ -447,44 +447,44 @@ const runBatchQuery = function(queries, callback) {
  * @param  {String}     callback.nextToken      The value to use for the `start` parameter to get the next set of results
  * @param  {Boolean}    callback.startMatched   Indicates if the `start` parameter was an exact match to a column that was removed from the result set
  */
-const runPagedQuery = function(
+const runPagedQuery = function (
   tableName,
   keyColumnName,
   keyColumnValue,
   rangeColumnName,
   start,
   limit,
-  opts,
+  options,
   callback
 ) {
   limit = OaeUtil.getNumberParam(limit, 25);
-  opts = opts || {};
+  options = options || {};
 
-  const startOperator = opts.reversed ? '<' : '>';
-  const endOperator = opts.reversed ? '>=' : '<=';
+  const startOperator = options.reversed ? '<' : '>';
+  const endOperator = options.reversed ? '>=' : '<=';
 
-  let cql = util.format('SELECT * FROM "%s" WHERE "%s" = ?', tableName, keyColumnName);
-  const params = [keyColumnValue];
+  let cql = format('SELECT * FROM "%s" WHERE "%s" = ?', tableName, keyColumnName);
+  const parameters = [keyColumnValue];
 
   if (start) {
-    cql += util.format(' AND "%s" %s ?', rangeColumnName, startOperator);
-    params.push(start);
+    cql += format(' AND "%s" %s ?', rangeColumnName, startOperator);
+    parameters.push(start);
   }
 
-  if (opts.end) {
-    cql += util.format(' AND "%s" %s ?', rangeColumnName, endOperator);
-    params.push(opts.end);
+  if (options.end) {
+    cql += format(' AND "%s" %s ?', rangeColumnName, endOperator);
+    parameters.push(options.end);
   }
 
-  if (opts.reversed) {
-    cql += util.format(' ORDER BY "%s" DESC', rangeColumnName);
+  if (options.reversed) {
+    cql += format(' ORDER BY "%s" DESC', rangeColumnName);
   }
 
-  cql += util.format(' LIMIT %s', limit);
+  cql += format(' LIMIT %s', limit);
 
-  runQuery(cql, params, (err, rows) => {
-    if (err) {
-      return callback(err);
+  runQuery(cql, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -514,34 +514,34 @@ const runPagedQuery = function(
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Rows[]}     callback.rows           All the available rows for the query
  */
-const runAllPagesQuery = function(
+const runAllPagesQuery = function (
   tableName,
   keyColumnName,
   keyColumnValue,
   rangeColumnName,
-  opts,
+  options,
   callback,
   _nextToken,
   _rows
 ) {
   _rows = _rows || [];
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 500;
+  options = options || {};
+  options.batchSize = options.batchSize || 500;
 
   // The `opts.start` option will only be applied for the first iteration if specified. Subsequent
   // recursive iterations will fall back to `_nextToken`
-  const start = opts.start || _nextToken;
+  const start = options.start || _nextToken;
   runPagedQuery(
     tableName,
     keyColumnName,
     keyColumnValue,
     rangeColumnName,
     start,
-    opts.batchSize,
-    { end: opts.end },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    options.batchSize,
+    { end: options.end },
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Append the rows to the accumulated rows array
@@ -553,9 +553,9 @@ const runAllPagesQuery = function(
       }
 
       // Subsequent iterations should not apply the `start` option
-      if (opts.start) {
-        opts = _.extend({}, opts);
-        delete opts.start;
+      if (options.start) {
+        options = _.extend({}, options);
+        delete options.start;
       }
 
       // Recursively fetch the next page
@@ -564,7 +564,7 @@ const runAllPagesQuery = function(
         keyColumnName,
         keyColumnValue,
         rangeColumnName,
-        opts,
+        options,
         callback,
         nextToken,
         _rows
@@ -600,17 +600,17 @@ const runAllPagesQuery = function(
  * @param  {Function}   [callback]              Invoked when either all rows have finished being iterated, or there was an error
  * @param  {Object}     [callback.err]          An error that occurred while iterating, if any.
  */
-const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEach, callback) {
+const iterateAll = function (columnNames, columnFamily, keyColumnName, options, onEach, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             columnNames,
             columnFamily,
-            opts
+            opts: options
           },
           'Error while iterating over all rows in storage.'
         );
@@ -618,8 +618,8 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
     };
 
   // Apply default options
-  opts = opts || {};
-  opts.batchSize = OaeUtil.getNumberParam(opts.batchSize, DEFAULT_ITERATEALL_BATCH_SIZE);
+  options = options || {};
+  options.batchSize = OaeUtil.getNumberParam(options.batchSize, DEFAULT_ITERATEALL_BATCH_SIZE);
 
   let returnKeyColumn = true;
   if (columnNames) {
@@ -634,7 +634,7 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
     columnNames = _.union(columnNames, extraColumnNames);
   }
 
-  return _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, opts.batchSize, onEach, callback);
+  return _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, options.batchSize, onEach, callback);
 };
 
 /**
@@ -651,7 +651,7 @@ const iterateAll = function(columnNames, columnFamily, keyColumnName, opts, onEa
  * @param  {String}     fromKey             Used for recursion only. Specifies the key from which the next iteration batch should start
  * @api private
  */
-const _iterateAll = function(
+const _iterateAll = function (
   columnNames,
   columnFamily,
   keyColumnName,
@@ -669,9 +669,9 @@ const _iterateAll = function(
 
   const query = _buildIterateAllQuery(columnNames, columnFamily, keyColumnName, batchSize, fromKey);
   // Since Cassandra.runQuery jumps into a new process tick, there is no issue over this recursion exceeding stack size with large data-sets
-  runQuery(query.query, query.parameters, (err, rows) => {
-    if (err) {
-      return callback(err);
+  runQuery(query.query, query.parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -680,19 +680,19 @@ const _iterateAll = function(
     }
 
     const requestedRowColumns = [];
-    _.each(rows, row => {
+    _.each(rows, (row) => {
       // Remember the last key to use for the next iteration
       fromKey = row.get(keyColumnName);
 
       // Clean the key off the row if it was not requested
       if (!returnKeyColumn) {
         const newRowContent = [];
-        _.each(row.keys(), eachKey => {
+        _.each(row.keys(), (eachKey) => {
           if (eachKey !== keyColumnName) {
             newRowContent.push({
               key: eachKey,
               value: row.get(eachKey),
-              column: _.find(columns, eachItem => {
+              column: _.find(columns, (eachItem) => {
                 return eachItem.name === eachKey;
               })
             });
@@ -700,7 +700,7 @@ const _iterateAll = function(
         });
 
         row = new Row(_.pluck(newRowContent, 'column'));
-        _.each(newRowContent, eachNewRowContent => {
+        _.each(newRowContent, (eachNewRowContent) => {
           row[eachNewRowContent.key] = eachNewRowContent.value;
         });
       }
@@ -712,9 +712,9 @@ const _iterateAll = function(
     try {
       // Give the rows to the caller. Wrapping in a try / catch so if an error is thrown (in the same processor tick) then
       // we can still catch the error and invoke the callback with it
-      onEach(rows, err => {
-        if (err) {
-          return callback(err);
+      onEach(rows, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Start the next iteration
@@ -738,37 +738,33 @@ const _iterateAll = function(
  * @return {Object}                     An object with key `query` that contains the String CQL query, and key `parameters` that holds an array of parameters that fill the query placeholders in the Cassandra query.
  * @api private
  */
-const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName, batchSize, fromKey) {
+const _buildIterateAllQuery = function (columnNames, columnFamily, keyColumnName, batchSize, fromKey) {
   let cql = 'SELECT ';
-  const params = [];
+  const parameters = [];
 
-  if (_.isEmpty(columnNames)) {
-    // If no column names were specified, we select all of them
-    cql += '*';
-  } else {
-    // Quote all the column names and join with a comma
-    cql += _.map(columnNames, columnName => {
-      // Check if `columnName` contains a quote as it might be calling a function
-      if (!columnName.includes('"')) {
-        return util.format('"%s"', columnName);
+  cql += _.isEmpty(columnNames)
+    ? '*'
+    : _.map(columnNames, (columnName) => {
+        // Check if `columnName` contains a quote as it might be calling a function
+        if (!columnName.includes('"')) {
+          return format('"%s"', columnName);
 
-        // Return as-is
-      }
+          // Return as-is
+        }
 
-      return columnName;
-    }).join(', ');
-  }
+        return columnName;
+      }).join(', ');
 
-  cql += util.format(' FROM "%s"', columnFamily);
+  cql += format(' FROM "%s"', columnFamily);
 
   if (fromKey) {
-    cql += util.format(' WHERE token("%s") > token(?)', keyColumnName);
-    params.push(fromKey);
+    cql += format(' WHERE token("%s") > token(?)', keyColumnName);
+    parameters.push(fromKey);
   }
 
   cql += ' LIMIT ' + batchSize;
 
-  return { query: cql, parameters: params };
+  return { query: cql, parameters };
 };
 
 /**
@@ -777,7 +773,7 @@ const _buildIterateAllQuery = function(columnNames, columnFamily, keyColumnName,
  * @param  {Row}       row     The cassandra Row to convert to a hash
  * @return {Object}            Return an Object, keyed by the column name, with values being the column value.
  */
-const rowToHash = function(row) {
+const rowToHash = function (row) {
   const result = {};
   row.forEach((value, name) => {
     // We filter out null and undefined values, as Cassandra will return these when a query term has not matched
@@ -803,7 +799,7 @@ const rowToHash = function(row) {
  * @param  {Number}             [ttl]       The ttl that should be used for the columns upserted by this query, if any. If not specified, columns upserted will not expire
  * @return {Object}                         Returns a JSON object with a query key that contains the generated CQL query and a parameters key that contains the generated parameter array {query: CQLQuery, parameters: [parameterArray]}
  */
-const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
+const constructUpsertCQL = function (cf, rowKey, rowValue, values, ttl) {
   // Ensure the upsert CQL does not contain the row key in the SET portion by removing it. This is
   // set automatically by the "WHERE" clause with the row key
   values = _.omit(values, rowKey);
@@ -841,24 +837,24 @@ const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
     }
 
     if (!_.isUndefined(value) && !_.isNull(value)) {
-      columns.push(util.format('"%s" = ?', key));
+      columns.push(format('"%s" = ?', key));
       q.parameters.push(value);
     }
   });
 
-  q.query = util.format('UPDATE "%s"', cf);
+  q.query = format('UPDATE "%s"', cf);
 
   if (_.isNumber(ttl)) {
-    q.query += util.format(' USING TTL %s', ttl);
+    q.query += format(' USING TTL %s', ttl);
   }
 
   const whereClause = [];
   for (const [i, element] of rowKey.entries()) {
-    whereClause.push(util.format('"%s" = ?', element));
+    whereClause.push(format('"%s" = ?', element));
     q.parameters.push(rowValue[i]);
   }
 
-  q.query += util.format(' SET %s WHERE %s', columns.join(', '), whereClause.join(' AND '));
+  q.query += format(' SET %s WHERE %s', columns.join(', '), whereClause.join(' AND '));
 
   return q;
 };
@@ -872,8 +868,8 @@ const constructUpsertCQL = function(cf, rowKey, rowValue, values, ttl) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const executeQuery = function(query, parameters, callback) {
-  callback = callback || function() {};
+const executeQuery = function (query, parameters, callback) {
+  callback = callback || function () {};
   parameters = parameters || [];
 
   // Check for null parameters that have been passed in. We have to intercept this
@@ -887,18 +883,18 @@ const executeQuery = function(query, parameters, callback) {
   }
 
   // Copy the parameters if they were specified so we can log on them if there is an error
-  const logParams = parameters ? parameters.slice(0) : null;
+  const logParameters = parameters ? parameters.slice(0) : null;
 
-  client.execute(query, parameters, { prepare: true }, (err, resultSet) => {
-    if (err) {
-      log().error(_truncateLogParameters(err, query, logParams), 'An error occurred executing a cassandra query');
+  client.execute(query, parameters, { prepare: true }, (error, resultSet) => {
+    if (error) {
+      log().error(_truncateLogParameters(error, query, logParameters), 'An error occurred executing a cassandra query');
       return callback({ code: 500, msg: 'An error occurred executing a query' });
     }
 
     log().trace(
       {
         query,
-        parameters: logParams,
+        parameters: logParameters,
         rows: resultSet.rows
       },
       'Executed cassandra query'
@@ -918,14 +914,14 @@ const executeQuery = function(query, parameters, callback) {
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _describeKeyspace = function(keyspace, callback) {
+const _describeKeyspace = function (keyspace, callback) {
   const query = `DESCRIBE KEYSPACE ${keyspace}`;
-  client.execute(query, (err, definition) => {
-    if (err && err.name) {
-      if (err.name === 'NotFoundException') {
+  client.execute(query, (error, definition) => {
+    if (error && error.name) {
+      if (error.name === 'NotFoundException') {
         callback();
       } else {
-        log().error({ err }, 'Error while describing cassandra keyspace');
+        log().error({ err: error }, 'Error while describing cassandra keyspace');
         callback({ code: 500, msg: 'Error while describing cassandra keyspace' });
       }
     } else {
@@ -941,10 +937,10 @@ const _describeKeyspace = function(keyspace, callback) {
  * @param  {Object}     data    Error data to log in the message. Any `err` key on this object will be overridden by the custom error.
  * @api private
  */
-const _logCustomError = function(msg, data) {
+const _logCustomError = function (message, data) {
   data = data || {};
-  data.err = new Error(msg);
-  log().error(_truncateLogParameters(data.err, data.query, data.parameters), msg);
+  data.err = new Error(message);
+  log().error(_truncateLogParameters(data.err, data.query, data.parameters), message);
 };
 
 /**
@@ -957,31 +953,34 @@ const _logCustomError = function(msg, data) {
  * @return {Object}                 The log data object to use when logging these parameters
  * @api private
  */
-const _truncateLogParameters = function(err, query, params) {
+const _truncateLogParameters = function (error, query, parameters) {
   // We truncate the query string to a maximum
-  const queryMaxStrLength = 300;
+  const queryMaxStringLength = 300;
 
   // We truncate the params string representation to a maximum. Only if it
   // exceeds the max string length do we apply the length for maximum params
   // array size and individual paramter string length
-  const paramsStrMaxLength = 800;
-  const paramsArrayMaxLength = 10;
-  const paramStrMaxLength = 80;
+  const parametersStringMaxLength = 800;
+  const parametersArrayMaxLength = 10;
+  const parameterStringMaxLength = 80;
 
   // Truncate the query string if necessary
-  query = _truncateString(query, queryMaxStrLength);
+  query = _truncateString(query, queryMaxStringLength);
 
   // Truncate the query parameters if necessary
-  const paramsStr = JSON.stringify(params);
-  if (paramsStr && paramsStr.length > paramsStrMaxLength) {
+  const parametersString = JSON.stringify(parameters);
+  if (parametersString && parametersString.length > parametersStringMaxLength) {
     // Truncate each log parameter if necessary
-    params = _.map(params.slice(0, paramsArrayMaxLength), _.partial(_truncateString, _, paramStrMaxLength));
+    parameters = _.map(
+      parameters.slice(0, parametersArrayMaxLength),
+      _.partial(_truncateString, _, parameterStringMaxLength)
+    );
   }
 
   return {
-    err,
+    err: error,
     query,
-    parameters: params
+    parameters
   };
 };
 
@@ -993,15 +992,15 @@ const _truncateLogParameters = function(err, query, params) {
  * @return {String}                 The truncated string. If truncated, there's no guarantee on the new length, but it will be unsubstantially longer than `ifOverSize` (i.e., ~10 characters more)
  * @api private
  */
-const _truncateString = function(str, ifOverSize) {
-  if (_.isString(str) && str.length > ifOverSize) {
-    str = util.format('%s (and %s more)', str.slice(0, ifOverSize), str.length - ifOverSize);
+const _truncateString = function (string, ifOverSize) {
+  if (_.isString(string) && string.length > ifOverSize) {
+    string = format('%s (and %s more)', string.slice(0, ifOverSize), string.length - ifOverSize);
   }
 
-  return str;
+  return string;
 };
 
-const parsePreviewsFromRow = row => {
+const parsePreviewsFromRow = (row) => {
   const hash = rowToHash(row);
   if (hash.previews) {
     try {

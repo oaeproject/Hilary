@@ -22,7 +22,7 @@ import * as EmitterAPI from 'oae-emitter';
  * @function Counter
  * @return {Object}    An object with several functions that manipulate the counter
  */
-const Counter = function() {
+const Counter = function () {
   let _count = 0;
   const _emitter = new EmitterAPI.EventEmitter();
 
@@ -32,7 +32,7 @@ const Counter = function() {
    * Set the current count of the counter to zero
    *
    */
-  that.zero = function() {
+  that.zero = function () {
     _count = 0;
     _emitter.emit('empty');
   };
@@ -42,7 +42,7 @@ const Counter = function() {
    *
    * @return {Number}     The current count
    */
-  that.get = function() {
+  that.get = function () {
     return _count;
   };
 
@@ -51,8 +51,7 @@ const Counter = function() {
    *
    * @param  {Number}     [incrBy]    How much to increment the counter by. Default: 1
    */
-  that.incr = function(incrBy) {
-    incrBy = incrBy || 1;
+  that.incr = function (incrBy = 1) {
     _count += incrBy;
   };
 
@@ -64,9 +63,7 @@ const Counter = function() {
    *
    * @param  {Number}     [decrBy]    How much to decrement the counter by. Default: 1
    */
-  that.decr = function(decrBy) {
-    decrBy = decrBy || 1;
-
+  that.decr = function (decrBy = 1) {
     // If the count is already "empty", just ensure we're settled at 0 and don't fire any events
     if (_count <= 0) {
       _count = 0;
@@ -89,7 +86,7 @@ const Counter = function() {
    * @param  {Function}       handler     Invoked when the count becomes `0`
    * @returns {EventEmitter}              Returns the promise that the `handler` function will be called once for the `empty` event
    */
-  that.whenZero = function(handler) {
+  that.whenZero = function (handler) {
     if (_count <= 0) {
       return handler();
     }

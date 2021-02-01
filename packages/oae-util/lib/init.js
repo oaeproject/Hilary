@@ -15,18 +15,18 @@
 
 import { logger } from 'oae-logger';
 
-import * as Cassandra from './cassandra';
-import * as Cleaner from './cleaner';
-import * as Locking from './locking';
-import * as MQ from './mq';
-import * as Pubsub from './pubsub';
-import * as Redis from './redis';
-import * as Signature from './signature';
-import * as Tempfile from './tempfile';
+import * as Cassandra from './cassandra.js';
+import * as Cleaner from './cleaner.js';
+import * as Locking from './locking.js';
+import * as MQ from './mq.js';
+import * as Pubsub from './pubsub.js';
+import * as Redis from './redis.js';
+import * as Signature from './signature.js';
+import * as Tempfile from './tempfile.js';
 
 const log = logger('oae-cassandra');
 
-export const init = function(config, callback) {
+export const init = function (config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
   bootCassandra(config, () => {
@@ -41,9 +41,9 @@ export const init = function(config, callback) {
 };
 
 const bootCassandra = (config, callback) => {
-  const retryCallback = function(err) {
+  const retryCallback = function (error) {
     const timeout = 5;
-    if (err) {
+    if (error) {
       log().error('Error connecting to cassandra, retrying in ' + timeout + 's...');
       return setTimeout(Cassandra.init, timeout * 1000, config.cassandra, retryCallback);
     }
@@ -57,9 +57,9 @@ const bootCassandra = (config, callback) => {
 const bootRedis = (config, callback) => {
   // Allows for simple redis client creations
   // TODO: Move this into its own oae-redis module with a high priority. All of the init(..) stuff then goes in its init.js
-  Redis.init(config.redis, (err /* , _redisClient */) => {
-    if (err) {
-      return callback(err);
+  Redis.init(config.redis, (error /* , _redisClient */) => {
+    if (error) {
+      return callback(error);
     }
 
     // Initialize the Redis based locking
@@ -71,9 +71,9 @@ const bootPubSub = (config, callback) => {
   // Setup the Pubsub communication
   // This requires that the redis utility has already been loaded.
   // TODO: Move this into its own oae-pubsub module with a high priority. All of the init(..) stuff then goes in its init.js
-  Pubsub.init(config.redis, err => {
-    if (err) {
-      return callback(err);
+  Pubsub.init(config.redis, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Setup the key signing utility
@@ -93,8 +93,8 @@ const bootPubSub = (config, callback) => {
 
 const bootMQ = (config, callback) => {
   // Initialize the redis queue listener
-  MQ.init(config.mq, err => {
-    if (err) return callback(err);
+  MQ.init(config.mq, (error) => {
+    if (error) return callback(error);
 
     callback();
   });

@@ -14,7 +14,8 @@
  */
 
 import fs from 'fs';
-import { basename, extname } from 'path';
+import Path from 'path';
+const { basename, extname } = Path;
 import sharp from 'sharp';
 
 import temp from 'temp';
@@ -54,14 +55,14 @@ const isNotDefined = compose(not, isDefined);
  * @param  {String}     callback.file.name      The name of the file
  * @param  {Number}     callback.file.size      The size of the oriented image (in bytes)
  */
-const autoOrient = function(inputPath, opts, callback) {
-  opts = defaultTo({}, opts);
-  const outputPath = defaultTo(temp.path({ suffix: getImageExtension(inputPath, '.jpg') }), opts.outputPath);
+const autoOrient = function (inputPath, options, callback) {
+  options = defaultTo({}, options);
+  const outputPath = defaultTo(temp.path({ suffix: getImageExtension(inputPath, '.jpg') }), options.outputPath);
   sharp(inputPath)
     .rotate()
-    .toFile(outputPath, (err, info) => {
-      if (err) {
-        log().error({ err }, 'Could not auto orient the image %s', inputPath);
+    .toFile(outputPath, (error, info) => {
+      if (error) {
+        log().error({ err: error }, 'Could not auto orient the image %s', inputPath);
         return callback({ code: 500, msg: 'Could not auto orient the image' });
       }
 
@@ -72,12 +73,12 @@ const autoOrient = function(inputPath, opts, callback) {
       };
 
       // Return without deleting the file if the caller specified to do so
-      if (isNotDefined(opts.removeInput)) return callback(null, file);
+      if (isNotDefined(options.removeInput)) return callback(null, file);
 
       // Delete the input file now that we've completed
-      fs.unlink(inputPath, err => {
-        if (err) {
-          log().error({ err }, 'Could not unlink the input image');
+      fs.unlink(inputPath, (error) => {
+        if (error) {
+          log().error({ err: error }, 'Could not unlink the input image');
           return callback({ code: 500, msg: 'Could not unlink the input image' });
         }
 
@@ -99,7 +100,7 @@ const autoOrient = function(inputPath, opts, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.files          An object where each entry holds a resized file. The keys are of the form `size.width + 'x' + size.height`
  */
-const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
+const cropAndResize = function (imagePath, selectedArea, sizes, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -158,8 +159,8 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
     return callback(error);
   }
 
-  _cropImage(imagePath, selectedArea, (err, croppedFile) => {
-    if (err) return callback(err);
+  _cropImage(imagePath, selectedArea, (error, croppedFile) => {
+    if (error) return callback(error);
 
     const allSizes = {};
     const resizeForAllSizes = (sizes, croppedFile, allSizes, callback) => {
@@ -167,8 +168,8 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
       const nextSize = sizes.pop();
       const key = `${nextSize.width}x${nextSize.height}`;
-      resizeFor(nextSize, croppedFile, (err, resizedFile) => {
-        if (err) return callback(err);
+      resizeFor(nextSize, croppedFile, (error, resizedFile) => {
+        if (error) return callback(error);
 
         allSizes[key] = resizedFile;
         return resizeForAllSizes(sizes, croppedFile, allSizes, callback);
@@ -177,16 +178,16 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
 
     const resizeFor = (size, croppedFile, callback) => {
       const { width, height } = size;
-      _resizeImage(croppedFile.path, { width, height }, (err, file) => {
-        if (err) return callback(err);
+      _resizeImage(croppedFile.path, { width, height }, (error, file) => {
+        if (error) return callback(error);
 
         return callback(null, file);
       });
     };
 
     resizeForAllSizes(sizes, croppedFile, allSizes, () => {
-      fs.unlink(croppedFile.path, err => {
-        if (err) return callback({ code: 500, msg: err });
+      fs.unlink(croppedFile.path, (error_) => {
+        if (error_) return callback({ code: 500, msg: error_ });
 
         return callback(null, allSizes);
       });
@@ -210,7 +211,7 @@ const cropAndResize = function(imagePath, selectedArea, sizes, callback) {
  * @param  {String}     callback.file.name      The name of the file
  * @param  {Number}     callback.file.size      The size in bytes of the cropped image
  */
-const cropImage = function(imagePath, selectedArea, callback) {
+const cropImage = function (imagePath, selectedArea, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -266,22 +267,22 @@ const cropImage = function(imagePath, selectedArea, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the cropped image
  * @api private
  */
-const _cropImage = function(imagePath, selectedArea, callback) {
-  const tempPath = temp.path({ suffix: getImageExtension(imagePath, '.jpg') });
+const _cropImage = function (imagePath, selectedArea, callback) {
+  const temporaryPath = temp.path({ suffix: getImageExtension(imagePath, '.jpg') });
   const { width, height, x: left, y: top } = selectedArea;
 
   sharp(imagePath)
     .extract({ width, height, left, top })
-    .toFile(tempPath, (err, info) => {
-      if (err) {
-        log().error({ err }, err.message);
-        return callback({ code: 500, msg: err.message });
+    .toFile(temporaryPath, (error, info) => {
+      if (error) {
+        log().error({ err: error }, error.message);
+        return callback({ code: 500, msg: error.message });
       }
 
       const file = {
-        path: tempPath,
+        path: temporaryPath,
         size: info.size,
-        name: basename(tempPath)
+        name: basename(temporaryPath)
       };
 
       return callback(null, file);
@@ -302,7 +303,7 @@ const _cropImage = function(imagePath, selectedArea, callback) {
  * @param  {String}     callback.file.name      The name of the file
  * @param  {Number}     callback.file.size      The size in bytes of the resized image
  */
-const resizeImage = function(imagePath, size, callback) {
+const resizeImage = function (imagePath, size, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -346,22 +347,22 @@ const resizeImage = function(imagePath, size, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the resized image
  * @api private
  */
-const _resizeImage = function(imagePath, size, callback) {
+const _resizeImage = function (imagePath, size, callback) {
   const { width, height } = size;
-  const tempPath = temp.path({ suffix: `${width}x${height}${getImageExtension(imagePath, '.jpg')}` });
+  const temporaryPath = temp.path({ suffix: `${width}x${height}${getImageExtension(imagePath, '.jpg')}` });
 
   sharp(imagePath)
     .resize(size.width, size.height)
-    .toFile(tempPath, (err, info) => {
-      if (err) {
-        log().error({ err }, 'Could not resize the image %s', imagePath);
+    .toFile(temporaryPath, (error, info) => {
+      if (error) {
+        log().error({ err: error }, 'Could not resize the image %s', imagePath);
         return callback({ code: 500, msg: 'Could not resize the image' });
       }
 
       const file = {
-        path: tempPath,
+        path: temporaryPath,
         size: info.size,
-        name: basename(tempPath)
+        name: basename(temporaryPath)
       };
 
       return callback(null, file);
@@ -376,7 +377,7 @@ const _resizeImage = function(imagePath, size, callback) {
  * @param  {String}     [fallback]  The fallback extension. Defaults to '.jpg'
  * @return {String}                 A proper image extension. e.g., '.jpg'
  */
-const getImageExtension = function(sourceFile, fallback) {
+const getImageExtension = function (sourceFile, fallback) {
   fallback = defaultTo('.jpg', fallback);
   let extension = extname(sourceFile);
 
@@ -401,7 +402,7 @@ const getImageExtension = function(sourceFile, fallback) {
  * @param  {String}     callback.file.name      The name of the file
  * @param  {Number}     callback.file.size      The size of the resized image (in bytes)
  */
-const convertToJPG = function(inputPath, callback) {
+const convertToJPG = function (inputPath, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -412,7 +413,7 @@ const convertToJPG = function(inputPath, callback) {
   }
 
   const itsAGif = compose(equals('.gif'), extname);
-  const conversionPath = when(itsAGif, filePath => concat(filePath, '[0]'), inputPath);
+  const conversionPath = when(itsAGif, (filePath) => concat(filePath, '[0]'), inputPath);
 
   const now = Date.now();
   const outputPath = temp.path({ suffix: '.jpg' });
@@ -421,10 +422,10 @@ const convertToJPG = function(inputPath, callback) {
   sharp(conversionPath)
     .flatten({ background: 'white' })
     .jpeg()
-    .toFile(outputPath, (err, info) => {
+    .toFile(outputPath, (error, info) => {
       const durationMs = Date.now() - now;
-      if (err) {
-        log().error({ err }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
+      if (error) {
+        log().error({ err: error }, 'Unable to convert input image to JPG (Took %sms)', durationMs);
         return callback({ code: 500, msg: 'Failed converting input image to JPG' });
       }
 

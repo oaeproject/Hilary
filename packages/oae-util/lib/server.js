@@ -14,20 +14,29 @@
  */
 
 import http from 'http';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
+import { nth, split, compose, not, indexOf, equals, either } from 'ramda';
 import bodyParser from 'body-parser';
 import express from 'express';
 
 import { logger } from 'oae-logger';
 
 import * as TelemetryAPI from 'oae-telemetry';
-import OaeEmitter from './emitter';
+import OaeEmitter from './emitter.js';
 
-import multipart from './middleware/multipart';
-import * as Shutdown from './internal/shutdown';
+import multipart from './middleware/multipart.js';
+import * as Shutdown from './internal/shutdown.js';
 
 const log = logger('oae-server');
+
+const notExists = compose(not, Boolean);
+const SLASH = '/';
+const PROTOCOL_SEPARATOR = '://';
+const isValidReferer = compose(not, equals(0), indexOf(SLASH));
+
+const isGET = equals('GET');
+const isHEAD = equals('HEAD');
 
 // The main OAE config
 let config = null;
@@ -43,7 +52,7 @@ const safePathPrefixes = [];
  * @param  {Object}     config      JSON object containing configuration values for Cassandra, Redis, logging and telemetry
  * @return {Express}                The created express server
  */
-const setupServer = function(port, _config) {
+const setupServer = function (port, _config) {
   // Cache the config
   config = _config;
 
@@ -77,15 +86,15 @@ const setupServer = function(port, _config) {
   app.use(multipart(config.files));
 
   // Add telemetry before we do anything else
-  app.use((req, res, next) => {
-    TelemetryAPI.request(req, res);
+  app.use((request, response, next) => {
+    TelemetryAPI.request(request, response);
     return next();
   });
 
   // Add CORS headers, cookies won't be passed in so all cross domain requests will be anonymous
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  app.use((request, response, next) => {
+    response.header('Access-Control-Allow-Origin', '*');
+    response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     return next();
   });
 
@@ -100,7 +109,7 @@ const setupServer = function(port, _config) {
  * @param  {Express}       The express server these routes belong to
  * @return {Router}        An object for associating routes to the server
  */
-const setupRouter = function(app) {
+const setupRouter = function (app) {
   const that = {};
   that.routes = [];
 
@@ -113,22 +122,18 @@ const setupRouter = function(app) {
    * @param  {String}               [telemetryUrl]  The string to use for telemetry tracking
    * @throws {Error}                                Error thrown when arguments aren't of the proper type
    */
-  that.on = function(method, route, handler, telemetryUrl) {
+  that.on = function (method, route, handler, telemetryUrl) {
     const isRouteValid = _.isString(route) || _.isRegExp(route);
     const isHandlerValid = _.isFunction(handler) || _.isArray(handler);
     if (!_.isString(method)) {
       throw new TypeError(
-        util.format(
-          'Invalid type for request method "%s" when binding route "%s" to OAE Router',
-          method,
-          route.toString()
-        )
+        format('Invalid type for request method "%s" when binding route "%s" to OAE Router', method, route.toString())
       );
     } else if (!isRouteValid) {
-      throw new Error(util.format('Invalid route path "%s" while binding route to OAE Router', route.toString()));
+      throw new Error(format('Invalid route path "%s" while binding route to OAE Router', route.toString()));
     } else if (!isHandlerValid) {
       throw new Error(
-        util.format('Invalid method handler given for route "%s" while binding to OAE Router', route.toString())
+        format('Invalid method handler given for route "%s" while binding to OAE Router', route.toString())
       );
     }
 
@@ -143,12 +148,12 @@ const setupRouter = function(app) {
   /**
    * Bind all the routes, this should only be called once by the server initialization
    */
-  that.bind = function() {
-    _.each(that.routes, route => {
+  that.bind = function () {
+    _.each(that.routes, (route) => {
       // Add a telemetry handler
       const handlers = [
-        function(req, res, next) {
-          req.telemetryUrl = route.telemetryUrl || route.route.replace(/:/, '');
+        function (request, response, next) {
+          request.telemetryUrl = route.telemetryUrl || route.route.replace(/:/, '');
           next();
         }
       ];
@@ -166,7 +171,7 @@ const setupRouter = function(app) {
  *
  * @param  {String}     pathPrefix  A path prefix that will not be validated against CSRF attacks
  */
-const addSafePathPrefix = function(pathPrefix) {
+const addSafePathPrefix = function (pathPrefix) {
   log().info('Adding %s to list of paths that are not CSRF-protected.', pathPrefix);
   safePathPrefixes.push(pathPrefix);
 };
@@ -180,7 +185,7 @@ const addSafePathPrefix = function(pathPrefix) {
  *
  * @param  {Express}    app     The express app for which the initialized should be finalized
  */
-const postInitializeServer = function(app, router) {
+const postInitializeServer = function (app, router) {
   /*!
    * Referer-based CSRF protection. If the request is not safe (e.g., POST, DELETE) and the origin of the request (as
    * specified by the HTTP Referer header) does not match the target host of the request (as specified by the HTTP
@@ -199,23 +204,23 @@ const postInitializeServer = function(app, router) {
    *
    * More information about CSRF attacks: http://en.wikipedia.org/wiki/Cross-site_request_forgery
    */
-  app.use((req, res, next) => {
+  app.use((request, response, next) => {
     // If earlier middleware determined that CSRF is not required, we can skip the check
-    if (req._checkCSRF === false) {
+    if (request._checkCSRF === false) {
       return next();
     }
 
-    if (!_isSafeMethod(req.method) && !_isSafePath(req) && !_isSameOrigin(req)) {
+    if (!_isSafeMethod(request.method) && !_isSafePath(request) && !_isSameOrigin(request)) {
       log().warn(
         {
-          method: req.method,
-          host: req.headers.host,
-          referer: req.headers.referer,
-          targetPath: req.path
+          method: request.method,
+          host: request.headers.host,
+          referer: request.headers.referer,
+          targetPath: request.path
         },
         'CSRF validation failed: attempted to execute unsafe operation from untrusted origin'
       );
-      return _abort(res, 500, 'CSRF validation failed: attempted to execute unsafe method from untrusted origin');
+      return _abort(response, 500, 'CSRF validation failed: attempted to execute unsafe method from untrusted origin');
     }
 
     return next();
@@ -227,17 +232,17 @@ const postInitializeServer = function(app, router) {
   // Catch-all error handler
   const appTelemetry = TelemetryAPI.telemetry('server');
   // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
+  app.use((error, request, response, next) => {
     appTelemetry.incr('error.count');
-    log(req.ctx).error(
+    log(request.ctx).error(
       {
-        err,
-        req,
-        res
+        err: error,
+        req: request,
+        res: response
       },
       'Unhandled error in the request chain, caught at the default error handler'
     );
-    res.status(500).send('An unexpected error occurred');
+    response.status(500).send('An unexpected error occurred');
   });
 };
 
@@ -246,7 +251,7 @@ const postInitializeServer = function(app, router) {
  *
  * @return {Boolean}   Whether or not the server is running behind https.
  */
-const useHttps = function() {
+const useHttps = function () {
   return config.servers.useHttps;
 };
 
@@ -261,7 +266,7 @@ const useHttps = function() {
  * @param  {Number}         port    The port on which the server is listening
  * @api private
  */
-const _applyAvailabilityHandling = function(server, app, port) {
+const _applyAvailabilityHandling = function (server, app, port) {
   let isAvailable = false;
 
   OaeEmitter.on('ready', () => {
@@ -270,7 +275,7 @@ const _applyAvailabilityHandling = function(server, app, port) {
   });
 
   // Register a pre-shutdown handler that will close this express server to stop receiving requests
-  Shutdown.registerPreShutdownHandler('express-server-' + port, null, callback => {
+  Shutdown.registerPreShutdownHandler('express-server-' + port, null, (callback) => {
     log().info('Beginning shutdown.');
 
     // Stop accepting web requests
@@ -283,11 +288,11 @@ const _applyAvailabilityHandling = function(server, app, port) {
   });
 
   // Notify the front-end proxy that we are unable to accept requests if isAvailable is false
-  app.use((req, res, next) => {
+  app.use((request, response, next) => {
     if (!isAvailable) {
-      log().info({ path: req.path }, 'Rejecting request during shutdown with 502 error');
-      res.setHeader('Connection', 'close');
-      return res.status(502).send('Server is in the process of restarting');
+      log().info({ path: request.path }, 'Rejecting request during shutdown with 502 error');
+      response.setHeader('Connection', 'close');
+      return response.status(502).send('Server is in the process of restarting');
     }
 
     return next();
@@ -302,9 +307,9 @@ const _applyAvailabilityHandling = function(server, app, port) {
  * @param  {String}     message The message body to provide as a reason for aborting the request
  * @api private
  */
-const _abort = function(res, code, message) {
-  res.setHeader('Connection', 'Close');
-  return res.status(code).send(message);
+const _abort = function (response, code, message) {
+  response.setHeader('Connection', 'Close');
+  return response.status(code).send(message);
 };
 
 /**
@@ -314,9 +319,9 @@ const _abort = function(res, code, message) {
  * @return {Boolean}            `true` if the path is safe from CSRF attacks, `false` otherwise
  * @api private
  */
-const _isSafePath = function(req) {
-  const { path } = req;
-  const matchingPaths = _.filter(safePathPrefixes, safePathPrefix => {
+const _isSafePath = function (request) {
+  const { path } = request;
+  const matchingPaths = _.filter(safePathPrefixes, (safePathPrefix) => {
     return path.indexOf(safePathPrefix) === 0;
   });
   return matchingPaths.length > 0;
@@ -329,9 +334,7 @@ const _isSafePath = function(req) {
  * @return {Boolean}            `true` if the request method is safe (e.g., GET, HEAD), `false` otherwise
  * @api private
  */
-const _isSafeMethod = function(method) {
-  return method === 'GET' || method === 'HEAD';
-};
+const _isSafeMethod = (method) => either(isGET, isHEAD)(method);
 
 /**
  * Determine whether or not the origin host of the given request is the same as the target host.
@@ -340,26 +343,27 @@ const _isSafeMethod = function(method) {
  * @return {Boolean}            `true` if the request is of the same origin as the target host, `false` otherwise
  * @api private
  */
-const _isSameOrigin = function(req) {
-  let { host, referer } = req.headers;
+const _isSameOrigin = function (request) {
+  const { host, referer } = request.headers;
 
-  if (!referer) {
-    return false;
-  }
+  const isSameAsHost = equals(host);
+  const getHostPortion = compose(nth(1), split(PROTOCOL_SEPARATOR));
+  const getHostFirstToken = compose(nth(0), split(SLASH));
+  const isNotSameOrigin = compose(not, isSameAsHost, getHostFirstToken);
 
-  if (referer.indexOf('/') !== 0) {
+  if (notExists(referer)) return false;
+
+  if (isValidReferer(referer)) {
     // Verify the host portion against the host header
-    referer = referer.split('://')[1];
-    if (!referer || referer.split('/')[0] !== host) {
-      // If there is nothing after the protocol (e.g., "http://") or the host before the first slash does not match
-      // we deem it not to be the same origin.
-      return false;
-    }
+    const hostPortionOfReferer = getHostPortion(referer);
 
-    return true;
+    /**
+     * If there is nothing after the protocol (e.g., "http://") or the host before
+     * the first slash does not match we deem it not to be the same origin.
+     */
+    if (either(notExists, isNotSameOrigin)(hostPortionOfReferer)) return false;
   }
 
-  // If the referer is a relative uri, it must be from same origin.
   return true;
 };
 

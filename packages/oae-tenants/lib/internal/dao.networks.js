@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import clone from 'clone';
 import ShortId from 'shortid';
@@ -24,7 +25,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
 import * as EmitterAPI from 'oae-emitter';
 import * as Pubsub from 'oae-util/lib/pubsub';
 
-import { TenantNetwork } from '../model';
+import { TenantNetwork } from '../model.js';
 
 const log = logger('oae-tenants');
 
@@ -136,7 +137,7 @@ const getTenantNetwork = function (id, callback) {
     if (!_cacheTenantNetworks[id]) {
       return callback({
         code: 404,
-        msg: util.format('Attempted to access non-existing tenant network: "%s"', id)
+        msg: format('Attempted to access non-existing tenant network: "%s"', id)
       });
     }
 

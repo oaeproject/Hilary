@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import util from 'util';
+import { format } from 'util';
 import ShortId from 'shortid';
 import Counter from 'oae-util/lib/counter';
 import { generateRandomText } from 'oae-tests';
@@ -173,9 +173,8 @@ const assertTenantsEqual = function (actual, expected) {
  * @param  {String}     [seed]  String that should be used as the first part of the generated alias. Defaults to "tenant"
  * @return {String}             The generated tenant alias
  */
-const generateTestTenantAlias = function (seed) {
-  seed = seed || 'tenant';
-  return util.format('%s-%s', seed, ShortId.generate()).toLowerCase();
+const generateTestTenantAlias = function (seed = 'tenant') {
+  return format('%s-%s', seed, ShortId.generate()).toLowerCase();
 };
 
 /**
@@ -188,7 +187,7 @@ const generateTestTenantHost = function (seed, randomText) {
   seed = seed || 'host';
   // This is so wrong
   randomText = randomText || generateRandomText();
-  return util.format('%s-%s.local', seed, randomText);
+  return format('%s-%s.local', seed, randomText);
 };
 
 /**
@@ -201,7 +200,7 @@ const generateTestTenantHost = function (seed, randomText) {
 const clearTenantLandingPage = function (adminRestContext, callback) {
   const config = {};
   for (let i = 1; i <= 12; i++) {
-    const blockName = util.format('block_%d', i);
+    const blockName = format('block_%d', i);
     config['oae-tenants/' + blockName + '/type'] = 'empty';
   }
 

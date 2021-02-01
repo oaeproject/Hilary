@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import $ from 'cheerio';
 
@@ -38,7 +38,7 @@ import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
-import { UIConstants } from './constants';
+import { UIConstants } from './constants.js';
 
 const log = logger('oae-ui');
 
@@ -92,7 +92,7 @@ const emitter = UIAPI;
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(_uiDirectory, _hashes, callback) {
+const init = function (_uiDirectory, _hashes, callback) {
   // Cache the ui directory path and make sure we have the absolute path
   uiDirectory = _uiDirectory;
   hashes = _hashes;
@@ -106,7 +106,7 @@ const init = function(_uiDirectory, _hashes, callback) {
     // Monitor the UI repository for changes and refresh the cache.
     // This will only be done in development mode
     if (process.env.NODE_ENV !== 'production') {
-      watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, monitor => {
+      watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, (monitor) => {
         monitor.on('created', updateFileCaches);
         monitor.on('changed', updateFileCaches);
         monitor.on('removed', updateFileCaches);
@@ -114,9 +114,9 @@ const init = function(_uiDirectory, _hashes, callback) {
     }
 
     // Cache the base skin file
-    _cacheSkinVariables(err => {
-      if (err) {
-        return callback(err);
+    _cacheSkinVariables((error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Ensure the skins are not cached, as they may be invalid now
@@ -128,12 +128,12 @@ const init = function(_uiDirectory, _hashes, callback) {
   });
 };
 
-ConfigAPI.eventEmitter.on('update', tenantAlias => {
+ConfigAPI.eventEmitter.on('update', (tenantAlias) => {
   // Re-generate the skin.
   // Don't delete it from the cache just yet as we might still be serving requests.
-  _generateSkin(tenantAlias, err => {
-    if (err) {
-      log().error({ err, tenantAlias }, 'Could not re-cache the tenant skin after a config update.');
+  _generateSkin(tenantAlias, (error) => {
+    if (error) {
+      log().error({ err: error, tenantAlias }, 'Could not re-cache the tenant skin after a config update.');
     }
 
     emitter.emit('skinParsed');
@@ -153,7 +153,7 @@ ConfigAPI.eventEmitter.on('update', tenantAlias => {
  * @param  {String}     filename        The absolute path to the file that has been added/updated/deleted
  * @api private
  */
-const updateFileCaches = function(filename) {
+const updateFileCaches = function (filename) {
   filename = filename.replace(uiDirectory, '');
   // Delete the file from the static file cache, for it to be re-cached when it is requested again
   delete staticFileCache[filename];
@@ -168,9 +168,9 @@ const updateFileCaches = function(filename) {
     cachedSkins = {};
 
     // Retrieve the skin variables.
-    _cacheSkinVariables(err => {
-      if (err) {
-        log().error({ err }, 'Could not cache the skin variables after a file update.');
+    _cacheSkinVariables((error) => {
+      if (error) {
+        log().error({ err: error }, 'Could not cache the skin variables after a file update.');
       }
     });
 
@@ -189,7 +189,7 @@ const updateFileCaches = function(filename) {
  *
  * @return {Object}     An object where each key is the widget id and the value is the widget manifest
  */
-const getWidgetManifests = function() {
+const getWidgetManifests = function () {
   return widgetManifestCache;
 };
 
@@ -198,7 +198,7 @@ const getWidgetManifests = function() {
  *
  * @api private
  */
-const cacheWidgetManifests = function(done) {
+const cacheWidgetManifests = function (done) {
   widgetManifestCache = {};
 
   readdirp(
@@ -212,16 +212,10 @@ const cacheWidgetManifests = function(done) {
       fileFilter: 'manifest.json'
     }
   )
-    .on('data', entry => {
+    .on('data', (entry) => {
       // Extract the widget id from the path
-      const widgetId = entry.path
-        .split(path.sep)
-        .splice(1, 1)
-        .join();
-      const parentDir = entry.path
-        .split(path.sep)
-        .splice(0, 2)
-        .join(path.sep);
+      const widgetId = entry.path.split(path.sep).splice(1, 1).join();
+      const parentDir = entry.path.split(path.sep).splice(0, 2).join(path.sep);
 
       try {
         const widgetManifest = fs.readFileSync(entry.fullPath, 'utf8');
@@ -234,11 +228,11 @@ const cacheWidgetManifests = function(done) {
       widgetManifestCache[widgetId].id = widgetId;
       widgetManifestCache[widgetId].path = parentDir + '/';
     })
-    .on('warn', err => {
-      log().warn({ err }, 'A non-fatal error occured whilst caching a widget manifest');
+    .on('warn', (error) => {
+      log().warn({ err: error }, 'A non-fatal error occured whilst caching a widget manifest');
     })
-    .on('error', err => {
-      log().error({ err }, 'A fatal error occured whilst caching a widget manifest');
+    .on('error', (error) => {
+      log().error({ err: error }, 'A fatal error occured whilst caching a widget manifest');
     })
     .on('end', done);
 };
@@ -251,7 +245,7 @@ const cacheWidgetManifests = function(done) {
  * @return {Boolean}            `true` if `readdirp` should further recurse into the directory, `false` otherwise
  * @api private
  */
-const _widgetDirectoryFilter = function(entry) {
+const _widgetDirectoryFilter = function (entry) {
   return entry.fullPath.includes('/packages/oae-');
 };
 
@@ -268,7 +262,7 @@ const _widgetDirectoryFilter = function(entry) {
  * @param  {Object}      callback.err    An error that occurred, if any
  * @param  {Object}      callback.data   JSON Object representing the retrieved files
  */
-const getStaticBatch = function(files, callback) {
+const getStaticBatch = function (files, callback) {
   const { isNotNull, isArrayNotEmpty, notContains, unless, isNotEmpty } = validator;
   try {
     unless(isNotNull, {
@@ -302,9 +296,9 @@ const getStaticBatch = function(files, callback) {
   }
 
   const results = {};
-  files.forEach(file => {
-    getStaticFile(file, (err, data) => {
-      if (err) {
+  files.forEach((file) => {
+    getStaticFile(file, (error, data) => {
+      if (error) {
         results[file] = null;
       } else {
         results[file] = data;
@@ -327,7 +321,7 @@ const getStaticBatch = function(files, callback) {
  * @param  {Object}      callback.err    An error that occurred, if any
  * @param  {String}      callback.data   The file content for the requested file
  */
-const getStaticFile = function(path, callback) {
+const getStaticFile = function (path, callback) {
   // Try to retrieve the file content from cache
   if (staticFileCache[path]) {
     callback(null, staticFileCache[path]);
@@ -345,10 +339,10 @@ const getStaticFile = function(path, callback) {
  * @param  {String}      callback.data       The data that sits in the file.
  * @api private
  */
-const cacheFile = function(path, callback) {
-  fs.readFile(uiDirectory + path, 'utf8', (err, data) => {
-    if (err) {
-      return callback(err);
+const cacheFile = function (path, callback) {
+  fs.readFile(uiDirectory + path, 'utf8', (error, data) => {
+    if (error) {
+      return callback(error);
     }
 
     // Cache the file content
@@ -369,7 +363,7 @@ const cacheFile = function(path, callback) {
  * @return {Section[]}  The sorted array of sections as they appear in the less file.
  * @api private
  */
-const sortSections = function(sections) {
+const sortSections = function (sections) {
   /*!
    * A comparator that can be used to sort an array of sections or subsections.
    *
@@ -377,7 +371,7 @@ const sortSections = function(sections) {
    * @param  {Section}    sectionB    Second section to compare.
    * @return {Number}                 An integer that expresses the relative order of the passed in sections.
    */
-  const comparator = function(sectionA, sectionB) {
+  const comparator = function (sectionA, sectionB) {
     return sectionA.index - sectionB.index;
   };
 
@@ -385,13 +379,13 @@ const sortSections = function(sections) {
   sections.sort(comparator);
 
   // Give all of the subsections the same order as the one they have in the LESS file.
-  _.each(sections, section => {
+  _.each(sections, (section) => {
     section.subsections = _.values(section.subsections).sort(comparator);
 
     // Remove the unneeded index property of each section.
     delete section.index;
     // Remove the unneeded index property of each subsection
-    _.each(section.subsections, subsection => {
+    _.each(section.subsections, (subsection) => {
       delete subsection.index;
     });
   });
@@ -406,7 +400,7 @@ const sortSections = function(sections) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.css    The generated CSS
  */
-const getSkin = function(ctx, callback) {
+const getSkin = function (ctx, callback) {
   const tenantAlias = ctx.tenant().alias;
   if (cachedSkins[tenantAlias]) {
     return callback(null, cachedSkins[tenantAlias]);
@@ -423,7 +417,7 @@ const getSkin = function(ctx, callback) {
  * @param  {Object}   callback.err   An error that occurred, if any
  * @param  {String}   callback.logo  The generated URL String
  */
-const getLogo = function(ctx, callback) {
+const getLogo = function (ctx, callback) {
   // Get all the default variables in the skin, as well as the tenant overrides
   const tenantAlias = ctx.tenant().alias;
   const allVariables = getTenantSkinVariables(tenantAlias);
@@ -443,16 +437,16 @@ const getLogo = function(ctx, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object[]}   callback.variables  The LESS skin variables for the tenant skin
  */
-const getSkinVariables = function(ctx, tenantAlias, callback) {
+const getSkinVariables = function (ctx, tenantAlias, callback) {
   tenantAlias = tenantAlias || ctx.tenant().alias;
 
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only administrators can retrieve the skin variables' });
   }
 
-  const applyTenantValues = function(err, skinVariables) {
-    if (err) {
-      return callback(err);
+  const applyTenantValues = function (error, skinVariables) {
+    if (error) {
+      return callback(error);
     }
 
     // Get the values for this tenant.
@@ -539,7 +533,7 @@ const getSkinVariables = function(ctx, tenantAlias, callback) {
  *
  * @return {String}                     The configured UI directory path
  */
-const getUIDirectory = function() {
+const getUIDirectory = function () {
   return uiDirectory;
 };
 
@@ -552,14 +546,14 @@ const getUIDirectory = function() {
  * @param  {String}     callback.css    The generated CSS.
  * @api private
  */
-const _generateSkin = function(tenantAlias, callback) {
+const _generateSkin = function (tenantAlias, callback) {
   // Get all the default variables in the skin, as well as the tenant overrides
   const allVariables = getTenantSkinVariables(tenantAlias);
 
   // Parse the less file and supply the tenant values.
-  _parseLessFile(allVariables, (err, tree) => {
-    if (err) {
-      return callback(err);
+  _parseLessFile(allVariables, (error, tree) => {
+    if (error) {
+      return callback(error);
     }
 
     // Generate some CSS from the parse tree and cache it.
@@ -587,14 +581,14 @@ const _generateSkin = function(tenantAlias, callback) {
  * @param  {Object}   callback.tree     The CSS syntax tree.
  * @api private
  */
-const _parseLessFile = function(variables, callback) {
+const _parseLessFile = function (variables, callback) {
   variables = variables || {};
 
   // Read the skin file.
-  getStaticFile(UIConstants.paths.BASE_SKIN, (err, skin) => {
-    if (err) {
-      log().error({ err }, 'Could not read the skin file.');
-      return callback(err);
+  getStaticFile(UIConstants.paths.BASE_SKIN, (error, skin) => {
+    if (error) {
+      log().error({ err: error }, 'Could not read the skin file.');
+      return callback(error);
     }
 
     variables = _replaceOptimizedPaths(variables);
@@ -608,10 +602,10 @@ const _parseLessFile = function(variables, callback) {
     // Parse the less file.
     // eslint-disable-next-line new-cap
     const parser = less.Parser({});
-    parser.parse(skin, (err, tree) => {
-      if (err) {
-        log().error({ err }, 'Could not parse the skin file.');
-        return callback({ code: 500, msg: err });
+    parser.parse(skin, (error, tree) => {
+      if (error) {
+        log().error({ err: error }, 'Could not parse the skin file.');
+        return callback({ code: 500, msg: error });
       }
 
       callback(null, tree);
@@ -627,10 +621,10 @@ const _parseLessFile = function(variables, callback) {
  * @param  {String}     callback.variables    The generated CSS.
  * @api private
  */
-const _cacheSkinVariables = function(callback) {
-  _parseLessFile(null, (err, tree) => {
-    if (err) {
-      return callback(err);
+const _cacheSkinVariables = function (callback) {
+  _parseLessFile(null, (error, tree) => {
+    if (error) {
+      return callback(error);
     }
 
     const variables = {};
@@ -760,7 +754,7 @@ const _cacheSkinVariables = function(callback) {
  * @param  {String}     tenantAlias     The alias of the tenant for which to retrieve the skin values
  * @return {Object}                     The skin values for the given tenant
  */
-const getTenantSkinVariables = function(tenantAlias) {
+const getTenantSkinVariables = function (tenantAlias) {
   const defaultVariables = _getDefaultSkinVariableValues();
   const tenantVariables = _getTenantSkinVariableValues(tenantAlias);
 
@@ -783,10 +777,10 @@ const getTenantSkinVariables = function(tenantAlias) {
  * @param  {String}     tenantAlias     The value to use to replace `${tenantAlias}` in the specified property
  * @api private
  */
-const _renderDynamicValue = function(obj, key, tenantAlias) {
-  const value = obj[key];
+const _renderDynamicValue = function (object, key, tenantAlias) {
+  const value = object[key];
   if (_.isString(value)) {
-    obj[key] = value.replace(/\$\{tenantAlias\}/g, tenantAlias);
+    object[key] = value.replace(/\${tenantAlias}/g, tenantAlias);
   }
 };
 
@@ -798,7 +792,7 @@ const _renderDynamicValue = function(obj, key, tenantAlias) {
  * @return {Object}             The CSS values keyed by the LESS variable name (without the '@'.)
  * @api private
  */
-const _getTenantSkinVariableValues = function(tenantAlias) {
+const _getTenantSkinVariableValues = function (tenantAlias) {
   const variables = uiConfig.getValue(tenantAlias, 'skin', 'variables');
   if (!variables || !_.isObject(variables)) {
     return {};
@@ -814,7 +808,7 @@ const _getTenantSkinVariableValues = function(tenantAlias) {
  * @return {Object}    A simple variableName->variableValue mapping of variables that are embedded in the skin file
  * @api private
  */
-const _getDefaultSkinVariableValues = function() {
+const _getDefaultSkinVariableValues = function () {
   if (!cachedSkinVariables) {
     return null;
   }
@@ -849,7 +843,7 @@ const _getDefaultSkinVariableValues = function() {
  * @return {Object}                    An object of variableName->variableValue that contains the remapped URL variable values
  * @api private
  */
-const _replaceOptimizedPaths = function(skinVariables) {
+const _replaceOptimizedPaths = function (skinVariables) {
   const replacedVariables = _.extend({}, skinVariables);
 
   // If we have a path hashes mapping, we need to replace all URLs with those that have been optimized at build-time
@@ -864,7 +858,7 @@ const _replaceOptimizedPaths = function(skinVariables) {
         const url = value.replace(urlRegex, '$1').trim();
         if (hashes[url]) {
           // If an optimized mapping exists for this URL, replace it with the quotes
-          replacedVariables[key] = util.format("'%s'", hashes[url]);
+          replacedVariables[key] = format("'%s'", hashes[url]);
         }
       }
     });
@@ -883,7 +877,7 @@ const _replaceOptimizedPaths = function(skinVariables) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.url    The signed URL for the new logo file
  */
-const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
+const uploadLogoFile = function (ctx, file, tenantAlias, callback) {
   tenantAlias = tenantAlias || ctx.tenant().alias;
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     return callback({ code: 401, msg: 'Only administrators can upload new logos for tenants' });
@@ -895,11 +889,11 @@ const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
   }
 
   const options = {
-    prefix: util.format('logos/%s', tenantAlias)
+    prefix: format('logos/%s', tenantAlias)
   };
-  ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (err, uri) => {
-    if (err) {
-      return callback(err);
+  ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (error, uri) => {
+    if (error) {
+      return callback(error);
     }
 
     const signedUrl = ContentUtil.getSignedDownloadUrl(ctx, uri, -1, -1);
@@ -924,9 +918,9 @@ const uploadLogoFile = function(ctx, file, tenantAlias, callback) {
  * @param  {Object}     [variables]     Dynamic variables that should replace ${variable} placeholder in a translation. The replacements will happen based on the object keys
  * @return {String}                     The translated string
  */
-const translate = function(str, locale, variables) {
+const translate = function (string, locale, variables) {
   // Replace all __MSG__KEY__ instances with the appropriate translation
-  return str.replace(/__MSG__(.*?)__/gm, (match, i18nkey) => {
+  return string.replace(/__MSG__(.*?)__/gm, (match, i18nkey) => {
     let translation = null;
 
     // If we have an i18nkey for that locale, we use it
@@ -959,14 +953,14 @@ const translate = function(str, locale, variables) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _cacheI18nKeys = function(callback) {
+const _cacheI18nKeys = function (callback) {
   _cacheI18nKeysInDirectory(
     '/shared/oae/bundles',
-    entry => {
+    (entry) => {
       return entry;
     },
-    err => {
-      if (err) return callback(err);
+    (error) => {
+      if (error) return callback(error);
 
       return _cacheI18nKeysInDirectory('/packages', _widgetDirectoryFilter, callback);
     }
@@ -982,7 +976,7 @@ const _cacheI18nKeys = function(callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _cacheI18nKeysInDirectory = function(directory, directoryFilter, callback) {
+const _cacheI18nKeysInDirectory = function (directory, directoryFilter, callback) {
   // Ensure that we don't call our callback twice
   const done = _.once(callback);
 
@@ -998,18 +992,18 @@ const _cacheI18nKeysInDirectory = function(directory, directoryFilter, callback)
       fileFilter: '*.properties'
     }
   )
-    .on('data', entry => {
-      _cacheBundleFile(directory + '/' + entry.path, err => {
-        if (err) {
-          return done(err);
+    .on('data', (entry) => {
+      _cacheBundleFile(directory + '/' + entry.path, (error) => {
+        if (error) {
+          return done(error);
         }
       });
     })
-    .on('warn', err => {
-      log().warn({ err }, 'A non-fatal error occured whilst reading the i18n bundles');
+    .on('warn', (error) => {
+      log().warn({ err: error }, 'A non-fatal error occured whilst reading the i18n bundles');
     })
-    .on('error', err => {
-      log().error({ err }, 'A fatal error occured whilst reading the i18n bundles');
+    .on('error', (error) => {
+      log().error({ err: error }, 'A fatal error occured whilst reading the i18n bundles');
     })
     .on('end', done);
 };
@@ -1022,16 +1016,16 @@ const _cacheI18nKeysInDirectory = function(directory, directoryFilter, callback)
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _cacheBundleFile = function(bundlePath, callback) {
-  callback = callback || function() {};
+const _cacheBundleFile = function (bundlePath, callback) {
+  callback = callback || function () {};
 
   // The locale is defined as the string that comes before the extension
   const locale = path.basename(bundlePath, '.properties');
 
   // Get the bundle's file content
-  getStaticFile(bundlePath, (err, data) => {
-    if (err) {
-      log().error({ err, path: bundlePath }, 'Could not read an i18n bundle');
+  getStaticFile(bundlePath, (error, data) => {
+    if (error) {
+      log().error({ err: error, path: bundlePath }, 'Could not read an i18n bundle');
       return callback({ code: 500, msg: 'Failed to read an i18n bundle file' });
     }
 
@@ -1055,10 +1049,9 @@ const _cacheBundleFile = function(bundlePath, callback) {
  * @param  {String}             locale      The locale that should be used to translate any i18n keys. Defaults to `en_US` if none is provided
  * @return {String}                         The rendered and translated template
  */
-const renderTemplate = function(template, data, locale) {
+const renderTemplate = function (template, data, locale = 'en_US') {
   data = data || {};
   data.util = data.util || {};
-  locale = locale || 'en_US';
 
   // Pass in some utility functions
   _.extend(data.util, {
@@ -1066,15 +1059,15 @@ const renderTemplate = function(template, data, locale) {
       /*!
        * @see Sanitization.encodeForHTML
        */
-      encodeForHTML(str) {
-        return Sanitization.encodeForHTML(str);
+      encodeForHTML(string) {
+        return Sanitization.encodeForHTML(string);
       },
 
       /*!
        * @see Sanitization.encodeForHTMLAttribute
        */
-      encodeForHTMLAttribute(str) {
-        return Sanitization.encodeForHTMLAttribute(str);
+      encodeForHTMLAttribute(string) {
+        return Sanitization.encodeForHTMLAttribute(string);
       },
 
       /*!
@@ -1088,14 +1081,14 @@ const renderTemplate = function(template, data, locale) {
        * @param  {Boolean}    retainLinks     Set to `true` to convert links to a plain-text link.
        * @return {String}                     The extracted text
        */
-      toText(str, retainLinks) {
-        const html = $('<div>' + str + '</div>');
+      toText(string, retainLinks) {
+        const html = $('<div>' + string + '</div>');
         if (retainLinks) {
-          html.find('a').replaceWith(function() {
+          html.find('a').replaceWith(function () {
             const href = $(this).attr('href');
             const text = $(this).text();
             if (text && href && href !== '#') {
-              return util.format('%s (%s)', text, href);
+              return format('%s (%s)', text, href);
             }
 
             return $(this);
@@ -1113,10 +1106,10 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     str     The string to trim
        * @return {String}             The trimmed string
        */
-      trim(str) {
-        str = str.replace(/<!--(?:.|\n)*?-->/gm, '');
-        str = str.trim();
-        return str;
+      trim(string) {
+        string = string.replace(/<!--[.\n]*?-->/gm, '');
+        string = string.trim();
+        return string;
       },
 
       /*!
@@ -1146,9 +1139,9 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     content     The plain-text content to convert to HTML
        * @return {String}                 The HTML version of the content
        */
-      toHtml(str) {
+      toHtml(string) {
         // First escape HTML
-        const sanitized = Sanitization.encodeForHTML(str);
+        const sanitized = Sanitization.encodeForHTML(string);
 
         // Honour the new-line characters in the plain text by converting to <br />
         return sanitized.replace(/&#xa;/g, '<br/>');
@@ -1175,20 +1168,20 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     str         The markdown input to convert to HTML
        * @return {String}                 The converted HTML
        */
-      toHtml(str) {
+      toHtml(string) {
         const f = pipe(
           marked,
-          marked => {
+          (marked) => {
             const { window } = new JSDOM(marked);
             return { window, content: marked };
           },
-          jsdom => {
+          (jsdom) => {
             const DOMPurify = createDOMPurify(jsdom.window);
             return DOMPurify.sanitize(jsdom.content, { USE_PROFILES: { html: true } });
           }
         );
 
-        return f(str, {
+        return f(string, {
           gfm: true,
           breaks: true
         });
@@ -1202,12 +1195,12 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     str     The string to place in a json value
        * @return {String}             The safe string
        */
-      escape(str) {
-        if (!_.isString(str)) {
+      escape(string) {
+        if (!_.isString(string)) {
           return '';
         }
 
-        return JSON.stringify(str).slice(1, -1);
+        return JSON.stringify(string).slice(1, -1);
       }
     },
 
@@ -1231,8 +1224,7 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     [timezone]      The timezone the date should be presented in. Defaults to UTC
        * @return {String}                     The formatted date
        */
-      formatDate(date, dateFormat, timezone) {
-        timezone = timezone || 'UTC';
+      formatDate(date, dateFormat, timezone = 'UTC') {
         // Gloablize requires the locale to use a `-` rather than a `_`
         const globalizeLocale = locale.replace('_', '-');
 
@@ -1298,10 +1290,10 @@ const renderTemplate = function(template, data, locale) {
        * @param  {String}     baseUrl     The base url that can be used to prefix relative urls
        * @return {String}                 The html in which each link is absolute
        */
-      ensureAbsoluteLinks(str, baseUrl) {
-        const html = $('<div>' + str + '</div>');
+      ensureAbsoluteLinks(string, baseUrl) {
+        const html = $('<div>' + string + '</div>');
         // eslint-disable-next-line no-unused-vars
-        html.find('a').each(function(i, elem) {
+        html.find('a').each(function (i, element) {
           let link = $(this).attr('href');
           link = data.util.url.ensureAbsoluteLink(link, baseUrl);
           $(this).attr('href', link);
@@ -1327,7 +1319,7 @@ const renderTemplate = function(template, data, locale) {
     let renderedTemplate = compiledTemplate(data);
 
     // Remove HTML comments
-    renderedTemplate = renderedTemplate.replace(/<!--(?:.|\n)*?-->/gm, '');
+    renderedTemplate = renderedTemplate.replace(/<!--[.\n]*?-->/gm, '');
 
     // Translate the template
     const translatedTemplate = translate(renderedTemplate, locale);
@@ -1347,7 +1339,7 @@ const renderTemplate = function(template, data, locale) {
  * @param  {String}     template    The template to compile
  * @return {Function}               The compiled template
  */
-const compileTemplate = function(template) {
+const compileTemplate = function (template) {
   // Support <% include path/to/other/template.jst %>
   template = template.replace(/<%\s*include\s*(.*?)\s*%>/g, (match, path) => {
     if (fs.existsSync(path)) {
@@ -1371,7 +1363,7 @@ const compileTemplate = function(template) {
  *
  * @return {Object}    The activity adapter
  */
-const getActivityAdapter = function() {
+const getActivityAdapter = function () {
   return _uiRequire('/shared/oae/js/activityadapter.js');
 };
 
@@ -1386,7 +1378,7 @@ const getActivityAdapter = function() {
  * @param  {String}     path    The path for which to get the hashed counter part
  * @return {String}             The hashed path, or in case it could not be found, the original path
  */
-const getHashedPath = function(path) {
+const getHashedPath = function (path) {
   if (hashes && hashes[path]) {
     return hashes[path];
   }
@@ -1403,7 +1395,7 @@ const getHashedPath = function(path) {
  * @return {String}     result.countries[i].name    The english name of the country
  * @return {String}     [result.countries[i].icon]  The absolute path to an icon, if available
  */
-const getIso3166CountryInfo = function() {
+const getIso3166CountryInfo = function () {
   return _uiRequire('/shared/oae/js/iso3166.js');
 };
 
@@ -1413,7 +1405,7 @@ const getIso3166CountryInfo = function() {
  * @return {Object}     The mimetype descriptor
  * @api private
  */
-const _getMimeTypeDescriptor = function() {
+const _getMimeTypeDescriptor = function () {
   return _uiRequire('/shared/oae/js/mimetypes.js');
 };
 
@@ -1424,7 +1416,7 @@ const _getMimeTypeDescriptor = function() {
  * @return {Object}             The module as returned by Node.JS's `require` method
  * @api private
  */
-const _uiRequire = function(path) {
+const _uiRequire = function (path) {
   path = getHashedPath(path);
   return require(uiDirectory + path);
 };

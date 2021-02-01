@@ -14,8 +14,9 @@
  */
 
 import { assert } from 'chai';
+import { describe, beforeEach, before, it } from 'mocha';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import path from 'path';
 
 import * as RestAPI from 'oae-rest';
@@ -66,7 +67,7 @@ describe('UI', () => {
   /**
    * Function that will fill up the anonymous tenant and global REST context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up anonymous rest contexts
     asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
     asGeorgiaTechAnonymousUser = createTenantRestContext(global.oaeTests.tenants.gt.host);
@@ -87,18 +88,18 @@ describe('UI', () => {
     /**
      * Test that verifies that the aggregated widget configs can be retrieved
      */
-    it('verify widget configs', callback => {
+    it('verify widget configs', (callback) => {
       // Get the widget configs on the global admin server
-      getWidgetManifests(asGlobalAnonymous, (err, data) => {
-        assert.notExists(err);
+      getWidgetManifests(asGlobalAnonymous, (error, data) => {
+        assert.notExists(error);
         assert.ok(data.topnavigation);
         assert.strictEqual(data.topnavigation.id, 'topnavigation');
         assert.strictEqual(data.topnavigation.path, 'oae-core/topnavigation/');
         assert.ok(data.topnavigation.i18n);
 
         // Get the widget configs on the tenant server
-        getWidgetManifests(asCambridgeAnonymousUser, (err, data) => {
-          assert.notExists(err);
+        getWidgetManifests(asCambridgeAnonymousUser, (error, data) => {
+          assert.notExists(error);
           assert.ok(data.topnavigation);
           assert.strictEqual(data.topnavigation.id, 'topnavigation');
           assert.strictEqual(data.topnavigation.path, 'oae-core/topnavigation/');
@@ -114,12 +115,12 @@ describe('UI', () => {
     /**
      * Test that verifies that static files can be batch requested
      */
-    it('verify batch static get', callback => {
+    it('verify batch static get', (callback) => {
       let files = ['/ui/index.html', '/node_modules/oae-core/footer/js/footer.js', '/nonexisting'];
 
       // Get these files on the global admin server
-      getStaticBatch(asGlobalAnonymous, files, (err, batch1) => {
-        assert.notExists(err);
+      getStaticBatch(asGlobalAnonymous, files, (error, batch1) => {
+        assert.notExists(error);
 
         const firstFile = nth(0, files);
         const secondFile = nth(1, files);
@@ -139,8 +140,8 @@ describe('UI', () => {
         assert.strictEqual(batch1[lastFile], null);
 
         // Get these files on the tenant server
-        getStaticBatch(asCambridgeAnonymousUser, files, (err, batch2) => {
-          assert.notExists(err);
+        getStaticBatch(asCambridgeAnonymousUser, files, (error, batch2) => {
+          assert.notExists(error);
 
           const firstFile = nth(0, files);
           const secondFile = nth(1, files);
@@ -167,8 +168,8 @@ describe('UI', () => {
           files = ['/node_modules/oae-core/footer/css/footer.css', '/ui/index.html'];
 
           // Get these files on the global admin server
-          getStaticBatch(asGlobalAnonymous, files, (err, batch3) => {
-            assert.notExists(err);
+          getStaticBatch(asGlobalAnonymous, files, (error, batch3) => {
+            assert.notExists(error);
 
             const firstFile = nth(0, files);
             const secondFile = nth(1, files);
@@ -187,8 +188,8 @@ describe('UI', () => {
             assert.strictEqual(batch3['/ui/index.html'], batch1['/ui/index.html']);
 
             // Get these files on the tenant server
-            getStaticBatch(asCambridgeAnonymousUser, files, (err, batch4) => {
-              assert.notExists(err);
+            getStaticBatch(asCambridgeAnonymousUser, files, (error, batch4) => {
+              assert.notExists(error);
 
               const firstFile = nth(0, files);
               const secondFile = nth(1, files);
@@ -216,19 +217,19 @@ describe('UI', () => {
     /**
      * Test that verifies that a single file can be retrieved through a batch request
      */
-    it('verify batch single file', callback => {
+    it('verify batch single file', (callback) => {
       const file = '/ui/index.html';
       // Test this on the global admin server
-      getStaticBatch(asGlobalAnonymous, file, (err, data) => {
-        assert.notExists(err);
+      getStaticBatch(asGlobalAnonymous, file, (error, data) => {
+        assert.notExists(error);
 
         assert.lengthOf(keys(data), 1);
         assert.ok(data[file]);
         assert.isString(data[file]);
 
         // Test this on the tenant server
-        getStaticBatch(asCambridgeAnonymousUser, file, (err, data) => {
-          assert.notExists(err);
+        getStaticBatch(asCambridgeAnonymousUser, file, (error, data) => {
+          assert.notExists(error);
 
           assert.lengthOf(keys(data), 1);
           assert.ok(data[file]);
@@ -242,18 +243,18 @@ describe('UI', () => {
     /**
      * Test that verifies that requesting an empty set of static files fails
      */
-    it('verify validation', callback => {
+    it('verify validation', (callback) => {
       // Test on the global admin server
-      getStaticBatch(asGlobalAnonymous, null, (err, data) => {
-        assert.exists(err);
+      getStaticBatch(asGlobalAnonymous, null, (error, data) => {
+        assert.exists(error);
 
-        assert.strictEqual(err.code, 400);
+        assert.strictEqual(error.code, 400);
         assert.notExists(data);
 
-        getStaticBatch(asGlobalAnonymous, [], (err, data) => {
-          assert.exists(err);
+        getStaticBatch(asGlobalAnonymous, [], (error, data) => {
+          assert.exists(error);
 
-          assert.strictEqual(err.code, 400);
+          assert.strictEqual(error.code, 400);
           assert.notExists(data);
 
           /**
@@ -261,33 +262,33 @@ describe('UI', () => {
            * server files can be retrieved
            */
           const file = '/../Hilary/config.js';
-          getStaticBatch(asGlobalAnonymous, file, (err, data) => {
-            assert.exists(err);
+          getStaticBatch(asGlobalAnonymous, file, (error, data) => {
+            assert.exists(error);
 
-            assert.strictEqual(err.code, 400);
+            assert.strictEqual(error.code, 400);
             assert.notExists(data);
 
             // Test on the tenant server
-            getStaticBatch(asCambridgeAnonymousUser, null, (err, data) => {
-              assert.ok(err);
+            getStaticBatch(asCambridgeAnonymousUser, null, (error, data) => {
+              assert.ok(error);
 
-              assert.strictEqual(err.code, 400);
+              assert.strictEqual(error.code, 400);
               assert.notExists(data);
 
-              getStaticBatch(asCambridgeAnonymousUser, [], (err, data) => {
-                assert.ok(err);
+              getStaticBatch(asCambridgeAnonymousUser, [], (error, data) => {
+                assert.ok(error);
 
-                assert.strictEqual(err.code, 400);
+                assert.strictEqual(error.code, 400);
                 assert.notExists(data);
 
                 /**
                  * Verify that only absolute paths can be used, and no private
                  * server files can be retrieved
                  */
-                getStaticBatch(asGlobalAnonymous, file, (err, data) => {
-                  assert.ok(err);
+                getStaticBatch(asGlobalAnonymous, file, (error, data) => {
+                  assert.ok(error);
 
-                  assert.strictEqual(err.code, 400);
+                  assert.strictEqual(error.code, 400);
                   assert.notExists(data);
 
                   callback();
@@ -304,12 +305,12 @@ describe('UI', () => {
     /**
      * Reset any modifications we do to the skin.
      */
-    beforeEach(callback => {
+    beforeEach((callback) => {
       const skinConfig = {
         'body-background-color': '#' + DEFAULT_BODY_BACKGROUND_COLOR
       };
-      updateSkinAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, skinConfig, err => {
-        assert.notExists(err);
+      updateSkinAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, skinConfig, (error) => {
+        assert.notExists(error);
 
         callback();
       });
@@ -324,9 +325,9 @@ describe('UI', () => {
      */
     const _getSkinVariableValue = (name, variables) => {
       let value = null;
-      forEach(section => {
-        forEach(subsection => {
-          forEach(variableMetadata => {
+      forEach((section) => {
+        forEach((subsection) => {
+          forEach((variableMetadata) => {
             if (equals(variableMetadata.name, name)) {
               value = variableMetadata.value || variableMetadata.defaultValue;
             }
@@ -350,9 +351,9 @@ describe('UI', () => {
      * @param  {Function}       callback                Standard callback function
      * @api private
      */
-    const checkSkin = function(restCtx, expectedBackgroundColor, callback) {
-      getSkin(restCtx, (err, css, response) => {
-        assert.notExists(err);
+    const checkSkin = function (restCtx, expectedBackgroundColor, callback) {
+      getSkin(restCtx, (error, css, response) => {
+        assert.notExists(error);
 
         // We should get back some CSS.
         assert.ok(css);
@@ -369,7 +370,7 @@ describe('UI', () => {
         assert.strictEqual(css.indexOf('/*'), -1);
 
         // Check the background color.
-        const bodyBackgroundColorRegex = /body{background-color:#([0-9a-zA-Z]+)}/;
+        const bodyBackgroundColorRegex = /body{background-color:#([\da-zA-Z]+)}/;
         const match = css.match(bodyBackgroundColorRegex);
         assert.ok(match);
         assert.strictEqual(match[1], expectedBackgroundColor);
@@ -389,7 +390,7 @@ describe('UI', () => {
      * @param  {Function}       callback                    Standard callback function
      * @api private
      */
-    const updateSkinAndCheck = function(
+    const updateSkinAndCheck = function (
       restCtx,
       skinConfig,
       expectedOldBackgroundColor,
@@ -399,8 +400,8 @@ describe('UI', () => {
       // Sanity-check correct parsing
       checkSkin(asCambridgeAnonymousUser, expectedOldBackgroundColor, () => {
         // Update the cambridge skin.
-        updateSkinAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, skinConfig, err => {
-          assert.notExists(err);
+        updateSkinAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, skinConfig, (error) => {
+          assert.notExists(error);
 
           // Check the skin for the new value.
           checkSkin(asCambridgeAnonymousUser, expectedNewBackgroundColor, () => {
@@ -422,9 +423,9 @@ describe('UI', () => {
      * @param  {Function} callback                  Standard callback function
      * @api private
      */
-    const checkVariables = function(tenantAlias, expectedBackgroundColor, callback) {
-      getSkinVariables(asGlobalAdmin, tenantAlias, (err, data) => {
-        assert.notExists(err);
+    const checkVariables = function (tenantAlias, expectedBackgroundColor, callback) {
+      getSkinVariables(asGlobalAdmin, tenantAlias, (error, data) => {
+        assert.notExists(error);
 
         const firstResult = data.results[0];
         const secondResult = data.results[1];
@@ -456,7 +457,7 @@ describe('UI', () => {
     /*
      * Updating the config should result in a change in the skin.
      */
-    it('verify updating the skin', callback => {
+    it('verify updating the skin', (callback) => {
       updateSkinAndCheck(
         asCambridgeAnonymousUser,
         { 'body-background-color': '#123456' },
@@ -469,7 +470,7 @@ describe('UI', () => {
     /*
      * Submitting incorrect CSS values should not break the CSS skin generation.
      */
-    it('verify that submitting incorrect CSS values does not break skinning', callback => {
+    it('verify that submitting incorrect CSS values does not break skinning', (callback) => {
       updateSkinAndCheck(
         asCambridgeAnonymousUser,
         { 'body-background-color': '}' },
@@ -483,7 +484,7 @@ describe('UI', () => {
      * When submitting skin values with keys that are not used,
      * this should not break skin generation.
      */
-    it('verify that submitting unused key does not break skinning', callback => {
+    it('verify that submitting unused key does not break skinning', (callback) => {
       updateSkinAndCheck(
         asCambridgeAnonymousUser,
         { 'not-used': 'foo' },
@@ -497,7 +498,7 @@ describe('UI', () => {
      * When you update the config with new skin values,
      * these should be returned in the variables endpoint.
      */
-    it('verify that variables get updated with values from the config', callback => {
+    it('verify that variables get updated with values from the config', (callback) => {
       // Sanity check the default value.
       checkVariables(global.oaeTests.tenants.cam.alias, '#eceae5', () => {
         // Update the skin.
@@ -517,26 +518,26 @@ describe('UI', () => {
     /*
      * Test that verifies that only admininstrators are able to retrieve skin variables
      */
-    it('verify only administrators can retrieve skin variabes', callback => {
-      getSkinVariables(asGlobalAnonymous, global.oaeTests.tenants.cam.alias, (err /* , data */) => {
-        assert.strictEqual(err.code, 401);
+    it('verify only administrators can retrieve skin variabes', (callback) => {
+      getSkinVariables(asGlobalAnonymous, global.oaeTests.tenants.cam.alias, (error /* , data */) => {
+        assert.strictEqual(error.code, 401);
 
-        getSkinVariables(asCambridgeAnonymousUser, null, (err /* , data */) => {
-          assert.strictEqual(err.code, 401);
+        getSkinVariables(asCambridgeAnonymousUser, null, (error /* , data */) => {
+          assert.strictEqual(error.code, 401);
 
-          getSkinVariables(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err /* , data */) => {
-            assert.ok(!err);
+          getSkinVariables(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error /* , data */) => {
+            assert.ok(!error);
 
-            getSkinVariables(asCambridgeTenantAdmin, null, (err /* , data */) => {
-              assert.ok(!err);
+            getSkinVariables(asCambridgeTenantAdmin, null, (error /* , data */) => {
+              assert.ok(!error);
 
-              generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-                assert.ok(!err);
+              generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+                assert.ok(!error);
 
                 const { 0: someUser } = users;
 
-                getSkinVariables(someUser.restContext, null, (err /* , data */) => {
-                  assert.strictEqual(err.code, 401);
+                getSkinVariables(someUser.restContext, null, (error /* , data */) => {
+                  assert.strictEqual(error.code, 401);
 
                   return callback();
                 });
@@ -550,16 +551,16 @@ describe('UI', () => {
     /**
      * Test that verifies when a URL variable is found in a skin, it is replaced by the hash file mapping
      */
-    it('verify skin url variables are overridden by hash file mappings', callback => {
+    it('verify skin url variables are overridden by hash file mappings', (callback) => {
       // Create a fresh tenant to test against so we can ensure there are no skin variable overrides yet
       const testTenantAlias = generateTestTenantAlias();
       const testTenantHost = generateTestTenantHost();
 
-      createTenantWithAdmin(testTenantAlias, testTenantHost, (err, testTenant, testTenantAdminRestContext) => {
-        assert.notExists(err);
+      createTenantWithAdmin(testTenantAlias, testTenantHost, (error, testTenant, testTenantAdminRestContext) => {
+        assert.notExists(error);
 
-        getSkinVariables(asGlobalAdmin, testTenantAlias, (err, variables) => {
-          assert.notExists(err);
+        getSkinVariables(asGlobalAdmin, testTenantAlias, (error, variables) => {
+          assert.notExists(error);
 
           // Get the default logo url, parsing out the single quotes
           const defaultLogoUrl = _getSkinVariableValue('institutional-logo-url', variables).slice(1, -1);
@@ -574,12 +575,12 @@ describe('UI', () => {
           hashes[defaultLogoUrl] = '/optimized/logo/path';
 
           // Configure the optimized path mapping into the UI module
-          init(fs.realpathSync(getUIDirectory()), hashes, err => {
-            assert.notExists(err);
+          init(fs.realpathSync(getUIDirectory()), hashes, (error_) => {
+            assert.notExists(error_);
 
             // Verify that if the tenant has NO variable overrides, the default values are run through the optimized path hash
-            getSkin(testTenantAdminRestContext, (err, css /* , response */) => {
-              assert.notExists(err);
+            getSkin(testTenantAdminRestContext, (error, css /* , response */) => {
+              assert.notExists(error);
 
               // Verify that the default logoUrl was replaced
               assert.strictEqual(css.indexOf(defaultLogoUrl), -1, 'Expected the default logo url to be replaced');
@@ -597,11 +598,11 @@ describe('UI', () => {
               };
 
               // Set the skin configuration so that only the institutional logo should be substituted by the hashed files
-              updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, err => {
-                assert.notExists(err);
+              updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, (error_) => {
+                assert.notExists(error_);
 
-                getSkin(testTenantAdminRestContext, (err, css /* , response */) => {
-                  assert.notExists(err);
+                getSkin(testTenantAdminRestContext, (error, css /* , response */) => {
+                  assert.notExists(error);
 
                   // Verify /test/directory was replaced
                   assert.strictEqual(
@@ -636,11 +637,11 @@ describe('UI', () => {
 
                   // Mingle with the spacing to make sure we're somewhat robust for user input
                   skinConfig = { 'institutional-logo-url': "  '  /test/directory  '  " };
-                  updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, err => {
-                    assert.notExists(err);
+                  updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, (error_) => {
+                    assert.notExists(error_);
 
-                    getSkin(testTenantAdminRestContext, (err, css /* , response */) => {
-                      assert.notExists(err);
+                    getSkin(testTenantAdminRestContext, (error, css /* , response */) => {
+                      assert.notExists(error);
 
                       // Verify /test/directory was replaced, it is ok if we lost the excessive space
                       assert.strictEqual(
@@ -669,7 +670,7 @@ describe('UI', () => {
      * Test that verifies that the institutional logo url can be templated
      * with the tenant alias
      */
-    it('verify institutional-logo-url is templated', callback => {
+    it('verify institutional-logo-url is templated', (callback) => {
       /**
        * Create a fresh tenant to test against so we can ensure there are
        * no skin variable overrides yet
@@ -677,8 +678,8 @@ describe('UI', () => {
       const testTenantAlias = generateTestTenantAlias();
       const testTenantHost = generateTestTenantHost();
 
-      createTenantWithAdmin(testTenantAlias, testTenantHost, (err, testTenant, testTenantAdminRestContext) => {
-        assert.notExists(err);
+      createTenantWithAdmin(testTenantAlias, testTenantHost, (error, testTenant, testTenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Apply the templated value for institutional logo url
         const skinConfig = {
@@ -686,14 +687,14 @@ describe('UI', () => {
           'institutional-logo-url': "   '/assets/${tenantAlias}/logo/${tenantAlias}.png'     "
         };
 
-        updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, err => {
-          assert.notExists(err);
+        updateSkinAndWait(asGlobalAdmin, testTenantAlias, skinConfig, (error_) => {
+          assert.notExists(error_);
 
           /**
            * Ensure that the base skin values are not rendered with dynamic values
            */
-          getSkinVariables(asGlobalAdmin, testTenantAlias, (err, variables) => {
-            assert.notExists(err);
+          getSkinVariables(asGlobalAdmin, testTenantAlias, (error, variables) => {
+            assert.notExists(error);
 
             const institutionalLogoUrlValue = _getSkinVariableValue('institutional-logo-url', variables);
             assert.strictEqual(
@@ -706,25 +707,25 @@ describe('UI', () => {
              * Get the rendered skin and ensure the tenant alias is
              * placed in the institutional logo url
              */
-            getSkin(testTenantAdminRestContext, (err, css) => {
-              assert.notExists(err);
+            getSkin(testTenantAdminRestContext, (error, css) => {
+              assert.notExists(error);
 
               /**
                * Ensure the `.oae-institutiona-logo` class
                * contains the dynamic value
                */
-              const expectedInstitutionalLogoStr = util.format(
+              const expectedInstitutionalLogoString = format(
                 '.oae-institutional-logo{background-image:url(/assets/%s/logo/%s.png)}',
                 testTenantAlias,
                 testTenantAlias
               );
-              assert.notStrictEqual(css.indexOf(expectedInstitutionalLogoStr), -1);
+              assert.notStrictEqual(css.indexOf(expectedInstitutionalLogoString), -1);
 
-              getLogo(testTenantAdminRestContext, (err, logoURL) => {
-                assert.notExists(err);
+              getLogo(testTenantAdminRestContext, (error_, logoURL) => {
+                assert.notExists(error_);
 
                 // Ensure the logo we're getting is the same as fetched in the CSS above
-                assert.notStrictEqual(expectedInstitutionalLogoStr.indexOf(logoURL), -1);
+                assert.notStrictEqual(expectedInstitutionalLogoString.indexOf(logoURL), -1);
 
                 return callback();
               });
@@ -737,14 +738,14 @@ describe('UI', () => {
     /**
      * Test that verifies that a new logo can be uploaded for a tenant and a signed URL is returned
      */
-    it('verify logo can be uploaded for a tenant', callback => {
+    it('verify logo can be uploaded for a tenant', (callback) => {
       const tenantAlias = global.oaeTests.tenants.cam.alias;
       const filePath = path.join(__dirname, '/data/oae-logo.png');
       let fileStream = fs.createReadStream(filePath);
 
       // Assert that the global admin can change the logo for a tenant
-      uploadLogo(asGlobalAdmin, fileStream, tenantAlias, (err, data) => {
-        assert.notExists(err);
+      uploadLogo(asGlobalAdmin, fileStream, tenantAlias, (error, data) => {
+        assert.notExists(error);
 
         assert.ok(data);
         assert.ok(data.url.includes('signed'));
@@ -752,8 +753,8 @@ describe('UI', () => {
         fileStream = fs.createReadStream(filePath);
 
         // Assert that a tenant admin can change the logo for a tenant
-        uploadLogo(asCambridgeTenantAdmin, fileStream, tenantAlias, (err, data) => {
-          assert.notExists(err);
+        uploadLogo(asCambridgeTenantAdmin, fileStream, tenantAlias, (error, data) => {
+          assert.notExists(error);
 
           assert.ok(data);
           assert.ok(data.url.includes('signed'));
@@ -761,28 +762,28 @@ describe('UI', () => {
           fileStream = fs.createReadStream(filePath);
 
           // Assert that a regular anonymous user can not change the logo for a tenant
-          uploadLogo(asCambridgeAnonymousUser, fileStream, tenantAlias, (err /* , data */) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
+          uploadLogo(asCambridgeAnonymousUser, fileStream, tenantAlias, (error /* , data */) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 401);
 
-            generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-              assert.notExists(err);
+            generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+              assert.notExists(error);
 
               const { 0: someUser } = users;
               const asSomeUser = someUser.restContext;
               fileStream = fs.createReadStream(filePath);
 
               // Assert that a regular authenticated user can not change the logo for a tenant
-              uploadLogo(asSomeUser, fileStream, tenantAlias, (err /* , data */) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 401);
+              uploadLogo(asSomeUser, fileStream, tenantAlias, (error /* , data */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 401);
 
                 fileStream = fs.createReadStream(path.join(__dirname, '/data/video.mp4'));
 
                 // Assert that a non-image file is rejected
-                uploadLogo(asCambridgeTenantAdmin, fileStream, tenantAlias, (err /* , data */) => {
-                  assert.ok(err);
-                  assert.strictEqual(err.code, 500);
+                uploadLogo(asCambridgeTenantAdmin, fileStream, tenantAlias, (error /* , data */) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 500);
 
                   return callback();
                 });
@@ -804,15 +805,15 @@ describe('UI', () => {
      * @param  {String}     expectedStr     The expected outcome of the translated string
      * @throws {Error}                      An assertion error is thrown when the translation does not match the expected string
      */
-    const verifyTranslation = function(str, locale, variables, expectedStr) {
-      const translatedStr = translate(str, locale, variables);
-      assert.strictEqual(translatedStr, expectedStr);
+    const verifyTranslation = function (string, locale, variables, expectedString) {
+      const translatedString = translate(string, locale, variables);
+      assert.strictEqual(translatedString, expectedString);
     };
 
     /**
      * Test that verifies strings can be succesfully translated
      */
-    it('verify strings can be translated', callback => {
+    it('verify strings can be translated', (callback) => {
       // Basic translation using the default locale
       verifyTranslation('__MSG__CHANGE__', 'default', {}, 'Change');
 

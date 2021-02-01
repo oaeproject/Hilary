@@ -15,11 +15,11 @@
 
 import { realpathSync } from 'fs';
 import { logger } from 'oae-logger';
-import * as UIAPI from './api';
+import * as UIAPI from './api.js';
 
 const log = logger('oae-ui-init');
 
-export const init = function(config, callback) {
+export const init = function (config, callback) {
   const uiDirectory = realpathSync(config.ui.path);
   // The hashes.json file can be found in the root folder of the optimized build folder
   const hashesPath = uiDirectory + '/hashes.json';

@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
@@ -166,7 +166,7 @@ const collectAndFetchAllEmails = function (callback) {
                     _.each(message.html.split('\n'), (line) => {
                       assert.ok(
                         line.length <= 500,
-                        util.format(
+                        format(
                           'Expected no email line to be more than 500 characters, but found: (%s) %s',
                           line.length,
                           line
@@ -174,7 +174,7 @@ const collectAndFetchAllEmails = function (callback) {
                       );
                       assert.ok(
                         line.split('<a').length < 3,
-                        util.format('Expected no email line to have more than 1 link, but found: %s', line)
+                        format('Expected no email line to have more than 1 link, but found: %s', line)
                       );
                     });
                   });
@@ -265,12 +265,12 @@ const _assertEmailTemplateFieldValid = function (mail, fieldName) {
   const content = mail[fieldName];
   assert.ok(
     _.isString(content),
-    util.format('Expected email field "%s" be a string, but was: %s', fieldName, JSON.stringify(content, null, 2))
+    format('Expected email field "%s" be a string, but was: %s', fieldName, JSON.stringify(content, null, 2))
   );
   assert.strictEqual(
     content.indexOf('__MSG__'),
     -1,
-    util.format('Email field "%s" contained "__MSG__" placeholder: %s', fieldName, content)
+    format('Email field "%s" contained "__MSG__" placeholder: %s', fieldName, content)
   );
 };
 

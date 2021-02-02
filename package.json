@@ -33,7 +33,7 @@
     "cassandra-driver": "^4.4.0",
     "chance": "^1.1.4",
     "chai": "^4.2.0",
-    "cheerio": "^1.0.0-rc.2",
+    "cheerio": "1.0.0-rc.3",
     "clone": "^2.1.1",
     "connect": "^3.7.0",
     "cookie-parser": "^1.4.2",

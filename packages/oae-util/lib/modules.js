@@ -19,8 +19,8 @@ import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util';
-import * as IO from './io';
-import * as Swagger from './swagger';
+import * as IO from './io.js';
+import * as Swagger from './swagger.js';
 
 const log = logger('oae-modules');
 
@@ -69,9 +69,9 @@ const ES6Modules = [
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const bootstrapModules = function(config, callback) {
-  initAvailableModules((err, modules) => {
-    if (err) return callback(err);
+const bootstrapModules = function (config, callback) {
+  initAvailableModules((error, modules) => {
+    if (error) return callback(error);
 
     if (_.isEmpty(modules)) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
@@ -80,8 +80,8 @@ const bootstrapModules = function(config, callback) {
     log().info('Starting modules: %s', modules.join(', '));
 
     // Initialize all modules
-    bootstrapModulesInit(modules, config, err => {
-      if (err) return callback(err);
+    bootstrapModulesInit(modules, config, (error_) => {
+      if (error_) return callback(error_);
 
       // Register all endpoints
       return bootstrapModulesRest(modules, callback);
@@ -99,16 +99,16 @@ const bootstrapModules = function(config, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const bootstrapModulesInit = function(modules, config, callback) {
+const bootstrapModulesInit = function (modules, config, callback) {
   const MODULE_INIT_FILE = '/lib/init.js';
   async.mapSeries(
     modules,
     (moduleName, done) => {
-      const _onceDone = err => {
-        if (err) {
-          log().error(err.stack);
-          log().error({ err }, 'Error initializing module %s', moduleName);
-          return callback(err);
+      const _onceDone = (error) => {
+        if (error) {
+          log().error(error.stack);
+          log().error({ err: error }, 'Error initializing module %s', moduleName);
+          return callback(error);
         }
 
         log().info('Initialized module %s', moduleName);
@@ -128,9 +128,9 @@ const bootstrapModulesInit = function(modules, config, callback) {
         done();
       }
     },
-    err => {
-      if (err) {
-        callback(err);
+    (error) => {
+      if (error) {
+        callback(error);
       }
 
       callback(null);
@@ -146,9 +146,9 @@ const bootstrapModulesInit = function(modules, config, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const bootstrapModulesRest = function(modules, callback) {
+const bootstrapModulesRest = function (modules, callback) {
   const complete = _.after(modules.length, callback);
-  _.each(modules, module => {
+  _.each(modules, (module) => {
     const path = OaeUtil.getNodeModulesDir() + module + '/lib/rest.js';
     if (fs.existsSync(path)) {
       log().info('REST services for %s have been registered', module);
@@ -170,9 +170,9 @@ const bootstrapModulesRest = function(modules, callback) {
  * @param  {Function}   callback                Standard callback function
  * @param  {String[]}   callback.finalModules   Array of strings representing the names of the available modules
  */
-const initAvailableModules = function(callback) {
-  IO.getFileListForFolder(OaeUtil.getNodeModulesDir(), (err, modules) => {
-    if (err) return callback(err);
+const initAvailableModules = function (callback) {
+  IO.getFileListForFolder(OaeUtil.getNodeModulesDir(), (error, modules) => {
+    if (error) return callback(error);
 
     const finalModules = [];
     const modulePriority = {};
@@ -210,7 +210,7 @@ const initAvailableModules = function(callback) {
  *
  * @return {String[]}   Returns an Array of strings representing the names of the available modules
  */
-const getAvailableModules = function() {
+const getAvailableModules = function () {
   return cachedAvailableModules.slice(0);
 };
 

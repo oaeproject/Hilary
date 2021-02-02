@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable unicorn/no-array-callback-reference */
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 
-import { Client } from '../model';
+import { Client } from '../model.js';
 
 /**
  * Creates a client.
@@ -32,7 +33,7 @@ import { Client } from '../model';
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Client}     callback.client     The created client
  */
-const createClient = function(id, displayName, secret, userId, callback) {
+const createClient = function (id, displayName, secret, userId, callback) {
   // Insert the OAuth client and its association to the user
   const queries = [
     Cassandra.constructUpsertCQL('OAuthClient', 'id', id, {
@@ -45,9 +46,9 @@ const createClient = function(id, displayName, secret, userId, callback) {
     })
   ];
 
-  Cassandra.runBatchQuery(queries, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery(queries, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, new Client(id, displayName, secret, userId));
@@ -64,7 +65,7 @@ const createClient = function(id, displayName, secret, userId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const updateClient = function(id, displayName, secret, callback) {
+const updateClient = function (id, displayName, secret, callback) {
   const query = Cassandra.constructUpsertCQL('OAuthClient', 'id', id, {
     displayName,
     secret
@@ -80,7 +81,7 @@ const updateClient = function(id, displayName, secret, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteClient = function(id, userId, callback) {
+const deleteClient = function (id, userId, callback) {
   const queries = [
     { query: 'DELETE FROM "OAuthClient" WHERE "id" = ?', parameters: [id] },
     {
@@ -99,11 +100,11 @@ const deleteClient = function(id, userId, callback) {
  * @param  {Object}     callback.err      An error that occurred, if any
  * @param  {Client}     callback.client   The retrieved client or null if it could not be found
  */
-const getClientById = function(id, callback) {
+const getClientById = function (id, callback) {
   // TODO: As this gets called on every OAuth authenticated call, it might not be a bad idea to cache this in Redis
-  _getClientsByIds([id], (err, clients) => {
-    if (err) {
-      return callback(err);
+  _getClientsByIds([id], (error, clients) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(clients)) {
@@ -122,16 +123,16 @@ const getClientById = function(id, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Client[]}   callback.clients    The set of clients that are registered for this user
  */
-const getClientsByUser = function(userId, callback) {
+const getClientsByUser = function (userId, callback) {
   Cassandra.runQuery(
     'SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?',
     [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
-      const clientIds = _.map(rows, row => {
+      const clientIds = _.map(rows, (row) => {
         return row.get('clientId');
       });
 
@@ -149,19 +150,19 @@ const getClientsByUser = function(userId, callback) {
  * @param  {Client[]}   callback.clients    The set of clients
  * @api private
  */
-const _getClientsByIds = function(clientIds, callback) {
+const _getClientsByIds = function (clientIds, callback) {
   if (_.isEmpty(clientIds)) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery('SELECT * FROM "OAuthClient" WHERE "id" IN ?', [clientIds], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "OAuthClient" WHERE "id" IN ?', [clientIds], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     const clients = _.chain(rows)
       .map(Cassandra.rowToHash)
-      .map(hash => {
+      .map((hash) => {
         return new Client(hash.id, hash.displayName, hash.secret, hash.userId);
       })
       .value();

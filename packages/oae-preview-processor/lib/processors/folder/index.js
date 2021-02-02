@@ -14,8 +14,8 @@
  */
 
 import fs from 'fs';
-import { basename, resolve } from 'path';
-import util from 'util';
+import Path from 'path';
+import { format } from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import { logger } from 'oae-logger';
 import sharp from 'sharp';
@@ -56,7 +56,7 @@ const log = logger('folders-previews');
 const MONTAGE_PREVIEW_COLUMNS = 3;
 const MONTAGE_PREVIEW_ROWS = 3;
 const MONTAGE_NUMBER_PREVIEWS = 9;
-const BLANK = resolve(__dirname, '../../../static/link/blank.png');
+const BLANK = Path.resolve(__dirname, '../../../static/link/blank.png');
 
 // Auxiliary functions
 const isDefined = Boolean;
@@ -74,9 +74,9 @@ const withThumbnail = both(
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const generatePreviews = function(folderId, callback) {
-  _getData(folderId, (err, folder, contentItems) => {
-    if (err) return callback(err);
+const generatePreviews = function (folderId, callback) {
+  _getData(folderId, (error, folder, contentItems) => {
+    if (error) return callback(error);
     /**
      * If there are no content items in this folder we can't generate a thumbnail for it.
      * However, we should set an empty previews object as we might have removed all the content item
@@ -85,8 +85,8 @@ const generatePreviews = function(folderId, callback) {
     if (isEmpty(contentItems)) return FoldersDAO.setPreviews(folder, {}, callback);
 
     // Generate the preview images
-    _generatePreviews(folder, contentItems, err => {
-      if (err) return callback(err);
+    _generatePreviews(folder, contentItems, (error_) => {
+      if (error_) return callback(error_);
 
       FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
       return callback();
@@ -105,12 +105,12 @@ const generatePreviews = function(folderId, callback) {
  * @param  {Content[]}      callback.contentItems       A set of (at most 8) content items that are in the folder and have preview items of their own
  * @api private
  */
-const _getData = function(folderId, callback) {
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) return callback(err);
+const _getData = function (folderId, callback) {
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) return callback(error);
 
-    _getContentWithPreviews(folder, (err, contentItems) => {
-      if (err) return callback(err);
+    _getContentWithPreviews(folder, (error, contentItems) => {
+      if (error) return callback(error);
 
       return callback(null, folder, contentItems);
     });
@@ -127,14 +127,14 @@ const _getData = function(folderId, callback) {
  * @param  {Content[]}      callback.contentItems       A set of content items that are in the folder and have preview items
  * @api private
  */
-const _getContentWithPreviews = function(folder, callback, _contentWithPreviews, _start) {
+const _getContentWithPreviews = function (folder, callback, _contentWithPreviews, _start) {
   _contentWithPreviews = defaultTo([], _contentWithPreviews);
 
-  FoldersDAO.getContentItems(folder.groupId, { start: _start, limit: 20 }, (err, contentItems, nextToken) => {
-    if (err) return callback(err);
+  FoldersDAO.getContentItems(folder.groupId, { start: _start, limit: 20 }, (error, contentItems, nextToken) => {
+    if (error) return callback(error);
 
     // Only use content items that are implicitly visible to those that can see this folder's library
-    const implicitlyVisibleOnly = contentItem => {
+    const implicitlyVisibleOnly = (contentItem) => {
       // If this content item were inserted into the folder's content library, it would be
       // in this visibility bucket (e.g., a public content item would be in the public
       // library)
@@ -191,26 +191,26 @@ const _getContentWithPreviews = function(folder, callback, _contentWithPreviews,
  * @param  {Object}         callback.err        An error that occurred, if any
  * @api private
  */
-const _generatePreviews = function(folder, contentItems, callback) {
+const _generatePreviews = function (folder, contentItems, callback) {
   // Retrieve the thumbnails
   const ctx = new Context(folder.tenant);
-  _retrieveThumbnails(ctx, contentItems.slice(), (err, paths) => {
-    if (err) return callback(err);
+  _retrieveThumbnails(ctx, contentItems.slice(), (error, paths) => {
+    if (error) return callback(error);
 
     // Construct the montages
-    _createMontages(paths, (err, thumbnail, wide) => {
-      if (err) return callback(err);
+    _createMontages(paths, (error, thumbnail, wide) => {
+      if (error) return callback(error);
 
-      _removeOldPreviews(ctx, folder, err => {
-        if (err) {
-          log().error({ err, folderId: folder.id }, 'Unable to remove the old folder previews');
-          return callback(err);
+      _removeOldPreviews(ctx, folder, (error_) => {
+        if (error_) {
+          log().error({ err: error_, folderId: folder.id }, 'Unable to remove the old folder previews');
+          return callback(error_);
         }
 
-        _storeNewPreviews(ctx, folder, thumbnail, wide, (err, thumbnailUri, wideUri) => {
-          if (err) {
-            log().error({ err, folderId: folder.id }, 'Unable to store the new folder previews');
-            return callback(err);
+        _storeNewPreviews(ctx, folder, thumbnail, wide, (error, thumbnailUri, wideUri) => {
+          if (error) {
+            log().error({ err: error, folderId: folder.id }, 'Unable to store the new folder previews');
+            return callback(error);
           }
 
           // Store the metadata
@@ -218,14 +218,14 @@ const _generatePreviews = function(folder, contentItems, callback) {
             thumbnailUri,
             wideUri
           };
-          FoldersDAO.setPreviews(folder, previews, err => {
+          FoldersDAO.setPreviews(folder, previews, (error_) => {
             /**
              * Clean up any temporary files regardless of whether there was an error storing
              * the previews
              * Depending on which backend was used to store the thumbnail or wide images,
              * those files may or may not already be removed
              */
-            _removeAll(paths, () => callback(err));
+            _removeAll(paths, () => callback(error_));
           });
         });
       });
@@ -249,7 +249,7 @@ const _generatePreviews = function(folder, contentItems, callback) {
  * @param  {Number}     callback.wide.size          The size in bytes of the wide image
  * @api private
  */
-const _createMontages = function(paths, callback) {
+const _createMontages = function (paths, callback) {
   // Generate the thumbnail
   const thumbnailSize = {
     width: PreviewConstants.SIZES.IMAGE.THUMBNAIL,
@@ -262,11 +262,11 @@ const _createMontages = function(paths, callback) {
   };
 
   const previewPaths = clone(paths);
-  _createMontage(thumbnailSize, paths, (err, squaredThumbnail) => {
-    if (err) return callback(err);
+  _createMontage(thumbnailSize, paths, (error, squaredThumbnail) => {
+    if (error) return callback(error);
 
-    _createMontage(wideSize, previewPaths, (err, wideThumbnail) => {
-      if (err) return callback(err);
+    _createMontage(wideSize, previewPaths, (error, wideThumbnail) => {
+      if (error) return callback(error);
 
       return callback(null, squaredThumbnail, wideThumbnail);
     });
@@ -293,11 +293,11 @@ const _createMontages = function(paths, callback) {
  * @param  {Number}     callback.file.size      The size in bytes of the montage
  * @api private
  */
-const _createMontage = function(size, paths, callback) {
+const _createMontage = function (size, paths, callback) {
   const allBuffers = [];
 
-  resizeAllPreviews(paths, size, allBuffers, (err, buffers) => {
-    if (err) return callback(err);
+  resizeAllPreviews(paths, size, allBuffers, (error, buffers) => {
+    if (error) return callback(error);
 
     const { width, height } = size;
     const { path } = TempFile.createTempFile({ suffix: `${width}x${height}.jpg` });
@@ -305,19 +305,19 @@ const _createMontage = function(size, paths, callback) {
     sharp(BLANK)
       .composite(buffers)
       .resize(width, height)
-      .toFile(path, (err, info) => {
-        if (err) {
-          log().error({ err }, 'Unable to create folder montage');
+      .toFile(path, (error, info) => {
+        if (error) {
+          log().error({ err: error }, 'Unable to create folder montage');
           return callback({ code: 500, msg: 'Failed to create folder montage' });
         }
 
         const file = {
           path,
           size: info.size,
-          name: basename(path)
+          name: Path.basename(path)
         };
 
-        return callback(err, file);
+        return callback(error, file);
       });
   });
 };
@@ -334,8 +334,8 @@ const resizeAllPreviews = (paths, size, allBuffers, callback) => {
 
   const nextPreview = paths.shift();
 
-  resizePreview(nextPreview, size, allBuffers.length, (err, data) => {
-    if (err) return callback(err);
+  resizePreview(nextPreview, size, allBuffers.length, (error, data) => {
+    if (error) return callback(error);
 
     allBuffers.push(data);
     resizeAllPreviews(paths, size, allBuffers, callback);
@@ -352,8 +352,8 @@ const resizeAllPreviews = (paths, size, allBuffers, callback) => {
 const resizePreview = (path, size, gravity, callback) => {
   sharp(path)
     .resize(Math.floor(size.width / MONTAGE_PREVIEW_COLUMNS), Math.floor(size.height / MONTAGE_PREVIEW_ROWS))
-    .toBuffer((err, input /* , info */) => {
-      if (err) return callback(err);
+    .toBuffer((error, input /* , info */) => {
+      if (error) return callback(error);
 
       const { top, left } = getMontageCoordinates(gravity, size);
 
@@ -391,7 +391,7 @@ const getMontageCoordinates = (gravity, size) => {
  * @param  {String[]}       callback.paths      The paths where the thumbnails can be found
  * @api private
  */
-const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
+const _retrieveThumbnails = function (ctx, contentItems, callback, _paths) {
   _paths = defaultTo([], _paths);
 
   // If there is nothing left to retrieve, we return to the caller
@@ -401,12 +401,16 @@ const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
   // that the order of the `_paths` array is important. So we retrieve
   // thumbnails in the same order as they are in the `contentItems` array
   const contentItem = contentItems.shift();
-  getStorageBackend(ctx, contentItem.previews.thumbnailUri).get(ctx, contentItem.previews.thumbnailUri, (err, file) => {
-    if (err) return callback(err);
+  getStorageBackend(ctx, contentItem.previews.thumbnailUri).get(
+    ctx,
+    contentItem.previews.thumbnailUri,
+    (error, file) => {
+      if (error) return callback(error);
 
-    _paths.push(file.path);
-    return _retrieveThumbnails(ctx, contentItems, callback, _paths);
-  });
+      _paths.push(file.path);
+      return _retrieveThumbnails(ctx, contentItems, callback, _paths);
+    }
+  );
 };
 
 /**
@@ -416,7 +420,7 @@ const _retrieveThumbnails = function(ctx, contentItems, callback, _paths) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _removeAll = function(paths, callback) {
+const _removeAll = function (paths, callback) {
   if (isEmpty(paths)) return callback();
 
   const path = paths.pop();
@@ -432,9 +436,9 @@ const _removeAll = function(paths, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _removeOldPreviews = function(ctx, folder, callback) {
-  _removeOldPreview(ctx, folder, 'thumbnailUri', err => {
-    if (err) return callback(err);
+const _removeOldPreviews = function (ctx, folder, callback) {
+  _removeOldPreview(ctx, folder, 'thumbnailUri', (error) => {
+    if (error) return callback(error);
 
     _removeOldPreview(ctx, folder, 'wideUri', callback);
   });
@@ -450,7 +454,7 @@ const _removeOldPreviews = function(ctx, folder, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _removeOldPreview = function(ctx, folder, type, callback) {
+const _removeOldPreview = function (ctx, folder, type, callback) {
   const hasPreviews = both(propSatisfies(isDefined, 'previews'), pathSatisfies(isDefined, ['previews', type]));
   if (hasPreviews(folder)) {
     getStorageBackend(ctx).remove(ctx, folder.previews[type], callback);
@@ -470,15 +474,15 @@ const _removeOldPreview = function(ctx, folder, type, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _storeNewPreviews = function(ctx, folder, thumbnail, wide, callback) {
+const _storeNewPreviews = function (ctx, folder, thumbnail, wide, callback) {
   // Store the files with a unique filename
-  let filename = util.format('thumbnail_%s.jpg', Date.now());
-  getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (err, thumbnailUri) => {
-    if (err) return callback(err);
+  let filename = format('thumbnail_%s.jpg', Date.now());
+  getStorageBackend(ctx).store(ctx, thumbnail, { filename, resourceId: folder.id }, (error, thumbnailUri) => {
+    if (error) return callback(error);
 
-    filename = util.format('wide_%s.jpg', Date.now());
-    getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (err, wideUri) => {
-      if (err) return callback(err);
+    filename = format('wide_%s.jpg', Date.now());
+    getStorageBackend(ctx).store(ctx, wide, { filename, resourceId: folder.id }, (error, wideUri) => {
+      if (error) return callback(error);
 
       return callback(null, thumbnailUri, wideUri);
     });

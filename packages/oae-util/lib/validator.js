@@ -30,6 +30,7 @@ import {
   type,
   is,
   equals,
+  reduce,
   isNil,
   isEmpty,
   gte as greaterOrEqualThan,
@@ -44,21 +45,21 @@ const { isURL, isISO31661Alpha2, contains, isLength } = Validator;
 /**
  * Private utility functions
  */
-const _isString = value => is(String, value);
+const _isString = (value) => is(String, value);
 
-const _isBoolean = value => is(Boolean, value);
+const _isBoolean = (value) => is(Boolean, value);
 
-const _isFunction = value => is(Function, value);
+const _isFunction = (value) => is(Function, value);
 
-const _isArray = value => is(Array, value);
+const _isArray = (value) => is(Array, value);
 
-const _isNumber = value => is(Number, value);
+const _isNumber = (value) => is(Number, value);
 
-const _isObject = value => is(Object, value);
+const _isObject = (value) => is(Object, value);
 
-const _isFalse = value => equals(value, false);
+const _isFalse = (value) => equals(value, false);
 
-const _isItLengthy = interval => value => isLength(value, interval);
+const _isItLengthy = (interval) => (value) => isLength(value, interval);
 
 /**
  * Composed functions
@@ -95,7 +96,7 @@ const isDifferent = (a, b) => compose(not, equals)(a, b);
  * isNotEmpty('abcd'); // true
  * ```
  */
-const isNotEmpty = input => compose(not, isEmpty, trim, defaultTo(''))(input);
+const isNotEmpty = (input) => compose(not, isEmpty, trim, defaultTo(''))(input);
 
 /**
  * @function notContains
@@ -124,7 +125,7 @@ const notContains = (string, seed) => compose(not, contains)(string, seed);
  * isDefined(val); // true
  * ```
  */
-const isDefined = value => compose(not, isNil)(value);
+const isDefined = (value) => compose(not, isNil)(value);
 
 /**
  * Checks if a value is present or defined, often used for parameter validation
@@ -146,7 +147,7 @@ const isDefined = value => compose(not, isNil)(value);
  * isNotNull([1,2,3]); // true
  * ````
  */
-const isNotNull = value => both(isDefined, compose(not, isEmpty))(value);
+const isNotNull = (value) => both(isDefined, compose(not, isEmpty))(value);
 
 /**
  * @function unless
@@ -188,8 +189,8 @@ const validateInCase = (condition, validation) => (value, ...args) => (condition
  * func(['something']); // returns 'true'
  * ```
  */
-const getNestedObject = nestedObj => {
-  return attrPath => attrPath.reduce((obj, key) => (obj && obj[key] !== 'undefined' ? obj[key] : undefined), nestedObj);
+const getNestedObject = (nestedObject) => {
+  return reduce((object, key) => (object && object[key] !== 'undefined' ? object[key] : undefined), nestedObject);
 };
 
 /**
@@ -204,7 +205,7 @@ const getNestedObject = nestedObj => {
  * isLoggedInUser(ctx);
  * ```
  */
-const isLoggedInUser = function(ctx, tenantAlias) {
+const isLoggedInUser = function (ctx, tenantAlias) {
   const isTenantNotValid = () => compose(not, _isObject)(ctx.tenant());
   const isContextNotValid = () => compose(not, _isObject)(ctx.user());
   const isTenantAliasValid = () => compose(not, isNil)(tenantAlias);
@@ -235,7 +236,7 @@ const isLoggedInUser = function(ctx, tenantAlias) {
  * isGlobalAdministratorUser(ctx);
  * ```
  */
-const isGlobalAdministratorUser = ctx => {
+const isGlobalAdministratorUser = (ctx) => {
   const isTenantNotAFunction = () => compose(not, _isFunction)(ctx.tenant);
   const isTenantNotAnObject = () => compose(not, _isObject)(ctx.tenant());
   const isUserNotAFunction = () => compose(not, _isFunction)(ctx.user);
@@ -270,7 +271,7 @@ const isGlobalAdministratorUser = ctx => {
  * isObject(obj); // true
  * ```
  */
-const isObject = obj => _isObject(obj);
+const isObject = (object) => _isObject(object);
 
 /**
  * Check whether or not the passed value is a Module OR an Object (dont ask)
@@ -284,7 +285,7 @@ const isObject = obj => _isObject(obj);
  * isModule(obj); // true
  * ```
  */
-const isModule = value => or(equals(type(value), 'Module'), _isObject(value));
+const isModule = (value) => or(equals(type(value), 'Module'), _isObject(value));
 
 /**
  * @function isANumber
@@ -296,7 +297,7 @@ const isModule = value => or(equals(type(value), 'Module'), _isObject(value));
  * isANumber('popo'); // false
  * ```
  */
-const isANumber = value => _isNumber(value);
+const isANumber = (value) => _isNumber(value);
 
 /**
  * Check whether or not the passed in object is an actual array
@@ -310,7 +311,7 @@ const isANumber = value => _isNumber(value);
  * isArray(arr); // true
  * ```
  */
-const isArray = arr => _isArray(arr);
+const isArray = (array) => _isArray(array);
 
 /**
  * @function isArrayNotEmpty
@@ -322,7 +323,7 @@ const isArray = arr => _isArray(arr);
  * isArrayNotEmpty(new Array()); // false
  * ```
  */
-const isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
+const isArrayNotEmpty = (array) => both(_isArray, compose(not, isEmpty))(array);
 
 /**
  * @function isArrayEmpty
@@ -334,7 +335,7 @@ const isArrayNotEmpty = arr => both(_isArray, compose(not, isEmpty))(arr);
  * isArrayEmpty(new Array()); // true
  * ```
  */
-const isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
+const isArrayEmpty = (array) => both(_isArray, isEmpty)(array);
 
 /**
  * Check whether or not the passed in object is an actual boolean
@@ -348,7 +349,7 @@ const isArrayEmpty = arr => both(_isArray, isEmpty)(arr);
  * isBoolean(val); // true
  * ```
  */
-const isBoolean = value => _isBoolean(value);
+const isBoolean = (value) => _isBoolean(value);
 
 /**
  * Check whether or not the passed in valid is a string
@@ -363,7 +364,7 @@ const isBoolean = value => _isBoolean(value);
  * isString(val); // true
  * ```
  */
-const isString = value => _isString(value);
+const isString = (value) => _isString(value);
 
 /**
  * Checks whether or not the provided string is a valid time zone.
@@ -378,10 +379,10 @@ const isString = value => _isString(value);
  * isValidTimeZone(timezone); // false
  * ```
  */
-const isValidTimeZone = function(string) {
+const isValidTimeZone = function (string) {
   // Only timezones of the following format are supported: `foo/bar[/optional]`
-  const isSupportedTimezone = string => Boolean(tz.timezone.timezone.zones[string]);
-  const hasRightFormat = string => string.includes('/');
+  const isSupportedTimezone = (string) => Boolean(tz.timezone.timezone.zones[string]);
+  const hasRightFormat = (string) => string.includes('/');
   return both(isSupportedTimezone, hasRightFormat)(string);
 };
 
@@ -440,7 +441,7 @@ const isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, ma
  * isLongString(string); // true
  * ```
  */
-const isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
+const isLongString = (value) => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
 
 /**
  * Checks whether the string is a valid host
@@ -455,8 +456,8 @@ const isLongString = value => both(_isString, _isItLengthy({ min: 1, max: 100000
  * istHost(string); // true
  * ```
  */
-const isHost = hostString => {
-  return both(isShortString, string =>
+const isHost = (hostString) => {
+  return both(isShortString, (string) =>
     // eslint-disable-next-line camelcase
     isURL(string, { allow_trailing_dot: true, require_tld: false })
   )(hostString);
@@ -474,7 +475,7 @@ const isHost = hostString => {
  * isIso3166Country(string); // maybe
  * ```
  */
-const isIso3166Country = value => both(_isString, isISO31661Alpha2)(value);
+const isIso3166Country = (value) => both(_isString, isISO31661Alpha2)(value);
 
 const completeValidations = {
   ...Validator,

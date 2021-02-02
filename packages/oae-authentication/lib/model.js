@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { AuthenticationConstants } from './constants';
+import { AuthenticationConstants } from './constants.js';
 
 /**
  * An object that represents a means to log in to the system.
@@ -23,7 +23,7 @@ import { AuthenticationConstants } from './constants';
  * @param  {String}    externalId      The external user id representation in the external system
  * @param  {Object}    [properties]    A hash containing additional properties associated to the login id. E.g., a password
  */
-const LoginId = function(tenantAlias, provider, externalId, properties) {
+const LoginId = function (tenantAlias, provider, externalId, properties) {
   const that = {};
   that.tenantAlias = tenantAlias;
   that.provider = provider;

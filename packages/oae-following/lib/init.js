@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable import/namespace, no-unused-vars */
+/* eslint-disable no-unused-vars */
 
 import * as FollowingSearch from 'oae-following/lib/search';
 

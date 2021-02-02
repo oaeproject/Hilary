@@ -15,8 +15,9 @@
 
 import path from 'path';
 import { assert } from 'chai';
+import { describe, it, before, afterEach, beforeEach } from 'mocha';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import request from 'request';
 
@@ -56,7 +57,7 @@ describe('Authentication', () => {
    * @param  {Function}   enabledCallback.done    Standard function that you will have to invoke once you're done with the strategy and it can be reset again
    * @param  {Function}   resetCallback           Standard function that will be invoked when the strategy has been reset
    */
-  const _enableStrategy = function(strategyName, enabledCallback, resetCallback) {
+  const _enableStrategy = function (strategyName, enabledCallback, resetCallback) {
     const strategyStatus = Config.getValue(
       global.oaeTests.tenants.global.alias,
       strategyName,
@@ -94,10 +95,10 @@ describe('Authentication', () => {
    * @param  {String}     method          The HTTP method to use for the callback URL. Some strategies (e.g., `SAML2`) require a POST callback
    * @param  {Function}   callback        Standard callback function
    */
-  const verifyEndpointIsDisabled = function(strategyName, method, callback) {
+  const verifyEndpointIsDisabled = function (strategyName, method, callback) {
     _enableStrategy(
       strategyName,
-      done => {
+      (done) => {
         const options = {
           uri: 'http://' + global.oaeTests.tenants.localhost.host + '/api/auth/' + strategyName,
           headers: {
@@ -107,8 +108,8 @@ describe('Authentication', () => {
           method: 'POST',
           followRedirect: false
         };
-        request(options, (err, response /* , body */) => {
-          assert.notExists(err);
+        request(options, (error, response /* , body */) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 302);
 
           // Now disable it
@@ -120,8 +121,8 @@ describe('Authentication', () => {
             configUpdate,
             () => {
               // A disabled endpoint should return a 401.
-              request(options, (err, response /* , body */) => {
-                assert.notExists(err);
+              request(options, (error, response /* , body */) => {
+                assert.notExists(error);
                 assert.strictEqual(response.statusCode, 302);
                 assert.strictEqual(response.headers.location, '/?authentication=disabled');
                 options.uri =
@@ -132,8 +133,8 @@ describe('Authentication', () => {
                   '/callback';
                 options.method = method;
 
-                request(options, (err, response /* , body */) => {
-                  assert.notExists(err);
+                request(options, (error, response /* , body */) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(response.headers.location, '/?authentication=disabled');
 
@@ -156,10 +157,10 @@ describe('Authentication', () => {
    * @param  {String}   host              The host that the strategy is expected to forward the user to
    * @param  {Function} callback          Standard callback function
    */
-  const verifyForward = function(strategyName, host, callback) {
+  const verifyForward = function (strategyName, host, callback) {
     _enableStrategy(
       strategyName,
-      done => {
+      (done) => {
         const options = {
           uri: 'http://' + global.oaeTests.tenants.localhost.host + '/api/auth/' + strategyName,
           headers: {
@@ -169,10 +170,10 @@ describe('Authentication', () => {
           method: 'POST',
           followRedirect: false
         };
-        request(options, (err, res /* , body */) => {
-          assert.notExists(err);
-          assert.strictEqual(res.statusCode, 302);
-          assert.strictEqual(new URL(res.headers.location).hostname, host);
+        request(options, (error, response /* , body */) => {
+          assert.notExists(error);
+          assert.strictEqual(response.statusCode, 302);
+          assert.strictEqual(new URL(response.headers.location).hostname, host);
 
           return done();
         });
@@ -189,10 +190,10 @@ describe('Authentication', () => {
    * @param  {Object}     parameters      The parameters (either querystring or POST parameters) to send in the request
    * @param  {Function}   callback        Standard callback function
    */
-  const verifyCallbackTampering = function(strategyName, method, parameters, callback) {
+  const verifyCallbackTampering = function (strategyName, method, parameters, callback) {
     _enableStrategy(
       strategyName,
-      done => {
+      (done) => {
         const options = {
           uri:
             'http://' +
@@ -212,8 +213,8 @@ describe('Authentication', () => {
           options.form = parameters;
         }
 
-        request(options, (err, response /* , body */) => {
-          assert.notExists(err);
+        request(options, (error, response /* , body */) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 302);
           assert.strictEqual(response.headers.location, '/?authentication=error');
           return done();
@@ -227,7 +228,7 @@ describe('Authentication', () => {
     /**
      * Revert the localhost tenant's hostname to its old value
      */
-    afterEach(callback => {
+    afterEach((callback) => {
       callback = _.once(callback);
 
       const tenantUpdate = { host: global.oaeTests.tenants.localhost.host };
@@ -235,17 +236,17 @@ describe('Authentication', () => {
         globalAdminRestContext,
         global.oaeTests.tenants.localhost.alias,
         tenantUpdate,
-        err => {
-          if (err) {
-            if (err.msg === 'The hostname has already been taken') {
+        (error) => {
+          if (error) {
+            if (error.msg === 'The hostname has already been taken') {
               // This means the test did not change the localhost tenant's hostname
               // so we can ignore this error and immediately move on to the next test
               return callback();
             }
 
-            let msg = 'Did not expect an error message when reverting the localhost hostname.';
-            msg += 'This might cause failures further down the line.';
-            assert.fail(err.msg, '', msg);
+            let message = 'Did not expect an error message when reverting the localhost hostname.';
+            message += 'This might cause failures further down the line.';
+            assert.fail(error.msg, '', message);
           }
         }
       );
@@ -262,21 +263,21 @@ describe('Authentication', () => {
     /**
      * Verifies that /api/auth/google sends the client to google
      */
-    it('verify forward to google', callback => {
+    it('verify forward to google', (callback) => {
       verifyForward('google', 'accounts.google.com', callback);
     });
 
     /**
      * Verifies that /api/auth/facebook sends the client to facebook
      */
-    it('verify forward to facebook', callback => {
+    it('verify forward to facebook', (callback) => {
       verifyForward('facebook', 'www.facebook.com', callback);
     });
 
     /**
      * Verifies that /api/auth/twitter sends the client to twitter
      */
-    it('verify forward to twitter', callback => {
+    it('verify forward to twitter', (callback) => {
       verifyForward('twitter', 'api.twitter.com', callback);
     });
 
@@ -284,7 +285,7 @@ describe('Authentication', () => {
      * Verifies that disabling the CAS authentication mechanism in the Config
      * disabled the authentication logic in the REST endpoints.
      */
-    it('verify disabling the CAS strategy', callback => {
+    it('verify disabling the CAS strategy', (callback) => {
       verifyEndpointIsDisabled('cas', 'GET', callback);
     });
 
@@ -292,7 +293,7 @@ describe('Authentication', () => {
      * Verifies that disabling the Facebook authentication mechanism in the Config
      * disabled the authentication logic in the REST endpoints.
      */
-    it('verify disabling the Facebook strategy', callback => {
+    it('verify disabling the Facebook strategy', (callback) => {
       verifyEndpointIsDisabled('facebook', 'GET', callback);
     });
 
@@ -300,7 +301,7 @@ describe('Authentication', () => {
      * Verifies that disabling the Google authentication mechanism in the Config
      * disabled the authentication logic in the REST endpoints.
      */
-    it('verify disabling the Google strategy', callback => {
+    it('verify disabling the Google strategy', (callback) => {
       verifyEndpointIsDisabled('google', 'GET', callback);
     });
 
@@ -308,7 +309,7 @@ describe('Authentication', () => {
      * Verifies that disabling the Shibboleth authentication mechanism in the Config
      * disabled the authentication logic in the REST endpoints.
      */
-    it('verify disabling the Shibboleth strategy', callback => {
+    it('verify disabling the Shibboleth strategy', (callback) => {
       verifyEndpointIsDisabled('shibboleth', 'GET', callback);
     });
 
@@ -316,14 +317,14 @@ describe('Authentication', () => {
      * Verifies that disabling the Twitter authentication mechanism in the Config
      * disabled the authentication logic in the REST endpoints.
      */
-    it('verify disabling the Twitter strategy', callback => {
+    it('verify disabling the Twitter strategy', (callback) => {
       verifyEndpointIsDisabled('twitter', 'GET', callback);
     });
 
     /**
      * Test that verifies that the Twitter authentication mechanism can deal with URL tampering
      */
-    it('verify the Twitter callback endpoint can deal with URL tampering', callback => {
+    it('verify the Twitter callback endpoint can deal with URL tampering', (callback) => {
       // eslint-disable-next-line camelcase
       verifyCallbackTampering('twitter', 'GET', { oauth_token: 'not-valid' }, callback);
     });
@@ -331,37 +332,37 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the Google authentication mechanism can deal with URL tampering
      */
-    it('verify the Google callback endpoint can deal with URL tampering', callback => {
+    it('verify the Google callback endpoint can deal with URL tampering', (callback) => {
       verifyCallbackTampering('google', 'GET', { code: 'not-valid' }, callback);
     });
 
     /**
      * Test that verifies that the Facebook authentication mechanism can deal with URL tampering
      */
-    it('verify the Facebook callback endpoint can deal with URL tampering', callback => {
+    it('verify the Facebook callback endpoint can deal with URL tampering', (callback) => {
       verifyCallbackTampering('facebook', 'GET', { code: 'not-valid' }, callback);
     });
 
     /**
      * Test that verifies that the authentication strategies are refreshed when a tenant is updated
      */
-    it('verify the authentication strategies are refreshed when a tenant is updated', callback => {
+    it('verify the authentication strategies are refreshed when a tenant is updated', (callback) => {
       _enableStrategy(
         'google',
-        done => {
+        (done) => {
           // Sanity check that Google is requesting authentication for localhost:2001
           let restContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.localhost.host
           );
           restContext.followRedirect = false;
-          RestAPI.Authentication.googleRedirect(restContext, (err, body, response) => {
-            assert.notExists(err);
+          RestAPI.Authentication.googleRedirect(restContext, (error, body, response) => {
+            assert.notExists(error);
 
             // Assert a redirect
             assert.strictEqual(response.statusCode, 302);
 
             // Assert we're redirecting with the localhost:2001 hostname
-            let redirectUri = util.format(
+            let redirectUri = format(
               'http://%s/api/auth/google/callback',
               global.oaeTests.tenants.localhost.host
             );
@@ -375,15 +376,15 @@ describe('Authentication', () => {
               globalAdminRestContext,
               global.oaeTests.tenants.localhost.alias,
               tenantUpdate,
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
               }
             );
 
             // Wait until the authentication api has finished refreshing its strategies
             AuthenticationAPI.emitter.once(
               AuthenticationConstants.events.REFRESHED_STRATEGIES,
-              tenant => {
+              (tenant) => {
                 // Assert we refreshed the strategies for the localhost tenant
                 assert.strictEqual(tenant.alias, global.oaeTests.tenants.localhost.alias);
                 assert.strictEqual(tenant.host, tenantUpdate.host);
@@ -391,17 +392,14 @@ describe('Authentication', () => {
                 // Verify the authentication strategies are using the new tenant hostname
                 restContext = TestsUtil.createTenantRestContext(tenantUpdate.host);
                 restContext.followRedirect = false;
-                RestAPI.Authentication.googleRedirect(restContext, (err, body, response) => {
-                  assert.notExists(err);
+                RestAPI.Authentication.googleRedirect(restContext, (error, body, response) => {
+                  assert.notExists(error);
 
                   // Assert a redirect
                   assert.strictEqual(response.statusCode, 302);
 
                   // Assert we're redirecting with the new hostname
-                  redirectUri = util.format(
-                    'http://%s/api/auth/google/callback',
-                    tenantUpdate.host
-                  );
+                  redirectUri = format('http://%s/api/auth/google/callback', tenantUpdate.host);
                   parsedUrl = new URL(response.headers.location);
                   assert.strictEqual(parsedUrl.searchParams.get('redirect_uri'), redirectUri);
                   return done();
@@ -418,15 +416,15 @@ describe('Authentication', () => {
      * Test that verifies that non-authoritative strategies cannot create user accounts
      * with an email address that does not match the configured tenant email domain
      */
-    it('verify non-authoritative strategies cannot create user accounts with an email address that does not match the configured email domain', callback => {
+    it('verify non-authoritative strategies cannot create user accounts with an email address that does not match the configured email domain', (callback) => {
       // Create a tenant and enable the external authentication strategies
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
       TestsUtil.createTenantWithAdmin(
         tenantAlias,
         tenantHost,
-        (err, tenant, tenantAdminRestContext) => {
-          assert.notExists(err);
+        (error, tenant, tenantAdminRestContext) => {
+          assert.notExists(error);
           const config = {
             'oae-authentication/facebook/enabled': true,
             'oae-authentication/google/enabled': true
@@ -512,7 +510,7 @@ describe('Authentication', () => {
     /**
      * Function that will start up a mocked CAS server. The url will be configured for the `localhost` tenant
      */
-    beforeEach(callback => {
+    beforeEach((callback) => {
       TestsUtil.createTestServer((_app, _server, _port) => {
         app = _app;
         server = _server;
@@ -521,8 +519,8 @@ describe('Authentication', () => {
         validTicket = 'ticket-' + _.random(0, 10000);
         externalId = 'sg555@' + _.random(0, 10000);
         email = TestsUtil.generateTestEmailAddress();
-        app.get('/cas/serviceValidate', (req, res) => {
-          if (req.query.ticket === validTicket) {
+        app.get('/cas/serviceValidate', (request_, response) => {
+          if (request_.query.ticket === validTicket) {
             let successXml = '<cas:serviceResponse>';
             successXml += '<cas:authenticationSuccess>';
             successXml += '<cas:user>' + externalId + '</cas:user>';
@@ -532,9 +530,9 @@ describe('Authentication', () => {
             successXml += '</cas:attributes>';
             successXml += '</cas:authenticationSuccess>';
             successXml += '</cas:serviceResponse>';
-            res.status(200).send(successXml);
+            response.status(200).send(successXml);
           } else {
-            res
+            response
               .status(401)
               .send(
                 '<cas:serviceResponse><cas:authenticationFailure>true</cas:authenticationFailure></cas:serviceResponse>'
@@ -560,9 +558,9 @@ describe('Authentication', () => {
     /**
      * Function that will close the mocked CAS server and clear the config values
      */
-    afterEach(callback => {
-      server.close(err => {
-        assert.notExists(err);
+    afterEach((callback) => {
+      server.close((error) => {
+        assert.notExists(error);
         const keysToClear = [
           'oae-authentication/cas/url',
           'oae-authentication/cas/loginPath',
@@ -574,8 +572,8 @@ describe('Authentication', () => {
           globalAdminRestContext,
           global.oaeTests.tenants.localhost.alias,
           keysToClear,
-          err => {
-            assert.notExists(err);
+          (error) => {
+            assert.notExists(error);
           }
         );
 
@@ -587,8 +585,8 @@ describe('Authentication', () => {
               globalAdminRestContext,
               global.oaeTests.tenants.localhost.alias,
               { emailDomains: '' },
-              err => {
-                assert.notExists(err);
+              (error) => {
+                assert.notExists(error);
                 return callback();
               }
             );
@@ -600,20 +598,20 @@ describe('Authentication', () => {
     /**
      * Test that verifies the user gets forwarded to the CAS server
      */
-    it('verify forward to cas', callback => {
+    it('verify forward to cas', (callback) => {
       _enableStrategy('cas', (/* done */) => {
         const restContext = TestsUtil.createTenantRestContext(
           global.oaeTests.tenants.localhost.host
         );
         restContext.followRedirect = false;
-        RestAPI.Authentication.casRedirect(restContext, (err, body, response) => {
-          assert.notExists(err);
+        RestAPI.Authentication.casRedirect(restContext, (error, body, response) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 302);
 
           // Assert we're redirected to the proper CAS endpoint
           const casLocation = new URL(response.headers.location);
           assert.strictEqual(casLocation.hostname, 'localhost');
-          assert.strictEqual(parseInt(casLocation.port, 10), port);
+          assert.strictEqual(Number.parseInt(casLocation.port, 10), port);
           assert.strictEqual(casLocation.pathname, '/cas/login');
           assert.ok(casLocation.search);
           assert.strictEqual(
@@ -629,14 +627,14 @@ describe('Authentication', () => {
             configUpdate,
             () => {
               // The CAS redirect should now redirect to the new login url
-              RestAPI.Authentication.casRedirect(restContext, (err, body, response) => {
-                assert.notExists(err);
+              RestAPI.Authentication.casRedirect(restContext, (error, body, response) => {
+                assert.notExists(error);
                 assert.strictEqual(response.statusCode, 302);
 
                 // Assert we're redirected to the proper CAS endpoint
                 const casLocation = new URL(response.headers.location);
                 assert.strictEqual(casLocation.hostname, 'localhost');
-                assert.strictEqual(parseInt(casLocation.port, 10), port);
+                assert.strictEqual(Number.parseInt(casLocation.port, 10), port);
                 assert.strictEqual(casLocation.pathname, '/cas/login/something/foo');
                 assert.ok(casLocation.search);
                 assert.strictEqual(
@@ -654,10 +652,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies the ticket gets validated
      */
-    it('verify ticket validation', callback => {
+    it('verify ticket validation', (callback) => {
       _enableStrategy(
         'cas',
-        done => {
+        (done) => {
           const restContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.localhost.host
           );
@@ -665,8 +663,8 @@ describe('Authentication', () => {
           RestAPI.Authentication.casCallback(
             restContext,
             { ticket: 'invalid-ticket' },
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
               assert.strictEqual(response.statusCode, 302);
               assert.strictEqual(response.headers.location, '/?authentication=error');
 
@@ -674,8 +672,8 @@ describe('Authentication', () => {
               RestAPI.Authentication.casCallback(
                 restContext,
                 { ticket: validTicket },
-                (err, body, response) => {
-                  assert.notExists(err);
+                (error, body, response) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(response.headers.location, '/');
                   return done();
@@ -691,7 +689,7 @@ describe('Authentication', () => {
     /**
      * Test that verifies the CAS strategy can deal with an error from the CAS server
      */
-    it('verify ticket error handling', callback => {
+    it('verify ticket error handling', (callback) => {
       // By configuring the CAS url to something non existant, we will trigger an error in the validation step
       const configUpdate = {};
       configUpdate['oae-authentication/cas/url'] = 'http://nothing.here.local';
@@ -702,7 +700,7 @@ describe('Authentication', () => {
         () => {
           _enableStrategy(
             'cas',
-            done => {
+            (done) => {
               // Trigger a ticket validation error by attempting to log in
               const restContext = TestsUtil.createTenantRestContext(
                 global.oaeTests.tenants.localhost.host
@@ -711,8 +709,8 @@ describe('Authentication', () => {
               RestAPI.Authentication.casCallback(
                 restContext,
                 { ticket: 'Someticket' },
-                (err, body, response) => {
-                  assert.notExists(err);
+                (error, body, response) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(
                     response.headers.location,
@@ -731,10 +729,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies the ticket gets validated
      */
-    it('verify CAS attribute mapping', callback => {
+    it('verify CAS attribute mapping', (callback) => {
       _enableStrategy(
         'cas',
-        done => {
+        (done) => {
           // Log in with our CAS server
           const restContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.localhost.host
@@ -743,14 +741,14 @@ describe('Authentication', () => {
           RestAPI.Authentication.casCallback(
             restContext,
             { ticket: validTicket },
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
               assert.strictEqual(response.statusCode, 302);
               assert.strictEqual(response.headers.location, '/');
 
               // Check that the attributes were parsed correctly
-              RestAPI.User.getMe(restContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(restContext, (error, me) => {
+                assert.notExists(error);
                 assert.ok(!me.anon);
                 assert.strictEqual(me.displayName, 'Simon');
                 assert.strictEqual(me.email, email.toLowerCase());
@@ -768,10 +766,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that accounts with an invalid email address can still be created
      */
-    it('verify accounts with an invalid email address get created', callback => {
+    it('verify accounts with an invalid email address get created', (callback) => {
       _enableStrategy(
         'cas',
-        done => {
+        (done) => {
           email = 'an invalid email address';
 
           // Log in with our CAS server
@@ -782,14 +780,14 @@ describe('Authentication', () => {
           RestAPI.Authentication.casCallback(
             restContext,
             { ticket: validTicket },
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
               assert.strictEqual(response.statusCode, 302);
               assert.strictEqual(response.headers.location, '/');
 
               // Check that the attributes were parsed correctly
-              RestAPI.User.getMe(restContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(restContext, (error, me) => {
+                assert.notExists(error);
                 assert.ok(!me.anon);
                 assert.strictEqual(me.displayName, 'Simon');
                 assert.strictEqual(me.authenticationStrategy, 'cas');
@@ -807,10 +805,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that misconfigured attributes doe not break the authentication flow
      */
-    it('verify misconfigured attribute mapping does not break the authentication flow', callback => {
+    it('verify misconfigured attribute mapping does not break the authentication flow', (callback) => {
       _enableStrategy(
         'cas',
-        done => {
+        (done) => {
           // Misconfigure some attributes
           const configUpdate = {};
           configUpdate['oae-authentication/cas/mapDisplayName'] = '}displayname{';
@@ -827,14 +825,14 @@ describe('Authentication', () => {
               RestAPI.Authentication.casCallback(
                 restContext,
                 { ticket: validTicket },
-                (err, body, response) => {
-                  assert.notExists(err);
+                (error, body, response) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(response.headers.location, '/');
 
                   // Check that the attributes were parsed correctly
-                  RestAPI.User.getMe(restContext, (err, me) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(restContext, (error, me) => {
+                    assert.notExists(error);
                     assert.ok(!me.anon);
                     assert.strictEqual(me.authenticationStrategy, 'cas');
 
@@ -856,7 +854,7 @@ describe('Authentication', () => {
      * Test that verifies that the user is sent to the proper logout url on the CAS server
      * when the user logs out of OAE
      */
-    it('verify CAS logout', callback => {
+    it('verify CAS logout', (callback) => {
       const configUpdate = {};
       configUpdate['oae-authentication/cas/logoutUrl'] = 'http://localhost:' + port + '/cas/logout';
       AuthenticationTestUtil.assertUpdateAuthConfigSucceeds(
@@ -866,7 +864,7 @@ describe('Authentication', () => {
         () => {
           _enableStrategy(
             'cas',
-            done => {
+            (done) => {
               // Log in with our CAS server
               const restContext = TestsUtil.createTenantRestContext(
                 global.oaeTests.tenants.localhost.host
@@ -875,20 +873,20 @@ describe('Authentication', () => {
               RestAPI.Authentication.casCallback(
                 restContext,
                 { ticket: validTicket },
-                (err, body, response) => {
-                  assert.notExists(err);
+                (error, body, response) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(response.headers.location, '/');
 
                   // Sanity check we're logged in
-                  RestAPI.User.getMe(restContext, (err, me) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(restContext, (error, me) => {
+                    assert.notExists(error);
                     assert.ok(!me.anon);
                     assert.strictEqual(me.authenticationStrategy, 'cas');
 
                     // Log out
-                    RestAPI.Authentication.logout(restContext, (err, data, response) => {
-                      assert.notExists(err);
+                    RestAPI.Authentication.logout(restContext, (error, data, response) => {
+                      assert.notExists(error);
 
                       // The user should be redirected to the CAS server
                       assert.strictEqual(response.statusCode, 302);
@@ -899,8 +897,8 @@ describe('Authentication', () => {
                       );
 
                       // Sanity-check we're logged out
-                      RestAPI.User.getMe(restContext, (err, me) => {
-                        assert.notExists(err);
+                      RestAPI.User.getMe(restContext, (error, me) => {
+                        assert.notExists(error);
                         assert.ok(me.anon);
                         return done();
                       });
@@ -919,18 +917,18 @@ describe('Authentication', () => {
      * Test that verifies that accounts with an email address that does not match the tenant
      * configured email domain can be created
      */
-    it('verify accounts with an email address that does not match the tenant configured email domain can be created', callback => {
+    it('verify accounts with an email address that does not match the tenant configured email domain can be created', (callback) => {
       _enableStrategy(
         'cas',
-        done => {
+        (done) => {
           // Configure an email domain
           const emailDomain = TenantsTestUtil.generateTestTenantHost();
           TenantsTestUtil.updateTenantAndWait(
             globalAdminRestContext,
             global.oaeTests.tenants.localhost.alias,
             { emailDomains: [emailDomain] },
-            err => {
-              assert.notExists(err);
+            (error) => {
+              assert.notExists(error);
 
               // Log in through CAS with an email address that definitely does not belong to
               // the tenant's configured email domain
@@ -945,14 +943,14 @@ describe('Authentication', () => {
               RestAPI.Authentication.casCallback(
                 restContext,
                 { ticket: validTicket },
-                (err, body, response) => {
-                  assert.notExists(err);
+                (error, body, response) => {
+                  assert.notExists(error);
                   assert.strictEqual(response.statusCode, 302);
                   assert.strictEqual(response.headers.location, '/');
 
                   // Check that the attributes were parsed correctly
-                  RestAPI.User.getMe(restContext, (err, me) => {
-                    assert.notExists(err);
+                  RestAPI.User.getMe(restContext, (error, me) => {
+                    assert.notExists(error);
                     assert.ok(!me.anon);
                     assert.strictEqual(me.displayName, 'Simon');
                     assert.strictEqual(me.email, email.toLowerCase());
@@ -974,7 +972,7 @@ describe('Authentication', () => {
     /**
      * Function that will configure the shibboleth authentication strategy
      */
-    beforeEach(callback => {
+    beforeEach((callback) => {
       // Setup the Shibboleth strategy (but do not enable it just yet)
       const configUpdate = {};
       configUpdate['oae-authentication/shibboleth/idpEntityID'] =
@@ -990,15 +988,15 @@ describe('Authentication', () => {
     /**
      * Function that will clear the config values
      */
-    afterEach(callback => {
+    afterEach((callback) => {
       const keysToClear = ['oae-authentication/shibboleth/idpEntityID'];
 
       ConfigTestUtil.clearConfigAndWait(
         globalAdminRestContext,
         global.oaeTests.tenants.localhost.alias,
         keysToClear,
-        err => {
-          assert.notExists(err);
+        (error) => {
+          assert.notExists(error);
         }
       );
 
@@ -1010,8 +1008,8 @@ describe('Authentication', () => {
             globalAdminRestContext,
             global.oaeTests.tenants.localhost.alias,
             { emailDomains: '' },
-            err => {
-              assert.notExists(err);
+            (error) => {
+              assert.notExists(error);
               return callback();
             }
           );
@@ -1029,7 +1027,7 @@ describe('Authentication', () => {
      * @param  {RestContext}    callback.tenantRestContext      The rest context that can be used on the tenant on which you want to sign in
      * @param  {RestContext}    callback.spRestContext          The rest context that can be used on the service provider "tenant"
      */
-    const _initiateShibbolethAuthFlow = function(redirectUrl, callback) {
+    const _initiateShibbolethAuthFlow = function (redirectUrl, callback) {
       const tenantRestContext = TestsUtil.createTenantRestContext(
         global.oaeTests.tenants.localhost.host
       );
@@ -1039,8 +1037,8 @@ describe('Authentication', () => {
       RestAPI.Authentication.shibbolethTenantRedirect(
         tenantRestContext,
         redirectUrl,
-        (err, body, response) => {
-          assert.notExists(err);
+        (error, body, response) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 302);
 
           // Assert we're redirected to the SP host
@@ -1067,8 +1065,8 @@ describe('Authentication', () => {
           RestAPI.Authentication.shibbolethSPRedirect(
             spRestContext,
             TestsUtil.objectifySearchParams(location.searchParams),
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
               assert.strictEqual(response.statusCode, 302);
 
               // Assert we're redirected to the proper Shibboleth handler
@@ -1102,7 +1100,7 @@ describe('Authentication', () => {
      * @param  {String}         [expectedRedirectUrl]       The URL where the user should be redirected to once he arrives on the tenant. Defaults to `/`
      * @param  {Function}       callback                    Standard callback function
      */
-    const _callbackShibbolethAuthFlow = function(
+    const _callbackShibbolethAuthFlow = function (
       tenantRestContext,
       spRestContext,
       attributes,
@@ -1115,8 +1113,8 @@ describe('Authentication', () => {
       RestAPI.Authentication.shibbolethSPCallback(
         spRestContext,
         attributes,
-        (err, body, response) => {
-          assert.notExists(err);
+        (error, body, response) => {
+          assert.notExists(error);
           assert.strictEqual(response.statusCode, 302);
 
           // Assert that we're redirected back to the tenant
@@ -1134,8 +1132,8 @@ describe('Authentication', () => {
           RestAPI.Authentication.shibbolethTenantCallback(
             tenantRestContext,
             TestsUtil.objectifySearchParams(location.searchParams),
-            (err, body, response) => {
-              assert.notExists(err);
+            (error, body, response) => {
+              assert.notExists(error);
 
               // We should be redirected to the specified redirect URL
               assert.strictEqual(response.statusCode, 302);
@@ -1153,17 +1151,17 @@ describe('Authentication', () => {
      *
      * @return {Stream}     A readable stream pointing to a CSV file
      */
-    const getShibbolethCSVfile = function() {
+    const getShibbolethCSVfile = function () {
       return fs.createReadStream(path.join(__dirname, '/data/shibboleth.csv'));
     };
 
     /**
      * Test that verifies the user gets forwarded to our SP endpoint
      */
-    it('verify redirection flow', callback => {
+    it('verify redirection flow', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Initiate the Shibboleth auth flow
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const email = TestsUtil.generateTestEmailAddress();
@@ -1197,8 +1195,8 @@ describe('Authentication', () => {
               '/content/bla',
               () => {
                 // Assert we're logged in and the attributes were correctly persisted
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, 'Simon');
@@ -1217,10 +1215,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the remote_user attribute is used when no displayName attributes are specified
      */
-    it('verify the remote_user attribute is used when no displayName attributes are specified', callback => {
+    it('verify the remote_user attribute is used when no displayName attributes are specified', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Initiate the Shibboleth auth flow
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const email = TestsUtil.generateTestEmailAddress();
@@ -1253,8 +1251,8 @@ describe('Authentication', () => {
               '/content/bla',
               () => {
                 // Assert we're logged in and the attributes were correctly persisted
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, attributes.remote_user);
@@ -1277,7 +1275,7 @@ describe('Authentication', () => {
      * @param  {String}         remoteUser           The remote_user attribute we want to use to populate display name
      * @param  {Function}       callback             Standard callback function
      */
-    const verifyInvalidDisplayNameMakesProfilePrivate = function(remoteUser, callback) {
+    const verifyInvalidDisplayNameMakesProfilePrivate = function (remoteUser, callback) {
       // Initiate the Shibboleth auth flow
       _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
         const email = TestsUtil.generateTestEmailAddress();
@@ -1309,8 +1307,8 @@ describe('Authentication', () => {
           '/content/bla',
           () => {
             // Assert we're logged in and the attributes were correctly persisted
-            RestAPI.User.getMe(tenantRestContext, (err, me) => {
-              assert.notExists(err);
+            RestAPI.User.getMe(tenantRestContext, (error, me) => {
+              assert.notExists(error);
               assert.ok(!me.anon);
               assert.strictEqual(me.authenticationStrategy, 'shibboleth');
               assert.strictEqual(me.displayName, attributes.remote_user);
@@ -1326,10 +1324,10 @@ describe('Authentication', () => {
      * Test that verifies that the user visibility will be set to private if displayName resembles a shibboleth identifier,
      * URL or email address
      */
-    it('verify the user will be private if displayName resembles a Shibboleth identifier, URL or email address', callback => {
+    it('verify the user will be private if displayName resembles a Shibboleth identifier, URL or email address', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Profile should be made private if display name looks like a shibboleth identifier
           verifyInvalidDisplayNameMakesProfilePrivate('shibboleth!' + Math.random, () => {
             // Profile should be made private if display name is an email address
@@ -1360,10 +1358,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies the parameters are validated when redirecting a user from a tenant to our SP
      */
-    it('verify SP redirect', callback => {
+    it('verify SP redirect', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // The tenant we try to authenticate on
           const tenantAlias = global.oaeTests.tenants.localhost.alias;
 
@@ -1376,23 +1374,23 @@ describe('Authentication', () => {
           RestAPI.Authentication.shibbolethSPRedirect(
             spRestContext,
             { tenantAlias: null, signature: null, expires: null },
-            (err /* , body, response */) => {
-              assert.strictEqual(err.code, 400);
+            (error /* , body, response */) => {
+              assert.strictEqual(error.code, 400);
               RestAPI.Authentication.shibbolethSPRedirect(
                 spRestContext,
                 { tenantAlias, signature: null, expires: null },
-                (err /* , body, response */) => {
-                  assert.strictEqual(err.code, 400);
+                (error /* , body, response */) => {
+                  assert.strictEqual(error.code, 400);
                   RestAPI.Authentication.shibbolethSPRedirect(
                     spRestContext,
                     { tenantAlias, signature: 'sign', expires: null },
-                    (err /* , body, response */) => {
-                      assert.strictEqual(err.code, 400);
+                    (error /* , body, response */) => {
+                      assert.strictEqual(error.code, 400);
                       RestAPI.Authentication.shibbolethSPRedirect(
                         spRestContext,
                         { tenantAlias, signature: 'sign', expires: 'not a number' },
-                        (err /* , body, response */) => {
-                          assert.strictEqual(err.code, 400);
+                        (error /* , body, response */) => {
+                          assert.strictEqual(error.code, 400);
                           RestAPI.Authentication.shibbolethSPRedirect(
                             spRestContext,
                             {
@@ -1400,8 +1398,8 @@ describe('Authentication', () => {
                               signature: 'sign',
                               expires: Date.now() - 1000
                             },
-                            (err /* , body, response */) => {
-                              assert.strictEqual(err.code, 400);
+                            (error /* , body, response */) => {
+                              assert.strictEqual(error.code, 400);
 
                               // Invalid signature
                               RestAPI.Authentication.shibbolethSPRedirect(
@@ -1411,8 +1409,8 @@ describe('Authentication', () => {
                                   signature: 'sign',
                                   expires: Date.now() + 10000
                                 },
-                                (err /* , body, response */) => {
-                                  assert.strictEqual(err.code, 401);
+                                (error /* , body, response */) => {
+                                  assert.strictEqual(error.code, 401);
 
                                   // The SP Redirect endpoint should not be functioning on a regular tenant
                                   const tenantRestContext = TestsUtil.createTenantRestContext(
@@ -1421,8 +1419,8 @@ describe('Authentication', () => {
                                   RestAPI.Authentication.shibbolethSPRedirect(
                                     tenantRestContext,
                                     {},
-                                    (err /* , body, response */) => {
-                                      assert.strictEqual(err.code, 501);
+                                    (error /* , body, response */) => {
+                                      assert.strictEqual(error.code, 501);
 
                                       return done();
                                     }
@@ -1447,10 +1445,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies the parameters are validated when redirecting a user from our SP to the tenant callback endpoint
      */
-    it('verify the tenant callback endpoint validates its parameters', callback => {
+    it('verify the tenant callback endpoint validates its parameters', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           const restContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.localhost.host
           );
@@ -1460,28 +1458,28 @@ describe('Authentication', () => {
           RestAPI.Authentication.shibbolethTenantCallback(
             restContext,
             { userId: null, signature: null, expires: null },
-            (err /* , body, response */) => {
-              assert.strictEqual(err.code, 400);
+            (error /* , body, response */) => {
+              assert.strictEqual(error.code, 400);
               RestAPI.Authentication.shibbolethTenantCallback(
                 restContext,
                 { userId: 'u:foo:bar', signature: null, expires: null },
-                (err /* , body, response */) => {
-                  assert.strictEqual(err.code, 400);
+                (error /* , body, response */) => {
+                  assert.strictEqual(error.code, 400);
                   RestAPI.Authentication.shibbolethTenantCallback(
                     restContext,
                     { userId: 'u:foo:bar', signature: 'sign', expires: null },
-                    (err /* , body, response */) => {
-                      assert.strictEqual(err.code, 400);
+                    (error /* , body, response */) => {
+                      assert.strictEqual(error.code, 400);
                       RestAPI.Authentication.shibbolethTenantCallback(
                         restContext,
                         { userId: 'u:foo:bar', signature: 'sign', expires: 'expires' },
-                        (err /* , body, response */) => {
-                          assert.strictEqual(err.code, 400);
+                        (error /* , body, response */) => {
+                          assert.strictEqual(error.code, 400);
                           RestAPI.Authentication.shibbolethTenantCallback(
                             restContext,
                             { userId: 'u:foo:bar', signature: 'sign', expires: Date.now() - 1000 },
-                            (err /* , body, response */) => {
-                              assert.strictEqual(err.code, 400);
+                            (error /* , body, response */) => {
+                              assert.strictEqual(error.code, 400);
 
                               // Invalid signature
                               RestAPI.Authentication.shibbolethTenantCallback(
@@ -1491,8 +1489,8 @@ describe('Authentication', () => {
                                   signature: 'sign',
                                   expires: Date.now() + 10000
                                 },
-                                (err /* , body, response */) => {
-                                  assert.strictEqual(err.code, 401);
+                                (error /* , body, response */) => {
+                                  assert.strictEqual(error.code, 401);
 
                                   return done();
                                 }
@@ -1516,10 +1514,10 @@ describe('Authentication', () => {
      * Test that verifies that the SP callback endpoint verifies the cookie hasn't been tampered with
      * and that it can't be called from regular tenants
      */
-    it('verify the SP callback endpoint spoofing', callback => {
+    it('verify the SP callback endpoint spoofing', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Initiate the Shibboleth auth flow
           _initiateShibbolethAuthFlow('/', (tenantRestContext, spRestContext) => {
             // The user returns from the Shibboleth IdP and arrives on our SP
@@ -1531,13 +1529,13 @@ describe('Authentication', () => {
             spRestContext.cookieJar.setCookie(fakeCookie.toString(), 'http://localhost:2000/');
             const attributes = {};
             RestAPI.Authentication.shibbolethSPCallback(spRestContext, attributes, (
-              err /* , body, response */
+              error /* , body, response */
             ) => {
-              assert.strictEqual(err.code, 400);
+              assert.strictEqual(error.code, 400);
 
               // The SP callback endpoint should not be exposed on regular tenants
-              RestAPI.Authentication.shibbolethSPCallback(tenantRestContext, {}, err => {
-                assert.strictEqual(err.code, 501);
+              RestAPI.Authentication.shibbolethSPCallback(tenantRestContext, {}, (error_) => {
+                assert.strictEqual(error_.code, 501);
                 return done();
               });
             });
@@ -1550,7 +1548,7 @@ describe('Authentication', () => {
     /**
      * Test that verifies that provisioned users can log in with Shibboleth
      */
-    it('verify provisioned users can log in with Shibboleth', callback => {
+    it('verify provisioned users can log in with Shibboleth', (callback) => {
       _enableStrategy('shibboleth', (/* done */) => {
         // Import users as a global admin using the Shibboleth authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -1559,8 +1557,8 @@ describe('Authentication', () => {
           getShibbolethCSVfile,
           'shibboleth',
           null,
-          err => {
-            assert.notExists(err);
+          (error) => {
+            assert.notExists(error);
 
             // Configure the attribute priority list so it tries an `employee-numer`
             const configUpdate = {};
@@ -1606,8 +1604,8 @@ describe('Authentication', () => {
                       // Because the user was already created in the system,
                       // we should NOT have created a new account. We can verify
                       // this by checking if the user's profile is unchanged
-                      RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                        assert.notExists(err);
+                      RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                        assert.notExists(error);
                         assert.strictEqual(me.displayName, 'Aron Viggo');
                         assert.strictEqual(me.email, 'aron@institution.edu');
                         return callback();
@@ -1625,10 +1623,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the displayName field can be configured as a priority list
      */
-    it('verify the displayName field can be configured as a priority list', callback => {
+    it('verify the displayName field can be configured as a priority list', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Verify the display name attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
@@ -1654,8 +1652,8 @@ describe('Authentication', () => {
               attributes,
               '/content/bla',
               () => {
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, 'Simon via displayname');
@@ -1690,8 +1688,8 @@ describe('Authentication', () => {
                         attributes,
                         '/content/bla',
                         () => {
-                          RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                            assert.notExists(err);
+                          RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                            assert.notExists(error);
                             assert.ok(!me.anon);
                             assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                             assert.strictEqual(me.displayName, 'Nico via cn');
@@ -1715,10 +1713,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the email field can be configured as a priority list
      */
-    it('verify the email field can be configured as a priority list', callback => {
+    it('verify the email field can be configured as a priority list', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Verify the email attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
@@ -1744,8 +1742,8 @@ describe('Authentication', () => {
               attributes,
               '/content/bla',
               () => {
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, 'Simon');
@@ -1780,8 +1778,8 @@ describe('Authentication', () => {
                         attributes,
                         '/content/bla',
                         () => {
-                          RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                            assert.notExists(err);
+                          RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                            assert.notExists(error);
                             assert.ok(!me.anon);
                             assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                             assert.strictEqual(me.displayName, 'Simon');
@@ -1805,10 +1803,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that the locale field can be configured as a priority list
      */
-    it('verify the locale field can be configured as a priority list', callback => {
+    it('verify the locale field can be configured as a priority list', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Verify the locale attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
@@ -1834,8 +1832,8 @@ describe('Authentication', () => {
               attributes,
               '/content/bla',
               () => {
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, 'Simon');
@@ -1870,8 +1868,8 @@ describe('Authentication', () => {
                         attributes,
                         '/content/bla',
                         () => {
-                          RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                            assert.notExists(err);
+                          RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                            assert.notExists(error);
                             assert.ok(!me.anon);
                             assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                             assert.strictEqual(me.displayName, 'Simon');
@@ -1895,10 +1893,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that an invalid locale attribute is not used as a user's locale
      */
-    it("verify an invalid locale attribute is not used as a user's locale", callback => {
+    it("verify an invalid locale attribute is not used as a user's locale", (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
               'shib-session-id': _.random(10000),
@@ -1922,8 +1920,8 @@ describe('Authentication', () => {
               attributes,
               '/content/bla',
               () => {
-                RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                  assert.notExists(err);
+                RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                  assert.notExists(error);
                   assert.ok(!me.anon);
                   assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                   assert.strictEqual(me.displayName, 'Simon');
@@ -1931,8 +1929,8 @@ describe('Authentication', () => {
                   assert.notStrictEqual(me.locale, attributes.locale);
 
                   // Verify the user's locale defaulted to the tenant's default locale
-                  RestAPI.Config.getTenantConfig(tenantRestContext, null, (err, config) => {
-                    assert.notExists(err);
+                  RestAPI.Config.getTenantConfig(tenantRestContext, null, (error, config) => {
+                    assert.notExists(error);
                     assert.strictEqual(me.locale, config['oae-principals'].user.defaultLanguage);
                     return done();
                   });
@@ -1948,7 +1946,7 @@ describe('Authentication', () => {
     /**
      * Test that verifies that accounts with an invalid email address can still be created
      */
-    it('verify accounts with an invalid email address get created', callback => {
+    it('verify accounts with an invalid email address get created', (callback) => {
       _enableStrategy('shibboleth', (/* done */) => {
         _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
           const attributes = {
@@ -1972,8 +1970,8 @@ describe('Authentication', () => {
             attributes,
             '/content/bla',
             () => {
-              RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                assert.notExists(error);
                 assert.ok(!me.anon);
                 assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                 assert.strictEqual(me.displayName, 'Simon');
@@ -1990,18 +1988,18 @@ describe('Authentication', () => {
      * Test that verifies that accounts with an email address that does not match the tenant
      * configured email domain can be created
      */
-    it('verify accounts with an email address that does not match the tenant configured email domain can be created', callback => {
+    it('verify accounts with an email address that does not match the tenant configured email domain can be created', (callback) => {
       _enableStrategy(
         'shibboleth',
-        done => {
+        (done) => {
           // Configure an email domain
           const emailDomain = TenantsTestUtil.generateTestTenantHost();
           TenantsTestUtil.updateTenantAndWait(
             globalAdminRestContext,
             global.oaeTests.tenants.localhost.alias,
             { emailDomains: emailDomain },
-            err => {
-              assert.notExists(err);
+            (error) => {
+              assert.notExists(error);
 
               // Log in through Shibboleth with an email address that definitely does not
               // belong to the tenant's configured email domain
@@ -2029,8 +2027,8 @@ describe('Authentication', () => {
                   attributes,
                   '/content/bla',
                   () => {
-                    RestAPI.User.getMe(tenantRestContext, (err, me) => {
-                      assert.notExists(err);
+                    RestAPI.User.getMe(tenantRestContext, (error, me) => {
+                      assert.notExists(error);
                       assert.ok(!me.anon);
                       assert.strictEqual(me.authenticationStrategy, 'shibboleth');
                       assert.strictEqual(me.displayName, 'Simon');
@@ -2056,7 +2054,7 @@ describe('Authentication', () => {
      * @param  {String}         domains     The comma-separated list of allowed domains
      * @param  {Function}       callback    Standard callback function
      */
-    const _setGoogleDomains = function(domains, callback) {
+    const _setGoogleDomains = function (domains, callback) {
       const config = {
         'oae-authentication/google/domains': domains
       };
@@ -2071,10 +2069,10 @@ describe('Authentication', () => {
     /**
      * Test that verifies that authentication can be scoped to a set of domains
      */
-    it('verify authentication can be scoped to a set of domains', callback => {
+    it('verify authentication can be scoped to a set of domains', (callback) => {
       _enableStrategy(
         'google',
-        done => {
+        (done) => {
           // Try with no domains
           _setGoogleDomains('', () => {
             AuthenticationTestUtil.assertGoogleLoginSucceeds(

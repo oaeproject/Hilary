@@ -14,9 +14,10 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before, afterEach, beforeEach } from 'mocha';
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
+import { format } from 'util';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
@@ -104,7 +105,7 @@ describe('Content Activity', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Prepare the rest contexts that can be used for performing REST requests
     asGeorgiaTechAnonymousUser = createTenantRestContext(global.oaeTests.tenants.gt.host);
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
@@ -131,7 +132,7 @@ describe('Content Activity', () => {
   /**
    * Drain the email queue
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     EmailTestsUtil.clearEmailCollections(callback);
   });
 
@@ -140,36 +141,36 @@ describe('Content Activity', () => {
    *
    * @param  {Function}   callback            Standard callback function
    */
-  const _setup = function(callback) {
+  const _setup = function (callback) {
     // Generate some users
-    generateTestUsers(asCambridgeTenantAdmin, 7, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 7, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer, 1: marge, 2: bart, 3: lisa, 4: maggie, 5: abraham, 6: apu } = users;
       const asHomer = homer.restContext;
       const asMarge = marge.restContext;
 
       // Generate some groups
-      generateTestGroups(asHomer, 2, (err, groups) => {
-        assert.notExists(err);
+      generateTestGroups(asHomer, 2, (error, groups) => {
+        assert.notExists(error);
 
         const { 0: groupA, 1: groupB } = groups;
         // Add regular members in both groups
         const groupAMembers = {};
         groupAMembers[abraham.user.id] = 'member';
 
-        setGroupMembers(asHomer, groupA.group.id, groupAMembers, err => {
-          assert.notExists(err);
+        setGroupMembers(asHomer, groupA.group.id, groupAMembers, (error_) => {
+          assert.notExists(error_);
 
           const groupBMembers = {};
           groupBMembers[apu.user.id] = 'member';
 
-          setGroupMembers(asHomer, groupB.group.id, groupBMembers, err => {
-            assert.notExists(err);
+          setGroupMembers(asHomer, groupB.group.id, groupBMembers, (error_) => {
+            assert.notExists(error_);
 
             // Marge follows Homer
-            follow(asMarge, homer.user.id, err => {
-              assert.notExists(err);
+            follow(asMarge, homer.user.id, (error_) => {
+              assert.notExists(error_);
 
               return callback(homer, marge, bart, lisa, maggie, abraham, apu, groupA, groupB);
             });
@@ -188,12 +189,12 @@ describe('Content Activity', () => {
    * @param  {String}            entityOaeId         The oae:id of the entity to search
    * @return {Activity}                              An activity from the stream that matches the provided criteria
    */
-  const _getActivity = function(activityStream, activityType, entityType, entityOaeId) {
+  const _getActivity = function (activityStream, activityType, entityType, entityOaeId) {
     if (not(activityStream)) {
       return null;
     }
 
-    return find(activity => {
+    return find((activity) => {
       return (
         pathSatisfies(Boolean, [entityType], activity) &&
         pathSatisfies(equals(activityType), ['oae:activityType'], activity) &&
@@ -210,7 +211,7 @@ describe('Content Activity', () => {
    * @return {Object}                                The first email from the email list that matches the to address
    */
   const _getEmail = (emails, to) => {
-    return find(email => equals(to, email.to[0].address), emails);
+    return find((email) => equals(to, email.to[0].address), emails);
   };
 
   /**
@@ -220,8 +221,8 @@ describe('Content Activity', () => {
    * @param  {String}     filename    The file in the tests/data directory that should be returned as a stream.
    * @return {Function}               A function that returns a stream when executed.
    */
-  const getFunctionThatReturnsFileStream = filename => {
-    return function() {
+  const getFunctionThatReturnsFileStream = (filename) => {
+    return function () {
       const file = path.join(__dirname, `/data/${filename}`);
       return fs.createReadStream(file);
     };
@@ -231,9 +232,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies a content resource routes activities to its members when created, updated and shared
      */
-    it('verify routing to content members', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify routing to content members', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -247,8 +248,8 @@ describe('Content Activity', () => {
           NOT_JOINABLE,
           NO_MANAGERS,
           NO_MEMBERS,
-          (err, viewerGroup) => {
-            assert.notExists(err);
+          (error, viewerGroup) => {
+            assert.notExists(error);
 
             // Create a group that will be a manager of the content
             createGroup(
@@ -259,15 +260,15 @@ describe('Content Activity', () => {
               NOT_JOINABLE,
               NO_MANAGERS,
               NO_MEMBERS,
-              (err, managerGroup) => {
-                assert.notExists(err);
+              (error, managerGroup) => {
+                assert.notExists(error);
 
                 // Bart (managerGroupMember) should be a member of the manager group to verify indirect group member routing
                 const membership = {};
                 membership[bart.user.id] = 'manager';
 
-                setGroupMembers(asCambridgeTenantAdmin, managerGroup.id, membership, err => {
-                  assert.notExists(err);
+                setGroupMembers(asCambridgeTenantAdmin, managerGroup.id, membership, (error_) => {
+                  assert.notExists(error_);
 
                   // Create a content item with manager group and viewer group as members.
                   createLink(
@@ -281,20 +282,20 @@ describe('Content Activity', () => {
                       viewers: [viewerGroup.id],
                       folders: NO_FOLDERS
                     },
-                    (err, link) => {
-                      assert.notExists(err);
+                    (error, link) => {
+                      assert.notExists(error);
 
                       // Share the content item with jane
-                      shareContent(asHomer, link.id, [marge.user.id], err => {
-                        assert.notExists(err);
+                      shareContent(asHomer, link.id, [marge.user.id], (error_) => {
+                        assert.notExists(error_);
 
                         // Update the content item
-                        updateContent(asHomer, link.id, { description: 'Super awesome link' }, err => {
-                          assert.notExists(err);
+                        updateContent(asHomer, link.id, { description: 'Super awesome link' }, (error_) => {
+                          assert.notExists(error_);
 
                           // Verify Jack got the create, share and update as he was the actor for all of them
-                          collectAndGetActivityStream(asHomer, homer.user.id, null, (err, activityStream) => {
-                            assert.notExists(err);
+                          collectAndGetActivityStream(asHomer, homer.user.id, null, (error, activityStream) => {
+                            assert.notExists(error);
                             assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
                             assert.ok(_getActivity(activityStream, 'content-share', 'target', marge.user.id));
                             assert.ok(_getActivity(activityStream, 'content-update', 'object', link.id));
@@ -304,8 +305,8 @@ describe('Content Activity', () => {
                               asCambridgeTenantAdmin,
                               managerGroup.id,
                               null,
-                              (err, activityStream) => {
-                                assert.notExists(err);
+                              (error, activityStream) => {
+                                assert.notExists(error);
                                 assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
                                 assert.ok(_getActivity(activityStream, 'content-share', 'target', marge.user.id));
                                 assert.ok(_getActivity(activityStream, 'content-update', 'object', link.id));
@@ -315,8 +316,8 @@ describe('Content Activity', () => {
                                   asCambridgeTenantAdmin,
                                   viewerGroup.id,
                                   null,
-                                  (err, activityStream) => {
-                                    assert.notExists(err);
+                                  (error, activityStream) => {
+                                    assert.notExists(error);
                                     assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
                                     assert.isNotOk(
                                       _getActivity(activityStream, 'content-share', 'target', marge.user.id)
@@ -328,8 +329,8 @@ describe('Content Activity', () => {
                                       asCambridgeTenantAdmin,
                                       bart.user.id,
                                       null,
-                                      (err, activityStream) => {
-                                        assert.notExists(err);
+                                      (error, activityStream) => {
+                                        assert.notExists(error);
                                         assert.ok(_getActivity(activityStream, 'content-create', 'object', link.id));
                                         assert.ok(
                                           _getActivity(activityStream, 'content-share', 'target', marge.user.id)
@@ -360,9 +361,9 @@ describe('Content Activity', () => {
      * Test that verifies when an activity is routed to a user that isn't in the routes of a private content item (e.g., content-share
      * when non-manager), the content item is still propagated to the route appropriately.
      */
-    it('verify content propagation to non-route activity feeds', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify content propagation to non-route activity feeds', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer } = users;
 
@@ -378,18 +379,18 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             /** Share the content item with Jack. Jack will get the activity in his feed because he is the target, but he will not be in
              * the routes of the content item because he is not a manager. Despite this, we need to verify that Jack has the full content
              * item propagated to him as he does have access to it.
              */
-            shareContent(asCambridgeTenantAdmin, link.id, [homer.user.id], err => {
-              assert.notExists(err);
+            shareContent(asCambridgeTenantAdmin, link.id, [homer.user.id], (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asCambridgeTenantAdmin, homer.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asCambridgeTenantAdmin, homer.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 assert.ok(activityStream);
 
                 // Ensure that the sensitive content info is available in jack's feed
@@ -413,9 +414,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies a comment activity is routed to recent commenters of a content item.
      */
-    it('verify comment activity is routed to the recent commenters of a content item', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify comment activity is routed to the recent commenters of a content item', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -434,20 +435,20 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Marge is not a member, but he will comment on it
-            createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (err /* , margeComment */) => {
-              assert.notExists(err);
+            createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (error /* , margeComment */) => {
+              assert.notExists(error);
 
               // Bart retorts!
-              createComment(asBart, link.id, "You're wrong and you smell bad!", null, (err /* , bartComment */) => {
-                assert.notExists(err);
+              createComment(asBart, link.id, "You're wrong and you smell bad!", null, (error /* , bartComment */) => {
+                assert.notExists(error);
 
                 // Marge should have a notification and an activity about this because he was a recent commenter
-                collectAndGetActivityStream(asMarge, marge.user.id, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asMarge, marge.user.id, null, (error, activityStream) => {
+                  assert.notExists(error);
 
                   // Should have exactly 1 activity, 2 aggregated comments
                   assert.lengthOf(activityStream.items, 1);
@@ -466,9 +467,9 @@ describe('Content Activity', () => {
      * Test that verifies that a comment activity is not routed to a recent commenter if they no longer have
      * access to the content item (e.g., it becomes private after they commented).
      */
-    it('verify a comment activity is not routed to a recent commenter if they no longer have access to the content item', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify a comment activity is not routed to a recent commenter if they no longer have access to the content item', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -487,28 +488,30 @@ describe('Content Activity', () => {
             viewers: [bart.user.id],
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Marge is not a member, but he will comment on it
-            createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (err, margeComment) => {
-              assert.notExists(err);
+            createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (error, margeComment) => {
+              assert.notExists(error);
 
               // Force a collection before the content item goes private
-              collectAndGetActivityStream(asMarge, marge.user.id, null, err => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
+                assert.notExists(error_);
 
                 // Homer has had enough of marge's tom-foolery and makes the content item private
-                updateContent(asHomer, link.id, { visibility: 'private' }, err => {
-                  assert.notExists(err);
+                updateContent(asHomer, link.id, { visibility: 'private' }, (error_) => {
+                  assert.notExists(error_);
 
                   // Bart retorts!
-                  createComment(asBart, link.id, "You're wrong and you smell bad!", null, (err /* , bartComment */) => {
-                    assert.notExists(err);
+                  createComment(asBart, link.id, "You're wrong and you smell bad!", null, (
+                    error /* , bartComment */
+                  ) => {
+                    assert.notExists(error);
 
                     // Marge should only have the activity for the comment he made, not Bert's
-                    collectAndGetActivityStream(asMarge, marge.user.id, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asMarge, marge.user.id, null, (error, activityStream) => {
+                      assert.notExists(error);
                       assert.lengthOf(activityStream.items, 1);
                       assert.strictEqual(activityStream.items[0].object['oae:id'], margeComment.id);
 
@@ -526,9 +529,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that profile picture URLs in the comments in the activity stream are non-expiring.
      */
-    it('verify a comment activity has a non-expiring profile picture URL', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify a comment activity has a non-expiring profile picture URL', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge } = users;
         const asHomer = homer.restContext;
@@ -539,7 +542,7 @@ describe('Content Activity', () => {
          *
          * @return {Stream}     A stream containing an profile picture
          */
-        const getPictureStream = function() {
+        const getPictureStream = function () {
           const file = path.join(__dirname, '/data/profilepic.jpg');
           return fs.createReadStream(file);
         };
@@ -547,8 +550,8 @@ describe('Content Activity', () => {
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 250, height: 250 };
 
-        uploadPicture(asMarge, marge.user.id, getPictureStream, cropArea, err => {
-          assert.notExists(err);
+        uploadPicture(asMarge, marge.user.id, getPictureStream, cropArea, (error_) => {
+          assert.notExists(error_);
 
           // Create a content item to be commented on
           createLink(
@@ -562,16 +565,16 @@ describe('Content Activity', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.notExists(err);
+            (error, link) => {
+              assert.notExists(error);
 
               // Marge is not a member, but he will comment on it
-              createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (err, margeComment) => {
-                assert.notExists(err);
+              createComment(asMarge, link.id, 'This link clearly goes to Google.', null, (error, margeComment) => {
+                assert.notExists(error);
 
                 // marge should have a notification and an activity about this because he was a recent commenter
-                collectAndGetActivityStream(asMarge, marge.user.id, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asMarge, marge.user.id, null, (error, activityStream) => {
+                  assert.notExists(error);
 
                   assert.lengthOf(activityStream.items, 1);
                   assert.strictEqual(activityStream.items[0].object['oae:id'], margeComment.id);
@@ -592,9 +595,9 @@ describe('Content Activity', () => {
      * Test that verifies that the "revision HTML" content of a content item
      * does not get persisted in activity streams
      */
-    it('verify that collaborative document content is not persisted to cassandra', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify that collaborative document content is not persisted to cassandra', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -610,35 +613,35 @@ describe('Content Activity', () => {
           NO_EDITORS,
           NO_VIEWERS,
           NO_FOLDERS,
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
             // Branden edits a couple of things and publishes the document
-            joinCollabDoc(asMarge, contentObj.id, (err /* , data */) => {
-              assert.notExists(err);
+            joinCollabDoc(asMarge, contentObject.id, (error /* , data */) => {
+              assert.notExists(error);
 
-              const etherpadClient = Etherpad.getClient(contentObj.id);
+              const etherpadClient = Etherpad.getClient(contentObject.id);
               const args = {
-                padID: contentObj.etherpadPadId,
+                padID: contentObject.etherpadPadId,
                 text: 'Ehrmagod that document!'
               };
 
-              etherpadClient.setText(args, err => {
-                assert.notExists(err);
+              etherpadClient.setText(args, (error_) => {
+                assert.notExists(error_);
 
-                publishCollabDoc(contentObj.id, marge.user.id, () => {
+                publishCollabDoc(contentObject.id, marge.user.id, () => {
                   // Route and aggregate the activity into branden's activity stream
-                  collectAndGetActivityStream(asMarge, marge.user.id, null, err => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
+                    assert.notExists(error_);
 
                     // Query branden's activity stream to get the item that was persisted
-                    const activityStreamId = util.format('%s#activity', marge.user.id);
+                    const activityStreamId = format('%s#activity', marge.user.id);
 
                     runQuery(
                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                       [activityStreamId],
-                      (err, rows) => {
-                        assert.notExists(err);
+                      (error, rows) => {
+                        assert.notExists(error);
                         assert.lengthOf(rows, 2);
 
                         /**
@@ -649,19 +652,19 @@ describe('Content Activity', () => {
 
                         assert.strictEqual(activity['oae:activityType'], 'content-revision');
                         assert.strictEqual(activity.actor.id, marge.user.id);
-                        assert.strictEqual(activity.object['oae:id'], contentObj.id);
+                        assert.strictEqual(activity.object['oae:id'], contentObject.id);
                         assert.isNotOk(activity.object.content.latestRevision);
 
                         // Comment on the activity, ensuring there is no latest revision content
-                        createComment(asMarge, contentObj.id, 'Comment A', null, (err /* , commentA */) => {
-                          assert.notExists(err);
-                          collectAndGetActivityStream(asMarge, marge.user.id, null, err => {
-                            assert.notExists(err);
+                        createComment(asMarge, contentObject.id, 'Comment A', null, (error /* , commentA */) => {
+                          assert.notExists(error);
+                          collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
+                            assert.notExists(error_);
                             runQuery(
                               'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                               [activityStreamId],
-                              (err, rows) => {
-                                assert.notExists(err);
+                              (error, rows) => {
+                                assert.notExists(error);
                                 assert.lengthOf(rows, 3);
 
                                 // Ensure we get the comment activity, and that there is no latest revision content
@@ -670,21 +673,21 @@ describe('Content Activity', () => {
 
                                 assert.strictEqual(activity['oae:activityType'], 'content-comment');
                                 assert.strictEqual(activity.actor.id, marge.user.id);
-                                assert.strictEqual(activity.target['oae:id'], contentObj.id);
+                                assert.strictEqual(activity.target['oae:id'], contentObject.id);
                                 assert.ok(!activity.target.content.latestRevision);
 
                                 // Share the activity, ensuring there is no latest revision content
-                                shareContent(asMarge, contentObj.id, [bart.user.id], err => {
-                                  assert.notExists(err);
+                                shareContent(asMarge, contentObject.id, [bart.user.id], (error_) => {
+                                  assert.notExists(error_);
 
-                                  collectAndGetActivityStream(asMarge, marge.user.id, null, err => {
-                                    assert.notExists(err);
+                                  collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
+                                    assert.notExists(error_);
 
                                     runQuery(
                                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                                       [activityStreamId],
-                                      (err, rows) => {
-                                        assert.notExists(err);
+                                      (error, rows) => {
+                                        assert.notExists(error);
                                         assert.lengthOf(rows, 4);
 
                                         // Ensure we get the share activity, and that there is no latest revision content
@@ -693,7 +696,7 @@ describe('Content Activity', () => {
 
                                         assert.strictEqual(activity['oae:activityType'], 'content-share');
                                         assert.strictEqual(activity.actor.id, marge.user.id);
-                                        assert.strictEqual(activity.object['oae:id'], contentObj.id);
+                                        assert.strictEqual(activity.object['oae:id'], contentObject.id);
                                         assert.isNotOk(activity.object.content.latestRevision);
 
                                         return callback();
@@ -719,9 +722,9 @@ describe('Content Activity', () => {
     /**
      * Verifies that a notification gets sent out to all the managers of a collaborative document.
      */
-    it('verify that publishing a collaborative document generates a notification', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify that publishing a collaborative document generates a notification', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -738,27 +741,27 @@ describe('Content Activity', () => {
           [],
           [bart.user.id],
           [],
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
-            joinCollabDoc(asMarge, contentObj.id, (err /* , data */) => {
-              assert.notExists(err);
+            joinCollabDoc(asMarge, contentObject.id, (error /* , data */) => {
+              assert.notExists(error);
 
               // First clear emails delivered to this point
               collectAndFetchAllEmails(() => {
                 // Branden edits a couple of things and publishes the document
-                const etherpadClient = Etherpad.getClient(contentObj.id);
+                const etherpadClient = Etherpad.getClient(contentObject.id);
                 const args = {
-                  padID: contentObj.etherpadPadId,
+                  padID: contentObject.etherpadPadId,
                   text: 'Ehrmagod that document!'
                 };
-                etherpadClient.setText(args, err => {
-                  assert.notExists(err);
+                etherpadClient.setText(args, (error_) => {
+                  assert.notExists(error_);
 
                   // Let Branden publish the document
-                  publishCollabDoc(contentObj.id, marge.user.id, () => {
+                  publishCollabDoc(contentObject.id, marge.user.id, () => {
                     // An email should be sent to homer and bart
-                    collectAndFetchAllEmails(emails => {
+                    collectAndFetchAllEmails((emails) => {
                       assert.strictEqual(emails.length, 2);
 
                       const homerEmail = _getEmail(emails, homer.user.email);
@@ -766,48 +769,53 @@ describe('Content Activity', () => {
                       assert.strictEqual(homerEmail.to[0].address, homer.user.email);
                       assert.strictEqual(
                         homerEmail.subject,
-                        util.format('%s edited the document "%s"', marge.user.displayName, contentObj.displayName)
+                        format('%s edited the document "%s"', marge.user.displayName, contentObject.displayName)
                       );
-                      assert.notStrictEqual(homerEmail.html.indexOf(contentObj.profilePath), -1);
+                      assert.notStrictEqual(homerEmail.html.indexOf(contentObject.profilePath), -1);
 
                       const bartEmail = _getEmail(emails, bart.user.email);
                       assert.ok(bartEmail);
                       assert.strictEqual(bartEmail.to[0].address, bart.user.email);
                       assert.strictEqual(
                         bartEmail.subject,
-                        util.format('%s edited the document "%s"', marge.user.displayName, contentObj.displayName)
+                        format('%s edited the document "%s"', marge.user.displayName, contentObject.displayName)
                       );
-                      assert.notStrictEqual(bartEmail.html.indexOf(contentObj.profilePath), -1);
+                      assert.notStrictEqual(bartEmail.html.indexOf(contentObject.profilePath), -1);
 
                       // No email should have been sent to Branden
                       const brandenEmail = _getEmail(emails, marge.user.email);
                       assert.isNotOk(brandenEmail);
 
                       // There should be a notification in homer's stream as he is a manager
-                      collectAndGetNotificationStream(asHomer, null, (err, data) => {
-                        assert.notExists(err);
+                      collectAndGetNotificationStream(asHomer, null, (error, data) => {
+                        assert.notExists(error);
 
-                        const homerNotification = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                        const homerNotification = _getActivity(data, 'content-revision', 'object', contentObject.id);
                         assert.ok(homerNotification);
                         assert.strictEqual(homerNotification['oae:activityType'], 'content-revision');
                         assert.strictEqual(homerNotification.actor['oae:id'], marge.user.id);
-                        assert.strictEqual(homerNotification.object['oae:id'], contentObj.id);
+                        assert.strictEqual(homerNotification.object['oae:id'], contentObject.id);
 
                         // There should be a notification in bart's stream as he is a member
-                        collectAndGetNotificationStream(asBart, null, (err, data) => {
-                          assert.notExists(err);
+                        collectAndGetNotificationStream(asBart, null, (error, data) => {
+                          assert.notExists(error);
 
-                          const bartNotification = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                          const bartNotification = _getActivity(data, 'content-revision', 'object', contentObject.id);
                           assert.ok(bartNotification);
                           assert.strictEqual(bartNotification['oae:activityType'], 'content-revision');
                           assert.strictEqual(bartNotification.actor['oae:id'], marge.user.id);
-                          assert.strictEqual(bartNotification.object['oae:id'], contentObj.id);
+                          assert.strictEqual(bartNotification.object['oae:id'], contentObject.id);
 
                           // There should be no notification in Branden's stream as he published the change
-                          collectAndGetNotificationStream(asMarge, null, (err, data) => {
-                            assert.notExists(err);
+                          collectAndGetNotificationStream(asMarge, null, (error, data) => {
+                            assert.notExists(error);
 
-                            const notificationBranden = _getActivity(data, 'content-revision', 'object', contentObj.id);
+                            const notificationBranden = _getActivity(
+                              data,
+                              'content-revision',
+                              'object',
+                              contentObject.id
+                            );
                             assert.isNotOk(notificationBranden);
 
                             return callback();
@@ -827,52 +835,52 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that an activity is generated regardless of whether there was an update to a is collaborative document since the last revision
      */
-    it('verify an activity is generated regardless of whether there was an update to a is collaborative document since the last revision', callback => {
-      ContentTestUtil.createCollabDoc(asCambridgeTenantAdmin, 2, 2, (err, collabdocData) => {
-        assert.notExists(err);
+    it('verify an activity is generated regardless of whether there was an update to a is collaborative document since the last revision', (callback) => {
+      ContentTestUtil.createCollabDoc(asCambridgeTenantAdmin, 2, 2, (error, collabdocData) => {
+        assert.notExists(error);
 
-        const { 0: contentObj, 2: homer, 3: marge } = collabdocData;
+        const { 0: contentObject, 2: homer, 3: marge } = collabdocData;
         const asMarge = marge.restContext;
 
         // Set some text in the pad
-        const etherpadClient = Etherpad.getClient(contentObj.id);
+        const etherpadClient = Etherpad.getClient(contentObject.id);
         const args = {
-          padID: contentObj.etherpadPadId,
+          padID: contentObject.etherpadPadId,
           text: 'Collaborative editing by Homer and Marge! Oooooh!'
         };
-        etherpadClient.setText(args, err => {
-          assert.notExists(err);
+        etherpadClient.setText(args, (error_) => {
+          assert.notExists(error_);
 
           // Lets assume that both users are editting the document. First, Homer leaves
-          publishCollabDoc(contentObj.id, homer.user.id, () => {
+          publishCollabDoc(contentObject.id, homer.user.id, () => {
             /**
              * Now, marge leaves WITHOUT making any *extra* edits to the document. But because
              * he made edits earlier, we should still generate an activity
              */
-            publishCollabDoc(contentObj.id, marge.user.id, () => {
+            publishCollabDoc(contentObject.id, marge.user.id, () => {
               /**
                * Assert that there is an aggregated activity for an updated document that holds
                * both Homer and Marge as the actors
                */
-              collectAndGetActivityStream(asMarge, marge.user.id, null, (err, data) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asMarge, marge.user.id, null, (error_, data) => {
+                assert.notExists(error_);
 
                 assertActivity(
                   data.items[0],
                   'content-revision',
                   'update',
                   [homer.user.id, marge.user.id],
-                  contentObj.id
+                  contentObject.id
                 );
 
                 // Sanity-check there are 2 revisions, the initial empty one + the one "published" revision
-                getRevisions(asMarge, contentObj.id, null, null, (err, data) => {
-                  assert.notExists(err);
+                getRevisions(asMarge, contentObject.id, null, null, (error_, data) => {
+                  assert.notExists(error_);
                   assert.lengthOf(data.results, 2);
 
                   // Get the latest revision
-                  getRevision(asMarge, contentObj.id, data.results[0].revisionId, (err, revision) => {
-                    assert.notExists(err);
+                  getRevision(asMarge, contentObject.id, data.results[0].revisionId, (error, revision) => {
+                    assert.notExists(error);
                     assert.ok(revision);
 
                     // Assert the text is in the latest revision
@@ -891,9 +899,9 @@ describe('Content Activity', () => {
     /**
      * Verifies that a notification gets sent out to all the managers of a piece of content when restoring an older version.
      */
-    it('verify that restoring a piece of content generates a notification', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify that restoring a piece of content generates a notification', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
 
@@ -916,20 +924,20 @@ describe('Content Activity', () => {
             viewers: [bartId],
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Create a new revision
-            updateFileBody(asHomer, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), err => {
-              assert.notExists(err);
+            updateFileBody(asHomer, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), (error_) => {
+              assert.notExists(error_);
 
               // Restore the original revision
-              restoreRevision(asMarge, content.id, content.latestRevisionId, (err /* , revisionObj */) => {
-                assert.notExists(err);
+              restoreRevision(asMarge, content.id, content.latestRevisionId, (error /* , revisionObj */) => {
+                assert.notExists(error);
 
                 // Verify the activity streams. All users should have received an activity
-                collectAndGetActivityStream(asMarge, null, null, (err, data) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asMarge, null, null, (error, data) => {
+                  assert.notExists(error);
 
                   const activity = _getActivity(data, 'content-restored-revision', 'object', content.id);
                   assert.ok(activity);
@@ -938,8 +946,8 @@ describe('Content Activity', () => {
                   assert.strictEqual(activity.actor['oae:id'], margeId);
                   assert.strictEqual(activity.object['oae:id'], content.id);
 
-                  collectAndGetActivityStream(asHomer, null, null, (err, data) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asHomer, null, null, (error, data) => {
+                    assert.notExists(error);
 
                     const activity = _getActivity(data, 'content-restored-revision', 'object', content.id);
                     assert.ok(activity);
@@ -948,8 +956,8 @@ describe('Content Activity', () => {
                     assert.strictEqual(activity.actor['oae:id'], margeId);
                     assert.strictEqual(activity.object['oae:id'], content.id);
 
-                    collectAndGetActivityStream(asBart, null, null, (err, data) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asBart, null, null, (error, data) => {
+                      assert.notExists(error);
 
                       const homerNotification = _getActivity(data, 'content-restored-revision', 'object', content.id);
                       assert.ok(homerNotification);
@@ -959,8 +967,8 @@ describe('Content Activity', () => {
                       assert.strictEqual(homerNotification.object['oae:id'], content.id);
 
                       // There should also be a notification in homer's stream as he is a manager
-                      collectAndGetNotificationStream(asHomer, null, (err, data) => {
-                        assert.notExists(err);
+                      collectAndGetNotificationStream(asHomer, null, (error, data) => {
+                        assert.notExists(error);
 
                         const homerNotification = _getActivity(data, 'content-restored-revision', 'object', content.id);
                         assert.ok(homerNotification);
@@ -970,8 +978,8 @@ describe('Content Activity', () => {
                         assert.strictEqual(homerNotification.object['oae:id'], content.id);
 
                         // There should be no notification in Bart's stream as he is not a manager
-                        collectAndGetNotificationStream(asBart, null, (err, data) => {
-                          assert.notExists(err);
+                        collectAndGetNotificationStream(asBart, null, (error, data) => {
+                          assert.notExists(error);
 
                           const bartNotification = _getActivity(
                             data,
@@ -997,9 +1005,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that content-share or content-add-to-library activities are routed to the content's activity stream
      */
-    it('verify content-share or content-add-to-library activities are not routed to the content activity stream', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share or content-add-to-library activities are not routed to the content activity stream', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart, 3: lisa } = users;
         const asHomer = homer.restContext;
@@ -1018,53 +1026,53 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
             // Make marge a private user and add the file into his library, no activities should be sent
-            updateUser(asMarge, marge.user.id, { visibility: 'private' }, err => {
-              assert.notExists(err);
+            updateUser(asMarge, marge.user.id, { visibility: 'private' }, (error_) => {
+              assert.notExists(error_);
 
-              shareContent(asMarge, contentObj.id, [marge.user.id], err => {
-                assert.notExists(err);
+              shareContent(asMarge, contentObject.id, [marge.user.id], (error_) => {
+                assert.notExists(error_);
 
                 // Route and deliver activities
-                collectAndGetActivityStream(asMarge, null, null, err => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asMarge, null, null, (error_) => {
+                  assert.notExists(error_);
 
                   // Assert they didn't end up in the content activity stream
-                  getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
-                    assert.notExists(err);
+                  getActivities(contentObject.id + '#activity', null, 25, (error, activities) => {
+                    assert.notExists(error);
 
                     // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
                     assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
 
                     // Try it with a public user
-                    shareContent(asBart, contentObj.id, [bart.user.id], err => {
-                      assert.notExists(err);
+                    shareContent(asBart, contentObject.id, [bart.user.id], (error_) => {
+                      assert.notExists(error_);
 
                       // Route and deliver activities
-                      collectAndGetActivityStream(asBart, null, null, err => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asBart, null, null, (error_) => {
+                        assert.notExists(error_);
 
                         // Assert they didn't end up in the content activity stream
-                        getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
-                          assert.notExists(err);
+                        getActivities(contentObject.id + '#activity', null, 25, (error, activities) => {
+                          assert.notExists(error);
 
                           // Assert that we didn't add the `content-add-to-library` activity by asserting the latest activity in the stream is `content-create`
                           assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
 
                           // Assert that content-share activities do not end up on the activity stream
-                          shareContent(asBart, contentObj.id, [lisa.user.id], err => {
-                            assert.notExists(err);
+                          shareContent(asBart, contentObject.id, [lisa.user.id], (error_) => {
+                            assert.notExists(error_);
 
                             // Route and deliver activities
-                            collectAndGetActivityStream(asLisa, null, null, err => {
-                              assert.notExists(err);
+                            collectAndGetActivityStream(asLisa, null, null, (error_) => {
+                              assert.notExists(error_);
 
                               // Assert they didn't end up in the content activity stream
-                              getActivities(contentObj.id + '#activity', null, 25, (err, activities) => {
-                                assert.notExists(err);
+                              getActivities(contentObject.id + '#activity', null, 25, (error, activities) => {
+                                assert.notExists(error);
 
                                 // Assert that we didn't add the `content-share` activity by asserting the latest activity in the stream is `content-create`
                                 assert.strictEqual(activities[0]['oae:activityType'], 'content-create');
@@ -1088,9 +1096,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a comment activity is routed to the managers and recent contributers their notification stream of a private content item
      */
-    it('verify comment activity is routed to the managers and recent contributors notification stream of a private content item', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-        assert.notExists(err);
+    it('verify comment activity is routed to the managers and recent contributors notification stream of a private content item', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart, 3: lisa } = users;
         const asHomer = homer.restContext;
@@ -1108,54 +1116,54 @@ describe('Content Activity', () => {
             viewers: [bart.user.id, lisa.user.id],
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
-            createComment(asBart, link.id, 'Comment A', null, (err /* , commentA */) => {
-              assert.notExists(err);
+            createComment(asBart, link.id, 'Comment A', null, (error /* , commentA */) => {
+              assert.notExists(error);
 
               // Assert that the managers got it
-              collectAndGetNotificationStream(asHomer, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetNotificationStream(asHomer, null, (error, activityStream) => {
+                assert.notExists(error);
                 assert.ok(
-                  find(activity => equals('content-comment', activity['oae:activityType']), activityStream.items)
+                  find((activity) => equals('content-comment', activity['oae:activityType']), activityStream.items)
                 );
 
-                collectAndGetNotificationStream(asMarge, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetNotificationStream(asMarge, null, (error, activityStream) => {
+                  assert.notExists(error);
                   assert.ok(
-                    find(activity => equals(activity['oae:activityType'], 'content-comment'), activityStream.items)
+                    find((activity) => equals(activity['oae:activityType'], 'content-comment'), activityStream.items)
                   );
 
                   // Create another comment and assert that both the managers and the recent contributors get a notification
-                  createComment(asMarge, link.id, 'Comment B', null, (err /* , commentB */) => {
-                    assert.notExists(err);
+                  createComment(asMarge, link.id, 'Comment B', null, (error /* , commentB */) => {
+                    assert.notExists(error);
 
                     // Because Bert made a comment previously, he should get a notification as well
-                    collectAndGetNotificationStream(asBart, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetNotificationStream(asBart, null, (error, activityStream) => {
+                      assert.notExists(error);
 
                       const commentActivitiesAsBart = filter(
-                        activity => equals(activity['oae:activityType'], 'content-comment'),
+                        (activity) => equals(activity['oae:activityType'], 'content-comment'),
                         activityStream.items
                       );
                       assert.lengthOf(commentActivitiesAsBart, 1);
 
                       // Sanity-check that the managers got it as well
-                      collectAndGetNotificationStream(asMarge, null, (err, activityStream) => {
-                        assert.notExists(err);
+                      collectAndGetNotificationStream(asMarge, null, (error, activityStream) => {
+                        assert.notExists(error);
 
                         const commentActivitiesAsMarge = filter(
-                          activity => equals(activity['oae:activityType'], 'content-comment'),
+                          (activity) => equals(activity['oae:activityType'], 'content-comment'),
                           activityStream.items
                         );
                         assert.lengthOf(commentActivitiesAsMarge, 1);
 
-                        collectAndGetNotificationStream(asHomer, null, (err, activityStream) => {
-                          assert.notExists(err);
+                        collectAndGetNotificationStream(asHomer, null, (error, activityStream) => {
+                          assert.notExists(error);
 
                           const commentActivitiesAsHomer = filter(
-                            activity => equals(activity['oae:activityType'], 'content-comment'),
+                            (activity) => equals(activity['oae:activityType'], 'content-comment'),
                             activityStream.items
                           );
 
@@ -1183,7 +1191,7 @@ describe('Content Activity', () => {
      * ensure it is set to the proper function
      */
     const _originalDateNow = Date.now;
-    afterEach(callback => {
+    afterEach((callback) => {
       Date.now = _originalDateNow;
       return callback();
     });
@@ -1191,12 +1199,12 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the properties of the content entity
      */
-    it('verify the content entity model contains the correct content information', callback => {
+    it('verify the content entity model contains the correct content information', (callback) => {
       /*!
        * Function used to verify the status of the "static" link content item in this test case. This basically means
        * everything except the preview items.
        */
-      const _assertStandardLinkModel = function(entity, contentId) {
+      const _assertStandardLinkModel = function (entity, contentId) {
         const { resourceId } = getResourceFromId(contentId);
         assert.strictEqual(entity['oae:visibility'], 'public');
         assert.strictEqual(entity['oae:resourceSubType'], 'link');
@@ -1208,8 +1216,8 @@ describe('Content Activity', () => {
         assert.ok(entity.id.includes(contentId));
       };
 
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1226,12 +1234,12 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Verify model with no preview state
-            collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-              assert.notExists(err);
+            collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+              assert.notExists(error);
 
               const entity = activityStream.items[0].object;
               _assertStandardLinkModel(entity, link.id);
@@ -1243,151 +1251,161 @@ describe('Content Activity', () => {
                 asGlobalAdmin,
                 global.oaeTests.tenants.localhost.alias,
                 null,
-                (err, globalTenantAdminRestContext) => {
-                  assert.notExists(err);
+                (error, globalTenantAdminRestContext) => {
+                  assert.notExists(error);
 
                   // Get the revision ID
-                  getRevisions(globalTenantAdminRestContext, link.id, null, 1, (err, revisions) => {
-                    assert.notExists(err);
+                  getRevisions(globalTenantAdminRestContext, link.id, null, 1, (error, revisions) => {
+                    assert.notExists(error);
                     const { revisionId } = revisions.results[0];
 
                     // Set the preview to error status
-                    setPreviewItems(globalTenantAdminRestContext, link.id, revisionId, 'error', {}, {}, {}, {}, err => {
-                      assert.notExists(err);
+                    setPreviewItems(
+                      globalTenantAdminRestContext,
+                      link.id,
+                      revisionId,
+                      'error',
+                      {},
+                      {},
+                      {},
+                      {},
+                      (error_) => {
+                        assert.notExists(error_);
 
-                      // Verify that the preview does not display
-                      collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                        assert.notExists(err);
+                        // Verify that the preview does not display
+                        collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                          assert.notExists(error);
 
-                        const entity = activityStream.items[0].object;
-                        _assertStandardLinkModel(entity, link.id);
-                        assert.ok(!entity.image);
-                        assert.ok(!entity['oae:wideImage']);
+                          const entity = activityStream.items[0].object;
+                          _assertStandardLinkModel(entity, link.id);
+                          assert.ok(!entity.image);
+                          assert.ok(!entity['oae:wideImage']);
 
-                        // Set the preview to ignored status with no files
-                        setPreviewItems(
-                          globalTenantAdminRestContext,
-                          link.id,
-                          revisionId,
-                          'ignored',
-                          {},
-                          {},
-                          {},
-                          {},
-                          err => {
-                            assert.notExists(err);
+                          // Set the preview to ignored status with no files
+                          setPreviewItems(
+                            globalTenantAdminRestContext,
+                            link.id,
+                            revisionId,
+                            'ignored',
+                            {},
+                            {},
+                            {},
+                            {},
+                            (error_) => {
+                              assert.notExists(error_);
 
-                            // Verify that the preview still does not display
-                            collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                              assert.notExists(err);
+                              // Verify that the preview still does not display
+                              collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                                assert.notExists(error);
 
-                              const entity = activityStream.items[0].object;
-                              _assertStandardLinkModel(entity, link.id);
-                              assert.isNotOk(entity.image);
-                              assert.isNotOk(entity['oae:wideImage']);
+                                const entity = activityStream.items[0].object;
+                                _assertStandardLinkModel(entity, link.id);
+                                assert.isNotOk(entity.image);
+                                assert.isNotOk(entity['oae:wideImage']);
 
-                              // Set the preview to done status with files
-                              setPreviewItems(
-                                globalTenantAdminRestContext,
-                                link.id,
-                                revisionId,
-                                'done',
-                                suitableFiles,
-                                suitableSizes,
-                                {},
-                                {},
-                                err => {
-                                  assert.notExists(err);
+                                // Set the preview to done status with files
+                                setPreviewItems(
+                                  globalTenantAdminRestContext,
+                                  link.id,
+                                  revisionId,
+                                  'done',
+                                  suitableFiles,
+                                  suitableSizes,
+                                  {},
+                                  {},
+                                  (error_) => {
+                                    assert.notExists(error_);
 
-                                  // Verify that the previews are returned in the activity
-                                  collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                                    assert.notExists(err);
+                                    // Verify that the previews are returned in the activity
+                                    collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                                      assert.notExists(error);
 
-                                    const entity = activityStream.items[0].object;
-                                    _assertStandardLinkModel(entity, link.id);
-                                    assert.ok(entity.image);
-                                    assert.strictEqual(entity.image.width, PreviewConstants.SIZES.IMAGE.THUMBNAIL);
-                                    assert.strictEqual(entity.image.height, PreviewConstants.SIZES.IMAGE.THUMBNAIL);
-                                    assert.ok(entity.image.url);
-                                    assert.ok(entity['oae:wideImage']);
-                                    assert.strictEqual(
-                                      entity['oae:wideImage'].width,
-                                      PreviewConstants.SIZES.IMAGE.WIDE_WIDTH
-                                    );
-                                    assert.strictEqual(
-                                      entity['oae:wideImage'].height,
-                                      PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
-                                    );
-                                    assert.ok(entity['oae:wideImage'].url);
+                                      const entity = activityStream.items[0].object;
+                                      _assertStandardLinkModel(entity, link.id);
+                                      assert.ok(entity.image);
+                                      assert.strictEqual(entity.image.width, PreviewConstants.SIZES.IMAGE.THUMBNAIL);
+                                      assert.strictEqual(entity.image.height, PreviewConstants.SIZES.IMAGE.THUMBNAIL);
+                                      assert.ok(entity.image.url);
+                                      assert.ok(entity['oae:wideImage']);
+                                      assert.strictEqual(
+                                        entity['oae:wideImage'].width,
+                                        PreviewConstants.SIZES.IMAGE.WIDE_WIDTH
+                                      );
+                                      assert.strictEqual(
+                                        entity['oae:wideImage'].height,
+                                        PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
+                                      );
+                                      assert.ok(entity['oae:wideImage'].url);
 
-                                    // Ensure the standard and wide image can be downloaded right now by even an anonymous user on another tenant
-                                    let signedDownloadUrl = new URL(entity['oae:wideImage'].url, 'http://localhost');
-                                    RestUtil.performRestRequest(
-                                      asGeorgiaTechAnonymousUser,
-                                      signedDownloadUrl.pathname,
-                                      'GET',
-                                      objectifySearchParams(signedDownloadUrl.searchParams),
-                                      (err, body, response) => {
-                                        assert.notExists(err);
-                                        assert.strictEqual(response.statusCode, 204);
+                                      // Ensure the standard and wide image can be downloaded right now by even an anonymous user on another tenant
+                                      let signedDownloadUrl = new URL(entity['oae:wideImage'].url, 'http://localhost');
+                                      RestUtil.performRestRequest(
+                                        asGeorgiaTechAnonymousUser,
+                                        signedDownloadUrl.pathname,
+                                        'GET',
+                                        objectifySearchParams(signedDownloadUrl.searchParams),
+                                        (error, body, response) => {
+                                          assert.notExists(error);
+                                          assert.strictEqual(response.statusCode, 204);
 
-                                        signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
-                                        RestUtil.performRestRequest(
-                                          asGeorgiaTechAnonymousUser,
-                                          signedDownloadUrl.pathname,
-                                          'GET',
-                                          objectifySearchParams(signedDownloadUrl.searchParams),
-                                          (err, body, response) => {
-                                            assert.notExists(err);
-                                            assert.strictEqual(response.statusCode, 204);
+                                          signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
+                                          RestUtil.performRestRequest(
+                                            asGeorgiaTechAnonymousUser,
+                                            signedDownloadUrl.pathname,
+                                            'GET',
+                                            objectifySearchParams(signedDownloadUrl.searchParams),
+                                            (error, body, response) => {
+                                              assert.notExists(error);
+                                              assert.strictEqual(response.statusCode, 204);
 
-                                            // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
-                                            const now = Date.now();
-                                            Date.now = function() {
-                                              return now + 5 * 365 * 24 * 60 * 60 * 1000;
-                                            };
+                                              // Jump ahead in time by 5 years, test-drive a hovercar and check if the signatures still work
+                                              const now = Date.now();
+                                              Date.now = function () {
+                                                return now + 5 * 365 * 24 * 60 * 60 * 1000;
+                                              };
 
-                                            // Ensure the standard and wide image can still be downloaded 5y in the future by even an anonymous user on another tenant
-                                            signedDownloadUrl = new URL(
-                                              entity['oae:wideImage'].url,
-                                              'http://localhost'
-                                            );
-                                            RestUtil.performRestRequest(
-                                              asGeorgiaTechAnonymousUser,
-                                              signedDownloadUrl.pathname,
-                                              'GET',
-                                              objectifySearchParams(signedDownloadUrl.searchParams),
-                                              (err, body, response) => {
-                                                assert.notExists(err);
-                                                assert.strictEqual(response.statusCode, 204);
+                                              // Ensure the standard and wide image can still be downloaded 5y in the future by even an anonymous user on another tenant
+                                              signedDownloadUrl = new URL(
+                                                entity['oae:wideImage'].url,
+                                                'http://localhost'
+                                              );
+                                              RestUtil.performRestRequest(
+                                                asGeorgiaTechAnonymousUser,
+                                                signedDownloadUrl.pathname,
+                                                'GET',
+                                                objectifySearchParams(signedDownloadUrl.searchParams),
+                                                (error, body, response) => {
+                                                  assert.notExists(error);
+                                                  assert.strictEqual(response.statusCode, 204);
 
-                                                signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
-                                                RestUtil.performRestRequest(
-                                                  asGeorgiaTechAnonymousUser,
-                                                  signedDownloadUrl.pathname,
-                                                  'GET',
-                                                  objectifySearchParams(signedDownloadUrl.searchParams),
-                                                  (err, body, response) => {
-                                                    assert.notExists(err);
-                                                    assert.strictEqual(response.statusCode, 204);
+                                                  signedDownloadUrl = new URL(entity.image.url, 'http://localhost');
+                                                  RestUtil.performRestRequest(
+                                                    asGeorgiaTechAnonymousUser,
+                                                    signedDownloadUrl.pathname,
+                                                    'GET',
+                                                    objectifySearchParams(signedDownloadUrl.searchParams),
+                                                    (error, body, response) => {
+                                                      assert.notExists(error);
+                                                      assert.strictEqual(response.statusCode, 204);
 
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  });
-                                }
-                              );
-                            });
-                          }
-                        );
-                      });
-                    });
+                                                      return callback();
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    });
+                                  }
+                                );
+                              });
+                            }
+                          );
+                        });
+                      }
+                    );
                   });
                 }
               );
@@ -1400,9 +1418,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the properties of a comment entity
      */
-    it('verify the comment entity model contains the correct comment information', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify the comment entity model contains the correct comment information', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1419,21 +1437,21 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Create 3 comments, including one reply. We want to make sure the context is properly aggregated in these comments as their activities are delivered.
-            createComment(asJack, link.id, 'Comment A', null, (err, commentA) => {
-              assert.notExists(err);
+            createComment(asJack, link.id, 'Comment A', null, (error, commentA) => {
+              assert.notExists(error);
 
-              createComment(asJack, link.id, 'Comment B', null, (err, commentB) => {
-                assert.notExists(err);
+              createComment(asJack, link.id, 'Comment B', null, (error, commentB) => {
+                assert.notExists(error);
 
-                createComment(asJack, link.id, 'Reply Comment A', commentA.created, (err, replyCommentA) => {
-                  assert.notExists(err);
+                createComment(asJack, link.id, 'Reply Comment A', commentA.created, (error, replyCommentA) => {
+                  assert.notExists(error);
 
-                  collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                    assert.notExists(error);
                     assert.ok(activityStream);
 
                     // The first in the list (most recent) is the aggregated comment activity
@@ -1452,7 +1470,7 @@ describe('Content Activity', () => {
                      * @param  {Comment}           comment                     The comment with which to verify the entity
                      * @param  {Comment}           [replyToComment]            Indicates the entity should have this comment as its inReplyTo. If unspecified, the entity should have no parent.
                      */
-                    const _validateComment = function(entity, comment, replyToComment) {
+                    const _validateComment = function (entity, comment, replyToComment) {
                       assert.strictEqual(entity.objectType, 'content-comment');
                       assert.strictEqual(entity.content, comment.body);
                       assert.strictEqual(entity['oae:id'], comment.id);
@@ -1477,7 +1495,7 @@ describe('Content Activity', () => {
                     };
 
                     // Verify that the collection contains all comments, and their models are correct.
-                    activity.object['oae:collection'].forEach(entity => {
+                    activity.object['oae:collection'].forEach((entity) => {
                       if (entity.content === 'Comment A') {
                         hadCommentA = true;
 
@@ -1515,7 +1533,7 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a public, loggedin and private content activity entities are propagated only to appropriate users
      */
-    it('verify a public, loggedin and private content activity entities are propagated only to appropriate users', callback => {
+    it('verify a public, loggedin and private content activity entities are propagated only to appropriate users', (callback) => {
       // Create a mix of public, loggedin, private users and groups from public and private tenants
       setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1 /* , privateTenant0, privateTenant1 */) => {
         // Follow the publicTenant0.publicUser with the others
@@ -1548,8 +1566,8 @@ describe('Content Activity', () => {
               viewers: [publicTenant1.publicUser.user.id],
               folders: NO_FOLDERS
             },
-            (err, publicLink) => {
-              assert.notExists(err);
+            (error, publicLink) => {
+              assert.notExists(error);
 
               createLink(
                 asPublicUserOnPublicTenant0,
@@ -1562,8 +1580,8 @@ describe('Content Activity', () => {
                   viewers: [publicTenant1.publicUser.user.id],
                   folders: NO_FOLDERS
                 },
-                (err, loggedinLink) => {
-                  assert.notExists(err);
+                (error, loggedinLink) => {
+                  assert.notExists(error);
 
                   createLink(
                     asPublicUserOnPublicTenant0,
@@ -1576,12 +1594,12 @@ describe('Content Activity', () => {
                       viewers: [publicTenant1.publicUser.user.id],
                       folders: NO_FOLDERS
                     },
-                    (err, privateLink) => {
-                      assert.notExists(err);
+                    (error, privateLink) => {
+                      assert.notExists(error);
 
                       // Ensure the user who created them got all 3 content items aggregated in their feed
-                      collectAndGetActivityStream(asPublicUserOnPublicTenant0, null, null, (err, result) => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asPublicUserOnPublicTenant0, null, null, (error, result) => {
+                        assert.notExists(error);
                         assertActivity(
                           result.items[0],
                           'content-create',
@@ -1592,8 +1610,8 @@ describe('Content Activity', () => {
                         );
 
                         // Ensure the loggedin user of the same tenant gets 2 of the content items in their feed: public and loggedin
-                        collectAndGetActivityStream(asLoggedinUserOnPublicTenant0, null, null, (err, result) => {
-                          assert.notExists(err);
+                        collectAndGetActivityStream(asLoggedinUserOnPublicTenant0, null, null, (error, result) => {
+                          assert.notExists(error);
                           assertActivity(
                             result.items[0],
                             'content-create',
@@ -1605,8 +1623,8 @@ describe('Content Activity', () => {
 
                           // Ensure the public user from another tenant gets all 3 of the content items in their feed because they were made a member. This
                           // ensures that even if the tenant propagation fails on the content item, the association propagation still includes them
-                          collectAndGetActivityStream(asPublicUserOnPublicTenant1, null, null, (err, result) => {
-                            assert.notExists(err);
+                          collectAndGetActivityStream(asPublicUserOnPublicTenant1, null, null, (error, result) => {
+                            assert.notExists(error);
                             assertActivity(
                               result.items[0],
                               'content-create',
@@ -1620,8 +1638,8 @@ describe('Content Activity', () => {
                              * Ensure the loggedin user from another tenant only gets the public content item
                              * since they are not a member and cannot see the loggedin one
                              */
-                            collectAndGetActivityStream(asLoggedinUserOnPublicTenant1, null, null, (err, result) => {
-                              assert.notExists(err);
+                            collectAndGetActivityStream(asLoggedinUserOnPublicTenant1, null, null, (error, result) => {
+                              assert.notExists(error);
                               assertActivity(
                                 result.items[0],
                                 'content-create',
@@ -1651,9 +1669,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a content-create and content-update activity are generated when a content item is created and updated.
      */
-    it('verify content-create and content-update activities are posted when content is created and updated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify content-create and content-update activities are posted when content is created and updated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1670,14 +1688,14 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
-            updateContent(asJack, link.id, { description: 'Super awesome link' }, err => {
-              assert.notExists(err);
+            updateContent(asJack, link.id, { description: 'Super awesome link' }, (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 const createActivity = _getActivity(activityStream, 'content-create', 'object', link.id);
                 const updateActivity = _getActivity(activityStream, 'content-update', 'object', link.id);
@@ -1699,9 +1717,9 @@ describe('Content Activity', () => {
     /**
      * Test to verify the revision id gets updated in the activity when a new revision is posted
      */
-    it('verify content-update activities have updated previews', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify content-update activities have updated previews', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1717,15 +1735,15 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Create a new revision
-            updateFileBody(asJack, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), err => {
-              assert.notExists(err);
+            updateFileBody(asJack, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 const createActivity = _getActivity(activityStream, 'content-create', 'object', content.id);
                 const updateActivity = _getActivity(activityStream, 'content-revision', 'object', content.id);
@@ -1745,9 +1763,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a content-share activity is generated when a content item is shared.
      */
-    it('verify a content-share activity is generated when a content item is shared', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify a content-share activity is generated when a content item is shared', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
 
@@ -1762,15 +1780,15 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Try and generate a share activity
-            shareContent(asCambridgeTenantAdmin, link.id, [jack.user.id], err => {
-              assert.notExists(err);
+            shareContent(asCambridgeTenantAdmin, link.id, [jack.user.id], (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 const shareActivity = _getActivity(activityStream, 'content-share', 'object', link.id);
                 assert.ok(shareActivity);
@@ -1787,9 +1805,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that when a user's role is updated, a content-update-member-role activity is generated.
      */
-    it('verify a content-update-member-role activity is generated when a user role is updated on a content item', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify a content-update-member-role activity is generated when a user role is updated on a content item', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack, 1: jane } = users;
         const asJack = jack.restContext;
@@ -1806,19 +1824,19 @@ describe('Content Activity', () => {
             viewers: [jane.user.id],
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Update the member's role to manager
             const roleChange = {};
             roleChange[jane.user.id] = 'manager';
 
-            updateMembers(asJack, link.id, roleChange, err => {
-              assert.notExists(err);
+            updateMembers(asJack, link.id, roleChange, (error_) => {
+              assert.notExists(error_);
 
               // Ensure they have the content-update-member-role activity in their activity feed
-              collectAndGetActivityStream(asJack, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asJack, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 assertActivity(
                   activityStream.items[0],
@@ -1840,9 +1858,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a content-revision activity is generated when a content item's body has been updated / uploaded.
      */
-    it("verify a content-revision activity is generated when a content item's body has been updated", callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it("verify a content-revision activity is generated when a content item's body has been updated", (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1859,17 +1877,17 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
             assert.ok(content);
 
             // Create a new version
-            updateFileBody(asJack, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), err => {
-              assert.notExists(err);
+            updateFileBody(asJack, content.id, getFunctionThatReturnsFileStream('apereo.jpg'), (error_) => {
+              assert.notExists(error_);
 
               // Verify the revision activity was created for jack
-              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 const revisionActivity = _getActivity(activityStream, 'content-revision', 'object', content.id);
                 assert.ok(revisionActivity);
                 assert.strictEqual(revisionActivity.verb, 'update');
@@ -1888,9 +1906,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a content-add-to-library activity is generated when a user adds a content item to their own library
      */
-    it('verify a content-add-to-library activity is generated when a user adds a content item to their own library', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify a content-add-to-library activity is generated when a user adds a content item to their own library', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -1906,15 +1924,15 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Jack adds the content item to his own library
-            shareContent(asJack, link.id, [jack.user.id], err => {
-              assert.notExists(err);
+            shareContent(asJack, link.id, [jack.user.id], (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 const addActivity = _getActivity(activityStream, 'content-add-to-library', 'object', link.id);
                 assert.ok(addActivity);
                 assert.strictEqual(addActivity.verb, 'add');
@@ -1929,9 +1947,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies that a content-update-visibility activity is generated when a content's visibility is updated
      */
-    it("verify a content-update-visibility activity is generated when a content item's visibility is updated", callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it("verify a content-update-visibility activity is generated when a content item's visibility is updated", (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
 
@@ -1946,15 +1964,15 @@ describe('Content Activity', () => {
             viewers: [jack.user.id],
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Jack adds the content item to his own library
-            updateContent(asCambridgeTenantAdmin, link.id, { visibility: 'private' }, err => {
-              assert.notExists(err);
+            updateContent(asCambridgeTenantAdmin, link.id, { visibility: 'private' }, (error_) => {
+              assert.notExists(error_);
 
-              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(asCambridgeTenantAdmin, jack.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 const updateVisibilityActivity = _getActivity(
                   activityStream,
                   'content-update-visibility',
@@ -1981,9 +1999,9 @@ describe('Content Activity', () => {
      * Test that verifies that when multiple content-create activities are done by the same actor, the content items get
      * aggregated into a collection.
      */
-    it('verify content-create activities are pivoted by actor', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify content-create activities are pivoted by actor', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2000,8 +2018,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             // Create a Yahoo link
             createLink(
@@ -2015,12 +2033,12 @@ describe('Content Activity', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, yahooLink) => {
-                assert.notExists(err);
+              (error, yahooLink) => {
+                assert.notExists(error);
 
                 // Verify the activities were aggregated into one, pivoted by actor
-                collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                  assert.notExists(error);
 
                   assert.ok(activityStream);
                   assert.lengthOf(activityStream.items, 1);
@@ -2059,9 +2077,9 @@ describe('Content Activity', () => {
      * Test that verifies when a content create activity is aggregated and re-delivered, the activity that it is replacing is
      * deleted properly
      */
-    it('verify when a content-create activity is redelivered, it deletes the previous one', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify when a content-create activity is redelivered, it deletes the previous one', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2078,12 +2096,12 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err /* , googleLink */) => {
-            assert.notExists(err);
+          (error /* , googleLink */) => {
+            assert.notExists(error);
 
             // Force a collection of activities so that the individual activity is delivered
-            collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-              assert.notExists(err);
+            collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+              assert.notExists(error);
               assert.ok(activityStream);
               assert.lengthOf(activityStream.items, 1);
 
@@ -2099,12 +2117,12 @@ describe('Content Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err /* , yahooLink */) => {
-                  assert.notExists(err);
+                (error /* , yahooLink */) => {
+                  assert.notExists(error);
 
                   // Collect again and ensure we still only have one activity
-                  collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                    assert.notExists(error);
                     assert.ok(activityStream);
                     assert.lengthOf(activityStream.items, 1);
 
@@ -2120,12 +2138,12 @@ describe('Content Activity', () => {
                         viewers: NO_VIEWERS,
                         folders: NO_FOLDERS
                       },
-                      (err /* , apereoLink */) => {
-                        assert.notExists(err);
+                      (error /* , apereoLink */) => {
+                        assert.notExists(error);
 
                         // Collect again and ensure we still only have one activity
-                        collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                          assert.notExists(err);
+                        collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                          assert.notExists(error);
 
                           assert.ok(activityStream);
                           assert.lengthOf(activityStream.items, 1);
@@ -2146,7 +2164,7 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the folder-create activity when there are no extra members
      */
-    it('verify no extra members', callback => {
+    it('verify no extra members', (callback) => {
       _setup((homer, marge, bart, lisa, maggie, groupMemberA, groupMemberB, groupA, groupB) => {
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
@@ -2168,8 +2186,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // The actor should receive an activity
             assertFeedContainsActivity(
@@ -2237,7 +2255,7 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is one extra user
      */
-    it('verify one extra user', callback => {
+    it('verify one extra user', (callback) => {
       _setup((homer, marge, bart, lisa, maggie, groupMemberA, groupMemberB, groupA, groupB) => {
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
@@ -2259,8 +2277,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // The actor should receive an activity
             assertFeedContainsActivity(
@@ -2338,7 +2356,7 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is one extra group
      */
-    it('verify one extra group', callback => {
+    it('verify one extra group', (callback) => {
       _setup((homer, marge, bart, lisa, maggie, groupMemberA, groupMemberB, groupA, groupB) => {
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
@@ -2359,8 +2377,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // The actor should receive an activity
             assertFeedContainsActivity(
@@ -2436,7 +2454,7 @@ describe('Content Activity', () => {
     /**
      * Test that verifies the folder-create activity when there is more than one extra member
      */
-    it('verify more than one extra member', callback => {
+    it('verify more than one extra member', (callback) => {
       _setup((homer, marge, bart, lisa, maggie, groupMemberA, groupMemberB, groupA, groupB) => {
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
@@ -2457,8 +2475,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // The actor should receive an activity
             assertFeedContainsActivity(
@@ -2550,9 +2568,9 @@ describe('Content Activity', () => {
     /**
      * Test that verifies when a content item is updated multiple times, the actors that updated it are aggregated into a collection.
      */
-    it('verify content-update activities are pivoted by object', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify content-update activities are pivoted by object', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2569,24 +2587,24 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             // Update the content once as jack
-            updateContent(asJack, googleLink.id, { displayName: 'The Google' }, err => {
-              assert.notExists(err);
+            updateContent(asJack, googleLink.id, { displayName: 'The Google' }, (error_) => {
+              assert.notExists(error_);
 
               // Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation
-              updateContent(asJack, googleLink.id, { displayName: 'Google' }, err => {
-                assert.notExists(err);
+              updateContent(asJack, googleLink.id, { displayName: 'Google' }, (error_) => {
+                assert.notExists(error_);
 
                 // Update it with a different user, this should be a second entry in the collection
-                updateContent(asCambridgeTenantAdmin, googleLink.id, { displayName: 'Google' }, err => {
-                  assert.notExists(err);
+                updateContent(asCambridgeTenantAdmin, googleLink.id, { displayName: 'Google' }, (error_) => {
+                  assert.notExists(error_);
 
                   // Verify we get the 2 actors in the stream
-                  collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                    assert.notExists(error);
 
                     assert.ok(activityStream);
                     const activity = activityStream.items[0];
@@ -2610,9 +2628,9 @@ describe('Content Activity', () => {
      * Test that verifies two duplicate content updates do not result in an aggregation, but simply an activity with an updated
      * timestamp.
      */
-    it('verify duplicate content-update activities are re-released with a more recent date, with no aggregations', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify duplicate content-update activities are re-released with a more recent date, with no aggregations', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2629,12 +2647,12 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             // Update the content once as jack
-            updateContent(asJack, googleLink.id, { displayName: 'The Google' }, err => {
-              assert.notExists(err);
+            updateContent(asJack, googleLink.id, { displayName: 'The Google' }, (error_) => {
+              assert.notExists(error_);
 
               // Add something to the activity feed that happened later than the previous update
               createLink(
@@ -2648,19 +2666,19 @@ describe('Content Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err /* , yahooLink */) => {
-                  assert.notExists(err);
+                (error /* , yahooLink */) => {
+                  assert.notExists(error);
 
                   /**
                    * Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation,
                    * and ensure the update jumps ahead of the last create activity in the feed
                    */
-                  updateContent(asJack, googleLink.id, { displayName: 'Google' }, err => {
-                    assert.notExists(err);
+                  updateContent(asJack, googleLink.id, { displayName: 'Google' }, (error_) => {
+                    assert.notExists(error_);
 
                     // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
-                    collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                      assert.notExists(error);
                       assert.ok(activityStream);
 
                       // One for the "content-create" aggregation, one for the "update content" duplicates
@@ -2695,22 +2713,22 @@ describe('Content Activity', () => {
                           viewers: NO_VIEWERS,
                           folders: NO_FOLDERS
                         },
-                        (err /* , apereoLink */) => {
-                          assert.notExists(err);
+                        (error /* , apereoLink */) => {
+                          assert.notExists(error);
 
                           // Force a collection so that the most recent activity is in the feed
-                          collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                            assert.notExists(err);
+                          collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                            assert.notExists(error);
                             assert.ok(activityStream);
                             assert.lengthOf(activityStream.items, 2);
 
                             // Jump the update activity to the top again
-                            updateContent(asJack, googleLink.id, { displayName: 'Google' }, err => {
-                              assert.notExists(err);
+                            updateContent(asJack, googleLink.id, { displayName: 'Google' }, (error_) => {
+                              assert.notExists(error_);
 
                               // Verify update activity is at the top and still an individual activity
-                              collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                                assert.notExists(err);
+                              collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                                assert.notExists(error);
 
                                 assert.ok(activityStream);
                                 assert.lengthOf(activityStream.items, 2);
@@ -2764,9 +2782,9 @@ describe('Content Activity', () => {
      * Test that verifies when a content-update-visibility activity is posted duplicate times, it does not result in multiple entries in the
      * activity feed. Instead, the activity should be updated and reposted as a recent item.
      */
-    it('verify duplicate content-update-visibility activities are not duplicated in the feed', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify duplicate content-update-visibility activities are not duplicated in the feed', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2783,12 +2801,12 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             // Update the content once as jack
-            updateContent(asJack, googleLink.id, { visibility: 'loggedin' }, err => {
-              assert.notExists(err);
+            updateContent(asJack, googleLink.id, { visibility: 'loggedin' }, (error_) => {
+              assert.notExists(error_);
 
               // Add something to the activity feed that happened later than the previous update
               createLink(
@@ -2802,19 +2820,19 @@ describe('Content Activity', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err /* , yahooLink */) => {
-                  assert.notExists(err);
+                (error /* , yahooLink */) => {
+                  assert.notExists(error);
 
                   /**
                    * Update it a second time as jack, we use this to make sure we don't get duplicates in the aggregation,
                    * and ensure the update jumps ahead of the last create activity in the feed
                    */
-                  updateContent(asJack, googleLink.id, { visibility: 'private' }, err => {
-                    assert.notExists(err);
+                  updateContent(asJack, googleLink.id, { visibility: 'private' }, (error_) => {
+                    assert.notExists(error_);
 
                     // Verify that the activity is still a non-aggregated activity, it just jumped to the front of the feed
-                    collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                      assert.notExists(error);
                       assert.ok(activityStream);
 
                       // One for the "content-create" aggregation, one for the "update content" duplicates
@@ -2849,22 +2867,22 @@ describe('Content Activity', () => {
                           viewers: NO_VIEWERS,
                           folders: NO_FOLDERS
                         },
-                        (err /* , apereoLink */) => {
-                          assert.notExists(err);
+                        (error /* , apereoLink */) => {
+                          assert.notExists(error);
 
                           // Force a collection so that the most recent activity is in the feed
-                          collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                            assert.notExists(err);
+                          collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                            assert.notExists(error);
                             assert.ok(activityStream);
                             assert.lengthOf(activityStream.items, 2);
 
                             // Jump the update activity to the top again
-                            updateContent(asJack, googleLink.id, { visibility: 'public' }, err => {
-                              assert.notExists(err);
+                            updateContent(asJack, googleLink.id, { visibility: 'public' }, (error_) => {
+                              assert.notExists(error_);
 
                               // Verify update activity is at the top and still an individual activity
-                              collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                                assert.notExists(err);
+                              collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                                assert.notExists(error);
                                 assert.ok(activityStream);
                                 assert.lengthOf(activityStream.items, 2);
 
@@ -2916,9 +2934,9 @@ describe('Content Activity', () => {
      * Test that verifies that when content-comment activities are aggregated, both actor and object entities are collected into the activity
      * for display.
      */
-    it('verify that content-comment activity aggregates both actor and object entities while pivoting on target', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify that content-comment activity aggregates both actor and object entities while pivoting on target', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack } = users;
         const asJack = jack.restContext;
@@ -2935,20 +2953,20 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Post a content as jack
-            createComment(asJack, link.id, 'Test Comment A', null, err => {
-              assert.notExists(err);
+            createComment(asJack, link.id, 'Test Comment A', null, (error_) => {
+              assert.notExists(error_);
 
               // Post a comment as the cambridge admin, we have now aggregated a 2nd comment posting on the same content item
-              createComment(asCambridgeTenantAdmin, link.id, 'Test Comment B', null, err => {
-                assert.notExists(err);
+              createComment(asCambridgeTenantAdmin, link.id, 'Test Comment B', null, (error_) => {
+                assert.notExists(error_);
 
                 // Verify that both actors (camadmin and jack) and both objects (both comments) are available in the activity
-                collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                  assert.notExists(error);
                   assert.ok(activityStream);
                   assert.lengthOf(activityStream.items, 2);
 
@@ -2966,12 +2984,12 @@ describe('Content Activity', () => {
                   assert.strictEqual(activity.target['oae:id'], link.id);
 
                   // Post a 3rd comment as a user who has posted already
-                  createComment(asJack, link.id, 'Test Comment C', null, err => {
-                    assert.notExists(err);
+                  createComment(asJack, link.id, 'Test Comment C', null, (error_) => {
+                    assert.notExists(error_);
 
                     // Verify that the 3rd comment is aggregated into the object collection of the activity, however the actor collection has only the 2 unique actors
-                    collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                      assert.notExists(error);
                       assert.ok(activityStream);
                       assert.lengthOf(activityStream.items, 2);
 
@@ -3014,9 +3032,9 @@ describe('Content Activity', () => {
      * Test that verifies that duplicating an activity that has multiple pivots does not result in redundant data in the
      * activity feed.
      */
-    it('verify duplicate content-share activities do not result in redundant activities', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify duplicate content-share activities do not result in redundant activities', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: jack, 1: jane } = users;
         const asJack = jack.restContext;
@@ -3033,19 +3051,19 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Share with jack, creates one activity item in cam admin's feed
-            shareContent(asJack, link.id, [jane.user.id], err => {
-              assert.notExists(err);
+            shareContent(asJack, link.id, [jane.user.id], (error_) => {
+              assert.notExists(error_);
 
               const removeJane = {};
               removeJane[jane.user.id] = false;
 
               // Remove jane so we can duplicate the content share after
-              updateMembers(asJack, link.id, removeJane, err => {
-                assert.notExists(err);
+              updateMembers(asJack, link.id, removeJane, (error_) => {
+                assert.notExists(error_);
 
                 // Create some noise in the feed to ensure that the second share content will jump to the top
                 createLink(
@@ -3059,16 +3077,16 @@ describe('Content Activity', () => {
                     viewers: NO_VIEWERS,
                     folders: NO_FOLDERS
                   },
-                  (err /* , yahooLink */) => {
-                    assert.notExists(err);
+                  (error /* , yahooLink */) => {
+                    assert.notExists(error);
 
                     // Now re-add Jane
-                    shareContent(asJack, link.id, [jane.user.id], err => {
-                      assert.notExists(err);
+                    shareContent(asJack, link.id, [jane.user.id], (error_) => {
+                      assert.notExists(error_);
 
                       // Verify that jack only has only one activity in his feed representing the content-share
-                      collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                        assert.notExists(error);
 
                         assert.ok(activityStream);
                         assert.lengthOf(activityStream.items, 2);
@@ -3093,8 +3111,8 @@ describe('Content Activity', () => {
                         );
 
                         // Repeat once more to ensure we don't duplicate when the aggregate is already active
-                        updateMembers(asJack, link.id, removeJane, err => {
-                          assert.notExists(err);
+                        updateMembers(asJack, link.id, removeJane, (error_) => {
+                          assert.notExists(error_);
 
                           // Create some noise in the feed to ensure that the third share content will jump to the top
                           createLink(
@@ -3108,16 +3126,16 @@ describe('Content Activity', () => {
                               viewers: NO_VIEWERS,
                               folders: NO_FOLDERS
                             },
-                            (err /* , apereoLink */) => {
-                              assert.notExists(err);
+                            (error /* , apereoLink */) => {
+                              assert.notExists(error);
 
                               // Re-share with Jane for the 3rd time
-                              shareContent(asJack, link.id, [jane.user.id], err => {
-                                assert.notExists(err);
+                              shareContent(asJack, link.id, [jane.user.id], (error_) => {
+                                assert.notExists(error_);
 
                                 // Verify that jack still has only one activity in his feed representing the content-share
-                                collectAndGetActivityStream(asJack, null, null, (err, activityStream) => {
-                                  assert.notExists(err);
+                                collectAndGetActivityStream(asJack, null, null, (error, activityStream) => {
+                                  assert.notExists(error);
 
                                   assert.ok(activityStream);
                                   assert.lengthOf(activityStream.items, 2);
@@ -3161,9 +3179,9 @@ describe('Content Activity', () => {
      * Test that verifies an activity with two aggregates will create 2 aggregate activities correctly when collected all at once
      * from the activity bucket.
      */
-    it('verify content-share activities aggregate and are branched properly when all collected at once', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share activities aggregate and are branched properly when all collected at once', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -3180,8 +3198,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             createLink(
               asHomer,
@@ -3194,20 +3212,20 @@ describe('Content Activity', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, yahooLink) => {
-                assert.notExists(err);
+              (error, yahooLink) => {
+                assert.notExists(error);
 
                 // Share google link with jane and branden
-                shareContent(asHomer, googleLink.id, [marge.user.id, bart.user.id], err => {
-                  assert.notExists(err);
+                shareContent(asHomer, googleLink.id, [marge.user.id, bart.user.id], (error_) => {
+                  assert.notExists(error_);
 
                   // Share Yahoo link with jane only
-                  shareContent(asHomer, yahooLink.id, [marge.user.id], err => {
-                    assert.notExists(err);
+                  shareContent(asHomer, yahooLink.id, [marge.user.id], (error_) => {
+                    assert.notExists(error_);
 
                     // Verify that the share activities aggregated in both pivot points
-                    collectAndGetActivityStream(asHomer, null, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(asHomer, null, null, (error, activityStream) => {
+                      assert.notExists(error);
                       assert.ok(activityStream);
                       assert.lengthOf(activityStream.items, 3);
 
@@ -3236,9 +3254,9 @@ describe('Content Activity', () => {
      * Test that verifies an activity with two aggregates will create 2 aggregate activities correctly when one single activity
      * currently exists in the activity stream.
      */
-    it('verify content-share activities aggregate and are branched properly when collected after first share', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share activities aggregate and are branched properly when collected after first share', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -3255,8 +3273,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             createLink(
               asHomer,
@@ -3269,28 +3287,28 @@ describe('Content Activity', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, yahooLink) => {
-                assert.notExists(err);
+              (error, yahooLink) => {
+                assert.notExists(error);
 
                 // Share google link with jane
-                shareContent(asHomer, googleLink.id, [marge.user.id], err => {
-                  assert.notExists(err);
+                shareContent(asHomer, googleLink.id, [marge.user.id], (error_) => {
+                  assert.notExists(error_);
 
                   // Perform a collection to activate some aggregates ahead of time
-                  collectAndGetActivityStream(asHomer, null, null, (err /* , activityStream */) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asHomer, null, null, (error /* , activityStream */) => {
+                    assert.notExists(error);
 
                     // Share google now with branden, should aggregate with the previous
-                    shareContent(asHomer, googleLink.id, [bart.user.id], err => {
-                      assert.notExists(err);
+                    shareContent(asHomer, googleLink.id, [bart.user.id], (error_) => {
+                      assert.notExists(error_);
 
                       // Share Yahoo link with jane only
-                      shareContent(asHomer, yahooLink.id, [marge.user.id], err => {
-                        assert.notExists(err);
+                      shareContent(asHomer, yahooLink.id, [marge.user.id], (error_) => {
+                        assert.notExists(error_);
 
                         // Verify that the share activities aggregated in both pivot points
-                        collectAndGetActivityStream(asHomer, null, null, (err, activityStream) => {
-                          assert.notExists(err);
+                        collectAndGetActivityStream(asHomer, null, null, (error, activityStream) => {
+                          assert.notExists(error);
 
                           assert.ok(activityStream);
                           assert.lengthOf(activityStream.items, 3);
@@ -3322,9 +3340,9 @@ describe('Content Activity', () => {
      * Test that verifies an activity with two aggregates will create 2 aggregate activities correctly when one aggregate exists
      * in the feed before a third is collected.
      */
-    it('verify content-share activities aggregate and are branched properly when collected before last share', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share activities aggregate and are branched properly when collected before last share', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -3341,8 +3359,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             createLink(
               asHomer,
@@ -3355,24 +3373,24 @@ describe('Content Activity', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, yahooLink) => {
-                assert.notExists(err);
+              (error, yahooLink) => {
+                assert.notExists(error);
 
                 // Share google link with jane and branden
-                shareContent(asHomer, googleLink.id, [marge.user.id, bart.user.id], err => {
-                  assert.notExists(err);
+                shareContent(asHomer, googleLink.id, [marge.user.id, bart.user.id], (error_) => {
+                  assert.notExists(error_);
 
                   // Perform a collection to activate some aggregates ahead of time
-                  collectAndGetActivityStream(asHomer, null, null, (err /* , activityStream */) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asHomer, null, null, (error /* , activityStream */) => {
+                    assert.notExists(error);
 
                     // Share Yahoo link with jane only
-                    shareContent(asHomer, yahooLink.id, [marge.user.id], err => {
-                      assert.notExists(err);
+                    shareContent(asHomer, yahooLink.id, [marge.user.id], (error_) => {
+                      assert.notExists(error_);
 
                       // Verify that the share activities aggregated in both pivot points
-                      collectAndGetActivityStream(asHomer, null, null, (err, activityStream) => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asHomer, null, null, (error, activityStream) => {
+                        assert.notExists(error);
 
                         assert.ok(activityStream);
                         assert.lengthOf(activityStream.items, 3);
@@ -3403,9 +3421,9 @@ describe('Content Activity', () => {
      * Test that verifies an activity with two aggregates will create 2 aggregate activities correctly when each activity is collected
      * and delivered to the feed one by one.
      */
-    it('verify content-share activities aggregate and are branched properly when collected after each share', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share activities aggregate and are branched properly when collected after each share', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -3422,8 +3440,8 @@ describe('Content Activity', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, googleLink) => {
-            assert.notExists(err);
+          (error, googleLink) => {
+            assert.notExists(error);
 
             createLink(
               asHomer,
@@ -3436,32 +3454,32 @@ describe('Content Activity', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, yahooLink) => {
-                assert.notExists(err);
+              (error, yahooLink) => {
+                assert.notExists(error);
 
                 // Share google link with jane
-                shareContent(asHomer, googleLink.id, [marge.user.id], err => {
-                  assert.notExists(err);
+                shareContent(asHomer, googleLink.id, [marge.user.id], (error_) => {
+                  assert.notExists(error_);
 
                   // Perform a collection to activate some aggregates ahead of time
-                  collectAndGetActivityStream(asHomer, null, null, (err /* , activityStream */) => {
-                    assert.notExists(err);
+                  collectAndGetActivityStream(asHomer, null, null, (error /* , activityStream */) => {
+                    assert.notExists(error);
 
                     // Share google now with branden, should aggregate with the previous
-                    shareContent(asHomer, googleLink.id, [bart.user.id], err => {
-                      assert.notExists(err);
+                    shareContent(asHomer, googleLink.id, [bart.user.id], (error_) => {
+                      assert.notExists(error_);
 
                       // Perform a collection to activate some aggregates ahead of time
-                      collectAndGetActivityStream(asHomer, null, null, (err /* , activityStream */) => {
-                        assert.notExists(err);
+                      collectAndGetActivityStream(asHomer, null, null, (error /* , activityStream */) => {
+                        assert.notExists(error);
 
                         // Share Yahoo link with jane only
-                        shareContent(asHomer, yahooLink.id, [marge.user.id], err => {
-                          assert.notExists(err);
+                        shareContent(asHomer, yahooLink.id, [marge.user.id], (error_) => {
+                          assert.notExists(error_);
 
                           // Verify that the share activities aggregated in both pivot points
-                          collectAndGetActivityStream(asHomer, null, null, (err, activityStream) => {
-                            assert.notExists(err);
+                          collectAndGetActivityStream(asHomer, null, null, (error, activityStream) => {
+                            assert.notExists(error);
 
                             assert.ok(activityStream);
                             assert.lengthOf(activityStream.items, 3);
@@ -3496,9 +3514,9 @@ describe('Content Activity', () => {
      * Test that verifies an email is sent to the recent commenters, and that private users are appropriately
      * scrubbed.
      */
-    it('verify content-comment email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify content-comment email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge, 2: bart } = users;
         const asHomer = homer.restContext;
@@ -3522,15 +3540,15 @@ describe('Content Activity', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.notExists(err);
+            (error, link) => {
+              assert.notExists(error);
 
               createComment(asMarge, link.id, '<script>Nice link.</script>\n\nWould click again', null, (
-                err /* , margeUpdate */
+                error /* , margeUpdate */
               ) => {
-                assert.notExists(err);
+                assert.notExists(error);
 
-                collectAndFetchAllEmails(messages => {
+                collectAndFetchAllEmails((messages) => {
                   // There should be exactly one message, the one sent to homer (manager of content item receives content-comment notification)
                   assert.lengthOf(messages, 1);
 
@@ -3562,10 +3580,10 @@ describe('Content Activity', () => {
                   assert.include(stringEmail, 'Would click again</p>');
 
                   // Post a comment as bart and ensure the recent commenter, marge receives an email about it
-                  createComment(asBart, link.id, 'It 404d', null, (err /* , bartComment */) => {
-                    assert.notExists(err);
+                  createComment(asBart, link.id, 'It 404d', null, (error /* , bartComment */) => {
+                    assert.notExists(error);
 
-                    collectAndFetchAllEmails(emails => {
+                    collectAndFetchAllEmails((emails) => {
                       // There should be 2 emails this time, one to the manager and one to the recent commenter, marge
                       assert.lengthOf(emails, 2);
 
@@ -3588,9 +3606,9 @@ describe('Content Activity', () => {
      * Test that verifies an email is sent to the members when a content item is created, and that private users are
      * appropriately scrubbed.
      */
-    it('verify content-create email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify content-create email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge } = users;
         const asMarge = marge.restContext;
@@ -3613,11 +3631,11 @@ describe('Content Activity', () => {
               viewers: [homer.user.id],
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.notExists(err);
+            (error, link) => {
+              assert.notExists(error);
 
               // homer should get an email, with marge's information scrubbed
-              collectAndFetchAllEmails(messages => {
+              collectAndFetchAllEmails((messages) => {
                 // There should be exactly one message, the one sent to homer
                 assert.lengthOf(messages, 1);
 
@@ -3651,9 +3669,9 @@ describe('Content Activity', () => {
      * Test that verifies an email is sent to the target users when content is shared, and that private users are
      * appropriately scrubbed.
      */
-    it('verify content-share email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify content-share email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe, 1: janeDoe } = users;
         const asJaneDoe = janeDoe.restContext;
@@ -3677,16 +3695,16 @@ describe('Content Activity', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.notExists(err);
+            (error, link) => {
+              assert.notExists(error);
 
               // Collect the createLink activity
               collectAndFetchAllEmails((/* messages */) => {
-                shareContent(asJaneDoe, link.id, [johnDoe.user.id], err => {
-                  assert.notExists(err);
+                shareContent(asJaneDoe, link.id, [johnDoe.user.id], (error_) => {
+                  assert.notExists(error_);
 
                   // jack should get an email, with jane's information scrubbed
-                  collectAndFetchAllEmails(messages => {
+                  collectAndFetchAllEmails((messages) => {
                     // There should be exactly one message, the one sent to jack
                     assert.lengthOf(messages, 1);
 

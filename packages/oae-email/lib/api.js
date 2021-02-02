@@ -15,7 +15,7 @@
 
 import crypto from 'crypto';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import path from 'path';
 import juice from 'juice';
 import _ from 'underscore';
@@ -114,7 +114,7 @@ const EmailAPI = new EmitterAPI.EventEmitter();
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const init = function(emailSystemConfig, callback) {
+const init = function (emailSystemConfig, callback) {
   emailSystemConfig = emailSystemConfig || {};
 
   // Email configuration
@@ -137,7 +137,7 @@ const init = function(emailSystemConfig, callback) {
    * the current time bucket is 2, redback will clear buckets 3 and 4 while we count back from 0,
    * 1 and 2).
    */
-  const numDaysUntilExpire = 30;
+  const numberDaysUntilExpire = 30;
   const bucketInterval = Math.ceil(throttleConfig.timespan / 2) * 1000;
 
   rateLimit = require('ioredis-ratelimit')({
@@ -148,7 +148,7 @@ const init = function(emailSystemConfig, callback) {
     limit: throttleConfig.count,
     duration: bucketInterval,
     difference: 0, // allow no interval between requests
-    ttl: 1000 * 24 * 60 * 60 * numDaysUntilExpire // Not sure about this
+    ttl: 1000 * 24 * 60 * 60 * numberDaysUntilExpire // Not sure about this
   });
 
   /*
@@ -202,11 +202,11 @@ const init = function(emailSystemConfig, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const refreshTemplates = function(callback) {
+const refreshTemplates = function (callback) {
   // Get all the registered OAE modules so we can scan each one for a mail template
   const modules = OaeModules.getAvailableModules();
-  _getTemplatesForModules(path.join(__dirname, '/../..'), modules, (err, _templates) => {
-    if (err) return callback(err);
+  _getTemplatesForModules(path.join(__dirname, '/../..'), modules, (error, _templates) => {
+    if (error) return callback(error);
 
     templates = _templates;
     return callback();
@@ -249,10 +249,10 @@ const _abortIfMetaTemplateErrors = (templateData, done) => {
   const { metaTemplate, recipient, templateModule, templateId } = templateData;
 
   if (!metaTemplate) {
-    const noMetaTemplateErr = { code: 500, msg: 'No email metadata template existed for user' };
+    const noMetaTemplateError = { code: 500, msg: 'No email metadata template existed for user' };
     log().error(
       {
-        err: new Error(noMetaTemplateErr.msg),
+        err: new Error(noMetaTemplateError.msg),
         templateModule,
         templateId,
         recipient: {
@@ -260,9 +260,9 @@ const _abortIfMetaTemplateErrors = (templateData, done) => {
           locale: recipient.locale
         }
       },
-      noMetaTemplateErr.msg
+      noMetaTemplateError.msg
     );
-    return done(noMetaTemplateErr);
+    return done(noMetaTemplateError);
   }
 
   done();
@@ -271,13 +271,13 @@ const _abortIfMetaTemplateErrors = (templateData, done) => {
 const _abortIfTemplateErrors = (templateData, done) => {
   const { htmlTemplate, txtTemplate, recipient, templateModule, templateId } = templateData;
   if (!htmlTemplate && !txtTemplate) {
-    const noContentTemplateErr = {
+    const noContentTemplateError = {
       code: 500,
       msg: 'No email content (text or html) template existed for user'
     };
     log().error(
       {
-        err: new Error(noContentTemplateErr.msg),
+        err: new Error(noContentTemplateError.msg),
         templateModule,
         templateId,
         recipient: {
@@ -285,9 +285,9 @@ const _abortIfTemplateErrors = (templateData, done) => {
           locale: recipient.locale
         }
       },
-      noContentTemplateErr.msg
+      noContentTemplateError.msg
     );
-    return done(noContentTemplateErr);
+    return done(noContentTemplateError);
   }
 
   done();
@@ -393,14 +393,14 @@ const _renderTXTTemplate = (txtTemplate, templateData) => {
  * @param  {Function}   [callback]          Invoked when the email has been sent
  * @param  {Object}     [callback.err]      An error that occurred, if any
  */
-const sendEmail = function(templateModule, templateId, recipient, data, opts, callback) {
+const sendEmail = function (templateModule, templateId, recipient, data, options, callback) {
   data = data || {};
-  opts = opts || {};
+  options = options || {};
   callback =
     callback ||
-    function(err) {
-      if (err && err.code === 400) {
-        log().error({ err }, 'Failed to deliver due to validation error');
+    function (error) {
+      if (error && error.code === 400) {
+        log().error({ err: error }, 'Failed to deliver due to validation error');
       }
     };
 
@@ -423,8 +423,8 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
     return callback(error);
   }
 
-  _abortIfRecipientErrors({ templateModule, templateId, recipient }, err => {
-    if (err) return callback(err);
+  _abortIfRecipientErrors({ templateModule, templateId, recipient }, (error) => {
+    if (error) return callback(error);
 
     log().trace(
       {
@@ -432,7 +432,7 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
         templateId,
         recipient,
         data,
-        opts
+        opts: options
       },
       'Preparing template for mail to be sent.'
     );
@@ -443,11 +443,11 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
     const sharedLogic = _getTemplate(templateModule, templateId, 'shared');
 
     // Verify the user templates have enough data to send an email
-    _abortIfMetaTemplateErrors({ metaTemplate, templateModule, templateId, recipient }, err => {
-      if (err) return callback(err);
+    _abortIfMetaTemplateErrors({ metaTemplate, templateModule, templateId, recipient }, (error) => {
+      if (error) return callback(error);
 
-      _abortIfTemplateErrors({ htmlTemplate, txtTemplate, templateModule, templateId, recipient }, err => {
-        if (err) return callback(err);
+      _abortIfTemplateErrors({ htmlTemplate, txtTemplate, templateModule, templateId, recipient }, (error) => {
+        if (error) return callback(error);
 
         const renderedTemplates = {};
         const templateCtx = _.extend({}, data, {
@@ -466,8 +466,8 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
         // Try and parse the meta template into JSON
         const metaRendered = UIAPI.renderTemplate(metaTemplate, templateCtx, recipient.locale);
 
-        _parseJSON({ metaRendered, templateModule, templateId, recipient }, (err, metaContent) => {
-          if (err) return callback(err);
+        _parseJSON({ metaRendered, templateModule, templateId, recipient }, (error, metaContent) => {
+          if (error) return callback(error);
 
           const args = {
             recipient,
@@ -496,8 +496,8 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
           // eslint-disable-next-line no-template-curly-in-string
           fromName = fromName.replace('${tenant}', tenant.displayName);
           const fromAddr =
-            EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') || util.format('noreply@%s', tenant.host);
-          const from = util.format('"%s" <%s>', fromName, fromAddr);
+            EmailConfig.getValue(tenant.alias, 'general', 'fromAddress') || format('noreply@%s', tenant.host);
+          const from = format('"%s" <%s>', fromName, fromAddr);
 
           // Build the email object that will be sent through nodemailer. The 'from' property can be overridden by
           // the meta.json, then we further override that with some hard values
@@ -519,14 +519,14 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
           }
 
           // Ensure the hash is set and is a valid hex string
-          opts.hash = _generateMessageHash(emailInfo, opts);
+          options.hash = _generateMessageHash(emailInfo, options);
 
           // Set the Message-Id header based on the message hash. We apply the
           // tenant host as the FQDN as it improves the spam score by providing
           // a source location of the message. We also add the userid of the user
           // we sent the message to, so we can determine what user a message was
           // sent to in Sendgrid
-          emailInfo.messageId = util.format('%s.%s@%s', opts.hash, recipient.id.replace(/:/g, '-'), tenant.host);
+          emailInfo.messageId = format('%s.%s@%s', options.hash, recipient.id.replace(/:/g, '-'), tenant.host);
 
           // Increment our debug sent count. We have to do it here because we
           // optionally enter an asynchronous block below
@@ -536,38 +536,38 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
            * Wrapper callback that conveniently decrements the email sent count when
            * processing has completed
            */
-          const _decrCallback = function(err, info) {
+          const _decrCallback = function (error, info) {
             _decr();
-            if (err) return callback(err);
+            if (error) return callback(error);
             return callback(null, info);
           };
 
           // If we're not sending out HTML, we can send out the email now
           if (!emailInfo.html) {
-            return _sendEmail(emailInfo, opts, _decrCallback);
+            return _sendEmail(emailInfo, options, _decrCallback);
           }
 
           // If we're sending HTML, we should inline all the CSS
-          _inlineCSS(emailInfo.html, (err, inlinedHtml) => {
-            if (err) {
-              log().error({ err, emailInfo }, 'Unable to inline CSS');
-              return _decrCallback(err);
+          _inlineCSS(emailInfo.html, (error, inlinedHtml) => {
+            if (error) {
+              log().error({ err: error, emailInfo }, 'Unable to inline CSS');
+              return _decrCallback(error);
             }
 
             // Process the HTML such that we add line breaks before each html attribute to try and keep
             // line length below 998 characters
             emailInfo.html = _.chain(inlinedHtml.split('\n'))
-              .map(line => {
-                return line.replace(/<[^/][^>]+>/g, match => {
-                  return match.replace(/\s+[a-zA-Z0-9_-]+="[^"]+"/g, match => {
-                    return util.format('\n%s', match);
+              .map((line) => {
+                return line.replace(/<[^/][^>]+>/g, (match) => {
+                  return match.replace(/\s+[\w-]+="[^"]+"/g, (match) => {
+                    return format('\n%s', match);
                   });
                 });
               })
               .value()
               .join('\n');
 
-            return _sendEmail(emailInfo, opts, _decrCallback);
+            return _sendEmail(emailInfo, options, _decrCallback);
           });
         });
       });
@@ -582,7 +582,7 @@ const sendEmail = function(templateModule, templateId, recipient, data, opts, ca
  *
  * @param  {Function}   callback    Invoked when all messages have been sent
  */
-const whenAllEmailsSent = function(callback) {
+const whenAllEmailsSent = function (callback) {
   debugEmailSendCounter.whenZero(callback);
 };
 
@@ -597,15 +597,15 @@ const whenAllEmailsSent = function(callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _sendEmail = function(emailInfo, opts, callback) {
+const _sendEmail = function (emailInfo, options, callback) {
   if (emailInfo.subject) {
-    emailInfo.subject = UIAPI.translate(emailInfo.subject, opts.locale);
+    emailInfo.subject = UIAPI.translate(emailInfo.subject, options.locale);
   }
 
   // We lock the mail for a sufficiently long time
-  const lockKey = util.format('oae-email-locking:%s', emailInfo.messageId);
-  Locking.acquire(lockKey, deduplicationInterval, (err /* lock */) => {
-    if (err) {
+  const lockKey = format('oae-email-locking:%s', emailInfo.messageId);
+  Locking.acquire(lockKey, deduplicationInterval, (error_ /* lock */) => {
+    if (error_) {
       Telemetry.incr('lock.fail');
       log().error(
         { emailInfo },
@@ -619,12 +619,12 @@ const _sendEmail = function(emailInfo, opts, callback) {
       .then(() => {
         // We will proceed to send an email, so add it to the rate-limit counts
         // We got a lock and aren't throttled, send our mail
-        return emailTransport.sendMail(emailInfo).catch(error => {
+        return emailTransport.sendMail(emailInfo).catch((error) => {
           log().error({ err: error, to: emailInfo.to, subject: emailInfo.subject }, 'Error sending email to recipient');
-          return callback(err);
+          return callback(error_);
         });
       })
-      .then(info => {
+      .then((info) => {
         if (debug) {
           log().info(
             {
@@ -643,7 +643,7 @@ const _sendEmail = function(emailInfo, opts, callback) {
         EmailAPI.emit('debugSent', info);
         return callback(null, info);
       })
-      .catch(error => {
+      .catch((error) => {
         Telemetry.incr('throttled');
         log().warn({ to: emailInfo.to, err: error }, 'Throttling in effect');
         return callback({ code: 403, msg: 'Throttling in effect' });
@@ -660,7 +660,7 @@ const _sendEmail = function(emailInfo, opts, callback) {
  * @param  {Object}     callback.inlinedHtml    The resulting inlined HTML
  * @api private
  */
-const _inlineCSS = function(html, callback) {
+const _inlineCSS = function (html, callback) {
   juice.juiceResources(html, { webResources: { images: false } }, callback);
 };
 
@@ -674,7 +674,7 @@ const _inlineCSS = function(html, callback) {
  * @param  {Object}     callback.templates      An object keyed by module whose value are the templates
  * @api private
  */
-const _getTemplatesForModules = function(basedir, modules, callback, _templates) {
+const _getTemplatesForModules = function (basedir, modules, callback, _templates) {
   _templates = _templates || {};
   if (_.isEmpty(modules)) {
     return callback(null, _templates);
@@ -682,9 +682,9 @@ const _getTemplatesForModules = function(basedir, modules, callback, _templates)
 
   // Get the email templates for the next module
   const module = modules.pop();
-  _getTemplatesForModule(basedir, module, (err, templatesForModule) => {
-    if (err) {
-      return callback(err);
+  _getTemplatesForModule(basedir, module, (error, templatesForModule) => {
+    if (error) {
+      return callback(error);
     }
 
     _templates[module] = templatesForModule;
@@ -703,12 +703,12 @@ const _getTemplatesForModules = function(basedir, modules, callback, _templates)
  * @param  {Object}     callback.templates          The retrieved templates keyed by their id
  * @api private
  */
-const _getTemplatesForModule = function(basedir, module, callback) {
+const _getTemplatesForModule = function (basedir, module, callback) {
   // Get all the email templates for this module
   const emailTemplatesPath = _templatesPath(basedir, module);
-  IO.getFileListForFolder(emailTemplatesPath, (err, files) => {
-    if (err) {
-      return callback(err);
+  IO.getFileListForFolder(emailTemplatesPath, (error, files) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(files)) {
@@ -717,7 +717,7 @@ const _getTemplatesForModule = function(basedir, module, callback) {
 
     // Identify a valid template by the existence of a *.meta.json.jst file
     let templateIds = {};
-    _.each(files, file => {
+    _.each(files, (file) => {
       const re = /^(.*)\.meta\.json\.jst$/;
       if (re.test(file)) {
         templateIds[file.replace(re, '$1')] = true;
@@ -745,7 +745,7 @@ const _getTemplatesForModule = function(basedir, module, callback) {
  * @param  {Object}     callback.templates          The retrieved templates keyed by their id
  * @api private
  */
-const _getTemplatesForTemplateIds = function(basedir, module, templateIds, callback, _templates) {
+const _getTemplatesForTemplateIds = function (basedir, module, templateIds, callback, _templates) {
   _templates = _templates || {};
 
   if (_.isEmpty(templateIds)) {
@@ -758,19 +758,19 @@ const _getTemplatesForTemplateIds = function(basedir, module, templateIds, callb
   const templateTxtPath = _templatesPath(basedir, module, templateId + '.txt.jst');
 
   // Get each template individually
-  _getCompiledTemplate(templateMetaPath, (err, metaTemplate) => {
-    if (err) {
-      return callback(err);
+  _getCompiledTemplate(templateMetaPath, (error, metaTemplate) => {
+    if (error) {
+      return callback(error);
     }
 
-    _getCompiledTemplate(templateHtmlPath, (err, htmlTemplate) => {
-      if (err) {
-        return callback(err);
+    _getCompiledTemplate(templateHtmlPath, (error, htmlTemplate) => {
+      if (error) {
+        return callback(error);
       }
 
-      _getCompiledTemplate(templateTxtPath, (err, txtTemplate) => {
-        if (err) {
-          return callback(err);
+      _getCompiledTemplate(templateTxtPath, (error, txtTemplate) => {
+        if (error) {
+          return callback(error);
         }
 
         let sharedLogic = {};
@@ -802,15 +802,15 @@ const _getTemplatesForTemplateIds = function(basedir, module, templateIds, callb
  * @param  {Function}   callback.template       The compiled template
  * @api private
  */
-const _getCompiledTemplate = function(templatePath, callback) {
-  fs.stat(templatePath, err => {
-    if (err) {
+const _getCompiledTemplate = function (templatePath, callback) {
+  fs.stat(templatePath, (error) => {
+    if (error) {
       return callback();
     }
 
-    fs.readFile(templatePath, 'utf8', (err, templateContent) => {
-      if (err) {
-        return callback(err);
+    fs.readFile(templatePath, 'utf8', (error, templateContent) => {
+      if (error) {
+        return callback(error);
       }
 
       if (templateContent) {
@@ -833,8 +833,8 @@ const _getCompiledTemplate = function(templatePath, callback) {
  * @return {String}                 Returns the path where the locales, template files or specific template file should be found
  * @api private
  */
-const _templatesPath = function(basedir, module, template) {
-  let templatePath = util.format('%s/%s/emailTemplates', basedir, module);
+const _templatesPath = function (basedir, module, template) {
+  let templatePath = format('%s/%s/emailTemplates', basedir, module);
   if (template) {
     templatePath += '/' + template;
   }
@@ -852,7 +852,7 @@ const _templatesPath = function(basedir, module, template) {
  * @return {String}                         The template content that can be used to render the template. If `null`, there was no suitable template for the given criteria.
  * @api private
  */
-const _getTemplate = function(templateModule, templateId, templateType) {
+const _getTemplate = function (templateModule, templateId, templateType) {
   const template =
     templates &&
     templates[templateModule] &&
@@ -876,11 +876,11 @@ const _getTemplate = function(templateModule, templateId, templateType) {
  * @return {String}                             A unique hexidecimal string based either on the specified hash or message content
  * @api private
  */
-const _generateMessageHash = function(emailInfo, opts) {
+const _generateMessageHash = function (emailInfo, options) {
   const md5sum = crypto.createHash('md5');
 
-  if (opts.hash) {
-    md5sum.update(opts.hash.toString());
+  if (options.hash) {
+    md5sum.update(options.hash.toString());
 
     // If no unique hash was specified by the user, we will generate one based on the mail data that is available
   } else {
@@ -898,7 +898,7 @@ const _generateMessageHash = function(emailInfo, opts) {
  *
  * @api private
  */
-const _incr = function() {
+const _incr = function () {
   if (debug) {
     debugEmailSendCounter.incr();
   }
@@ -909,7 +909,7 @@ const _incr = function() {
  *
  * @api private
  */
-const _decr = function() {
+const _decr = function () {
   if (debug) {
     debugEmailSendCounter.decr();
   }

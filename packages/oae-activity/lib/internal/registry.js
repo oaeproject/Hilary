@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 const activityStreams = {};
@@ -29,7 +29,7 @@ const activityEntityAssociations = {};
 const registerActivityStreamType = function(activityStreamType, options) {
   if (activityStreams[activityStreamType]) {
     throw new Error(
-      util.format('Attempted to register duplicate activity stream type "%s"', activityStreamType)
+      format('Attempted to register duplicate activity stream type "%s"', activityStreamType)
     );
   }
 
@@ -53,7 +53,7 @@ const getRegisteredActivityStreamType = function(activityStreamType) {
 const registerActivityType = function(activityType, options) {
   if (activityTypes[activityType]) {
     throw new Error(
-      util.format('Attempted to register duplicate activity type of type "%s"', activityType)
+      format('Attempted to register duplicate activity type of type "%s"', activityType)
     );
   }
 
@@ -64,7 +64,7 @@ const registerActivityType = function(activityType, options) {
   // Iterate over each stream and ensure that they have a router declaration
   _.each(options.streams, (streamConfig, streamName) => {
     if (!streamConfig || _.isEmpty(streamConfig.router)) {
-      throw new Error(util.format('Missing or empty router for stream "%s"', streamName));
+      throw new Error(format('Missing or empty router for stream "%s"', streamName));
     }
 
     // Iterate over the defined routers in the stream's router config
@@ -72,7 +72,7 @@ const registerActivityType = function(activityType, options) {
     _.each(options.streams[streamName].router, function(assocations, entityName) {
       if (_.isEmpty(assocations)) {
         throw new Error(
-          util.format(
+          format(
             'Missing or empty associations for stream "%s" and entity "%s"',
             streamName,
             entityName
@@ -103,7 +103,7 @@ const getRegisteredActivityTypes = function() {
 const registerActivityEntityType = function(activityEntityType, options) {
   if (activityEntityTypes[activityEntityType]) {
     throw new Error(
-      util.format(
+      format(
         'Attempted to register duplicate activity entity type of type "%s"',
         activityEntityType
       )
@@ -137,7 +137,7 @@ const registerActivityEntityAssociation = function(
     activityEntityAssociations[activityEntityType][associationName]
   ) {
     throw new Error(
-      util.format(
+      format(
         'Attempted to register duplicate activity entity association of type "%s" and name "%s"',
         activityEntityType,
         associationName

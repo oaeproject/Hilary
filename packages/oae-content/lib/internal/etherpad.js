@@ -14,7 +14,7 @@
  */
 
 import url from 'url';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 
@@ -33,7 +33,7 @@ let etherpadConfig = null;
  *
  * @param  {Object}   etherpadConfig    The etherpad config from config.js
  */
-const refreshConfiguration = function(_etherpadConfig) {
+const refreshConfiguration = function (_etherpadConfig) {
   // Remember this config.
   etherpadConfig = _etherpadConfig;
 
@@ -57,7 +57,7 @@ const refreshConfiguration = function(_etherpadConfig) {
  *
  * @return {Object} The etherpad configuration.
  */
-const getConfig = function() {
+const getConfig = function () {
   return etherpadConfig;
 };
 
@@ -71,7 +71,7 @@ const getConfig = function() {
  * @param  {String}     callback.ids.etherpadGroupId    The etherpad identifier for the group that was created
  * @param  {String}     callback.ids.etherpadPadId      The etherpad identifier for the pad that was created
  */
-const createPad = function(contentId, callback) {
+const createPad = function (contentId, callback) {
   // Because etherpad has a slightly weird system of authenticating users
   // we need to create a group *PER* content item and then create a group pad in this group
 
@@ -83,10 +83,10 @@ const createPad = function(contentId, callback) {
     groupMapper: contentId
   };
   log().trace({ contentId }, 'Creating etherpad group');
-  client.createGroupIfNotExistsFor(args, (err, groupData) => {
-    if (err) {
-      log().error({ err, contentId, etherpad: client.options.host }, 'Could not create an etherpad group');
-      return callback({ code: 500, msg: err.message });
+  client.createGroupIfNotExistsFor(args, (error, groupData) => {
+    if (error) {
+      log().error({ err: error, contentId, etherpad: client.options.host }, 'Could not create an etherpad group');
+      return callback({ code: 500, msg: error.message });
     }
 
     // Create the group pad.
@@ -95,10 +95,10 @@ const createPad = function(contentId, callback) {
       padName: contentId
     };
     log().trace({ contentId, groupID: groupData.groupID }, 'Creating etherpad group pad');
-    client.createGroupPad(groupPad, (err, padData) => {
-      if (err) {
-        log().error({ err, contentId, etherpad: client.options.host }, 'Could not create an etherpad group pad');
-        return callback({ code: 500, msg: err.message });
+    client.createGroupPad(groupPad, (error, padData) => {
+      if (error) {
+        log().error({ err: error, contentId, etherpad: client.options.host }, 'Could not create an etherpad group pad');
+        return callback({ code: 500, msg: error.message });
       }
 
       // Store these IDs in the database.
@@ -121,13 +121,13 @@ const createPad = function(contentId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.html   The HTML fragment for this pad
  */
-const getHTML = function(contentId, padId, callback) {
+const getHTML = function (contentId, padId, callback) {
   log().trace({ contentId }, 'Getting etherpad HTML');
   const client = getClient(contentId);
-  client.getHTML({ padID: padId }, (err, data) => {
-    if (err) {
+  client.getHTML({ padID: padId }, (error, data) => {
+    if (error) {
       log().error(
-        { err, padID: padId, contentId, etherpad: client.options.host },
+        { err: error, padID: padId, contentId, etherpad: client.options.host },
         'Could not grab the HTML from etherpad'
       );
       return callback({ code: 500, msg: 'Could not grab the HTML from etherpad' });
@@ -146,7 +146,7 @@ const getHTML = function(contentId, padId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const setHTML = function(contentId, padId, html, callback) {
+const setHTML = function (contentId, padId, html, callback) {
   log().trace({ contentId, html }, 'Setting etherpad html');
 
   // Although Etherpad exposes an API to set the HTML of a pad, it doesn't accept HTML fragments. We encapsulate the HTML fragment into a
@@ -161,10 +161,10 @@ const setHTML = function(contentId, padId, html, callback) {
 
   const client = getClient(contentId);
   // eslint-disable-next-line no-unused-vars
-  client.setHTML({ padID: padId, html }, (err, data) => {
-    if (err) {
+  client.setHTML({ padID: padId, html }, (error, data) => {
+    if (error) {
       log().error(
-        { err, padID: padId, contentId, html, etherpad: client.options.host },
+        { err: error, padID: padId, contentId, html, etherpad: client.options.host },
         'Could not set the html on the etherpad instance'
       );
       return callback({ code: 500, msg: 'Could not set the html on the etherpad instance' });
@@ -186,7 +186,7 @@ const setHTML = function(contentId, padId, html, callback) {
  * @param  {String}     callback.data.url       The URL that can be used to embed the pad
  * @param  {Object}     callback.data.author    The author object that was retrieved/created from/in etherpad for the current user
  */
-const joinPad = function(ctx, contentObj, callback) {
+const joinPad = function (ctx, contentObject, callback) {
   if (!ctx.user()) {
     return callback({
       code: 401,
@@ -195,7 +195,7 @@ const joinPad = function(ctx, contentObj, callback) {
   }
 
   // Get the etherpad client that will handle this content ID
-  const client = getClient(contentObj.id);
+  const client = getClient(contentObject.id);
 
   /*
    *   Joining a pad consists out of three things:
@@ -210,12 +210,12 @@ const joinPad = function(ctx, contentObj, callback) {
     authorMapper: ctx.user().id,
     name: ctx.user().displayName
   };
-  client.createAuthorIfNotExistsFor(args, (err, author) => {
-    if (err) {
+  client.createAuthorIfNotExistsFor(args, (error, author) => {
+    if (error) {
       log().error(
         {
-          err,
-          contentId: contentObj.id,
+          err: error,
+          contentId: contentObject.id,
           principalId: ctx.user().id,
           etherpad: client.options.host
         },
@@ -225,17 +225,17 @@ const joinPad = function(ctx, contentObj, callback) {
     }
 
     const session = {
-      groupID: contentObj.etherpadGroupId,
+      groupID: contentObject.etherpadGroupId,
       authorID: author.authorID,
       validUntil: Math.round(Date.now() / 1000) + 60 * 60 * 24
     };
     log().trace(session, 'Creating a session');
-    client.createSession(session, (err, data) => {
-      if (err) {
+    client.createSession(session, (error, data) => {
+      if (error) {
         log().error(
           {
-            err,
-            contentId: contentObj.id,
+            err: error,
+            contentId: contentObject.id,
             principalId: ctx.user().id,
             etherpad: client.options.host
           },
@@ -252,7 +252,7 @@ const joinPad = function(ctx, contentObj, callback) {
       }
 
       // Construct the URL
-      const url = getPadUrl(contentObj, ctx.user().id, data.sessionID, author.authorID, language);
+      const url = getPadUrl(contentObject, ctx.user().id, data.sessionID, author.authorID, language);
       return callback(null, { url, author });
     });
   });
@@ -267,11 +267,11 @@ const joinPad = function(ctx, contentObj, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {String[]}   callback.authorIds      A list of ids of authors that are online right now
  */
-const getOnlineAuthors = function(contentId, padId, callback) {
+const getOnlineAuthors = function (contentId, padId, callback) {
   const client = getClient(contentId);
-  client.padUsers({ padID: padId }, (err, data) => {
-    if (err) {
-      log().error({ err, contentId, padId }, 'Could not get the online users of a pad');
+  client.padUsers({ padID: padId }, (error, data) => {
+    if (error) {
+      log().error({ err: error, contentId, padId }, 'Could not get the online users of a pad');
       return callback({ code: 500, msg: 'Could not get the online users of a pad' });
     }
 
@@ -306,14 +306,14 @@ const getOnlineAuthors = function(contentId, padId, callback) {
  * @param  {String}     [language]                  The 2 character string that identifies the user's prefered language
  * @return {String}                                 The URL to the pad that can be used to embed in a page
  */
-const getPadUrl = function(contentObj, userId, sessionId, authorId, language) {
-  const serverIndex = _getServer(contentObj.id).index;
+const getPadUrl = function (contentObject, userId, sessionId, authorId, language) {
+  const serverIndex = _getServer(contentObject.id).index;
   return url.format({
-    pathname: '/etherpad/' + serverIndex + '/oae/' + contentObj.etherpadPadId,
+    pathname: '/etherpad/' + serverIndex + '/oae/' + contentObject.etherpadPadId,
     query: {
       authorId,
-      contentId: contentObj.id,
-      displayName: contentObj.displayName,
+      contentId: contentObject.id,
+      displayName: contentObject.displayName,
       language,
       pathPrefix: '/etherpad/' + serverIndex,
       sessionID: sessionId,
@@ -331,7 +331,7 @@ const getPadUrl = function(contentObj, userId, sessionId, authorId, language) {
  * @param  {String}     other       Content of another etherpad document
  * @return {Boolean}                Whether or not the content is equivalent to eachother
  */
-const isContentEqual = function(one, other) {
+const isContentEqual = function (one, other) {
   if (one === other) {
     return true;
   }
@@ -352,17 +352,13 @@ const isContentEqual = function(one, other) {
  * @param  {String}     content     The content of the etherpad document
  * @return {Boolean}                Wehther or not the content is considered empty
  */
-const isContentEmpty = function(content) {
+const isContentEmpty = function (content) {
   if (!content) {
     return true;
   }
 
   const $ = _createEtherpadContent$(content);
-  return _.isEmpty(
-    $('body')
-      .text()
-      .trim()
-  );
+  return _.isEmpty($('body').text().trim());
 };
 
 /**
@@ -371,7 +367,7 @@ const isContentEmpty = function(content) {
  * @param  {String}     contentId   The ID of the piece of content for which we need to retrieve an etherpad client.
  * @return {Client}                 The request etherpad client.
  */
-const getClient = function(contentId) {
+const getClient = function (contentId) {
   return _getServer(contentId).client;
 };
 
@@ -384,7 +380,7 @@ const getClient = function(contentId) {
  * @return {Cheerio}                The cheerio object that can be used to inspect and manipulate the content DOM
  * @api private
  */
-const _createEtherpadContent$ = function(content) {
+const _createEtherpadContent$ = function (content) {
   const $ = cheerio.load(content);
 
   // If this is content was saved using etherpad 1.3 or later, it will be wrapped in an HTML
@@ -405,7 +401,7 @@ const _createEtherpadContent$ = function(content) {
  * @return {String}                 The given content document wrapped in a valid HTML document
  * @api private
  */
-const _ensureHtmlDocument = function(content) {
+const _ensureHtmlDocument = function (content) {
   if (_isHtmlDocument(content)) {
     return content;
   }
@@ -420,7 +416,7 @@ const _ensureHtmlDocument = function(content) {
  * @return {Boolean}                Whether or not the content is a valid HTML document
  * @api private
  */
-const _isHtmlDocument = function(content) {
+const _isHtmlDocument = function (content) {
   if (!content) {
     return false;
   }
@@ -436,8 +432,8 @@ const _isHtmlDocument = function(content) {
  * @return {String}                 The content wrapped in a valid HTML body
  * @api private
  */
-const _wrapInHtmlBody = function(content) {
-  return util.format('<!DOCTYPE HTML><html><body>%s</body></html>', content);
+const _wrapInHtmlBody = function (content) {
+  return format('<!DOCTYPE HTML><html><body>%s</body></html>', content);
 };
 
 /**
@@ -447,7 +443,7 @@ const _wrapInHtmlBody = function(content) {
  * @return {Object}                 The server tied to a collabration document.
  * @api private
  */
-const _getServer = function(contentId) {
+const _getServer = function (contentId) {
   const index = _hash(contentId, etherpadServers.length);
   return etherpadServers[index];
 };
@@ -460,10 +456,10 @@ const _getServer = function(contentId) {
  * @return {Number}             The index.
  * @api private
  */
-const _hash = function(str, nr) {
+const _hash = function (string, nr) {
   let code = 0;
-  for (let i = 0; i < str.length; i++) {
-    code += str.charCodeAt(i);
+  for (let i = 0; i < string.length; i++) {
+    code += string.charCodeAt(i);
   }
 
   return code % nr;

@@ -16,7 +16,7 @@
 import { exec } from 'child_process';
 import fs from 'fs';
 import Path from 'path';
-import util from 'util';
+import { format } from 'util';
 import PreviewConstants from 'oae-preview-processor/lib/constants';
 import * as PreviewUtil from 'oae-preview-processor/lib/util';
 
@@ -40,7 +40,7 @@ let _timeout = null;
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const init = function(config, callback) {
+const init = function (config, callback) {
   if (!config || !config.binary || !config.timeout) {
     return callback({
       code: 400,
@@ -54,31 +54,31 @@ const init = function(config, callback) {
   // document conversion.
   // We try to convert this file (office.js) to a pdf to verify Libre Office has been configured correctly.
   const currFile = Path.resolve(__dirname, 'office.js');
-  const tmpDir = TempFile.createTempFile();
+  const temporaryDir = TempFile.createTempFile();
 
-  const cmd = util.format(
+  const cmd = format(
     '"%s" --headless --invisible --nologo --nolockcheck --convert-to pdf "%s" --outdir "%s"',
     config.binary,
     currFile,
-    tmpDir.path
+    temporaryDir.path
   );
   log().info(
     'Executing %s to verify if the path to the office binary is correct. This might take a couple of seconds.',
     cmd
   );
-  exec(cmd, { timeout: config.timeout }, (err, stdout, stderr) => {
+  exec(cmd, { timeout: config.timeout }, (error, stdout, stderr) => {
     // LibreOffice doesn't always return an error exit code which results in `err` being null
     // so we need to do an additional check for the string 'Error' in the standard error output.
-    if (err || (stderr && stderr.includes('Error'))) {
+    if (error || (stderr && stderr.includes('Error'))) {
       let errorMessage = 'Could not properly convert a file to PDF.\n';
       errorMessage += 'Please run the command in your terminal of choice and ensure that:\n';
       errorMessage += '    1.  The path to the soffice binary is configured properly.\n';
       errorMessage +=
         '    2.  LibreOffice can write to `' +
-        tmpDir.path +
+        temporaryDir.path +
         '`. Try changing the `outdir` to your home directory to confirm the permissions are set correctly.\n\n';
       errorMessage += cmd;
-      log().error({ err, stdout, stderr }, errorMessage);
+      log().error({ err: error, stdout, stderr }, errorMessage);
 
       // We don't need to unlink the temp file as it hasn't been created if Libre Office errors out.
       return callback({
@@ -97,27 +97,27 @@ const init = function(config, callback) {
 /**
  * @borrows Interface.test as Office.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   const docTypeIsValid = PreviewConstants.TYPES.OFFICE.includes(ctx.revision.mime);
-  callback(null, PreviewUtil.test(contentObj, docTypeIsValid));
+  callback(null, PreviewUtil.test(contentObject, docTypeIsValid));
 };
 
 /**
  * @borrows Interface.generatePreviews as Office.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   log().trace({ contentId: ctx.contentId }, 'Processing as office file.');
 
   // Download the file.
-  ctx.download((err, path) => {
-    if (err) {
-      return callback(err);
+  ctx.download((error, path) => {
+    if (error) {
+      return callback(error);
     }
 
     // Convert it to PDF.
-    _convertToPdf(ctx, path, (err, path) => {
-      if (err) {
-        return callback(err);
+    _convertToPdf(ctx, path, (error, path) => {
+      if (error) {
+        return callback(error);
       }
 
       // Let the PDF API handle the actual splitting.
@@ -135,8 +135,8 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {Object}             callback.err    An error that occurred, if any
  * @api private
  */
-const _convertToPdf = function(ctx, path, callback) {
-  const cmd = util.format(
+const _convertToPdf = function (ctx, path, callback) {
+  const cmd = format(
     '"%s" --headless --invisible --nologo --nolockcheck --convert-to pdf "%s" --outdir "%s"',
     _sofficeBinary,
     path,
@@ -144,9 +144,9 @@ const _convertToPdf = function(ctx, path, callback) {
   );
   // Execute the command.
   log().trace({ contentId: ctx.contentId }, 'Executing %s', cmd);
-  exec(cmd, { timeout: _timeout }, (err, stdout, stderr) => {
-    if (err) {
-      log().error({ err, contentId: ctx.contentId, stdout, stderr }, 'Could not convert the file to PDF.');
+  exec(cmd, { timeout: _timeout }, (error, stdout, stderr) => {
+    if (error) {
+      log().error({ err: error, contentId: ctx.contentId, stdout, stderr }, 'Could not convert the file to PDF.');
       return callback({ code: 500, msg: 'Could not convert the file to PDF.' });
     }
 
@@ -158,8 +158,8 @@ const _convertToPdf = function(ctx, path, callback) {
     // or any other of indication that the process failed.
     // To ensure that the PDF was actually generated, we check if it exists.
     // ex: http://askubuntu.com/questions/226295/libreoffice-command-line-conversion-no-output-file
-    fs.stat(pdfPath, err => {
-      if (err) {
+    fs.stat(pdfPath, (error_) => {
+      if (error_) {
         log().error({ contentId: ctx.contentId }, 'Could not convert the file to PDF. Office failed silently');
         return callback({
           code: 500,

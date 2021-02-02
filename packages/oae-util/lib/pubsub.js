@@ -14,8 +14,8 @@
  */
 
 import { EventEmitter } from 'oae-emitter';
-import * as Redis from './redis';
-import { Validator as validator } from './validator';
+import * as Redis from './redis.js';
+import { Validator as validator } from './validator.js';
 
 /*!
  * This module abstracts most of the redis publish/subscribe functions away.
@@ -36,20 +36,20 @@ let redisPublisher = null;
  * @param  {Object} config      The configuration read from `config.js`
  * @param  {Function} callback  Standard callback function
  */
-const init = function(config, callback) {
+const init = function (config, callback) {
   // Only init if the connections haven't been opened.
   if (redisManager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
-    Redis.createClient(config, (err, client) => {
-      if (err) return callback(err);
+    Redis.createClient(config, (error, client) => {
+      if (error) return callback(error);
 
       redisManager = client;
-      Redis.createClient(config, (err, client) => {
-        if (err) return callback(err);
+      Redis.createClient(config, (error, client) => {
+        if (error) return callback(error);
 
         redisSubscriber = client;
-        Redis.createClient(config, (err, client) => {
-          if (err) return callback(err);
+        Redis.createClient(config, (error, client) => {
+          if (error) return callback(error);
 
           redisPublisher = client;
 
@@ -85,8 +85,8 @@ const init = function(config, callback) {
  * @param  {Object}    callback.err     An error that occurred, if any
  * @returns {null}                      Returns nothing, unless validator triggers a callback(err)
  */
-const publish = function(channel, message, callback) {
-  callback = callback || function() {};
+const publish = function (channel, message, callback) {
+  callback = callback || function () {};
   const { isNotEmpty, unless } = validator;
   try {
     unless(isNotEmpty, {

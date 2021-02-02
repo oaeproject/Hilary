@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { before, it, describe } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
@@ -15,15 +16,15 @@ const PUBLIC = 'public';
 describe('Meeting Library Search', () => {
   let camAdminRestContext = null;
 
-  before(callback => {
+  before((callback) => {
     camAdminRestContext = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
 
   describe('Library search', () => {
-    it('verify searching through a meeting library', callback => {
-      generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify searching through a meeting library', (callback) => {
+      generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer } = users;
         const asHomer = homer.restContext;
@@ -32,15 +33,17 @@ describe('Meeting Library Search', () => {
         const randomTextA = generateRandomText(25);
         const randomTextB = generateRandomText(25);
 
-        createMeeting(asHomer, randomTextA, randomTextA, false, false, PUBLIC, null, null, (err, meetingA) => {
-          assert.notExists(err);
+        createMeeting(asHomer, randomTextA, randomTextA, false, false, PUBLIC, null, null, (error, meetingA) => {
+          assert.notExists(error);
 
-          createMeeting(asHomer, randomTextB, randomTextB, false, false, PUBLIC, null, null, (err /* , meetingB */) => {
-            assert.notExists(err);
+          createMeeting(asHomer, randomTextB, randomTextB, false, false, PUBLIC, null, null, (
+            error /* , meetingB */
+          ) => {
+            assert.notExists(error);
 
             // Ensure that the randomTextA meeting returns and scores better than randomTextB
-            searchAll(asHomer, 'meeting-jitsi-library', [homer.user.id], { q: randomTextA }, (err, results) => {
-              assert.notExists(err);
+            searchAll(asHomer, 'meeting-jitsi-library', [homer.user.id], { q: randomTextA }, (error, results) => {
+              assert.notExists(error);
               assert.ok(results.results);
 
               const firstResult = head(results.results);

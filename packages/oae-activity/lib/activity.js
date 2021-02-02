@@ -23,7 +23,7 @@ import * as FoldersAPI from 'oae-folders';
 import * as Signature from 'oae-util/lib/signature';
 import * as MeetingsAPI from 'oae-jitsi/lib/api.meetings';
 
-import * as ActivityAPI from './api';
+import * as ActivityAPI from './api.js';
 
 ActivityAPI.registerActivityStreamType('activity', {
   transient: false,
@@ -187,9 +187,9 @@ const _authorizeGroupActivityStream = function(ctx, groupId, token, callback) {
     return callback();
   }
 
-  AuthzAPI.hasAnyRole(ctx.user().id, groupId, (err, hasAnyRole) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.hasAnyRole(ctx.user().id, groupId, (error, hasAnyRole) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!hasAnyRole) {
@@ -217,9 +217,9 @@ const _authorizeContentActivityStream = function(ctx, contentId, token, callback
     return callback();
   }
 
-  ContentAPI.getContent(ctx, contentId, err => {
-    if (err) {
-      return callback(err);
+  ContentAPI.getContent(ctx, contentId, error => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();
@@ -243,9 +243,9 @@ const _authorizeDiscussionActivityStream = function(ctx, discussionId, token, ca
     return callback();
   }
 
-  DiscussionsAPI.Discussions.getDiscussion(ctx, discussionId, err => {
-    if (err) {
-      return callback(err);
+  DiscussionsAPI.Discussions.getDiscussion(ctx, discussionId, error => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();
@@ -267,9 +267,9 @@ const _authorizeFolderActivityStream = function(ctx, folderId, token, callback) 
     return callback();
   }
 
-  FoldersAPI.getFolder(ctx, folderId, err => {
-    if (err) {
-      return callback(err);
+  FoldersAPI.getFolder(ctx, folderId, error => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();
@@ -293,9 +293,9 @@ const _authorizeJitsiActivityStream = function(ctx, meetingId, token, callback) 
     return callback();
   }
 
-  MeetingsAPI.getMeeting(ctx, meetingId, err => {
-    if (err) {
-      return callback(err);
+  MeetingsAPI.getMeeting(ctx, meetingId, error => {
+    if (error) {
+      return callback(error);
     }
 
     return callback();

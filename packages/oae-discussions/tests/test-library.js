@@ -15,6 +15,7 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
+import { describe, beforeEach, it } from 'mocha';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
@@ -33,22 +34,22 @@ describe('Discussion libraries', () => {
    * @param  {Discussion[]}   expectedItems   The expected discussions that should return
    * @param  {Function}       callback        Standard callback function
    */
-  const checkLibrary = function(restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
-    RestAPI.Discussions.getDiscussionsLibrary(restCtx, libraryOwnerId, null, null, (err, items) => {
+  const checkLibrary = function (restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
+    RestAPI.Discussions.getDiscussionsLibrary(restCtx, libraryOwnerId, null, null, (error, items) => {
       if (expectAccess) {
-        assert.notExists(err);
+        assert.notExists(error);
 
         // Make sure only the expected items are returned.
         assert.strictEqual(items.results.length, expectedItems.length);
-        _.each(expectedItems, expectedDiscussion => {
+        _.each(expectedItems, (expectedDiscussion) => {
           assert.ok(
-            _.filter(items.results, discussion => {
+            _.filter(items.results, (discussion) => {
               return discussion.id === expectedDiscussion.id;
             })
           );
         });
       } else {
-        assert.strictEqual(err.code, 401);
+        assert.strictEqual(error.code, 401);
         assert.ok(!items);
       }
 
@@ -67,15 +68,15 @@ describe('Discussion libraries', () => {
    * @param  {Discussion}     callback.loggedinDiscussion     The loggedin discussion
    * @param  {Discussion}     callback.publicDiscussion       The public discussion
    */
-  const createUserAndLibrary = function(restCtx, userVisibility, callback) {
+  const createUserAndLibrary = function (restCtx, userVisibility, callback) {
     // Create a user with the proper visibility
-    TestsUtil.generateTestUsers(restCtx, 1, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(restCtx, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: user } = users;
 
-      RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, err => {
-        assert.notExists(err);
+      RestAPI.User.updateUser(user.restContext, user.user.id, { visibility: userVisibility }, (error_) => {
+        assert.notExists(error_);
 
         // Fill up this user his library with 3 discussion items.
         RestAPI.Discussions.createDiscussion(
@@ -85,8 +86,8 @@ describe('Discussion libraries', () => {
           'private',
           null,
           null,
-          (err, privateDiscussion) => {
-            assert.notExists(err);
+          (error, privateDiscussion) => {
+            assert.notExists(error);
             RestAPI.Discussions.createDiscussion(
               user.restContext,
               'name',
@@ -94,8 +95,8 @@ describe('Discussion libraries', () => {
               'loggedin',
               null,
               null,
-              (err, loggedinDiscussion) => {
-                assert.notExists(err);
+              (error, loggedinDiscussion) => {
+                assert.notExists(error);
                 RestAPI.Discussions.createDiscussion(
                   user.restContext,
                   'name',
@@ -103,8 +104,8 @@ describe('Discussion libraries', () => {
                   'public',
                   null,
                   null,
-                  (err, publicDiscussion) => {
-                    assert.notExists(err);
+                  (error, publicDiscussion) => {
+                    assert.notExists(error);
                     callback(user, privateDiscussion, loggedinDiscussion, publicDiscussion);
                   }
                 );
@@ -127,9 +128,9 @@ describe('Discussion libraries', () => {
    * @param  {Discussion}     callback.loggedinDiscussion     The loggedin discussion
    * @param  {Discussion}     callback.publicDiscussion       The public discussion
    */
-  const createGroupAndLibrary = function(restCtx, groupVisibility, callback) {
-    RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (err, group) => {
-      assert.notExists(err);
+  const createGroupAndLibrary = function (restCtx, groupVisibility, callback) {
+    RestAPI.Group.createGroup(restCtx, 'displayName', 'description', groupVisibility, 'no', [], [], (error, group) => {
+      assert.notExists(error);
 
       // Fill up the group library with 3 discussion items.
       RestAPI.Discussions.createDiscussion(
@@ -139,8 +140,8 @@ describe('Discussion libraries', () => {
         'private',
         [group.id],
         null,
-        (err, privateDiscussion) => {
-          assert.notExists(err);
+        (error, privateDiscussion) => {
+          assert.notExists(error);
           RestAPI.Discussions.createDiscussion(
             restCtx,
             'name',
@@ -148,8 +149,8 @@ describe('Discussion libraries', () => {
             'loggedin',
             [group.id],
             null,
-            (err, loggedinDiscussion) => {
-              assert.notExists(err);
+            (error, loggedinDiscussion) => {
+              assert.notExists(error);
               RestAPI.Discussions.createDiscussion(
                 restCtx,
                 'name',
@@ -157,8 +158,8 @@ describe('Discussion libraries', () => {
                 'public',
                 [group.id],
                 null,
-                (err, publicDiscussion) => {
-                  assert.notExists(err);
+                (error, publicDiscussion) => {
+                  assert.notExists(error);
                   callback(group, privateDiscussion, loggedinDiscussion, publicDiscussion);
                 }
               );
@@ -185,7 +186,7 @@ describe('Discussion libraries', () => {
    * A testcase that the correct library stream is returned and the library user's visibility
    * settings are respected.
    */
-  it('verify user libraries', callback => {
+  it('verify user libraries', (callback) => {
     // We'll create a private, loggedin and public user, each user's library will contain a private, loggedin and public discussion item.
     createUserAndLibrary(
       camAdminRestCtx,
@@ -241,8 +242,8 @@ describe('Discussion libraries', () => {
                                         checkLibrary(gtAnonymousRestCtx, loggedinUser.user.id, false, [], () => {
                                           checkLibrary(gtAnonymousRestCtx, privateUser.user.id, false, [], () => {
                                             // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
-                                            TestsUtil.generateTestUsers(camAdminRestCtx, 1, (err, users) => {
-                                              assert.notExists(err);
+                                            TestsUtil.generateTestUsers(camAdminRestCtx, 1, (error, users) => {
+                                              assert.notExists(error);
                                               const { 0: anotherUser } = users;
                                               checkLibrary(
                                                 anotherUser.restContext,
@@ -266,8 +267,8 @@ describe('Discussion libraries', () => {
                                                           TestsUtil.generateTestUsers(
                                                             gtAdminRestCtx,
                                                             1,
-                                                            (err, users) => {
-                                                              assert.notExists(err);
+                                                            (error, users) => {
+                                                              assert.notExists(error);
 
                                                               const { 0: otherTenantUser } = users;
                                                               checkLibrary(
@@ -389,10 +390,10 @@ describe('Discussion libraries', () => {
   /**
    * A testcase that the correct library stream is returned for a group.
    */
-  it('verify group libraries', callback => {
+  it('verify group libraries', (callback) => {
     // Create three groups: private, loggedin, public
-    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-      assert.notExists(err);
+    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: groupCreator, 1: anotherUser } = users;
       createGroupAndLibrary(groupCreator.restContext, 'private', (
         privateGroup,
@@ -439,8 +440,8 @@ describe('Discussion libraries', () => {
                                   () => {
                                     checkLibrary(anotherUser.restContext, privateGroup.id, false, [], () => {
                                       // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                      TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (err, users) => {
-                                        assert.notExists(err);
+                                      TestsUtil.generateTestUsers(gtAdminRestCtx, 1, (error, users) => {
+                                        assert.notExists(error);
 
                                         const { 0: otherTenantUser } = users;
                                         checkLibrary(
@@ -518,8 +519,8 @@ describe('Discussion libraries', () => {
                                                                               groupCreator.restContext,
                                                                               privateGroup.id,
                                                                               changes,
-                                                                              err => {
-                                                                                assert.notExists(err);
+                                                                              (error_) => {
+                                                                                assert.notExists(error_);
                                                                                 checkLibrary(
                                                                                   anotherUser.restContext,
                                                                                   privateGroup.id,
@@ -538,8 +539,8 @@ describe('Discussion libraries', () => {
                                                                                       groupCreator.restContext,
                                                                                       privateGroup.id,
                                                                                       changes,
-                                                                                      err => {
-                                                                                        assert.notExists(err);
+                                                                                      (error_) => {
+                                                                                        assert.notExists(error_);
                                                                                         checkLibrary(
                                                                                           otherTenantUser.restContext,
                                                                                           privateGroup.id,
@@ -598,9 +599,9 @@ describe('Discussion libraries', () => {
   /**
    * Test that verifies when user permissions are set on a discussion, the discussion is properly added into their library
    */
-  it("verify setting permissions of discussion results in discussion showing up in the user's library", callback => {
-    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (err, users) => {
-      assert.notExists(err);
+  it("verify setting permissions of discussion results in discussion showing up in the user's library", (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestCtx, 2, (error, users) => {
+      assert.notExists(error);
 
       const { 0: mrvisser, 1: nicolaas } = users;
 
@@ -612,18 +613,18 @@ describe('Discussion libraries', () => {
         'public',
         null,
         null,
-        (err, discussion) => {
-          assert.notExists(err);
+        (error, discussion) => {
+          assert.notExists(error);
 
           // Seed mrvisser's and nicolaas' discussion libraries to ensure it does not get built from scratch
           RestAPI.Discussions.getDiscussionsLibrary(mrvisser.restContext, mrvisser.user.id, null, null, (
-            err /* , result */
+            error /* , result */
           ) => {
-            assert.notExists(err);
+            assert.notExists(error);
             RestAPI.Discussions.getDiscussionsLibrary(nicolaas.restContext, nicolaas.user.id, null, null, (
-              err /* , result */
+              error /* , result */
             ) => {
-              assert.notExists(err);
+              assert.notExists(error);
 
               // Make nicolaas a member of the discussion
               const memberUpdates = {};
@@ -633,8 +634,8 @@ describe('Discussion libraries', () => {
                 mrvisser.restContext,
                 discussion.id,
                 memberUpdates,
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
                   // Ensure the discussion is still in mrvisser's and nicolaas' discussion libraries
                   RestAPI.Discussions.getDiscussionsLibrary(
@@ -642,8 +643,8 @@ describe('Discussion libraries', () => {
                     mrvisser.user.id,
                     null,
                     null,
-                    (err, result) => {
-                      assert.notExists(err);
+                    (error, result) => {
+                      assert.notExists(error);
                       const libraryEntry = result.results[0];
                       assert.ok(libraryEntry);
                       assert.strictEqual(libraryEntry.id, discussion.id);
@@ -653,8 +654,8 @@ describe('Discussion libraries', () => {
                         nicolaas.user.id,
                         null,
                         null,
-                        (err, result) => {
-                          assert.notExists(err);
+                        (error, result) => {
+                          assert.notExists(error);
                           const libraryEntry = result.results[0];
                           assert.ok(libraryEntry);
                           assert.strictEqual(libraryEntry.id, discussion.id);
@@ -675,7 +676,7 @@ describe('Discussion libraries', () => {
   /**
    * Test that verifies that a library can be rebuilt from a dirty authz table
    */
-  it('verify a library can be rebuilt from a dirty authz table', callback => {
+  it('verify a library can be rebuilt from a dirty authz table', (callback) => {
     createUserAndLibrary(
       camAdminRestCtx,
       'private',
@@ -690,12 +691,12 @@ describe('Discussion libraries', () => {
             // Remove a discussion through the DAO. This will leave a pointer
             // in the Authz table that points to nothing. The library re-indexer
             // should be able to deal with this
-            DiscussionsDAO.deleteDiscussion(privateDiscussion.id, err => {
-              assert.notExists(err);
+            DiscussionsDAO.deleteDiscussion(privateDiscussion.id, (error) => {
+              assert.notExists(error);
 
               // Purge the library so that it has to be rebuild on the next request
-              LibraryAPI.Index.purge('discussions:discussions', simong.user.id, err => {
-                assert.notExists(err);
+              LibraryAPI.Index.purge('discussions:discussions', simong.user.id, (error) => {
+                assert.notExists(error);
 
                 // We should be able to rebuild the library on-the-fly. The private
                 // discussion item should not be returned as it has been removed

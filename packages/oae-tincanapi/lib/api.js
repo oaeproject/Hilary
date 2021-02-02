@@ -23,9 +23,9 @@ import * as TenantsUtil from 'oae-tenants/lib/util';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import { setUpConfig } from 'oae-config';
-import { TinCanAPIConstants } from './constants';
+import { TinCanAPIConstants } from './constants.js';
 
-import * as TinCanModel from './model';
+import * as TinCanModel from './model.js';
 
 const log = logger('oae-doc');
 
@@ -40,7 +40,7 @@ let config = null;
  * @param  {Object}    config       Configuration for the TinCan API module
  * @param  {Function}  callback     Standard callback function
  */
-const initializeTinCanAPI = function(_config, callback) {
+const initializeTinCanAPI = function (_config, callback) {
   // Store the configuration values
   config = _config;
 
@@ -57,7 +57,7 @@ const initializeTinCanAPI = function(_config, callback) {
  * @see ActivityAPI#EventEmitter
  * @api private
  */
-const _processActivities = function(routedActivities) {
+const _processActivities = function (routedActivities) {
   // Object that will contain the statements for each tenant
   const tenantStatements = {};
 
@@ -87,14 +87,14 @@ const _processActivities = function(routedActivities) {
         // Fill the actor, verb and object objects
         const actor = new TinCanModel.TinCanActor(activity.actor.user.displayName, homePage);
         const verb = _mapVerb(activity.verb);
-        const obj = new TinCanModel.TinCanObject(
+        const object = new TinCanModel.TinCanObject(
           activity.object['oae:id'],
           activity.object[activity.object.objectType].displayName,
           activity.object[activity.object.objectType].description
         );
 
         // Add a new statement to the array of statements
-        tenantStatements[tenantAlias].push(new TinCanModel.TinCanStatement(actor, verb, obj));
+        tenantStatements[tenantAlias].push(new TinCanModel.TinCanStatement(actor, verb, object));
       }
     });
   });
@@ -111,7 +111,7 @@ const _processActivities = function(routedActivities) {
  * @return {VerbModel}          Mapped TinCan API verb
  * @api private
  */
-const _mapVerb = function(oaeVerb) {
+const _mapVerb = function (oaeVerb) {
   let verb = null;
 
   if (oaeVerb === ActivityConstants.verbs.ADD) {
@@ -143,7 +143,7 @@ const _mapVerb = function(oaeVerb) {
  * @param  {TinCanStatement[]}   statements             Array of statements representing tenant activities
  * @param  {String}              tenantAlias            Alias for the tenant on which the activity took place
  */
-const sendStatementsToLRS = function(statements, tenantAlias) {
+const sendStatementsToLRS = function (statements, tenantAlias) {
   // Check if the Learning Record Store integration is enabled for the tenant
   if (TinCanConfig.getValue(tenantAlias, 'lrs', 'enabled')) {
     // Create an options object that can be submitted to the TinCan API
@@ -164,9 +164,9 @@ const sendStatementsToLRS = function(statements, tenantAlias) {
     };
 
     // Perform the request
-    request(options, (err, response, body) => {
-      if (err) {
-        log().error({ err, body }, 'An error ocurred whilst sending statements to the LRS');
+    request(options, (error, response, body) => {
+      if (error) {
+        log().error({ err: error, body }, 'An error ocurred whilst sending statements to the LRS');
       }
     });
   }

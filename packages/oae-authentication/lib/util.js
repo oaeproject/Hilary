@@ -14,7 +14,7 @@
  */
 
 import crypto from 'crypto';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import cookieParser from 'cookie-parser';
 import cookieSession from 'cookie-session';
@@ -34,7 +34,7 @@ const log = logger('oae-authentication');
  * @param  {Object}     config  An object containing the full system configuration (i.e., 'config.js')
  * @param  {Express}    server  An express server
  */
-const setupAuthMiddleware = function(config, server) {
+const setupAuthMiddleware = function (config, server) {
   // Tell express how to parse our cookies. All stateful data (e.g., authenticated user id,
   // imposter state) is stored on the user's session cookie. We encrypt that data with this
   // configured `secret`
@@ -43,24 +43,24 @@ const setupAuthMiddleware = function(config, server) {
   // This middleware uses cookieSession to tell express how to write a session (i.e., a cookie
   // with encryption signed by the configured secret). That said, it needs to come before passport
   // authentication (`passport.session()`) because passport needs to know how to write the cookie
-  server.use((req, res, next) => {
-    const cookieOpts = {
+  server.use((request, response, next) => {
+    const cookieOptions = {
       name: config.cookie.name,
       secret: config.cookie.secret
     };
 
     // Don't increase the expiry if we are accessing the global admin server
-    if (!req.tenant.isGlobalAdminServer) {
-      const md = new MobileDetect(req.headers['user-agent']);
+    if (!request.tenant.isGlobalAdminServer) {
+      const md = new MobileDetect(request.headers['user-agent']);
       if (md.mobile()) {
         // For mobile clients that aren't accessing the global administration tenant, we
         // bump the cookie expiry to 30 days
-        cookieOpts.maxAge = 1000 * 60 * 60 * 24 * 30;
+        cookieOptions.maxAge = 1000 * 60 * 60 * 24 * 30;
       }
     }
 
     // Pass through to the actual cookie session middleware
-    return cookieSession(cookieOpts)(req, res, next);
+    return cookieSession(cookieOptions)(request, response, next);
   });
 
   // Now that we know how to parse the cookie, we can extract the user in session, if any. The
@@ -78,7 +78,7 @@ const setupAuthMiddleware = function(config, server) {
  * @param  {String}     hashedPassword      The hashed password stored for the user
  * @return {Boolean}                        True if the provided password matches the stored hashed password, false if they are different
  */
-const hashAndComparePassword = function(plainTextPassword, hashedPassword) {
+const hashAndComparePassword = function (plainTextPassword, hashedPassword) {
   // Get the salt of the hashed password
   const salt = hashedPassword.split('$')[0];
   // Check if the provided password with the extracted salt is the same as the stored password
@@ -92,18 +92,11 @@ const hashAndComparePassword = function(plainTextPassword, hashedPassword) {
  * @param  {String}     salt            A random salt that will be prepended to the password for hashing (optional)
  * @return {String}                     The hashed password
  */
-const hashPassword = function(password, salt) {
+const hashPassword = function (password, salt) {
   // Prepend a random number to prevent rainbow table attacks
   salt = salt || crypto.randomBytes(16).toString('hex');
   password = salt + password;
-  return (
-    salt +
-    '$' +
-    crypto
-      .createHash('sha512')
-      .update(password)
-      .digest('hex')
-  );
+  return salt + '$' + crypto.createHash('sha512').update(password).digest('hex');
 };
 
 /**
@@ -113,8 +106,8 @@ const hashPassword = function(password, salt) {
  * @param  {String}     strategyName    The name of the strategy
  * @return {String}                     The unique ID of the strategy for the tenant
  */
-const getStrategyId = function(tenant, strategyName) {
-  return util.format('%s:%s', tenant.alias, strategyName);
+const getStrategyId = function (tenant, strategyName) {
+  return format('%s:%s', tenant.alias, strategyName);
 };
 
 /**
@@ -123,7 +116,7 @@ const getStrategyId = function(tenant, strategyName) {
  * @param  {String}     strategyId  The strategy ID to parse
  * @return {Object}                 An object containing the `tenantAlias` and `strategyName`
  */
-const parseStrategyId = function(strategyId) {
+const parseStrategyId = function (strategyId) {
   const parts = strategyId.split(':');
   const strategyName = parts.pop();
   const tenantAlias = parts.join(':');
@@ -142,13 +135,13 @@ const parseStrategyId = function(strategyId) {
  * @param  {User}       [authInfo.imposter]     If the user in session is being impostered, this is the user impostering the owner of the session
  * @param  {String}     strategyName            The name of the strategy used for authn
  */
-const logAuthenticationSuccess = function(req, authInfo, strategyName) {
-  const tenantAlias = req.tenant.alias;
+const logAuthenticationSuccess = function (request, authInfo, strategyName) {
+  const tenantAlias = request.tenant.alias;
   const { imposter, user } = authInfo;
 
   const data = {
     userId: user.id,
-    headers: _.omit(req.headers, 'cookie', 'authentication'),
+    headers: _.omit(request.headers, 'cookie', 'authentication'),
     tenantAdmin: user.isTenantAdmin(tenantAlias),
     globalAdmin: user.isGlobalAdmin(),
     tenantAlias,
@@ -161,11 +154,11 @@ const logAuthenticationSuccess = function(req, authInfo, strategyName) {
 
   log().info(
     data,
-    util.format(
+    format(
       'Login for "%s" to tenant "%s" from "%s"',
       user.id,
       tenantAlias,
-      req.headers['x-forwarded-for']
+      request.headers['x-forwarded-for']
     )
   );
 };
@@ -178,26 +171,26 @@ const logAuthenticationSuccess = function(req, authInfo, strategyName) {
  * @param  {Function}   next    The middleware which should be executed next
  * @return {Function}           A function that can be used as part of the middleware chain
  */
-const handlePassportError = function(req, res, next) {
-  return function(err) {
-    if (err) {
+const handlePassportError = function (request, response, next) {
+  return function (error) {
+    if (error) {
       // An OAE-specific error
-      if (err.reason && err.msg) {
-        log().warn({ err, host: req.hostname }, err.msg);
-        return res.redirect('/?authentication=failed&reason=' + err.reason);
+      if (error.reason && error.msg) {
+        log().warn({ err: error, host: request.hostname }, error.msg);
+        return response.redirect('/?authentication=failed&reason=' + error.reason);
 
         // If someone tried to sign in with a disabled strategy
       }
 
-      if (err.message && err.message.indexOf('Unknown authentication strategy') === 0) {
-        log().warn({ host: req.hostname }, 'Authentication attempt with disabled strategy');
-        return res.redirect('/?authentication=disabled');
+      if (error.message && error.message.indexOf('Unknown authentication strategy') === 0) {
+        log().warn({ host: request.hostname }, 'Authentication attempt with disabled strategy');
+        return response.redirect('/?authentication=disabled');
 
         // Generic error
       }
 
-      log().error({ err, host: req.hostname }, 'An error occurred during login');
-      return res.redirect('/?authentication=error');
+      log().error({ err: error, host: request.hostname }, 'An error occurred during login');
+      return response.redirect('/?authentication=error');
     }
 
     // If no error ocurred we can move to the next middleware
@@ -216,17 +209,17 @@ const handlePassportError = function(req, res, next) {
  * @param  {Response}   res                 The ExpressJS response object
  * @param  {Function}   next                The next middleware that should be executed
  */
-const handleExternalSetup = function(strategyId, passportOptions, req, res, next) {
+const handleExternalSetup = function (strategyId, passportOptions, request, response, next) {
   // Get the generic error handler
-  const errorHandler = handlePassportError(req, res, next);
+  const errorHandler = handlePassportError(request, response, next);
 
   // Get the URL to which the user should be redirected and store it in a cookie,
   // so we can retrieve it once the user returns from the external authentication source
-  const redirectUrl = validateRedirectUrl(req.body.redirectUrl);
-  res.cookie('redirectUrl', redirectUrl);
+  const redirectUrl = validateRedirectUrl(request.body.redirectUrl);
+  response.cookie('redirectUrl', redirectUrl);
 
   // Initiate the authentication process
-  passport.authenticate(strategyId, passportOptions)(req, res, errorHandler);
+  passport.authenticate(strategyId, passportOptions)(request, response, errorHandler);
 };
 
 /**
@@ -237,9 +230,7 @@ const handleExternalSetup = function(strategyId, passportOptions, req, res, next
  * @param  {String}     [redirectUrl]   The URL that should be tested
  * @return {String}                     A valid URL
  */
-const validateRedirectUrl = function(redirectUrl) {
-  redirectUrl = redirectUrl || '/';
-
+const validateRedirectUrl = function (redirectUrl = '/') {
   // Ensure that we're dealing with an OAE url so that we're not sending the user to a remote site
   if (redirectUrl.charAt(0) !== '/') {
     redirectUrl = '/';
@@ -262,39 +253,39 @@ const validateRedirectUrl = function(redirectUrl) {
  * @param  {Request}    req     The express request that holds the authentication info
  * @see AuthenticationAPI.getOrCreateUser
  */
-const handleExternalGetOrCreateUser = function(
-  req,
+const handleExternalGetOrCreateUser = function (
+  request,
   authProvider,
   externalId,
   providerProperties,
   displayName,
-  opts,
+  options,
   callback
 ) {
-  if (opts.email) {
+  if (options.email) {
     // Always trust emails provided by external authentication sources
-    opts.emailVerified = true;
+    options.emailVerified = true;
   } else {
     // If no email was provided by the external authentication provider,
     // we should provide the invitation token to indicate that the user
     // should be created with their email address pre-validated to that
     // associated to the invitation token
-    const invitationInfo = _getRequestInvitationInfo(req);
+    const invitationInfo = _getRequestInvitationInfo(request);
     if (invitationInfo.invitationToken) {
-      opts.invitationToken = invitationInfo.invitationToken;
+      options.invitationToken = invitationInfo.invitationToken;
     }
   }
 
   // Require the AuthenticationAPI inline to avoid cross-dependency issues
   // during initialization
-  const ctx = new Context(req.tenant);
+  const ctx = new Context(request.tenant);
   return getOrCreateUser(
     ctx,
     authProvider,
     externalId,
     providerProperties,
     displayName,
-    opts,
+    options,
     callback
   );
 };
@@ -309,15 +300,15 @@ const handleExternalGetOrCreateUser = function(
  * @param  {Response}   res             The ExpressJS response object
  * @param  {Function}   next            The next middleware that should be executed
  */
-const handleExternalCallback = function(strategyId, req, res, next) {
+const handleExternalCallback = function (strategyId, request, response, next) {
   // Get the generic error handler
-  const errorHandler = handlePassportError(req, res, next);
+  const errorHandler = handlePassportError(request, response, next);
 
   // Authenticate this request with Passport. Because we specify a callback function
   // we will need to manually log the user in the system
-  passport.authenticate(strategyId, {}, (err, user, challenges, status) => {
-    if (err) {
-      return errorHandler(err);
+  passport.authenticate(strategyId, {}, (error, user, challenges, status) => {
+    if (error) {
+      return errorHandler(error);
     }
 
     if (!user) {
@@ -329,12 +320,12 @@ const handleExternalCallback = function(strategyId, req, res, next) {
         { challenges, status },
         'Possible tampering of external callback request detected'
       );
-      return res.redirect('/?authentication=failed&reason=tampering');
+      return response.redirect('/?authentication=failed&reason=tampering');
     }
 
     // The user's authentication credentials are correct, log the user into the system
-    handleLogin(strategyId, user, req, res, next);
-  })(req, res, errorHandler);
+    handleLogin(strategyId, user, request, response, next);
+  })(request, response, errorHandler);
 };
 
 /**
@@ -346,32 +337,32 @@ const handleExternalCallback = function(strategyId, req, res, next) {
  * @param  {Response}       res                 The ExpressJS response object
  * @param  {Function}       [next]              In case, this function is called in some middleware, the next function in the chain
  */
-const handleLogin = function(strategyId, user, req, res, next) {
+const handleLogin = function (strategyId, user, request, response, next) {
   // Get the URL to which the user should be redirected
-  const redirectUrl = validateRedirectUrl(req.cookies.redirectUrl);
+  const redirectUrl = validateRedirectUrl(request.cookies.redirectUrl);
 
   // This cookie serves no further purpose, remove it
-  res.clearCookie('redirectUrl');
+  response.clearCookie('redirectUrl');
 
   // Get the generic error handler
-  const errorHandler = handlePassportError(req, res, next);
+  const errorHandler = handlePassportError(request, response, next);
 
   // Log a message, as he logged in with an external tenant
   const authInfo = {
     user,
     strategyId
   };
-  logAuthenticationSuccess(req, authInfo, strategyId);
+  logAuthenticationSuccess(request, authInfo, strategyId);
 
   // Create a session for this user
-  req.logIn(authInfo, err => {
-    if (err) {
-      return errorHandler(err);
+  request.logIn(authInfo, (error) => {
+    if (error) {
+      return errorHandler(error);
     }
 
     // The user now has a session within Express
     // We can now safely redirect the user into the system
-    return res.redirect(redirectUrl);
+    return response.redirect(redirectUrl);
   });
 };
 
@@ -384,7 +375,7 @@ const handleLogin = function(strategyId, user, req, res, next) {
  * @param  {String} strategy    The strategy for this callback url
  * @return {String}             An authentication callback url
  */
-const constructCallbackUrl = function(tenant, strategy) {
+const constructCallbackUrl = function (tenant, strategy) {
   const baseUrl = TenantsUtil.getBaseUrl(tenant);
   return baseUrl + '/api/auth/' + strategy + '/callback';
 };
@@ -399,7 +390,7 @@ const constructCallbackUrl = function(tenant, strategy) {
  * @param  {String}     template                The template that can be used to generate the value for this profile parameter
  * @param  {Object}     data                    The data that can be used in the template
  */
-const setProfileParameter = function(profileParameters, profileParameterName, template, data) {
+const setProfileParameter = function (profileParameters, profileParameterName, template, data) {
   const renderedString = renderTemplate(template, data);
   if (renderedString) {
     profileParameters[profileParameterName] = renderedString;
@@ -425,12 +416,12 @@ const setProfileParameter = function(profileParameters, profileParameterName, te
  * @param  {Object}     data        The data that can be used in the template
  * @return {String}                 The rendered template
  */
-const renderTemplate = function(template, data) {
+const renderTemplate = function (template, data) {
   if (!template) {
     return '';
   }
 
-  const matcher = new RegExp(/\{([\s\S]+?)\}/g);
+  const matcher = new RegExp(/{([\s\S]+?)}/g);
   const result = template.replace(matcher, (match, variableName) => {
     if (data[variableName]) {
       return data[variableName];
@@ -450,8 +441,8 @@ const renderTemplate = function(template, data) {
  * @return {String}     invitationInfo.invitationToken  The token of authenticity of the invitation
  * @api private
  */
-const _getRequestInvitationInfo = function(req) {
-  const redirectUrl = validateRedirectUrl(req.cookies.redirectUrl);
+const _getRequestInvitationInfo = function (request) {
+  const redirectUrl = validateRedirectUrl(request.cookies.redirectUrl);
   const parsedRedirectUrl = new URL(redirectUrl, 'http://localhost');
   return _.pick(
     objectifySearchParams(parsedRedirectUrl.searchParams),

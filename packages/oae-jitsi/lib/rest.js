@@ -46,34 +46,34 @@ import * as MeetingsAPI from 'oae-jitsi';
  * @HttpResponse                    400                 One or more target members being granted access do not exist
  * @HttpResponse                    401                 Anonymous users cannot create a meeting
  */
-OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', (req, res) => {
+OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', (request, response) => {
   // Ensure proper arrays for the multi-value parameters
-  req.body.managers = OaeUtil.toArray(req.body.managers);
-  req.body.members = OaeUtil.toArray(req.body.members);
+  request.body.managers = OaeUtil.toArray(request.body.managers);
+  request.body.members = OaeUtil.toArray(request.body.members);
 
   // Construct a hash for additional members that maps each user to their role
   const additionalMembers = {};
-  _.each(req.body.managers, userId => {
+  _.each(request.body.managers, (userId) => {
     additionalMembers[userId] = AuthzConstants.role.MANAGER;
   });
-  _.each(req.body.members, userId => {
+  _.each(request.body.members, (userId) => {
     additionalMembers[userId] = AuthzConstants.role.MEMBER;
   });
 
   MeetingsAPI.Meetings.createMeeting(
-    req.ctx,
-    req.body.displayName,
-    req.body.description,
-    req.body.chat,
-    req.body.contactList,
-    req.body.visibility,
+    request.ctx,
+    request.body.displayName,
+    request.body.description,
+    request.body.chat,
+    request.body.contactList,
+    request.body.visibility,
     additionalMembers,
-    (err, meeting) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, meeting) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(201).send(meeting);
+      return response.status(201).send(meeting);
     }
   );
 });
@@ -93,13 +93,13 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/create', (req, res) => {
  * @HttpResponse                        401                 You are not authorized to view this meeting
  * @HttpResponse                        404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId', (req, res) => {
-  MeetingsAPI.Meetings.getFullMeetingProfile(req.ctx, req.params.meetingId, (err, meeting) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId', (request, response) => {
+  MeetingsAPI.Meetings.getFullMeetingProfile(request.ctx, request.params.meetingId, (error, meeting) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(meeting);
+    return response.status(200).send(meeting);
   });
 });
 
@@ -118,13 +118,13 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId', (req, res) => {
  * @HttpResponse                        401                 You are not allowed to get invitations for this meeting
  * @HttpResponse                        404                 Meeting not available
  */
-OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/invitations', (req, res) => {
-  MeetingsAPI.Meetings.getMeetingInvitations(req.ctx, req.params.meetingId, (err, invitations) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/invitations', (request, response) => {
+  MeetingsAPI.Meetings.getMeetingInvitations(request.ctx, request.params.meetingId, (error, invitations) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send({ results: invitations });
+    return response.status(200).send({ results: invitations });
   });
 });
 
@@ -145,19 +145,19 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/invitations', (req, re
  * @HttpResponse                        401                 You are not authorized to view this meeting
  * @HttpResponse                        404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   MeetingsAPI.Meetings.getMeetingMembers(
-    req.ctx,
-    req.params.meetingId,
-    req.query.start,
+    request.ctx,
+    request.params.meetingId,
+    request.query.start,
     limit,
-    (err, members, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, members, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).send({ results: members, nextToken });
+      return response.status(200).send({ results: members, nextToken });
     }
   );
 });
@@ -187,13 +187,13 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/members', (req, res) =
  * @HttpResponse                    401                 You are not authorized to update this meeting
  * @HttpResponse                    404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId', (req, res) => {
-  MeetingsAPI.Meetings.updateMeeting(req.ctx, req.params.meetingId, req.body, (err, meeting) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId', (request, response) => {
+  MeetingsAPI.Meetings.updateMeeting(request.ctx, request.params.meetingId, request.body, (error, meeting) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(meeting);
+    return response.status(200).send(meeting);
   });
 });
 
@@ -211,13 +211,13 @@ OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId', (req, res) => {
  * @HttpResponse                401                 You are not authorized to delete this meeting
  * @HttpResponse                404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId', (req, res) => {
-  MeetingsAPI.Meetings.deleteMeeting(req.ctx, req.params.meetingId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId', (request, response) => {
+  MeetingsAPI.Meetings.deleteMeeting(request.ctx, request.params.meetingId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -243,19 +243,19 @@ OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId', (req, res) => {
  * @HttpResponse                            401                 You are not authorized to update the permissions of this meeting
  * @HttpResponse                            404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId/members', (req, res) => {
+OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId/members', (request, response) => {
   // Parse the incoming false values
   const permissionUpdates = {};
-  _.each(req.body, (value, key) => {
+  _.each(request.body, (value, key) => {
     permissionUpdates[key] = OaeUtil.castToBoolean(value);
   });
 
-  MeetingsAPI.Meetings.setMeetingMembers(req.ctx, req.params.meetingId, permissionUpdates, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  MeetingsAPI.Meetings.setMeetingMembers(request.ctx, request.params.meetingId, permissionUpdates, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -280,19 +280,19 @@ OAE.tenantRouter.on('put', '/api/meeting-jitsi/:meetingId/members', (req, res) =
  * @HttpResponse                        401                 You are not authorized to view this meeting
  * @HttpResponse                        404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   MeetingsAPI.Meetings.getMessages(
-    req.ctx,
-    req.params.meetingId,
-    req.query.start,
+    request.ctx,
+    request.params.meetingId,
+    request.query.start,
     limit,
-    (err, messages, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, messages, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: messages, nextToken });
+      response.status(200).send({ results: messages, nextToken });
     }
   );
 });
@@ -319,14 +319,20 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/:meetingId/messages', (req, res) 
  * @HttpResponse                401                 You are not authorized to post messages to this meeting
  * @HttpResponse                404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', (req, res) => {
-  MeetingsAPI.Meetings.createMessage(req.ctx, req.params.meetingId, req.body.body, req.body.replyTo, (err, message) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', (request, response) => {
+  MeetingsAPI.Meetings.createMessage(
+    request.ctx,
+    request.params.meetingId,
+    request.body.body,
+    request.body.replyTo,
+    (error, message) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send(message);
-  });
+      response.status(200).send(message);
+    }
+  );
 });
 
 /**
@@ -349,14 +355,19 @@ OAE.tenantRouter.on('post', '/api/meeting-jitsi/:meetingId/messages', (req, res)
  * @HttpResponse                        404                 Could not find the specified meeting
  * @HttpResponse                        404                 Could not find the specified message
  */
-OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId/messages/:created', (req, res) => {
-  MeetingsAPI.Meetings.deleteMessage(req.ctx, req.params.meetingId, req.params.created, (err, message) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId/messages/:created', (request, response) => {
+  MeetingsAPI.Meetings.deleteMessage(
+    request.ctx,
+    request.params.meetingId,
+    request.params.created,
+    (error, message) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send(message);
-  });
+      response.status(200).send(message);
+    }
+  );
 });
 
 /**
@@ -375,19 +386,19 @@ OAE.tenantRouter.on('delete', '/api/meeting-jitsi/:meetingId/messages/:created',
  * @HttpResponse                        400                 A user or group id must be provided
  * @HttpResponse                        401                 You do not have have access to this library
  */
-OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
+OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 12, 1, 25);
   MeetingsAPI.Meetings.getMeetingsLibrary(
-    req.ctx,
-    req.params.principalId,
-    req.query.start,
+    request.ctx,
+    request.params.principalId,
+    request.query.start,
     limit,
-    (err, meetings, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, meetings, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: meetings, nextToken });
+      response.status(200).send({ results: meetings, nextToken });
     }
   );
 });
@@ -410,12 +421,17 @@ OAE.tenantRouter.on('get', '/api/meeting-jitsi/library/:principalId', (req, res)
  * @HttpResponse                        401                 You are not authorized to remove a meeting from this library
  * @HttpResponse                        404                 Could not find the specified meeting
  */
-OAE.tenantRouter.on('delete', '/api/meeting-jitsi/library/:principalId/:meetingId', (req, res) => {
-  MeetingsAPI.Meetings.removeMeetingFromLibrary(req.ctx, req.params.principalId, req.params.meetingId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('delete', '/api/meeting-jitsi/library/:principalId/:meetingId', (request, response) => {
+  MeetingsAPI.Meetings.removeMeetingFromLibrary(
+    request.ctx,
+    request.params.principalId,
+    request.params.meetingId,
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).end();
-  });
+      return response.status(200).end();
+    }
+  );
 });

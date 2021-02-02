@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthenticationAPI from 'oae-authentication';
@@ -23,7 +23,7 @@ import * as OaeUtil from 'oae-util/lib/util';
 import { Recaptcha } from 'recaptcha';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import { LoginId } from 'oae-authentication/lib/model';
-import PrincipalsAPI from './api';
+import PrincipalsAPI from './api.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');
 
@@ -39,9 +39,9 @@ const PrincipalsConfig = setUpConfig('oae-principals');
  * @Return      {TermsAndConditions}                    The Terms and Conditions
  * @HttpResponse                        200             Terms and conditions available
  */
-OAE.tenantRouter.on('get', '/api/user/termsAndConditions', (req, res) => {
-  const termsAndConditions = PrincipalsAPI.getTermsAndConditions(req.ctx, req.query.locale);
-  res.status(200).send(termsAndConditions);
+OAE.tenantRouter.on('get', '/api/user/termsAndConditions', (request, response) => {
+  const termsAndConditions = PrincipalsAPI.getTermsAndConditions(request.ctx, request.query.locale);
+  response.status(200).send(termsAndConditions);
 });
 
 /**
@@ -60,13 +60,13 @@ OAE.tenantRouter.on('get', '/api/user/termsAndConditions', (req, res) => {
  * @HttpResponse                401                     Only logged in users can accept the Terms and Conditions
  * @HttpResponse                401                     You are not authorized to accept the Terms and Conditions on behalf of this user
  */
-OAE.tenantRouter.on('post', '/api/user/:userId/termsAndConditions', (req, res) => {
-  PrincipalsAPI.acceptTermsAndConditions(req.ctx, req.params.userId, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/user/:userId/termsAndConditions', (request, response) => {
+  PrincipalsAPI.acceptTermsAndConditions(request.ctx, request.params.userId, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(user);
+    return response.status(200).send(user);
   });
 });
 
@@ -95,26 +95,26 @@ OAE.tenantRouter.on('post', '/api/user/:userId/termsAndConditions', (req, res) =
  * @HttpResponse                401                     You do not have sufficient rights to make someone an admin
  * @HttpResponse                401                     You must be a global administrator to create a global administrator user
  */
-OAE.globalAdminRouter.on('post', '/api/user/createGlobalAdminUser', (req, res) => {
-  const opts = _getOptionalProfileParameters(req.body);
+OAE.globalAdminRouter.on('post', '/api/user/createGlobalAdminUser', (request, response) => {
+  const options = _getOptionalProfileParameters(request.body);
 
   // Create the user as global admin
   AuthenticationAPI.getOrCreateGlobalAdminUser(
-    req.ctx,
-    req.body.username,
-    req.body.password,
-    req.body.displayName,
-    opts,
-    (err, user, loginId, created) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.body.username,
+    request.body.password,
+    request.body.displayName,
+    options,
+    (error, user, loginId, created) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
       if (!created) {
-        return res.status(400).send(util.format('A user with username "%s" already exists', req.body.username));
+        return response.status(400).send(format('A user with username "%s" already exists', request.body.username));
       }
 
-      return res.status(201).send(user);
+      return response.status(201).send(user);
     }
   );
 });
@@ -172,21 +172,21 @@ OAE.globalAdminRouter.on('post', '/api/user/createGlobalAdminUser', (req, res) =
  * @HttpResponse                401                     Only administrators can create new tenant administrators
  * @HttpResponse                401                     You do not have sufficient rights to make someone an admin
  */
-const _handleCreateTenantAdminUser = function(req, res) {
-  const { ctx } = req;
-  const tenantAlias = req.params.tenantAlias || ctx.tenant().alias;
-  const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, req.body.username, {
-    password: req.body.password
+const _handleCreateTenantAdminUser = function (request, response) {
+  const { ctx } = request;
+  const tenantAlias = request.params.tenantAlias || ctx.tenant().alias;
+  const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, request.body.username, {
+    password: request.body.password
   });
-  const opts = _getOptionalProfileParameters(req.body);
+  const options = _getOptionalProfileParameters(request.body);
 
   // Create the user as a tenant administrator
-  AuthenticationAPI.createTenantAdminUser(ctx, loginId, req.body.displayName, opts, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  AuthenticationAPI.createTenantAdminUser(ctx, loginId, request.body.displayName, options, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(201).send(user);
+    return response.status(201).send(user);
   });
 };
 
@@ -221,26 +221,31 @@ OAE.tenantRouter.on('post', '/api/user/createTenantAdminUser', _handleCreateTena
  * @HttpResponse                401                     Only global administrators may create users on a tenant that is not the current
  * @HttpResponse                404                     A non-existing tenant was specified as the target for this user
  */
-OAE.globalAdminRouter.on('post', '/api/user/:tenantAlias/create', (req, res) => {
-  const loginId = new LoginId(req.params.tenantAlias, AuthenticationConstants.providers.LOCAL, req.body.username, {
-    password: req.body.password
-  });
-  const opts = {
-    visibility: req.body.visibility,
-    email: req.body.email,
-    emailPreference: req.body.emailPreference,
-    locale: req.body.locale || req.ctx.locale(),
-    timezone: req.body.timezone,
-    publicAlias: req.body.publicAlias,
-    acceptedTC: req.body.acceptedTC === 'true'
+OAE.globalAdminRouter.on('post', '/api/user/:tenantAlias/create', (request, response) => {
+  const loginId = new LoginId(
+    request.params.tenantAlias,
+    AuthenticationConstants.providers.LOCAL,
+    request.body.username,
+    {
+      password: request.body.password
+    }
+  );
+  const options = {
+    visibility: request.body.visibility,
+    email: request.body.email,
+    emailPreference: request.body.emailPreference,
+    locale: request.body.locale || request.ctx.locale(),
+    timezone: request.body.timezone,
+    publicAlias: request.body.publicAlias,
+    acceptedTC: request.body.acceptedTC === 'true'
   };
 
-  AuthenticationAPI.createUser(req.ctx, loginId, req.body.displayName, opts, (err, newUser) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  AuthenticationAPI.createUser(request.ctx, loginId, request.body.displayName, options, (error, newUser) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(201).send(newUser);
+    return response.status(201).send(newUser);
   });
 });
 
@@ -272,43 +277,40 @@ OAE.globalAdminRouter.on('post', '/api/user/:tenantAlias/create', (req, res) => 
  * @HttpResponse                400                     You need to accept the Terms and Conditions
  * @HttpResponse                401                     Unauthorized
  */
-OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
-  const { ctx } = req;
+OAE.tenantRouter.on('post', '/api/user/create', (request, response) => {
+  const { ctx } = request;
   const tenant = ctx.tenant();
   const user = ctx.user();
-  const opts = _getOptionalProfileParameters(req.body);
+  const options = _getOptionalProfileParameters(request.body);
 
   // We enforce an email address, the API will take care of validating the actual value
-  if (!opts.email) {
-    return res.status(400).send('A valid email address is required when creating a local account');
+  if (!options.email) {
+    return response.status(400).send('A valid email address is required when creating a local account');
   }
 
-  opts.invitationToken = req.body.invitationToken;
+  options.invitationToken = request.body.invitationToken;
 
   /*!
    * Create a local user account
    */
-  const createUser = function() {
+  const createUser = function () {
     AuthenticationAPI.getOrCreateUser(
       ctx,
       AuthenticationConstants.providers.LOCAL,
-      req.body.username,
-      { password: req.body.password },
-      req.body.displayName,
-      opts,
-      (err, newUser, loginId, created) => {
-        if (err) {
-          return res.status(err.code).send(err.msg);
+      request.body.username,
+      { password: request.body.password },
+      request.body.displayName,
+      options,
+      (error, newUser, loginId, created) => {
+        if (error) {
+          return response.status(error.code).send(error.msg);
         }
 
         if (!created) {
-          return res
-            .status(400)
-            .send('A user with that username already exists')
-            .end();
+          return response.status(400).send('A user with that username already exists').end();
         }
 
-        return res.status(201).send(newUser);
+        return response.status(201).send(newUser);
       }
     );
   };
@@ -320,10 +322,10 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
     }
 
     // Non-admin users cannot create accounts
-    return res.status(401).end();
+    return response.status(401).end();
   }
 
-  if (opts.invitationToken) {
+  if (options.invitationToken) {
     // Bypass recaptcha if an invitation token is provided. The process of creating a user will
     // fail if the invitation token is not valid
     return createUser();
@@ -331,8 +333,8 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
 
   // Check if the Terms and Conditions has been agreed to (if applicable)
   const needsTermsAndConditionsAgreement = PrincipalsConfig.getValue(tenant.alias, 'termsAndConditions', 'enabled');
-  if (needsTermsAndConditionsAgreement && opts.acceptedTC !== true) {
-    return res.status(400).send('You need to accept the Terms and Conditions');
+  if (needsTermsAndConditionsAgreement && options.acceptedTC !== true) {
+    return response.status(400).send('You need to accept the Terms and Conditions');
   }
 
   // Check if we need to validate with reCaptcha
@@ -343,9 +345,9 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
 
   // An anonymous user, do the recaptcha check
   const recaptchaData = {
-    remoteip: req.connection.remoteAddress,
-    challenge: req.body.recaptchaChallenge,
-    response: req.body.recaptchaResponse
+    remoteip: request.connection.remoteAddress,
+    challenge: request.body.recaptchaChallenge,
+    response: request.body.recaptchaResponse
   };
   const recaptchaPublicKey = PrincipalsConfig.getValue(tenant.alias, 'recaptcha', 'publicKey');
   const recaptchaPrivateKey = PrincipalsConfig.getValue(tenant.alias, 'recaptcha', 'privateKey');
@@ -356,7 +358,7 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
       return createUser();
     }
 
-    return res.status(400).send('Invalid reCaptcha token');
+    return response.status(400).send('Invalid reCaptcha token');
   });
 });
 
@@ -367,13 +369,13 @@ OAE.tenantRouter.on('post', '/api/user/create', (req, res) => {
  * @param  {Response}   res     The express response
  * @api private
  */
-const _handleDeleteUser = function(req, res) {
-  PrincipalsAPI.deleteUser(req.ctx, req.params.userId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleDeleteUser = function (request, response) {
+  PrincipalsAPI.deleteUser(request.ctx, request.params.userId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 };
 
@@ -399,13 +401,13 @@ OAE.globalAdminRouter.on('delete', '/api/user/:userId', _handleDeleteUser);
  * @param  {Response}   res     The express response
  * @api private
  */
-const _handleRestoreUser = function(req, res) {
-  PrincipalsAPI.restoreUser(req.ctx, req.params.userId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleRestoreUser = function (request, response) {
+  PrincipalsAPI.restoreUser(request.ctx, request.params.userId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 };
 
@@ -436,13 +438,13 @@ OAE.globalAdminRouter.on('post', '/api/user/:userId/restore', _handleRestoreUser
  * @HttpResponse        200     Me data available
  * @HttpResponse        401     You need to be authenticated to retrieve your user information
  */
-const _handleGetMe = function(req, res) {
-  PrincipalsAPI.getMe(req.ctx, (err, meData) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleGetMe = function (request, response) {
+  PrincipalsAPI.getMe(request.ctx, (error, meData) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(meData);
+    return response.status(200).send(meData);
   });
 };
 
@@ -485,23 +487,23 @@ OAE.tenantRouter.on('get', '/api/me', _handleGetMe);
  * @HttpResponse                    400                     An existing tenant alias must be provided
  * @HttpResponse                    401                     Only authorized admins can import users
  */
-const _handleImportUsers = function(req, res) {
-  const forceProfileUpdate = req.body.forceProfileUpdate === 'true';
+const _handleImportUsers = function (request, response) {
+  const forceProfileUpdate = request.body.forceProfileUpdate === 'true';
   PrincipalsAPI.importUsers(
-    req.ctx,
-    req.body.tenantAlias,
-    req.files.file,
-    req.body.authenticationStrategy,
+    request.ctx,
+    request.body.tenantAlias,
+    request.files.file,
+    request.body.authenticationStrategy,
     forceProfileUpdate,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
       // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
       // file uploads. If the response type is not set to text/plain, IE9 will try to download the response
-      res.set('Content-Type', 'text/plain');
-      return res.status(200).end();
+      response.set('Content-Type', 'text/plain');
+      return response.status(200).end();
     }
   );
 };
@@ -526,13 +528,13 @@ OAE.tenantRouter.on('post', '/api/user/import', _handleImportUsers);
  * @HttpResponse                400                         The provided userId is not a user identifier
  * @HttpResponse                401                         You do not have sufficient rights to make someone an admin
  */
-const _handleSetTenantAdmin = function(req, res) {
-  PrincipalsAPI.setTenantAdmin(req.ctx, req.params.userId, req.body.admin, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleSetTenantAdmin = function (request, response) {
+  PrincipalsAPI.setTenantAdmin(request.ctx, request.params.userId, request.body.admin, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 };
 
@@ -565,13 +567,13 @@ OAE.tenantRouter.on('post', '/api/user/:userId/admin', _handleSetTenantAdmin);
  * @HttpResponse                401                         You are not authorized to update this user's profile
  * @HttpResponse                404                         The specified user could not be found
  */
-const _handleUpdateUser = function(req, res) {
-  PrincipalsAPI.updateUser(req.ctx, req.params.userId, req.body, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleUpdateUser = function (request, response) {
+  PrincipalsAPI.updateUser(request.ctx, request.params.userId, request.body, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(user);
+    return response.status(200).send(user);
   });
 };
 
@@ -593,13 +595,13 @@ OAE.tenantRouter.on('post', '/api/user/:userId', _handleUpdateUser);
  * @HttpResponse                400                         The provided userId is not a user identifier
  * @HttpResponse                404                         The specified user could not be found
  */
-const _handleGetFullProfile = function(req, res) {
-  PrincipalsAPI.getFullUserProfile(req.ctx, req.params.userId, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleGetFullProfile = function (request, response) {
+  PrincipalsAPI.getFullUserProfile(request.ctx, request.params.userId, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(user);
+    return response.status(200).send(user);
   });
 };
 
@@ -623,19 +625,19 @@ OAE.tenantRouter.on('get', '/api/user/:userId', _handleGetFullProfile);
  * @HttpResponse                401                         You do not have access to this memberships library
  * @HttpResponse                404                         The specified user could not be found
  */
-OAE.tenantRouter.on('get', '/api/user/:userId/memberships', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/user/:userId/memberships', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   PrincipalsAPI.getMembershipsLibrary(
-    req.ctx,
-    req.params.userId,
-    req.query.start,
+    request.ctx,
+    request.params.userId,
+    request.query.start,
     limit,
-    (err, memberships, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, memberships, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).send({ results: memberships, nextToken });
+      return response.status(200).send({ results: memberships, nextToken });
     }
   );
 });
@@ -659,17 +661,17 @@ OAE.tenantRouter.on('get', '/api/user/:userId/memberships', (req, res) => {
  * @HttpResponse                401                         You have to be logged in to be able to update a picture
  * @HttpResponse                404                         The specified user could not be found
  */
-OAE.tenantRouter.on('post', '/api/user/:userId/picture', (req, res) => {
-  req.files = req.files || {};
-  PrincipalsAPI.storePicture(req.ctx, req.params.userId, req.files.file, (err, principal) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/user/:userId/picture', (request, response) => {
+  request.files = request.files || {};
+  PrincipalsAPI.storePicture(request.ctx, request.params.userId, request.files.file, (error, principal) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
     // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
-    res.set('Content-Type', 'text/plain');
-    return res.status(200).send(principal);
+    response.set('Content-Type', 'text/plain');
+    return response.status(200).send(principal);
   });
 });
 
@@ -687,13 +689,13 @@ OAE.tenantRouter.on('post', '/api/user/:userId/picture', (req, res) => {
  * @HttpResponse                400                         A token was not specified
  * @HttpResponse                404                         The token was not associated with a user
  */
-OAE.tenantRouter.on('post', '/api/user/:userId/email/verify', (req, res) => {
-  PrincipalsAPI.verifyEmail(req.ctx, req.params.userId, req.body.token, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/user/:userId/email/verify', (request, response) => {
+  PrincipalsAPI.verifyEmail(request.ctx, request.params.userId, request.body.token, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(user);
+    return response.status(200).send(user);
   });
 });
 
@@ -710,13 +712,13 @@ OAE.tenantRouter.on('post', '/api/user/:userId/email/verify', (req, res) => {
  * @HttpResponse                400                         Invalid user id or the email address is already verified
  * @HttpResponse                401                         You do not have sufficient rights to resend a token for a user
  */
-const _handleResendEmailToken = function(req, res) {
-  PrincipalsAPI.resendEmailToken(req.ctx, req.params.userId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleResendEmailToken = function (request, response) {
+  PrincipalsAPI.resendEmailToken(request.ctx, request.params.userId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 };
 
@@ -736,17 +738,17 @@ OAE.tenantRouter.on('post', '/api/user/:userId/email/resend', _handleResendEmail
  * @HttpResponse                400                         Invalid user id
  * @HttpResponse                401                         You do not have sufficient rights to check whether the user has a pending token
  */
-const _getEmailToken = function(req, res) {
-  PrincipalsAPI.getEmailToken(req.ctx, req.params.userId, (err, email) => {
-    if (err && err.code !== 404) {
-      return res.status(err.code).send(err.msg);
+const _getEmailToken = function (request, response) {
+  PrincipalsAPI.getEmailToken(request.ctx, request.params.userId, (error, email) => {
+    if (error && error.code !== 404) {
+      return response.status(error.code).send(error.msg);
     }
 
-    if (err) {
+    if (error) {
       email = null;
     }
 
-    return res.status(200).send({ email });
+    return response.status(200).send({ email });
   });
 };
 
@@ -767,13 +769,13 @@ OAE.tenantRouter.on('get', '/api/user/:userId/email/token', _getEmailToken);
  * @HttpResponse                401                         You do not have sufficient rights to delete this user's email token
  * @HttpResponse                404                         There is no pending token for the user
  */
-const _deleteEmailToken = function(req, res) {
-  PrincipalsAPI.deleteEmailToken(req.ctx, req.params.userId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _deleteEmailToken = function (request, response) {
+  PrincipalsAPI.deleteEmailToken(request.ctx, request.params.userId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 };
 
@@ -787,7 +789,7 @@ OAE.tenantRouter.on('delete', '/api/user/:userId/email/token', _deleteEmailToken
  * @return {Object}                 The relevant parameters for user profiles
  * @api private
  */
-const _getOptionalProfileParameters = function(parameters) {
+const _getOptionalProfileParameters = function (parameters) {
   return {
     visibility: parameters.visibility,
     email: parameters.email,
@@ -813,14 +815,14 @@ const _getOptionalProfileParameters = function(parameters) {
  * @HttpResponse                401                         You do not have access to this principal's groups
  * @HttpResponse                404                         The specified user could not be found
  */
-OAE.tenantRouter.on('get', '/api/user/:userId/groups/recent', (req, res) => {
+OAE.tenantRouter.on('get', '/api/user/:userId/groups/recent', (request, response) => {
   const limit = 5;
-  PrincipalsAPI.getRecentGroupsForUserId(req.ctx, req.params.userId, limit, (err, results) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  PrincipalsAPI.getRecentGroupsForUserId(request.ctx, request.params.userId, limit, (error, results) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send({ results });
+    return response.status(200).send({ results });
   });
 });
 
@@ -838,13 +840,13 @@ OAE.tenantRouter.on('get', '/api/user/:userId/groups/recent', (req, res) => {
  * @HttpResponse                400                         Must provide a tenantAlias
  * @HttpResponse                404                         No users were found for the given tenantAlias
  */
-const _getUsersForTenant = function(req, res) {
-  PrincipalsAPI.getAllUsersForTenant(req.ctx, req.params.tenantAlias, (err, users) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _getUsersForTenant = function (request, response) {
+  PrincipalsAPI.getAllUsersForTenant(request.ctx, request.params.tenantAlias, (error, users) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(users);
+    return response.status(200).send(users);
   });
 };
 
@@ -863,22 +865,22 @@ OAE.tenantRouter.on('get', '/api/tenants/:tenantAlias/users', _getUsersForTenant
  * @PathParam   {string}        exportType                  Export type can be 'personal-data', 'content' or 'shared'
  * @Return      {File}                                      Zip file with all personal data related to a user
  */
-OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (req, res) => {
-  PrincipalsAPI.exportData(req.ctx, req.params.userId, req.params.exportType, async (err, zipFile) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/user/:userId/export/:exportType', (request, response) => {
+  PrincipalsAPI.exportData(request.ctx, request.params.userId, request.params.exportType, async (error, zipFile) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     const filename = 'myData.zip';
-    res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
-    res.setHeader('Content-Type', 'application/zip');
-    res.writeHead(200);
+    response.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+    response.setHeader('Content-Type', 'application/zip');
+    response.writeHead(200);
 
     const nodebuffer = await zipFile.generateAsync({
       type: 'nodebuffer',
       platform: process.platform,
       streamFiles: true
     });
-    res.end(nodebuffer);
+    response.end(nodebuffer);
   });
 });

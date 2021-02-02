@@ -25,14 +25,14 @@ import * as PrincipalsUtil from 'oae-principals/lib/util';
 import * as TenantsUtil from 'oae-tenants/lib/util';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as DiscussionsDAO from './internal/dao';
-import DiscussionsAPI from './api';
+import * as DiscussionsDAO from './internal/dao.js';
+import DiscussionsAPI from './api.js';
 
-import { DiscussionsConstants } from './constants';
+import { DiscussionsConstants } from './constants.js';
 
-/// ////////////////////
-// DISCUSSION-CREATE //
-/// ////////////////////
+/**
+ * Discussion create
+ */
 
 ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSION_CREATE, {
   groupBy: [{ actor: true }],
@@ -133,11 +133,10 @@ DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, newDiscu
   // We discriminate between general updates and visibility changes.
   // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
   let activityType = null;
-  if (newDiscussion.visibility === oldDiscussion.visibility) {
-    activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE;
-  } else {
-    activityType = DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY;
-  }
+  activityType =
+    newDiscussion.visibility === oldDiscussion.visibility
+      ? DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE
+      : DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_VISIBILITY;
 
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
@@ -271,73 +270,76 @@ ActivityAPI.registerActivityType(DiscussionsConstants.activity.ACTIVITY_DISCUSSI
 /*!
  * Post a discussion-share or discussion-add-to-library activity based on discussion sharing
  */
-DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS, (ctx, discussion, memberChangeInfo, opts) => {
-  if (opts.invitation) {
-    // If this member update came from an invitation, we bypass adding activity as there is a
-    // dedicated activity for that
-    return;
-  }
+DiscussionsAPI.on(
+  DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
+  (ctx, discussion, memberChangeInfo, options) => {
+    if (options.invitation) {
+      // If this member update came from an invitation, we bypass adding activity as there is a
+      // dedicated activity for that
+      return;
+    }
 
-  const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
-  const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
+    const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
+    const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
 
-  const millis = Date.now();
-  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-    user: ctx.user()
-  });
-  const discussionResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
-    discussion
-  });
+    const millis = Date.now();
+    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+      user: ctx.user()
+    });
+    const discussionResource = new ActivityModel.ActivitySeedResource('discussion', discussion.id, {
+      discussion
+    });
 
-  // For users that are newly added to the discussion, post either a share or "add to library" activity, depending on context
-  _.each(addedPrincipalIds, principalId => {
-    if (principalId === ctx.user().id) {
-      // Users can't "share" with themselves, they actually "add it to their library"
-      ActivityAPI.postActivity(
-        ctx,
-        new ActivityModel.ActivitySeed(
-          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_ADD_TO_LIBRARY,
-          millis,
-          ActivityConstants.verbs.ADD,
-          actorResource,
-          discussionResource
-        )
-      );
-    } else {
-      // A user shared discussion with some other user, fire the discussion share activity
+    // For users that are newly added to the discussion, post either a share or "add to library" activity, depending on context
+    _.each(addedPrincipalIds, (principalId) => {
+      if (principalId === ctx.user().id) {
+        // Users can't "share" with themselves, they actually "add it to their library"
+        ActivityAPI.postActivity(
+          ctx,
+          new ActivityModel.ActivitySeed(
+            DiscussionsConstants.activity.ACTIVITY_DISCUSSION_ADD_TO_LIBRARY,
+            millis,
+            ActivityConstants.verbs.ADD,
+            actorResource,
+            discussionResource
+          )
+        );
+      } else {
+        // A user shared discussion with some other user, fire the discussion share activity
+        const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
+        const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
+        ActivityAPI.postActivity(
+          ctx,
+          new ActivityModel.ActivitySeed(
+            DiscussionsConstants.activity.ACTIVITY_DISCUSSION_SHARE,
+            millis,
+            ActivityConstants.verbs.SHARE,
+            actorResource,
+            discussionResource,
+            principalResource
+          )
+        );
+      }
+    });
+
+    // For users whose role changed, post the discussion-update-member-role activity
+    _.each(updatedPrincipalIds, (principalId) => {
       const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
       const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
       ActivityAPI.postActivity(
         ctx,
         new ActivityModel.ActivitySeed(
-          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_SHARE,
+          DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE,
           millis,
-          ActivityConstants.verbs.SHARE,
+          ActivityConstants.verbs.UPDATE,
           actorResource,
-          discussionResource,
-          principalResource
+          principalResource,
+          discussionResource
         )
       );
-    }
-  });
-
-  // For users whose role changed, post the discussion-update-member-role activity
-  _.each(updatedPrincipalIds, principalId => {
-    const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
-    const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
-    ActivityAPI.postActivity(
-      ctx,
-      new ActivityModel.ActivitySeed(
-        DiscussionsConstants.activity.ACTIVITY_DISCUSSION_UPDATE_MEMBER_ROLE,
-        millis,
-        ActivityConstants.verbs.UPDATE,
-        actorResource,
-        principalResource,
-        discussionResource
-      )
-    );
-  });
-});
+    });
+  }
+);
 
 /// ////////////////////////
 // ACTIVITY ENTITY TYPES //
@@ -347,7 +349,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS, (ctx, 
  * Produces a persistent 'discussion' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionProducer = function(resource, callback) {
+const _discussionProducer = function (resource, callback) {
   const discussion =
     resource.resourceData && resource.resourceData.discussion ? resource.resourceData.discussion : null;
 
@@ -356,9 +358,9 @@ const _discussionProducer = function(resource, callback) {
     return callback(null, _createPersistentDiscussionActivityEntity(discussion));
   }
 
-  DiscussionsDAO.getDiscussion(resource.resourceId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  DiscussionsDAO.getDiscussion(resource.resourceId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createPersistentDiscussionActivityEntity(discussion));
@@ -372,7 +374,7 @@ const _discussionProducer = function(resource, callback) {
  * @return {Object}                         An object containing the entity data that can be transformed into a UI discussion activity entity
  * @api private
  */
-const _createPersistentDiscussionActivityEntity = function(discussion) {
+const _createPersistentDiscussionActivityEntity = function (discussion) {
   return new ActivityModel.ActivityEntity('discussion', discussion.id, discussion.visibility, {
     discussion
   });
@@ -382,16 +384,16 @@ const _createPersistentDiscussionActivityEntity = function(discussion) {
  * Produces an persistent activity entity that represents a message that was posted
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionMessageProducer = function(resource, callback) {
+const _discussionMessageProducer = function (resource, callback) {
   const { message, discussionId } = resource.resourceData;
-  DiscussionsDAO.getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  DiscussionsDAO.getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    MessageBoxUtil.createPersistentMessageActivityEntity(message, (err, entity) => {
-      if (err) {
-        return callback(err);
+    MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
+      if (error) {
+        return callback(error);
       }
 
       // Store the discussion id and visibility on the entity as these are required for routing the activities
@@ -407,7 +409,7 @@ const _discussionMessageProducer = function(resource, callback) {
  * Transform the discussion persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionTransformer = function(ctx, activityEntities, callback) {
+const _discussionTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   _.each(activityEntities, (entities, activityId) => {
@@ -424,7 +426,7 @@ const _discussionTransformer = function(ctx, activityEntities, callback) {
  * Transform the discussion persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionInternalTransformer = function(ctx, activityEntities, callback) {
+const _discussionInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
 
   _.each(activityEntities, (entities, activityId) => {
@@ -446,7 +448,7 @@ const _discussionInternalTransformer = function(ctx, activityEntities, callback)
  * @param  {Object}            entity      The persistent activity entity to transform
  * @return {ActivityEntity}                The activity entity that represents the given discussion item
  */
-const _transformPersistentDiscussionActivityEntity = function(ctx, entity) {
+const _transformPersistentDiscussionActivityEntity = function (ctx, entity) {
   const { discussion } = entity;
 
   // Generate URLs for this activity
@@ -456,25 +458,25 @@ const _transformPersistentDiscussionActivityEntity = function(ctx, entity) {
   const resource = AuthzUtil.getResourceFromId(discussion.id);
   const profileUrl = baseUrl + '/discussion/' + resource.tenantAlias + '/' + resource.resourceId;
 
-  const opts = {};
-  opts.url = profileUrl;
-  opts.displayName = discussion.displayName;
-  opts.ext = {};
-  opts.ext[ActivityConstants.properties.OAE_ID] = discussion.id;
-  opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = discussion.visibility;
-  opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = discussion.profilePath;
-  return new ActivityModel.ActivityEntity('discussion', globalId, discussion.visibility, opts);
+  const options = {};
+  options.url = profileUrl;
+  options.displayName = discussion.displayName;
+  options.ext = {};
+  options.ext[ActivityConstants.properties.OAE_ID] = discussion.id;
+  options.ext[ActivityConstants.properties.OAE_VISIBILITY] = discussion.visibility;
+  options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = discussion.profilePath;
+  return new ActivityModel.ActivityEntity('discussion', globalId, discussion.visibility, options);
 };
 
 /*!
  * Transform the persisted message activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionMessageTransformer = function(ctx, activityEntities, callback) {
+const _discussionMessageTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       const { discussionId } = entity;
       const resource = AuthzUtil.getResourceFromId(discussionId);
@@ -495,11 +497,11 @@ const _discussionMessageTransformer = function(ctx, activityEntities, callback) 
  * Transform the persisted message activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _discussionMessageInternalTransformer = function(ctx, activityEntities, callback) {
+const _discussionMessageInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][
         entityId
@@ -553,9 +555,9 @@ ActivityAPI.registerActivityEntityAssociation('discussion', 'members-by-role', (
  * Register an association that presents all the indirect members of a discussion
  */
 ActivityAPI.registerActivityEntityAssociation('discussion', 'members', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.flatten(_.values(membersByRole)));
@@ -566,9 +568,9 @@ ActivityAPI.registerActivityEntityAssociation('discussion', 'members', (associat
  * Register an association that presents all the managers of a discussion
  */
 ActivityAPI.registerActivityEntityAssociation('discussion', 'managers', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, membersByRole[AuthzConstants.role.MANAGER]);

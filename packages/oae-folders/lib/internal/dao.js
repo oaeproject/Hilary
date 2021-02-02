@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -37,7 +38,7 @@ import { Folder } from 'oae-folders/lib/model';
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder}         callback.folder         The folder that was created
  */
-const createFolder = function(createdBy, displayName, description, visibility, callback) {
+const createFolder = function (createdBy, displayName, description, visibility, callback) {
   const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
   const folderId = _createFolderId(tenantAlias);
   const groupId = PrincipalsUtil.createGroupId(tenantAlias);
@@ -58,9 +59,9 @@ const createFolder = function(createdBy, displayName, description, visibility, c
   const insertFolderQuery = Cassandra.constructUpsertCQL('Folders', 'id', folderId, storageHash);
 
   // Insert the surrogate group id index entry
-  Cassandra.runBatchQuery([insertGroupIdIndexQuery, insertFolderQuery], err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runBatchQuery([insertGroupIdIndexQuery, insertFolderQuery], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _storageHashToFolder(folderId, storageHash));
@@ -75,23 +76,20 @@ const createFolder = function(createdBy, displayName, description, visibility, c
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Folder[]}       callback.folders    The folders that are identified by the given ids. The folders will be located in the same order as the given array of ids
  */
-const getFoldersByIds = function(folderIds, callback) {
+const getFoldersByIds = function (folderIds, callback) {
   if (_.isEmpty(folderIds)) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery('SELECT * FROM "Folders" WHERE "id" IN ?', [folderIds], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "Folders" WHERE "id" IN ?', [folderIds], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Assemble the folders array, ensuring it is in the same order as the original ids
-    const foldersById = _.chain(rows)
-      .map(_rowToFolder)
-      .indexBy('id')
-      .value();
+    const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
     const folders = _.chain(folderIds)
-      .map(folderId => {
+      .map((folderId) => {
         return foldersById[folderId];
       })
       .compact()
@@ -109,23 +107,20 @@ const getFoldersByIds = function(folderIds, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder[]}       callback.folders        The folders that are identified by the given list of group ids. The folders will be located in the same order as the given array of ids
  */
-const getFoldersByGroupIds = function(groupIds, callback) {
+const getFoldersByGroupIds = function (groupIds, callback) {
   if (_.isEmpty(groupIds)) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Assemble the folder ids, ensuring the original ordering is maintained
-    const folderIdsByGroupIds = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .indexBy('groupId')
-      .value();
+    const folderIdsByGroupIds = _.chain(rows).map(Cassandra.rowToHash).indexBy('groupId').value();
     const folderIds = _.chain(groupIds)
-      .map(groupId => {
+      .map((groupId) => {
         return folderIdsByGroupIds[groupId];
       })
       .compact()
@@ -144,16 +139,16 @@ const getFoldersByGroupIds = function(groupIds, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Folder}     callback.folder     The request folder object
  */
-const getFolder = function(folderId, callback) {
-  getFoldersByIds([folderId], (err, folders) => {
-    if (err) {
-      return callback(err);
+const getFolder = function (folderId, callback) {
+  getFoldersByIds([folderId], (error, folders) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(folders)) {
       return callback({
         code: 404,
-        msg: util.format('A folder with the id "%s" could not be found', folderId)
+        msg: format('A folder with the id "%s" could not be found', folderId)
       });
     }
 
@@ -168,7 +163,7 @@ const getFolder = function(folderId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteFolder = function(folderId, callback) {
+const deleteFolder = function (folderId, callback) {
   Cassandra.runQuery('DELETE FROM "Folders" WHERE "id" = ?', [folderId], callback);
 };
 
@@ -181,14 +176,14 @@ const deleteFolder = function(folderId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Folder}     callback.folder     The updated folder
  */
-const updateFolder = function(folder, profileFields, callback) {
+const updateFolder = function (folder, profileFields, callback) {
   const storageHash = _.extend({}, profileFields);
   storageHash.lastModified = storageHash.lastModified || Date.now();
 
   const query = Cassandra.constructUpsertCQL('Folders', 'id', folder.id, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, storageHash));
@@ -208,27 +203,33 @@ const updateFolder = function(folder, profileFields, callback) {
  * @param  {Object[]}   callback.contentItems   The content items that were fetched. Only the specified fields will appear on the object if they exist for the content item
  * @param  {String}     callback.nextToken      The value to use for `start` in subsequent requests to page through the items
  */
-const getContentItems = function(folderGroupId, opts, callback) {
-  opts = opts || {};
+const getContentItems = function (folderGroupId, options, callback) {
+  options = options || {};
 
   // Query all the content ids ('c') to which the folder is directly associated in this batch of
   // paged resources. Since the group can be a member of both user groups and folder groups, we
   // filter down to just the folder groups for folder libraries
-  AuthzAPI.getRolesForPrincipalAndResourceType(folderGroupId, 'c', opts.start, opts.limit, (err, roles, nextToken) => {
-    if (err) {
-      return callback(err);
-    }
-
-    // Get all the content items that we queried by id
-    const ids = _.pluck(roles, 'id');
-    ContentDAO.Content.getMultipleContentItems(ids, opts.fields, (err, contentItems) => {
-      if (err) {
-        return callback(err);
+  AuthzAPI.getRolesForPrincipalAndResourceType(
+    folderGroupId,
+    'c',
+    options.start,
+    options.limit,
+    (error, roles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      return callback(null, contentItems, nextToken);
-    });
-  });
+      // Get all the content items that we queried by id
+      const ids = _.pluck(roles, 'id');
+      ContentDAO.Content.getMultipleContentItems(ids, options.fields, (error, contentItems) => {
+        if (error) {
+          return callback(error);
+        }
+
+        return callback(null, contentItems, nextToken);
+      });
+    }
+  );
 };
 
 /**
@@ -241,11 +242,11 @@ const getContentItems = function(folderGroupId, opts, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Folder}     callback.folder     The updated folder
  */
-const setPreviews = function(folder, previews, callback) {
+const setPreviews = function (folder, previews, callback) {
   const query = Cassandra.constructUpsertCQL('Folders', 'id', folder.id, { previews });
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, { previews }));
@@ -270,7 +271,7 @@ const setPreviews = function(folder, previews, callback) {
  * @param  {Object}     [callback.err]          An error that occurred, while iterating rows, if any
  * @see Cassandra#iterateAll
  */
-const iterateAll = function(properties, batchSize, onEach, callback) {
+const iterateAll = function (properties, batchSize, onEach, callback) {
   if (_.isEmpty(properties)) {
     properties = ['id'];
   }
@@ -280,7 +281,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
    *
    * @see Cassandra#iterateAll
    */
-  const _iterateAllOnEach = function(rows, done) {
+  const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
@@ -297,7 +298,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
  * @return {Folder}                         The updated folder
  * @api private
  */
-const _createUpdatedFolderFromStorageHash = function(folder, updatedStorageHash) {
+const _createUpdatedFolderFromStorageHash = function (folder, updatedStorageHash) {
   return new Folder(
     folder.tenant,
     folder.id,
@@ -319,7 +320,7 @@ const _createUpdatedFolderFromStorageHash = function(folder, updatedStorageHash)
  * @return {Folder}                 The folder represented by the row
  * @api private
  */
-const _rowToFolder = function(row) {
+const _rowToFolder = function (row) {
   const hash = Cassandra.parsePreviewsFromRow(row);
   return _storageHashToFolder(hash.id, hash);
 };
@@ -332,7 +333,7 @@ const _rowToFolder = function(row) {
  * @return {Folder}                         The folder represented by the provided data
  * @api private
  */
-const _storageHashToFolder = function(folderId, storageHash) {
+const _storageHashToFolder = function (folderId, storageHash) {
   return new Folder(
     TenantsAPI.getTenant(storageHash.tenantAlias),
     folderId,
@@ -354,7 +355,7 @@ const _storageHashToFolder = function(folderId, storageHash) {
  * @return {String}                     A randomly generated folder id
  * @api private
  */
-const _createFolderId = function(tenantAlias) {
+const _createFolderId = function (tenantAlias) {
   return AuthzUtil.toId('f', tenantAlias, ShortId.generate());
 };
 

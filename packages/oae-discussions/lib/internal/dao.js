@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -40,10 +41,10 @@ const log = logger('discussions-dao');
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The discussion object that was created
  */
-const createDiscussion = function(createdBy, displayName, description, visibility, opts, callback) {
-  opts = opts || {};
+const createDiscussion = function (createdBy, displayName, description, visibility, options, callback) {
+  options = options || {};
 
-  let created = opts.created || Date.now();
+  let created = options.created || Date.now();
   created = created.toString();
 
   const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
@@ -59,9 +60,9 @@ const createDiscussion = function(createdBy, displayName, description, visibilit
   };
 
   const query = Cassandra.constructUpsertCQL('Discussions', 'id', discussionId, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _storageHashToDiscussion(discussionId, storageHash));
@@ -77,15 +78,15 @@ const createDiscussion = function(createdBy, displayName, description, visibilit
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The updated discussion object
  */
-const updateDiscussion = function(discussion, profileFields, callback) {
+const updateDiscussion = function (discussion, profileFields, callback) {
   const storageHash = _.extend({}, profileFields);
   storageHash.lastModified = storageHash.lastModified || Date.now();
   storageHash.lastModified = storageHash.lastModified.toString();
 
   const query = Cassandra.constructUpsertCQL('Discussions', 'id', discussion.id, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query.query, query.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createUpdatedDiscussionFromStorageHash(discussion, storageHash));
@@ -100,10 +101,10 @@ const updateDiscussion = function(discussion, profileFields, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The discussion object requested
  */
-const getDiscussion = function(discussionId, callback) {
-  getDiscussionsById([discussionId], null, (err, discussions) => {
-    if (err) {
-      return callback(err);
+const getDiscussion = function (discussionId, callback) {
+  getDiscussionsById([discussionId], null, (error, discussions) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, discussions[0]);
@@ -118,7 +119,7 @@ const getDiscussion = function(discussionId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteDiscussion = function(discussionId, callback) {
+const deleteDiscussion = function (discussionId, callback) {
   log().info({ discussionId }, 'Discussion deleted');
   Cassandra.runQuery('DELETE FROM "Discussions" WHERE "id" = ?', [discussionId], callback);
 };
@@ -132,7 +133,7 @@ const deleteDiscussion = function(discussionId, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Discussion[]}   callback.discussions    The discussion objects requested, in the same order as the discussion ids
  */
-const getDiscussionsById = function(discussionIds, fields, callback) {
+const getDiscussionsById = function (discussionIds, fields, callback) {
   if (_.isEmpty(discussionIds)) {
     return callback(null, []);
   }
@@ -142,32 +143,32 @@ const getDiscussionsById = function(discussionIds, fields, callback) {
 
   // If `fields` was specified, we select only the fields specified. Otherwise we select all (i.e., *)
   if (fields) {
-    const columns = _.map(fields, field => {
-      return util.format('"%s"', field);
+    const columns = _.map(fields, (field) => {
+      return format('"%s"', field);
     });
 
-    query = util.format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
+    query = format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
   } else {
     query = 'SELECT * FROM "Discussions" WHERE "id" IN ?';
   }
 
   parameters.push(discussionIds);
 
-  Cassandra.runQuery(query, parameters, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Convert the retrieved storage hashes into the Discussion model
     const discussions = {};
     _.chain(rows)
       .map(Cassandra.rowToHash)
-      .each(row => {
+      .each((row) => {
         discussions[row.id] = _storageHashToDiscussion(row.id, row);
       });
 
     // Order the discussions according to the array of discussion ids
-    const orderedDiscussions = _.map(discussionIds, discussionId => {
+    const orderedDiscussions = _.map(discussionIds, (discussionId) => {
       return discussions[discussionId];
     });
 
@@ -192,7 +193,7 @@ const getDiscussionsById = function(discussionIds, fields, callback) {
  * @param  {Object}     [callback.err]          An error that occurred, while iterating rows, if any
  * @see Cassandra#iterateAll
  */
-const iterateAll = function(properties, batchSize, onEach, callback) {
+const iterateAll = function (properties, batchSize, onEach, callback) {
   if (_.isEmpty(properties)) {
     properties = ['id'];
   }
@@ -202,7 +203,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
    *
    * @see Cassandra#iterateAll
    */
-  const _iterateAllOnEach = function(rows, done) {
+  const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
@@ -218,7 +219,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
  * @return {Discussion}                 The discussion model object. Returns `null` if this does not represent an existing discussion
  * @api private
  */
-const _storageHashToDiscussion = function(discussionId, hash) {
+const _storageHashToDiscussion = function (discussionId, hash) {
   return new Discussion(
     TenantsAPI.getTenant(hash.tenantAlias),
     discussionId,
@@ -239,7 +240,7 @@ const _storageHashToDiscussion = function(discussionId, hash) {
  * @return {Discussion}                 The updated discussion object
  * @api private
  */
-const _createUpdatedDiscussionFromStorageHash = function(discussion, hash) {
+const _createUpdatedDiscussionFromStorageHash = function (discussion, hash) {
   return new Discussion(
     discussion.tenant,
     discussion.id,
@@ -259,7 +260,7 @@ const _createUpdatedDiscussionFromStorageHash = function(discussion, hash) {
  * @return {String}                     A unique discussion resource id
  * @api private
  */
-const _createDiscussionId = function(tenantAlias) {
+const _createDiscussionId = function (tenantAlias) {
   return AuthzUtil.toId('d', tenantAlias, ShortId.generate());
 };
 

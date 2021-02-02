@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import _ from 'underscore';
 
@@ -23,7 +24,7 @@ describe('Globals', () => {
       /**
        * Test that verifies that an object is created from a variety of input
        */
-      it('verify an object is created from a variety of input', callback => {
+      it('verify an object is created from a variety of input', (callback) => {
         assert.deepStrictEqual(_.oaeObj(), {});
         assert.deepStrictEqual(_.oaeObj('key0'), { key0: undefined });
         assert.deepStrictEqual(_.oaeObj('key0', null), { key0: null });
@@ -42,16 +43,16 @@ describe('Globals', () => {
       /**
        * Test that verifies that keys are only extended if their values are not undefined
        */
-      it('verify keys are only extended if their values are not undefined', callback => {
+      it('verify keys are only extended if their values are not undefined', (callback) => {
         const source = {
           undefined,
-          '0': 0,
+          0: 0,
           null: null
         };
 
         const extendWith = {
           undefined: null,
-          '0': undefined,
+          0: undefined,
           null: undefined,
           anotherUndefined: undefined,
           anotherNull: null,
@@ -60,7 +61,7 @@ describe('Globals', () => {
 
         const expectedDest = {
           undefined: null,
-          '0': 0,
+          0: 0,
           null: null,
           anotherNull: null,
           another0: 0

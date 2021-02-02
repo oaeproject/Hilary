@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { Locale } from 'locale';
 import { User } from 'oae-principals/lib/model';
 import { Context } from 'oae-context';
@@ -22,7 +23,7 @@ describe('Context', () => {
   /**
    * Test that verifies a simple context
    */
-  it('verify simple context', callback => {
+  it('verify simple context', (callback) => {
     const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
     const imposter = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:simong', 'simong', 'simon@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', null, imposter);
@@ -39,7 +40,7 @@ describe('Context', () => {
   /**
    * Test that verifies the locale setter can handle defaulted locales
    */
-  it('verify the locale setter can handle defaulted locales', callback => {
+  it('verify the locale setter can handle defaulted locales', (callback) => {
     const user = new User(global.oaeTests.tenants.cam.alias, 'u:camtest:physx', 'physx', 'bert@apereo.org');
     const ctx = new Context(global.oaeTests.tenants.cam, user, 'twitter', 'en_UK');
 

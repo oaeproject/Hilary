@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import * as Sanitization from 'oae-util/lib/sanitization';
 
@@ -21,7 +22,7 @@ describe('Sanitization', () => {
   /**
    * Verifies that HTML strings are escaped correctly for HTML
    */
-  it('verify that encodeForHTML escapes strings correctly', callback => {
+  it('verify that encodeForHTML escapes strings correctly', (callback) => {
     // Sanitize a string
     const stringToEscape =
       '\n\n\n<script>window.alert("hello world!");</script><p class="test"><span>Nice</span> link, would <a href="http://www.google.be" target="_blank"><a>click</a></b> again</p>';
@@ -37,7 +38,7 @@ describe('Sanitization', () => {
   /**
    * Verifies that HTML strings are escaped correctly for HTML attributes
    */
-  it('verify that encodeForHTMLAttribute escapes strings correctly', callback => {
+  it('verify that encodeForHTMLAttribute escapes strings correctly', (callback) => {
     // Sanitize a string
     const stringToEscape =
       '\n\n\n<script>window.alert("hello world!");</script><p class="test"><span>Nice</span> link, would <a href="http://www.google.be" target="_blank"><a>click</a></b> again</p>';

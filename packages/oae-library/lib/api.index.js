@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
@@ -22,12 +22,14 @@ import * as OaeUtil from 'oae-util/lib/util';
 import { logger } from 'oae-logger';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as LibraryAuthz from './api.authz';
-import * as LibraryRegistry from './internal/registry';
+import * as LibraryRegistry from './internal/registry.js';
 
 const log = logger('library-index');
 
-// We need a slug column name to denote a fresh library index at both the lower
-// bound and upper bound to determine if an index is fresh or invalidated
+/**
+ * We need a slug column name to denote a fresh library index at both the lower
+ * bound and upper bound to determine if an index is fresh or invalidated
+ */
 const SLUG_LOW = '#';
 const SLUG_HIGH = '|';
 
@@ -100,7 +102,7 @@ const updateCounter = new Counter();
  * @param  {String}     options.pageResources.callback.entries[i].resource.visibility   The visibility of the resource to insert
  * @param  {String}     [options.pageResources.callback.nextToken]                      The value to use as the `start` parameter in the next invokation to get the next page of items. If unspecified, it indicates there are no more pages of resources
  */
-const registerLibraryIndex = function(name, options) {
+const registerLibraryIndex = function (name, options) {
   LibraryRegistry.registerLibraryIndex(name, options);
 };
 
@@ -119,14 +121,14 @@ const registerLibraryIndex = function(name, options) {
  * @param  {Function}       callback                        Standard callback function
  * @param  {Object}         callback.err                    An error that occurred, if any
  */
-const insert = function(indexName, entries, callback) {
+const insert = function (indexName, entries, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             indexName,
             entries
           },
@@ -137,7 +139,7 @@ const insert = function(indexName, entries, callback) {
 
   updateCounter.incr();
 
-  const indexEntries = _.map(entries, entry => {
+  const indexEntries = _.map(entries, (entry) => {
     return {
       libraryId: entry.id,
       rank: entry.rank,
@@ -147,9 +149,9 @@ const insert = function(indexName, entries, callback) {
     };
   });
 
-  _insert(indexName, indexEntries, err => {
+  _insert(indexName, indexEntries, (error) => {
     updateCounter.decr();
-    return callback(err);
+    return callback(error);
   });
 };
 
@@ -170,14 +172,14 @@ const insert = function(indexName, entries, callback) {
  * @param  {Function}       callback                        Standard callback function
  * @param  {Object}         callback.err                    An error that occurred, if any
  */
-const update = function(indexName, entries, callback) {
+const update = function (indexName, entries, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             indexName,
             entries
           },
@@ -200,7 +202,7 @@ const update = function(indexName, entries, callback) {
   // when ready
   const queries = [];
 
-  _.each(entries, entry => {
+  _.each(entries, (entry) => {
     // What we will remove and insert into the library index
     const oldRankedResourceId = _createRankedResourceId(entry.resource.id, entry.oldRank);
     const newRankedResourceId = _createRankedResourceId(entry.resource.id, entry.newRank);
@@ -226,9 +228,9 @@ const update = function(indexName, entries, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, err => {
+  Cassandra.runBatchQuery(queries, (error) => {
     updateCounter.decr();
-    return callback(err);
+    return callback(error);
   });
 };
 
@@ -245,14 +247,14 @@ const update = function(indexName, entries, callback) {
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
  */
-const remove = function(indexName, entries, callback) {
+const remove = function (indexName, entries, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             indexName,
             entries
           },
@@ -274,7 +276,7 @@ const remove = function(indexName, entries, callback) {
   // For each entry deletion, aggregate the query necessary to delete it from each visibility
   // bucket in the library index
   const queries = [];
-  _.each(entries, entry => {
+  _.each(entries, (entry) => {
     const rankedResourceId = _createRankedResourceId(entry.resource.id, entry.rank);
     _.each(visibilityMasks, (mask, bucketName) => {
       queries.push({
@@ -284,9 +286,9 @@ const remove = function(indexName, entries, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, err => {
+  Cassandra.runBatchQuery(queries, (error) => {
     updateCounter.decr();
-    return callback(err);
+    return callback(error);
   });
 };
 
@@ -297,7 +299,7 @@ const remove = function(indexName, entries, callback) {
  *
  * @param  {Function}   callback    Invoked when all updates are complete
  */
-const whenUpdatesComplete = function(callback) {
+const whenUpdatesComplete = function (callback) {
   updateCounter.whenZero(callback);
 };
 
@@ -317,20 +319,20 @@ const whenUpdatesComplete = function(callback) {
  * @param  {Object}     callback.entries[i].value       The value stored for this resource entry
  * @param  {String}     callback.nextToken              The value to use for the `opts.start` parameter to get the next set of results
  */
-const list = function(indexName, libraryId, visibility, opts, callback) {
-  opts = opts || {};
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1);
-  opts.start = opts.start || '';
+const list = function (indexName, libraryId, visibility, options, callback) {
+  options = options || {};
+  options.limit = OaeUtil.getNumberParam(options.limit, 10, 1);
+  options.start = options.start || '';
 
   // Query the library index, and lazily build it if it is not seeded, or if it has been purged for maintenance
   _query(
     indexName,
     libraryId,
     visibility,
-    { start: opts.start, limit: opts.limit, rebuildIfNecessary: true },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    { start: options.start, limit: options.limit, rebuildIfNecessary: true },
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // For repair-on-read, we will keep track of duplicate resourceIds and delete duplicates after
@@ -341,7 +343,7 @@ const list = function(indexName, libraryId, visibility, opts, callback) {
 
       const resourceIds = {};
       const entries = [];
-      _.each(rows, rawEntry => {
+      _.each(rows, (rawEntry) => {
         // eslint-disable-next-line no-unused-vars
         _splitRankedResourceId(rawEntry.rankedResourceId, (resourceId, rank) => {
           if (resourceIds[resourceId]) {
@@ -362,7 +364,7 @@ const list = function(indexName, libraryId, visibility, opts, callback) {
       if (!_.isEmpty(rankedResourceIdsToDelete)) {
         // There were duplicates, delete them asynchronously
         const bucketKey = _createBucketKey(indexName, libraryId, visibility);
-        const deleteQueries = _.map(rankedResourceIdsToDelete, rankedResourceId => {
+        const deleteQueries = _.map(rankedResourceIdsToDelete, (rankedResourceId) => {
           return {
             query: 'DELETE FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" = ?',
             parameters: [bucketKey, rankedResourceId]
@@ -395,7 +397,7 @@ const list = function(indexName, libraryId, visibility, opts, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const purge = function(indexName, libraryId, callback) {
+const purge = function (indexName, libraryId, callback) {
   // Build the queries that will purge all the index buckets to start fresh
   const purgeIndexQueries = _.map(visibilityMasks, (mask, visibility) => {
     return {
@@ -419,18 +421,22 @@ const purge = function(indexName, libraryId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Boolean}    callback.isStale    Whether or not the specified library index is currently stale
  */
-const isStale = function(indexName, libraryId, visibility, callback) {
+const isStale = function (indexName, libraryId, visibility, callback) {
   // Select both the high and low slug column from the library
   const cql = 'SELECT "value" FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" IN ?';
-  Cassandra.runQuery(cql, [_createBucketKey(indexName, libraryId, visibility), [SLUG_HIGH, SLUG_LOW]], (err, rows) => {
-    if (err) {
-      return callback(err);
-    }
+  Cassandra.runQuery(
+    cql,
+    [_createBucketKey(indexName, libraryId, visibility), [SLUG_HIGH, SLUG_LOW]],
+    (error, rows) => {
+      if (error) {
+        return callback(error);
+      }
 
-    // If we got exactly 2 rows, it means that both the high and low slug were there, so the
-    // library index is recent
-    return callback(null, rows.length !== 2);
-  });
+      // If we got exactly 2 rows, it means that both the high and low slug were there, so the
+      // library index is recent
+      return callback(null, rows.length !== 2);
+    }
+  );
 };
 
 /**
@@ -449,10 +455,10 @@ const isStale = function(indexName, libraryId, visibility, callback) {
  * @param  {String}     callback.nextToken          The value that can be used as the `opts.start` parameter for the next query to get the next page of items
  * @api private
  */
-const _query = function(indexName, libraryId, visibility, opts, callback) {
+const _query = function (indexName, libraryId, visibility, options, callback) {
   // Select one additional entry to account for the slug that we will select if we have not specified a start parameter
-  let internalLimit = opts.limit;
-  if (!opts.start) {
+  let internalLimit = options.limit;
+  if (!options.start) {
     internalLimit++;
   }
 
@@ -463,18 +469,18 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
     'bucketKey',
     bucketKey,
     'rankedResourceId',
-    opts.start,
+    options.start,
     internalLimit,
     { reversed: true },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      if (_isStaleLibraryIndex(opts.start, internalLimit, rows)) {
-        if (opts.rebuildIfNecessary) {
+      if (_isStaleLibraryIndex(options.start, internalLimit, rows)) {
+        if (options.rebuildIfNecessary) {
           // If we've specified to rebuild a stale index, rebuild it and try to query again
-          return _rebuildAndQuery(indexName, libraryId, visibility, opts, callback);
+          return _rebuildAndQuery(indexName, libraryId, visibility, options, callback);
         }
 
         // If we have not specified to rebuild and this index is stale, then warn that something funny is going on
@@ -483,7 +489,7 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
             indexName,
             libraryId,
             visibility,
-            opts,
+            opts: options,
             entries: rows
           },
           'Attempted to query a stale library without trying to rebuild the index'
@@ -492,7 +498,7 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
 
       let result = null;
       try {
-        result = _adjustColumnsForSlugs(indexName, libraryId, opts.start, opts.limit, rows, nextToken);
+        result = _adjustColumnsForSlugs(indexName, libraryId, options.start, options.limit, rows, nextToken);
       } catch {
         // There was an issue parsing the data, result with an error
         return callback({ err: 500, msg: 'An unexpected error occurred parsing library data' });
@@ -504,7 +510,7 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
             indexName,
             libraryId,
             visibility,
-            opts
+            opts: options
           },
           result
         },
@@ -531,17 +537,17 @@ const _query = function(indexName, libraryId, visibility, opts, callback) {
  * @param  {String}     callback.nextToken      The value that can be used as the `opts.start` parameter for the next query to get the next page of items
  * @api private
  */
-const _rebuildAndQuery = function(indexName, libraryId, visibility, opts, callback) {
+const _rebuildAndQuery = function (indexName, libraryId, visibility, options, callback) {
   // Completely delete and rebuild the library index
-  _rebuild(indexName, libraryId, err => {
-    if (err) {
-      return callback(err);
+  _rebuild(indexName, libraryId, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // We've just rebuilt. Query, but *do not* rebuild again if it still looks like we aren't
     // rebuilt -- this would probably be a bug. We don't want any potential bugs to result in an
     // infinite loop of rebuilding and querying. Ouch!
-    _query(indexName, libraryId, visibility, { start: opts.start, limit: opts.limit }, callback);
+    _query(indexName, libraryId, visibility, { start: options.start, limit: options.limit }, callback);
   });
 };
 
@@ -554,15 +560,15 @@ const _rebuildAndQuery = function(indexName, libraryId, visibility, opts, callba
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _rebuild = function(indexName, libraryId, callback) {
-  purge(indexName, libraryId, err => {
-    if (err) {
-      return callback(err);
+const _rebuild = function (indexName, libraryId, callback) {
+  purge(indexName, libraryId, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Build the queries to seed all of the visibility buckets with the low and high slugs
     const seedLibraryQueries = [];
-    _.each(AuthzConstants.visibility.ALL_PRIORITY, visibility => {
+    _.each(AuthzConstants.visibility.ALL_PRIORITY, (visibility) => {
       const bucketKey = _createBucketKey(indexName, libraryId, visibility);
       seedLibraryQueries.push(
         {
@@ -578,9 +584,9 @@ const _rebuild = function(indexName, libraryId, callback) {
 
     // Add the slugs into the library index so we don't thrash it with rebuilds. The index will temporarily be empty
     // or incomplete while the rebuild process takes place
-    Cassandra.runBatchQuery(seedLibraryQueries, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runBatchQuery(seedLibraryQueries, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Build the index after it has been destroyed and seeded
@@ -598,7 +604,7 @@ const _rebuild = function(indexName, libraryId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _build = function(indexName, libraryId, callback, _nextToken) {
+const _build = function (indexName, libraryId, callback, _nextToken) {
   if (_nextToken === null) {
     return callback();
   }
@@ -608,14 +614,14 @@ const _build = function(indexName, libraryId, callback, _nextToken) {
     return callback();
   }
 
-  registeredIndex.pageResources(libraryId, _nextToken, 100, (err, entries, nextToken) => {
-    if (err) {
-      return callback(err);
+  registeredIndex.pageResources(libraryId, _nextToken, 100, (error, entries, nextToken) => {
+    if (error) {
+      return callback(error);
     }
 
     nextToken = nextToken || null;
 
-    const indexEntries = _.map(entries, entry => {
+    const indexEntries = _.map(entries, (entry) => {
       return {
         libraryId,
         rank: entry.rank,
@@ -626,11 +632,11 @@ const _build = function(indexName, libraryId, callback, _nextToken) {
     });
 
     // Insert all the index entries
-    _insert(indexName, indexEntries, err => {
-      if (err) {
+    _insert(indexName, indexEntries, (error_) => {
+      if (error_) {
         log().warn(
           {
-            err,
+            err: error_,
             indexName,
             libraryId
           },
@@ -658,9 +664,9 @@ const _build = function(indexName, libraryId, callback, _nextToken) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @api private
  */
-const _insert = function(indexName, indexEntries, callback) {
+const _insert = function (indexName, indexEntries, callback) {
   const queries = [];
-  _.each(indexEntries, indexEntry => {
+  _.each(indexEntries, (indexEntry) => {
     // Get the index entry key (rankedResourceId) and the index entry value (JSON stringified value)
     const rankedResourceId = _createRankedResourceId(indexEntry.resourceId, indexEntry.rank);
     let value = _.isNull(indexEntry.value) || _.isUndefined(indexEntry.value) ? DEFAULT_VALUE : indexEntry.value;
@@ -676,7 +682,7 @@ const _insert = function(indexName, indexEntries, callback) {
     const visibilitiesToInsert = AuthzConstants.visibility.ALL_PRIORITY.slice(visibilityIndex);
 
     // Add each visibility bucket insert into the aggregated list of queries
-    _.each(visibilitiesToInsert, visibility => {
+    _.each(visibilitiesToInsert, (visibility) => {
       queries.push({
         query: 'INSERT INTO "LibraryIndex" ("bucketKey", "rankedResourceId", "value") VALUES (?, ?, ?)',
         parameters: [_createBucketKey(indexName, indexEntry.libraryId, visibility), rankedResourceId, value]
@@ -704,12 +710,12 @@ const _insert = function(indexName, indexEntries, callback) {
  * @return {Boolean}                `true` if the rows indicate that the library index is stale, `false` otherwise
  * @api private
  */
-const _isStaleLibraryIndex = function(start, limit, rows) {
-  const slugHighColumn = _.find(rows, row => {
+const _isStaleLibraryIndex = function (start, limit, rows) {
+  const slugHighColumn = _.find(rows, (row) => {
     return row.get('rankedResourceId') === SLUG_HIGH;
   });
 
-  const slugLowColumn = _.find(rows, row => {
+  const slugLowColumn = _.find(rows, (row) => {
     return row.get('rankedResourceId') === SLUG_LOW;
   });
 
@@ -751,13 +757,13 @@ const _isStaleLibraryIndex = function(start, limit, rows) {
  * @throws {Error}                  Logs and throws an exception if any of the rows contained values that were not parse-able to JSON
  * @api private
  */
-const _adjustColumnsForSlugs = function(indexName, libraryId, start, limit, rows, nextToken) {
+const _adjustColumnsForSlugs = function (indexName, libraryId, start, limit, rows, nextToken) {
   const result = {
     entries: [],
     nextToken
   };
 
-  _.each(rows, row => {
+  _.each(rows, (row) => {
     const rankedResourceId = row.get('rankedResourceId');
     let value = null;
 
@@ -814,8 +820,8 @@ const _adjustColumnsForSlugs = function(indexName, libraryId, start, limit, rows
  * @return {String}                 The bucket key
  * @api private
  */
-const _createBucketKey = function(indexName, indexKey, bucketName) {
-  return util.format('%s#%s#%s', indexName, indexKey, bucketName);
+const _createBucketKey = function (indexName, indexKey, bucketName) {
+  return format('%s#%s#%s', indexName, indexKey, bucketName);
 };
 
 /**
@@ -827,9 +833,8 @@ const _createBucketKey = function(indexName, indexKey, bucketName) {
  * @return {String}                     The key to use as the column name in the index
  * @api private
  */
-const _createRankedResourceId = function(resourceId, rank) {
-  rank = rank || 0;
-  return util.format('%s#%s', rank, resourceId);
+const _createRankedResourceId = function (resourceId, rank = 0) {
+  return format('%s#%s', rank, resourceId);
 };
 
 /**
@@ -841,7 +846,7 @@ const _createRankedResourceId = function(resourceId, rank) {
  * @param  {String}     callback.rank           The rank (string representation of the number if it was a number) of the resourceKey in the index
  * @api private
  */
-const _splitRankedResourceId = function(rankedResourceId, callback) {
+const _splitRankedResourceId = function (rankedResourceId, callback) {
   const parts = rankedResourceId.split('#');
   return callback(parts.slice(1).join('#'), parts[0]);
 };

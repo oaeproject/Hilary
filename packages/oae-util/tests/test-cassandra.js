@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as OaeUtil from 'oae-util/lib/util';
@@ -32,32 +33,32 @@ describe('Utilities', () => {
     /**
      * Test that will validate that keyspaces can be created, checked and dropped
      */
-    it('verify keyspaces', callback => {
+    it('verify keyspaces', (callback) => {
       // Create a key space
       const keyspace = TestsUtil.generateTestCassandraName();
-      Cassandra.createKeyspace(keyspace, (err, created) => {
-        assert.notExists(err);
+      Cassandra.createKeyspace(keyspace, (error, created) => {
+        assert.notExists(error);
         assert.ok(created);
 
         // Check that the keyspace exists
-        Cassandra.keyspaceExists(keyspace, (err, exists) => {
-          assert.notExists(err);
+        Cassandra.keyspaceExists(keyspace, (error, exists) => {
+          assert.notExists(error);
           assert.ok(exists);
 
           // Check that a non-existing keyspace doesn't exist
           const nonExistingKeyspace = TestsUtil.generateTestCassandraName();
-          Cassandra.keyspaceExists(nonExistingKeyspace, (err, exists) => {
-            assert.notExists(err);
+          Cassandra.keyspaceExists(nonExistingKeyspace, (error, exists) => {
+            assert.notExists(error);
             assert.isNotOk(exists);
 
             // Drop the created keyspace
-            Cassandra.dropKeyspace(keyspace, (err, dropped) => {
-              assert.notExists(err);
+            Cassandra.dropKeyspace(keyspace, (error, dropped) => {
+              assert.notExists(error);
               assert.ok(dropped);
 
               // Check that a non-existing keyspace can't be dropped
-              Cassandra.dropKeyspace(keyspace, (err /* , dropped */) => {
-                assert.ok(err);
+              Cassandra.dropKeyspace(keyspace, (error /* , dropped */) => {
+                assert.ok(error);
                 callback();
               });
             });
@@ -69,39 +70,39 @@ describe('Utilities', () => {
     /**
      * Test that it is possible to create, check and drop column families.
      */
-    it('verify create, verify and drop column family', callback => {
+    it('verify create, verify and drop column family', (callback) => {
       // Create a column family
       const name = TestsUtil.generateTestCassandraName();
       Cassandra.createColumnFamily(
         name,
         `CREATE TABLE "${name}" ("keyId" text PRIMARY KEY, "value" text)`,
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           // Try and create it again, ensuring nothing gets created
           Cassandra.createColumnFamily(
             name,
             `CREATE TABLE "${name}" ("keyId" text PRIMARY KEY, "value" text) WITH COMPACT STORAGE`,
-            (err, created) => {
-              assert.notExists(err);
+            (error, created) => {
+              assert.notExists(error);
               assert.isNotOk(created);
 
               // Drop the table
-              Cassandra.dropColumnFamily(name, err => {
-                assert.notExists(err);
+              Cassandra.dropColumnFamily(name, (error_) => {
+                assert.notExists(error_);
 
                 // Make sure it's gone by creating a new one in its place and see if something was created
                 Cassandra.createColumnFamily(
                   name,
                   `CREATE TABLE "${name}" ("keyId" text PRIMARY KEY, "value" text) WITH COMPACT STORAGE`,
-                  (err, created) => {
-                    assert.notExists(err);
+                  (error, created) => {
+                    assert.notExists(error);
                     assert.ok(created);
 
                     // Drop it again
-                    Cassandra.dropColumnFamily(name, err => {
-                      assert.notExists(err);
+                    Cassandra.dropColumnFamily(name, (error_) => {
+                      assert.notExists(error_);
                       return callback();
                     });
                   }
@@ -116,7 +117,7 @@ describe('Utilities', () => {
     /**
      * Test that it is possible to create, check and drop multiple columnfamilies at once.
      */
-    it('verify multiple column families', callback => {
+    it('verify multiple column families', (callback) => {
       const name1 = TestsUtil.generateTestCassandraName();
       const name2 = TestsUtil.generateTestCassandraName();
 
@@ -125,29 +126,29 @@ describe('Utilities', () => {
           name1: `CREATE TABLE "${name1}" ("keyId" text, "column" text, "value" text, PRIMARY KEY ("keyId", "column")) WITH COMPACT STORAGE`,
           name2: `CREATE TABLE "${name2}" ("keyId" text, "column" text, "value" text, PRIMARY KEY ("keyId", "column")) WITH COMPACT STORAGE`
         },
-        err => {
-          assert.notExists(err);
+        (error) => {
+          assert.notExists(error);
 
           // Ensure both column families exist
-          Cassandra.columnFamilyExists(name1, (err, exists) => {
-            assert.notExists(err);
+          Cassandra.columnFamilyExists(name1, (error, exists) => {
+            assert.notExists(error);
             assert.ok(exists);
 
-            Cassandra.columnFamilyExists(name2, (err, exists) => {
-              assert.notExists(err);
+            Cassandra.columnFamilyExists(name2, (error, exists) => {
+              assert.notExists(error);
               assert.ok(exists);
 
               // Drop them
-              Cassandra.dropColumnFamilies([name1, name2], err => {
-                assert.notExists(err);
+              Cassandra.dropColumnFamilies([name1, name2], (error_) => {
+                assert.notExists(error_);
 
                 // Ensure they no longer exist
-                Cassandra.columnFamilyExists(name1, (err, exists) => {
-                  assert.notExists(err);
+                Cassandra.columnFamilyExists(name1, (error, exists) => {
+                  assert.notExists(error);
                   assert.isNotOk(exists);
 
-                  Cassandra.columnFamilyExists(name2, (err, exists) => {
-                    assert.notExists(err);
+                  Cassandra.columnFamilyExists(name2, (error, exists) => {
+                    assert.notExists(error);
                     assert.isNotOk(exists);
                     callback();
                   });
@@ -162,38 +163,40 @@ describe('Utilities', () => {
     /**
      * Test the runQuery function, making sure that null and undefined values are handled appropriately
      */
-    it('verify run query', callback => {
+    it('verify run query', (callback) => {
       // Create a CF first
       Cassandra.createColumnFamily(
         'testQuery',
         `CREATE TABLE "testQuery" ("keyId" text PRIMARY KEY, "c1" text, "c2" text)`,
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
           // Check if the CF exists
-          Cassandra.columnFamilyExists('testQuery', (err, exists) => {
-            assert.notExists(err);
+          Cassandra.columnFamilyExists('testQuery', (error, exists) => {
+            assert.notExists(error);
             assert.ok(exists);
             // Try to run a simple insert
             Cassandra.runQuery(
               `INSERT INTO "testQuery" ("keyId", "c1", "c2") VALUES (?, ?, ?)`,
               ['key1', 'value1', 'value2'],
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
                 // Try to run an invalid insert
                 Cassandra.runQuery(
                   `INSERT INTO "testQuery" ("keyId", "c1", "c2") VALUES (?, ?, ?)`,
                   ['key2', 'value', null],
-                  err => {
-                    assert.ok(err);
+                  (error_) => {
+                    assert.ok(error_);
                     // Try to run a simple select
-                    Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, ['key1'], (err, rows) => {
-                      assert.notExists(err);
+                    Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, ['key1'], (error, rows) => {
+                      assert.notExists(error);
                       assert.lengthOf(rows, 1);
                       assert.strictEqual(rows[0].get('keyId'), 'key1');
                       // Try to run an invalid select
-                      Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, [null], (err /* , rows */) => {
-                        assert.ok(err);
+                      Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, [null], (
+                        error /* , rows */
+                      ) => {
+                        assert.ok(error);
                         callback();
                       });
                     });
@@ -209,15 +212,15 @@ describe('Utilities', () => {
     /**
      * Test that verifies iterateAll on empty CF invokes callback only once
      */
-    it('verify iterateAll on empty column family', callback => {
+    it('verify iterateAll on empty column family', (callback) => {
       Cassandra.createColumnFamily(
         'testIterateAllEmpty',
         'CREATE TABLE "testIterateAllEmpty" ("keyId" text PRIMARY KEY, "colOne" text, "colTwo" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
-          let numInvoked = 0;
+          let numberInvoked = 0;
 
           // Verify the callback is only invoked once, and when it does it is marked complete, without an error
           Cassandra.iterateAll(
@@ -226,13 +229,13 @@ describe('Utilities', () => {
             'keyId',
             null,
             (rows, done) => {
-              assert.isNotOk(err, 'Did not expect an error');
+              assert.isNotOk(error, 'Did not expect an error');
               assert.isNotOk(rows, 'Expected no rows to be specified');
-              assert.strictEqual(++numInvoked, 1, 'Expected onEach to only be invoked once');
+              assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
               done();
             },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
               callback();
             }
           );
@@ -243,12 +246,12 @@ describe('Utilities', () => {
     /**
      * Test that verifies iterateAll will return an exception as an error if one is thrown by the onEach
      */
-    it('verify iterateAll on exception breaks out of iteration', callback => {
+    it('verify iterateAll on exception breaks out of iteration', (callback) => {
       Cassandra.createColumnFamily(
         'testIterateAllException',
         'CREATE TABLE "testIterateAllException" ("keyId" text PRIMARY KEY, "colOne" text, "colTwo" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           let invoked = false;
@@ -259,8 +262,8 @@ describe('Utilities', () => {
               colTwo: 'two'
             })
           );
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
             Cassandra.iterateAll(
               null,
@@ -277,11 +280,11 @@ describe('Utilities', () => {
                 // eslint-disable-next-line no-throw-literal
                 throw { message: "I'm an annoying error!" };
               },
-              err => {
+              (error_) => {
                 // Verify we got the error we threw from the onEach, and that we only invoked once
-                assert.ok(err);
-                assert.strictEqual(err.code, 500);
-                assert.strictEqual(err.msg, "I'm an annoying error!");
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 500);
+                assert.strictEqual(error_.msg, "I'm an annoying error!");
                 assert.ok(invoked);
                 callback();
               }
@@ -294,12 +297,12 @@ describe('Utilities', () => {
     /**
      * Test that verifies iterateAll with no column names or specified column names
      */
-    it('verify iterateAll column names', callback => {
+    it('verify iterateAll column names', (callback) => {
       Cassandra.createColumnFamily(
         'testIterateAllAllColumns',
         'CREATE TABLE "testIterateAllAllColumns" ("keyId" text PRIMARY KEY, "colOne" text, "colTwo" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           const batch = [];
@@ -309,16 +312,16 @@ describe('Utilities', () => {
               colTwo: 'two'
             })
           );
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
-            let numInvoked = 0;
+            let numberInvoked = 0;
 
             /*!
              * Verifies that the onEach is invoked only once and that only one row is returned
              */
-            const _onEach = function(rows, done) {
-              assert.strictEqual(++numInvoked, 1, 'Expected onEach to only be invoked once');
+            const _onEach = function (rows, done) {
+              assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
               assert.ok(rows, 'Expected there to be rows provided to the onEach');
               assert.strictEqual(rows.length, 1, 'Expected there to be exactly one row');
 
@@ -331,17 +334,17 @@ describe('Utilities', () => {
             };
 
             // Verify the callback is only invoked once, and when it does it is marked complete, without an error
-            Cassandra.iterateAll(null, 'testIterateAllAllColumns', 'keyId', null, _onEach, err => {
-              assert.notExists(err);
+            Cassandra.iterateAll(null, 'testIterateAllAllColumns', 'keyId', null, _onEach, (error__) => {
+              assert.notExists(error__);
 
-              numInvoked = 0;
+              numberInvoked = 0;
 
               /*!
                * Verifies that the onEach is invoked only once, that only one row is returned and it only contains
                * the colOne column
                */
-              const _onEach = function(rows, done) {
-                assert.strictEqual(++numInvoked, 1, 'Expected onEach to only be invoked once');
+              const _onEach = function (rows, done) {
+                assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
                 assert.ok(rows, 'Expected a rows object to be specified');
                 assert.strictEqual(rows.length, 1, 'Expected there to be exactly one row');
 
@@ -354,8 +357,8 @@ describe('Utilities', () => {
               };
 
               // Iterate all again with just one column specified and verify only the one column returns
-              Cassandra.iterateAll(['colOne'], 'testIterateAllAllColumns', 'keyId', null, _onEach, err => {
-                assert.isNotOk(err, JSON.stringify(err, null, 2));
+              Cassandra.iterateAll(['colOne'], 'testIterateAllAllColumns', 'keyId', null, _onEach, (error_) => {
+                assert.isNotOk(error_, JSON.stringify(error_, null, 2));
                 return callback();
               });
             });
@@ -367,12 +370,12 @@ describe('Utilities', () => {
     /**
      * Test that verifies exclusive paging in iterateAll
      */
-    it('verify iterateAll paging', callback => {
+    it('verify iterateAll paging', (callback) => {
       Cassandra.createColumnFamily(
         'testIterateAllPaging',
         'CREATE TABLE "testIterateAllPaging" ("keyId" text PRIMARY KEY, "colOne" text, "colTwo" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           // Create 10 rows to page through
@@ -386,18 +389,18 @@ describe('Utilities', () => {
             );
           }
 
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
-            let numInvoked = 0;
+            let numberInvoked = 0;
             let allRows = {};
 
             /*!
              * Verifies that we receive exactly one row at a time, and aggregates them so we can inspect their
              * data when finished.
              */
-            const _onEach = function(rows, done) {
-              numInvoked++;
+            const _onEach = function (rows, done) {
+              numberInvoked++;
               // Store the row so we can verify them all later
               assert.strictEqual(rows.length, 1, 'Expected to only get 1 row at a time');
               allRows[rows[0].get('keyId')] = rows[0];
@@ -406,9 +409,9 @@ describe('Utilities', () => {
             };
 
             // Verify paging all 10 items by batches of size 1
-            Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 1 }, _onEach, err => {
-              assert.isNotOk(err, JSON.stringify(err, null, 4));
-              assert.strictEqual(numInvoked, 10, 'Expected to have exactly 10 batches of data');
+            Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 1 }, _onEach, (error__) => {
+              assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+              assert.strictEqual(numberInvoked, 10, 'Expected to have exactly 10 batches of data');
 
               // Verify the contents of all the rows
               assert.strictEqual(keys(allRows).length, 10, 'Expected exactly 10 distinct rows');
@@ -420,15 +423,15 @@ describe('Utilities', () => {
               }
 
               // Verify paging of all 10 items by batches of size 5
-              numInvoked = 0;
+              numberInvoked = 0;
               allRows = {};
 
               /*!
                * Verifies that the onEach is invoked with 5 rows at a time, and aggregates them so we can
                * inspect their data when finished.
                */
-              const _onEach = function(rows, done) {
-                numInvoked++;
+              const _onEach = function (rows, done) {
+                numberInvoked++;
                 // Record the rows so we can verify their contents at the end
                 assert.strictEqual(rows.length, 5);
                 for (let i = 0; i < 5; i++) {
@@ -438,9 +441,9 @@ describe('Utilities', () => {
                 done();
               };
 
-              Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 5 }, _onEach, err => {
-                assert.isNotOk(err, JSON.stringify(err, null, 4));
-                assert.strictEqual(numInvoked, 2, 'Expected the onEach to be invoked exactly 2 times');
+              Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 5 }, _onEach, (error__) => {
+                assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+                assert.strictEqual(numberInvoked, 2, 'Expected the onEach to be invoked exactly 2 times');
 
                 // Verify the contents of all the rows
                 assert.strictEqual(keys(allRows).length, 10);
@@ -452,16 +455,16 @@ describe('Utilities', () => {
                 }
 
                 // Verify paging of all 10 items by batches of size 7
-                numInvoked = 0;
+                numberInvoked = 0;
                 allRows = {};
 
                 /*!
                  * Verifies that the onEach is called once with 7 rows, and then once with 3 rows, and aggregates
                  * them so we can inspect their data when finished.
                  */
-                const _onEach = function(rows, done) {
-                  numInvoked++;
-                  if (numInvoked === 1) {
+                const _onEach = function (rows, done) {
+                  numberInvoked++;
+                  if (numberInvoked === 1) {
                     assert.ok(rows);
 
                     // The first batch should contain exactly 7 rows. Record them to verify the data when done iterating.
@@ -469,7 +472,7 @@ describe('Utilities', () => {
                     for (let i = 0; i < 7; i++) {
                       allRows[rows[i].get('keyId')] = rows[i];
                     }
-                  } else if (numInvoked === 2) {
+                  } else if (numberInvoked === 2) {
                     assert.ok(rows);
 
                     // The second batch should contain exactly 3 rows. Record them to verify the data when done iterating.
@@ -482,9 +485,9 @@ describe('Utilities', () => {
                   done();
                 };
 
-                Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 7 }, _onEach, err => {
-                  assert.isNotOk(err, JSON.stringify(err, null, 4));
-                  assert.strictEqual(numInvoked, 2, 'Expected the onEach callback to be invoked exactly twice');
+                Cassandra.iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 7 }, _onEach, (error__) => {
+                  assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+                  assert.strictEqual(numberInvoked, 2, 'Expected the onEach callback to be invoked exactly twice');
 
                   // Verify the contents of all the rows
                   assert.strictEqual(keys(allRows).length, 10);
@@ -508,18 +511,18 @@ describe('Utilities', () => {
     /**
      * Test the runBatchQuery function, making sure that changes from both queries are persisted
      */
-    it('verify run batch query', callback => {
+    it('verify run batch query', (callback) => {
       // Create a CF first
       Cassandra.createColumnFamily(
         'testBatchQuery',
         'CREATE TABLE "testBatchQuery" ("keyId" text PRIMARY KEY, "c1" text, "c2" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           // Check if the CF exists
-          Cassandra.columnFamilyExists('testBatchQuery', (err, exists) => {
-            assert.notExists(err);
+          Cassandra.columnFamilyExists('testBatchQuery', (error, exists) => {
+            assert.notExists(error);
             assert.ok(exists);
 
             // Run a batched query
@@ -533,15 +536,15 @@ describe('Utilities', () => {
                 parameters: ['key2', 'value3', 'value4']
               }
             ];
-            Cassandra.runBatchQuery(queries, err => {
-              assert.notExists(err);
+            Cassandra.runBatchQuery(queries, (error_) => {
+              assert.notExists(error_);
 
               // Verify all the rows are in the table
               Cassandra.runQuery(
                 'SELECT * FROM "testBatchQuery" WHERE "keyId" IN ?',
                 [['key1', 'key2']],
-                (err, rows) => {
-                  assert.notExists(err);
+                (error, rows) => {
+                  assert.notExists(error);
                   assert.ok(rows.length, 2);
                   assert.lengthOf(rows[0].keys(), 3);
                   assert.lengthOf(rows[0].values(), 3);
@@ -554,8 +557,8 @@ describe('Utilities', () => {
                   assert.strictEqual(rows[1].get('c2'), 'value4');
 
                   // Try running it without any queries
-                  Cassandra.runBatchQuery([], err => {
-                    assert.notExists(err);
+                  Cassandra.runBatchQuery([], (error_) => {
+                    assert.notExists(error_);
                     callback();
                   });
                 }
@@ -569,23 +572,23 @@ describe('Utilities', () => {
     /**
      * Test casting to a Boolean
      */
-    it('verify casting to a Boolean', callback => {
+    it('verify casting to a Boolean', (callback) => {
       Cassandra.createColumnFamily(
         'testBooleans',
         'CREATE TABLE "testBooleans" ("keyId" text PRIMARY KEY, "testbool" text, "testnumbool" text, "teststring" text)',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
           Cassandra.runQuery(
             'INSERT INTO "testBooleans" ("keyId", "testbool", "testnumbool", "teststring") VALUES (?, ?, ?, ?)',
             ['testkey', 'true', '0', 'notaboolean'],
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
               Cassandra.runQuery(
                 'SELECT "testbool", "testnumbool", "teststring" FROM "testBooleans" WHERE "keyId" = ?',
                 ['testkey'],
-                (err, rows) => {
-                  assert.notExists(err);
+                (error, rows) => {
+                  assert.notExists(error);
                   assert.strictEqual(typeof OaeUtil.castToBoolean(head(rows).get('testbool')), 'boolean');
                   assert.strictEqual(typeof OaeUtil.castToBoolean(head(rows).get('testnumbool')), 'boolean');
                   assert.strictEqual(typeof OaeUtil.castToBoolean(head(rows).get('teststring')), 'string');
@@ -602,7 +605,7 @@ describe('Utilities', () => {
      * Test whether the constructUpsertCQL works as expected, making sure that invalid parameters
      * are handled appropriately
      */
-    it('verify construct upsert', callback => {
+    it('verify construct upsert', (callback) => {
       // Test an invalid call with no provided cf
       const query1 = Cassandra.constructUpsertCQL(null, 'testId', 'testValue', { key1: 'value1' });
       assert.isNotOk(query1);
@@ -676,20 +679,20 @@ describe('Utilities', () => {
       let hasObject = false;
       let hasArray = false;
 
-      forEach(param => {
+      forEach((parameter) => {
         try {
-          param = JSON.parse(param);
+          parameter = JSON.parse(parameter);
         } catch (error) {
           return error;
         }
 
-        if (isArray(param)) {
+        if (isArray(parameter)) {
           hasArray = true;
-          assert.strictEqual(param[0], 'index0');
-          assert.strictEqual(param[1], 'index1');
-        } else if (isObject(param)) {
+          assert.strictEqual(parameter[0], 'index0');
+          assert.strictEqual(parameter[1], 'index1');
+        } else if (isObject(parameter)) {
           hasObject = true;
-          assert.strictEqual(param.anobject, 'a value');
+          assert.strictEqual(parameter.anobject, 'a value');
         }
       }, query8.parameters);
 
@@ -703,17 +706,17 @@ describe('Utilities', () => {
     /**
      * Test that verifies the functionality of paging rows in a dynamic column family
      */
-    it('verify paging rows of compact storage tables', callback => {
+    it('verify paging rows of compact storage tables', (callback) => {
       // Set up column family and data used for paging
       Cassandra.createColumnFamily(
         'VerifyPagedColumnQueryStartAndEnd',
         'CREATE TABLE "VerifyPagedColumnQueryStartAndEnd" ("keyId" text, "columnName" text, "value" text, PRIMARY KEY("keyId", "columnName")) WITH COMPACT STORAGE',
-        (err /* , created */) => {
-          assert.notExists(err);
+        (error /* , created */) => {
+          assert.notExists(error);
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
           const someLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'];
-          const batch = map(columnName => {
+          const batch = map((columnName) => {
             return Cassandra.constructUpsertCQL(
               'VerifyPagedColumnQueryStartAndEnd',
               ['keyId', 'columnName'],
@@ -722,8 +725,8 @@ describe('Utilities', () => {
             );
           }, someLetters);
 
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
             // Verify inclusive end works with unbounded start (forward)
             Cassandra.runPagedQuery(
@@ -734,8 +737,8 @@ describe('Utilities', () => {
               null,
               8,
               { end: 'a' },
-              (err, rows, nextToken, startMatched) => {
-                assert.notExists(err);
+              (error, rows, nextToken, startMatched) => {
+                assert.notExists(error);
                 assert.ok(rows);
                 assert.strictEqual(startMatched, false);
 
@@ -751,8 +754,8 @@ describe('Utilities', () => {
                   null,
                   8,
                   { end: 'j' },
-                  (err, rows, nextToken, startMatched) => {
-                    assert.notExists(err);
+                  (error, rows, nextToken, startMatched) => {
+                    assert.notExists(error);
                     assert.ok(rows);
                     assert.strictEqual(startMatched, false);
 
@@ -776,8 +779,8 @@ describe('Utilities', () => {
                       null,
                       8,
                       { reversed: true, end: 'm' },
-                      (err, rows, nextToken, startMatched) => {
-                        assert.notExists(err);
+                      (error, rows, nextToken, startMatched) => {
+                        assert.notExists(error);
                         assert.ok(rows);
                         assert.strictEqual(startMatched, false);
 
@@ -793,8 +796,8 @@ describe('Utilities', () => {
                           null,
                           8,
                           { reversed: true, end: 'c' },
-                          (err, rows, nextToken, startMatched) => {
-                            assert.notExists(err);
+                          (error, rows, nextToken, startMatched) => {
+                            assert.notExists(error);
                             assert.ok(rows);
                             assert.strictEqual(startMatched, false);
 
@@ -826,16 +829,16 @@ describe('Utilities', () => {
     /**
      * Test that ensures the CQL3 bug: https://issues.apache.org/jira/browse/CASSANDRA-6330 is fixed
      */
-    it('verify a strict upper bound on range query does not result in one less item than requested with limit', callback => {
+    it('verify a strict upper bound on range query does not result in one less item than requested with limit', (callback) => {
       Cassandra.createColumnFamily(
         'VerifyCassandra6330',
         'CREATE TABLE "VerifyCassandra6330" ("keyId" text, "column" text, "value" text, PRIMARY KEY ("keyId", "column")) WITH COMPACT STORAGE',
-        (err /* , created */) => {
-          assert.notExists(err);
+        (error /* , created */) => {
+          assert.notExists(error);
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
           const batch = map(
-            columnName => {
+            (columnName) => {
               return Cassandra.constructUpsertCQL('VerifyCassandra6330', ['keyId', 'column'], ['key', columnName], {
                 value: '1'
               });
@@ -843,14 +846,14 @@ describe('Utilities', () => {
             ['a', 'b', 'c', 'd', 'e']
           );
 
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
             Cassandra.runQuery(
               'SELECT "column" FROM "VerifyCassandra6330" WHERE "keyId" = ? AND "column" < ? ORDER BY "column" DESC LIMIT 2',
               ['key', 'c'],
-              (err, rows) => {
-                assert.notExists(err);
+              (error, rows) => {
+                assert.notExists(error);
 
                 // We asked for 2 items, and there were 2 to fetch (a and b), we get both. If the bug were still in effect we'd get 1 as
                 // described in https://issues.apache.org/jira/browse/CASSANDRA-6330
@@ -869,15 +872,15 @@ describe('Utilities', () => {
      *
      * @see https://issues.apache.org/jira/browse/CASSANDRA-7052
      */
-    it('verify a strict upper bound on range query results in one more item than requested with limit', callback => {
+    it('verify a strict upper bound on range query results in one more item than requested with limit', (callback) => {
       Cassandra.createColumnFamily(
         'VerifyCassandra7052',
         'CREATE TABLE "VerifyCassandra7052" ("keyId" text, "column" text, "value" text, PRIMARY KEY ("keyId", "column")) WITH COMPACT STORAGE',
-        (err /* , created */) => {
-          assert.notExists(err);
+        (error /* , created */) => {
+          assert.notExists(error);
 
           const batch = map(
-            columnName => {
+            (columnName) => {
               return Cassandra.constructUpsertCQL('VerifyCassandra7052', ['keyId', 'column'], ['key', columnName], {
                 value: '1'
               });
@@ -885,14 +888,14 @@ describe('Utilities', () => {
             ['a', 'b', 'c', 'd', 'e']
           );
 
-          Cassandra.runBatchQuery(batch, err => {
-            assert.notExists(err);
+          Cassandra.runBatchQuery(batch, (error_) => {
+            assert.notExists(error_);
 
             Cassandra.runQuery(
               'SELECT "column" FROM "VerifyCassandra7052" WHERE "keyId" = ? AND "column" <= ? LIMIT 2',
               ['key', 'e'],
-              (err, rows) => {
-                assert.notExists(err);
+              (error, rows) => {
+                assert.notExists(error);
 
                 // We asked for 2 items, if the bug is present we get 3
                 assert.strictEqual(rows.length, 2);
@@ -909,12 +912,12 @@ describe('Utilities', () => {
      * Test that verifies the paged column query handles multi-byte characters properly. This is a regression test for
      * https://github.com/oaeproject/Hilary/issues/443
      */
-    it('verify multi-byte character in paged column query', callback => {
+    it('verify multi-byte character in paged column query', (callback) => {
       Cassandra.createColumnFamily(
         'VerifyMultiBytePagedColumnQuery',
         'CREATE TABLE "VerifyMultiBytePagedColumnQuery" ("keyId" text, "column1" text, "value" text, PRIMARY KEY ("keyId", "column1")) WITH COMPACT STORAGE',
-        (err, created) => {
-          assert.notExists(err);
+        (error, created) => {
+          assert.notExists(error);
           assert.ok(created);
 
           const stringWithMultiByte = 'Foo O’bar';
@@ -922,8 +925,8 @@ describe('Utilities', () => {
           Cassandra.runQuery(
             'INSERT INTO "VerifyMultiBytePagedColumnQuery" ("keyId", "column1", "value") VALUES (?, ?, ?)',
             ['key1', stringWithMultiByte, '1'],
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               Cassandra.runPagedQuery(
                 'VerifyMultiBytePagedColumnQuery',
@@ -933,8 +936,8 @@ describe('Utilities', () => {
                 null,
                 10,
                 null,
-                (err, rows, nextToken, startMatched) => {
-                  assert.notExists(err);
+                (error, rows, nextToken, startMatched) => {
+                  assert.notExists(error);
                   assert.lengthOf(rows, 1);
                   assert.isNotOk(nextToken);
                   assert.isNotOk(startMatched);
@@ -951,14 +954,14 @@ describe('Utilities', () => {
     /**
      * Test that verifies truncation of query logging
      */
-    it('verify truncation of cassandra query log entries', callback => {
+    it('verify truncation of cassandra query log entries', (callback) => {
       // Create a large erroneous query whose query and parameters should
       // be truncated
       const invalidQuery = 'SELECT "LLLOOOOLLLLL" FROM "SOMETHING ELSE"';
       const invalidQueryLongerThan300 = invalidQuery + range(0, 300).join('');
 
       const longQueryMoreThan10 = invalidQueryLongerThan300 + '? ? ? ? ? ? ? ? ? ? ? ?';
-      const longParamsMoreThan10 = [
+      const longParametersMoreThan10 = [
         'short enough',
         // Entries longer than 80
         range(0, 100).join(''),
@@ -976,16 +979,16 @@ describe('Utilities', () => {
 
       // Run the invalid query then hook into the error log to continue
       // the test
-      Cassandra.runQuery(longQueryMoreThan10, longParamsMoreThan10, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 500);
-        assert.strictEqual(err.msg, 'An error occurred executing a query');
+      Cassandra.runQuery(longQueryMoreThan10, longParametersMoreThan10, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 500);
+        assert.strictEqual(error.msg, 'An error occurred executing a query');
       });
 
       // Hook into oae-cassandra's logger error function to ensure we get
       // the truncated data we want
       const cassandraLoggerError = cassandraLog().error;
-      cassandraLog().error = function(data, message) {
+      cassandraLog().error = function (data, message) {
         try {
           assert.strictEqual(message, 'An error occurred executing a cassandra query');
           assert.strictEqual(data.err.name, 'ResponseError');
@@ -1039,15 +1042,15 @@ describe('Utilities', () => {
         // Create a failing query with no parameters specified, then
         // hook into the error logger a second time to verify the new
         // log information
-        Cassandra.runQuery(invalidQueryLongerThan300, null, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 500);
-          assert.strictEqual(err.msg, 'An error occurred executing a query');
+        Cassandra.runQuery(invalidQueryLongerThan300, null, (error) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 500);
+          assert.strictEqual(error.msg, 'An error occurred executing a query');
         });
 
         // Hook into cassandra's error log to ensure that the
         // information is truncated as expected
-        cassandraLog().error = function(data, message) {
+        cassandraLog().error = function (data, message) {
           try {
             assert.strictEqual(message, 'An error occurred executing a cassandra query');
             assert.strictEqual(data.err.name, 'ResponseError');

@@ -14,6 +14,7 @@
  */
 
 import assert from 'assert';
+import { describe, it, beforeEach } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';
@@ -33,14 +34,14 @@ describe('Following Search', () => {
    * to re-create the rest contexts for each test so we can ensure our admin
    * session will always point to a valid principal record
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     camAnonymousRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     // Authenticate the global admin into a tenant so we can perform user-tenant requests with a global admin to test their access
-    RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (err, ctx) => {
-      assert.ok(!err);
+    RestAPI.Admin.loginOnTenant(TestsUtil.createGlobalAdminRestContext(), 'localhost', null, (error, ctx) => {
+      assert.ok(!error);
       globalAdminOnTenantRestContext = ctx;
       return callback();
     });
@@ -49,20 +50,20 @@ describe('Following Search', () => {
   /**
    * Test that verifies searching the following and followers lists results in a correct empty search result
    */
-  it('verify search with no followers or following', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+  it('verify search with no followers or following', (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, testUsers) => {
+      assert.ok(!error);
       const { 0: user } = testUsers;
 
-      RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (err, response) => {
-        assert.ok(!err);
+      RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (error, response) => {
+        assert.ok(!error);
         assert.ok(response);
         assert.strictEqual(response.total, 0);
         assert.ok(response.results);
         assert.strictEqual(response.results.length, 0);
 
-        RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (err, response) => {
-          assert.ok(!err);
+        RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (error, response) => {
+          assert.ok(!error);
           assert.ok(response);
           assert.strictEqual(response.total, 0);
           assert.ok(response.results);
@@ -76,31 +77,31 @@ describe('Following Search', () => {
   /**
    * Test that verifies validation of the following search
    */
-  it('verify validation of following search', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+  it('verify validation of following search', (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, testUsers) => {
+      assert.ok(!error);
       const { 0: user } = testUsers;
 
       // Ensure failure with a non-valid resource id
-      RestAPI.Search.search(user.restContext, 'following', ['not-a-valid-id'], null, (err, response) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+      RestAPI.Search.search(user.restContext, 'following', ['not-a-valid-id'], null, (error, response) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
         assert.ok(!response);
 
         // Ensure failure with group id instead of user id
-        RestAPI.Search.search(user.restContext, 'following', ['g:not-a:user-id'], null, (err, response) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+        RestAPI.Search.search(user.restContext, 'following', ['g:not-a:user-id'], null, (error, response) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
           assert.ok(!response);
 
           // Ensure failure with non-existent user id
-          RestAPI.Search.search(user.restContext, 'following', ['u:cam:nonExistentUserId'], null, (err, response) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 404);
+          RestAPI.Search.search(user.restContext, 'following', ['u:cam:nonExistentUserId'], null, (error, response) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 404);
             assert.ok(!response);
 
             // Sanity check a valid search
-            RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (err, response) => {
+            RestAPI.Search.search(user.restContext, 'following', [user.user.id], null, (error, response) => {
               assert.ok(response);
               assert.strictEqual(response.total, 0);
               assert.ok(response.results);
@@ -116,31 +117,31 @@ describe('Following Search', () => {
   /**
    * Test that verifies validation of the followers search
    */
-  it('verify validation of followers search', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 1, (err, testUsers) => {
-      assert.ok(!err);
+  it('verify validation of followers search', (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, testUsers) => {
+      assert.ok(!error);
       const { 0: user } = testUsers;
 
       // Ensure failure with a non-valid resource id
-      RestAPI.Search.search(user.restContext, 'followers', ['not-a-valid-id'], null, (err, response) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 400);
+      RestAPI.Search.search(user.restContext, 'followers', ['not-a-valid-id'], null, (error, response) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 400);
         assert.ok(!response);
 
         // Ensure failure with group id instead of user id
-        RestAPI.Search.search(user.restContext, 'followers', ['g:not-a:user-id'], null, (err, response) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+        RestAPI.Search.search(user.restContext, 'followers', ['g:not-a:user-id'], null, (error, response) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
           assert.ok(!response);
 
           // Ensure failure with non-existent user id
-          RestAPI.Search.search(user.restContext, 'followers', ['u:cam:nonExistentUserId'], null, (err, response) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 404);
+          RestAPI.Search.search(user.restContext, 'followers', ['u:cam:nonExistentUserId'], null, (error, response) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 404);
             assert.ok(!response);
 
             // Sanity check a valid search
-            RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (err, response) => {
+            RestAPI.Search.search(user.restContext, 'followers', [user.user.id], null, (error, response) => {
               assert.ok(response);
               assert.strictEqual(response.total, 0);
               assert.ok(response.results);
@@ -156,7 +157,7 @@ describe('Following Search', () => {
   /**
    * Test that verifies when someone follows someone, they appear in both the following and followers search of the respective users
    */
-  it('verify followers and following searches reflect follows and unfollows', callback => {
+  it('verify followers and following searches reflect follows and unfollows', (callback) => {
     // Create 2 users, one following the other
     FollowingTestsUtil.createFollowerAndFollowed(camAdminRestContext, (follower, followed) => {
       // Search the following feed of the follower and the followers feed of the followed user and ensure that the users appear in the respective results
@@ -170,8 +171,8 @@ describe('Following Search', () => {
           assert.ok(followedUserDoc);
 
           // Unfollow the user and ensure that neither appears in the feeds now
-          RestAPI.Following.unfollow(follower.restContext, followed.user.id, err => {
-            assert.ok(!err);
+          RestAPI.Following.unfollow(follower.restContext, followed.user.id, (error) => {
+            assert.ok(!error);
 
             // Perform the search on the follower and following feeds and ensure that the users no longer appear
             FollowingTestsUtil.searchFollowerAndFollowing(
@@ -194,51 +195,61 @@ describe('Following Search', () => {
   /**
    * Test that verifies the followers and following search privacy doesn't leak sensitive information
    */
-  it('verify follow search privacy', callback => {
-    TestsUtil.generateTestUsers(camAdminRestContext, 4, (err, testUsers) => {
+  it('verify follow search privacy', (callback) => {
+    TestsUtil.generateTestUsers(camAdminRestContext, 4, (error, testUsers) => {
       const { 0: privateUser, 1: loggedinUser, 2: publicUser, 3: bert } = testUsers;
 
-      RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, err => {
-        assert.ok(!err);
+      RestAPI.User.updateUser(privateUser.restContext, privateUser.user.id, { visibility: 'private' }, (error_) => {
+        assert.ok(!error_);
 
-        RestAPI.User.updateUser(loggedinUser.restContext, loggedinUser.user.id, { visibility: 'loggedin' }, err => {
-          assert.ok(!err);
+        RestAPI.User.updateUser(
+          loggedinUser.restContext,
+          loggedinUser.user.id,
+          { visibility: 'loggedin' },
+          (error_) => {
+            assert.ok(!error_);
 
-          // Verify anonymous can only see public follow searches
-          FollowingTestsUtil.assertNoSearchFeedAccess(
-            camAnonymousRestContext,
-            [privateUser.user.id, loggedinUser.user.id],
-            401,
-            () => {
-              FollowingTestsUtil.assertHasFollowFeedAccess(camAnonymousRestContext, [publicUser.user.id], () => {
-                // Verify gt admin can only see public follow searches
-                FollowingTestsUtil.assertNoSearchFeedAccess(
-                  gtAdminRestContext,
-                  [privateUser.user.id, loggedinUser.user.id],
-                  401,
-                  () => {
-                    FollowingTestsUtil.assertHasSearchFeedAccess(gtAdminRestContext, [publicUser.user.id], () => {
-                      // Verify bert can see only public and loggedin follow searches
-                      FollowingTestsUtil.assertNoSearchFeedAccess(bert.restContext, [privateUser.user.id], 401, () => {
-                        FollowingTestsUtil.assertHasSearchFeedAccess(
+            // Verify anonymous can only see public follow searches
+            FollowingTestsUtil.assertNoSearchFeedAccess(
+              camAnonymousRestContext,
+              [privateUser.user.id, loggedinUser.user.id],
+              401,
+              () => {
+                FollowingTestsUtil.assertHasFollowFeedAccess(camAnonymousRestContext, [publicUser.user.id], () => {
+                  // Verify gt admin can only see public follow searches
+                  FollowingTestsUtil.assertNoSearchFeedAccess(
+                    gtAdminRestContext,
+                    [privateUser.user.id, loggedinUser.user.id],
+                    401,
+                    () => {
+                      FollowingTestsUtil.assertHasSearchFeedAccess(gtAdminRestContext, [publicUser.user.id], () => {
+                        // Verify bert can see only public and loggedin follow searches
+                        FollowingTestsUtil.assertNoSearchFeedAccess(
                           bert.restContext,
-                          [publicUser.user.id, loggedinUser.user.id],
+                          [privateUser.user.id],
+                          401,
                           () => {
-                            // Verify private user can see follow searches
                             FollowingTestsUtil.assertHasSearchFeedAccess(
-                              privateUser.restContext,
-                              [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                              bert.restContext,
+                              [publicUser.user.id, loggedinUser.user.id],
                               () => {
-                                // Verify cam admin can see follow searches
+                                // Verify private user can see follow searches
                                 FollowingTestsUtil.assertHasSearchFeedAccess(
-                                  camAdminRestContext,
+                                  privateUser.restContext,
                                   [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
                                   () => {
-                                    // Verify global admin can see follow searches
+                                    // Verify cam admin can see follow searches
                                     FollowingTestsUtil.assertHasSearchFeedAccess(
-                                      globalAdminOnTenantRestContext,
+                                      camAdminRestContext,
                                       [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
-                                      callback
+                                      () => {
+                                        // Verify global admin can see follow searches
+                                        FollowingTestsUtil.assertHasSearchFeedAccess(
+                                          globalAdminOnTenantRestContext,
+                                          [publicUser.user.id, loggedinUser.user.id, privateUser.user.id],
+                                          callback
+                                        );
+                                      }
                                     );
                                   }
                                 );
@@ -247,13 +258,13 @@ describe('Following Search', () => {
                           }
                         );
                       });
-                    });
-                  }
-                );
-              });
-            }
-          );
-        });
+                    }
+                  );
+                });
+              }
+            );
+          }
+        );
       });
     });
   });
@@ -261,7 +272,7 @@ describe('Following Search', () => {
   /**
    * Test that verifies that followers are reindexed when the search index is built with reindexAll
    */
-  it('verify following search reindexes with reindex all', callback => {
+  it('verify following search reindexes with reindex all', (callback) => {
     // Clear all the data in the system to speed up the `reindexAll` operation in this test
     TestsUtil.clearAllData(() => {
       // Create 2 users, one following the other

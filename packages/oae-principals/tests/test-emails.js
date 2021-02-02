@@ -14,8 +14,9 @@
  */
 
 import { assert } from 'chai';
+import { describe, beforeEach, after, it } from 'mocha';
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 
 import { mergeRight } from 'ramda';
 import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
@@ -38,7 +39,7 @@ describe('User emails', () => {
   let asCambridgeAnonymousUser = null;
   let asGlobalAdmin = null;
 
-  beforeEach(callback => {
+  beforeEach((callback) => {
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asGeorgiaTechTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
@@ -49,8 +50,8 @@ describe('User emails', () => {
       asCambridgeTenantAdmin,
       null,
       { 'oae-principals/recaptcha/enabled': false },
-      err => {
-        assert.notExists(err);
+      (error) => {
+        assert.notExists(error);
 
         // Drain the email queue
         return EmailTestsUtil.clearEmailCollections(callback);
@@ -58,14 +59,14 @@ describe('User emails', () => {
     );
   });
 
-  after(callback => {
+  after((callback) => {
     // Re-enable reCaptcha
     ConfigTestUtil.updateConfigAndWait(
       asCambridgeTenantAdmin,
       null,
       { 'oae-principals/recaptcha/enabled': true },
-      err => {
-        assert.notExists(err);
+      (error) => {
+        assert.notExists(error);
         return callback();
       }
     );
@@ -75,18 +76,18 @@ describe('User emails', () => {
     /**
      * Test that verifies validation when verifying an email address
      */
-    it('verify validation when verifying an email address', callback => {
+    it('verify validation when verifying an email address', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
       const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, (user, token) => {
-        AuthenticationTestUtil.assertLocalLoginSucceeds(restContext, params.username, params.password, () => {
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, (user, token) => {
+        AuthenticationTestUtil.assertLocalLoginSucceeds(restContext, parameters.username, parameters.password, () => {
           // Invalid user id
           PrincipalsTestUtil.assertVerifyEmailFails(restContext, 'not a user id', token, 400, () => {
             // Missing token
@@ -119,32 +120,37 @@ describe('User emails', () => {
     /**
      * Test that verifies authorization when verifying an email address
      */
-    it('verify authorization when verifying an email address', callback => {
+    it('verify authorization when verifying an email address', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
       const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, (user, token) => {
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, (user, token) => {
         // Anonymous users cannot verify an email address
         PrincipalsTestUtil.assertVerifyEmailFails(asCambridgeAnonymousUser, user.id, token, 401, () => {
           // Other users cannot verify an email address
-          TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-            assert.notExists(err);
+          TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+            assert.notExists(error);
             const { 0: badGuy } = users;
             PrincipalsTestUtil.assertVerifyEmailFails(badGuy.restContext, user.id, token, 401, () => {
               // Tenant admins from other tenants cannot verify an email address
               PrincipalsTestUtil.assertVerifyEmailFails(asGeorgiaTechTenantAdmin, user.id, token, 401, () => {
                 // The user can verify their email address if they've signed in
-                AuthenticationTestUtil.assertLocalLoginSucceeds(restContext, params.username, params.password, () => {
-                  PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
-                    return callback();
-                  });
-                });
+                AuthenticationTestUtil.assertLocalLoginSucceeds(
+                  restContext,
+                  parameters.username,
+                  parameters.password,
+                  () => {
+                    PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
+                      return callback();
+                    });
+                  }
+                );
               });
             });
           });
@@ -155,31 +161,36 @@ describe('User emails', () => {
     /**
      * Test that verifies that a token from another user cannot be used
      */
-    it('verify a token from another user cannot be used', callback => {
+    it('verify a token from another user cannot be used', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
-      const paramsUser1 = {
+      const parametersUser1 = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email: TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0])
       };
       const restContextUser1 = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContextUser1, paramsUser1, (user1, tokenUser1) => {
-        AuthenticationTestUtil.assertLocalLoginSucceeds(restContextUser1, paramsUser1.username, 'password', () => {
-          const paramsUser2 = {
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContextUser1, parametersUser1, (user1, tokenUser1) => {
+        AuthenticationTestUtil.assertLocalLoginSucceeds(restContextUser1, parametersUser1.username, 'password', () => {
+          const parametersUser2 = {
             username: TestsUtil.generateTestUserId(),
             password: 'password',
             displayName: TestsUtil.generateRandomText(1),
             email: TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0])
           };
           const restContextUser2 = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-          PrincipalsTestUtil.assertCreateUserSucceeds(restContextUser2, paramsUser2, (user2 /* , tokenUser2 */) => {
-            AuthenticationTestUtil.assertLocalLoginSucceeds(restContextUser2, paramsUser2.username, 'password', () => {
-              // Assert we cannot user the token from the first user
-              PrincipalsTestUtil.assertVerifyEmailFails(restContextUser2, user2.id, tokenUser1, 401, () => {
-                return callback();
-              });
-            });
+          PrincipalsTestUtil.assertCreateUserSucceeds(restContextUser2, parametersUser2, (user2 /* , tokenUser2 */) => {
+            AuthenticationTestUtil.assertLocalLoginSucceeds(
+              restContextUser2,
+              parametersUser2.username,
+              'password',
+              () => {
+                // Assert we cannot user the token from the first user
+                PrincipalsTestUtil.assertVerifyEmailFails(restContextUser2, user2.id, tokenUser1, 401, () => {
+                  return callback();
+                });
+              }
+            );
           });
         });
       });
@@ -188,32 +199,32 @@ describe('User emails', () => {
     /**
      * Test that verifies that an email address can be re-used by other users
      */
-    it('verify an email address can be re-used by other users', callback => {
+    it('verify an email address can be re-used by other users', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
       TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (
-        err,
+        error,
         tenant,
         tenantAdminRestContext /* , tenantAdmin */
       ) => {
-        assert.notExists(err);
+        assert.notExists(error);
 
         // Disable reCaptcha for this tenant
         ConfigTestUtil.updateConfigAndWait(
           asGlobalAdmin,
           tenantAlias,
           { 'oae-principals/recaptcha/enabled': false },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             const email = TestsUtil.generateTestEmailAddress(null, tenantHost);
-            const paramsUser1 = {
+            const parametersUser1 = {
               displayName: 'Test user 1',
               email,
               password: 'password',
               username: TestsUtil.generateTestUserId()
             };
-            const paramsUser2 = {
+            const parametersUser2 = {
               displayName: 'Test user 2',
               email,
               password: 'password',
@@ -221,20 +232,20 @@ describe('User emails', () => {
             };
 
             // Create the first user as a tenant admin so the email address is considered verified
-            PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, paramsUser1, user1 => {
+            PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parametersUser1, (user1) => {
               // Verify there's a mapping for the first user
               PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
                 // Create the second user as an anonymous user so the email address is not verified
                 const restContext = TestsUtil.createTenantRestContext(tenantHost);
-                PrincipalsTestUtil.assertCreateUserSucceeds(restContext, paramsUser2, (user2, token) => {
+                PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parametersUser2, (user2, token) => {
                   // Verify there's no mapping yet for the second user as the email address
                   // hasn't been verified yet
                   PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
                     // Verify the email address
                     AuthenticationTestUtil.assertLocalLoginSucceeds(
                       restContext,
-                      paramsUser2.username,
-                      paramsUser2.password,
+                      parametersUser2.username,
+                      parametersUser2.password,
                       () => {
                         PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user2.id, token, () => {
                           // The second user should now also be mapped to the email address
@@ -256,33 +267,38 @@ describe('User emails', () => {
     /**
      * Test that verifies that local accounts need to verify their email address
      */
-    it('verify local user accounts need to verify their email address', callback => {
+    it('verify local user accounts need to verify their email address', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
-      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeAnonymousUser, params, (user, token) => {
+      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeAnonymousUser, parameters, (user, token) => {
         // Sanity check the user has no `email` property yet
-        RestAPI.User.getUser(asCambridgeTenantAdmin, user.id, (err, user) => {
-          assert.notExists(err);
+        RestAPI.User.getUser(asCambridgeTenantAdmin, user.id, (error, user) => {
+          assert.notExists(error);
           assert.ok(!user.email);
 
           // Assert that there's no mapping yet for the email address
           PrincipalsTestUtil.assertUserEmailMappingEquals(email, [], () => {
             // Verify the email address
             const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-            AuthenticationTestUtil.assertLocalLoginSucceeds(restContext, params.username, params.password, () => {
-              PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
-                // Assert the mapping has been created
-                PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => {
-                  return callback();
+            AuthenticationTestUtil.assertLocalLoginSucceeds(
+              restContext,
+              parameters.username,
+              parameters.password,
+              () => {
+                PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
+                  // Assert the mapping has been created
+                  PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => {
+                    return callback();
+                  });
                 });
-              });
-            });
+              }
+            );
           });
         });
       });
@@ -291,19 +307,19 @@ describe('User emails', () => {
     /**
      * Test that verifies that activity emails are not sent to unverified email addresses
      */
-    it('verify activity emails are not sent to unverified email addresses', callback => {
+    it('verify activity emails are not sent to unverified email addresses', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
-      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeAnonymousUser, params, (user /* , token */) => {
+      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeAnonymousUser, parameters, (user /* , token */) => {
         // Generate some more users who will be part of the activity
-        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+        TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
           const { 0: simong, 1: mrvisser } = users;
 
           RestAPI.Content.createLink(
@@ -317,11 +333,11 @@ describe('User emails', () => {
               viewers: [user.id, mrvisser.user.id],
               folders: NO_FOLDERS
             },
-            (err /* , link */) => {
-              assert.notExists(err);
+            (error /* , link */) => {
+              assert.notExists(error);
 
               // Mrvisser should've received an email, but not the user with the unverified email address
-              EmailTestsUtil.collectAndFetchAllEmails(messages => {
+              EmailTestsUtil.collectAndFetchAllEmails((messages) => {
                 assert.lengthOf(messages, 1);
                 assert.lengthOf(messages[0].to, 1);
                 assert.strictEqual(messages[0].to[0].address, mrvisser.user.email);
@@ -336,19 +352,19 @@ describe('User emails', () => {
     /**
      * Test that verifies that local users accounts created by a tenant administrator do not need to verify their email address
      */
-    it('verify local user accounts created by a tenant administrator do not need to verify their email address', callback => {
+    it('verify local user accounts created by a tenant administrator do not need to verify their email address', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
-      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeTenantAdmin, params, user => {
+      PrincipalsTestUtil.assertCreateUserSucceeds(asCambridgeTenantAdmin, parameters, (user) => {
         // Verify the user doesn't need to verify their email address
-        RestAPI.User.getUser(asCambridgeTenantAdmin, user.id, (err, user) => {
-          assert.notExists(err);
+        RestAPI.User.getUser(asCambridgeTenantAdmin, user.id, (error, user) => {
+          assert.notExists(error);
           assert.strictEqual(user.email, email.toLowerCase());
 
           // Assert that there's a mapping for the email address
@@ -365,12 +381,12 @@ describe('User emails', () => {
      * email address (e.g., Facebook), that they receive the email associated
      * with the invitation as a pre-verified email
      */
-    it('verify user accounts created following invitation with external login do not require email verification', callback => {
+    it('verify user accounts created following invitation with external login do not require email verification', (callback) => {
       // Create a tenant and enable Facebook authentication on it
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
         AuthenticationTestUtil.assertUpdateAuthConfigSucceeds(
           tenantAdminRestContext,
           null,
@@ -397,12 +413,12 @@ describe('User emails', () => {
                     email = email.toLowerCase();
 
                     // Get the invitation info so we can make a redirect url
-                    AuthzInvitationsDAO.getTokensByEmails([email], (err, tokensByEmail) => {
-                      assert.notExists(err);
+                    AuthzInvitationsDAO.getTokensByEmails([email], (error, tokensByEmail) => {
+                      assert.notExists(error);
                       const token = tokensByEmail[email];
 
                       // Authenticate without an email while following the redirect url
-                      const redirectUrl = util.format(
+                      const redirectUrl = format(
                         '/signup?invitationToken=%s&invitationEmail=%s',
                         encodeURIComponent(token),
                         encodeURIComponent(email)
@@ -428,12 +444,12 @@ describe('User emails', () => {
     /**
      * Test that verifies that user accounts created through trusted external SSO sources do not need to verify their email address
      */
-    it('verify user accounts created through trusted external SSO sources do not need to verify their email address', callback => {
+    it('verify user accounts created through trusted external SSO sources do not need to verify their email address', (callback) => {
       // Create a tenant and enable google authentication on it
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
         AuthenticationTestUtil.assertUpdateAuthConfigSucceeds(
           tenantAdminRestContext,
           null,
@@ -444,8 +460,8 @@ describe('User emails', () => {
             AuthenticationTestUtil.assertGoogleLoginSucceeds(tenant.host, email, (restContext /* , response */) => {
               // As google is considered an authoritative source, the user shouldn't have
               // to verify their email address
-              RestAPI.User.getMe(restContext, (err, me) => {
-                assert.notExists(err);
+              RestAPI.User.getMe(restContext, (error, me) => {
+                assert.notExists(error);
                 assert.isNotOk(me.anon);
                 assert.strictEqual(me.email, email.toLowerCase());
 
@@ -464,18 +480,18 @@ describe('User emails', () => {
      * Test that verifies that user accounts created with a valid invitation token whose email
      * matches the specified email do not need to verify their email address
      */
-    it('verify user accounts created with a valid invitation token are automatically verified', callback => {
+    it('verify user accounts created with a valid invitation token are automatically verified', (callback) => {
       // Create a tenant in which to create a user, and ensure there are no pending emails
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant /* , tenantAdminRestContext */) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant /* , tenantAdminRestContext */) => {
+        assert.notExists(error);
 
         // Create 2 email addresses that have tokens associated to them
         const email1 = TestsUtil.generateTestEmailAddress(null, tenant.emailDomains[0]);
         const email2 = TestsUtil.generateTestEmailAddress(null, tenant.emailDomains[0]);
-        AuthzInvitationsDAO.getOrCreateTokensByEmails([email1, email2], (err, emailTokens) => {
-          assert.notExists(err);
+        AuthzInvitationsDAO.getOrCreateTokensByEmails([email1, email2], (error, emailTokens) => {
+          assert.notExists(error);
 
           // Try to create a profile with email1, using email2's token. It should work, but it shouldn't auto-verify the email address
           let profile = {
@@ -487,14 +503,14 @@ describe('User emails', () => {
           };
 
           // Ensure we get a user with an unverified email, as well as one email which is a verification email for email1
-          EmailTestsUtil.startCollectingEmail(stopCollectingEmail => {
+          EmailTestsUtil.startCollectingEmail((stopCollectingEmail) => {
             PrincipalsTestUtil.assertCreateUserSucceeds(
               TestsUtil.createTenantRestContext(tenantHost),
               profile,
-              user => {
+              (user) => {
                 assert.isNotOk(user.email);
 
-                stopCollectingEmail(messages => {
+                stopCollectingEmail((messages) => {
                   assert.lengthOf(messages, 1);
 
                   /**
@@ -506,14 +522,14 @@ describe('User emails', () => {
                     invitationToken: emailTokens[email1]
                   });
 
-                  EmailTestsUtil.startCollectingEmail(stopCollectingEmail => {
+                  EmailTestsUtil.startCollectingEmail((stopCollectingEmail) => {
                     // We should get a profile with a verified email and no verification email
                     PrincipalsTestUtil.assertCreateUserSucceeds(
                       TestsUtil.createTenantRestContext(tenantHost),
                       profile,
-                      user => {
+                      (user) => {
                         assert.strictEqual(user.email, email1.toLowerCase());
-                        stopCollectingEmail(messages => {
+                        stopCollectingEmail((messages) => {
                           assert.isEmpty(messages);
                           return callback();
                         });
@@ -534,20 +550,20 @@ describe('User emails', () => {
      * @param  {String}     filename    The name of the file in the test data directory to be loaded
      * @return {Function}               A function that, when executed without parameters, returns a stream to the file in the test data directory with the provided filename
      */
-    const getDataFileStream = function(filename) {
-      return function() {
-        return fs.createReadStream(util.format('%s/data/%s', __dirname, filename));
+    const getDataFileStream = function (filename) {
+      return function () {
+        return fs.createReadStream(format('%s/data/%s', __dirname, filename));
       };
     };
 
     /**
      * Test that verifies that user accounts created or updated through a CSV import do not need to verify their email address
      */
-    it('verify user accounts created or updated through a CSV import do not need to verify their email address', callback => {
+    it('verify user accounts created or updated through a CSV import do not need to verify their email address', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = 'users.emails.com';
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (err, tenant /* , tenantAdminRestContext */) => {
-        assert.notExists(err);
+      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (error, tenant /* , tenantAdminRestContext */) => {
+        assert.notExists(error);
 
         // Import users as a global admin using a local authentication strategy
         PrincipalsTestUtil.importUsers(
@@ -556,13 +572,13 @@ describe('User emails', () => {
           getDataFileStream('users-emails.csv'),
           'local',
           null,
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             // Verify the user's email address is verified
             const restContext = TestsUtil.createTenantRestContext(tenant.host, 'users-emails-abc123', 'password');
-            setTimeout(RestAPI.User.getMe, 15000, restContext, (err, user) => {
-              assert.notExists(err);
+            setTimeout(RestAPI.User.getMe, 15000, restContext, (error, user) => {
+              assert.notExists(error);
               assert.strictEqual(user.email, 'foo@users.emails.com');
 
               // Assert there's a mapping for the email address
@@ -574,11 +590,11 @@ describe('User emails', () => {
                   getDataFileStream('users-emails-updated.csv'),
                   'local',
                   true,
-                  err => {
-                    assert.notExists(err);
+                  (error_) => {
+                    assert.notExists(error_);
 
-                    RestAPI.User.getMe(restContext, (err, user) => {
-                      assert.notExists(err);
+                    RestAPI.User.getMe(restContext, (error, user) => {
+                      assert.notExists(error);
                       assert.strictEqual(user.email, 'bar@users.emails.com');
 
                       // Assert there's a mapping for the new email address
@@ -601,15 +617,15 @@ describe('User emails', () => {
     /**
      * Test that verifies that users updating their email address need to verify it
      */
-    it('verify users updating their email address need to verify it', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify users updating their email address need to verify it', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
         const oldEmailAddress = simong.user.email;
 
         // Sanity-check the email address is verified
-        RestAPI.User.getMe(simong.restContext, (err, me) => {
-          assert.notExists(err);
+        RestAPI.User.getMe(simong.restContext, (error, me) => {
+          assert.notExists(error);
           assert.strictEqual(me.email, oldEmailAddress);
 
           // Sanity-check there's a mapping for it
@@ -626,8 +642,8 @@ describe('User emails', () => {
                   // Assert there's no mapping for the new email address as it hasn't been verified yet
                   PrincipalsTestUtil.assertUserEmailMappingEquals(email, [], () => {
                     // The old email address should still be in place as the new one hasn't been verified yet
-                    RestAPI.User.getMe(simong.restContext, (err, me) => {
-                      assert.notExists(err);
+                    RestAPI.User.getMe(simong.restContext, (error, me) => {
+                      assert.notExists(error);
                       assert.strictEqual(me.email, oldEmailAddress);
 
                       // Assert we can verify the email address
@@ -637,8 +653,8 @@ describe('User emails', () => {
                           // Assert the new mapping is there
                           PrincipalsTestUtil.assertUserEmailMappingEquals(email, [me.id], () => {
                             // The new email address should be confirmed
-                            RestAPI.User.getMe(simong.restContext, (err, me) => {
-                              assert.notExists(err);
+                            RestAPI.User.getMe(simong.restContext, (error, me) => {
+                              assert.notExists(error);
                               assert.strictEqual(me.email, email.toLowerCase());
                               return callback();
                             });
@@ -658,9 +674,9 @@ describe('User emails', () => {
     /**
      * Test that verifies that admin updates to a user's email address trigger a different email message
      */
-    it("verify admin updates to a user's email address trigger a different email message", callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it("verify admin updates to a user's email address trigger a different email message", (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
         const oldEmailAddress = simong.user.email;
 
@@ -679,9 +695,9 @@ describe('User emails', () => {
     /**
      * Test that verifies that users can only verify their last updated email address
      */
-    it('verify users can only verify their last updated email address', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify users can only verify their last updated email address', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
         const oldEmailAddress = simong.user.email;
 
@@ -710,8 +726,8 @@ describe('User emails', () => {
                         // Assert a mapping for the second email address is created
                         PrincipalsTestUtil.assertUserEmailMappingEquals(email2, [simong.user.id], () => {
                           // The second email address should be confirmed
-                          RestAPI.User.getMe(simong.restContext, (err, me) => {
-                            assert.notExists(err);
+                          RestAPI.User.getMe(simong.restContext, (error, me) => {
+                            assert.notExists(error);
                             assert.strictEqual(me.email, email2.toLowerCase());
                             return callback();
                           });
@@ -732,22 +748,22 @@ describe('User emails', () => {
     /**
      * Test that verifies that an email verification token can be resent
      */
-    it('verify an email verification token can be resent', callback => {
+    it('verify an email verification token can be resent', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
       const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, (user, token) => {
-        RestAPI.Authentication.login(restContext, params.username, 'password', err => {
-          assert.notExists(err);
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, (user, token) => {
+        RestAPI.Authentication.login(restContext, parameters.username, 'password', (error) => {
+          assert.notExists(error);
 
           // Verify we can resend the email verification token
-          PrincipalsTestUtil.assertResendEmailTokenSucceeds(restContext, user.id, newToken => {
+          PrincipalsTestUtil.assertResendEmailTokenSucceeds(restContext, user.id, (newToken) => {
             // Assert we've sent the same token
             assert.strictEqual(newToken, token);
 
@@ -763,19 +779,19 @@ describe('User emails', () => {
     /**
      * Test that verifies validation when resending an email verification token
      */
-    it('verify validation when resending an email verification token', callback => {
+    it('verify validation when resending an email verification token', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
       const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, (/* user, token */) => {
-        RestAPI.Authentication.login(restContext, params.username, 'password', err => {
-          assert.notExists(err);
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, (/* user, token */) => {
+        RestAPI.Authentication.login(restContext, parameters.username, 'password', (error) => {
+          assert.notExists(error);
 
           // Invalid user id
           PrincipalsTestUtil.assertResendEmailTokenFails(restContext, 'not a user id', 400, () => {
@@ -788,25 +804,25 @@ describe('User emails', () => {
     /**
      * Test that verifies authorization when resending an email verification token
      */
-    it('verify authorization when resending an email verification token', callback => {
+    it('verify authorization when resending an email verification token', (callback) => {
       // We can't use TestsUtil.generateTestUsers as that would do the verification process for us
       const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-      const params = {
+      const parameters = {
         username: TestsUtil.generateTestUserId(),
         password: 'password',
         displayName: TestsUtil.generateRandomText(1),
         email
       };
       const restContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
-      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, params, (user /* , token */) => {
-        RestAPI.Authentication.login(restContext, params.username, 'password', err => {
-          assert.notExists(err);
+      PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parameters, (user /* , token */) => {
+        RestAPI.Authentication.login(restContext, parameters.username, 'password', (error) => {
+          assert.notExists(error);
 
           // Anonymous users can't resend a token
           PrincipalsTestUtil.assertResendEmailTokenFails(asCambridgeAnonymousUser, user.id, 401, () => {
             // Users cannot resend a token for someone else
-            TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-              assert.notExists(err);
+            TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+              assert.notExists(error);
               const { 0: otherUser } = users;
               PrincipalsTestUtil.assertResendEmailTokenFails(otherUser.restContext, user.id, 401, () => {
                 // Tenant administrators from another tenant cannot resend a token
@@ -833,10 +849,10 @@ describe('User emails', () => {
     /**
      * Test that verifies that a token can only be resent when there is a pending verification
      */
-    it('verify that a token can only be resent when there is a pending verification', callback => {
+    it('verify that a token can only be resent when there is a pending verification', (callback) => {
       // Create a user who has no pending email verification token
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
 
         // Resending a token should fail as there is no token to resend
@@ -849,7 +865,7 @@ describe('User emails', () => {
             { email },
             (/* user, token */) => {
               // Resending a token now should be OK
-              PrincipalsTestUtil.assertResendEmailTokenSucceeds(simong.restContext, simong.user.id, newToken => {
+              PrincipalsTestUtil.assertResendEmailTokenSucceeds(simong.restContext, simong.user.id, (newToken) => {
                 // Use the token to verify the new email address
                 PrincipalsTestUtil.assertVerifyEmailSucceeds(simong.restContext, simong.user.id, newToken, () => {
                   // Resending a token should now fail as the token has been used and should be removed
@@ -869,20 +885,20 @@ describe('User emails', () => {
     /**
      * Test that verifies the has pending email verification token functionality
      */
-    it('verify has pending email verification token functionality', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify has pending email verification token functionality', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
 
         // Verify no email is returned when the user has no pending verification
-        PrincipalsTestUtil.assertGetEmailTokenSucceeds(simong.restContext, simong.user.id, email => {
+        PrincipalsTestUtil.assertGetEmailTokenSucceeds(simong.restContext, simong.user.id, (email) => {
           assert.ok(!email);
 
           // Update the user's email address
           email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
           PrincipalsTestUtil.assertUpdateUserSucceeds(simong.restContext, simong.user.id, { email }, () => {
             // Verify the user as a token
-            PrincipalsTestUtil.assertGetEmailTokenSucceeds(simong.restContext, simong.user.id, emailForToken => {
+            PrincipalsTestUtil.assertGetEmailTokenSucceeds(simong.restContext, simong.user.id, (emailForToken) => {
               assert.strictEqual(emailForToken, email.toLowerCase());
 
               return callback();
@@ -895,9 +911,9 @@ describe('User emails', () => {
     /**
      * Test that verifies validation when checking for a pending email verification token
      */
-    it('verify validation when checking for a pending email verification token', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify validation when checking for a pending email verification token', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
 
         // Invalid user id
@@ -912,9 +928,9 @@ describe('User emails', () => {
     /**
      * Test that verifies authorization when checking for a pending email verification token
      */
-    it('verify authorization when checking for a pending email verification token', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify authorization when checking for a pending email verification token', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: simong, 1: mrvisser } = users;
 
         // Update simon's email address so he has a verification token
@@ -953,9 +969,9 @@ describe('User emails', () => {
     /**
      * Test that verifies the delete email verification functionality
      */
-    it('verify delete email verification token functionality', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify delete email verification token functionality', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
 
         // Update the email address
@@ -975,9 +991,9 @@ describe('User emails', () => {
     /**
      * Test that verifies validation when deleting a pending email verification token
      */
-    it('verify validation when deleting a pending email verification token', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify validation when deleting a pending email verification token', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simong } = users;
 
         // Invalid user id
@@ -995,9 +1011,9 @@ describe('User emails', () => {
     /**
      * Test that verifies authorization when deleting a pending email verification token
      */
-    it('verify authorization when deleting a pending email verification token', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify authorization when deleting a pending email verification token', (callback) => {
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: simong, 1: mrvisser } = users;
 
         // Update simon's email address so he has a verification token

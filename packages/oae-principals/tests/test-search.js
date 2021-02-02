@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 import { assert } from 'chai';
+import { describe, beforeEach, it } from 'mocha';
 import _ from 'underscore';
 
 import { keys, find, propSatisfies, equals } from 'ramda';
@@ -32,7 +33,7 @@ describe('Search', () => {
    * to re-create the rest contexts for each test so we can ensure our admin
    * session will always point to a valid principal record
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     asCambribgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
@@ -51,9 +52,9 @@ describe('Search', () => {
      * Test that verifies when a content item is indexed with just the content id,
      * it still indexes the content item.
      */
-    it('verify indexing without full user item', callback => {
-      TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify indexing without full user item', (callback) => {
+      TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: doer, 1: jack } = users;
 
         // Verify the content item exists
@@ -62,14 +63,14 @@ describe('Search', () => {
           'general',
           null,
           { resourceTypes: 'user', q: jack.user.displayName },
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
             const userDoc = _getDocById(results, jack.user.id);
             assert.ok(userDoc);
 
             // Delete the content item from the index under the hood, this is to avoid the automatic index events invalidating the test
-            ElasticSearch.del('resource', jack.user.id, err => {
-              assert.notExists(err);
+            ElasticSearch.del('resource', jack.user.id, (error_) => {
+              assert.notExists(error_);
 
               // Verify the content item no longer exists
               SearchTestsUtil.searchAll(
@@ -77,14 +78,14 @@ describe('Search', () => {
                 'general',
                 null,
                 { resourceTypes: 'user', q: jack.user.displayName },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
                   const userDoc = _getDocById(results, jack.user.id);
                   assert.ok(!userDoc);
 
                   // Fire off an indexing task using just the user id
-                  SearchAPI.postIndexTask('user', [{ id: jack.user.id }], { resource: true }, err => {
-                    assert.notExists(err);
+                  SearchAPI.postIndexTask('user', [{ id: jack.user.id }], { resource: true }, (error_) => {
+                    assert.notExists(error_);
 
                     // Ensure that the full content item is now back in the search index
                     SearchTestsUtil.searchAll(
@@ -92,8 +93,8 @@ describe('Search', () => {
                       'general',
                       null,
                       { resourceTypes: 'user', q: jack.user.displayName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
                         const userDoc = _getDocById(results, jack.user.id);
                         assert.ok(userDoc);
                         assert.ok(_.isObject(userDoc.tenant));
@@ -116,15 +117,15 @@ describe('Search', () => {
      * Test that verifies when a content item is indexed with just the content id, it still indexes the content
      * item.
      */
-    it('verify indexing without full group item', callback => {
-      TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify indexing without full group item', (callback) => {
+      TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: doer } = users;
 
         // Create the group we will test with
         const groupText = TestsUtil.generateTestUserId('group');
-        RestAPI.Group.createGroup(doer.restContext, groupText, groupText, 'public', 'no', [], [], (err, group) => {
-          assert.notExists(err);
+        RestAPI.Group.createGroup(doer.restContext, groupText, groupText, 'public', 'no', [], [], (error, group) => {
+          assert.notExists(error);
 
           // Verify the content item exists
           SearchTestsUtil.searchAll(
@@ -132,14 +133,14 @@ describe('Search', () => {
             'general',
             null,
             { resourceTypes: 'group', q: groupText },
-            (err, results) => {
-              assert.notExists(err);
+            (error, results) => {
+              assert.notExists(error);
               const groupDoc = _getDocById(results, group.id);
               assert.ok(groupDoc);
 
               // Delete the content item from the index under the hood, this is to avoid the automatic index events invalidating the test
-              ElasticSearch.del('resource', group.id, err => {
-                assert.notExists(err);
+              ElasticSearch.del('resource', group.id, (error_) => {
+                assert.notExists(error_);
 
                 // Verify the content item no longer exists
                 SearchTestsUtil.searchAll(
@@ -147,22 +148,22 @@ describe('Search', () => {
                   'general',
                   null,
                   { resourceTypes: 'group', q: groupText },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     const groupDoc = _getDocById(results, group.id);
                     assert.ok(!groupDoc);
 
                     // Fire off an indexing task using just the group id
-                    SearchAPI.postIndexTask('group', [{ id: group.id }], { resource: true }, err => {
-                      assert.notExists(err);
+                    SearchAPI.postIndexTask('group', [{ id: group.id }], { resource: true }, (error_) => {
+                      assert.notExists(error_);
                       // Ensure that the full content item is now back in the search index
                       SearchTestsUtil.searchAll(
                         doer.restContext,
                         'general',
                         null,
                         { resourceTypes: 'group', q: groupText },
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
                           const groupDoc = _getDocById(results, group.id);
                           assert.ok(groupDoc);
                           assert.ok(_.isObject(groupDoc.tenant));
@@ -185,18 +186,18 @@ describe('Search', () => {
     /**
      * Test that verifies that users, groups, members and memberships documents are all reindexed when the search index is built with reindexAll
      */
-    it('verify users and groups reindex with reindex all', callback => {
+    it('verify users and groups reindex with reindex all', (callback) => {
       // Clear all the data in the system to speed up the `reindexAll` operation in this test
       TestsUtil.clearAllData(() => {
         // Clear the search index to ensure we don't have search documents hanging around
         // for resources that have been deleted
         SearchTestsUtil.deleteAll(() => {
-          TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 1, (err, users) => {
-            assert.notExists(err);
+          TestsUtil.generateTestUsers(asCambribgeTenantAdmin, 1, (error, users) => {
+            assert.notExists(error);
             const { 0: user } = users;
 
-            TestsUtil.generateTestGroups(user.restContext, 1, (err, groups) => {
-              assert.notExists(err);
+            TestsUtil.generateTestGroups(user.restContext, 1, (error, groups) => {
+              assert.notExists(error);
               let { 0: group } = groups;
               group = group.group;
 
@@ -206,8 +207,8 @@ describe('Search', () => {
                 'general',
                 null,
                 { resourceTypes: 'user', q: user.user.displayName },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
                   assert.ok(_getDocById(results, user.user.id));
 
                   SearchTestsUtil.searchAll(
@@ -215,8 +216,8 @@ describe('Search', () => {
                     'general',
                     null,
                     { resourceTypes: 'group', q: group.displayName },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
                       assert.ok(_getDocById(results, group.id));
 
                       SearchTestsUtil.searchAll(
@@ -224,8 +225,8 @@ describe('Search', () => {
                         'memberships-library',
                         [user.user.id],
                         null,
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
                           assert.ok(_getDocById(results, group.id));
 
                           SearchTestsUtil.searchAll(
@@ -233,8 +234,8 @@ describe('Search', () => {
                             'members-library',
                             [group.id],
                             null,
-                            (err, results) => {
-                              assert.notExists(err);
+                            (error, results) => {
+                              assert.notExists(error);
                               assert.ok(_getDocById(results, user.user.id));
 
                               // Completely delete the search index
@@ -245,8 +246,8 @@ describe('Search', () => {
                                   'general',
                                   null,
                                   { resourceTypes: 'user', q: user.user.displayName },
-                                  (err, results) => {
-                                    assert.notExists(err);
+                                  (error, results) => {
+                                    assert.notExists(error);
                                     assert.ok(!_getDocById(results, user.user.id));
 
                                     SearchTestsUtil.searchAll(
@@ -254,8 +255,8 @@ describe('Search', () => {
                                       'general',
                                       null,
                                       { resourceTypes: 'group', q: group.displayName },
-                                      (err, results) => {
-                                        assert.notExists(err);
+                                      (error, results) => {
+                                        assert.notExists(error);
                                         assert.ok(!_getDocById(results, group.id));
 
                                         SearchTestsUtil.searchAll(
@@ -263,8 +264,8 @@ describe('Search', () => {
                                           'memberships-library',
                                           [user.user.id],
                                           null,
-                                          (err, results) => {
-                                            assert.notExists(err);
+                                          (error, results) => {
+                                            assert.notExists(error);
                                             assert.ok(!_getDocById(results, group.id));
 
                                             SearchTestsUtil.searchAll(
@@ -272,8 +273,8 @@ describe('Search', () => {
                                               'members-library',
                                               [group.id],
                                               null,
-                                              (err, results) => {
-                                                assert.notExists(err);
+                                              (error, results) => {
+                                                assert.notExists(error);
                                                 assert.ok(!_getDocById(results, user.user.id));
 
                                                 // Reindex the whole search index
@@ -289,8 +290,8 @@ describe('Search', () => {
                                                         resourceTypes: 'user',
                                                         q: user.user.displayName
                                                       },
-                                                      (err, results) => {
-                                                        assert.notExists(err);
+                                                      (error, results) => {
+                                                        assert.notExists(error);
                                                         assert.ok(_getDocById(results, user.user.id));
 
                                                         SearchTestsUtil.searchAll(
@@ -301,8 +302,8 @@ describe('Search', () => {
                                                             resourceTypes: 'group',
                                                             q: group.displayName
                                                           },
-                                                          (err, results) => {
-                                                            assert.notExists(err);
+                                                          (error, results) => {
+                                                            assert.notExists(error);
                                                             assert.ok(_getDocById(results, group.id));
 
                                                             SearchTestsUtil.searchAll(
@@ -310,8 +311,8 @@ describe('Search', () => {
                                                               'memberships-library',
                                                               [user.user.id],
                                                               null,
-                                                              (err, results) => {
-                                                                assert.notExists(err);
+                                                              (error, results) => {
+                                                                assert.notExists(error);
                                                                 assert.ok(_getDocById(results, group.id));
 
                                                                 SearchTestsUtil.searchAll(
@@ -319,8 +320,8 @@ describe('Search', () => {
                                                                   'members-library',
                                                                   [group.id],
                                                                   null,
-                                                                  (err, results) => {
-                                                                    assert.notExists(err);
+                                                                  (error, results) => {
+                                                                    assert.notExists(error);
                                                                     assert.ok(_getDocById(results, user.user.id));
 
                                                                     return callback();

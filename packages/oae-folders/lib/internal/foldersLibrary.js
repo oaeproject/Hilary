@@ -21,8 +21,8 @@ import * as LibraryAPI from 'oae-library';
 import * as OaeUtil from 'oae-util/lib/util';
 import { logger } from 'oae-logger';
 
-import { FoldersConstants } from '../constants';
-import * as FoldersDAO from './dao';
+import { FoldersConstants } from '../constants.js';
+import * as FoldersDAO from './dao.js';
 
 const { Long } = types;
 const log = logger('oae-folders-contentLibrary');
@@ -40,15 +40,15 @@ const log = logger('oae-folders-contentLibrary');
  * @param  {String[]}       callback.folderIds      The folder ids in the specified library
  * @param  {String}         callback.nextToken      The token to use for the `start` parameter for the next invocation to get the next page of results. If `null`, indicates that there are no more items to list
  */
-const list = function(principal, visibility, opts, callback) {
+const list = function (principal, visibility, options, callback) {
   LibraryAPI.Index.list(
     FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME,
     principal.id,
     visibility,
-    { start: opts.start, limit: opts.limit },
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    { start: options.start, limit: options.limit },
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _.pluck(entries, 'resourceId'), nextToken);
@@ -64,14 +64,14 @@ const list = function(principal, visibility, opts, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const insert = function(principalIds, folder, callback) {
+const insert = function (principalIds, folder, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             folderId: folder.id
           },
@@ -84,7 +84,7 @@ const insert = function(principalIds, folder, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: principalId,
       rank: folder.lastModified,
@@ -105,14 +105,14 @@ const insert = function(principalIds, folder, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder}         callback.folder         The most recent version of the folder. As this function may conditionally update the last modified timestamp of the folder, this parameter will contain the updated version if it did. If it did not update the timestamp, this parameter will be the same folder that was provided in the `folder` parameter
  */
-const update = function(principalIds, folder, oldLastModified, callback) {
+const update = function (principalIds, folder, oldLastModified, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             folderId: folder.id
           },
@@ -140,14 +140,14 @@ const update = function(principalIds, folder, oldLastModified, callback) {
 
   // If the caller specified we should "touch" the folder, we simply update its last modified
   // timestamp before updating the library indices
-  OaeUtil.invokeIfNecessary(touchFolder, FoldersDAO.updateFolder, folder, {}, (err, updatedFolder) => {
-    if (err) {
-      return callback(err);
+  OaeUtil.invokeIfNecessary(touchFolder, FoldersDAO.updateFolder, folder, {}, (error, updatedFolder) => {
+    if (error) {
+      return callback(error);
     }
 
     folder = updatedFolder || folder;
 
-    const entries = _.map(principalIds, principalId => {
+    const entries = _.map(principalIds, (principalId) => {
       return {
         id: principalId,
         oldRank: oldLastModified,
@@ -157,9 +157,9 @@ const update = function(principalIds, folder, oldLastModified, callback) {
     });
 
     // Update the library entries for the provided principal ids
-    LibraryAPI.Index.update(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, err => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Index.update(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, folder);
@@ -175,14 +175,14 @@ const update = function(principalIds, folder, oldLastModified, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const remove = function(principalIds, folder, callback) {
+const remove = function (principalIds, folder, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             folderId: folder.id
           },
@@ -195,7 +195,7 @@ const remove = function(principalIds, folder, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: principalId,
       rank: folder.lastModified,

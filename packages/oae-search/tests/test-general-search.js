@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { beforeEach, describe, before, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
@@ -176,10 +177,10 @@ describe('General Search', () => {
   /**
    * Lets delete the index, recreate it, and create the mappings as a hook to each describe block
    */
-  const rebuildSearchIndex = done => {
+  const rebuildSearchIndex = (done) => {
     const destroyItAllEveryTest = true;
-    buildIndex(destroyItAllEveryTest, err => {
-      assert.notExists(err);
+    buildIndex(destroyItAllEveryTest, (error) => {
+      assert.notExists(error);
 
       done();
     });
@@ -201,7 +202,7 @@ describe('General Search', () => {
    * to re-create the rest contexts for each test so we can ensure our admin
    * session will always point to a valid principal record
    */
-  beforeEach(done => {
+  beforeEach((done) => {
     const someTenantHost = global.oaeTests.tenants.cam.host;
     asCambridgeAnonymousUser = createTenantRestContext(someTenantHost);
     asCambridgeTenantAdmin = createTenantAdminRestContext(someTenantHost);
@@ -216,8 +217,8 @@ describe('General Search', () => {
      * Log the global admin into a tenant so we can perform user-tenant requests with a
      * global admin to test their access
      */
-    loginOnTenant(asGlobalAdmin, LOCALHOST, targetInternalUrl, (err, ctx) => {
-      assert.notExists(err);
+    loginOnTenant(asGlobalAdmin, LOCALHOST, targetInternalUrl, (error, ctx) => {
+      assert.notExists(error);
       asGlobalAdminOnTenant = ctx;
 
       done();
@@ -237,14 +238,14 @@ describe('General Search', () => {
    * @param  {Function}       callback                Standard callback function
    * @throws {Error}                                  If the resource is not in the results when you expected it to, or vice versa
    */
-  const searchForResource = function(restCtx, scope, resource, expectedToFind, callback) {
+  const searchForResource = function (restCtx, scope, resource, expectedToFind, callback) {
     searchRefreshed(
       restCtx,
       GENERAL_SEARCH,
       NO_PARAMS,
       { scope, resourceTypes: getResourceType(resource), q: getDisplayName(resource) },
-      (err, results) => {
-        assert.notExists(err);
+      (error, results) => {
+        assert.notExists(error);
 
         const foundResourceDoc = isWithin(results, getId(resource));
 
@@ -265,9 +266,9 @@ describe('General Search', () => {
     /**
      * Test that verifies a created user can be searched.
      */
-    it('verify index created user', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify index created user', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = values(users);
 
@@ -277,8 +278,8 @@ describe('General Search', () => {
           GENERAL_SEARCH,
           NO_PARAMS,
           { resourceTypes: USER, q: johnDoe.user.displayName },
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
             assert.ok(isWithin(results, johnDoe.user.id));
 
             return callback();
@@ -290,9 +291,9 @@ describe('General Search', () => {
     /**
      * Test that verifies the search index is updated when a user is updated.
      */
-    it('verify index updated user', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify index updated user', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: lopes } = values(users);
         const asLopes = lopes.restContext;
@@ -304,15 +305,15 @@ describe('General Search', () => {
           GENERAL_SEARCH,
           NO_PARAMS,
           { resourceTypes: USER, q: 'Barbosa' },
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
             assert.ok(isNotWithin(results, lopesId));
 
             // Set the display name of the user
             const updateProperties = { displayName: 'Lopes da Silva' + lopesId };
 
-            updateUser(asLopes, lopesId, updateProperties, err => {
-              assert.notExists(err);
+            updateUser(asLopes, lopesId, updateProperties, (error_) => {
+              assert.notExists(error_);
 
               // Ensure that the new term matches the user
               searchRefreshed(
@@ -320,8 +321,8 @@ describe('General Search', () => {
                 GENERAL_SEARCH,
                 NO_PARAMS,
                 { resourceTypes: USER, q: updateProperties.displayName },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
 
                   const searchedDoc = isWithin(results, lopesId);
                   assert.ok(searchedDoc);
@@ -345,9 +346,9 @@ describe('General Search', () => {
     /**
      * Test that verifies a newly created group can be searched.
      */
-    it('verify index created group', callback => {
-      generateTestGroups(asCambridgeTenantAdmin, 1, (err, groups) => {
-        assert.notExists(err);
+    it('verify index created group', (callback) => {
+      generateTestGroups(asCambridgeTenantAdmin, 1, (error, groups) => {
+        assert.notExists(error);
 
         const [oaeTeam] = groups;
 
@@ -356,8 +357,8 @@ describe('General Search', () => {
           GENERAL_SEARCH,
           NO_PARAMS,
           { resourceTypes: GROUP, q: oaeTeam.group.displayName },
-          (err, results) => {
-            assert.notExists(err);
+          (error, results) => {
+            assert.notExists(error);
 
             assert.ok(isWithin(results, oaeTeam.group.id));
             return callback();
@@ -369,15 +370,15 @@ describe('General Search', () => {
     /**
      * Test that verifies the search index is updated when a group is updated.
      */
-    it('verify index updated group', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify index updated group', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = values(users);
         const asJohnDoe = johnDoe.restContext;
 
-        generateTestGroups(asJohnDoe, 1, (err, groups) => {
-          assert.notExists(err);
+        generateTestGroups(asJohnDoe, 1, (error, groups) => {
+          assert.notExists(error);
 
           const [amazingTeam] = groups;
           const amazingTeamId = amazingTeam.group.id;
@@ -388,8 +389,8 @@ describe('General Search', () => {
             GENERAL_SEARCH,
             NO_PARAMS,
             { resourceTypes: GROUP, q: amazingTeamName },
-            (err, results) => {
-              assert.notExists(err);
+            (error, results) => {
+              assert.notExists(error);
 
               const searchedDoc = fetchWithin(results, amazingTeamId);
               assert.ok(searchedDoc);
@@ -403,16 +404,16 @@ describe('General Search', () => {
               // Update name match the term to something different to make sure it reindexed properly
               const displayName = 'The Backstreet Boys';
 
-              updateGroup(asJohnDoe, amazingTeamId, { displayName }, err => {
-                assert.notExists(err);
+              updateGroup(asJohnDoe, amazingTeamId, { displayName }, (error_) => {
+                assert.notExists(error_);
 
                 searchRefreshed(
                   asJohnDoe,
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { resourceTypes: GROUP, q: displayName },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
 
                     const searchedDoc = fetchWithin(results, amazingTeamId);
                     assert.ok(searchedDoc);
@@ -441,9 +442,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that a content item can be searched after it has been created.
      */
-    it('verify index created content', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify index created content', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, createdUsers) => {
+        assert.notExists(error);
 
         const { 0: barbosa } = createdUsers;
         const asBarbosa = barbosa.restContext;
@@ -459,8 +460,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, someLink) => {
-            assert.notExists(err);
+          (error, someLink) => {
+            assert.notExists(error);
 
             // Verify search term Apereo matches the document
             searchRefreshed(
@@ -468,8 +469,8 @@ describe('General Search', () => {
               GENERAL_SEARCH,
               NO_PARAMS,
               { resourceTypes: CONTENT, q: 'Apereo' },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(isWithin(results, getId(someLink)));
                 callback();
               }
@@ -482,9 +483,9 @@ describe('General Search', () => {
     /**
      * Test that verifies the search index is updated after a content item is updated.
      */
-    it('verify index updated content', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify index updated content', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: fonseca } = users;
         const asFonseca = fonseca.restContext;
@@ -500,8 +501,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, someLink) => {
-            assert.notExists(err);
+          (error, someLink) => {
+            assert.notExists(error);
 
             // Verify search term OAE does not match the content
             searchRefreshed(
@@ -509,13 +510,13 @@ describe('General Search', () => {
               GENERAL_SEARCH,
               NO_PARAMS,
               { resourceTypes: CONTENT, q: 'OAE' },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(isNotWithin(results, getId(someLink)));
 
                 // Update the content
-                updateContent(asFonseca, getId(someLink), { displayName: 'OAE Project' }, err => {
-                  assert.notExists(err);
+                updateContent(asFonseca, getId(someLink), { displayName: 'OAE Project' }, (error_) => {
+                  assert.notExists(error_);
 
                   // Verify OAE now matches the updated content item
                   searchRefreshed(
@@ -523,8 +524,8 @@ describe('General Search', () => {
                     GENERAL_SEARCH,
                     NO_PARAMS,
                     { resourceTypes: CONTENT, q: 'OAE' },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
                       assert.ok(isWithin(results, getId(someLink)));
                       callback();
                     }
@@ -540,9 +541,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that a content item can be searched by its comments
      */
-    it('verify index content comments', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, createdUsers) => {
-        assert.notExists(err);
+    it('verify index content comments', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, createdUsers) => {
+        assert.notExists(error);
 
         const { 0: lopes } = createdUsers;
         const asLopes = lopes.restContext;
@@ -560,50 +561,56 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, someLink) => {
-            assert.notExists(err);
+          (error, someLink) => {
+            assert.notExists(error);
 
             // Verify the search term does not match the content item we just created
-            searchAll(asLopes, GENERAL_SEARCH, NO_PARAMS, { resourceTypes: CONTENT, q: searchTerm }, (err, results) => {
-              assert.notExists(err);
-              assert.ok(isNotWithin(results, someLink.id));
+            searchAll(
+              asLopes,
+              GENERAL_SEARCH,
+              NO_PARAMS,
+              { resourceTypes: CONTENT, q: searchTerm },
+              (error, results) => {
+                assert.notExists(error);
+                assert.ok(isNotWithin(results, someLink.id));
 
-              // Create a comment on the content item
-              createComment(asLopes, someLink.id, searchTerm, null, (err, someComment) => {
-                assert.notExists(err);
+                // Create a comment on the content item
+                createComment(asLopes, someLink.id, searchTerm, null, (error, someComment) => {
+                  assert.notExists(error);
 
-                // Verify the search term matches the content item we just commented on
-                searchAll(
-                  asLopes,
-                  GENERAL_SEARCH,
-                  NO_PARAMS,
-                  { resourceTypes: CONTENT, q: searchTerm },
-                  (err, results) => {
-                    assert.notExists(err);
-                    assert.ok(isWithin(results, getId(someLink)));
+                  // Verify the search term matches the content item we just commented on
+                  searchAll(
+                    asLopes,
+                    GENERAL_SEARCH,
+                    NO_PARAMS,
+                    { resourceTypes: CONTENT, q: searchTerm },
+                    (error, results) => {
+                      assert.notExists(error);
+                      assert.ok(isWithin(results, getId(someLink)));
 
-                    // Now delete the message
-                    deleteComment(asLopes, getId(someLink), someComment.created, err => {
-                      assert.notExists(err);
+                      // Now delete the message
+                      deleteComment(asLopes, getId(someLink), someComment.created, (error_) => {
+                        assert.notExists(error_);
 
-                      // Verify the search term no longer matches the content item
-                      searchAll(
-                        asLopes,
-                        GENERAL_SEARCH,
-                        NO_PARAMS,
-                        { resourceTypes: CONTENT, q: searchTerm },
-                        (err, results) => {
-                          assert.notExists(err);
-                          assert.ok(isNotWithin(results, getId(someLink)));
+                        // Verify the search term no longer matches the content item
+                        searchAll(
+                          asLopes,
+                          GENERAL_SEARCH,
+                          NO_PARAMS,
+                          { resourceTypes: CONTENT, q: searchTerm },
+                          (error, results) => {
+                            assert.notExists(error);
+                            assert.ok(isNotWithin(results, getId(someLink)));
 
-                          return callback();
-                        }
-                      );
-                    });
-                  }
-                );
-              });
-            });
+                            return callback();
+                          }
+                        );
+                      });
+                    }
+                  );
+                });
+              }
+            );
           }
         );
       });
@@ -625,7 +632,7 @@ describe('General Search', () => {
      * @param  {Function}       callback                Standard callback function
      * @throws {AssertionError}                         Thrown if the search results do not return the expected results
      */
-    const _verifySearchResults = function(
+    const _verifySearchResults = function (
       restContext,
       contentId,
       discussionId,
@@ -638,13 +645,13 @@ describe('General Search', () => {
        * Verify the specified search state with all permutations of the
        * applicable `resourceTypes` parameters
        */
-      searchAll(restContext, GENERAL_SEARCH, null, { resourceTypes: DISCUSSION, q: searchTerm }, (err, results) => {
-        assert.notExists(err);
+      searchAll(restContext, GENERAL_SEARCH, null, { resourceTypes: DISCUSSION, q: searchTerm }, (error, results) => {
+        assert.notExists(error);
         assert.ok(isNotWithin(results, contentId));
         assert.strictEqual(isWithin(results, discussionId), shouldFindDiscussion);
 
-        searchAll(restContext, GENERAL_SEARCH, null, { resourceTypes: CONTENT, q: searchTerm }, (err, results) => {
-          assert.notExists(err);
+        searchAll(restContext, GENERAL_SEARCH, null, { resourceTypes: CONTENT, q: searchTerm }, (error, results) => {
+          assert.notExists(error);
           assert.strictEqual(isWithin(results, contentId), shouldFindContent);
           assert.ok(isNotWithin(results, discussionId));
 
@@ -653,13 +660,13 @@ describe('General Search', () => {
             GENERAL_SEARCH,
             NO_PARAMS,
             { resourceTypes: [DISCUSSION, CONTENT], q: searchTerm },
-            (err, results) => {
-              assert.notExists(err);
+            (error, results) => {
+              assert.notExists(error);
               assert.strictEqual(isWithin(results, contentId), shouldFindContent);
               assert.strictEqual(isWithin(results, discussionId), shouldFindDiscussion);
 
-              searchAll(restContext, GENERAL_SEARCH, null, { q: searchTerm }, (err, results) => {
-                assert.notExists(err);
+              searchAll(restContext, GENERAL_SEARCH, null, { q: searchTerm }, (error, results) => {
+                assert.notExists(error);
                 assert.strictEqual(isWithin(results, contentId), shouldFindContent);
                 assert.strictEqual(isWithin(results, discussionId), shouldFindDiscussion);
 
@@ -676,10 +683,10 @@ describe('General Search', () => {
      * Also verifies that messages that are
      * deleted no longer cause the content and discussion items to be returned in search
      */
-    it('verify discussion and content items can be searched by messages and comments', callback => {
+    it('verify discussion and content items can be searched by messages and comments', (callback) => {
       // Create the user to test with
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, createdUsers) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, createdUsers) => {
+        assert.notExists(error);
 
         const { 0: silva } = createdUsers;
         const asSilva = silva.restContext;
@@ -698,8 +705,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, someLink) => {
-            assert.notExists(err);
+          (error, someLink) => {
+            assert.notExists(error);
 
             createDiscussion(
               asSilva,
@@ -708,8 +715,8 @@ describe('General Search', () => {
               PUBLIC,
               NO_MANAGERS,
               NO_MEMBERS,
-              (err, someDiscussion) => {
-                assert.notExists(err);
+              (error, someDiscussion) => {
+                assert.notExists(error);
 
                 /**
                  * Verify that we do not get the content item or discussion in
@@ -729,8 +736,8 @@ describe('General Search', () => {
                   searchTerm,
                   () => {
                     // Create a comment on the content item
-                    createComment(asSilva, getId(someLink), searchTerm, null, (err, someComment) => {
-                      assert.notExists(err);
+                    createComment(asSilva, getId(someLink), searchTerm, null, (error, someComment) => {
+                      assert.notExists(error);
 
                       /**
                        * Verify that we get the content item but not the discussion
@@ -745,8 +752,8 @@ describe('General Search', () => {
                         searchTerm,
                         () => {
                           // Post a message on the discussion
-                          createMessage(asSilva, getId(someDiscussion), searchTerm, null, (err, someMessage) => {
-                            assert.notExists(err);
+                          createMessage(asSilva, getId(someDiscussion), searchTerm, null, (error, someMessage) => {
+                            assert.notExists(error);
 
                             // Verify that we get both the content item and discussion item in the applicable search resourceTypes permutations
                             _verifySearchResults(
@@ -758,8 +765,8 @@ describe('General Search', () => {
                               searchTerm,
                               () => {
                                 // Delete the content comment
-                                deleteComment(asSilva, getId(someLink), someComment.created, err => {
-                                  assert.notExists(err);
+                                deleteComment(asSilva, getId(someLink), someComment.created, (error_) => {
+                                  assert.notExists(error_);
 
                                   // Verify that we get do not get the content item in the applicable search resourceTypes permutations
                                   _verifySearchResults(
@@ -771,8 +778,8 @@ describe('General Search', () => {
                                     searchTerm,
                                     () => {
                                       // Delete the discussion message
-                                      deleteMessage(asSilva, getId(someDiscussion), someMessage.created, err => {
-                                        assert.notExists(err);
+                                      deleteMessage(asSilva, getId(someDiscussion), someMessage.created, (error_) => {
+                                        assert.notExists(error_);
 
                                         /**
                                          * Verify that we don't get the content item nor the
@@ -811,12 +818,12 @@ describe('General Search', () => {
      * index results in content and discussion items to be indexed
      * appropriately with their messages.
      */
-    it('verify reindexAll reindexes messages as children of their parent resource items', callback => {
+    it('verify reindexAll reindexes messages as children of their parent resource items', (callback) => {
       // Clear all the data in the system to speed up the `reindexAll` operation in this test
       clearAllData(() => {
         // Create the user to test with
-        generateTestUsers(asCambridgeTenantAdmin, 1, (err, createdUsers) => {
-          assert.notExists(err);
+        generateTestUsers(asCambridgeTenantAdmin, 1, (error, createdUsers) => {
+          assert.notExists(error);
 
           const { 0: horacio } = createdUsers;
           const asHoracio = horacio.restContext;
@@ -835,8 +842,8 @@ describe('General Search', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, someLink) => {
-              assert.notExists(err);
+            (error, someLink) => {
+              assert.notExists(error);
 
               createDiscussion(
                 asHoracio,
@@ -845,8 +852,8 @@ describe('General Search', () => {
                 PUBLIC,
                 NO_MANAGERS,
                 NO_MEMBERS,
-                (err, someDiscussion) => {
-                  assert.notExists(err);
+                (error, someDiscussion) => {
+                  assert.notExists(error);
 
                   /**
                    * Verify that we do not get the content item or discussion in
@@ -861,11 +868,11 @@ describe('General Search', () => {
                     searchTerm,
                     () => {
                       // Create a comment and message on the content item and discussion
-                      createComment(asHoracio, getId(someLink), searchTerm, null, err => {
-                        assert.notExists(err);
+                      createComment(asHoracio, getId(someLink), searchTerm, null, (error_) => {
+                        assert.notExists(error_);
 
-                        createMessage(asHoracio, getId(someDiscussion), searchTerm, null, err => {
-                          assert.notExists(err);
+                        createMessage(asHoracio, getId(someDiscussion), searchTerm, null, (error_) => {
+                          assert.notExists(error_);
 
                           // Ensure both the content item and message are searchable by their messages
                           _verifySearchResults(
@@ -922,10 +929,10 @@ describe('General Search', () => {
     /**
      * Verify deleting a content item and discussion only deletes message documents for the deleted resources
      */
-    it('verify deleting resources only deletes its own children documents', callback => {
+    it('verify deleting resources only deletes its own children documents', (callback) => {
       // Create the user to test with
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: lopes } = users;
         const asLopes = lopes.restContext;
@@ -944,8 +951,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, someLink) => {
-            assert.notExists(err);
+          (error, someLink) => {
+            assert.notExists(error);
 
             createLink(
               asLopes,
@@ -958,8 +965,8 @@ describe('General Search', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, otherLink) => {
-                assert.notExists(err);
+              (error, otherLink) => {
+                assert.notExists(error);
 
                 createDiscussion(
                   asLopes,
@@ -968,8 +975,8 @@ describe('General Search', () => {
                   PUBLIC,
                   NO_MANAGERS,
                   NO_MEMBERS,
-                  (err, someDiscussion) => {
-                    assert.notExists(err);
+                  (error, someDiscussion) => {
+                    assert.notExists(error);
 
                     createDiscussion(
                       asLopes,
@@ -978,21 +985,21 @@ describe('General Search', () => {
                       PUBLIC,
                       NO_MANAGERS,
                       NO_MEMBERS,
-                      (err, otherDiscussion) => {
-                        assert.notExists(err);
+                      (error, otherDiscussion) => {
+                        assert.notExists(error);
 
                         // Create comments and messages on all the content and discussion items
-                        createComment(asLopes, getId(someLink), searchTerm, null, err => {
-                          assert.notExists(err);
+                        createComment(asLopes, getId(someLink), searchTerm, null, (error_) => {
+                          assert.notExists(error_);
 
-                          createComment(asLopes, getId(otherLink), searchTerm, null, err => {
-                            assert.notExists(err);
+                          createComment(asLopes, getId(otherLink), searchTerm, null, (error_) => {
+                            assert.notExists(error_);
 
-                            createMessage(asLopes, getId(someDiscussion), searchTerm, null, err => {
-                              assert.notExists(err);
+                            createMessage(asLopes, getId(someDiscussion), searchTerm, null, (error_) => {
+                              assert.notExists(error_);
 
-                              createMessage(asLopes, getId(otherDiscussion), searchTerm, null, err => {
-                                assert.notExists(err);
+                              createMessage(asLopes, getId(otherDiscussion), searchTerm, null, (error_) => {
+                                assert.notExists(error_);
 
                                 // Verify we can search for both content items and discussions using the message search term
                                 _verifySearchResults(
@@ -1012,11 +1019,11 @@ describe('General Search', () => {
                                       searchTerm,
                                       () => {
                                         // Delete just the 2nd content item and the 2nd discussion
-                                        deleteContent(asLopes, getId(otherLink), err => {
-                                          assert.notExists(err);
+                                        deleteContent(asLopes, getId(otherLink), (error_) => {
+                                          assert.notExists(error_);
 
-                                          deleteDiscussion(asLopes, getId(otherDiscussion), err => {
-                                            assert.notExists(err);
+                                          deleteDiscussion(asLopes, getId(otherDiscussion), (error_) => {
+                                            assert.notExists(error_);
 
                                             // Ensure that the non-deleted content and discussion are searchable, while the 2nd ones are not
                                             _verifySearchResults(
@@ -1066,7 +1073,7 @@ describe('General Search', () => {
      * Verifies empty, null, and valid values for both single and array
      * lookups using the resourceTypes parameter.
      */
-    it('verify a variety of valid and invalid values for the resourceTypes parameter', callback => {
+    it('verify a variety of valid and invalid values for the resourceTypes parameter', (callback) => {
       /*!
        * Helper function that verifies that a search result feed has (or doesn't have) results of certain resourceTypes
        *
@@ -1081,7 +1088,7 @@ describe('General Search', () => {
         let hasGroup = false;
         let hasContent = false;
 
-        forEach(eachResult => {
+        forEach((eachResult) => {
           if (isUser(getResourceType(eachResult))) {
             hasUser = true;
           } else if (isGroup(getResourceType(eachResult))) {
@@ -1104,15 +1111,15 @@ describe('General Search', () => {
       const shouldNotFindContent = false;
 
       // Ensure at least one user, group and content item exists
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
         const johnsName = johnDoe.user.displayName;
 
-        createGroup(asJohnDoe, johnsName, johnsName, PUBLIC, NO, NO_MANAGERS, NO_MEMBERS, err => {
-          assert.notExists(err);
+        createGroup(asJohnDoe, johnsName, johnsName, PUBLIC, NO, NO_MANAGERS, NO_MEMBERS, (error_) => {
+          assert.notExists(error_);
 
           createLink(
             asJohnDoe,
@@ -1125,12 +1132,12 @@ describe('General Search', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            err => {
-              assert.notExists(err);
+            (error_) => {
+              assert.notExists(error_);
 
               // Verify unspecified resourceTypes searches all
-              searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: johnsName }, (err, results) => {
-                assert.notExists(err);
+              searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: johnsName }, (error, results) => {
+                assert.notExists(error);
 
                 _verifyHasResourceTypes(results, shouldFindUser, shouldFindGroup, shouldFindContent);
 
@@ -1140,8 +1147,8 @@ describe('General Search', () => {
                   GENERAL_SEARCH,
                   null,
                   { resourceTypes: EMPTY_STRING, q: johnsName },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
 
                     _verifyHasResourceTypes(results, shouldFindUser, shouldFindGroup, shouldFindContent);
 
@@ -1151,8 +1158,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { resourceTypes: 'not-matching-anything', q: johnsName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
                         assert.strictEqual(results.results.length, 0);
 
                         // Verify each single resourceType searches just that one
@@ -1161,8 +1168,8 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { resourceTypes: USER, q: johnsName },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
 
                             _verifyHasResourceTypes(results, shouldFindUser, shouldNotFindGroup, shouldNotFindContent);
 
@@ -1171,8 +1178,8 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { resourceTypes: GROUP, q: johnsName },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
                                 _verifyHasResourceTypes(
                                   results,
@@ -1186,8 +1193,8 @@ describe('General Search', () => {
                                   GENERAL_SEARCH,
                                   NO_PARAMS,
                                   { resourceTypes: CONTENT },
-                                  (err, results) => {
-                                    assert.notExists(err);
+                                  (error, results) => {
+                                    assert.notExists(error);
 
                                     _verifyHasResourceTypes(
                                       results,
@@ -1205,8 +1212,8 @@ describe('General Search', () => {
                                         resourceTypes: [GROUP, CONTENT],
                                         q: johnsName
                                       },
-                                      (err, results) => {
-                                        assert.notExists(err);
+                                      (error, results) => {
+                                        assert.notExists(error);
 
                                         _verifyHasResourceTypes(
                                           results,
@@ -1224,8 +1231,8 @@ describe('General Search', () => {
                                             resourceTypes: [EMPTY_STRING, EMPTY_STRING, CONTENT, EMPTY_STRING],
                                             q: johnsName
                                           },
-                                          (err, results) => {
-                                            assert.notExists(err);
+                                          (error, results) => {
+                                            assert.notExists(error);
 
                                             _verifyHasResourceTypes(
                                               results,
@@ -1250,8 +1257,8 @@ describe('General Search', () => {
                                                 ],
                                                 q: johnsName
                                               },
-                                              (err, results) => {
-                                                assert.notExists(err);
+                                              (error, results) => {
+                                                assert.notExists(error);
 
                                                 _verifyHasResourceTypes(
                                                   results,
@@ -1276,8 +1283,8 @@ describe('General Search', () => {
                                                     ],
                                                     q: johnsName
                                                   },
-                                                  (err, results) => {
-                                                    assert.notExists(err);
+                                                  (error, results) => {
+                                                    assert.notExists(error);
 
                                                     _verifyHasResourceTypes(
                                                       results,
@@ -1318,9 +1325,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that the 'start' property properly pages search results
      */
-    it('verify search paging', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify search paging', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: barbosa } = users;
         const asBarbosa = barbosa.restContext;
@@ -1341,8 +1348,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err /* , link */) => {
-            assert.notExists(err);
+          (error /* , link */) => {
+            assert.notExists(error);
 
             createLink(
               asBarbosa,
@@ -1355,12 +1362,12 @@ describe('General Search', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err /* , link */) => {
-                assert.notExists(err);
+              (error /* , link */) => {
+                assert.notExists(error);
 
                 // Search once and grab the first document id
-                searchRefreshed(asBarbosa, GENERAL_SEARCH, null, { limit: 1 }, (err, results) => {
-                  assert.notExists(err);
+                searchRefreshed(asBarbosa, GENERAL_SEARCH, null, { limit: 1 }, (error, results) => {
+                  assert.notExists(error);
                   assert.ok(results);
                   assert.ok(results.results);
                   assert.strictEqual(numberOf(results), 1);
@@ -1369,16 +1376,16 @@ describe('General Search', () => {
                   assert.ok(firstFoundDoc);
 
                   // Perform the same search, but with start=0, and make sure the first document is still the same. Verifies default paging
-                  search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 0 }, (err, results) => {
-                    assert.notExists(err);
+                  search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 0 }, (error, results) => {
+                    assert.notExists(error);
                     assert.ok(results);
                     assert.ok(results.results);
                     assert.strictEqual(numberOf(results), 1);
                     assert.strictEqual(prop('id', head(getResultsWithin(results))), firstFoundDoc);
 
                     // Search again with start=1 and verify the first document id of the previous search is not the same as the first document id of this search
-                    search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 1 }, (err, results) => {
-                      assert.notExists(err);
+                    search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 1 }, (error, results) => {
+                      assert.notExists(error);
                       assert.ok(results);
                       assert.ok(getResultsWithin(results));
                       assert.strictEqual(numberOf(results), 1);
@@ -1401,9 +1408,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that the total results count stays accurate regardless of paging parameters
      */
-    it('verify search total count', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify search total count', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: silva } = users;
         const asSilva = silva.restContext;
@@ -1420,8 +1427,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
             createLink(
               asSilva,
@@ -1434,12 +1441,12 @@ describe('General Search', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
 
                 // Do a search so we know how many items there are in the index for this search term
-                searchRefreshed(asSilva, GENERAL_SEARCH, null, { q: 'Apereo' }, (err, results) => {
-                  assert.notExists(err);
+                searchRefreshed(asSilva, GENERAL_SEARCH, null, { q: 'Apereo' }, (error, results) => {
+                  assert.notExists(error);
 
                   /**
                    * When we only select a subset of the results,
@@ -1450,8 +1457,8 @@ describe('General Search', () => {
                     GENERAL_SEARCH,
                     NO_PARAMS,
                     { q: 'Apereo', start: 0, limit: 1 },
-                    (err, startResults) => {
-                      assert.notExists(err);
+                    (error, startResults) => {
+                      assert.notExists(error);
                       assert.strictEqual(results.total, startResults.total);
                       assert.strictEqual(numberOf(startResults), 1);
 
@@ -1464,8 +1471,8 @@ describe('General Search', () => {
                         GENERAL_SEARCH,
                         NO_PARAMS,
                         { q: 'Apereo', start: 0, limit: results.total },
-                        (err, allResults) => {
-                          assert.notExists(err);
+                        (error, allResults) => {
+                          assert.notExists(error);
                           assert.strictEqual(results.total, allResults.total);
                           assert.strictEqual(numberOf(allResults), results.total);
 
@@ -1478,8 +1485,8 @@ describe('General Search', () => {
                             GENERAL_SEARCH,
                             NO_PARAMS,
                             { q: 'Apereo', start: results.total },
-                            (err, emptyResults) => {
-                              assert.notExists(err);
+                            (error, emptyResults) => {
+                              assert.notExists(error);
                               assert.strictEqual(results.total, emptyResults.total);
                               assert.strictEqual(numberOf(emptyResults), 0);
 
@@ -1504,7 +1511,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that the _all scope searches everything from all tenants
      */
-    it('verify "all" search scope searches resources from inside and outside the tenant network (but not private tenants)', callback => {
+    it('verify "all" search scope searches resources from inside and outside the tenant network (but not private tenants)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         // It should search everything in the system when searching as the global administrator
         searchForResource(asGlobalAdmin, ALL_SCOPE, somePublicUserFrom(publicTenantA), true, () => {
@@ -1637,7 +1644,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that the _network scope searches resources from inside the current tenant network only
      */
-    it('verify the "network" search scope searches resources from inside the current tenant network only', callback => {
+    it('verify the "network" search scope searches resources from inside the current tenant network only', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
         // Public and loggedin items from the current public tenant should be searched
         searchForResource(
@@ -1796,14 +1803,14 @@ describe('General Search', () => {
     /**
      * Test that verifies that the _interact scope searches resources that the user can interact with only
      */
-    it('verify the "interact" search scope searches only resources with which the user can interact', callback => {
+    it('verify the "interact" search scope searches only resources with which the user can interact', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
         // Anonymous users cannot use the _interact scope without a 401 error
         searchRefreshed(asAnonymousUserOn(publicTenantA), GENERAL_SEARCH, NO_PARAMS, { scope: INTERACT_SCOPE }, (
-          err /* , results */
+          error /* , results */
         ) => {
-          assert.ok(err);
-          assert.ok(returns401(err));
+          assert.ok(error);
+          assert.ok(returns401(error));
 
           // Public and loggedin items from the current public tenant should be searched
           searchForResource(
@@ -2012,7 +2019,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that the _my scope searches resources from inside the current tenant only
      */
-    it('verify the _my search scope searches only items to which the current user is explicitly associated', callback => {
+    it('verify the _my search scope searches only items to which the current user is explicitly associated', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         /**
          * Make the public user from publicTenant0 a member of a couple of the groups so we can test explicit access
@@ -2154,7 +2161,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that scoping by a specific tenant results in only resources from that tenant being searched
      */
-    it('verify that scoping general search to a tenant alias only searches resources in that tenant', callback => {
+    it('verify that scoping general search to a tenant alias only searches resources in that tenant', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB /* , privateTenant0, privateTenant1 */) => {
         /**
          * Make the public user from publicTenantA a member of the public group
@@ -2162,122 +2169,127 @@ describe('General Search', () => {
          */
         const memberUpdate = assoc(publicTenantA.publicUser.user.id, MEMBER, {});
 
-        setGroupMembers(asAdminUserOn(publicTenantB), getId(somePublicGroupFrom(publicTenantB)), memberUpdate, err => {
-          assert.notExists(err);
+        setGroupMembers(
+          asAdminUserOn(publicTenantB),
+          getId(somePublicGroupFrom(publicTenantB)),
+          memberUpdate,
+          (error) => {
+            assert.notExists(error);
 
-          // Public and loggedin items from the specified tenant should be returned
-          searchForResource(
-            asPublicUserOn(publicTenantA),
-            getTenantAlias(publicTenantA),
-            somePublicUserFrom(publicTenantA),
-            shouldBeAbleToFindIt,
-            () => {
-              searchForResource(
-                asPublicUserOn(publicTenantA),
-                getTenantAlias(publicTenantA),
-                someLoggedInUserFrom(publicTenantA),
-                shouldBeAbleToFindIt,
-                () => {
-                  searchForResource(
-                    asPublicUserOn(publicTenantA),
-                    getTenantAlias(publicTenantA),
-                    somePrivateUserFrom(publicTenantA),
-                    shouldNotBeAbleToFindIt,
-                    () => {
-                      /**
-                       * The public group nor other resources from the other public tenant
-                       * should be returned even when we have explicit access
-                       */
-                      searchForResource(
-                        asPublicUserOn(publicTenantA),
-                        getTenantAlias(publicTenantA),
-                        somePublicGroupFrom(publicTenantB),
-                        shouldNotBeAbleToFindIt,
-                        () => {
-                          searchForResource(
-                            asPublicUserOn(publicTenantA),
-                            getTenantAlias(publicTenantA),
-                            somePublicUserFrom(publicTenantB),
-                            shouldNotBeAbleToFindIt,
-                            () => {
-                              searchForResource(
-                                asPublicUserOn(publicTenantA),
-                                getTenantAlias(publicTenantA),
-                                someLoggedInUserFrom(publicTenantB),
-                                shouldNotBeAbleToFindIt,
-                                () => {
-                                  searchForResource(
-                                    asPublicUserOn(publicTenantA),
-                                    getTenantAlias(publicTenantA),
-                                    somePrivateUserFrom(publicTenantB),
-                                    shouldNotBeAbleToFindIt,
-                                    () => {
-                                      // Resources from the current tenant should not be searched when specifying another tenant
-                                      searchForResource(
-                                        asPublicUserOn(publicTenantA),
-                                        getTenantAlias(publicTenantB),
-                                        somePublicUserFrom(publicTenantA),
-                                        shouldNotBeAbleToFindIt,
-                                        () => {
-                                          searchForResource(
-                                            asPublicUserOn(publicTenantA),
-                                            getTenantAlias(publicTenantB),
-                                            someLoggedInUserFrom(publicTenantA),
-                                            shouldNotBeAbleToFindIt,
-                                            () => {
-                                              searchForResource(
-                                                asPublicUserOn(publicTenantA),
-                                                getTenantAlias(publicTenantB),
-                                                somePrivateUserFrom(publicTenantA),
-                                                shouldNotBeAbleToFindIt,
-                                                () => {
-                                                  // Resources from a different specified tenant should be searched when it is specified
-                                                  searchForResource(
-                                                    asPublicUserOn(publicTenantA),
-                                                    getTenantAlias(publicTenantB),
-                                                    somePublicUserFrom(publicTenantB),
-                                                    shouldBeAbleToFindIt,
-                                                    () => {
-                                                      searchForResource(
-                                                        asPublicUserOn(publicTenantA),
-                                                        getTenantAlias(publicTenantB),
-                                                        someLoggedInUserFrom(publicTenantB),
-                                                        shouldNotBeAbleToFindIt,
-                                                        () => {
-                                                          searchForResource(
-                                                            asPublicUserOn(publicTenantA),
-                                                            getTenantAlias(publicTenantB),
-                                                            somePrivateUserFrom(publicTenantB),
-                                                            shouldNotBeAbleToFindIt,
-                                                            () => {
-                                                              return callback();
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+            // Public and loggedin items from the specified tenant should be returned
+            searchForResource(
+              asPublicUserOn(publicTenantA),
+              getTenantAlias(publicTenantA),
+              somePublicUserFrom(publicTenantA),
+              shouldBeAbleToFindIt,
+              () => {
+                searchForResource(
+                  asPublicUserOn(publicTenantA),
+                  getTenantAlias(publicTenantA),
+                  someLoggedInUserFrom(publicTenantA),
+                  shouldBeAbleToFindIt,
+                  () => {
+                    searchForResource(
+                      asPublicUserOn(publicTenantA),
+                      getTenantAlias(publicTenantA),
+                      somePrivateUserFrom(publicTenantA),
+                      shouldNotBeAbleToFindIt,
+                      () => {
+                        /**
+                         * The public group nor other resources from the other public tenant
+                         * should be returned even when we have explicit access
+                         */
+                        searchForResource(
+                          asPublicUserOn(publicTenantA),
+                          getTenantAlias(publicTenantA),
+                          somePublicGroupFrom(publicTenantB),
+                          shouldNotBeAbleToFindIt,
+                          () => {
+                            searchForResource(
+                              asPublicUserOn(publicTenantA),
+                              getTenantAlias(publicTenantA),
+                              somePublicUserFrom(publicTenantB),
+                              shouldNotBeAbleToFindIt,
+                              () => {
+                                searchForResource(
+                                  asPublicUserOn(publicTenantA),
+                                  getTenantAlias(publicTenantA),
+                                  someLoggedInUserFrom(publicTenantB),
+                                  shouldNotBeAbleToFindIt,
+                                  () => {
+                                    searchForResource(
+                                      asPublicUserOn(publicTenantA),
+                                      getTenantAlias(publicTenantA),
+                                      somePrivateUserFrom(publicTenantB),
+                                      shouldNotBeAbleToFindIt,
+                                      () => {
+                                        // Resources from the current tenant should not be searched when specifying another tenant
+                                        searchForResource(
+                                          asPublicUserOn(publicTenantA),
+                                          getTenantAlias(publicTenantB),
+                                          somePublicUserFrom(publicTenantA),
+                                          shouldNotBeAbleToFindIt,
+                                          () => {
+                                            searchForResource(
+                                              asPublicUserOn(publicTenantA),
+                                              getTenantAlias(publicTenantB),
+                                              someLoggedInUserFrom(publicTenantA),
+                                              shouldNotBeAbleToFindIt,
+                                              () => {
+                                                searchForResource(
+                                                  asPublicUserOn(publicTenantA),
+                                                  getTenantAlias(publicTenantB),
+                                                  somePrivateUserFrom(publicTenantA),
+                                                  shouldNotBeAbleToFindIt,
+                                                  () => {
+                                                    // Resources from a different specified tenant should be searched when it is specified
+                                                    searchForResource(
+                                                      asPublicUserOn(publicTenantA),
+                                                      getTenantAlias(publicTenantB),
+                                                      somePublicUserFrom(publicTenantB),
+                                                      shouldBeAbleToFindIt,
+                                                      () => {
+                                                        searchForResource(
+                                                          asPublicUserOn(publicTenantA),
+                                                          getTenantAlias(publicTenantB),
+                                                          someLoggedInUserFrom(publicTenantB),
+                                                          shouldNotBeAbleToFindIt,
+                                                          () => {
+                                                            searchForResource(
+                                                              asPublicUserOn(publicTenantA),
+                                                              getTenantAlias(publicTenantB),
+                                                              somePrivateUserFrom(publicTenantB),
+                                                              shouldNotBeAbleToFindIt,
+                                                              () => {
+                                                                return callback();
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
   });
@@ -2287,9 +2299,9 @@ describe('General Search', () => {
     /**
      * Test that verifies deleted content is removed from the search index.
      */
-    it('verify deleted content is unsearchable', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify deleted content is unsearchable', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: barbosa } = users;
         const asBarbosa = barbosa.restContext;
@@ -2306,8 +2318,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Verify search term Apereo does not match the content
             searchRefreshed(
@@ -2315,20 +2327,20 @@ describe('General Search', () => {
               GENERAL_SEARCH,
               NO_PARAMS,
               { resourceTypes: CONTENT, q: uniqueString },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(isWithin(results, content.id));
 
-                deleteContent(asBarbosa, content.id, err => {
-                  assert.notExists(err);
+                deleteContent(asBarbosa, content.id, (error_) => {
+                  assert.notExists(error_);
 
                   searchRefreshed(
                     asBarbosa,
                     GENERAL_SEARCH,
                     NO_PARAMS,
                     { resourceTypes: CONTENT, q: uniqueString },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
                       assert.ok(isNotWithin(results, content.id));
 
                       return callback();
@@ -2345,9 +2357,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that public content is searchable by all users.
      */
-    it('verify public content searchable by everyone', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify public content searchable by everyone', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: meireles } = users;
         const asMeireles = meireles.restContext;
@@ -2359,18 +2371,18 @@ describe('General Search', () => {
         const { 2: barbosa } = users;
         const asBarbosa = barbosa.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err /* , users */) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error /* , users */) => {
+          assert.notExists(error);
 
           generateTestGroups(asMeireles, 5, (...args) => {
             const groupIds = getGroupIds(args);
 
             // Give meireles access via group
-            generateGroupHierarchy(asMeireles, groupIds, MEMBER, err => {
-              assert.notExists(err);
+            generateGroupHierarchy(asMeireles, groupIds, MEMBER, (error_) => {
+              assert.notExists(error_);
 
-              generateGroupHierarchy(asMeireles, pair(nth(4, groupIds), lopesId), MEMBER, err => {
-                assert.notExists(err);
+              generateGroupHierarchy(asMeireles, pair(nth(4, groupIds), lopesId), MEMBER, (error_) => {
+                assert.notExists(error_);
 
                 const uniqueString = generateTestUserId('public-searchable-content');
                 createLink(
@@ -2384,8 +2396,8 @@ describe('General Search', () => {
                     viewers: of(head(groupIds)),
                     folders: NO_FOLDERS
                   },
-                  (err, contentObj) => {
-                    assert.notExists(err);
+                  (error, contentObject) => {
+                    assert.notExists(error);
 
                     // Verify anonymous can see it
                     searchRefreshed(
@@ -2393,24 +2405,24 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { q: uniqueString },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
 
-                        const searchedDoc = fetchWithin(results, getId(contentObj));
+                        const searchedDoc = fetchWithin(results, getId(contentObject));
                         assert.ok(searchedDoc);
                         assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
+                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
                         assert.strictEqual(searchedDoc.tenantAlias, 'camtest');
-                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                         assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                         assert.strictEqual(
                           searchedDoc.profilePath,
                           concat(
-                            `/content/${getTenantAlias(contentObj)}`,
-                            `/${AuthzUtil.getResourceFromId(contentObj.id).resourceId}`
+                            `/content/${getTenantAlias(contentObject)}`,
+                            `/${AuthzUtil.getResourceFromId(contentObject.id).resourceId}`
                           )
                         );
-                        assert.strictEqual(getId(contentObj), getId(searchedDoc));
+                        assert.strictEqual(getId(contentObject), getId(searchedDoc));
                         assert.strictEqual(undefined, searchedDoc._extra);
                         assert.strictEqual(undefined, searchedDoc._type);
                         assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2423,24 +2435,24 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { q: uniqueString },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
 
-                            const searchedDoc = fetchWithin(results, getId(contentObj));
+                            const searchedDoc = fetchWithin(results, getId(contentObject));
                             assert.ok(searchedDoc);
                             assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                            assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                            assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                            assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                            assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                            assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                            assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                             assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                             assert.strictEqual(
                               searchedDoc.profilePath,
                               concat(
-                                `/content/${getTenantAlias(contentObj)}`,
-                                `/${AuthzUtil.getResourceFromId(getId(contentObj)).resourceId}`
+                                `/content/${getTenantAlias(contentObject)}`,
+                                `/${AuthzUtil.getResourceFromId(getId(contentObject)).resourceId}`
                               )
                             );
-                            assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                            assert.strictEqual(getId(searchedDoc), getId(contentObject));
                             assert.strictEqual(undefined, searchedDoc._extra);
                             assert.strictEqual(undefined, searchedDoc._type);
                             assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2453,24 +2465,24 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { q: uniqueString },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
-                                const searchedDoc = fetchWithin(results, getId(contentObj));
+                                const searchedDoc = fetchWithin(results, getId(contentObject));
                                 assert.ok(searchedDoc);
                                 assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                assert.strictEqual(searchedDoc.visibility, contentObj.visibility);
+                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                assert.strictEqual(searchedDoc.visibility, contentObject.visibility);
                                 assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                 assert.strictEqual(
                                   searchedDoc.profilePath,
                                   concat(
-                                    `/content/${getTenantAlias(contentObj)}`,
-                                    `/${AuthzUtil.getResourceFromId(getId(contentObj)).resourceId}`
+                                    `/content/${getTenantAlias(contentObject)}`,
+                                    `/${AuthzUtil.getResourceFromId(getId(contentObject)).resourceId}`
                                   )
                                 );
-                                assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                 assert.strictEqual(undefined, searchedDoc._extra);
                                 assert.strictEqual(undefined, searchedDoc._type);
                                 assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2483,24 +2495,24 @@ describe('General Search', () => {
                                   GENERAL_SEARCH,
                                   NO_PARAMS,
                                   { q: uniqueString },
-                                  (err, results) => {
-                                    assert.notExists(err);
+                                  (error, results) => {
+                                    assert.notExists(error);
 
-                                    const searchedDoc = fetchWithin(results, getId(contentObj));
+                                    const searchedDoc = fetchWithin(results, getId(contentObject));
                                     assert.ok(searchedDoc);
                                     assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                    assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                    assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                    assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                    assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                    assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                    assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                     assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                     assert.strictEqual(
                                       searchedDoc.profilePath,
                                       concat(
-                                        `/content/${getTenantAlias(contentObj)}`,
-                                        `/${AuthzUtil.getResourceFromId(contentObj.id).resourceId}`
+                                        `/content/${getTenantAlias(contentObject)}`,
+                                        `/${AuthzUtil.getResourceFromId(contentObject.id).resourceId}`
                                       )
                                     );
-                                    assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                    assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                     assert.strictEqual(undefined, searchedDoc._extra);
                                     assert.strictEqual(undefined, searchedDoc._type);
                                     assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2513,24 +2525,24 @@ describe('General Search', () => {
                                       GENERAL_SEARCH,
                                       NO_PARAMS,
                                       { q: uniqueString },
-                                      (err, results) => {
-                                        assert.notExists(err);
+                                      (error, results) => {
+                                        assert.notExists(error);
 
-                                        const searchedDoc = fetchWithin(results, getId(contentObj));
+                                        const searchedDoc = fetchWithin(results, getId(contentObject));
                                         assert.ok(searchedDoc);
                                         assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                         assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                         assert.strictEqual(
                                           searchedDoc.profilePath,
                                           concat(
-                                            `/content/${getTenantAlias(contentObj)}`,
-                                            `/${getResourceFromId(getId(contentObj)).resourceId}`
+                                            `/content/${getTenantAlias(contentObject)}`,
+                                            `/${getResourceFromId(getId(contentObject)).resourceId}`
                                           )
                                         );
-                                        assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                        assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                         assert.strictEqual(undefined, searchedDoc._extra);
                                         assert.strictEqual(undefined, searchedDoc._type);
                                         assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2561,9 +2573,9 @@ describe('General Search', () => {
      * Test that verifies loggedin content items are only search by users authenticated
      * to the content item's parent tenant.
      */
-    it('verify loggedin content search not searchable by anonymous or cross-tenant', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify loggedin content search not searchable by anonymous or cross-tenant', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: lopes } = users;
         const asLopes = lopes.restContext;
@@ -2575,8 +2587,8 @@ describe('General Search', () => {
         const { 2: meireles } = users;
         const asMeireles = meireles.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, moreUsers) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, moreUsers) => {
+          assert.notExists(error);
 
           const { 0: bonifacio } = moreUsers;
           const asBonifacio = bonifacio.restContext;
@@ -2585,11 +2597,11 @@ describe('General Search', () => {
             const groupIds = getGroupIds(args);
 
             // Give lopes access via group
-            generateGroupHierarchy(asLopes, groupIds, MEMBER, err => {
-              assert.notExists(err);
+            generateGroupHierarchy(asLopes, groupIds, MEMBER, (error_) => {
+              assert.notExists(error_);
 
-              generateGroupHierarchy(asLopes, [nth(4, groupIds), barbosaId], MEMBER, err => {
-                assert.notExists(err);
+              generateGroupHierarchy(asLopes, [nth(4, groupIds), barbosaId], MEMBER, (error_) => {
+                assert.notExists(error_);
 
                 const beforeCreated = Date.now();
                 const uniqueString = generateTestUserId('loggedin-searchable-content');
@@ -2605,8 +2617,8 @@ describe('General Search', () => {
                     viewers: of(head(groupIds)),
                     folders: NO_FOLDERS
                   },
-                  (err, contentObj) => {
-                    assert.notExists(err);
+                  (error, contentObject) => {
+                    assert.notExists(error);
 
                     // Verify anonymous cannot see it
                     searchRefreshed(
@@ -2614,9 +2626,9 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { q: uniqueString },
-                      (err, results) => {
-                        assert.notExists(err);
-                        assert.ok(isNotWithin(results, contentObj.id));
+                      (error, results) => {
+                        assert.notExists(error);
+                        assert.ok(isNotWithin(results, contentObject.id));
 
                         // Verify cross-tenant user cannot see it
                         searchRefreshed(
@@ -2624,9 +2636,9 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { q: uniqueString, scope: NETWORK_SCOPE },
-                          (err, results) => {
-                            assert.notExists(err);
-                            assert.ok(isNotWithin(results, contentObj.id));
+                          (error, results) => {
+                            assert.notExists(error);
+                            assert.ok(isNotWithin(results, contentObject.id));
 
                             // Verify tenant admin can see it
                             searchRefreshed(
@@ -2634,24 +2646,24 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { q: uniqueString },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
-                                const searchedDoc = fetchWithin(results, contentObj.id);
+                                const searchedDoc = fetchWithin(results, contentObject.id);
                                 assert.ok(searchedDoc);
                                 assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                 assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                 assert.strictEqual(
                                   searchedDoc.profilePath,
                                   concat(
-                                    `/content/${getTenantAlias(contentObj)}`,
-                                    `/${getResourceFromId(getId(contentObj)).resourceId}`
+                                    `/content/${getTenantAlias(contentObject)}`,
+                                    `/${getResourceFromId(getId(contentObject)).resourceId}`
                                   )
                                 );
-                                assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                 assert.strictEqual(undefined, searchedDoc._extra);
                                 assert.strictEqual(undefined, searchedDoc._type);
                                 assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2671,24 +2683,24 @@ describe('General Search', () => {
                                   GENERAL_SEARCH,
                                   NO_PARAMS,
                                   { q: uniqueString },
-                                  (err, results) => {
-                                    assert.notExists(err);
+                                  (error, results) => {
+                                    assert.notExists(error);
 
-                                    const searchedDoc = fetchWithin(results, contentObj.id);
+                                    const searchedDoc = fetchWithin(results, contentObject.id);
                                     assert.ok(searchedDoc);
                                     assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                    assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                    assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                    assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                    assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                    assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                    assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                     assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                     assert.strictEqual(
                                       searchedDoc.profilePath,
                                       concat(
-                                        `/content/${getTenantAlias(contentObj)}`,
-                                        `/${getResourceFromId(getId(contentObj)).resourceId}`
+                                        `/content/${getTenantAlias(contentObject)}`,
+                                        `/${getResourceFromId(getId(contentObject)).resourceId}`
                                       )
                                     );
-                                    assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                    assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                     assert.strictEqual(undefined, searchedDoc._extra);
                                     assert.strictEqual(undefined, searchedDoc._type);
                                     assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2708,25 +2720,25 @@ describe('General Search', () => {
                                       GENERAL_SEARCH,
                                       NO_PARAMS,
                                       { q: uniqueString },
-                                      (err, results) => {
-                                        assert.notExists(err);
-                                        assert.ok(isWithin(results, getId(contentObj)));
+                                      (error, results) => {
+                                        assert.notExists(error);
+                                        assert.ok(isWithin(results, getId(contentObject)));
 
-                                        const searchedDoc = fetchWithin(results, getId(contentObj));
+                                        const searchedDoc = fetchWithin(results, getId(contentObject));
                                         assert.ok(searchedDoc);
                                         assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                         assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                         assert.strictEqual(
                                           searchedDoc.profilePath,
                                           concat(
-                                            `/content/${getTenantAlias(contentObj)}`,
-                                            `/${getResourceFromId(getId(contentObj)).resourceId}`
+                                            `/content/${getTenantAlias(contentObject)}`,
+                                            `/${getResourceFromId(getId(contentObject)).resourceId}`
                                           )
                                         );
-                                        assert.strictEqual(searchedDoc.id, contentObj.id);
+                                        assert.strictEqual(searchedDoc.id, contentObject.id);
                                         assert.strictEqual(searchedDoc._extra, undefined);
                                         assert.strictEqual(searchedDoc._type, undefined);
                                         assert.strictEqual(searchedDoc.q_high, undefined);
@@ -2763,9 +2775,9 @@ describe('General Search', () => {
     /**
      * Test that verifies that private content is not searchable by anyone but admins and members.
      */
-    it('verify private content search not searchable by anyone but admin and privileged users', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify private content search not searchable by anyone but admin and privileged users', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: theBoss } = users;
         const asTheBoss = theBoss.restContext;
@@ -2778,8 +2790,8 @@ describe('General Search', () => {
         const elvisId = elvis.user.id;
         const asElvis = elvis.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, moreUsers) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, moreUsers) => {
+          assert.notExists(error);
 
           const { 0: pavarotti } = moreUsers;
           const asPavarotti = pavarotti.restContext;
@@ -2788,11 +2800,11 @@ describe('General Search', () => {
             const groupIds = getGroupIds(args);
 
             // Give jack access via group
-            generateGroupHierarchy(asTheBoss, groupIds, MEMBER, err => {
-              assert.notExists(err);
+            generateGroupHierarchy(asTheBoss, groupIds, MEMBER, (error_) => {
+              assert.notExists(error_);
 
-              generateGroupHierarchy(asTheBoss, [nth(4, groupIds), jacksonId], MEMBER, err => {
-                assert.notExists(err);
+              generateGroupHierarchy(asTheBoss, [nth(4, groupIds), jacksonId], MEMBER, (error_) => {
+                assert.notExists(error_);
 
                 const beforeCreated = Date.now();
                 const uniqueString = generateTestUserId('private-searchable-content');
@@ -2808,8 +2820,8 @@ describe('General Search', () => {
                     viewers: of(head(groupIds)),
                     folders: NO_FOLDERS
                   },
-                  (err, contentObj) => {
-                    assert.isNotOk(err);
+                  (error, contentObject) => {
+                    assert.isNotOk(error);
 
                     // Verify anonymous cannot see it
                     searchRefreshed(
@@ -2817,9 +2829,9 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { q: uniqueString },
-                      (err, results) => {
-                        assert.notExists(err);
-                        assert.ok(isNotWithin(results, getId(contentObj)));
+                      (error, results) => {
+                        assert.notExists(error);
+                        assert.ok(isNotWithin(results, getId(contentObject)));
 
                         // Verify cross-tenant user cannot see it
                         searchRefreshed(
@@ -2827,9 +2839,9 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { q: uniqueString, scope: NETWORK_SCOPE },
-                          (err, results) => {
-                            assert.notExists(err);
-                            assert.ok(isNotWithin(results, getId(contentObj)));
+                          (error, results) => {
+                            assert.notExists(error);
+                            assert.ok(isNotWithin(results, getId(contentObject)));
 
                             // Verify tenant admin can see it
                             searchRefreshed(
@@ -2837,24 +2849,24 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { q: uniqueString },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
-                                const searchedDoc = fetchWithin(results, getId(contentObj));
+                                const searchedDoc = fetchWithin(results, getId(contentObject));
                                 assert.ok(searchedDoc);
                                 assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                 assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                 assert.strictEqual(
                                   searchedDoc.profilePath,
                                   concat(
-                                    `/content/${getTenantAlias(contentObj)}`,
-                                    `/${AuthzUtil.getResourceFromId(getId(contentObj)).resourceId}`
+                                    `/content/${getTenantAlias(contentObject)}`,
+                                    `/${AuthzUtil.getResourceFromId(getId(contentObject)).resourceId}`
                                   )
                                 );
-                                assert.strictEqual(getId(searchedDoc), getId(contentObj));
+                                assert.strictEqual(getId(searchedDoc), getId(contentObject));
                                 assert.strictEqual(undefined, searchedDoc._extra);
                                 assert.strictEqual(undefined, searchedDoc._type);
                                 assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2874,9 +2886,9 @@ describe('General Search', () => {
                                   GENERAL_SEARCH,
                                   NO_PARAMS,
                                   { q: uniqueString },
-                                  (err, results) => {
-                                    assert.notExists(err);
-                                    assert.ok(isNotWithin(results, getId(contentObj)));
+                                  (error, results) => {
+                                    assert.notExists(error);
+                                    assert.ok(isNotWithin(results, getId(contentObject)));
 
                                     // Verify permitted user can see it
                                     searchRefreshed(
@@ -2884,24 +2896,24 @@ describe('General Search', () => {
                                       GENERAL_SEARCH,
                                       NO_PARAMS,
                                       { q: uniqueString },
-                                      (err, results) => {
-                                        assert.notExists(err);
+                                      (error, results) => {
+                                        assert.notExists(error);
 
-                                        const searchedDoc = fetchWithin(results, getId(contentObj));
+                                        const searchedDoc = fetchWithin(results, getId(contentObject));
                                         assert.ok(searchedDoc);
                                         assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                        assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObject));
+                                        assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                        assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObject));
                                         assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                         assert.strictEqual(
                                           searchedDoc.profilePath,
                                           concat(
-                                            `/content/${getTenantAlias(contentObj)}`,
-                                            `/${AuthzUtil.getResourceFromId(getId(contentObj)).resourceId}`
+                                            `/content/${getTenantAlias(contentObject)}`,
+                                            `/${AuthzUtil.getResourceFromId(getId(contentObject)).resourceId}`
                                           )
                                         );
-                                        assert.strictEqual(searchedDoc.id, contentObj.id);
+                                        assert.strictEqual(searchedDoc.id, contentObject.id);
                                         assert.strictEqual(undefined, searchedDoc._extra);
                                         assert.strictEqual(undefined, searchedDoc._type);
                                         assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2921,24 +2933,30 @@ describe('General Search', () => {
                                           GENERAL_SEARCH,
                                           NO_PARAMS,
                                           { q: uniqueString, scope: NETWORK_SCOPE },
-                                          (err, results) => {
-                                            assert.notExists(err);
+                                          (error, results) => {
+                                            assert.notExists(error);
 
-                                            const searchedDoc = fetchWithin(results, getId(contentObj));
+                                            const searchedDoc = fetchWithin(results, getId(contentObject));
                                             assert.ok(searchedDoc);
                                             assert.strictEqual(searchedDoc.resourceSubType, LINK);
-                                            assert.strictEqual(getDisplayName(searchedDoc), getDisplayName(contentObj));
-                                            assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObj));
-                                            assert.strictEqual(getVisibility(searchedDoc), getVisibility(contentObj));
+                                            assert.strictEqual(
+                                              getDisplayName(searchedDoc),
+                                              getDisplayName(contentObject)
+                                            );
+                                            assert.strictEqual(searchedDoc.tenantAlias, getTenantAlias(contentObject));
+                                            assert.strictEqual(
+                                              getVisibility(searchedDoc),
+                                              getVisibility(contentObject)
+                                            );
                                             assert.strictEqual(getResourceType(searchedDoc), CONTENT);
                                             assert.strictEqual(
                                               searchedDoc.profilePath,
                                               concat(
-                                                `/content/${getTenantAlias(contentObj)}`,
-                                                `/${AuthzUtil.getResourceFromId(getId(contentObj)).resourceId}`
+                                                `/content/${getTenantAlias(contentObject)}`,
+                                                `/${AuthzUtil.getResourceFromId(getId(contentObject)).resourceId}`
                                               )
                                             );
-                                            assert.strictEqual(searchedDoc.id, contentObj.id);
+                                            assert.strictEqual(searchedDoc.id, contentObject.id);
                                             assert.strictEqual(undefined, searchedDoc._extra);
                                             assert.strictEqual(undefined, searchedDoc._type);
                                             assert.strictEqual(undefined, searchedDoc.q_high);
@@ -2958,45 +2976,50 @@ describe('General Search', () => {
                                              * filter is NOT cached
                                              */
 
-                                            generateTestGroups(asTheBoss, 1, (err, moreGroups) => {
-                                              assert.notExists(err);
+                                            generateTestGroups(asTheBoss, 1, (error, moreGroups) => {
+                                              assert.notExists(error);
 
                                               const { 0: anotherGroup } = moreGroups;
                                               const permissions = assoc(elvisId, MEMBER, {});
 
-                                              setGroupMembers(asTheBoss, anotherGroup.group.id, permissions, err => {
-                                                assert.notExists(err);
+                                              setGroupMembers(
+                                                asTheBoss,
+                                                anotherGroup.group.id,
+                                                permissions,
+                                                (error_) => {
+                                                  assert.notExists(error_);
 
-                                                createLink(
-                                                  asTheBoss,
-                                                  {
-                                                    displayName: uniqueString,
-                                                    description: 'Test content description 2',
-                                                    visibility: PRIVATE,
-                                                    link: 'http://www.oaeproject.org/',
-                                                    managers: NO_MANAGERS,
-                                                    viewers: of(anotherGroup.group.id),
-                                                    folders: NO_FOLDERS
-                                                  },
-                                                  (err, link2) => {
-                                                    assert.notExists(err);
+                                                  createLink(
+                                                    asTheBoss,
+                                                    {
+                                                      displayName: uniqueString,
+                                                      description: 'Test content description 2',
+                                                      visibility: PRIVATE,
+                                                      link: 'http://www.oaeproject.org/',
+                                                      managers: NO_MANAGERS,
+                                                      viewers: of(anotherGroup.group.id),
+                                                      folders: NO_FOLDERS
+                                                    },
+                                                    (error, link2) => {
+                                                      assert.notExists(error);
 
-                                                    searchRefreshed(
-                                                      asElvis,
-                                                      GENERAL_SEARCH,
-                                                      NO_PARAMS,
-                                                      { q: uniqueString },
-                                                      (err, results) => {
-                                                        assert.notExists(err);
+                                                      searchRefreshed(
+                                                        asElvis,
+                                                        GENERAL_SEARCH,
+                                                        NO_PARAMS,
+                                                        { q: uniqueString },
+                                                        (error, results) => {
+                                                          assert.notExists(error);
 
-                                                        const searchedDoc = isWithin(results, link2.id);
-                                                        assert.ok(searchedDoc);
-                                                        return callback();
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              });
+                                                          const searchedDoc = isWithin(results, link2.id);
+                                                          assert.ok(searchedDoc);
+                                                          return callback();
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
                                             });
                                           }
                                         );
@@ -3023,23 +3046,23 @@ describe('General Search', () => {
      * Test that verifies when a user has access to a content item VIA direct group membership,
      * the content item can be queried in search
      */
-    it('verify private content item is searchable when access is granted by direct group membership', callback => {
+    it('verify private content item is searchable when access is granted by direct group membership', (callback) => {
       const uniqueString = generateRandomText(5);
 
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: meireles, 1: fonseca } = users;
         const asMeireles = meireles.restContext;
         const asFonseca = fonseca.restContext;
 
-        generateTestGroups(asMeireles, 1, (err, groups) => {
-          assert.notExists(err);
+        generateTestGroups(asMeireles, 1, (error, groups) => {
+          assert.notExists(error);
 
           const { 0: someGroup } = groups;
           const update = assoc(fonseca.user.id, MEMBER, {});
 
-          setGroupMembers(asMeireles, someGroup.group.id, update, err => {
-            assert.notExists(err);
+          setGroupMembers(asMeireles, someGroup.group.id, update, (error_) => {
+            assert.notExists(error_);
 
             // Create a private content item to which only the group has access
             createLink(
@@ -3053,16 +3076,16 @@ describe('General Search', () => {
                 viewers: of(someGroup.group.id),
                 folders: NO_FOLDERS
               },
-              (err, content) => {
-                assert.notExists(err);
+              (error, content) => {
+                assert.notExists(error);
 
                 searchRefreshed(
                   asMeireles,
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { q: uniqueString, scope: NETWORK_SCOPE },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     assert.ok(isWithin(results, content.id));
 
                     searchRefreshed(
@@ -3070,8 +3093,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { q: uniqueString, scope: NETWORK_SCOPE },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
                         assert.ok(isWithin(results, content.id));
 
                         return callback();
@@ -3092,17 +3115,17 @@ describe('General Search', () => {
     /**
      * Test that verifies public user search results are not hidden from anyone.
      */
-    it('verify public user profile visible to everyone', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify public user profile visible to everyone', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: meireles, 1: fonseca } = users;
         const asMeireles = meireles.restContext;
         const meirelesId = meireles.user.id;
         const asFonseca = fonseca.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
 
           const { 0: barbosa } = users;
           const asBarbosa = barbosa.restContext;
@@ -3112,8 +3135,8 @@ describe('General Search', () => {
             publicAlias: 'I was hidden'
           };
 
-          updateUser(asMeireles, meirelesId, meirelesOptions, (err, updatedMeireles) => {
-            assert.notExists(err);
+          updateUser(asMeireles, meirelesId, meirelesOptions, (error, updatedMeireles) => {
+            assert.notExists(error);
             meireles.user = updatedMeireles;
 
             // Verify hidden for cross-tenant user on internal search
@@ -3126,8 +3149,8 @@ describe('General Search', () => {
                 q: meireles.user.displayName,
                 scope: global.oaeTests.tenants.gt.alias
               },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
 
                 const meirelesSearchedDoc = fetchWithin(results, meirelesId);
                 assert.ok(not(meirelesSearchedDoc));
@@ -3138,8 +3161,8 @@ describe('General Search', () => {
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { resourceTypes: USER, q: meireles.user.displayName, scope: NETWORK_SCOPE },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
 
                     const meirelesSearchedDoc = fetchWithin(results, meirelesId);
                     assert.ok(meirelesSearchedDoc);
@@ -3168,8 +3191,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { resourceTypes: USER, q: meireles.user.displayName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
 
                         const meirelesSearchedDoc = fetchWithin(results, meirelesId);
                         assert.ok(meirelesSearchedDoc);
@@ -3198,8 +3221,8 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { resourceTypes: USER, q: meireles.user.displayName },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
 
                             const searchedDoc = fetchWithin(results, meirelesId);
                             assert.ok(searchedDoc);
@@ -3228,8 +3251,8 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { resourceTypes: USER, q: meireles.user.displayName },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
                                 const meirelesSearchedDoc = fetchWithin(results, meirelesId);
                                 assert.ok(meirelesSearchedDoc);
@@ -3271,9 +3294,9 @@ describe('General Search', () => {
     /**
      * Test that verifies loggedin user search results are hidden to users who are not authenticated to the user's tenant
      */
-    it('verify loggedin user profile not visibile cross-tenant or to anonymous', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify loggedin user profile not visibile cross-tenant or to anonymous', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: fonseca, 1: lopes } = users;
         const asFonseca = fonseca.restContext;
@@ -3281,8 +3304,8 @@ describe('General Search', () => {
 
         const asLopes = lopes.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
 
           const { 0: silva } = users;
           const asSilva = silva.restContext;
@@ -3291,8 +3314,8 @@ describe('General Search', () => {
             visibility: 'loggedin',
             publicAlias: 'I was hidden'
           };
-          updateUser(asFonseca, fonsecaId, fonseca, (err, updatedFonseca) => {
-            assert.notExists(err);
+          updateUser(asFonseca, fonsecaId, fonseca, (error, updatedFonseca) => {
+            assert.notExists(error);
             fonseca.user = updatedFonseca;
 
             // Verify hidden for cross-tenant user on internal search
@@ -3301,8 +3324,8 @@ describe('General Search', () => {
               GENERAL_SEARCH,
               NO_PARAMS,
               { resourceTypes: USER, q: fonseca.user.displayName },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
 
                 const searchedDoc = fetchWithin(results, fonsecaId);
                 assert.ok(not(searchedDoc));
@@ -3313,8 +3336,8 @@ describe('General Search', () => {
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { resourceTypes: USER, q: fonseca.user.displayName, scope: NETWORK_SCOPE },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
 
                     const searchedDoc = fetchWithin(results, fonsecaId);
                     assert.ok(not(searchedDoc));
@@ -3325,8 +3348,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { resourceTypes: USER, q: fonseca.user.displayName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
 
                         const searchedDoc = fetchWithin(results, fonsecaId);
                         assert.ok(not(searchedDoc));
@@ -3337,8 +3360,8 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { resourceTypes: USER, q: fonseca.user.displayName },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
 
                             const searchedDoc = fetchWithin(results, fonsecaId);
                             assert.ok(searchedDoc);
@@ -3367,8 +3390,8 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { resourceTypes: USER, q: fonseca.user.displayName },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
                                 const searchedDoc = fetchWithin(results, fonsecaId);
                                 assert.ok(searchedDoc);
@@ -3410,17 +3433,17 @@ describe('General Search', () => {
     /**
      * Test that verifies that private user profiles are hidden from everyone.
      */
-    it('verify private user profile not visibile to anyone but admin users and the user themself', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify private user profile not visibile to anyone but admin users and the user themself', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: fonseca, 1: lopes } = users;
         const asFonseca = fonseca.restContext;
         const fonsecaId = fonseca.user.id;
         const asLopes = lopes.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
 
           const { 0: silva } = users;
           const asSilva = silva.restContext;
@@ -3429,8 +3452,8 @@ describe('General Search', () => {
             visibility: 'private',
             publicAlias: 'I was hidden'
           };
-          updateUser(asFonseca, fonsecaId, fonsecaOptions, (err, updatedFonseca) => {
-            assert.notExists(err);
+          updateUser(asFonseca, fonsecaId, fonsecaOptions, (error, updatedFonseca) => {
+            assert.notExists(error);
             fonseca.user = updatedFonseca;
 
             // Verify hidden for cross-tenant user on internal search
@@ -3439,8 +3462,8 @@ describe('General Search', () => {
               GENERAL_SEARCH,
               NO_PARAMS,
               { resourceTypes: USER, q: fonseca.user.displayName },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
 
                 const searchedDoc = fetchWithin(results, fonsecaId);
                 assert.ok(not(searchedDoc));
@@ -3451,8 +3474,8 @@ describe('General Search', () => {
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { resourceTypes: USER, q: fonseca.user.displayName, scope: NETWORK_SCOPE },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
 
                     const searchedDoc = fetchWithin(results, fonsecaId);
                     assert.ok(not(searchedDoc));
@@ -3463,8 +3486,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { resourceTypes: USER, q: fonseca.user.displayName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
 
                         const searchedDoc = fetchWithin(results, fonsecaId);
                         assert.ok(not(searchedDoc));
@@ -3475,8 +3498,8 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { resourceTypes: USER, q: fonseca.user.displayName },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
 
                             const searchedDoc = fetchWithin(results, fonsecaId);
                             assert.ok(not(searchedDoc));
@@ -3487,8 +3510,8 @@ describe('General Search', () => {
                               GENERAL_SEARCH,
                               NO_PARAMS,
                               { resourceTypes: USER, q: fonseca.user.displayName },
-                              (err, results) => {
-                                assert.notExists(err);
+                              (error, results) => {
+                                assert.notExists(error);
 
                                 const searchedDoc = fetchWithin(results, fonsecaId);
                                 assert.ok(searchedDoc);
@@ -3521,8 +3544,8 @@ describe('General Search', () => {
                                     q: fonseca.user.displayName,
                                     scope: NETWORK_SCOPE
                                   },
-                                  (err, results) => {
-                                    assert.notExists(err);
+                                  (error, results) => {
+                                    assert.notExists(error);
 
                                     const searchedDoc = fetchWithin(results, fonsecaId);
                                     assert.ok(searchedDoc);
@@ -3569,16 +3592,16 @@ describe('General Search', () => {
     /**
      * Test that verifies public groups are searchable by everyone
      */
-    it('verify public group is searchable by everyone', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify public group is searchable by everyone', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: fonseca, 1: lopes } = users;
         const asFonseca = fonseca.restContext;
         const asLopes = lopes.restContext;
 
-        generateTestUsers(asGeorgiaTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
 
           const { 0: silva, 1: barbosa } = users;
           const asSilva = silva.restContext;
@@ -3595,8 +3618,8 @@ describe('General Search', () => {
             NOT_JOINABLE,
             NO_MANAGERS,
             [barbosa.user.id],
-            (err, group) => {
-              assert.notExists(err);
+            (error, group) => {
+              assert.notExists(error);
 
               // Verify anonymous user search can access it
               searchRefreshed(
@@ -3604,8 +3627,8 @@ describe('General Search', () => {
                 GENERAL_SEARCH,
                 NO_PARAMS,
                 { resourceTypes: GROUP, q: uniqueString },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
 
                   const groupDoc = fetchWithin(results, group.id);
                   assert.ok(groupDoc);
@@ -3630,8 +3653,8 @@ describe('General Search', () => {
                     GENERAL_SEARCH,
                     NO_PARAMS,
                     { resourceTypes: GROUP, q: uniqueString, scope: NETWORK_SCOPE },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
 
                       const groupDoc = fetchWithin(results, group.id);
                       assert.ok(groupDoc);
@@ -3659,8 +3682,8 @@ describe('General Search', () => {
                         GENERAL_SEARCH,
                         NO_PARAMS,
                         { resourceTypes: GROUP, q: uniqueString, scope: TENANT_SCOPE },
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
 
                           const groupDoc = fetchWithin(results, group.id);
                           assert.ok(groupDoc);
@@ -3688,8 +3711,8 @@ describe('General Search', () => {
                             GENERAL_SEARCH,
                             NO_PARAMS,
                             { resourceTypes: GROUP, q: uniqueString },
-                            (err, results) => {
-                              assert.notExists(err);
+                            (error, results) => {
+                              assert.notExists(error);
 
                               const groupDoc = fetchWithin(results, group.id);
                               assert.ok(groupDoc);
@@ -3717,8 +3740,8 @@ describe('General Search', () => {
                                 GENERAL_SEARCH,
                                 NO_PARAMS,
                                 { resourceTypes: GROUP, q: uniqueString },
-                                (err, results) => {
-                                  assert.notExists(err);
+                                (error, results) => {
+                                  assert.notExists(error);
 
                                   const groupDoc = fetchWithin(results, group.id);
                                   assert.ok(groupDoc);
@@ -3764,7 +3787,7 @@ describe('General Search', () => {
      * Also verifies that joinable groups from private tenants are not returned in queries from authenticated users, because that user
      * will not be able to join the group, so there is no point in showing it in the results.
      */
-    it('verify loggedin group search visibility', callback => {
+    it('verify loggedin group search visibility', (callback) => {
       const somePrivateTenantAlias = generateTestTenantAlias('privateTenant');
       const someTenantHost = generateTestTenantHost();
       const uniqueStringA = generateTestUserId('loggedin-group-visibility');
@@ -3776,18 +3799,18 @@ describe('General Search', () => {
        * These will be used to test searches for cross-tenant private groups where
        * you do not have access to join the group. In those cases, you should not get the group in the search results.
        */
-      createTenantWithAdmin(somePrivateTenantAlias, someTenantHost, (err, privateTenant, asAdminOfPrivateTenant) => {
-        assert.notExists(err);
+      createTenantWithAdmin(somePrivateTenantAlias, someTenantHost, (error, privateTenant, asAdminOfPrivateTenant) => {
+        assert.notExists(error);
 
         updateConfigAndWait(
           asGlobalAdmin,
           somePrivateTenantAlias,
           { 'oae-tenants/tenantprivacy/tenantprivate': true },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
-            generateTestUsers(asAdminOfPrivateTenant, 1, (err, users) => {
-              assert.notExists(err);
+            generateTestUsers(asAdminOfPrivateTenant, 1, (error, users) => {
+              assert.notExists(error);
 
               const { 0: elvis } = users;
               const asElvis = elvis.restContext;
@@ -3800,19 +3823,19 @@ describe('General Search', () => {
                 JOINABLE,
                 NO_MANAGERS,
                 NO_MEMBERS,
-                (err, somePrivateTenantGroup) => {
-                  assert.notExists(err);
+                (error, somePrivateTenantGroup) => {
+                  assert.notExists(error);
 
                   // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
-                  generateTestUsers(asGeorgiaTenantAdmin, 2, (err, users) => {
-                    assert.notExists(err);
+                  generateTestUsers(asGeorgiaTenantAdmin, 2, (error, users) => {
+                    assert.notExists(error);
 
                     const { 0: jackson, 1: pavarotti } = users;
                     const asJackson = jackson.restContext;
                     const asPavarotti = pavarotti.restContext;
 
-                    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-                      assert.notExists(err);
+                    generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+                      assert.notExists(error);
 
                       const { 0: bono, 1: marley } = users;
                       const asBono = bono.restContext;
@@ -3827,8 +3850,8 @@ describe('General Search', () => {
                         NOT_JOINABLE,
                         NO_MANAGERS,
                         [pavarotti.user.id],
-                        (err, group) => {
-                          assert.notExists(err);
+                        (error, group) => {
+                          assert.notExists(error);
 
                           // Create the joinable group, including sith as a user
                           createGroup(
@@ -3839,8 +3862,8 @@ describe('General Search', () => {
                             JOINABLE_BY_REQUEST,
                             NO_MANAGERS,
                             [pavarotti.user.id],
-                            (err, groupJoinable) => {
-                              assert.notExists(err);
+                            (error, groupJoinable) => {
+                              assert.notExists(error);
 
                               // Verify anonymous user search cannot access either
                               searchRefreshed(
@@ -3848,8 +3871,8 @@ describe('General Search', () => {
                                 GENERAL_SEARCH,
                                 NO_PARAMS,
                                 { resourceTypes: GROUP, q: uniqueStringA },
-                                (err, results) => {
-                                  assert.notExists(err);
+                                (error, results) => {
+                                  assert.notExists(error);
 
                                   const groupDoc = fetchWithin(results, group.id);
                                   assert.ok(not(groupDoc));
@@ -3859,8 +3882,8 @@ describe('General Search', () => {
                                     GENERAL_SEARCH,
                                     NO_PARAMS,
                                     { resourceTypes: GROUP, q: uniqueStringB },
-                                    (err, results) => {
-                                      assert.notExists(err);
+                                    (error, results) => {
+                                      assert.notExists(error);
 
                                       const groupDoc = fetchWithin(results, groupJoinable.id);
                                       assert.ok(not(groupDoc));
@@ -3875,8 +3898,8 @@ describe('General Search', () => {
                                           q: uniqueStringA,
                                           scope: NETWORK_SCOPE
                                         },
-                                        (err, results) => {
-                                          assert.notExists(err);
+                                        (error, results) => {
+                                          assert.notExists(error);
 
                                           const groupDoc = fetchWithin(results, group.id);
                                           assert.ok(not(groupDoc));
@@ -3891,8 +3914,8 @@ describe('General Search', () => {
                                               q: uniqueStringB,
                                               scope: NETWORK_SCOPE
                                             },
-                                            (err, results) => {
-                                              assert.notExists(err);
+                                            (error, results) => {
+                                              assert.notExists(error);
                                               assert.ok(isNotWithin(results, groupJoinable.id));
 
                                               // Verify cross-tenant member can query the unjoinable group
@@ -3904,8 +3927,8 @@ describe('General Search', () => {
                                                   resourceTypes: GROUP,
                                                   q: uniqueStringA
                                                 },
-                                                (err, results) => {
-                                                  assert.notExists(err);
+                                                (error, results) => {
+                                                  assert.notExists(error);
 
                                                   const groupDoc = fetchWithin(results, group.id);
                                                   assert.ok(groupDoc);
@@ -3936,8 +3959,8 @@ describe('General Search', () => {
                                                       resourceTypes: GROUP,
                                                       q: uniqueStringA
                                                     },
-                                                    (err, results) => {
-                                                      assert.notExists(err);
+                                                    (error, results) => {
+                                                      assert.notExists(error);
 
                                                       const groupDoc = fetchWithin(results, group.id);
                                                       assert.ok(groupDoc);
@@ -3968,8 +3991,8 @@ describe('General Search', () => {
                                                           resourceTypes: GROUP,
                                                           q: uniqueStringA
                                                         },
-                                                        (err, results) => {
-                                                          assert.notExists(err);
+                                                        (error, results) => {
+                                                          assert.notExists(error);
 
                                                           const groupDoc = fetchWithin(results, group.id);
                                                           assert.ok(groupDoc);
@@ -4000,8 +4023,8 @@ describe('General Search', () => {
                                                               resourceTypes: GROUP,
                                                               q: uniqueStringC
                                                             },
-                                                            (err, results) => {
-                                                              assert.notExists(err);
+                                                            (error, results) => {
+                                                              assert.notExists(error);
 
                                                               const groupDoc = fetchWithin(
                                                                 results,
@@ -4050,8 +4073,8 @@ describe('General Search', () => {
                                                                   q: uniqueStringB,
                                                                   scope: NETWORK_SCOPE
                                                                 },
-                                                                (err, results) => {
-                                                                  assert.notExists(err);
+                                                                (error, results) => {
+                                                                  assert.notExists(error);
 
                                                                   const groupDoc = fetchWithin(
                                                                     results,
@@ -4072,8 +4095,8 @@ describe('General Search', () => {
                                                                       q: uniqueStringC,
                                                                       scope: NETWORK_SCOPE
                                                                     },
-                                                                    (err, results) => {
-                                                                      assert.notExists(err);
+                                                                    (error, results) => {
+                                                                      assert.notExists(error);
 
                                                                       const groupDoc = fetchWithin(
                                                                         results,
@@ -4120,7 +4143,7 @@ describe('General Search', () => {
      * Test that verifies that unjoinable private groups are only searchable by members. It also verifies that if the group is joinable ('yes' or 'request'),
      * that it is searchable by authenticated users from other tenants so long as the group's tenant *and* the other tenant are both public.
      */
-    it('verify private group search visibility', callback => {
+    it('verify private group search visibility', (callback) => {
       const somePrivateTenantAlias = generateTestTenantAlias('privateTenant');
       const someTenantHost = generateTestTenantHost();
       const uniqueStringA = generateTestUserId('loggedin-group-visibility');
@@ -4132,18 +4155,18 @@ describe('General Search', () => {
        * where you do not have access to join the group.
        * In those cases, you should not get the group in the search results.
        */
-      createTenantWithAdmin(somePrivateTenantAlias, someTenantHost, (err, privateTenant, asAdminOfPrivateTenant) => {
-        assert.notExists(err);
+      createTenantWithAdmin(somePrivateTenantAlias, someTenantHost, (error, privateTenant, asAdminOfPrivateTenant) => {
+        assert.notExists(error);
 
         updateConfigAndWait(
           asGlobalAdmin,
           somePrivateTenantAlias,
           { 'oae-tenants/tenantprivacy/tenantprivate': true },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
-            generateTestUsers(asAdminOfPrivateTenant, 1, (err, users) => {
-              assert.notExists(err);
+            generateTestUsers(asAdminOfPrivateTenant, 1, (error, users) => {
+              assert.notExists(error);
 
               const { 0: lukeSkywalker } = users;
               const asLukeSkywalker = lukeSkywalker.restContext;
@@ -4156,19 +4179,19 @@ describe('General Search', () => {
                 JOINABLE,
                 NO_MANAGERS,
                 NO_MEMBERS,
-                (err, somePrivateTenantGroup) => {
-                  assert.notExists(err);
+                (error, somePrivateTenantGroup) => {
+                  assert.notExists(error);
 
                   // Create 2 users from another public tenant tenant (gt), one of which has access to the group, and 2 users from the same tenant
-                  generateTestUsers(asGeorgiaTenantAdmin, 2, (err, users) => {
-                    assert.notExists(err);
+                  generateTestUsers(asGeorgiaTenantAdmin, 2, (error, users) => {
+                    assert.notExists(error);
 
                     const { 0: darthVader, 1: sith } = users;
                     const asDarthVader = darthVader.restContext;
                     const asSith = sith.restContext;
 
-                    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-                      assert.notExists(err);
+                    generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+                      assert.notExists(error);
 
                       const { 0: chewbacca, 1: kyloRen } = users;
                       const asChewbacca = chewbacca.restContext;
@@ -4183,8 +4206,8 @@ describe('General Search', () => {
                         NOT_JOINABLE,
                         NO_MANAGERS,
                         [sith.user.id],
-                        (err /* , group */) => {
-                          assert.notExists(err);
+                        (error /* , group */) => {
+                          assert.notExists(error);
 
                           // Create the joinable group, including sith as a user
                           createGroup(
@@ -4195,8 +4218,8 @@ describe('General Search', () => {
                             JOINABLE_BY_REQUEST,
                             NO_MANAGERS,
                             [sith.user.id],
-                            (err /* , groupJoinable */) => {
-                              assert.notExists(err);
+                            (error /* , groupJoinable */) => {
+                              assert.notExists(error);
 
                               // Create the unjoinable group, including sith as a user
                               createGroup(
@@ -4207,8 +4230,8 @@ describe('General Search', () => {
                                 NOT_JOINABLE,
                                 NO_MANAGERS,
                                 [sith.user.id],
-                                (err, group) => {
-                                  assert.notExists(err);
+                                (error, group) => {
+                                  assert.notExists(error);
 
                                   // Create the joinable group, including sith as a user
                                   createGroup(
@@ -4219,8 +4242,8 @@ describe('General Search', () => {
                                     JOINABLE_BY_REQUEST,
                                     NO_MANAGERS,
                                     [sith.user.id],
-                                    (err, groupJoinable) => {
-                                      assert.notExists(err);
+                                    (error, groupJoinable) => {
+                                      assert.notExists(error);
 
                                       // Verify anonymous user search cannot access either
                                       searchRefreshed(
@@ -4228,8 +4251,8 @@ describe('General Search', () => {
                                         GENERAL_SEARCH,
                                         NO_PARAMS,
                                         { resourceTypes: GROUP, q: 'awesome' },
-                                        (err, results) => {
-                                          assert.notExists(err);
+                                        (error, results) => {
+                                          assert.notExists(error);
 
                                           const groupDoc = fetchWithin(results, group.id);
                                           assert.ok(not(groupDoc));
@@ -4239,8 +4262,8 @@ describe('General Search', () => {
                                             GENERAL_SEARCH,
                                             NO_PARAMS,
                                             { resourceTypes: GROUP, q: 'joinable' },
-                                            (err, results) => {
-                                              assert.notExists(err);
+                                            (error, results) => {
+                                              assert.notExists(error);
 
                                               const groupDoc = fetchWithin(results, groupJoinable.id);
                                               assert.ok(not(groupDoc));
@@ -4255,8 +4278,8 @@ describe('General Search', () => {
                                                   q: 'awesome',
                                                   scope: NETWORK_SCOPE
                                                 },
-                                                (err, results) => {
-                                                  assert.notExists(err);
+                                                (error, results) => {
+                                                  assert.notExists(error);
 
                                                   const groupDoc = fetchWithin(results, group.id);
                                                   assert.ok(not(groupDoc));
@@ -4271,8 +4294,8 @@ describe('General Search', () => {
                                                       q: 'joinable',
                                                       scope: NETWORK_SCOPE
                                                     },
-                                                    (err, results) => {
-                                                      assert.notExists(err);
+                                                    (error, results) => {
+                                                      assert.notExists(error);
                                                       assert.ok(isNotWithin(results, groupJoinable.id));
 
                                                       // Verify cross-tenant member can query the unjoinable group
@@ -4284,8 +4307,8 @@ describe('General Search', () => {
                                                           resourceTypes: GROUP,
                                                           q: 'awesome'
                                                         },
-                                                        (err, results) => {
-                                                          assert.notExists(err);
+                                                        (error, results) => {
+                                                          assert.notExists(error);
 
                                                           const groupDoc = fetchWithin(results, group.id);
                                                           assert.ok(groupDoc);
@@ -4316,8 +4339,8 @@ describe('General Search', () => {
                                                               resourceTypes: GROUP,
                                                               q: 'awesome'
                                                             },
-                                                            (err, results) => {
-                                                              assert.notExists(err);
+                                                            (error, results) => {
+                                                              assert.notExists(error);
 
                                                               const groupDoc = fetchWithin(results, group.id);
                                                               assert.ok(not(groupDoc));
@@ -4331,8 +4354,8 @@ describe('General Search', () => {
                                                                   resourceTypes: GROUP,
                                                                   q: 'awesome'
                                                                 },
-                                                                (err, results) => {
-                                                                  assert.notExists(err);
+                                                                (error, results) => {
+                                                                  assert.notExists(error);
 
                                                                   const groupDoc = fetchWithin(results, group.id);
                                                                   assert.ok(groupDoc);
@@ -4372,8 +4395,8 @@ describe('General Search', () => {
                                                                       resourceTypes: GROUP,
                                                                       q: 'skywalker'
                                                                     },
-                                                                    (err, results) => {
-                                                                      assert.notExists(err);
+                                                                    (error, results) => {
+                                                                      assert.notExists(error);
 
                                                                       const groupDoc = fetchWithin(
                                                                         results,
@@ -4422,8 +4445,8 @@ describe('General Search', () => {
                                                                           q: 'joinable',
                                                                           scope: NETWORK_SCOPE
                                                                         },
-                                                                        (err, results) => {
-                                                                          assert.notExists(err);
+                                                                        (error, results) => {
+                                                                          assert.notExists(error);
                                                                           const groupDoc = fetchWithin(
                                                                             results,
                                                                             getId(groupJoinable)
@@ -4443,8 +4466,8 @@ describe('General Search', () => {
                                                                               q: 'skywalker',
                                                                               scope: NETWORK_SCOPE
                                                                             },
-                                                                            (err, results) => {
-                                                                              assert.notExists(err);
+                                                                            (error, results) => {
+                                                                              assert.notExists(error);
                                                                               const groupDoc = fetchWithin(
                                                                                 results,
                                                                                 getId(somePrivateTenantGroup)
@@ -4464,8 +4487,8 @@ describe('General Search', () => {
                                                                                   q: 'skywalker',
                                                                                   scope: ALL_SCOPE
                                                                                 },
-                                                                                (err, results) => {
-                                                                                  assert.notExists(err);
+                                                                                (error, results) => {
+                                                                                  assert.notExists(error);
 
                                                                                   const groupDoc = fetchWithin(
                                                                                     results,
@@ -4581,9 +4604,9 @@ describe('General Search', () => {
      * Verifies that the search index has a minimum edgengram of 3, so that autosuggest (show-as-you-type) functionality will work
      * reasonably well.
      */
-    it('verify edgengram analyzer of 3 for auto-suggest', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify edgengram analyzer of 3 for auto-suggest', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
@@ -4599,12 +4622,12 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Search for just the first 3 characters to ensure it matches "Xyzforedgengram"
-            searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: 'Xyz' }, (err, results) => {
-              assert.notExists(err);
+            searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: 'Xyz' }, (error, results) => {
+              assert.notExists(error);
               assert.ok(isWithin(results, content.id));
 
               callback();
@@ -4617,9 +4640,9 @@ describe('General Search', () => {
     /**
      * Verifies that the search analyzer is not case-sensitive
      */
-    it('verify search indexing is not case-sensitive', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify search indexing is not case-sensitive', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
@@ -4635,12 +4658,12 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, content) => {
-            assert.notExists(err);
+          (error, content) => {
+            assert.notExists(error);
 
             // Search using a lowercase querystring on an item that was indexed with upper case
-            searchAll(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: 'apereo' }, (err, results) => {
-              assert.notExists(err);
+            searchAll(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { q: 'apereo' }, (error, results) => {
+              assert.notExists(error);
               assert.ok(isWithin(results, content.id));
 
               callback();
@@ -4661,9 +4684,9 @@ describe('General Search', () => {
      *  * Independent workforce
      * When searching for `Team` only the first document should return.
      */
-    it('verify results do not match on a single letter', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify results do not match on a single letter', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: barbosa } = users;
         const asBarbosa = barbosa.restContext;
@@ -4680,8 +4703,8 @@ describe('General Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, contentA) => {
-            assert.notExists(err);
+          (error, contentA) => {
+            assert.notExists(error);
 
             createLink(
               asBarbosa,
@@ -4694,8 +4717,8 @@ describe('General Search', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, contentB) => {
-                assert.notExists(err);
+              (error, contentB) => {
+                assert.notExists(error);
 
                 const groupDisplayName = 'OAE Team ' + Math.random();
 
@@ -4707,12 +4730,12 @@ describe('General Search', () => {
                   NOT_JOINABLE,
                   NO_MANAGERS,
                   NO_MEMBERS,
-                  (err, group) => {
-                    assert.notExists(err);
+                  (error, group) => {
+                    assert.notExists(error);
 
                     // Ensure the group match is more relevant than the content item
-                    searchAll(asBarbosa, GENERAL_SEARCH, NO_PARAMS, { q: 'Team' }, (err, results) => {
-                      assert.notExists(err);
+                    searchAll(asBarbosa, GENERAL_SEARCH, NO_PARAMS, { q: 'Team' }, (error, results) => {
+                      assert.notExists(error);
                       assert.ok(isWithin(results, group.id));
                       assert.ok(isNotWithin(results, contentB.id));
 
@@ -4722,7 +4745,7 @@ describe('General Search', () => {
 
                       const matchingIds = (a, b) => equals(getId(a), getId(b));
 
-                      forEach(eachResult => {
+                      forEach((eachResult) => {
                         if (matchingIds(eachResult, group)) {
                           hadGroup = true;
                           // Ensure we haven't received the content item before the group
@@ -4747,7 +4770,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that displayName matches are boosted correctly, even across spaces in the displayName
      */
-    it('verify displayName matches are boosted across spaces', callback => {
+    it('verify displayName matches are boosted across spaces', (callback) => {
       let email = generateTestEmailAddress(null, head(global.oaeTests.tenants.cam.emailDomains));
 
       createUser(
@@ -4757,8 +4780,8 @@ describe('General Search', () => {
         'Luke Skywalker',
         email,
         NO_OPTIONS,
-        (err, lukeSkywalker) => {
-          assert.notExists(err);
+        (error, lukeSkywalker) => {
+          assert.notExists(error);
           email = generateTestEmailAddress(null, head(global.oaeTests.tenants.gt.emailDomains));
 
           createUser(
@@ -4768,8 +4791,8 @@ describe('General Search', () => {
             'Lucky the Silly',
             email,
             NO_OPTIONS,
-            (err, lukeTheSilly) => {
-              assert.notExists(err);
+            (error, lukeTheSilly) => {
+              assert.notExists(error);
 
               /**
                * When searching for 'Luke S', the 'Luke Skywalker' user should
@@ -4780,8 +4803,8 @@ describe('General Search', () => {
                 GENERAL_SEARCH,
                 NO_PARAMS,
                 { q: 'Luke S', scope: ALL_SCOPE },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
                   const lukeSkywalkerIndex = findIndexWithin(results, lukeSkywalker.id);
                   const lukeTheSillyIndex = findIndexWithin(results, lukeTheSilly.id);
 
@@ -4801,7 +4824,7 @@ describe('General Search', () => {
     /**
      * Test that verifies that documents from the same tenant are boosted
      */
-    it('verify documents from the same tenant are boosted', callback => {
+    it('verify documents from the same tenant are boosted', (callback) => {
       // Generate 2 identical users on 2 tenants
       const username = generateRandomText(1);
       const displayName = generateRandomText(2);
@@ -4814,8 +4837,8 @@ describe('General Search', () => {
         displayName,
         email,
         NO_OPTIONS,
-        (err, userFromCambridge) => {
-          assert.notExists(err);
+        (error, userFromCambridge) => {
+          assert.notExists(error);
           email = generateTestEmailAddress(null, head(global.oaeTests.tenants.gt.emailDomains));
 
           createUser(
@@ -4825,8 +4848,8 @@ describe('General Search', () => {
             displayName,
             email,
             NO_OPTIONS,
-            (err, userFromGeorgiaTech) => {
-              assert.notExists(err);
+            (error, userFromGeorgiaTech) => {
+              assert.notExists(error);
 
               /**
                * When searching on the cambridge tenant, the user from the cambridge
@@ -4837,8 +4860,8 @@ describe('General Search', () => {
                 GENERAL_SEARCH,
                 NO_PARAMS,
                 { q: displayName, scope: ALL_SCOPE },
-                (err, results) => {
-                  assert.notExists(err);
+                (error, results) => {
+                  assert.notExists(error);
 
                   let userFromCambridgeIndex = findIndexWithin(results, userFromCambridge.id);
                   let userFromGeorgiaTechIndex = findIndexWithin(results, userFromGeorgiaTech.id);
@@ -4857,8 +4880,8 @@ describe('General Search', () => {
                     GENERAL_SEARCH,
                     NO_PARAMS,
                     { q: displayName, scope: ALL_SCOPE },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
 
                       userFromCambridgeIndex = findIndexWithin(results, userFromCambridge.id);
                       userFromGeorgiaTechIndex = findIndexWithin(results, userFromGeorgiaTech.id);
@@ -4885,10 +4908,10 @@ describe('General Search', () => {
      * Test that verifies the resourceType parameter in the general search
      * properly filter results by user, group and content.
      */
-    it('verify resourceType scope param', callback => {
+    it('verify resourceType scope param', (callback) => {
       // Ensure a user, group and content item exist in the search index to ensure they are not included in resource-scoped searches
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
@@ -4901,8 +4924,8 @@ describe('General Search', () => {
           NOT_JOINABLE,
           NO_MANAGERS,
           NO_MEMBERS,
-          (err, group) => {
-            assert.notExists(err);
+          (error, group) => {
+            assert.notExists(error);
 
             createLink(
               asCambridgeTenantAdmin,
@@ -4915,8 +4938,8 @@ describe('General Search', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, content) => {
-                assert.notExists(err);
+              (error, content) => {
+                assert.notExists(error);
 
                 // Verify we only get users from a user search
                 searchRefreshed(
@@ -4924,8 +4947,8 @@ describe('General Search', () => {
                   GENERAL_SEARCH,
                   NO_PARAMS,
                   { resourceTypes: USER, q: johnDoe.user.displayName },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     assert.ok(isWithin(results, johnDoe.user.id));
                     assert.strictEqual(0, numberOfGroupsResults(results));
                     assert.strictEqual(0, numberOfContentResults(results));
@@ -4936,8 +4959,8 @@ describe('General Search', () => {
                       GENERAL_SEARCH,
                       NO_PARAMS,
                       { resourceTypes: GROUP, q: johnDoe.user.displayName },
-                      (err, results) => {
-                        assert.notExists(err);
+                      (error, results) => {
+                        assert.notExists(error);
                         assert.ok(isWithin(results, group.id));
                         assert.strictEqual(0, numberOfUserResults(results));
                         assert.strictEqual(0, numberOfContentResults(results));
@@ -4948,8 +4971,8 @@ describe('General Search', () => {
                           GENERAL_SEARCH,
                           NO_PARAMS,
                           { resourceTypes: CONTENT, q: johnDoe.user.displayName },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
                             assert.ok(isWithin(results, content.id));
                             assert.strictEqual(0, numberOfUserResults(results));
                             assert.strictEqual(0, numberOfGroupsResults(results));
@@ -4970,31 +4993,31 @@ describe('General Search', () => {
     /**
      * Test that verifies that only a limited number of results that can be retrieved per request
      */
-    it('verify limit parameter validation', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 35, (err, users) => {
-        assert.notExists(err);
+    it('verify limit parameter validation', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 35, (error, users) => {
+        assert.notExists(error);
 
         const { 0: johnDoe } = users;
         const asJohnDoe = johnDoe.restContext;
 
         // Verify that the limit parameter is respected.
-        searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 8 }, (err, results) => {
-          assert.notExists(err);
+        searchRefreshed(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 8 }, (error, results) => {
+          assert.notExists(error);
           assert.strictEqual(8, numberOfResults(results));
 
           // Verify that searches have an upper limit.
-          search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 1000 }, (err, results) => {
-            assert.notExists(err);
+          search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 1000 }, (error, results) => {
+            assert.notExists(error);
             assert.strictEqual(25, numberOfResults(results));
 
             // Verify that searches have a lower limit.
-            search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: -1 }, (err, results) => {
-              assert.notExists(err);
+            search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: -1 }, (error, results) => {
+              assert.notExists(error);
               assert.strictEqual(1, numberOfResults(results));
 
               // Verify that searches have a lower limit.
-              search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 0 }, (err, results) => {
-                assert.notExists(err);
+              search(asJohnDoe, GENERAL_SEARCH, NO_PARAMS, { limit: 0 }, (error, results) => {
+                assert.notExists(error);
                 assert.strictEqual(1, numberOfResults(results));
 
                 callback();

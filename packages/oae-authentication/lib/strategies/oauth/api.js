@@ -19,7 +19,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
 import { Validator as validator } from 'oae-util/lib/validator';
 const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 
-import * as OAuthDAO from './internal/dao';
+import * as OAuthDAO from './internal/dao.js';
 
 /// //////////
 // Clients //
@@ -34,7 +34,7 @@ import * as OAuthDAO from './internal/dao';
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Client}     callback.clients    The registerd OAuth clients for the user
  */
-const getClients = function(ctx, userId, callback) {
+const getClients = function (ctx, userId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -75,7 +75,7 @@ const getClients = function(ctx, userId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Client}     callback.client     The created client
  */
-const createClient = function(ctx, userId, displayName, callback) {
+const createClient = function (ctx, userId, displayName, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -118,7 +118,7 @@ const createClient = function(ctx, userId, displayName, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Client}     callback.client     The updated OAuth client
  */
-const updateClient = function(ctx, clientId, displayName, secret, callback) {
+const updateClient = function (ctx, clientId, displayName, secret, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -138,9 +138,9 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
   }
 
   // Sanity check that the client is owned by the current user, or that he is a tenant administrator
-  OAuthDAO.Clients.getClientById(clientId, (err, client) => {
-    if (err) {
-      return callback(err);
+  OAuthDAO.Clients.getClientById(clientId, (error, client) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!client) {
@@ -154,9 +154,9 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
 
     displayName = displayName || client.displayName;
     secret = secret || client.secret;
-    OAuthDAO.Clients.updateClient(clientId, displayName, secret, err => {
-      if (err) {
-        return callback(err);
+    OAuthDAO.Clients.updateClient(clientId, displayName, secret, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       client.displayName = displayName;
@@ -174,7 +174,7 @@ const updateClient = function(ctx, clientId, displayName, secret, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteClient = function(ctx, clientId, callback) {
+const deleteClient = function (ctx, clientId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -190,9 +190,9 @@ const deleteClient = function(ctx, clientId, callback) {
   }
 
   // Sanity check that the client is owned by the current user, or that he is a tenant administrator
-  OAuthDAO.Clients.getClientById(clientId, (err, client) => {
-    if (err) {
-      return callback(err);
+  OAuthDAO.Clients.getClientById(clientId, (error, client) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!client) {
@@ -218,7 +218,7 @@ const deleteClient = function(ctx, clientId, callback) {
  * @param  {Number}   length    The length of the desired random string
  * @return {String}             A randomly generated string of a given length
  */
-const generateToken = function(length) {
+const generateToken = function (length) {
   let randomString = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < length; i++) {

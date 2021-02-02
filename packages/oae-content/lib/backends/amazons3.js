@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
-import util from 'util';
+import { format } from 'util';
 import mime from 'mime';
 
 import { S3 } from 'awssum-amazon-s3';
@@ -25,21 +25,21 @@ import * as IO from 'oae-util/lib/io';
 import { logger } from 'oae-logger';
 import * as TempFile from 'oae-util/lib/tempfile';
 
-import { ContentConstants } from '../constants';
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
+import { ContentConstants } from '../constants.js';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
 
 const Config = setUpConfig('oae-content');
 const log = logger('amazon-storage');
 
-/// ///////////////////
-// Storage methods. //
-/// ///////////////////
+/**
+ * Storage methods
+ */
 
 /**
  * @borrows Interface.store as Amazons3.store
  */
-const store = function(tenantAlias, file, options, callback) {
+const store = function (tenantAlias, file, options, callback) {
   // Generate the uri for this file.
   // We can use this uri later to retrieve it.
   const uri = BackendUtil.generateUri(file, options);
@@ -47,10 +47,10 @@ const store = function(tenantAlias, file, options, callback) {
   log().trace('Uploading %s to S3.', uri);
 
   const stream = fs.createReadStream(file.path);
-  stream.once('error', err => {
+  stream.once('error', (error) => {
     IO.destroyStream(stream);
-    log().error({ err }, 'Could not upload %s to S3', uri);
-    callback({ code: 500, msg: err });
+    log().error({ err: error }, 'Could not upload %s to S3', uri);
+    callback({ code: 500, msg: error });
   });
 
   options = {
@@ -66,18 +66,18 @@ const store = function(tenantAlias, file, options, callback) {
   //  * awssum: http://awssum.io/amazon/s3/put-object.html
   //  * Amazon S3 doc: http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectPUT.html
   // eslint-disable-next-line new-cap, no-unused-vars
-  _getClient(tenantAlias).PutObject(options, (err, data) => {
+  _getClient(tenantAlias).PutObject(options, (error, data) => {
     // Remove the file on disk.
-    fs.unlink(file.path, unlinkError => {
+    fs.unlink(file.path, (unlinkError) => {
       if (unlinkError) {
         log().warn({ err: unlinkError }, 'Could not remove the temporary file.');
         // We ignore the unlink error, as the file might've actually ended up on S3.
       }
 
       // Deal with the amazon response.
-      if (err) {
-        log().error({ err }, 'Could not upload to S3.');
-        return callback(err);
+      if (error) {
+        log().error({ err: error }, 'Could not upload to S3.');
+        return callback(error);
       }
 
       callback(null, 'amazons3:' + uri);
@@ -88,25 +88,25 @@ const store = function(tenantAlias, file, options, callback) {
 /**
  * @borrows Interface.get as Amazons3.get
  */
-const get = function(tenantAlias, uri, callback) {
+const get = function (tenantAlias, uri, callback) {
   // Download it to a temp folder.
-  const uriObj = BackendUtil.splitUri(uri);
+  const uriObject = BackendUtil.splitUri(uri);
 
-  const filename = Path.basename(uriObj.location);
-  const tmp = TempFile.createTempFile({ suffix: filename });
-  const writeStream = fs.createWriteStream(tmp.path);
+  const filename = Path.basename(uriObject.location);
+  const temporary = TempFile.createTempFile({ suffix: filename });
+  const writeStream = fs.createWriteStream(temporary.path);
 
-  writeStream.once('error', err => {
+  writeStream.once('error', (error) => {
     IO.destroyStream(writeStream);
-    log().error({ err }, 'Could not save %s to disk', uri);
-    callback({ code: 500, msg: err });
+    log().error({ err: error }, 'Could not save %s to disk', uri);
+    callback({ code: 500, msg: error });
   });
 
-  log().trace('Downloading %s from S3.', uriObj.location);
+  log().trace('Downloading %s from S3.', uriObject.location);
 
   const options = {
     BucketName: _getBucketName(tenantAlias),
-    ObjectName: uriObj.location
+    ObjectName: uriObject.location
   };
 
   // Download an "object"(=file) to a temporary folder.
@@ -115,16 +115,16 @@ const get = function(tenantAlias, uri, callback) {
   //  * Amazon S3 doc: http://docs.amazonwebservices.com/AmazonS3/latest/API/RESTObjectGET.html
   // TODO: Replace with upcoming streaming download
   // eslint-disable-next-line new-cap
-  _getClient(tenantAlias).GetObject(options, (err, data) => {
-    if (err) {
+  _getClient(tenantAlias).GetObject(options, (error, data) => {
+    if (error) {
       IO.destroyStream(writeStream);
-      log().error({ err }, 'Failed to download %s from S3.', data);
-      return callback({ code: 500, msg: err });
+      log().error({ err: error }, 'Failed to download %s from S3.', data);
+      return callback({ code: 500, msg: error });
     }
 
     writeStream.on('close', () => {
-      tmp.size = data.Headers['content-length'];
-      return callback(null, tmp);
+      temporary.size = data.Headers['content-length'];
+      return callback(null, temporary);
     });
 
     // Pump the data to disk.
@@ -135,21 +135,21 @@ const get = function(tenantAlias, uri, callback) {
 /**
  * @borrows Interface.remove as Amazons3.remove
  */
-const remove = function(tenantAlias, uri, callback) {
-  const uriObj = BackendUtil.splitUri(uri);
+const remove = function (tenantAlias, uri, callback) {
+  const uriObject = BackendUtil.splitUri(uri);
   const options = {
     BucketName: _getBucketName(tenantAlias),
-    ObjectName: uriObj.location
+    ObjectName: uriObject.location
   };
 
-  log().trace('Removing %s from S3.', uriObj.location);
+  log().trace('Removing %s from S3.', uriObject.location);
 
   // Delete it from Amazon S3
   // eslint-disable-next-line new-cap, no-unused-vars
-  _getClient(tenantAlias).DeleteObject(options, (err, data) => {
-    if (err) {
-      log().error({ err }, 'Error removing %s', uriObj.location);
-      return callback({ code: 500, msg: 'Unable to remove the file: ' + err });
+  _getClient(tenantAlias).DeleteObject(options, (error, data) => {
+    if (error) {
+      log().error({ err: error }, 'Error removing %s', uriObject.location);
+      return callback({ code: 500, msg: 'Unable to remove the file: ' + error });
     }
 
     callback(null);
@@ -166,7 +166,7 @@ const remove = function(tenantAlias, uri, callback) {
  *
  * @borrows Interface.getDownloadStrategy as Amazons3.getDownloadStrategy
  */
-const getDownloadStrategy = function(tenantAlias, uri) {
+const getDownloadStrategy = function (tenantAlias, uri) {
   // Date.now returns the milliseconds since epoch, so divide/round it by a thousand
   const expires = Math.round((Date.now() + 5 * 60000) / 1000);
 
@@ -174,12 +174,12 @@ const getDownloadStrategy = function(tenantAlias, uri) {
   const s3 = _getClient(tenantAlias);
   const bucketName = _getBucketName(tenantAlias);
   const amazonUri = BackendUtil.splitUri(uri).location;
-  const stringToSign = util.format('GET\n\n\n%d\n/%s/%s', expires, bucketName, amazonUri);
+  const stringToSign = format('GET\n\n\n%d\n/%s/%s', expires, bucketName, amazonUri);
   const signature = encodeURIComponent(s3.signature(stringToSign));
 
   // Construct the signed URL
   const keyId = s3.accessKeyId();
-  const url = util.format(
+  const url = format(
     'https://%s.s3.amazonaws.com/%s?AWSAccessKeyId=%s&Signature=%s&Expires=%s',
     bucketName,
     amazonUri,
@@ -197,7 +197,7 @@ const getDownloadStrategy = function(tenantAlias, uri) {
  * @param  {String}    tenantAlias      The tenant alias.
  * @return {String}                     The bucket name
  */
-const _getBucketName = function(tenantAlias) {
+const _getBucketName = function (tenantAlias) {
   return Config.getValue(tenantAlias, 'storage', 'amazons3-bucket');
 };
 
@@ -206,7 +206,7 @@ const _getBucketName = function(tenantAlias) {
  * @param  {Context}    tenantAlias     The tenant alias.
  * @return {S3}                         An S3 client.
  */
-const _getClient = function(tenantAlias) {
+const _getClient = function (tenantAlias) {
   const accessKey = Config.getValue(tenantAlias, 'storage', 'amazons3-access-key');
   const secretKey = Config.getValue(tenantAlias, 'storage', 'amazons3-secret-key');
   const region = Config.getValue(tenantAlias, 'storage', 'amazons3-region');

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
@@ -98,9 +98,9 @@ const getStandardResourcePropagation = function(resourceVisibility, resourceJoin
  * @param  {Object}    callback.membersByRole  An object holding all the direct and indirect members of the given resource item. The key of the hash is the role, and the values are a list of strings that represent the principal ids of those members
  */
 const getAllAuthzMembersByRole = function(resourceId, callback) {
-  AuthzAPI.getAuthzMembers(resourceId, null, 10000, (err, members) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAuthzMembers(resourceId, null, 10000, (error, members) => {
+    if (error) {
+      return callback(error);
     }
 
     const membersByRole = {};
@@ -119,9 +119,9 @@ const getAllAuthzMembersByRole = function(resourceId, callback) {
     });
 
     // Merge the descendants by role of all the group members descendants
-    _getAllAuthzGroupMembersByRole(groupMembersByRole, (err, indirectMembersByRole) => {
-      if (err) {
-        return callback(err);
+    _getAllAuthzGroupMembersByRole(groupMembersByRole, (error, indirectMembersByRole) => {
+      if (error) {
+        return callback(error);
       }
 
       // Aggregate each set of indirect members into its associated group of roles
@@ -159,13 +159,13 @@ const _getAllAuthzGroupMembersByRole = function(groupRoles, callback) {
 
   // For each role, collect their group descendants into the membersByRole object
   _.each(groupRoles, (groupIds, role) => {
-    _getAllAuthzMembers(groupIds, (err, members) => {
+    _getAllAuthzMembers(groupIds, (error, members) => {
       if (finished) {
         // Nothing to do, we probably already failed and called the callback
-      } else if (err) {
+      } else if (error) {
         // We just received an error, mark that we're done and call the callback
         finished = true;
-        return callback(err);
+        return callback(error);
       } else {
         // Add the role members, decrement the number todo and exit if there are no more to do
         membersByRole[role] = members;
@@ -196,9 +196,9 @@ const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
   }
 
   const groupId = groupIds.shift();
-  AuthzAPI.getAuthzMembers(groupId, null, 10000, (err, members) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAuthzMembers(groupId, null, 10000, (error, members) => {
+    if (error) {
+      return callback(error);
     }
 
     // Aggregate the memberIds
@@ -229,7 +229,7 @@ const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
  * @return {String}                         The created activity stream id
  */
 const createActivityStreamId = function(resourceId, activityStreamType) {
-  return util.format('%s#%s', resourceId, activityStreamType);
+  return format('%s#%s', resourceId, activityStreamType);
 };
 
 /**

@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+/* eslint-disable unicorn/no-array-callback-reference */
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
@@ -39,7 +40,7 @@ import * as ContentPreviewsDAO from './dao.previews';
  * @param  {Revision[]}     callback.revisions  Array that contains an object for each revision.
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getRevisions = function(contentId, start, limit, opts, callback) {
+const getRevisions = function (contentId, start, limit, options, callback) {
   limit = OaeUtil.getNumberParam(limit, 10);
   start = start || '';
 
@@ -51,9 +52,9 @@ const getRevisions = function(contentId, start, limit, opts, callback) {
     start,
     limit,
     { reversed: true },
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -61,15 +62,12 @@ const getRevisions = function(contentId, start, limit, opts, callback) {
       }
 
       // Extract the revision ids to retrieve and the nextToken, if any
-      const revisionsToRetrieve = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .pluck('revisionId')
-        .value();
+      const revisionsToRetrieve = _.chain(rows).map(Cassandra.rowToHash).pluck('revisionId').value();
 
       // Get the full revisions and return
-      getMultipleRevisions(revisionsToRetrieve, opts, (err, revisions) => {
-        if (err) {
-          return callback(err);
+      getMultipleRevisions(revisionsToRetrieve, options, (error, revisions) => {
+        if (error) {
+          return callback(error);
         }
 
         return callback(null, revisions, nextToken);
@@ -88,32 +86,32 @@ const getRevisions = function(contentId, start, limit, opts, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Revision[]}     callback.revisions  Array that contains an object for each revision
  */
-const getMultipleRevisions = function(revisionIds, opts, callback) {
+const getMultipleRevisions = function (revisionIds, options, callback) {
   let columns = '*';
 
   // If specific fields were specified, convert it into the string: "field0","field1","field2",...
-  if (opts && opts.fields) {
+  if (options && options.fields) {
     // Ensure opts.fields is a proper array
-    opts.fields = OaeUtil.toArray(opts.fields);
+    options.fields = OaeUtil.toArray(options.fields);
 
     // Always fetch the revisionId
-    opts.fields = _.union(opts.fields, ['revisionId']);
-    columns = util.format('"%s"', opts.fields.join('","'));
+    options.fields = _.union(options.fields, ['revisionId']);
+    columns = format('"%s"', options.fields.join('","'));
   }
 
   Cassandra.runQuery(
-    util.format('SELECT %s FROM "Revisions" WHERE "revisionId" IN ?', columns),
+    format('SELECT %s FROM "Revisions" WHERE "revisionId" IN ?', columns),
     [revisionIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       // Generate the Revision objects
       let revisions = _.map(rows, _rowToRevision);
 
       // The above query doesn't respect the order of revisionIds, hence this DESC sort
-      revisions = _.sortBy(revisions, eachRevision => {
+      revisions = _.sortBy(revisions, (eachRevision) => {
         return eachRevision.created * -1;
       });
       return callback(null, revisions);
@@ -129,13 +127,13 @@ const getMultipleRevisions = function(revisionIds, opts, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.revisions  An object where arrays of revisions are keyed by their content ID
  */
-const getAllRevisionsForContent = function(contentIds, callback) {
+const getAllRevisionsForContent = function (contentIds, callback) {
   Cassandra.runQuery(
     'SELECT "contentId", "revisionId" FROM "RevisionByContent" WHERE "contentId" IN ?',
     [contentIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -147,19 +145,19 @@ const getAllRevisionsForContent = function(contentIds, callback) {
       const contentByRevisions = {};
       _.chain(rows)
         .map(Cassandra.rowToHash)
-        .each(row => {
+        .each((row) => {
           revisionIds.push(row.revisionId);
           contentByRevisions[row.revisionId] = row.contentId;
         });
 
       // Get the revision objects
-      getMultipleRevisions(revisionIds, null, (err, revisions) => {
-        if (err) {
-          return callback(err);
+      getMultipleRevisions(revisionIds, null, (error, revisions) => {
+        if (error) {
+          return callback(error);
         }
 
         const revisionsByContent = {};
-        _.each(revisions, revision => {
+        _.each(revisions, (revision) => {
           const contentId = contentByRevisions[revision.revisionId];
           revisionsByContent[contentId] = revisionsByContent[contentId] || [];
           revisionsByContent[contentId].push(revision);
@@ -179,10 +177,10 @@ const getAllRevisionsForContent = function(contentIds, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Revision}   callback.revision   The retrieved revision
  */
-const getRevision = function(revisionId, callback) {
-  Cassandra.runQuery('SELECT * FROM "Revisions" WHERE "revisionId" = ?', [revisionId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getRevision = function (revisionId, callback) {
+  Cassandra.runQuery('SELECT * FROM "Revisions" WHERE "revisionId" = ?', [revisionId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -208,7 +206,7 @@ const getRevision = function(revisionId, callback) {
  * @param  {Object}     [callback.err]          An error object (if any)
  * @param  {Revision}   [callback.revision]     A revision object
  */
-const createRevision = function(revisionId, contentId, createdBy, revisionProperties, callback) {
+const createRevision = function (revisionId, contentId, createdBy, revisionProperties, callback) {
   // Copy all the revision properties to persist. The `downloadPath` property is transient so we do not persist it, and the
   // `revisionId` will be updated to the provided `revisionId` parameter, so we ensure that is not persisted as well
   const values = _.omit(revisionProperties, 'revisionId', 'downloadPath');
@@ -220,24 +218,24 @@ const createRevision = function(revisionId, contentId, createdBy, revisionProper
   values.previewsId = revisionProperties.previewsId || revisionId;
 
   // Copy the preview item metadata from the source to the destination
-  _copyPreviewItemsIfNecessary(revisionProperties.revisionId, revisionId, err => {
-    if (err) {
-      return callback(err);
+  _copyPreviewItemsIfNecessary(revisionProperties.revisionId, revisionId, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const q = Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, values);
-    Cassandra.runQuery(q.query, q.parameters, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runQuery(q.query, q.parameters, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Add the revision to the revisions listing for the content item
       Cassandra.runQuery(
         'INSERT INTO "RevisionByContent" ("contentId", "created", "revisionId") VALUES (?, ?, ?)',
         [contentId, values.created, revisionId],
-        err => {
-          if (err) {
-            return callback(err);
+        (error) => {
+          if (error) {
+            return callback(error);
           }
 
           return callback(null, new Revision(contentId, revisionId, values.createdBy, values.created, values));
@@ -261,7 +259,7 @@ const createRevision = function(revisionId, contentId, createdBy, revisionProper
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _copyPreviewItemsIfNecessary = function(fromRevisionId, toRevisionId, callback) {
+const _copyPreviewItemsIfNecessary = function (fromRevisionId, toRevisionId, callback) {
   if (!fromRevisionId) {
     // There is no source (i.e., there is no revision from which to copy), so simply do nothing and return ok
     return callback();
@@ -277,7 +275,7 @@ const _copyPreviewItemsIfNecessary = function(fromRevisionId, toRevisionId, call
  * @return {Revision}           A revision object or null if the column could not be converted
  * @api private
  */
-const _rowToRevision = function(row) {
+const _rowToRevision = function (row) {
   const hash = Cassandra.parsePreviewsFromRow(row);
   return new Revision(hash.contentId, hash.revisionId, hash.createdBy, hash.created, hash);
 };

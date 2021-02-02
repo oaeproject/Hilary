@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable import/namespace, no-unused-vars */
+/* eslint-disable no-unused-vars */
 
 import fs from 'fs';
 
@@ -21,24 +21,24 @@ import * as Cleaner from 'oae-util/lib/cleaner';
 import { logger } from 'oae-logger';
 import * as MQ from 'oae-util/lib/mq';
 
-import * as Etherpad from './internal/etherpad';
-import * as Ethercalc from './internal/ethercalc';
-import * as LocalStorage from './backends/local';
-import * as ContentAPI from './api';
-import { ContentConstants } from './constants';
-import * as ContentSearch from './search';
+import * as Etherpad from './internal/etherpad.js';
+import * as Ethercalc from './internal/ethercalc.js';
+import * as LocalStorage from './backends/local.js';
+import * as ContentAPI from './api.js';
+import { ContentConstants } from './constants.js';
+import * as ContentSearch from './search.js';
 
 // Initialize the content library capabilities
-import * as library from './library';
+import * as library from './library.js';
 
 // Initialize activity capabilities
-import * as activity from './activity';
+import * as activity from './activity.js';
 
 // Ensure that the preview listeners get registered
-import * as previews from './previews';
+import * as previews from './previews.js';
 
 // Initialize invitations listeners
-import * as invitations from './invitations';
+import * as invitations from './invitations.js';
 
 const log = logger('oae-content');
 
@@ -49,16 +49,16 @@ export function init(config, callback) {
   // Initialize the ethercalc client
   Ethercalc.refreshConfiguration(config.ethercalc);
 
-  ContentSearch.init(err => {
-    if (err) {
-      return callback(err);
+  ContentSearch.init((error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Create the directory where files will be stored.
-    fs.mkdir(config.files.uploadDir, { recursive: true }, err => {
-      if (err && err.code !== 'EEXIST') {
-        log().error({ err }, 'Could not create the directory where uploaded files can be stored.');
-        return callback(err);
+    fs.mkdir(config.files.uploadDir, { recursive: true }, (error) => {
+      if (error && error.code !== 'EEXIST') {
+        log().error({ err: error }, 'Could not create the directory where uploaded files can be stored.');
+        return callback(error);
       }
 
       if (config.files.cleaner.enabled) {
@@ -67,24 +67,24 @@ export function init(config, callback) {
         Cleaner.start(config.files.uploadDir, config.files.cleaner.interval);
       }
 
-      LocalStorage.init(config.files.localStorageDirectory, err => {
-        if (err) {
-          return callback(err);
+      LocalStorage.init(config.files.localStorageDirectory, (error) => {
+        if (error) {
+          return callback(error);
         }
 
         // Handle "publish" messages that are sent from Etherpad via Redis. These messages
         // indicate that a user made edits and has closed the document
-        MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, err => {
-          if (err) {
-            return callback(err);
+        MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, (error) => {
+          if (error) {
+            return callback(error);
           }
 
           // Same for Ethercalc - no ack because ack breaks Ethercalc
-          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, err => {
-            if (err) return callback(err);
+          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, (error) => {
+            if (error) return callback(error);
 
-            MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, err => {
-              if (err) return callback(err);
+            MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, (error) => {
+              if (error) return callback(error);
 
               return callback();
             });

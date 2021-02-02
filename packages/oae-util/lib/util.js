@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import {
   values,
   isEmpty,
@@ -45,8 +45,8 @@ const isDefined = Boolean;
 
 // Include some global utilities and extensions (e.g., underscore mixins). See the directory
 // `oae-util/lib/internal/globals` for all the global definitions
-// eslint-disable-next-line import/namespace, no-unused-vars
-import * as globals from './internal/globals';
+// eslint-disable-next-line  no-unused-vars
+import * as globals from './internal/globals.js';
 
 /**
  * OAEUTIL UTILS
@@ -59,7 +59,7 @@ import * as globals from './internal/globals';
  * @param  {String}           value   String that will be converted to Boolean if it matches: 'true', 'false', '1' or '0' or returned if there's no match.
  * @return {Boolean|String}           Returns true, false or the original value
  */
-const castToBoolean = value => {
+const castToBoolean = (value) => {
   const isFalsy = either(equals('false'), equals('0'))(value);
   const isTruthy = either(equals('true'), equals('1'))(value);
 
@@ -81,7 +81,7 @@ const castToBoolean = value => {
  * @param  {Number}             [args.maximum]    An upper bound for `val`. If this is not provided, no bounding will be applied.
  * @return {String|Number}                        `value` converted to an integer, if possible. If not possible `defaultVal` is returned
  */
-const getNumberParam = (value, defaultValue, ...args) => {
+const getNumberParameter = (value, defaultValue, ...args) => {
   const [minimum, maximum] = args;
 
   const setToDefaultIfUndefined = pipe(toInt, defaultTo(defaultValue));
@@ -104,7 +104,7 @@ const getNumberParam = (value, defaultValue, ...args) => {
  * @param  {Anything}   value    The value to check
  * @return {Boolean}            `true` if the value was unspecified, `false` otherwise
  */
-const isUnspecified = value => isNil(value);
+const isUnspecified = (value) => isNil(value);
 
 /**
  * Invoke the given method with the args, only if the first parameter `isNecessary` is a true value. If falsey, the
@@ -142,7 +142,7 @@ const isUnspecified = value => isNil(value);
  * @param  {Function}   method          The method to invoke if `isNecessary` is true
  * @param  {...Object}  args            The arguments for the provided method. The final argument should always be the `callback` method that needs to be invoked if `isNecessary` is false. It can be the same callback method invoked if the method is executed.
  */
-const invokeIfNecessary = function(isNecessary, whenTrueFn, ...args) {
+const invokeIfNecessary = function (isNecessary, whenTrueFn, ...args) {
   const callback = last(args);
   const isItNecessary = () => isNecessary;
   const thenInvokeFn = () => whenTrueFn(...args);
@@ -156,7 +156,7 @@ const invokeIfNecessary = function(isNecessary, whenTrueFn, ...args) {
  *
  * @return {String}    The path to the node_modules directory
  */
-const getNodeModulesDir = () => util.format('%s/../../../node_modules/', __dirname);
+const getNodeModulesDir = () => format('%s/../../../node_modules/', __dirname);
 
 /**
  * Wrap a value in an array. If the value is already an array, no wrapping
@@ -166,7 +166,7 @@ const getNodeModulesDir = () => util.format('%s/../../../node_modules/', __dirna
  * @return {Object[]}             The wrapped value
  * @see http://underscorejs.org/#toArray
  */
-const toArray = input => {
+const toArray = (input) => {
   const eitherNilOrEmpty = either(isNil, isEmpty);
   if (eitherNilOrEmpty(input)) input = [];
   if (isObject(input)) input = values(input);
@@ -174,4 +174,11 @@ const toArray = input => {
   return flatten([input]);
 };
 
-export { castToBoolean, getNumberParam, isUnspecified, invokeIfNecessary, getNodeModulesDir, toArray };
+export {
+  castToBoolean,
+  getNumberParameter as getNumberParam,
+  isUnspecified,
+  invokeIfNecessary,
+  getNodeModulesDir,
+  toArray
+};

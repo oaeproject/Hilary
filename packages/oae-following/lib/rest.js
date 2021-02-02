@@ -33,15 +33,21 @@ import * as FollowingAPI from 'oae-following';
  * @HttpResponse                        400                 You must specify a valid user id
  * @HttpResponse                        401                 You are not authorized to see this user's list of followers
  */
-OAE.tenantRouter.on('get', '/api/following/:userId/followers', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FollowingAPI.getFollowers(req.ctx, req.params.userId, req.query.start, limit, (err, followers, nextToken) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/following/:userId/followers', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  FollowingAPI.getFollowers(
+    request.ctx,
+    request.params.userId,
+    request.query.start,
+    limit,
+    (error, followers, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).send({ results: followers, nextToken });
-  });
+      return response.status(200).send({ results: followers, nextToken });
+    }
+  );
 });
 
 /**
@@ -60,15 +66,21 @@ OAE.tenantRouter.on('get', '/api/following/:userId/followers', (req, res) => {
  * @HttpResponse                        400                 You must specify a valid user id
  * @HttpResponse                        401                 You are not authorized to view this user's list of followed users
  */
-OAE.tenantRouter.on('get', '/api/following/:userId/following', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  FollowingAPI.getFollowing(req.ctx, req.params.userId, req.query.start, limit, (err, following, nextToken) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/following/:userId/following', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  FollowingAPI.getFollowing(
+    request.ctx,
+    request.params.userId,
+    request.query.start,
+    limit,
+    (error, following, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return res.status(200).send({ results: following, nextToken });
-  });
+      return response.status(200).send({ results: following, nextToken });
+    }
+  );
 });
 
 /**
@@ -86,14 +98,14 @@ OAE.tenantRouter.on('get', '/api/following/:userId/following', (req, res) => {
  * @HttpResponse                        401                 You are not authorized to follow this user
  * @HttpResponse                        401                 You must be authenticated to follow a user
  */
-OAE.tenantRouter.on('post', '/api/following/:userId/follow', (req, res) => {
+OAE.tenantRouter.on('post', '/api/following/:userId/follow', (request, response) => {
   // eslint-disable-next-line no-unused-vars
-  FollowingAPI.follow(req.ctx, req.params.userId, (err, followers) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  FollowingAPI.follow(request.ctx, request.params.userId, (error, followers) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -111,12 +123,12 @@ OAE.tenantRouter.on('post', '/api/following/:userId/follow', (req, res) => {
  * @HttpResponse                        400                 You must specify a valid user id of a user to unfollow
  * @HttpResponse                        401                 You must be authenticated to unfollow a user
  */
-OAE.tenantRouter.on('post', '/api/following/:userId/unfollow', (req, res) => {
-  FollowingAPI.unfollow(req.ctx, req.params.userId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/following/:userId/unfollow', (request, response) => {
+  FollowingAPI.unfollow(request.ctx, request.params.userId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });

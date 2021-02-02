@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 import { assert } from 'chai';
+import { after, describe, it, before } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 
@@ -55,19 +56,19 @@ describe('Search', () => {
   let asGlobalAdminOnLocalhost = null;
   let asGlobalAdmin = null;
 
-  before(callback => {
+  before((callback) => {
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asGlobalAdminOnLocalhost = createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     asGlobalAdmin = createGlobalAdminRestContext();
     return callback();
   });
 
-  after(callback => {
-    PreviewAPI.disable(err => {
-      assert.notExists(err);
+  after((callback) => {
+    PreviewAPI.disable((error) => {
+      assert.notExists(error);
 
-      updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': LOCAL }, err => {
-        assert.notExists(err);
+      updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': LOCAL }, (error) => {
+        assert.notExists(error);
         return callback();
       });
     });
@@ -78,14 +79,14 @@ describe('Search', () => {
    *
    * @param  {Function}   callback    Standard callback function
    */
-  const _purgeAndEnable = callback => {
+  const _purgeAndEnable = (callback) => {
     // Purge anything that is hanging around in the preview processing queues
     purgePreviewsQueue(() => {
       purgeRegeneratePreviewsQueue(() => {
         purgeFoldersPreviewsQueue(() => {
           // Enable the Preview Processor
-          PreviewAPI.enable(err => {
-            assert.notExists(err);
+          PreviewAPI.enable((error) => {
+            assert.notExists(error);
 
             return callback();
           });
@@ -113,8 +114,8 @@ describe('Search', () => {
     // When the queue is empty, we create a piece of content for which we can generate preview items.
     whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
       whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
-        generateTestUsers(asGlobalAdminOnLocalhost, 1, (err, response) => {
-          assert.notExists(err);
+        generateTestUsers(asGlobalAdminOnLocalhost, 1, (error, response) => {
+          assert.notExists(error);
 
           const { 0: user } = response;
           const asUser = user.restContext;
@@ -130,15 +131,15 @@ describe('Search', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, contentObj) => {
-              assert.notExists(err);
+            (error, contentObject) => {
+              assert.notExists(error);
 
               // Wait till the PP items have been generated
               whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, () => {
                 whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, () => {
                   // Ensure the preview items are there
-                  getContent(asUser, contentObj.id, (err, updatedContent) => {
-                    assert.notExists(err);
+                  getContent(asUser, contentObject.id, (error, updatedContent) => {
+                    assert.notExists(error);
                     assert.ok(updatedContent.previews);
                     assert.strictEqual(updatedContent.previews.status, DONE);
                     assert.strictEqual(updatedContent.previews.pageCount, 1);
@@ -159,9 +160,9 @@ describe('Search', () => {
      * Test that verifies when a content item is indexed with just the content id, it still indexes the content
      * item.
      */
-    it('verify indexing without full content item', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify indexing without full content item', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user } = users;
         const asUser = user.restContext;
@@ -177,8 +178,8 @@ describe('Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
             // Verify the content item exists
             searchAll(
@@ -186,14 +187,14 @@ describe('Search', () => {
               GENERAL,
               null,
               { resourceTypes: CONTENT, q: 'index-without-full-content-item' },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 const contentDoc = _findDoc(results, link.id);
                 assert.ok(contentDoc);
 
                 // Delete the content item from the index under the hood, this is to avoid the automatic index events invalidating the test
-                ElasticSearch.del(RESOURCE, link.id, err => {
-                  assert.notExists(err);
+                ElasticSearch.del(RESOURCE, link.id, (error_) => {
+                  assert.notExists(error_);
 
                   // Verify the content item no longer exists
                   searchAll(
@@ -201,14 +202,14 @@ describe('Search', () => {
                     GENERAL,
                     null,
                     { resourceTypes: CONTENT, q: 'index-without-full-content-item' },
-                    (err, results) => {
-                      assert.notExists(err);
+                    (error, results) => {
+                      assert.notExists(error);
                       const contentDoc = _findDoc(results, link.id);
                       assert.isNotOk(contentDoc);
 
                       // Fire off an indexing task using just the content id
-                      postIndexTask(CONTENT, [{ id: link.id }], { resource: true }, err => {
-                        assert.notExists(err);
+                      postIndexTask(CONTENT, [{ id: link.id }], { resource: true }, (error_) => {
+                        assert.notExists(error_);
 
                         // Ensure that the full content item is now back in the search index
                         searchAll(
@@ -216,8 +217,8 @@ describe('Search', () => {
                           GENERAL,
                           null,
                           { resourceTypes: CONTENT, q: 'index-without-full-content-item' },
-                          (err, results) => {
-                            assert.notExists(err);
+                          (error, results) => {
+                            assert.notExists(error);
                             const contentDoc = _findDoc(results, link.id);
                             assert.ok(contentDoc);
 
@@ -243,9 +244,9 @@ describe('Search', () => {
     /**
      * Verify that the mime property only returns on search results of type 'file'.
      */
-    it('verify mime type', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify mime type', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user } = users;
         const asUser = user.restContext;
@@ -263,11 +264,11 @@ describe('Search', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, link) => {
-            assert.notExists(err);
+          (error, link) => {
+            assert.notExists(error);
 
-            searchAll(asUser, GENERAL, null, { resourceTypes: CONTENT, q: description }, (err, results) => {
-              assert.notExists(err);
+            searchAll(asUser, GENERAL, null, { resourceTypes: CONTENT, q: description }, (error, results) => {
+              assert.notExists(error);
               const contentDoc = _findDoc(results, link.id);
               assert.ok(contentDoc);
               assert.isNotOk(contentDoc.mime);
@@ -286,14 +287,14 @@ describe('Search', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, contentObj) => {
-                  assert.notExists(err);
-                  assert.ok(contentObj);
-                  assert.strictEqual(contentObj.mime, 'image/png');
+                (error, contentObject) => {
+                  assert.notExists(error);
+                  assert.ok(contentObject);
+                  assert.strictEqual(contentObject.mime, 'image/png');
 
-                  searchAll(asUser, GENERAL, null, { resourceTypes: CONTENT, q: description }, (err, results) => {
-                    assert.notExists(err);
-                    const contentDoc = _findDoc(results, contentObj.id);
+                  searchAll(asUser, GENERAL, null, { resourceTypes: CONTENT, q: description }, (error, results) => {
+                    assert.notExists(error);
+                    const contentDoc = _findDoc(results, contentObject.id);
                     assert.ok(contentDoc);
                     assert.strictEqual(contentDoc.mime, 'image/png');
 
@@ -310,14 +311,14 @@ describe('Search', () => {
     /**
      * Test that verifies that PDF files are indexed
      */
-    it('verify full-text indexing of pdf', callback => {
+    it('verify full-text indexing of pdf', (callback) => {
       const arePreviewsDisabled = not(PreviewAPI.getConfiguration().previews.enabled);
 
       if (arePreviewsDisabled) return callback();
 
       _purgeAndEnable(() => {
-        updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': 'test' }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': 'test' }, (error) => {
+          assert.notExists(error);
 
           const pdfStream = () => fs.createReadStream(path.join(__dirname, '/data/test.pdf'));
 
@@ -329,8 +330,8 @@ describe('Search', () => {
               GENERAL,
               null,
               { resourceTypes: CONTENT, q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(_findDoc(results, content.id));
 
                 // Verify we can find the content from the PDF in library searches
@@ -339,8 +340,8 @@ describe('Search', () => {
                   'content-library',
                   [user.user.id],
                   { q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
-                  (err, results) => {
-                    assert.notExists(err);
+                  (error, results) => {
+                    assert.notExists(error);
                     assert.ok(_findDoc(results, content.id));
                     return callback();
                   }
@@ -355,13 +356,13 @@ describe('Search', () => {
     /**
      * Test that verifies that a revision without a plain.txt file still gets indexed
      */
-    it('verify a revision without a plain.txt file still gets indexed', callback => {
+    it('verify a revision without a plain.txt file still gets indexed', (callback) => {
       const arePreviewsDisabled = not(PreviewAPI.getConfiguration().previews.enabled);
       if (arePreviewsDisabled) return callback();
 
       _purgeAndEnable(() => {
-        updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': 'test' }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(asGlobalAdmin, ADMIN, { 'oae-content/storage/backend': 'test' }, (error) => {
+          assert.notExists(error);
 
           const pdfStream = () => fs.createReadStream(path.join(__dirname, '/data/test.pdf'));
 
@@ -374,16 +375,16 @@ describe('Search', () => {
               GENERAL,
               null,
               { resourceTypes: CONTENT, q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
-              (err, results) => {
-                assert.notExists(err);
+              (error, results) => {
+                assert.notExists(error);
                 assert.ok(_findDoc(results, content.id));
 
                 /**
                  * Now, for whatever reason might not've been able to generate a plain.txt file,
                  * or the record got lost, or .. The search re-index should not get stalled by this fact
                  */
-                runQuery('DELETE FROM "PreviewItems" WHERE "revisionId" = ?', [content.latestRevisionId], err => {
-                  assert.notExists(err);
+                runQuery('DELETE FROM "PreviewItems" WHERE "revisionId" = ?', [content.latestRevisionId], (error_) => {
+                  assert.notExists(error_);
 
                   // Drop all the data
                   deleteAll(() => {
@@ -395,8 +396,8 @@ describe('Search', () => {
                         GENERAL,
                         null,
                         { resourceTypes: CONTENT, q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
-                        (err, results) => {
-                          assert.notExists(err);
+                        (error, results) => {
+                          assert.notExists(error);
                           assert.isNotOk(_findDoc(results, content.id));
 
                           // Assert we can find it by its name however
@@ -405,8 +406,8 @@ describe('Search', () => {
                             GENERAL,
                             null,
                             { resourceTypes: CONTENT, q: content.displayName },
-                            (err, results) => {
-                              assert.notExists(err);
+                            (error, results) => {
+                              assert.notExists(error);
                               assert.ok(_findDoc(results, content.id));
 
                               return callback();

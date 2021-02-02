@@ -14,6 +14,7 @@
  */
 
 import assert from 'assert';
+import { describe, it } from 'mocha';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -24,24 +25,24 @@ describe('Following Profile Decorator', () => {
   /**
    * Test that ensures the proper result of the following decorator among all cross-tenant visibility cases
    */
-  it('verify following decorator for different visibility scenarios', callback => {
+  it('verify following decorator for different visibility scenarios', (callback) => {
     TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0) => {
       // Ensure anonymous doesn't see a following property
-      RestAPI.User.getUser(publicTenant0.anonymousRestContext, publicTenant0.publicUser.user.id, (err, user) => {
-        assert.ok(!err);
+      RestAPI.User.getUser(publicTenant0.anonymousRestContext, publicTenant0.publicUser.user.id, (error, user) => {
+        assert.ok(!error);
         assert.ok(!user.following);
 
         // Ensure a user doesn't see a following property on their own profile
-        RestAPI.User.getUser(publicTenant0.publicUser.restContext, publicTenant0.publicUser.user.id, (err, user) => {
-          assert.ok(!err);
+        RestAPI.User.getUser(publicTenant0.publicUser.restContext, publicTenant0.publicUser.user.id, (error, user) => {
+          assert.ok(!error);
           assert.ok(!user.following);
 
           // Ensure user profile reports a user can follow a user from their tenant
           RestAPI.User.getUser(
             publicTenant0.publicUser.restContext,
             publicTenant0.loggedinUser.user.id,
-            (err, user) => {
-              assert.ok(!err);
+            (error, user) => {
+              assert.ok(!error);
               assert.ok(user.following);
               assert.strictEqual(user.following.canFollow, true);
               assert.strictEqual(user.following.isFollowing, false);
@@ -50,8 +51,8 @@ describe('Following Profile Decorator', () => {
               RestAPI.User.getUser(
                 publicTenant0.publicUser.restContext,
                 publicTenant1.publicUser.user.id,
-                (err, user) => {
-                  assert.ok(!err);
+                (error, user) => {
+                  assert.ok(!error);
                   assert.ok(user.following);
                   assert.strictEqual(user.following.canFollow, true);
                   assert.strictEqual(user.following.isFollowing, false);
@@ -60,8 +61,8 @@ describe('Following Profile Decorator', () => {
                   RestAPI.User.getUser(
                     publicTenant0.publicUser.restContext,
                     privateTenant0.publicUser.user.id,
-                    (err, user) => {
-                      assert.ok(!err);
+                    (error, user) => {
+                      assert.ok(!error);
                       assert.ok(user.following);
                       assert.strictEqual(user.following.canFollow, false);
                       assert.strictEqual(user.following.isFollowing, false);
@@ -71,8 +72,8 @@ describe('Following Profile Decorator', () => {
                         TestsUtil.createGlobalAdminRestContext(),
                         privateTenant0.tenant.alias,
                         { 'oae-tenants/tenantprivacy/tenantprivate': false },
-                        err => {
-                          assert.ok(!err);
+                        (error_) => {
+                          assert.ok(!error_);
 
                           const followedIds = [
                             publicTenant0.loggedinUser.user.id,
@@ -87,15 +88,15 @@ describe('Following Profile Decorator', () => {
                               TestsUtil.createGlobalAdminRestContext(),
                               privateTenant0.tenant.alias,
                               { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                              err => {
-                                assert.ok(!err);
+                              (error_) => {
+                                assert.ok(!error_);
 
                                 // Ensure user profile now reports that they are followed, and can no longer be followed
                                 RestAPI.User.getUser(
                                   publicTenant0.publicUser.restContext,
                                   publicTenant0.loggedinUser.user.id,
-                                  (err, user) => {
-                                    assert.ok(!err);
+                                  (error, user) => {
+                                    assert.ok(!error);
                                     assert.ok(user.following);
                                     assert.strictEqual(user.following.canFollow, false);
                                     assert.strictEqual(user.following.isFollowing, true);
@@ -104,8 +105,8 @@ describe('Following Profile Decorator', () => {
                                     RestAPI.User.getUser(
                                       publicTenant0.publicUser.restContext,
                                       publicTenant1.publicUser.user.id,
-                                      (err, user) => {
-                                        assert.ok(!err);
+                                      (error, user) => {
+                                        assert.ok(!error);
                                         assert.ok(user.following);
                                         assert.strictEqual(user.following.canFollow, false);
                                         assert.strictEqual(user.following.isFollowing, true);
@@ -114,8 +115,8 @@ describe('Following Profile Decorator', () => {
                                         RestAPI.User.getUser(
                                           publicTenant0.publicUser.restContext,
                                           privateTenant0.publicUser.user.id,
-                                          (err, user) => {
-                                            assert.ok(!err);
+                                          (error, user) => {
+                                            assert.ok(!error);
                                             assert.ok(user.following);
                                             assert.strictEqual(user.following.canFollow, false);
                                             assert.strictEqual(user.following.isFollowing, true);

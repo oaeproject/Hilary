@@ -14,7 +14,7 @@
  */
 
 import fs from 'fs';
-import util from 'util';
+import { format } from 'util';
 import OaeEmitter from 'oae-util/lib/emitter';
 
 import { logger } from 'oae-logger';
@@ -28,7 +28,7 @@ import { Validator as validator } from 'oae-util/lib/validator';
 const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
 import { equals, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn';
-import * as SwaggerParamTypes from './swaggerParamTypes';
+import * as SwaggerParamTypes from './swaggerParamTypes.js';
 
 const log = logger('oae-swagger');
 
@@ -63,11 +63,11 @@ const adminResources = {};
 /**
  * Iterate over all resources and populate their models
  */
-const addModelsToResources = function() {
-  _.each(adminResources, resource => {
+const addModelsToResources = function () {
+  _.each(adminResources, (resource) => {
     _addModelsToResource(resource);
   });
-  _.each(tenantResources, resource => {
+  _.each(tenantResources, (resource) => {
     _addModelsToResource(resource);
   });
 };
@@ -81,17 +81,17 @@ OaeEmitter.on('ready', addModelsToResources);
  * @param  {String}     moduleName  The oae module to be swagger documented
  * @param  {Function}   callback    Standard callback function
  */
-const documentModule = function(moduleName, callback) {
+const documentModule = function (moduleName, callback) {
   const files = [];
   // __dirname will be .../node_modules/oae-util/lib so other modules are 2 levels above here
-  readdirp(util.format('%s/../../%s/lib', __dirname, moduleName), { fileFilter: '*.js' })
-    .on('data', entry => {
+  readdirp(format('%s/../../%s/lib', __dirname, moduleName), { fileFilter: '*.js' })
+    .on('data', (entry) => {
       files.push(entry.fullPath);
     })
-    .on('error', err => {
+    .on('error', (error) => {
       // Modules are not required to have a lib folder, so we don't log "No Entry" errors
-      if (err.code !== 'ENOENT') {
-        log().warn({ err }, 'Problem recursing directories while documenting ' + moduleName);
+      if (error.code !== 'ENOENT') {
+        log().warn({ err: error }, 'Problem recursing directories while documenting ' + moduleName);
       }
 
       return callback();
@@ -102,10 +102,10 @@ const documentModule = function(moduleName, callback) {
       }
 
       const done = _.after(files.length, callback);
-      _.each(files, file => {
-        register(file, err => {
-          if (err) {
-            log().warn({ err }, 'Problem opening a file while documenting ' + moduleName);
+      _.each(files, (file) => {
+        register(file, (error) => {
+          if (error) {
+            log().warn({ err: error }, 'Problem opening a file while documenting ' + moduleName);
           }
 
           return done();
@@ -121,10 +121,10 @@ const documentModule = function(moduleName, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const register = function(filePath, callback) {
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      return callback(err);
+const register = function (filePath, callback) {
+  fs.readFile(filePath, (error, data) => {
+    if (error) {
+      return callback(error);
     }
 
     try {
@@ -132,9 +132,9 @@ const register = function(filePath, callback) {
       // Add all models to both servers
       _.each(doc.models, (model, modelName) => {
         model.id = modelName;
-        _.each(model.properties, property => {
+        _.each(model.properties, (property) => {
           // RestJSDoc arrays look like `type[]` so unArray will just be the bare `type`
-          const unArray = property.type.replace(/\[\]$/, '');
+          const unArray = property.type.replace(/\[]$/, '');
           /*!
            * If the property.type doesn't match unArray then it was an array so we need to transform it to
            * swagger model notation like:
@@ -170,7 +170,7 @@ const register = function(filePath, callback) {
       });
 
       // Convert the restjsdoc objects to swagger objects
-      _.each(doc.endpoints, endpoint => {
+      _.each(doc.endpoints, (endpoint) => {
         // If the endpoint is marked as private, it should not be added to the swagger output
         if (endpoint.api === 'private') {
           return;
@@ -180,62 +180,62 @@ const register = function(filePath, callback) {
         endpoint.responseClass = endpoint.return ? _convertRJDArrayDefToSwagger(endpoint.return.type) : 'void';
 
         endpoint.parameters = [];
-        _.each(endpoint.pathParams, pathParam => {
+        _.each(endpoint.pathParams, (pathParameter) => {
           endpoint.parameters.push(
             SwaggerParamTypes.path(
-              pathParam.name,
-              pathParam.description,
-              _convertRJDArrayDefToSwagger(pathParam.type),
-              _constructSwaggerValue(pathParam.validValues),
-              pathParam.defaultValue
+              pathParameter.name,
+              pathParameter.description,
+              _convertRJDArrayDefToSwagger(pathParameter.type),
+              _constructSwaggerValue(pathParameter.validValues),
+              pathParameter.defaultValue
             )
           );
         });
-        _.each(endpoint.queryParams, queryParam => {
+        _.each(endpoint.queryParams, (queryParameter) => {
           // Query params don't take true arrays, so if the type is something like `string[]` we need to say it's `string` and set the `isMultiple` flag on the parameter
-          const isMultiple = /\[\]$/.test(queryParam.type);
-          const type = isMultiple ? queryParam.type.slice(0, -2) : queryParam.type;
+          const isMultiple = /\[]$/.test(queryParameter.type);
+          const type = isMultiple ? queryParameter.type.slice(0, -2) : queryParameter.type;
           endpoint.parameters.push(
             SwaggerParamTypes.query(
-              queryParam.name,
-              queryParam.description,
+              queryParameter.name,
+              queryParameter.description,
               type,
-              queryParam.required,
+              queryParameter.required,
               isMultiple,
-              _constructSwaggerValue(queryParam.validValues),
-              queryParam.defaultValue
+              _constructSwaggerValue(queryParameter.validValues),
+              queryParameter.defaultValue
             )
           );
         });
-        _.each(endpoint.bodyParams, bodyParam => {
+        _.each(endpoint.bodyParams, (bodyParameter) => {
           endpoint.parameters.push(
             SwaggerParamTypes.body(
-              bodyParam.name,
-              bodyParam.description,
-              _convertRJDArrayDefToSwagger(bodyParam.type),
-              bodyParam.defaultValue
+              bodyParameter.name,
+              bodyParameter.description,
+              _convertRJDArrayDefToSwagger(bodyParameter.type),
+              bodyParameter.defaultValue
             )
           );
         });
-        _.each(endpoint.headerParams, headerParam => {
+        _.each(endpoint.headerParams, (headerParameter) => {
           endpoint.parameters.push(
             SwaggerParamTypes.header(
-              headerParam.name,
-              headerParam.description,
-              _convertRJDArrayDefToSwagger(headerParam.type),
-              headerParam.required
+              headerParameter.name,
+              headerParameter.description,
+              _convertRJDArrayDefToSwagger(headerParameter.type),
+              headerParameter.required
             )
           );
         });
-        _.each(endpoint.formParams, formParam => {
+        _.each(endpoint.formParams, (formParameter) => {
           endpoint.parameters.push(
             SwaggerParamTypes.form(
-              formParam.name,
-              formParam.description,
-              _convertRJDArrayDefToSwagger(formParam.type),
-              formParam.required,
-              _constructSwaggerValue(formParam.validValues),
-              formParam.defaultValue
+              formParameter.name,
+              formParameter.description,
+              _convertRJDArrayDefToSwagger(formParameter.type),
+              formParameter.required,
+              _constructSwaggerValue(formParameter.validValues),
+              formParameter.defaultValue
             )
           );
         });
@@ -244,7 +244,7 @@ const register = function(filePath, callback) {
         endpoint.responseMessages = endpoint.httpResponses;
 
         // Add the endpoint to the appropriate server
-        _.each(endpoint.server.split(','), server => {
+        _.each(endpoint.server.split(','), (server) => {
           if (server === 'tenant') {
             _addSwaggerEndpoint(endpoint, tenantResources);
           } else if (server === 'admin') {
@@ -262,7 +262,7 @@ const register = function(filePath, callback) {
        * So yeah.
        * Check this issue for more information: https://github.com/jquery/esprima/issues/1953
        */
-      // log().warn({}, util.format('Could not parse restjsdoc in %s', filePath));
+      // log().warn({}, format('Could not parse restjsdoc in %s', filePath));
     }
 
     return callback();
@@ -275,7 +275,7 @@ const register = function(filePath, callback) {
  * @param  {Object}     spec        The swagger spec for the route
  * @param  {Object}     resources   The swagger resources to append the spec to
  */
-const _addSwaggerEndpoint = function(spec, resources) {
+const _addSwaggerEndpoint = function (spec, resources) {
   // The path will be specified like `/foo/bar` so we want `foo` as the `apiRootPath`
   const apiRootPath = spec.path.split('/')[1];
   // Get the /api root resource
@@ -307,7 +307,7 @@ const _addSwaggerEndpoint = function(spec, resources) {
  * @param  {Object}     api             The api of the resource this spec belongs to
  * @param  {Object}     spec            The swagger spec to append
  */
-const _appendToApi = function(rootResource, api, spec) {
+const _appendToApi = function (rootResource, api, spec) {
   try {
     unless(isNotEmpty, {
       msg: 'Nickname must exist',
@@ -320,19 +320,19 @@ const _appendToApi = function(rootResource, api, spec) {
     })(spec.nickname, ' ');
 
     // Parse and validate params
-    forEachObjIndexed(param => {
+    forEachObjIndexed((parameter) => {
       unless(isIn, {
         path: api.path,
-        name: param.name,
-        msg: 'Invalid param type: ' + param.paramType
-      })(param.paramType, Constants.paramTypes);
+        name: parameter.name,
+        msg: 'Invalid param type: ' + parameter.paramType
+      })(parameter.paramType, Constants.paramTypes);
 
-      const pathIsValid = equals(param.paramType, 'path');
+      const pathIsValid = equals(parameter.paramType, 'path');
       unless(bothCheck(pathIsValid, isIn), {
         path: api.path,
-        name: param.name,
+        name: parameter.name,
         msg: 'Invalid path'
-      })(param.name, api.path);
+      })(parameter.name, api.path);
     }, spec.params);
   } catch (error) {
     return log().warn(
@@ -351,9 +351,9 @@ const _appendToApi = function(rootResource, api, spec) {
  * @return {String}             The swagger array definition like List[type] or bare type
  * @api private
  */
-const _convertRJDArrayDefToSwagger = function(def) {
-  if (def.match(/\[\]$/)) {
-    def = util.format('List[%s]', def.slice(0, -2));
+const _convertRJDArrayDefToSwagger = function (def) {
+  if (def.match(/\[]$/)) {
+    def = format('List[%s]', def.slice(0, -2));
   }
 
   return def;
@@ -367,7 +367,7 @@ const _convertRJDArrayDefToSwagger = function(def) {
  * @return {Object}             A swagger value object representing the array or null if the value passed in wasn't an array
  * @api private
  */
-const _constructSwaggerValue = function(array) {
+const _constructSwaggerValue = function (array) {
   return _.isArray(array) ? { valueType: 'LIST', values: array } : null;
 };
 
@@ -377,10 +377,10 @@ const _constructSwaggerValue = function(array) {
  * @param  {Context}        ctx     Standard context object containing the current user and the current tenant
  * @return {ResourceList}           See https://github.com/wordnik/swagger-spec/blob/master/versions/1.2.md#51-resource-listing
  */
-const getResources = function(ctx) {
+const getResources = function (ctx) {
   const resources = _getSwaggerResources(ctx);
   const paths = _.keys(resources).sort();
-  const apis = _.map(paths, key => {
+  const apis = _.map(paths, (key) => {
     return { path: '/' + key };
   });
   const swaggerResources = {
@@ -398,7 +398,7 @@ const getResources = function(ctx) {
  * @param  {String}     swaggerResourcePath     The resource path
  * @return {ApiDeclaration}                     See https://github.com/wordnik/swagger-spec/blob/master/versions/1.2.md#52-api-declaration
  */
-const getApi = function(ctx, swaggerResourcePath) {
+const getApi = function (ctx, swaggerResourcePath) {
   const resources = _getSwaggerResources(ctx);
   const url = TenantsUtil.getBaseUrl(ctx.tenant()) + '/api';
   const api = clone(resources[swaggerResourcePath]);
@@ -411,11 +411,11 @@ const getApi = function(ctx, swaggerResourcePath) {
  *
  * @param  {Resource}   resource    The resource to process
  */
-const _addModelsToResource = function(resource) {
+const _addModelsToResource = function (resource) {
   let requiredModelNames = [];
   // Collect the list of models that this resource references
-  _.each(resource.apis, api => {
-    _.each(api.operations, operation => {
+  _.each(resource.apis, (api) => {
+    _.each(api.operations, (operation) => {
       _addModelNamesFromBody(operation, requiredModelNames);
       _addModelNamesFromResponse(operation, requiredModelNames);
       requiredModelNames = _.uniq(requiredModelNames);
@@ -423,7 +423,7 @@ const _addModelsToResource = function(resource) {
   });
 
   // Add required models to resource
-  _.each(requiredModelNames, modelName => {
+  _.each(requiredModelNames, (modelName) => {
     _recurseModel(resource, modelName);
   });
 };
@@ -435,7 +435,7 @@ const _addModelsToResource = function(resource) {
  * @return {Object}             An object containing all the swagger resource info associated to the tenant
  * @api private
  */
-const _getSwaggerResources = function(ctx) {
+const _getSwaggerResources = function (ctx) {
   return ctx.tenant().isGlobalAdminServer ? adminResources : tenantResources;
 };
 
@@ -446,7 +446,7 @@ const _getSwaggerResources = function(ctx) {
  * @param  {String}     modelName   The model to be added
  * @api private
  */
-const _recurseModel = function(resource, modelName) {
+const _recurseModel = function (resource, modelName) {
   const model = models[modelName];
   if (!model) {
     // The referenced type was either a primitive or it referenced a model that doesn't exist. No need to recursively look for model references
@@ -460,7 +460,7 @@ const _recurseModel = function(resource, modelName) {
 
   log().trace({ resource, model }, 'Recursively adding model "%s" to resource "%s"', modelName, resource.path);
   resource.models[modelName] = model;
-  _.each(model.properties, property => {
+  _.each(model.properties, (property) => {
     const { type } = property;
     // If the type of the property is an array, and the array elements are a model object (in contrast to a primitive), recursively add the models it may reference to the resource as well
     if (type === 'array') {
@@ -484,11 +484,11 @@ const _recurseModel = function(resource, modelName) {
  * @param  {String[]}   modelNames  The list of referenced models, any newly referenced models will be appended
  * @api private
  */
-const _addModelNamesFromBody = function(operation, modelNames) {
-  _.each(operation.parameters, param => {
+const _addModelNamesFromBody = function (operation, modelNames) {
+  _.each(operation.parameters, (parameter) => {
     // Body params are the only params that can have complex types and we only need to bother with the ones that list a type
-    if (param.paramType === 'body' && param.dataType) {
-      const model = _unwrapSwaggerType(param.dataType);
+    if (parameter.paramType === 'body' && parameter.dataType) {
+      const model = _unwrapSwaggerType(parameter.dataType);
       modelNames.push(model);
     }
   });
@@ -501,7 +501,7 @@ const _addModelNamesFromBody = function(operation, modelNames) {
  * @param  {String[]}   modelNames  The list of referenced models, any newly referenced models will be appended
  * @api private
  */
-const _addModelNamesFromResponse = function(operation, modelNames) {
+const _addModelNamesFromResponse = function (operation, modelNames) {
   let responseModel = operation.responseClass;
   if (responseModel) {
     responseModel = _unwrapSwaggerType(responseModel);
@@ -515,8 +515,8 @@ const _addModelNamesFromResponse = function(operation, modelNames) {
  * @param  {String}     type    The type declaration to be unwrapped
  * @return {String}             The unwrapped type declaration
  */
-const _unwrapSwaggerType = function(type) {
-  return type.replace(/^List\[/, '').replace(/\]/, '');
+const _unwrapSwaggerType = function (type) {
+  return type.replace(/^List\[/, '').replace(/]/, '');
 };
 
 export { Constants, addModelsToResources, documentModule, register, getResources, getApi };

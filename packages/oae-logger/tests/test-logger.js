@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import { assert } from 'chai';
+import { describe, before, after, it } from 'mocha';
 import { logger } from 'oae-logger';
 
 import * as RestAPI from 'oae-rest';
@@ -33,13 +34,13 @@ describe('Logger', () => {
   /**
    * Function that will fill up the global admin rest context and enable the API
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the global admin rest context
     asGlobalAdmin = createGlobalAdminRestContext();
 
     // Enable the telemetry API
-    init({ enabled: true }, err => {
-      assert.notExists(err);
+    init({ enabled: true }, (error) => {
+      assert.notExists(error);
 
       return callback();
     });
@@ -48,9 +49,9 @@ describe('Logger', () => {
   /**
    * Function that will disable the telemetry API
    */
-  after(callback => {
-    init({ enabled: false }, err => {
-      assert.notExists(err);
+  after((callback) => {
+    init({ enabled: false }, (error) => {
+      assert.notExists(error);
 
       return callback();
     });
@@ -59,14 +60,14 @@ describe('Logger', () => {
   /**
    * Test that verifies that error counts are counted through the telemetry API
    */
-  it('verify that error logs are counted through the telemetry API', callback => {
+  it('verify that error logs are counted through the telemetry API', (callback) => {
     // Construct a logger specificly for this test
     const loggerName = generateRandomText();
     const log = logger(loggerName);
 
     // Get the initial count
-    getTelemetryData(asGlobalAdmin, (err, initialTelemetryData) => {
-      assert.notExists(err);
+    getTelemetryData(asGlobalAdmin, (error, initialTelemetryData) => {
+      assert.notExists(error);
 
       // Generate some error logs by using a variation of parameter values
       log().error('Simple error log');
@@ -77,8 +78,8 @@ describe('Logger', () => {
       log().error({ foo: 'bar' }, 'With a message');
 
       // Get the new telemetry daya
-      getTelemetryData(asGlobalAdmin, (err, newTelemetryData) => {
-        assert.notExists(err);
+      getTelemetryData(asGlobalAdmin, (error, newTelemetryData) => {
+        assert.notExists(error);
 
         // Get the initial total error count
         let initialTotalCount = 0;
@@ -90,7 +91,7 @@ describe('Logger', () => {
         assert.strictEqual(newTelemetryData.logger['error.count'], initialTotalCount + 6);
 
         // The error count for this specific logger should be 6
-        const telemetryName = util.format('error.%s.count', loggerName);
+        const telemetryName = format('error.%s.count', loggerName);
         assert.strictEqual(newTelemetryData.logger[telemetryName], 6);
 
         return callback();

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
@@ -107,11 +107,11 @@ const refreshConfiguration = function(_config) {
     _config.mail.pollingFrequency < MINIMUM_MAIL_POLLING_FREQUENCY ||
     _config.mail.pollingFrequency > MAXIMUM_MAIL_POLLING_FREQUENCY
   ) {
-    const msg = util.format(
+    const message = format(
       'The mail polling frequency property "config.activity.mail.pollingFrequency" cannot be more than an hour or less than a minute. The value %d seconds was used instead',
       config.mail.pollingFrequency
     );
-    log().warn(msg);
+    log().warn(message);
   }
 
   return getConfig();

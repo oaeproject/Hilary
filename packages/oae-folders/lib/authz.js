@@ -19,7 +19,7 @@ import * as AuthzAPI from 'oae-authz';
 import * as AuthzPermissions from 'oae-authz/lib/permissions';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import { logger } from 'oae-logger';
-import * as FoldersDAO from './internal/dao';
+import * as FoldersDAO from './internal/dao.js';
 
 const log = logger('folders-authz');
 
@@ -41,9 +41,9 @@ const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
   }
 
   // A user must be able to manage a folder to add items to it
-  AuthzPermissions.canManage(ctx, folder, err => {
-    if (err) {
-      return callback(err);
+  AuthzPermissions.canManage(ctx, folder, error => {
+    if (error) {
+      return callback(error);
     }
 
     // I must be able to interact with all target content items in order to add them to a folder
@@ -51,10 +51,10 @@ const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
     // item to extend its access to others (e.g., add the private item to a folder, then share
     // the folder with someone else). This is intentional as it is a necessary feature for
     // folders to be usable
-    AuthzPermissions.canInteract(ctx, contentItems, err => {
-      if (err) {
-        err.invalidContentIds = _.keys(err.invalidResources);
-        return callback(err);
+    AuthzPermissions.canInteract(ctx, contentItems, error => {
+      if (error) {
+        error.invalidContentIds = _.keys(error.invalidResources);
+        return callback(error);
       }
 
       return callback();
@@ -71,10 +71,10 @@ const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
  * @param  {Folder[]}   callback.folders    The folders that contain the content item
  */
 const getFoldersForContent = function(contentId, callback) {
-  AuthzAPI.getAuthzMembers(contentId, null, 10000, (err, members) => {
-    if (err) {
-      log().error({ err, contentId }, 'Unable to get the members of a piece of content');
-      return callback(err);
+  AuthzAPI.getAuthzMembers(contentId, null, 10000, (error, members) => {
+    if (error) {
+      log().error({ err: error, contentId }, 'Unable to get the members of a piece of content');
+      return callback(error);
     }
 
     const groupIds = AuthzUtil.getGroupIds(members);
@@ -93,9 +93,9 @@ const getFoldersForContent = function(contentId, callback) {
  */
 const getContentInFolder = function(folder, callback) {
   // Get the content items in this folder from the canonical source
-  AuthzAPI.getAllRolesForPrincipalAndResourceType(folder.groupId, 'c', (err, roles) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAllRolesForPrincipalAndResourceType(folder.groupId, 'c', (error, roles) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.pluck(roles, 'id'));

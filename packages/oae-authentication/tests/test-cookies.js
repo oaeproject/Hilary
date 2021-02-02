@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { before, it, describe } from 'mocha';
 import _ from 'underscore';
 
 import { pipe, length, union } from 'ramda';
@@ -27,17 +28,17 @@ describe('Authentication', () => {
   // Rest context that can be used every time we need to make a request as a global admin
   let globalAdminRestContext = null;
 
-  function shuffle(arr) {
-    const ret = [...arr];
-    let current = length(ret);
+  function shuffle(array) {
+    const returnValue = [...array];
+    let current = length(returnValue);
     let newIndex = 0;
 
     while (current) {
       newIndex = Math.trunc(Math.random() * current--);
-      [ret[current], ret[newIndex]] = [ret[newIndex], ret[current]];
+      [returnValue[current], returnValue[newIndex]] = [returnValue[newIndex], returnValue[current]];
     }
 
-    return ret;
+    return returnValue;
   }
 
   /**
@@ -87,12 +88,12 @@ describe('Authentication', () => {
       restContext.additionalHeaders['user-agent'] = userAgent;
 
       // First logout the context to clear the cookie jar
-      RestAPI.Authentication.logout(restContext, err => {
-        assert.notExists(err);
+      RestAPI.Authentication.logout(restContext, error => {
+        assert.notExists(error);
 
         // Authenticate the user agent
-        RestAPI.Authentication.login(restContext, username, password, err => {
-          assert.notExists(err);
+        RestAPI.Authentication.login(restContext, username, password, error => {
+          assert.notExists(error);
 
           // Aggregate the cookies into the user agent map
           _userAgentCookies[userAgent] = restContext.cookieJar._jar.getCookiesSync(
@@ -193,9 +194,9 @@ describe('Authentication', () => {
         global.oaeTests.tenants.cam.emailDomains[0]
       );
       RestAPI.User.createUser(camAdminRestContext, username, 'password', 'Test User', email, {}, (
-        err /* , createdUser */
+        error /* , createdUser */
       ) => {
-        assert.notExists(err);
+        assert.notExists(error);
         const userRestContext = TestsUtil.createTenantRestContext(
           global.oaeTests.tenants.cam.host,
           username,
@@ -224,7 +225,7 @@ describe('Authentication', () => {
                 // eslint-disable-next-line new-cap
                 assert.ok(cookie.TTL() > 1000 * 60 * 60 * 24 * 29);
                 // eslint-disable-next-line new-cap
-                assert.notStrictEqual(cookie.TTL(), Infinity);
+                assert.notStrictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
               });
             });
 
@@ -236,7 +237,7 @@ describe('Authentication', () => {
               assert.strictEqual(cookies.length, 2);
               _.each(cookies, cookie => {
                 // eslint-disable-next-line new-cap
-                assert.strictEqual(cookie.TTL(), Infinity);
+                assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
               });
             });
 
@@ -259,7 +260,7 @@ describe('Authentication', () => {
                   assert.ok(!_.isEmpty(cookies));
                   _.each(cookies, cookie => {
                     // eslint-disable-next-line new-cap
-                    assert.strictEqual(cookie.TTL(), Infinity);
+                    assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
                   });
                 });
 

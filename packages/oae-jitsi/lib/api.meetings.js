@@ -39,8 +39,8 @@ import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { AuthzConstants } from 'oae-authz/lib/constants';
 
-import { MeetingsConstants } from './constants';
-import * as MeetingsDAO from './internal/dao';
+import { MeetingsConstants } from './constants.js';
+import * as MeetingsDAO from './internal/dao.js';
 
 const Config = setUpConfig('oae-jitsi');
 
@@ -66,7 +66,7 @@ const FALSE = 'false';
  * @param {Object}     callback.err            An error that occurred, if any
  * @param {Meeting}    callback.meeting        The created meeting
  * */
-const createMeeting = function(
+const createMeeting = function (
   ctx,
   displayName,
   description,
@@ -76,7 +76,7 @@ const createMeeting = function(
   additionalMembers,
   callback
 ) {
-  callback = callback || function() {};
+  callback = callback || function () {};
 
   // Setting content to default if no visibility setting is provided
   visibility = visibility || Config.getValue(ctx.tenant().alias, 'visibility', 'meeting');
@@ -138,12 +138,12 @@ const createMeeting = function(
     contactList,
     visibility
   );
-  ResourceActions.create(ctx, additionalMembers, createFn, (err, meeting, memberChangeInfo) => {
-    if (err) {
-      return callback(err);
+  ResourceActions.create(ctx, additionalMembers, createFn, (error, meeting, memberChangeInfo) => {
+    if (error) {
+      return callback(error);
     }
 
-    MeetingsAPI.emitter.emit(MeetingsConstants.events.CREATED_MEETING, ctx, meeting, memberChangeInfo, errs => {
+    MeetingsAPI.emitter.emit(MeetingsConstants.events.CREATED_MEETING, ctx, meeting, memberChangeInfo, (errs) => {
       if (errs) {
         return callback(_.first(errs));
       }
@@ -162,7 +162,7 @@ const createMeeting = function(
  * @param  {Object}    callback.err            An error that occurred, if any
  * @param  {Meeting}   callback.meeting        The meeting profile
  */
-const getFullMeetingProfile = function(ctx, meetingId, callback) {
+const getFullMeetingProfile = function (ctx, meetingId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -172,15 +172,15 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Resolve the full meeting access information for the current user
-    AuthzPermissions.resolveEffectivePermissions(ctx, meeting, (err, permissions) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.resolveEffectivePermissions(ctx, meeting, (error, permissions) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!permissions.canView) {
@@ -199,11 +199,11 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
       }
 
       // Populate the creator of the meeting
-      PrincipalsUtil.getPrincipal(ctx, meeting.createdBy, (err, creator) => {
-        if (err) {
+      PrincipalsUtil.getPrincipal(ctx, meeting.createdBy, (error, creator) => {
+        if (error) {
           log().warn(
             {
-              err,
+              err: error,
               userId: meeting.createdBy,
               meetingId: meeting.id
             },
@@ -229,7 +229,7 @@ const getFullMeetingProfile = function(ctx, meetingId, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {BasicMeeting}   callback.meeting        The meeting profile
  */
-const getMeeting = function(ctx, meetingId, callback) {
+const getMeeting = function (ctx, meetingId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -239,14 +239,14 @@ const getMeeting = function(ctx, meetingId, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canView(ctx, meeting, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canView(ctx, meeting, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, meeting);
@@ -261,7 +261,7 @@ const getMeeting = function(ctx, meetingId, callback) {
  * @param  {String}    meetingId               The ID of the meeting
  * @param  {Function}  callback                Standard callback function
  */
-const getMeetingInvitations = function(ctx, meetingId, callback) {
+const getMeetingInvitations = function (ctx, meetingId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -271,9 +271,9 @@ const getMeetingInvitations = function(ctx, meetingId, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     return AuthzInvitations.getAllInvitations(ctx, meeting, callback);
@@ -287,7 +287,7 @@ const getMeetingInvitations = function(ctx, meetingId, callback) {
  * @param  {String}    meetingId               The ID of the meeting
  * @param  {Function}  callback                Standard callback function
  */
-const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
+const getMeetingMembers = function (ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -300,26 +300,26 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
   }
 
   // eslint-disable-next-line no-unused-vars
-  getMeeting(ctx, meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  getMeeting(ctx, meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the meeting members
-    AuthzAPI.getAuthzMembers(meetingId, start, limit, (err, memberRoles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getAuthzMembers(meetingId, start, limit, (error, memberRoles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the basic profiles for all of these principals
       const memberIds = _.pluck(memberRoles, 'id');
-      PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, memberIds, (error, memberProfiles) => {
+        if (error) {
+          return callback(error);
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, memberRole => {
+        const memberList = _.map(memberRoles, (memberRole) => {
           return {
             profile: memberProfiles[memberRole.id],
             role: memberRole.role
@@ -340,12 +340,12 @@ const getMeetingMembers = function(ctx, meetingId, start, limit, callback) {
  * @param  {Object}    profileFields       An object whose keys are profile field names, and the value is the value to which you wish the field to change. Keys must be one of: displayName, visibility, discription
  * @param  {Function}  callback            Standard callback function
  */
-const updateMeeting = function(ctx, meetingId, profileFields, callback) {
+const updateMeeting = function (ctx, meetingId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   // Convert chat and contactList value to boolean for validation (if there are present)
   const getAttribute = getNestedObject(profileFields);
-  const isDefined = attr => compose(Boolean, getAttribute, x => [x])(attr);
+  const isDefined = (attr) => compose(Boolean, getAttribute, (x) => [x])(attr);
 
   const CHAT = 'chat';
   const CONTACT_LIST = 'contactList';
@@ -380,7 +380,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
       const DESCRIPTION = 'description';
       const CHAT = 'chat';
       const CONTACT_LIST = 'contactList';
-      const ifFieldIs = attr => equals(field, attr);
+      const ifFieldIs = (attr) => equals(field, attr);
 
       unless(bothCheck(ifFieldIs(VISIBILITY), isIn), {
         code: 400,
@@ -416,19 +416,19 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, meeting, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, meeting, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      MeetingsDAO.updateMeeting(meeting, profileFields, (err, updatedMeeting) => {
-        if (err) {
-          return callback(err);
+      MeetingsDAO.updateMeeting(meeting, profileFields, (error, updatedMeeting) => {
+        if (error) {
+          return callback(error);
         }
 
         // Fill in the full profile, the user is inevitably a manager
@@ -436,7 +436,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
         updatedMeeting.canPost = true;
         updatedMeeting.canShare = true;
 
-        MeetingsAPI.emitter.emit(MeetingsConstants.events.UPDATED_MEETING, ctx, updatedMeeting, meeting, errs => {
+        MeetingsAPI.emitter.emit(MeetingsConstants.events.UPDATED_MEETING, ctx, updatedMeeting, meeting, (errs) => {
           if (errs) {
             return callback(_.first(errs));
           }
@@ -456,7 +456,7 @@ const updateMeeting = function(ctx, meetingId, profileFields, callback) {
  * @param {Function}    callback            Standard callback function
  * @param {Object}      callback.err        An error that occured, if any
  */
-const deleteMeeting = function(ctx, meetingId, callback) {
+const deleteMeeting = function (ctx, meetingId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -471,40 +471,40 @@ const deleteMeeting = function(ctx, meetingId, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, meeting, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, meeting, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      AuthzAPI.getAllAuthzMembers(meeting.id, (err, members) => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.getAllAuthzMembers(meeting.id, (error, members) => {
+        if (error) {
+          return callback(error);
         }
 
         const roleChanges = {};
         const memberIds = _.pluck(members, 'id');
-        _.each(memberIds, memberId => {
+        _.each(memberIds, (memberId) => {
           roleChanges[memberId] = false;
         });
 
         // Remove the meeting members
-        AuthzAPI.updateRoles(meeting.id, roleChanges, err => {
-          if (err) {
-            return callback(err);
+        AuthzAPI.updateRoles(meeting.id, roleChanges, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           // Delete the meeting itself
-          MeetingsDAO.deleteMeeting(meeting.id, err => {
-            if (err) {
-              return callback(err);
+          MeetingsDAO.deleteMeeting(meeting.id, (error_) => {
+            if (error_) {
+              return callback(error_);
             }
 
-            MeetingsAPI.emitter.emit(MeetingsConstants.events.DELETED_MEETING, ctx, meeting, memberIds, errs => {
+            MeetingsAPI.emitter.emit(MeetingsConstants.events.DELETED_MEETING, ctx, meeting, memberIds, (errs) => {
               if (errs) {
                 return callback(_.first(errs));
               }
@@ -527,7 +527,7 @@ const deleteMeeting = function(ctx, meetingId, callback) {
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
  */
-const setMeetingMembers = function(ctx, meetingId, changes, callback) {
+const setMeetingMembers = function (ctx, meetingId, changes, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -560,14 +560,14 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
     return callback(error);
   }
 
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
-    ResourceActions.setRoles(ctx, meeting, changes, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.setRoles(ctx, meeting, changes, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       MeetingsAPI.emitter.emit(
@@ -576,7 +576,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
         meeting,
         memberChangeInfo,
         {},
-        errs => {
+        (errs) => {
           if (errs) {
             return callback(_.first(errs));
           }
@@ -600,7 +600,7 @@ const setMeetingMembers = function(ctx, meetingId, changes, callback) {
  * @param  {Message[]}      callback.messages       The messages in the meeting. Of the type `MessageBoxModel#Message`
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getMessages = function(ctx, meetingId, start, limit, callback) {
+const getMessages = function (ctx, meetingId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -618,18 +618,18 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
   }
 
   // eslint-disable-next-line no-unused-vars
-  getMeeting(ctx, meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  getMeeting(ctx, meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Fetch the messages from the message box
-    MessageBoxAPI.getMessagesFromMessageBox(meetingId, start, limit, null, (err, messages, nextToken) => {
-      if (err) {
-        return callback(err);
+    MessageBoxAPI.getMessagesFromMessageBox(meetingId, start, limit, null, (error, messages, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      let userIds = _.map(messages, message => {
+      let userIds = _.map(messages, (message) => {
         return message.createdBy;
       });
 
@@ -637,19 +637,19 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
       userIds = _.uniq(_.compact(userIds));
 
       // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
-      PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, userIds, (error, users) => {
+        if (error) {
+          return callback(error);
         }
 
         // Attach the user profiles to the message objects
-        _.each(messages, message => {
+        _.each(messages, (message) => {
           if (users[message.createdBy]) {
             message.createdBy = users[message.createdBy];
           }
         });
 
-        return callback(err, messages, nextToken);
+        return callback(error, messages, nextToken);
       });
     });
   });
@@ -667,7 +667,7 @@ const getMessages = function(ctx, meetingId, start, limit, callback) {
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Message}        callback.message            The created message
  */
-const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, callback) {
+const createMessage = function (ctx, meetingId, body, replyToCreatedTimestamp, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -699,15 +699,15 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
   }
 
   // Get the meeting, throwing an error if it doesn't exist, avoiding permission checks for now
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine if the current user can post meeting messages to this meeting
-    AuthzPermissions.canInteract(ctx, meeting, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canInteract(ctx, meeting, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Create the message
@@ -716,27 +716,33 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
         ctx.user().id,
         body,
         { replyToCreated: replyToCreatedTimestamp },
-        (err, message) => {
-          if (err) {
-            return callback(err);
+        (error, message) => {
+          if (error) {
+            return callback(error);
           }
 
           // Get a UI-appropriate representation of the current user
-          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (err, createdBy) => {
-            if (err) {
-              return callback(err);
+          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (error, createdBy) => {
+            if (error) {
+              return callback(error);
             }
 
             message.createdBy = createdBy;
 
             // The message has been created in the database so we can emit the `created-message` event
-            MeetingsAPI.emitter.emit(MeetingsConstants.events.CREATED_MEETING_MESSAGE, ctx, message, meeting, errs => {
-              if (errs) {
-                return callback(_.first(errs));
-              }
+            MeetingsAPI.emitter.emit(
+              MeetingsConstants.events.CREATED_MEETING_MESSAGE,
+              ctx,
+              message,
+              meeting,
+              (errs) => {
+                if (errs) {
+                  return callback(_.first(errs));
+                }
 
-              return callback(null, message);
-            });
+                return callback(null, message);
+              }
+            );
           });
         }
       );
@@ -755,7 +761,7 @@ const createMessage = function(ctx, meetingId, body, replyToCreatedTimestamp, ca
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Comment}    [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
-const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
+const deleteMessage = function (ctx, meetingId, messageCreatedDate, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -776,15 +782,15 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
   }
 
   // Get the meeting without permissions check
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to delete it
-    MessageBoxAPI.getMessages(meetingId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
-      if (err) {
-        return callback(err);
+    MessageBoxAPI.getMessages(meetingId, [messageCreatedDate], { scrubDeleted: false }, (error, messages) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!messages[0]) {
@@ -794,9 +800,9 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
       const message = messages[0];
 
       // Determine if we have access to delete the meeting message
-      AuthzPermissions.canManageMessage(ctx, meeting, message, err => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canManageMessage(ctx, meeting, message, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
@@ -804,9 +810,9 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
           meetingId,
           messageCreatedDate,
           { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-          (err, deleteType, deletedMessage) => {
-            if (err) {
-              return callback(err);
+          (error, deleteType, deletedMessage) => {
+            if (error) {
+              return callback(error);
             }
 
             MeetingsAPI.emitter.emit(
@@ -843,7 +849,7 @@ const deleteMessage = function(ctx, meetingId, messageCreatedDate, callback) {
  * @param  {Meeting[]}      callback.meetings       The array of meetings fetched
  * @param  {String}         [callback.nextToken]    The token that can be used as the `start` parameter to fetch the next set of tokens (exclusively). If not specified, indicates that the query fetched all remaining results.
  */
-const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
+const getMeetingsLibrary = function (ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -856,15 +862,15 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
   }
 
   // Get the principal
-  PrincipalsUtil.getPrincipal(ctx, principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsUtil.getPrincipal(ctx, principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!hasAccess) {
@@ -877,16 +883,16 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
         principalId,
         visibility,
         { start, limit },
-        (err, entries, nextToken) => {
-          if (err) {
-            return callback(err);
+        (error, entries, nextToken) => {
+          if (error) {
+            return callback(error);
           }
 
           // Get the meeting objects from the meeting ids
           const meetingIds = _.pluck(entries, 'resourceId');
-          MeetingsDAO.getMeetingsById(meetingIds, (err, meetings) => {
-            if (err) {
-              return callback(err);
+          MeetingsDAO.getMeetingsById(meetingIds, (error, meetings) => {
+            if (error) {
+              return callback(error);
             }
 
             // Emit an event indicating that the meeting library has been retrieved
@@ -920,7 +926,7 @@ const getMeetingsLibrary = function(ctx, principalId, start, limit, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callback) {
+const removeMeetingFromLibrary = function (ctx, libraryOwnerId, meetingId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -941,27 +947,27 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
   }
 
   // Make sure the meeting exists
-  _getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+  _getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the library owner exists
-    PrincipalsDAO.getPrincipal(libraryOwnerId, (err, principal) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(libraryOwnerId, (error, principal) => {
+      if (error) {
+        return callback(error);
       }
 
       // Ensure the user can remove the content item from the library owner's resource
-      AuthzPermissions.canRemoveRole(ctx, principal, meeting, (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canRemoveRole(ctx, principal, meeting, (error, memberChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         // All validation checks have passed, finally persist the role change and update the user library
-        AuthzAPI.updateRoles(meetingId, memberChangeInfo.changes, err => {
-          if (err) {
-            return callback(err);
+        AuthzAPI.updateRoles(meetingId, memberChangeInfo.changes, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           MeetingsAPI.emitter.emit(
@@ -970,7 +976,7 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
             meeting,
             memberChangeInfo,
             {},
-            errs => {
+            (errs) => {
               if (errs) {
                 return callback(_.first(errs));
               }
@@ -994,10 +1000,10 @@ const removeMeetingFromLibrary = function(ctx, libraryOwnerId, meetingId, callba
  * @param {any} meetingId
  * @param {any} callback
  */
-const _getMeeting = function(meetingId, callback) {
-  MeetingsDAO.getMeeting(meetingId, (err, meeting) => {
-    if (err) {
-      return callback(err);
+const _getMeeting = function (meetingId, callback) {
+  MeetingsDAO.getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!meeting) {
@@ -1008,7 +1014,7 @@ const _getMeeting = function(meetingId, callback) {
   });
 };
 
-const _convertToBoolean = attr => {
+const _convertToBoolean = (attr) => {
   if (equals(attr, TRUE)) return true;
   if (equals(attr, FALSE)) return false;
 };

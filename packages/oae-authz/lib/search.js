@@ -20,8 +20,8 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util';
-import * as resourceMembersSchema from './search/schema/resourceMembersSchema';
-import * as resourceMembershipsSchema from './search/schema/resourceMembershipsSchema';
+import * as resourceMembersSchema from './search/schema/resourceMembersSchema.js';
+import * as resourceMembershipsSchema from './search/schema/resourceMembershipsSchema.js';
 
 /**
  * Initializes the child search documents for the Authz module
@@ -29,7 +29,7 @@ import * as resourceMembershipsSchema from './search/schema/resourceMembershipsS
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   const membersChildSearchDocumentOptions = {
     resourceTypes: ['content', 'discussion', 'group'],
     schema: resourceMembersSchema,
@@ -50,9 +50,9 @@ const init = function(callback) {
   SearchAPI.registerChildSearchDocument(
     AuthzConstants.search.MAPPING_RESOURCE_MEMBERS,
     membersChildSearchDocumentOptions,
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       return SearchAPI.registerChildSearchDocument(
@@ -70,7 +70,7 @@ const init = function(callback) {
  *
  * @param  {String[]}   memberIds   The list of principals whose membership in a group changed
  */
-const fireMembershipUpdateTasks = function(memberIds) {
+const fireMembershipUpdateTasks = function (memberIds) {
   if (_.isEmpty(memberIds)) {
     return;
   }
@@ -78,7 +78,7 @@ const fireMembershipUpdateTasks = function(memberIds) {
   const groupResources = [];
   const userResources = [];
 
-  _.each(memberIds, memberId => {
+  _.each(memberIds, (memberId) => {
     if (AuthzUtil.isGroupId(memberId)) {
       groupResources.push({ id: memberId });
     } else if (AuthzUtil.isUserId(memberId)) {
@@ -106,7 +106,7 @@ const fireMembershipUpdateTasks = function(memberIds) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _produceResourceMembersDocuments = function(resources, callback, _documents) {
+const _produceResourceMembersDocuments = function (resources, callback, _documents) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(null, _documents);
@@ -114,9 +114,9 @@ const _produceResourceMembersDocuments = function(resources, callback, _document
 
   // Take the next resource
   const resource = resources.pop();
-  _getMemberIds(resource, (err, memberIds) => {
-    if (err) {
-      return callback(err);
+  _getMemberIds(resource, (error, memberIds) => {
+    if (error) {
+      return callback(error);
     }
 
     _documents.push(
@@ -139,7 +139,7 @@ const _produceResourceMembersDocuments = function(resources, callback, _document
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _produceResourceMembershipsDocuments = function(resources, callback, _documents) {
+const _produceResourceMembershipsDocuments = function (resources, callback, _documents) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(null, _documents);
@@ -147,9 +147,9 @@ const _produceResourceMembershipsDocuments = function(resources, callback, _docu
 
   // Take the next resource
   const resource = resources.pop();
-  _getMembershipIds(resource, (err, membershipIds) => {
-    if (err) {
-      return callback(err);
+  _getMembershipIds(resource, (error, membershipIds) => {
+    if (error) {
+      return callback(error);
     }
 
     _documents.push(
@@ -173,14 +173,14 @@ const _produceResourceMembershipsDocuments = function(resources, callback, _docu
  * @param  {String[]}   callback.memberIds  The ids of the members of the provided resource
  * @api private
  */
-const _getMemberIds = function(resource, callback) {
+const _getMemberIds = function (resource, callback) {
   if (resource.memberIds) {
     return callback(null, resource.memberIds);
   }
 
-  AuthzAPI.getAuthzMembers(resource.id, null, 10000, (err, memberIdRoles) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAuthzMembers(resource.id, null, 10000, (error, memberIdRoles) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.pluck(memberIdRoles, 'id'));
@@ -195,7 +195,7 @@ const _getMemberIds = function(resource, callback) {
  * @param  {String[]}   callback.membershipIds  The ids of the group memberships of the provided resource
  * @api private
  */
-const _getMembershipIds = function(resource, callback) {
+const _getMembershipIds = function (resource, callback) {
   if (resource.membershipIds) {
     return callback(null, resource.membershipIds);
   }
@@ -203,9 +203,9 @@ const _getMembershipIds = function(resource, callback) {
   AuthzAPI.getRolesForPrincipalsAndResourceType(
     [resource.id],
     AuthzConstants.resourceTypes.GROUP,
-    (err, principalGroupRole) => {
-      if (err) {
-        return callback(err);
+    (error, principalGroupRole) => {
+      if (error) {
+        return callback(error);
       }
 
       // Just extract a set of the groupIds in which the resource is a member

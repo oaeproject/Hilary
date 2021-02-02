@@ -14,7 +14,7 @@
  */
 
 import crypto from 'crypto';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
@@ -32,7 +32,7 @@ const TIME_12_HOURS_IN_SECONDS = 12 * 60 * 60;
  *
  * @param  {Object}     signingConfig   The object containing the signing configuration properties. See the `config.signing` object in the base `./config.js` for more information
  */
-const init = function(signingConfig) {
+const init = function (signingConfig) {
   signKey = signingConfig.key;
 
   if (signKey === 'The default signing key, please change me.') {
@@ -51,11 +51,11 @@ const init = function(signingConfig) {
  * @param  {Object}     data    The data to sign
  * @return {String}             The signature for the data
  */
-const sign = function(data) {
+const sign = function (data) {
   const hmac = crypto.createHmac('sha1', signKey);
   const orderedKeys = _.keys(data).sort();
-  _.each(orderedKeys, key => {
-    hmac.update(util.format('\0%s\0%s\0', key, data[key]));
+  _.each(orderedKeys, (key) => {
+    hmac.update(format('\0%s\0%s\0', key, data[key]));
   });
 
   return hmac.digest('hex');
@@ -68,7 +68,7 @@ const sign = function(data) {
  * @param  {String}     signature   The expected signature of the data
  * @return {Boolean}                Whether or not the data signature matched the provided signature
  */
-const verify = function(data, signature) {
+const verify = function (data, signature) {
   return sign(data) === signature;
 };
 
@@ -109,7 +109,7 @@ const verify = function(data, signature) {
  * @param  {Number}     [offset]    The minimum number of seconds for which this signature is valid. See summary for more information. Default: 12 hours
  * @return {Object}                 An object with a `signature` key that holds the signature and a `expires` key which holds the timestamp when the signature will expire.
  */
-const createExpiringSignature = function(data, duration, offset) {
+const createExpiringSignature = function (data, duration, offset) {
   duration = _.isNumber(duration) ? duration : TIME_12_HOURS_IN_SECONDS;
   offset = _.isNumber(offset) ? offset : TIME_12_HOURS_IN_SECONDS;
 
@@ -135,7 +135,7 @@ const createExpiringSignature = function(data, duration, offset) {
  * @param  {Number}     expires     The expires timestamp (millis since the epoch) that was returned as the expiry date when using `createExpiringSignature`
  * @param  {String}     signature   The signature string that was returned when using `createExpiringSignature`
  */
-const verifyExpiringSignature = function(data, expires, signature) {
+const verifyExpiringSignature = function (data, expires, signature) {
   expires = OaeUtil.getNumberParam(expires);
 
   // If the expiry date has passed, verification fails
@@ -159,7 +159,7 @@ const verifyExpiringSignature = function(data, expires, signature) {
  * @param  {Number}     [duration]  The nominal number of seconds for which this signature is valid as described in `createExpiringSignature`. Default: 12 hours
  * @param  {Number}     [offset]    The minimum number of seconds for which this signature is valid as described in `createExpiringSignature`. Default: 12 hours
  */
-const createExpiringResourceSignature = function(ctx, resourceId, duration, offset) {
+const createExpiringResourceSignature = function (ctx, resourceId, duration, offset) {
   return createExpiringSignature(_createResourceData(ctx, resourceId), duration, offset);
 };
 
@@ -173,7 +173,7 @@ const createExpiringResourceSignature = function(ctx, resourceId, duration, offs
  * @param  {String}     signature   The string signature that was generated from `createExpiringResourceSignature`
  * @return {Boolean}                `true` if the signature is authentic and not expired, `false` otherwise
  */
-const verifyExpiringResourceSignature = function(ctx, resourceId, expires, signature) {
+const verifyExpiringResourceSignature = function (ctx, resourceId, expires, signature) {
   return verifyExpiringSignature(_createResourceData(ctx, resourceId), expires, signature);
 };
 
@@ -186,7 +186,7 @@ const verifyExpiringResourceSignature = function(ctx, resourceId, expires, signa
  * @return {Object}                 A data object that can be signed, such that the signature changes with the expires date changes
  * @api private
  */
-const _createExpiringData = function(data, expires) {
+const _createExpiringData = function (data, expires) {
   return _.extend({}, data, { _expires: expires });
 };
 
@@ -198,7 +198,7 @@ const _createExpiringData = function(data, expires) {
  * @return {Object}                 A data object that can be signed, such that the signature will validate the current user and resource id
  * @api private
  */
-const _createResourceData = function(ctx, resourceId) {
+const _createResourceData = function (ctx, resourceId) {
   const userId = ctx.user() ? ctx.user().id : '';
   return { userId, resourceId };
 };

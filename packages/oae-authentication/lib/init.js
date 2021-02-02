@@ -18,19 +18,19 @@ import passport from 'passport';
 import { Context } from 'oae-context';
 import * as OAE from 'oae-util/lib/oae';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import initCas from './strategies/cas/init';
-import initFacebook from './strategies/facebook/init';
-import initGoogle from './strategies/google/init';
-import initLDAP from './strategies/ldap/init';
-import initLocal from './strategies/local/init';
-import initOAuth from './strategies/oauth/init';
-import initShibb from './strategies/shibboleth/init';
-import initSigned from './strategies/signed/init';
-import initTwitter from './strategies/twitter/init';
+import initCas from './strategies/cas/init.js';
+import initFacebook from './strategies/facebook/init.js';
+import initGoogle from './strategies/google/init.js';
+import initLDAP from './strategies/ldap/init.js';
+import initLocal from './strategies/local/init.js';
+import initOAuth from './strategies/oauth/init.js';
+import initShibb from './strategies/shibboleth/init.js';
+import initSigned from './strategies/signed/init.js';
+import initTwitter from './strategies/twitter/init.js';
 
-import * as AuthenticationAPI from './api';
-import { AuthenticationConstants } from './constants';
-import * as AuthenticationUtil from './util';
+import * as AuthenticationAPI from './api.js';
+import { AuthenticationConstants } from './constants.js';
+import * as AuthenticationUtil from './util.js';
 
 export function init(config, callback) {
   // Attach the Authentication middleware
@@ -69,25 +69,25 @@ export function init(config, callback) {
  * @param  {Response}   res     The express.js response
  * @param  {Function}   next    Standard callback function
  */
-const contextMiddleware = function(req, res, next) {
+const contextMiddleware = function (request, response, next) {
   let user = null;
   let imposter = null;
   let authenticationStrategy = null;
 
   // If we have an authenticated request, store the user and imposter (if any) in the context
-  if (req.oaeAuthInfo && req.oaeAuthInfo.user) {
-    ({ user, imposter } = req.oaeAuthInfo);
+  if (request.oaeAuthInfo && request.oaeAuthInfo.user) {
+    ({ user, imposter } = request.oaeAuthInfo);
 
     // This is for backward compatibility in https://github.com/oaeproject/Hilary/pull/959 to ensure
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
-    if (req.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(req.oaeAuthInfo.strategyId)
+    if (request.oaeAuthInfo.strategyId) {
+      authenticationStrategy = AuthenticationUtil.parseStrategyId(request.oaeAuthInfo.strategyId)
         .strategyName;
     }
   }
 
-  req.ctx = new Context(req.tenant, user, authenticationStrategy, null, imposter);
+  request.ctx = new Context(request.tenant, user, authenticationStrategy, null, imposter);
   return next();
 };
 
@@ -97,7 +97,7 @@ const contextMiddleware = function(req, res, next) {
  *
  * @api private
  */
-const setupPassportSerializers = function(cookieSecret) {
+const setupPassportSerializers = function (cookieSecret) {
   // Serialize the current user and potential imposter
   // ids into the session cookie
   passport.serializeUser((oaeAuthInfo, done) => {
@@ -157,15 +157,15 @@ const setupPassportSerializers = function(cookieSecret) {
     }
 
     // Get the effective user of the session
-    PrincipalsDAO.getPrincipal(sessionData.userId, (err, user) => {
-      if (err && err.code === 404) {
+    PrincipalsDAO.getPrincipal(sessionData.userId, (error, user) => {
+      if (error && error.code === 404) {
         // If the user does not exist, the session is toast
         return callback(null, false);
       }
 
-      if (err) {
+      if (error) {
         // If an unexpected error occurred, return an error
-        return callback(err);
+        return callback(error);
       }
 
       if (user.deleted) {
@@ -180,15 +180,15 @@ const setupPassportSerializers = function(cookieSecret) {
       }
 
       // If we get here, the session user is being impostered by someone else
-      PrincipalsDAO.getPrincipal(sessionData.imposterId, (err, imposterUser) => {
-        if (err && err.code === 404) {
+      PrincipalsDAO.getPrincipal(sessionData.imposterId, (error, imposterUser) => {
+        if (error && error.code === 404) {
           // If the user does not exist, the session is toast
           return callback(null, false);
         }
 
-        if (err) {
+        if (error) {
           // If an unexpected error occurred, return an error
-          return callback(err);
+          return callback(error);
         }
 
         if (imposterUser.deleted) {
@@ -216,7 +216,7 @@ const setupPassportSerializers = function(cookieSecret) {
  * @return {String}                     The encrypted data that is safe to return to the client
  * @api private
  */
-const _encryptCookieData = function(cookieData, cookieSecret) {
+const _encryptCookieData = function (cookieData, cookieSecret) {
   // eslint-disable-next-line node/no-deprecated-api
   const cipher = crypto.createCipher('aes-256-cbc', cookieSecret);
   return cipher.update(cookieData, 'utf8', 'base64') + cipher.final('base64');
@@ -230,7 +230,7 @@ const _encryptCookieData = function(cookieData, cookieSecret) {
  * @return {String}                     The decrypted cookie data
  * @api private
  */
-const _decryptCookieData = function(encryptedData, cookieSecret) {
+const _decryptCookieData = function (encryptedData, cookieSecret) {
   // eslint-disable-next-line node/no-deprecated-api
   const decipher = crypto.createDecipher('aes-256-cbc', cookieSecret);
   return decipher.update(encryptedData, 'base64', 'utf8') + decipher.final('utf8');

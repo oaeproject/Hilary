@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+/* eslint-disable unicorn/no-array-callback-reference */
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
 import _ from 'underscore';
@@ -46,23 +47,23 @@ LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERSHIPS_IN
     // For memberships, we always just get all of them because we need a full graph. So ignore
     // the suggested `limit` and just return all memberships when asked to page. The `null`
     // `nextToken` we give back will tell the pager to stop looking for more
-    _getAllGroupMembershipsFromAuthz(libraryId, (err, groupIdRoles) => {
-      if (err) {
-        return callback(err);
+    _getAllGroupMembershipsFromAuthz(libraryId, (error, groupIdRoles) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the properties of the groups in the library that are relevant to building the library
       PrincipalsDAO.getPrincipals(
         _.keys(groupIdRoles),
         ['principalId', 'tenantAlias', 'visibility', 'lastModified'],
-        (err, groups) => {
-          if (err) {
-            return callback(err);
+        (error, groups) => {
+          if (error) {
+            return callback(error);
           }
 
           // Map the groups to library entry items with just the properties needed to populate
           // the library index
-          const resources = _.map(groups, group => {
+          const resources = _.map(groups, (group) => {
             return {
               rank: group.lastModified,
               resource: group,
@@ -82,13 +83,13 @@ LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERSHIPS_IN
  */
 LibraryAPI.Search.registerLibrarySearch('memberships-library', ['group'], {
   searches: {
-    private(ctx, libraryOwner, opts, callback) {
+    private(ctx, libraryOwner, options, callback) {
       // The memberships library search is in essence a graph index, which our search platform
       // does not support. In its place, we will get all our memberships from the memberships
       // library and simply throw them at search to join onto :(
-      _getAllGroupMembershipsFromLibrary(libraryOwner.id, (err, groupIds) => {
-        if (err) {
-          return callback(err);
+      _getAllGroupMembershipsFromLibrary(libraryOwner.id, (error, groupIds) => {
+        if (error) {
+          return callback(error);
         }
 
         // Target the full set of groups that are in this user's memberships to search through
@@ -116,22 +117,22 @@ LibraryAPI.Search.registerLibrarySearch('memberships-library', ['group'], {
  * @param  {String[]}   callback.memberships    The ids of the groups of which the principal is directly or indirectly a member
  * @api private
  */
-const _getAllGroupMembershipsFromLibrary = function(principalId, callback, _groupIds, _nextToken) {
+const _getAllGroupMembershipsFromLibrary = function (principalId, callback, _groupIds, _nextToken) {
   _groupIds = _groupIds || [];
   if (_nextToken === null) {
     return callback(null, _groupIds);
   }
 
   // Get the next batch of memberships from the library
-  const opts = { start: _nextToken, limit: 100 };
+  const options = { start: _nextToken, limit: 100 };
   LibraryAPI.Index.list(
     PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
     principalId,
     AuthzConstants.visibility.PRIVATE,
-    opts,
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    options,
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       _groupIds = _.union(_groupIds, _.pluck(entries, 'resourceId'));
@@ -152,54 +153,48 @@ const _getAllGroupMembershipsFromLibrary = function(principalId, callback, _grou
  * @param  {Object}     callback.memberships    An object whose keys are the ids of the groups in the memberships graph, and the values are the applicable role principal has on the group
  * @api private
  */
-const _getAllGroupMembershipsFromAuthz = function(principalId, callback) {
+const _getAllGroupMembershipsFromAuthz = function (principalId, callback) {
   // Get the full memberships graph from the AuthzAPI. Note that this includes all groups
   // including those that have since been marked as deleted
-  AuthzAPI.getPrincipalMembershipsGraph(principalId, (err, graph) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getPrincipalMembershipsGraph(principalId, (error, graph) => {
+    if (error) {
+      return callback(error);
     }
 
     // Extract all group ids from the graph, excluding the principal id we actually searched for
-    const allGroupIds = _.chain(graph.getNodes())
-      .pluck('id')
-      .without(principalId)
-      .value();
+    const allGroupIds = _.chain(graph.getNodes()).pluck('id').without(principalId).value();
 
     // Determine which of the groups in the memberships graph have been deleted
-    AuthzDelete.isDeleted(allGroupIds, (err, deleted) => {
-      if (err) {
-        return callback(err);
+    AuthzDelete.isDeleted(allGroupIds, (error, deleted) => {
+      if (error) {
+        return callback(error);
       }
 
       // Delete all group nodes from the graph that have been deleted
       _.chain(deleted)
         .keys()
-        .each(deletedGroupId => {
+        .each((deletedGroupId) => {
           graph.removeNode(deletedGroupId);
         });
 
       // The resulting membership will be all group nodes that are reachable VIA a full
       // outbound edge traversal ("member of") starting from the `principalId`
-      const membershipIds = _.chain(graph.traverseOut(principalId))
-        .pluck('id')
-        .without(principalId)
-        .value();
+      const membershipIds = _.chain(graph.traverseOut(principalId)).pluck('id').without(principalId).value();
 
       // Delete all groups from the graph that did not have a path to the principal
       _.chain(graph.getNodes())
         .pluck('id')
-        .filter(nodeId => {
+        .filter((nodeId) => {
           return !_.contains(membershipIds, nodeId);
         })
-        .each(nodeId => {
+        .each((nodeId) => {
           graph.removeNode(nodeId);
         });
 
       // For the remaining nodes, get the maximum role available in their inbound edges, this
       // will tell us the applicable role the user has on the group
       const memberRoles = {};
-      _.each(membershipIds, membershipId => {
+      _.each(membershipIds, (membershipId) => {
         const hasManager = _.chain(graph.getInEdgesOf(membershipId))
           .pluck('role')
           .contains(AuthzConstants.role.MANAGER)
@@ -225,11 +220,11 @@ const _getAllGroupMembershipsFromAuthz = function(principalId, callback) {
  * who are now a member of this group
  */
 PrincipalsEmitter.when(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, memberChangeInfo, callback) => {
-  _touchMembershipLibraries(group, null, memberChangeInfo, err => {
-    if (err) {
+  _touchMembershipLibraries(group, null, memberChangeInfo, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           groupId: group.id,
           memberIds: _.pluck(memberChangeInfo.members.added, 'id')
         },
@@ -246,11 +241,11 @@ PrincipalsEmitter.when(PrincipalsConstants.events.CREATED_GROUP, (ctx, group, me
  * belongs
  */
 PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, updatedGroup, oldGroup) => {
-  _touchMembershipLibraries(updatedGroup, oldGroup.lastModified, null, err => {
-    if (err) {
+  _touchMembershipLibraries(updatedGroup, oldGroup.lastModified, null, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           groupId: updatedGroup.id
         },
         'An error occurred while updating membership libraries after updating a group'
@@ -264,11 +259,11 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, updatedGrou
  * memberhips library of the user that left
  */
 PrincipalsEmitter.when(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo, callback) => {
-  _touchMembershipLibraries(group, null, memberChangeInfo, err => {
-    if (err) {
+  _touchMembershipLibraries(group, null, memberChangeInfo, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           groupId: group.id,
           userIds: _.keys(memberChangeInfo.changes)
         },
@@ -287,11 +282,11 @@ PrincipalsEmitter.when(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, membe
 PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo, callback) => {
   // Add the group into the memberships library of the user that joined, as well as update
   // the group rank in all memberships libraries it already belongs to
-  _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, err => {
-    if (err) {
+  _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           group,
           userIds: _.keys(memberChangeInfo.changes)
         },
@@ -310,13 +305,13 @@ PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, old
  */
 PrincipalsEmitter.when(
   PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
-  (ctx, group, oldGroup, memberChangeInfo, opts, callback) => {
+  (ctx, group, oldGroup, memberChangeInfo, options, callback) => {
     // Remove the group from the membership library of the user that just left the group
-    _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, err => {
-      if (err) {
+    _touchMembershipLibraries(group, oldGroup.lastModified, memberChangeInfo, (error) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             group,
             userIds: _.keys(memberChangeInfo.changes)
           },
@@ -339,15 +334,15 @@ PrincipalsEmitter.when(
  * @param  {Object}         callback.err            An error object, if any
  * @api private
  */
-const _touchMembershipLibraries = function(group, oldLastModified, memberChangeInfo, callback) {
+const _touchMembershipLibraries = function (group, oldLastModified, memberChangeInfo, callback) {
   const addedMemberIds = memberChangeInfo ? _.pluck(memberChangeInfo.members.added, 'id') : [];
   const removedMemberIds = memberChangeInfo ? _.pluck(memberChangeInfo.members.removed, 'id') : [];
 
   // Get the ancestors of this group. Since a user's membership library contains all indirect
   // group memberships, we need to insert/update/remove all indirect group ancestors
-  _getGroupAncestorsIncludingDeleted(group, (err, ancestorGroups) => {
-    if (err) {
-      return callback(err);
+  _getGroupAncestorsIncludingDeleted(group, (error, ancestorGroups) => {
+    if (error) {
+      return callback(error);
     }
 
     // Create a set of groups that holds the group we changed and all its parents
@@ -355,16 +350,16 @@ const _touchMembershipLibraries = function(group, oldLastModified, memberChangeI
     const groups = ancestorGroups.concat(changedGroup);
 
     // Insert the group (and its ancestors) into the membership libraries of the new members
-    _insertMembershipsLibraries(groups, addedMemberIds, (err, explodedInsertedPrincipals) => {
-      if (err) {
-        return callback(err);
+    _insertMembershipsLibraries(groups, addedMemberIds, (error, explodedInsertedPrincipals) => {
+      if (error) {
+        return callback(error);
       }
 
       // Remove the group (and its ancestors) from the membership libraries of the removed
       // principals
-      _removeMembershipsLibraries(removedMemberIds, groups, err => {
-        if (err) {
-          return callback(err);
+      _removeMembershipsLibraries(removedMemberIds, groups, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Update the membership libraries of all the other members of the changed group to
@@ -390,24 +385,24 @@ const _touchMembershipLibraries = function(group, oldLastModified, memberChangeI
  * @param  {String[]}       callback.principals     The ids of the principals for which to update the membership libraries
  * @api private
  */
-const _insertMembershipsLibraries = function(groups, addedMemberIds, callback) {
+const _insertMembershipsLibraries = function (groups, addedMemberIds, callback) {
   if (_.isEmpty(addedMemberIds)) {
     return callback(null, []);
   }
 
   // Get all the children of the members we've added so we can insert the group
   // and its ancestors into their membership libraries
-  _getAllGroupChildren(addedMemberIds, [], (err, allChildren) => {
-    if (err) {
-      return callback(err);
+  _getAllGroupChildren(addedMemberIds, [], (error, allChildren) => {
+    if (error) {
+      return callback(error);
     }
 
     // The principals for which the groups will be inserted in their libraries
     const principalIds = allChildren.concat(addedMemberIds);
 
     const entries = _.chain(groups)
-      .map(group => {
-        return _.map(principalIds, principalId => {
+      .map((group) => {
+        return _.map(principalIds, (principalId) => {
           return {
             id: principalId,
             rank: group.lastModified,
@@ -418,9 +413,9 @@ const _insertMembershipsLibraries = function(groups, addedMemberIds, callback) {
       .flatten()
       .value();
 
-    LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, err => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, allChildren);
@@ -436,17 +431,17 @@ const _insertMembershipsLibraries = function(groups, addedMemberIds, callback) {
  * @param  {Function}       callback                Standard callback function
  * @api private
  */
-const _updateMembershipsLibraries = function(group, excludePrincipalIds, callback) {
+const _updateMembershipsLibraries = function (group, excludePrincipalIds, callback) {
   // Get the exploded members list of the group we've updated excluding any
   // principals we've dealth with earlier
-  _getAllGroupChildren([group.id], excludePrincipalIds, (err, allChildren) => {
-    if (err) {
-      return callback(err);
+  _getAllGroupChildren([group.id], excludePrincipalIds, (error, allChildren) => {
+    if (error) {
+      return callback(error);
     }
 
     // The principals for which the groups will be updated in their libraries
     const principalIdsToUpdate = allChildren.concat(group.id);
-    const entries = _.map(principalIdsToUpdate, principalId => {
+    const entries = _.map(principalIdsToUpdate, (principalId) => {
       return {
         id: principalId,
         oldRank: group.oldLastModified,
@@ -456,11 +451,11 @@ const _updateMembershipsLibraries = function(group, excludePrincipalIds, callbac
     });
 
     // Update all the groups in the libraries of the updated members (and their children)
-    LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, err => {
-      if (err) {
+    LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, (error_) => {
+      if (error_) {
         log().error(
           {
-            err,
+            err: error_,
             group
           },
           "Unable to update a group in a principal's membership library"
@@ -481,14 +476,14 @@ const _updateMembershipsLibraries = function(group, excludePrincipalIds, callbac
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _removeMembershipsLibraries = function(removedMemberIds, groups, callback) {
+const _removeMembershipsLibraries = function (removedMemberIds, groups, callback) {
   if (_.isEmpty(removedMemberIds)) {
     return callback();
   }
 
-  _getAllGroupChildren(removedMemberIds, [], (err, allChildren) => {
-    if (err) {
-      return callback(err);
+  _getAllGroupChildren(removedMemberIds, [], (error, allChildren) => {
+    if (error) {
+      return callback(error);
     }
 
     // The principals for which to remove the groups from their libraries
@@ -496,8 +491,8 @@ const _removeMembershipsLibraries = function(removedMemberIds, groups, callback)
 
     // Gather all index removal entries to persist
     const entries = _.chain(groups)
-      .map(group => {
-        return _.map(principalIds, principalId => {
+      .map((group) => {
+        return _.map(principalIds, (principalId) => {
           return {
             id: principalId,
             rank: group.oldLastModified || group.lastModified,
@@ -509,11 +504,11 @@ const _removeMembershipsLibraries = function(removedMemberIds, groups, callback)
       .value();
 
     // Remove the groups from the libraries of the removed members (and their children)
-    LibraryAPI.Index.remove(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, err => {
-      if (err) {
+    LibraryAPI.Index.remove(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, (error_) => {
+      if (error_) {
         log().error(
           {
-            err,
+            err: error_,
             memberIds: removedMemberIds,
             groupIds: _.pluck(groups, 'id')
           },
@@ -535,26 +530,23 @@ const _removeMembershipsLibraries = function(removedMemberIds, groups, callback)
  * @param  {Group[]}        callback.groups     The ancestor groups
  * @api private
  */
-const _getGroupAncestorsIncludingDeleted = function(group, callback) {
+const _getGroupAncestorsIncludingDeleted = function (group, callback) {
   // Get all the ancestors of the group
-  AuthzAPI.getPrincipalMembershipsGraph(group.id, (err, graph) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getPrincipalMembershipsGraph(group.id, (error, graph) => {
+    if (error) {
+      return callback(error);
     }
 
     // Extract the ids of all groups in the memberships list from the graph
-    const membershipIds = _.chain(graph.getNodes())
-      .pluck('id')
-      .without(group.id)
-      .value();
+    const membershipIds = _.chain(graph.getNodes()).pluck('id').without(group.id).value();
 
     // Get a light-weight group representation for each ancestor
     PrincipalsDAO.getPrincipals(
       membershipIds,
       ['principalId', 'tenantAlias', 'lastModified', 'visibility'],
-      (err, parentGroupsByGroupId) => {
-        if (err) {
-          return callback(err);
+      (error, parentGroupsByGroupId) => {
+        if (error) {
+          return callback(error);
         }
 
         return callback(null, _.values(parentGroupsByGroupId));
@@ -572,7 +564,7 @@ const _getGroupAncestorsIncludingDeleted = function(group, callback) {
  * @param  {String[]}   callback.children   The ids of the principals that are a direct or indirect member of any of the given principal ids. The passed in principal ids will be included in this result set
  * @api private
  */
-const _getAllGroupChildren = function(principalIds, excludePrincipals, callback, _groupsToExplode, _allChildren) {
+const _getAllGroupChildren = function (principalIds, excludePrincipals, callback, _groupsToExplode, _allChildren) {
   _allChildren = _allChildren || [];
   _groupsToExplode = _groupsToExplode || _.filter(principalIds, AuthzUtil.isGroupId);
 
@@ -586,12 +578,12 @@ const _getAllGroupChildren = function(principalIds, excludePrincipals, callback,
   const groupId = _groupsToExplode.shift();
 
   // Get all of the members of the group, so they can be invalidated
-  AuthzAPI.getAuthzMembers(groupId, null, 10000, (err, members) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAuthzMembers(groupId, null, 10000, (error, members) => {
+    if (error) {
+      return callback(error);
     }
 
-    _.each(members, member => {
+    _.each(members, (member) => {
       // Groups need to be further exploded. In order to do this, we need to check whether or not the list
       // of groups that have already been invalidated and the list of groups that are queued up to be invalidated
       // don't contain this group, otherwise we'll invalidate the group twice.
@@ -628,7 +620,7 @@ const _getAllGroupChildren = function(principalIds, excludePrincipals, callback,
  * @param  {Object[]}       callback.errs       All errs that occurred while trying to invalidate the group memberships library
  * @api private
  */
-const _handleInvalidateMembershipsLibraries = function(
+const _handleInvalidateMembershipsLibraries = function (
   group,
   membershipsGraph,
   membersGraph,
@@ -636,22 +628,17 @@ const _handleInvalidateMembershipsLibraries = function(
   _errs,
   _userIds
 ) {
-  _userIds =
-    _userIds ||
-    _.chain(membersGraph.getNodes())
-      .pluck('id')
-      .filter(PrincipalsUtil.isUser)
-      .value();
+  _userIds = _userIds || _.chain(membersGraph.getNodes()).pluck('id').filter(PrincipalsUtil.isUser).value();
   if (_.isEmpty(_userIds)) {
     return callback(_errs, _userIds);
   }
 
   // Purge the memberships library for the next user
   const userId = _userIds.shift();
-  LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, userId, err => {
-    if (err) {
+  LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, userId, (error) => {
+    if (error) {
       _errs = _errs || [];
-      _errs.push(err);
+      _errs.push(error);
     }
 
     return _handleInvalidateMembershipsLibraries(group, membershipsGraph, membersGraph, callback, _errs, _userIds);

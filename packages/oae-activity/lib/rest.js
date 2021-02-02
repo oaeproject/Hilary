@@ -19,11 +19,11 @@ import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 
 import * as ActivityAPI from 'oae-activity';
-import * as ActivityPush from './internal/push';
+import * as ActivityPush from './internal/push.js';
 
-/// ///////////////////
-// ACTIVITY STREAMS //
-/// ///////////////////
+/**
+ * Activity streams
+ */
 
 /**
  * Request handler to get the activity stream of the given stream ID. It will fetch the activities and send out
@@ -34,21 +34,21 @@ import * as ActivityPush from './internal/push';
  * @param  {Response}   res                 The express response object
  * @api private
  */
-const _handleGetActivities = function(resourceId, req, res) {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  const { start } = req.query;
+const _handleGetActivities = function (resourceId, request, response) {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  const { start } = request.query;
   ActivityAPI.getActivityStream(
-    req.ctx,
+    request.ctx,
     resourceId,
     start,
     limit,
-    req.query.format,
-    (err, activityStream) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.query.format,
+    (error, activityStream) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send(activityStream);
+      response.status(200).send(activityStream);
     }
   );
 };
@@ -74,9 +74,9 @@ const _handleGetActivities = function(resourceId, req, res) {
  * @HttpResponse                    401                 Must be logged in to see an activity stream
  * @HttpResponse                    401                 Only authenticated users can retrieve a user's activity stream
  */
-OAE.tenantRouter.on('get', '/api/activity', (req, res) => {
-  const userId = req.ctx.user() ? req.ctx.user().id : null;
-  _handleGetActivities(userId, req, res);
+OAE.tenantRouter.on('get', '/api/activity', (request, response) => {
+  const userId = request.ctx.user() ? request.ctx.user().id : null;
+  _handleGetActivities(userId, request, response);
 });
 
 /**
@@ -101,8 +101,8 @@ OAE.tenantRouter.on('get', '/api/activity', (req, res) => {
  * @HttpResponse                    401                 Must be logged in to see an activity stream
  * @HttpResponse                    404                 Unknown type of resource
  */
-OAE.tenantRouter.on('get', '/api/activity/:resourceId', (req, res) => {
-  _handleGetActivities(req.params.resourceId, req, res);
+OAE.tenantRouter.on('get', '/api/activity/:resourceId', (request, response) => {
+  _handleGetActivities(request.params.resourceId, request, response);
 });
 
 /// ///////////////////////
@@ -126,21 +126,21 @@ OAE.tenantRouter.on('get', '/api/activity/:resourceId', (req, res) => {
  * @HttpResponse                    401                 Only authenticated users can retrieve a notification stream
  * @HttpResponse                    401                 You can only request your own notification stream
  */
-OAE.tenantRouter.on('get', '/api/notifications', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  const userId = req.ctx.user() ? req.ctx.user().id : null;
+OAE.tenantRouter.on('get', '/api/notifications', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  const userId = request.ctx.user() ? request.ctx.user().id : null;
   ActivityAPI.getNotificationStream(
-    req.ctx,
+    request.ctx,
     userId,
-    req.query.start,
+    request.query.start,
     limit,
-    req.query.format,
-    (err, notificationStream) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.query.format,
+    (error, notificationStream) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send(notificationStream);
+      response.status(200).send(notificationStream);
     }
   );
 });
@@ -157,13 +157,13 @@ OAE.tenantRouter.on('get', '/api/notifications', (req, res) => {
  * @HttpResponse                    200                 Notifications marked as read
  * @HttpResponse                    401                 You must be logged in to mark notifications read
  */
-OAE.tenantRouter.on('post', '/api/notifications/markRead', (req, res) => {
-  ActivityAPI.markNotificationsRead(req.ctx, (err, lastReadTime) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/notifications/markRead', (request, response) => {
+  ActivityAPI.markNotificationsRead(request.ctx, (error, lastReadTime) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(JSON.stringify({ lastReadTime }));
+    response.status(200).send(JSON.stringify({ lastReadTime }));
   });
 });
 

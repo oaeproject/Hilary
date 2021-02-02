@@ -50,9 +50,9 @@ const {
   isNotNull,
   isLoggedInUser
 } = validator;
-import PreviewConstants from './constants';
-import { FilterGenerator } from './filters';
-import { PreviewContext } from './model';
+import PreviewConstants from './constants.js';
+import { FilterGenerator } from './filters.js';
+import { PreviewContext } from './model.js';
 
 const log = logger('oae-preview-processor');
 const Telemetry = telemetry('preview-processor');
@@ -77,29 +77,29 @@ const PreviewProcessorAPI = new EmitterAPI.EventEmitter();
  * @param  {Function}    [callback]      Standard callback method
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
-const enable = function(callback) {
+const enable = function (callback) {
   // Bind an error listener to the REST methods
   RestUtil.emitter.on('error', _restErrorLister);
-  MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, err => {
-    if (err) {
-      log().error({ err }, 'Could not bind to the generate previews queue');
-      return callback(err);
+  MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, _handleGeneratePreviewsTask, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Could not bind to the generate previews queue');
+      return callback(error);
     }
 
     log().info('Bound the preview processor to the generate previews task queue');
 
-    MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, _handleGenerateFolderPreviewsTask, err => {
-      if (err) {
-        log().error({ err }, 'Could not bind to the generate folder previews queue');
-        return callback(err);
+    MQ.subscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, _handleGenerateFolderPreviewsTask, (error) => {
+      if (error) {
+        log().error({ err: error }, 'Could not bind to the generate folder previews queue');
+        return callback(error);
       }
 
       log().info('Bound the preview processor to the generate folder previews task queue');
 
-      MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleRegeneratePreviewsTask, err => {
-        if (err) {
-          log().error({ err }, 'Could not bind to the regenerate previews queue');
-          return callback(err);
+      MQ.subscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, _handleRegeneratePreviewsTask, (error) => {
+        if (error) {
+          log().error({ err: error }, 'Could not bind to the regenerate previews queue');
+          return callback(error);
         }
 
         log().info('Bound the preview processor to the regenerate previews task queue');
@@ -115,27 +115,27 @@ const enable = function(callback) {
  * @param  {Function}    [callback]      Standard callback method
  * @param  {Object}      [callback.err]  Standard error object (if any)
  */
-const disable = function(callback) {
-  MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
-    if (err) {
-      log().error({ err }, 'Could not unbind from the previews queue');
-      return callback(err);
+const disable = function (callback) {
+  MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Could not unbind from the previews queue');
+      return callback(error);
     }
 
     log().info('Unbound the preview processor from the generate previews task queue');
 
-    MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
-      if (err) {
-        log().error({ err }, 'Could not unbind from the folder previews queue');
-        return callback(err);
+    MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, (error) => {
+      if (error) {
+        log().error({ err: error }, 'Could not unbind from the folder previews queue');
+        return callback(error);
       }
 
       log().info('Unbound the preview processor from the folder generate previews task queue');
 
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
-        if (err) {
-          log().error({ err }, 'Could not unbind from the regenerate previews queue');
-          return callback(err);
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (error) => {
+        if (error) {
+          log().error({ err: error }, 'Could not unbind from the regenerate previews queue');
+          return callback(error);
         }
 
         log().info('Unbound the preview processor from the regenerate previews task queue');
@@ -155,8 +155,8 @@ const disable = function(callback) {
  * @param  {Object}     err     An error object.
  * @api private
  */
-const _restErrorLister = function(err) {
-  log().error({ err }, 'Got an unexpected error from the REST api');
+const _restErrorLister = function (error) {
+  log().error({ err: error }, 'Got an unexpected error from the REST api');
 };
 
 /**
@@ -165,17 +165,17 @@ const _restErrorLister = function(err) {
  * @param  {Object}     config      The main configuration object as defined in `config.js`. The full config object should be passed in.
  * @param  {Function}   callback    Standard callback function
  */
-const refreshPreviewConfiguration = function(_config, callback) {
+const refreshPreviewConfiguration = function (_config, callback) {
   // Stop listening for tasks.
-  disable(err => {
-    if (err) return callback(err);
+  disable((error) => {
+    if (error) return callback(error);
 
     // Store this configuration.
     config = _config;
 
     if (config.previews.enabled) {
-      _initializeDefaultProcessors(err => {
-        if (err) return callback(err);
+      _initializeDefaultProcessors((error) => {
+        if (error) return callback(error);
 
         // Register the processors.
         try {
@@ -197,7 +197,7 @@ const refreshPreviewConfiguration = function(_config, callback) {
 /**
  * @return {Object}    The configuration object that is currently in use.
  */
-const getConfiguration = function() {
+const getConfiguration = function () {
   return config;
 };
 
@@ -225,7 +225,7 @@ const getConfiguration = function() {
  * @param  {Function}   processor.test              The method that passes an integer back which expresses how suitable this processor is for a new piece of content.
  * @param  {Function}   processor.generatePreviews  The method that generates previews for a piece of content.
  */
-const registerProcessor = function(processorId, processor) {
+const registerProcessor = function (processorId, processor) {
   unless(isNotEmpty, new Error('Missing processor ID'))(processorId);
   unless(isNil, new Error('This processor is already registered'))(_processors[processorId]);
   unless(isModule, new Error('Missing processor'))(processor);
@@ -240,7 +240,7 @@ const registerProcessor = function(processorId, processor) {
  *
  * @param  {String}  processorId     The ID of the processor that should be unregistered.
  */
-const unregisterProcessor = function(processorId) {
+const unregisterProcessor = function (processorId) {
   if (!processorId) {
     throw new Error('The processor id must be specified');
   }
@@ -257,14 +257,14 @@ const unregisterProcessor = function(processorId) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Processor}  callback.processor  The processor who can generate previews for this piece of content. If no processor is equiped to deal with this piece of content, null will be returned.
  */
-const getProcessor = function(ctx, contentObj, callback) {
+const getProcessor = function (ctx, contentObject, callback) {
   const scoredProcessors = [];
   const processors = _.values(_processors);
 
-  _.each(processors, processor => {
-    processor.test(ctx, contentObj, (err, score) => {
-      if (err) {
-        return callback(err);
+  _.each(processors, (processor) => {
+    processor.test(ctx, contentObject, (error, score) => {
+      if (error) {
+        return callback(error);
       }
 
       // Add it to the list.
@@ -295,7 +295,7 @@ const getProcessor = function(ctx, contentObj, callback) {
         // This isn't exactly optimal, but it's up to the developer implementing a 3rd party processor
         // to ensure it doesn't conflict with the OAE processors (or any other ones in the system.)
         if (scoredProcessors[0].score === scoredProcessors[1].score) {
-          log().warn({ contentId: contentObj.contentId }, 'Has 2 processors with an equal score');
+          log().warn({ contentId: contentObject.contentId }, 'Has 2 processors with an equal score');
         }
 
         // Return the best one.
@@ -312,7 +312,7 @@ const getProcessor = function(ctx, contentObj, callback) {
  * @param  {String}     contentId   The ID of the piece of the content that needs new preview items.
  * @param  {String}     revisionId  The ID of the revision for which we need to generate previews.
  */
-const submitForProcessing = function(contentId, revisionId) {
+const submitForProcessing = function (contentId, revisionId) {
   log().trace({ contentId, revisionId }, 'Submitting for preview processing');
   MQ.submit(
     PreviewConstants.MQ.TASK_GENERATE_PREVIEWS,
@@ -329,7 +329,7 @@ const submitForProcessing = function(contentId, revisionId) {
  *
  * @param  {String}     folderId    The ID of the folder that needs new preview items
  */
-const submitFolderForProcessing = function(folderId) {
+const submitFolderForProcessing = function (folderId) {
   log().trace({ folderId }, 'Submitting for folder preview processing');
   MQ.submit(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, JSON.stringify({ folderId }));
 };
@@ -342,12 +342,12 @@ const submitFolderForProcessing = function(folderId) {
  * @param  {Function}   [callback]                          Invoked when the task has been fired
  * @param  {Object}     [callback.err]                      An error that occurred, if any
  */
-const reprocessPreviews = function(ctx, filters, callback) {
+const reprocessPreviews = function (ctx, filters, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Failed to invoke reprocess previews task');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'Failed to invoke reprocess previews task');
       }
     };
 
@@ -386,7 +386,7 @@ const reprocessPreviews = function(ctx, filters, callback) {
  * @param  {String}     contentId   The id of the content item for which to reprocess the preview
  * @param  {String}     revisionId  The id of the revision to reprocess
  */
-const reprocessPreview = function(ctx, contentId, revisionId, callback) {
+const reprocessPreview = function (ctx, contentId, revisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -428,12 +428,12 @@ const reprocessPreview = function(ctx, contentId, revisionId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _handleGenerateFolderPreviewsTask = function(data, callback) {
+const _handleGenerateFolderPreviewsTask = function (data, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling folder preview generation');
+    function (error) {
+      if (error) {
+        log().error({ err: error, data }, 'Error handling folder preview generation');
       }
     };
 
@@ -449,11 +449,11 @@ const _handleGenerateFolderPreviewsTask = function(data, callback) {
   }
 
   log().info({ folderId: data.folderId }, 'Starting preview folder generation process');
-  FolderProcessor.generatePreviews(data.folderId, err => {
-    if (err) {
-      log().error({ err, folderId: data.folderId }, 'Error when trying to process a folder');
+  FolderProcessor.generatePreviews(data.folderId, (error) => {
+    if (error) {
+      log().error({ err: error, folderId: data.folderId }, 'Error when trying to process a folder');
       Telemetry.incr('error.count');
-      return callback(err);
+      return callback(error);
     }
 
     // We're done.
@@ -474,12 +474,12 @@ const _handleGenerateFolderPreviewsTask = function(data, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _handleGeneratePreviewsTask = function(data, callback) {
+const _handleGeneratePreviewsTask = function (data, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, data }, 'Error handling preview generation');
+    function (error) {
+      if (error) {
+        log().error({ err: error, data }, 'Error handling preview generation');
       }
     };
 
@@ -499,8 +499,8 @@ const _handleGeneratePreviewsTask = function(data, callback) {
    * Generate a context for this preview process and login to the tenant
    * of this content item and start processing
    */
-  ctx.login(err => {
-    if (err) {
+  ctx.login((error) => {
+    if (error) {
       /**
        * If we can't login, we cannot call cleanCallback as we won't
        * have a session cookie to set a status
@@ -509,25 +509,25 @@ const _handleGeneratePreviewsTask = function(data, callback) {
       Telemetry.appendDuration('process.time', start);
       Telemetry.incr('error.count');
 
-      return callback(err);
+      return callback(error);
     }
 
     // Get the content and revision profile
-    ctx.getContentData(err => {
-      if (err) {
+    ctx.getContentData((error) => {
+      if (error) {
         return ctx.setStatus('error', callback);
       }
 
       // Generate the actual preview images
-      _generatePreviews(ctx, err => {
+      _generatePreviews(ctx, (error) => {
         ctx.cleanup();
         Telemetry.appendDuration('process.time', start);
 
         PreviewProcessorAPI.emit(PreviewConstants.EVENTS.PREVIEWS_FINISHED, ctx.content, ctx.revision, ctx.getStatus());
-        if (err) {
-          log().error({ err, contentId: data.contentId }, 'Error when trying to process this file');
+        if (error) {
+          log().error({ err: error, contentId: data.contentId }, 'Error when trying to process this file');
           Telemetry.incr('error.count');
-          return callback(err);
+          return callback(error);
         }
 
         // We're done.
@@ -548,16 +548,16 @@ const _handleGeneratePreviewsTask = function(data, callback) {
  * @param  {Object}              callback.err    An error that occurred, if any
  * @api private
  */
-const _generatePreviews = function(ctx, callback) {
+const _generatePreviews = function (ctx, callback) {
   // Get the best processor and start processing.
-  getProcessor(ctx, ctx.content, (err, processor) => {
-    if (err) {
-      return callback(err);
+  getProcessor(ctx, ctx.content, (error, processor) => {
+    if (error) {
+      return callback(error);
     }
 
     if (processor) {
-      processor.generatePreviews(ctx, ctx.content, (err, ignored) => {
-        if (err) {
+      processor.generatePreviews(ctx, ctx.content, (error, ignored) => {
+        if (error) {
           ctx.setStatus('error', callback);
         } else if (ignored) {
           ctx.setStatus('ignored', callback);
@@ -584,12 +584,12 @@ const _generatePreviews = function(ctx, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _handleRegeneratePreviewsTask = function(data, callback) {
+const _handleRegeneratePreviewsTask = function (data, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Error reprocessing all previews');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'Error reprocessing all previews');
       }
     };
 
@@ -629,12 +629,12 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
    * @see ContentDAO.Content#iterateAll
    * @api private
    */
-  const _onEach = function(contentRows, done) {
+  const _onEach = function (contentRows, done) {
     log().info('Scanning %d content items to see if previews need to be reprocessed', contentRows.length);
     totalScanned += contentRows.length;
 
     // Get those rows we can use to filter upon
-    const contentToFilter = _.filter(contentRows, contentRow => {
+    const contentToFilter = _.filter(contentRows, (contentRow) => {
       if (contentRow.previews) {
         try {
           contentRow.previews = JSON.parse(contentRow.previews);
@@ -664,7 +664,7 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
     // If we don't need to filter by revisions we can simply reprocess the latest revisions
     // of the content items that are left
     if (!filterGenerator.needsRevisions() || _.isEmpty(filteredContent)) {
-      _.each(filteredContent, content => {
+      _.each(filteredContent, (content) => {
         totalReprocessed++;
         submitForProcessing(content.contentId, content.latestRevisionId);
       });
@@ -672,12 +672,12 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
     }
 
     // We need to filter by revisions
-    const contentIds = _.map(filteredContent, contentObj => {
-      return contentObj.contentId;
+    const contentIds = _.map(filteredContent, (contentObject) => {
+      return contentObject.contentId;
     });
-    ContentDAO.Revisions.getAllRevisionsForContent(contentIds, (err, revisionsByContent) => {
-      if (err) {
-        log().error({ err }, 'Error trying to retrieve revisions for content');
+    ContentDAO.Revisions.getAllRevisionsForContent(contentIds, (error, revisionsByContent) => {
+      if (error) {
+        log().error({ err: error }, 'Error trying to retrieve revisions for content');
       }
 
       // Stick the revisions on their content item
@@ -691,8 +691,8 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
       filteredContent = filterGenerator.filterRevisions(filteredContent);
 
       // Submit all those are left
-      _.each(filteredContent, content => {
-        _.each(content.revisions, revision => {
+      _.each(filteredContent, (content) => {
+        _.each(content.revisions, (revision) => {
           totalReprocessed++;
           submitForProcessing(content.contentId, revision.revisionId);
         });
@@ -702,10 +702,10 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
     });
   };
 
-  ContentDAO.Content.iterateAll(filterGenerator.getContentColumnNames(), 1000, _onEach, err => {
-    if (err) {
-      log().error({ err }, 'Error scanning content items for preview reprocessing');
-      return callback(err);
+  ContentDAO.Content.iterateAll(filterGenerator.getContentColumnNames(), 1000, _onEach, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Error scanning content items for preview reprocessing');
+      return callback(error);
     }
 
     log().info(
@@ -727,26 +727,26 @@ const _handleRegeneratePreviewsTask = function(data, callback) {
  * @param  {Object}   callback.err  An error that occurred, if any
  * @api private
  */
-const _initializeDefaultProcessors = function(callback) {
+const _initializeDefaultProcessors = function (callback) {
   // Initialize those processors that need it.
-  OfficeProcessor.init(config.previews.office, err => {
-    if (err) {
-      return callback(err);
+  OfficeProcessor.init(config.previews.office, (error) => {
+    if (error) {
+      return callback(error);
     }
 
-    PDFProcessor.init(config.previews, err => {
-      if (err) {
-        return callback(err);
+    PDFProcessor.init(config.previews, (error) => {
+      if (error) {
+        return callback(error);
       }
 
-      DefaultLinkProcessor.init(config.previews, err => {
-        if (err) {
-          return callback(err);
+      DefaultLinkProcessor.init(config.previews, (error) => {
+        if (error) {
+          return callback(error);
         }
 
-        CollabDocProcessor.init(config.previews, err => {
-          if (err) {
-            return callback(err);
+        CollabDocProcessor.init(config.previews, (error) => {
+          if (error) {
+            return callback(error);
           }
 
           return callback();
@@ -761,7 +761,7 @@ const _initializeDefaultProcessors = function(callback) {
  *
  * @api private
  */
-const _registerDefaultProcessors = function() {
+const _registerDefaultProcessors = function () {
   registerProcessor('oae-file-images', ImagesProcessor);
   registerProcessor('oae-file-office', OfficeProcessor);
   registerProcessor('oae-file-pdf', PDFProcessor);

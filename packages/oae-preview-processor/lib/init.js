@@ -17,9 +17,9 @@ import fs from 'fs';
 import { logger } from 'oae-logger';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
-import * as PreviewAPI from './api';
-// eslint-disable-next-line no-unused-vars, import/namespace
-import * as activity from './activity';
+import * as PreviewAPI from './api.js';
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity.js';
 
 const log = logger('oae-preview-processor');
 
@@ -28,9 +28,9 @@ const log = logger('oae-preview-processor');
  */
 export function init(config, callback) {
   // Create the previews directory and periodically clean it.
-  fs.mkdir(config.previews.tmpDir, { recursive: true }, err => {
-    if (err) {
-      log().error({ err }, 'Could not create the previews directory');
+  fs.mkdir(config.previews.tmpDir, { recursive: true }, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Could not create the previews directory');
       return callback({ code: 500, msg: 'Could not create the previews directory' });
     }
 

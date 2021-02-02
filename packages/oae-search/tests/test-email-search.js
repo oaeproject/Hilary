@@ -14,6 +14,7 @@
  */
 
 import assert from 'assert';
+import { beforeEach, describe, before, it } from 'mocha';
 import {
   values,
   mergeAll,
@@ -94,7 +95,7 @@ describe('Email Search', () => {
   // Rest context that can be used every time we need to make a request as a global admin
   let asGlobalAdmin = null;
 
-  before(done => flush(done));
+  before((done) => flush(done));
 
   /**
    * Function that will fill up the anonymous and admin REST context.
@@ -103,7 +104,7 @@ describe('Email Search', () => {
    * to re-create the rest contexts for each test so we can ensure our admin
    * session will always point to a valid principal record
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     const someTenantHost = global.oaeTests.tenants.cam.host;
 
     asAnonymousUser = createTenantRestContext(someTenantHost);
@@ -115,8 +116,8 @@ describe('Email Search', () => {
      * global admin to test their access
      */
     const targetInternalUrl = null;
-    loginOnTenant(asGlobalAdmin, LOCALHOST, targetInternalUrl, (err, ctx) => {
-      assert.ok(not(err));
+    loginOnTenant(asGlobalAdmin, LOCALHOST, targetInternalUrl, (error, ctx) => {
+      assert.ok(not(error));
       asGlobalAdmin = ctx;
 
       callback();
@@ -132,7 +133,7 @@ describe('Email Search', () => {
    * @param  {Boolean}        tests[i].visible    Whether or not we expect the user to be in the search results
    * @param  {Function}       callback            Invoked when all tests and assertions have completed
    */
-  const _runEmailSearchInteractionTests = function(tests, callback) {
+  const _runEmailSearchInteractionTests = function (tests, callback) {
     if (isEmpty(tests)) return callback();
 
     const nextTest = head(tests);
@@ -150,14 +151,14 @@ describe('Email Search', () => {
       expectedResultCount = 1;
     }
 
-    assertToRun(someUserContext, EMAIL, NO_PARAMS, { q: someUserEmail }, of(someUserId), response => {
+    assertToRun(someUserContext, EMAIL, NO_PARAMS, { q: someUserEmail }, of(someUserId), (response) => {
       assert.strictEqual(numberOfResults(response), expectedResultCount);
 
       // Also search in all uppers and all lowers to verify search case insensitivity
-      assertToRun(nextTest.restCtx, EMAIL, NO_PARAMS, { q: toUpper(someUserEmail) }, of(someUserId), response => {
+      assertToRun(nextTest.restCtx, EMAIL, NO_PARAMS, { q: toUpper(someUserEmail) }, of(someUserId), (response) => {
         assert.strictEqual(numberOfResults(response), expectedResultCount);
 
-        assertToRun(nextTest.restCtx, EMAIL, NO_PARAMS, { q: toLower(someUserEmail) }, of(someUserId), response => {
+        assertToRun(nextTest.restCtx, EMAIL, NO_PARAMS, { q: toLower(someUserEmail) }, of(someUserId), (response) => {
           assert.strictEqual(numberOfResults(response), expectedResultCount);
 
           tests = tail(tests);
@@ -170,9 +171,9 @@ describe('Email Search', () => {
   /**
    * Test that verifies email search authorizes search properly
    */
-  it('verify authorization of email search', callback => {
-    generateTestUsers(asTenantAdmin, 1, EMPTY_ARRAY, (err, users) => {
-      assert.ok(not(err));
+  it('verify authorization of email search', (callback) => {
+    generateTestUsers(asTenantAdmin, 1, EMPTY_ARRAY, (error, users) => {
+      assert.ok(not(error));
 
       const johnDoe = head(users);
       const asJohnDoe = johnDoe.restContext;
@@ -195,9 +196,9 @@ describe('Email Search', () => {
   /**
    * Test that verifies email search validates input properly
    */
-  it('verify validation of email search', callback => {
-    generateTestUsers(asTenantAdmin, 1, EMPTY_ARRAY, (err, users) => {
-      assert.ok(not(err));
+  it('verify validation of email search', (callback) => {
+    generateTestUsers(asTenantAdmin, 1, EMPTY_ARRAY, (error, users) => {
+      assert.ok(not(error));
 
       const johnDoe = head(users);
       const asJohnDoe = johnDoe.restContext;
@@ -220,7 +221,7 @@ describe('Email Search', () => {
    * Test that verifies that exact email search bypasses user profile visibility boundaries, but
    * does not violate tenant privacy boundaries
    */
-  it('verify email search does not violate tenant interaction boundaries', callback => {
+  it('verify email search does not violate tenant interaction boundaries', (callback) => {
     setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
       const fromPublicTenant0 = prop(__, publicTenant0);
       const publicUserFromPublicTenant0 = fromPublicTenant0(PUBLIC_USER);
@@ -354,15 +355,15 @@ describe('Email Search', () => {
   /**
    * Test that verifies interact scope will return all users that match a given email address
    */
-  it('verify email search returns all users that match a particular email', callback => {
-    generateTestUsers(asTenantAdmin, 3, EMPTY_ARRAY, (err, createdUsers) => {
-      assert.ok(not(err));
+  it('verify email search returns all users that match a particular email', (callback) => {
+    generateTestUsers(asTenantAdmin, 3, EMPTY_ARRAY, (error, createdUsers) => {
+      assert.ok(not(error));
 
       const [fonseca, meireles, barbosa] = createdUsers;
 
       const userInfos = compose(
         mergeAll,
-        map(each => assoc(getUserId(each), each, {}))
+        map((each) => assoc(getUserId(each), each, {}))
       )([fonseca, meireles, barbosa]);
       const allUserIds = map(getUserId, [fonseca, meireles, barbosa]);
       const userIdsToUpdate = map(getUserId, [meireles, barbosa]);
@@ -370,7 +371,7 @@ describe('Email Search', () => {
       assertUpdateUsersSucceeds(asTenantAdmin, userIdsToUpdate, { email: getEmail(fonseca) }, (users, tokens) => {
         const userInfoTokens = compose(
           values,
-          map(eachUser => {
+          map((eachUser) => {
             return {
               token: prop(getId(eachUser), tokens),
               userInfo: {
@@ -397,8 +398,8 @@ describe('Email Search', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, link) => {
-              assert.ok(not(err));
+            (error, link) => {
+              assert.ok(not(error));
 
               createGroup(
                 getContext(fonseca),
@@ -408,8 +409,8 @@ describe('Email Search', () => {
                 YES,
                 NO_MANAGERS,
                 NO_MEMBERS,
-                (err, group) => {
-                  assert.ok(not(err));
+                (error, group) => {
+                  assert.ok(not(error));
 
                   createDiscussion(
                     getContext(fonseca),
@@ -418,8 +419,8 @@ describe('Email Search', () => {
                     PUBLIC,
                     NO_MANAGERS,
                     NO_MEMBERS,
-                    (err, discussion) => {
-                      assert.ok(not(err));
+                    (error, discussion) => {
+                      assert.ok(not(error));
 
                       assertCreateFolderSucceeds(
                         getContext(fonseca),
@@ -428,7 +429,7 @@ describe('Email Search', () => {
                         PUBLIC,
                         NO_MANAGER_INFOS,
                         NO_VIEWER_INFOS,
-                        folder => {
+                        (folder) => {
                           whenIndexingComplete(() => {
                             /**
                              * Sanity check that the resources we just created can be
@@ -473,7 +474,7 @@ describe('Email Search', () => {
   /**
    * Test that verifies that the email search endpoint returns the tenant that matches the email domain
    */
-  it('verify email search returns the tenant that matches the email domain', callback => {
+  it('verify email search returns the tenant that matches the email domain', (callback) => {
     setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
       const fromPublicTenant0 = prop(__, publicTenant0);
       const publicUserFromPublicTenant0 = fromPublicTenant0(PUBLIC_USER);
@@ -487,7 +488,7 @@ describe('Email Search', () => {
           EMAIL,
           NO_PARAMS,
           { q: getEmail(publicUserFromPrivateTenant1) },
-          data => {
+          (data) => {
             assert.ok(isObject(data.tenant));
             assert.ok(not(isGuestTenant(data)));
             assert.strictEqual(getTenantAlias(data), getTenantAlias(privateTenant1));
@@ -498,7 +499,7 @@ describe('Email Search', () => {
               EMAIL,
               NO_PARAMS,
               { q: 'an.email@ends.up.on.the.guest.tenant.com' },
-              data => {
+              (data) => {
                 assert.ok(isObject(data.tenant));
                 assert.ok(isGuestTenant(data));
 

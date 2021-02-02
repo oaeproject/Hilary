@@ -28,13 +28,13 @@ const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function() {
+function initTwitterAuth() {
   const strategy = {};
 
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     return AuthenticationConfig.getValue(
       tenantAlias,
       AuthenticationConstants.providers.TWITTER,
@@ -45,7 +45,7 @@ export default function() {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time.
     const consumerKey = AuthenticationConfig.getValue(
       tenant.alias,
@@ -68,7 +68,7 @@ export default function() {
         ),
         passReqToCallback: true
       },
-      (req, token, tokenSecret, profile, done) => {
+      (request, token, tokenSecret, profile, done) => {
         log().trace(
           {
             tenant,
@@ -81,23 +81,23 @@ export default function() {
         // Unfortunately Twitter doesn't hand out the e-mail address.
         // @see https://dev.twitter.com/discussions/4019
         const { displayName, username } = profile;
-        const opts = {};
+        const options = {};
         let picture = profile._json.profile_image_url_https;
         if (picture) {
           // Use the better quality image
           // @see https://dev.twitter.com/docs/user-profile-images-and-banners
           picture = picture.replace(/_normal\.(.*)$/, '_bigger.$1');
-          opts.smallPictureUri = 'remote:' + picture;
-          opts.mediumPictureUri = 'remote:' + picture;
+          options.smallPictureUri = 'remote:' + picture;
+          options.mediumPictureUri = 'remote:' + picture;
         }
 
         AuthenticationUtil.handleExternalGetOrCreateUser(
-          req,
+          request,
           AuthenticationConstants.providers.TWITTER,
           username,
           null,
           displayName,
-          opts,
+          options,
           done
         );
       }
@@ -108,3 +108,5 @@ export default function() {
   // Register our strategy.
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.TWITTER, strategy);
 }
+
+export default initTwitterAuth;

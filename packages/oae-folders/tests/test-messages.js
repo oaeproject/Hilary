@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
@@ -42,8 +43,8 @@ describe('Folders', () => {
      * Test that verifies input validation when creating a message
      */
     it('verify message creation validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: user1 } = users;
 
@@ -140,7 +141,7 @@ describe('Folders', () => {
                     assert.strictEqual(message.threadKey, message.created + '|');
                     assert.strictEqual(message.body, 'Top-level message');
                     assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
-                    assert.notStrictEqual(parseInt(message.created, 10), NaN);
+                    assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
                     assert.strictEqual(message.level, 0);
                     assert.ok(!message.replyTo);
 
@@ -159,7 +160,7 @@ describe('Folders', () => {
                         assert.strictEqual(replyMessage.threadKey, message.created + '#' + replyMessage.created + '|');
                         assert.strictEqual(replyMessage.body, 'Reply message');
                         assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
-                        assert.notStrictEqual(parseInt(replyMessage.created, 10), NaN);
+                        assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
                         assert.strictEqual(replyMessage.level, 1);
                         assert.ok(replyMessage.replyTo, message.created);
 
@@ -249,8 +250,8 @@ describe('Folders', () => {
      * Test that verifies that messages contain user profile pictures
      */
     it('verify messages contain user profile pictures', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: bert, 1: nicolaas } = users;
 
@@ -263,8 +264,8 @@ describe('Folders', () => {
 
         // Give one of the users a profile picture
         const cropArea = { x: 0, y: 0, width: 150, height: 150 };
-        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, err => {
-          assert.notExists(err);
+        RestAPI.User.uploadPicture(bert.restContext, bert.user.id, getPictureStream, cropArea, error_ => {
+          assert.notExists(error_);
 
           // Create a folder and share it with a user that has no profile picture
           FoldersTestUtil.assertCreateFolderSucceeds(
@@ -382,8 +383,8 @@ describe('Folders', () => {
      * Test that verifies a folder is updated at most every hour as a result of new message postings
      */
     it('verify folder update threshold with messages', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -407,13 +408,13 @@ describe('Folders', () => {
               (/* message */) => {
                 // Ensure lastModified didn't change because it is within the one hour threshold
                 FoldersTestUtil.assertGetFolderSucceeds(simong.restContext, folder.id, folder => {
-                  assert.notExists(err);
+                  assert.notExists(error);
                   assert.strictEqual(folder.lastModified, lastModified1.toString());
 
                   // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
                   const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
-                  FoldersDAO.updateFolder(folder, { lastModified: lastModified0 }, (err, folder) => {
-                    assert.notExists(err);
+                  FoldersDAO.updateFolder(folder, { lastModified: lastModified0 }, (error, folder) => {
+                    assert.notExists(error);
                     assert.strictEqual(folder.lastModified, lastModified0);
 
                     // Message again, this time the lastModified should update
@@ -430,7 +431,7 @@ describe('Folders', () => {
                           simong.restContext,
                           folder.id,
                           folder => {
-                            assert.ok(parseInt(folder.lastModified, 10) > parseInt(lastModified1, 10));
+                            assert.ok(Number.parseInt(folder.lastModified, 10) > Number.parseInt(lastModified1, 10));
 
                             // Note at this time, since the lastModified of the folder updated under the hood without
                             // a library update, the library of user should 2 versions of this folder. Lets see if it
@@ -464,8 +465,8 @@ describe('Folders', () => {
      * Test that verifies input validation of listing messages from a folder
      */
     it('verify list messages validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -484,7 +485,7 @@ describe('Folders', () => {
               FoldersTestUtil.assertGetMessagesFails(simong.restContext, 'f:foo:bar', null, null, 404, () => {
                 // Sanity-check
                 FoldersTestUtil.assertGetMessagesSucceeds(simong.restContext, folder.id, null, null, messages => {
-                  assert.notExists(err);
+                  assert.notExists(error);
                   assert.ok(messages);
                   return callback();
                 });
@@ -749,8 +750,8 @@ describe('Folders', () => {
      * Test that verifies input validation of deleting messages from a folder
      */
     it('verify delete message validation', callback => {
-      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: simong } = users;
 
@@ -873,8 +874,10 @@ describe('Folders', () => {
                                     assert.strictEqual(message.threadKey, publicMessage1.threadKey);
                                     assert.strictEqual(message.created, publicMessage1.created);
                                     assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                    assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                    assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                    assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                    assert.ok(
+                                      Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                    );
                                     assert.strictEqual(message.level, publicMessage1.level);
                                     assert.ok(!message.body);
                                     assert.ok(!message.createdBy);
@@ -894,8 +897,10 @@ describe('Folders', () => {
                                         assert.strictEqual(message.threadKey, publicMessage1.threadKey);
                                         assert.strictEqual(message.created, publicMessage1.created);
                                         assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                        assert.notStrictEqual(parseInt(message.deleted, 10), NaN);
-                                        assert.ok(parseInt(message.deleted, 10) > parseInt(message.created, 10));
+                                        assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                        assert.ok(
+                                          Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                        );
                                         assert.strictEqual(message.level, publicMessage1.level);
                                         assert.isNotOk(message.body);
                                         assert.isNotOk(message.createdBy);

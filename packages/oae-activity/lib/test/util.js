@@ -37,7 +37,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const refreshConfiguration = function(config, callback) {
+const refreshConfiguration = function (config, callback) {
   config = _.extend(
     {
       collectionPollingFrequency: -1,
@@ -60,14 +60,14 @@ const refreshConfiguration = function(config, callback) {
  *
  * @see RestAPI.Activity#getActivityStream for more information.
  */
-const collectAndGetActivityStream = function(restCtx, resourceId, opts, callback) {
+const collectAndGetActivityStream = function (restCtx, resourceId, options, callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
       ActivityAggregator.collectAllBuckets(() => {
         if (resourceId) {
-          RestAPI.Activity.getActivityStream(restCtx, resourceId, opts, callback);
+          RestAPI.Activity.getActivityStream(restCtx, resourceId, options, callback);
         } else {
-          RestAPI.Activity.getCurrentUserActivityStream(restCtx, opts, callback);
+          RestAPI.Activity.getCurrentUserActivityStream(restCtx, options, callback);
         }
       });
     });
@@ -85,11 +85,11 @@ const collectAndGetActivityStream = function(restCtx, resourceId, opts, callback
  *
  * @see RestAPI.Activity#getNotificationStream for more information.
  */
-const collectAndGetNotificationStream = function(restCtx, opts, callback) {
+const collectAndGetNotificationStream = function (restCtx, options, callback) {
   MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY, () => {
     MqTestsUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
       ActivityAggregator.collectAllBuckets(() => {
-        RestAPI.Activity.getNotificationStream(restCtx, opts, callback);
+        RestAPI.Activity.getNotificationStream(restCtx, options, callback);
       });
     });
   });
@@ -105,10 +105,10 @@ const collectAndGetNotificationStream = function(restCtx, opts, callback) {
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if the request did not fail in the expected manner
  */
-const assertGetActivityStreamFails = function(restCtx, resourceId, opts, code, callback) {
-  RestAPI.Activity.getActivityStream(restCtx, resourceId, opts, (err, activityStream) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, code);
+const assertGetActivityStreamFails = function (restCtx, resourceId, options, code, callback) {
+  RestAPI.Activity.getActivityStream(restCtx, resourceId, options, (error, activityStream) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, code);
     assert.ok(!activityStream);
     return callback();
   });
@@ -122,15 +122,15 @@ const assertGetActivityStreamFails = function(restCtx, resourceId, opts, code, c
  * @param  {Function}       callback        Standard callback function
  * @throws {Error}                          An assertion error is thrown if the notifications could not be marked as read or the response was invalid
  */
-const markNotificationsAsRead = function(restContext, callback) {
+const markNotificationsAsRead = function (restContext, callback) {
   let result = null;
 
   ActivityAPI.emitter.once(ActivityConstants.events.RESET_AGGREGATION, () => {
     return callback(result);
   });
 
-  RestAPI.Activity.markNotificationsRead(restContext, (err, _result) => {
-    assert.ok(!err);
+  RestAPI.Activity.markNotificationsRead(restContext, (error, _result) => {
+    assert.ok(!error);
 
     // Assert we're getting back a number
     result = _result;
@@ -153,7 +153,7 @@ const markNotificationsAsRead = function(restContext, callback) {
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was not found or some of its properties are not what was expected
  */
-const assertFeedContainsActivity = function(
+const assertFeedContainsActivity = function (
   restContext,
   activityStreamId,
   activityType,
@@ -163,8 +163,8 @@ const assertFeedContainsActivity = function(
   targetId,
   callback
 ) {
-  collectAndGetActivityStream(restContext, activityStreamId, null, (err, response) => {
-    assert.ok(!err);
+  collectAndGetActivityStream(restContext, activityStreamId, null, (error, response) => {
+    assert.ok(!error);
     const activity = _.findWhere(response.items, { 'oae:activityType': activityType });
     assert.ok(activity);
     assertActivity(activity, activityType, verb, actorId, objectId, targetId);
@@ -180,14 +180,14 @@ const assertFeedContainsActivity = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was found
  */
-const assertFeedDoesNotContainActivity = function(
+const assertFeedDoesNotContainActivity = function (
   restContext,
   activityStreamId,
   activityType,
   callback
 ) {
-  collectAndGetActivityStream(restContext, activityStreamId, null, (err, response) => {
-    assert.ok(!err);
+  collectAndGetActivityStream(restContext, activityStreamId, null, (error, response) => {
+    assert.ok(!error);
     const activity = _.findWhere(response.items, { 'oae:activityType': activityType });
     assert.ok(!activity);
     return callback();
@@ -208,7 +208,7 @@ const assertFeedDoesNotContainActivity = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was not found or some of its properties are not what was expected
  */
-const _assertNotificationStreamContainsActivity = function(
+const _assertNotificationStreamContainsActivity = function (
   restContext,
   activityType,
   verb,
@@ -217,8 +217,8 @@ const _assertNotificationStreamContainsActivity = function(
   targetId,
   callback
 ) {
-  collectAndGetNotificationStream(restContext, null, (err, notificationStream) => {
-    assert.ok(!err);
+  collectAndGetNotificationStream(restContext, null, (error, notificationStream) => {
+    assert.ok(!error);
     const activity = _.findWhere(notificationStream.items, { 'oae:activityType': activityType });
     assert.ok(activity);
     assertActivity(activity, activityType, verb, actorId, objectId, targetId);
@@ -234,13 +234,13 @@ const _assertNotificationStreamContainsActivity = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {Error}                              An assertion error gets thrown if the activity was found
  */
-const _assertNotificationStreamDoesNotContainActivity = function(
+const _assertNotificationStreamDoesNotContainActivity = function (
   restContext,
   activityType,
   callback
 ) {
-  collectAndGetNotificationStream(restContext, null, (err, notificationStream) => {
-    assert.ok(!err);
+  collectAndGetNotificationStream(restContext, null, (error, notificationStream) => {
+    assert.ok(!error);
     const activity = _.findWhere(notificationStream.items, { 'oae:activityType': activityType });
     assert.ok(!activity);
     return callback();
@@ -257,7 +257,7 @@ const _assertNotificationStreamDoesNotContainActivity = function(
  * @param  {String|String[]}    [objectEntityId]    The id of the entity that should be the object, or an array of expected object entity ids if the entity is expected to be an oae:collection aggregate. If not specified, an assertion will be performed that the object does not exist
  * @param  {String|String[]}    [targetEntityId]    The id of the entity taht should be the target, or an array of expected target entity ids if the entity is expected to be an oae:collection aggregate. If not specified, an assertion will be performed that the target does not exist
  */
-const assertActivity = function(
+const assertActivity = function (
   activity,
   activityType,
   verb,
@@ -280,7 +280,7 @@ const assertActivity = function(
  * @param  {String|String[]}    [entityId]          The expected id of the entity, or an array of expected entity ids if the entity is expected to be an oae:collection aggregate. If not specified, an assertion will be performed that the entity does not exist (i.e., it's unspecified)
  * @api private
  */
-const _assertActivityEntity = function(activityEntity, entityId) {
+const _assertActivityEntity = function (activityEntity, entityId) {
   if (!entityId) {
     assert.ok(!activityEntity);
   } else if (_.isString(entityId)) {
@@ -300,7 +300,7 @@ const _assertActivityEntity = function(activityEntity, entityId) {
     );
 
     // Ensure every id in the list is in the entity collection
-    _.each(activityEntity[ActivityConstants.properties.OAE_COLLECTION], activityEntity => {
+    _.each(activityEntity[ActivityConstants.properties.OAE_COLLECTION], (activityEntity) => {
       assert.ok(_.contains(entityIds, activityEntity[ActivityConstants.properties.OAE_ID]));
     });
   }
@@ -320,11 +320,11 @@ const _assertActivityEntity = function(activityEntity, entityId) {
  * @return {String}     activities[i].summary.link[i].html  The inner html of the link
  * @return {String}     activities[i].summary.link[i].text  The inner text of the link
  */
-const parseActivityHtml = function(html) {
+const parseActivityHtml = function (html) {
   const $ = cheerio.load(html);
 
   const activities = [];
-  $('tr.activity-row').each(function() {
+  $('tr.activity-row').each(function () {
     const $activity = $(this);
     const $summary = $activity.find('.activity-summary-container > div:first-child');
 
@@ -337,7 +337,7 @@ const parseActivityHtml = function(html) {
     };
 
     // Get all the links located in the summary and extract their information
-    $summary.find('a').each(function() {
+    $summary.find('a').each(function () {
       const $a = $(this);
       summary.links.push({
         href: $a.attr('href'),
@@ -366,7 +366,7 @@ const parseActivityHtml = function(html) {
  * @param  {Function}   callback                Standard callback function
  * @param  {Client}     callback.client         The connected client
  */
-const getPushClient = function(callback) {
+const getPushClient = function (callback) {
   // The client that we'll return to the caller
   const client = new EmitterAPI.EventEmitter();
 
@@ -376,46 +376,46 @@ const getPushClient = function(callback) {
   // Set up a websocket connection to the localhost tenant
   const socket = new SockJS('http://localhost:2001/api/push');
 
-  socket.addEventListener('error', e => {
-    assert.fail(e, null, 'Did not expect an error on the websocket');
+  socket.addEventListener('error', (error) => {
+    assert.fail(error, null, 'Did not expect an error on the websocket');
   });
 
-  socket.addEventListener('open', function() {
+  socket.addEventListener('open', function () {
     // The socket has been connected and is ready to transmit messages
     callback(client);
   });
 
-  socket.addEventListener('message', function(e) {
-    let msg = e.data;
+  socket.addEventListener('message', function (error) {
+    let message = error.data;
     // We ignore 'open', 'heartbeat' or 'close' messages
-    if (msg === 'o' || msg === 'h' || msg === 'c') {
+    if (message === 'o' || message === 'h' || message === 'c') {
       return;
     }
 
     // Everything we receive at this point, should be sent too us by OAE. This should be proper JSON
     try {
-      msg = JSON.parse(msg);
+      message = JSON.parse(message);
     } catch (error) {
       assert.fail(error, null, 'Did not expect malformed JSON as a response from the server');
     }
 
     // If we registered a callback for this message, we execute it
-    if (msg.replyTo && messageCallbacks[msg.replyTo]) {
-      messageCallbacks[msg.replyTo](msg.error, msg);
+    if (message.replyTo && messageCallbacks[message.replyTo]) {
+      messageCallbacks[message.replyTo](message.error, message);
 
       // Since we should only get one message from the server with that ID, we change the callback
       // so that if we get another message with that ID, we'll throw an error
-      messageCallbacks[msg.replyTo] = function(error, msg) {
-        assert.fail(msg, null, 'A message ID can only be responded to once');
+      messageCallbacks[message.replyTo] = function (error, message_) {
+        assert.fail(message_, null, 'A message ID can only be responded to once');
       };
 
       // Otherwise we simply emit the message
     } else {
-      client.emit('message', msg);
+      client.emit('message', message);
     }
   });
 
-  socket.onclose = function() {
+  socket.onclose = function () {
     client.emit('close');
   };
 
@@ -424,7 +424,7 @@ const getPushClient = function(callback) {
    *
    * @return {Socket}     The raw socket
    */
-  client.getRawSocket = function() {
+  client.getRawSocket = function () {
     return socket;
   };
 
@@ -435,16 +435,16 @@ const getPushClient = function(callback) {
    * @param  {Object}     payload         A payload object
    * @param  {Function}   [callback]      A function that should be executed when a response is received
    */
-  client.sendMessage = function(name, payload, callback) {
-    callback = callback || function() {};
+  client.sendMessage = function (name, payload, callback) {
+    callback = callback || function () {};
 
     // Generate a random ID for this message so we can identify the response later on
     const id = 'id' + ShortId.generate();
     messageCallbacks[id] = callback;
 
     // Send the message over the wire
-    const msg = JSON.stringify({ id, name, payload });
-    socket.send(msg);
+    const message = JSON.stringify({ id, name, payload });
+    socket.send(message);
   };
 
   /**
@@ -455,7 +455,7 @@ const getPushClient = function(callback) {
    * @param  {Object}     signature    A signature object
    * @param  {Function}   callback     Standard callback function
    */
-  client.authenticate = function(userId, tenantAlias, signature, callback) {
+  client.authenticate = function (userId, tenantAlias, signature, callback) {
     const payload = {
       userId,
       tenantAlias,
@@ -473,7 +473,7 @@ const getPushClient = function(callback) {
    * @param  {String}    format               The format in which the activity entities should be returned
    * @param  {Function}  callback             Standard callback function
    */
-  client.subscribe = function(resourceId, streamType, token, format, callback) {
+  client.subscribe = function (resourceId, streamType, token, format, callback) {
     const payload = {
       stream: {
         resourceId,
@@ -491,9 +491,9 @@ const getPushClient = function(callback) {
    *
    * @param  {Function}   callback    Standard callback function
    */
-  client.close = function(callback) {
-    callback = callback || function() {};
-    socket.onclose = function() {
+  client.close = function (callback) {
+    callback = callback || function () {};
+    socket.onclose = function () {
       callback();
     };
 
@@ -518,28 +518,28 @@ const getPushClient = function(callback) {
  * @param  {Client}     callback.client                     A connected WS client that is authenticated and registered for all the desired feeds
  * @throws {Error}                                          If the client could not be authenticated or registered for a feed
  */
-const getFullySetupPushClient = function(data, callback) {
-  getPushClient(client => {
+const getFullySetupPushClient = function (data, callback) {
+  getPushClient((client) => {
     client.authenticate(
       data.authentication.userId,
       data.authentication.tenantAlias,
       data.authentication.signature,
-      err => {
-        assert.ok(!err, 'Failed to authenticate');
+      (error) => {
+        assert.ok(!error, 'Failed to authenticate');
 
         if (_.isEmpty(data.streams)) {
           return callback(client);
         }
 
         const allRegisteredCallback = _.after(data.streams.length, callback);
-        _.each(data.streams, stream => {
+        _.each(data.streams, (stream) => {
           client.subscribe(
             stream.resourceId,
             stream.streamType,
             stream.token,
             stream.format,
-            err => {
-              assert.ok(!err, 'Failed to register for feed');
+            (error) => {
+              assert.ok(!error, 'Failed to register for feed');
               allRegisteredCallback(client);
             }
           );
@@ -561,7 +561,7 @@ const getFullySetupPushClient = function(data, callback) {
  * @param  {Function}       callback            Invoked when a message with the specified activity has been received
  * @param  {Activity}       callback.activity   The activity object that was contained in the message
  */
-const waitForPushActivity = function(
+const waitForPushActivity = function (
   client,
   activityType,
   verb,
@@ -575,8 +575,8 @@ const waitForPushActivity = function(
    * the client when the activity has been found. When found, the callback will be invoked with
    * the activity
    */
-  const _onMessage = function(message) {
-    const targetActivity = _.find(message.activities, activity => {
+  const _onMessage = function (message) {
+    const targetActivity = _.find(message.activities, (activity) => {
       if (activity[ActivityConstants.properties.OAE_ACTIVITY_TYPE] !== activityType) {
         return false;
       }

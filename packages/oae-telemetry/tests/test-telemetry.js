@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-
+import { describe, before, beforeEach, it } from 'mocha';
 import * as RestAPI from 'oae-rest';
 import * as TelemetryAPI from 'oae-telemetry';
 import * as TestsUtil from 'oae-tests';
@@ -52,7 +52,7 @@ describe('Telemetry', () => {
   /**
    * Function that will fill up the global admin, tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the anonymous cam rest context
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
 
@@ -71,12 +71,12 @@ describe('Telemetry', () => {
   /**
    * Function that initializes the Telemetry API before each test
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     // Reset the telemetry configuration before each telemetry test
     init(_createConfig(), () => {
       // *Force* a reset of all telemetry values, even if it is not time to do so
-      reset(err => {
-        assert.notExists(err);
+      reset((error) => {
+        assert.notExists(error);
         Telemetry = TelemetryAPI.telemetry('tests');
 
         return callback();
@@ -90,14 +90,14 @@ describe('Telemetry', () => {
      * it publishes the set of data that is available, and that when reset is invoked,
      * it resets the data for the next publishing cycle.
      */
-    it('verify publish interval publishes the proper data while reset clears the data', callback => {
+    it('verify publish interval publishes the proper data while reset clears the data', (callback) => {
       /**
        * Configure the telemetry API such that on the first second we get a publish,
        * then in the second second we
        * get a reset, then in the 3rd we get another publish
        */
-      init(_createConfig({ publishInterval: 1, resetInterval: 2 }), err => {
-        assert.notExists(err);
+      init(_createConfig({ publishInterval: 1, resetInterval: 2 }), (error) => {
+        assert.notExists(error);
 
         /**
          * Note that if this takes longer than one second our test fails intermittently :(
@@ -108,7 +108,7 @@ describe('Telemetry', () => {
         Telemetry.append('append', 30);
 
         // Wait 1s for the publish event to verify the published data
-        TelemetryAPI.emitter.once('publish', data => {
+        TelemetryAPI.emitter.once('publish', (data) => {
           assert.strictEqual(data.tests.incr, 10);
           assert.lengthOf(data.tests.append, 2);
           assert.strictEqual(data.tests.append[0], 50);
@@ -116,7 +116,7 @@ describe('Telemetry', () => {
 
           // Once we get our reset, wait for the next publish to ensure our counts are reset
           TelemetryAPI.emitter.once('reset', () => {
-            TelemetryAPI.emitter.once('publish', data => {
+            TelemetryAPI.emitter.once('publish', (data) => {
               /**
                * Either the top-level tests module object should be gone,
                * or the incr key should either be 0 or falsey
@@ -127,7 +127,7 @@ describe('Telemetry', () => {
                * Either the top-level tests module object should be gone,
                * or the append key histograms should be either falsey or empty
                */
-              assert.ok(!data.tests || !data.tests.append || !data.tests.append.length);
+              assert.ok(!data.tests || !data.tests.append || data.tests.append.length === 0);
 
               return callback();
             });
@@ -141,10 +141,10 @@ describe('Telemetry', () => {
     /**
      * Test the verifies Telemetry.incr will increase by 1
      */
-    it('verify it increases by one', callback => {
+    it('verify it increases by one', (callback) => {
       Telemetry.incr('incr', 1);
-      getTelemetryData((err, data) => {
-        assert.notExists(err);
+      getTelemetryData((error, data) => {
+        assert.notExists(error);
         assert.strictEqual(data.tests.incr, 1);
 
         return callback();
@@ -154,11 +154,11 @@ describe('Telemetry', () => {
     /**
      * Test that verifies Telemetry.incr of 10 will increase by 10
      */
-    it('verify multiple increases', callback => {
+    it('verify multiple increases', (callback) => {
       Telemetry.incr('incr', 10);
 
-      getTelemetryData((err, data) => {
-        assert.notExists(err);
+      getTelemetryData((error, data) => {
+        assert.notExists(error);
         assert.strictEqual(data.tests.incr, 10);
 
         return callback();
@@ -170,19 +170,19 @@ describe('Telemetry', () => {
     /**
      * Test that verifies appending data to a telemetry stat will properly hold the data
      */
-    it('verify it appends data to a list', callback => {
+    it('verify it appends data to a list', (callback) => {
       Telemetry.append('append', 10);
 
-      getTelemetryData((err, data) => {
-        assert.notExists(err);
+      getTelemetryData((error, data) => {
+        assert.notExists(error);
 
         assert.lengthOf(data.tests.append, 1);
         assert.strictEqual(data.tests.append[0], 10);
 
         Telemetry.append('append', 5);
 
-        getTelemetryData((err, data) => {
-          assert.notExists(err);
+        getTelemetryData((error, data) => {
+          assert.notExists(error);
 
           assert.lengthOf(data.tests.append, 2);
           assert.strictEqual(data.tests.append[0], 10);
@@ -198,35 +198,35 @@ describe('Telemetry', () => {
     /**
      * Test that verifies that only a global admin can request the telemetry data
      */
-    it('verify that only a global admin can request the telemetry data', callback => {
-      generateTestUsers(camAdminRestContext, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify that only a global admin can request the telemetry data', (callback) => {
+      generateTestUsers(camAdminRestContext, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: john } = users;
 
         // Request the telemetry data using an anonymous tenant user
-        requestTelemetryData(anonymousCamRestContext, (err /* , res */) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 404);
+        requestTelemetryData(anonymousCamRestContext, (error /* , res */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 404);
 
           // Request the telemetry data using an anonymous global user
-          requestTelemetryData(anonymousGlobalRestContext, (err /* , res */) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
-            assert.strictEqual(err.msg, 'Only global administrators are allowed to retrieve telemetry data');
+          requestTelemetryData(anonymousGlobalRestContext, (error /* , res */) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 401);
+            assert.strictEqual(error.msg, 'Only global administrators are allowed to retrieve telemetry data');
 
             // Request the telemetry data using a tenant user
-            requestTelemetryData(john.restContext, (err /* , res */) => {
-              assert.ok(err);
-              assert.strictEqual(err.code, 404);
+            requestTelemetryData(john.restContext, (error /* , res */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 404);
 
               // Request the telemetry data using a tenant admin
-              requestTelemetryData(camAdminRestContext, (err /* , res */) => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 404);
+              requestTelemetryData(camAdminRestContext, (error /* , res */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 404);
 
                 // Request the telemetry data using a global admin
-                requestTelemetryData(globalAdminRestContext, (err /* , res */) => {
-                  assert.notExists(err);
+                requestTelemetryData(globalAdminRestContext, (error /* , res */) => {
+                  assert.notExists(error);
 
                   return callback();
                 });

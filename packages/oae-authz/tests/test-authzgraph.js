@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import { pluck } from 'ramda';
 
 import AuthzGraph from 'oae-authz/lib/internal/graph';
@@ -22,7 +23,7 @@ describe('Authz Graph', () => {
   /**
    * Test that verifies that nodes can be added and listed in the AuthzGraph
    */
-  it('verify adding and getting nodes', callback => {
+  it('verify adding and getting nodes', (callback) => {
     const graph = new AuthzGraph();
 
     // Verify adding a node returns the node with its id populated and extra attributes
@@ -57,7 +58,7 @@ describe('Authz Graph', () => {
   /**
    * Test that verifies edges can be added and listed in the AuthzGraph
    */
-  it('verify adding and getting edges', callback => {
+  it('verify adding and getting edges', (callback) => {
     const graph = new AuthzGraph();
 
     // Add 2 nodes to test with
@@ -106,7 +107,7 @@ describe('Authz Graph', () => {
   /**
    * Test that verifies nodes and edges can be deleted
    */
-  it('verify deleting nodes and edges', callback => {
+  it('verify deleting nodes and edges', (callback) => {
     const graph = new AuthzGraph();
 
     // Verify a simple graph gets created
@@ -145,7 +146,7 @@ describe('Authz Graph', () => {
   /**
    * Test that verifies `isEmpty` correctly indicates when the graph has no nodes
    */
-  it('verify isEmpty', callback => {
+  it('verify isEmpty', (callback) => {
     const graph = new AuthzGraph();
 
     assert.strictEqual(graph.isEmpty(), true);
@@ -163,7 +164,7 @@ describe('Authz Graph', () => {
    * Test that verifies inbound and outbound traversal hits all the expected nodes in the correct
    * order
    */
-  it('verify inbound and outbound traversal', callback => {
+  it('verify inbound and outbound traversal', (callback) => {
     const graph = new AuthzGraph();
 
     // Create a circular graph a-i that is circular, but also links vowels from lowest to

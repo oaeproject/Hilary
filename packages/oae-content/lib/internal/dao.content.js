@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
@@ -48,10 +48,10 @@ const log = logger('content-dao');
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Content}        callback.content    Retrieved content object
  */
-const getContent = function(contentId, callback) {
-  Cassandra.runQuery('SELECT * FROM "Content" WHERE "contentId" = ?', [contentId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getContent = function (contentId, callback) {
+  Cassandra.runQuery('SELECT * FROM "Content" WHERE "contentId" = ?', [contentId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -71,7 +71,7 @@ const getContent = function(contentId, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Content[]}      callback.contentObj Retrieved content objects
  */
-const getMultipleContentItems = function(contentIds, fields, callback) {
+const getMultipleContentItems = function (contentIds, fields, callback) {
   if (contentIds.length === 0) {
     return callback(null, []);
   }
@@ -86,27 +86,27 @@ const getMultipleContentItems = function(contentIds, fields, callback) {
 
     // Always fetch the content id
     fields = _.union(fields, ['contentId']);
-    query = util.format('SELECT "%s" FROM "Content" WHERE "contentId" IN ?', fields.join('","'));
+    query = format('SELECT "%s" FROM "Content" WHERE "contentId" IN ?', fields.join('","'));
   } else {
     query = 'SELECT * FROM "Content" WHERE "contentId" IN ?';
   }
 
   parameters.push(contentIds);
 
-  Cassandra.runQuery(query, parameters, (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     // Index each content item by their id to look up for the final ordered array
     const contentItemsById = {};
-    _.each(rows, row => {
+    _.each(rows, (row) => {
       const content = _rowToContent(row);
       contentItemsById[content.id] = content;
     });
 
     // Assemble content items into the order provided by the original contentIds array
-    const contentItems = _.map(contentIds, contentId => {
+    const contentItems = _.map(contentIds, (contentId) => {
       return contentItemsById[contentId];
     });
 
@@ -122,7 +122,7 @@ const getMultipleContentItems = function(contentIds, fields, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object[]}       callback.members    An array of hashes, where the 'id' property of the hash is the principal id, and the 'role' property of the hash is the role of the principal.
  */
-const getAllContentMembers = function(contentId, callback) {
+const getAllContentMembers = function (contentId, callback) {
   AuthzAPI.getAuthzMembers(contentId, null, 10000, callback);
 };
 
@@ -148,7 +148,7 @@ const getAllContentMembers = function(contentId, callback) {
  * @param  {Content}        callback.result.content     JSON object containing the pool id of the created content
  * @param  {Revision}       callback.result.revision    The initial revision object for this content item.
  */
-const createContent = function(
+const createContent = function (
   contentId,
   revisionId,
   createdBy,
@@ -166,14 +166,14 @@ const createContent = function(
   otherValues = otherValues || {};
 
   // Seed the revision first
-  RevisionsDAO.createRevision(revisionId, contentId, createdBy, revisionData, (err, revision) => {
-    if (err) {
-      return callback(err);
+  RevisionsDAO.createRevision(revisionId, contentId, createdBy, revisionData, (error, revision) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the tenantAlias out of the content model.
     const { tenantAlias } = AuthzUtil.getResourceFromId(contentId);
-    const nowStr = Date.now().toString();
+    const nowString = Date.now().toString();
     // Set the properties
     let parameters = {
       tenantAlias,
@@ -182,8 +182,8 @@ const createContent = function(
       description,
       resourceSubType,
       createdBy,
-      created: nowStr,
-      lastModified: nowStr,
+      created: nowString,
+      lastModified: nowString,
       latestRevisionId: revision.revisionId,
       previews: { status: 'pending' }
     };
@@ -193,12 +193,12 @@ const createContent = function(
     const q = Cassandra.constructUpsertCQL('Content', 'contentId', contentId, parameters);
 
     // Create the content
-    Cassandra.runQuery(q.query, q.parameters, err => {
-      if (err) {
-        return callback(err);
+    Cassandra.runQuery(q.query, q.parameters, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      const contentObj = new Content(
+      const contentObject = new Content(
         tenantAlias,
         contentId,
         visibility,
@@ -211,7 +211,7 @@ const createContent = function(
         revision.revisionId,
         { status: 'pending' }
       );
-      return callback(null, contentObj, revision);
+      return callback(null, contentObject, revision);
     });
   });
 };
@@ -226,35 +226,36 @@ const createContent = function(
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Content}    callback.content        The new content object
  */
-const updateContent = function(contentObj, profileUpdates, librariesUpdate, callback) {
+const updateContent = function (contentObject, profileUpdates, librariesUpdate, callback) {
   // Set the lastModified timestamp.
-  const oldLastModified = contentObj.lastModified;
+  const oldLastModified = contentObject.lastModified;
   profileUpdates.lastModified = Date.now().toString();
 
-  const q = Cassandra.constructUpsertCQL('Content', 'contentId', contentObj.id, profileUpdates);
-  Cassandra.runQuery(q.query, q.parameters, err => {
-    if (err) {
-      return callback(err);
+  const q = Cassandra.constructUpsertCQL('Content', 'contentId', contentObject.id, profileUpdates);
+  Cassandra.runQuery(q.query, q.parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Create the new content object by merging in the metadata changes over the old content object
-    const newContentObj = _.extend({}, contentObj, profileUpdates);
+    const newContentObject = _.extend({}, contentObject, profileUpdates);
 
     // In case the revision ID has changed
-    if (newContentObj.resourceSubType === 'file') {
-      newContentObj.downloadPath = '/api/content/' + newContentObj.id + '/download/' + newContentObj.latestRevisionId;
+    if (newContentObject.resourceSubType === 'file') {
+      newContentObject.downloadPath =
+        '/api/content/' + newContentObject.id + '/download/' + newContentObject.latestRevisionId;
     }
 
     if (!librariesUpdate) {
-      return callback(null, newContentObj);
+      return callback(null, newContentObject);
     }
 
-    _updateContentLibraries(newContentObj, oldLastModified, newContentObj.lastModified, [], err => {
-      if (err) {
-        return callback(err);
+    _updateContentLibraries(newContentObject, oldLastModified, newContentObject.lastModified, [], (error) => {
+      if (error) {
+        return callback(error);
       }
 
-      callback(null, newContentObj);
+      callback(null, newContentObject);
     });
   });
 };
@@ -268,15 +269,15 @@ const updateContent = function(contentObj, profileUpdates, librariesUpdate, call
  * @param  {Object}                 callback.err            An error that occurred, if any
  * @param  {AuthzPrincipal[]}       callback.members        The set of authz principals who were members of the content item
  */
-const deleteContent = function(contentObj, callback) {
-  Cassandra.runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [contentObj.id], err => {
-    if (err) {
-      return callback(err);
+const deleteContent = function (contentObject, callback) {
+  Cassandra.runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [contentObject.id], (error) => {
+    if (error) {
+      return callback(error);
     }
 
-    getAllContentMembers(contentObj.id, (err, members) => {
-      if (err) {
-        return callback(err);
+    getAllContentMembers(contentObject.id, (error, members) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(members)) {
@@ -285,29 +286,29 @@ const deleteContent = function(contentObj, callback) {
 
       const updateMembers = {};
       const libraryRemoveEntries = [];
-      _.each(members, member => {
+      _.each(members, (member) => {
         updateMembers[member.id] = false;
         libraryRemoveEntries.push({
           id: member.id,
-          rank: contentObj.lastModified,
-          resource: contentObj
+          rank: contentObject.lastModified,
+          resource: contentObject
         });
       });
 
       // Update the roles CF
-      AuthzAPI.updateRoles(contentObj.id, updateMembers, err => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.updateRoles(contentObject.id, updateMembers, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Simply remove this item from all member libraries
-        LibraryAPI.Index.remove(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, libraryRemoveEntries, err => {
-          if (err) {
+        LibraryAPI.Index.remove(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, libraryRemoveEntries, (error_) => {
+          if (error_) {
             // If there was an error updating libraries here, the permissions were still changed, so we should not return an error. Just log it.
             log().warn(
               {
-                err,
-                contentObj,
+                err: error_,
+                contentObj: contentObject,
                 libraryRemoveEntries
               },
               'Failed to update user libraries after updating content permissions.'
@@ -337,7 +338,7 @@ const deleteContent = function(contentObj, callback) {
  * @param  {Content[]}      callback.content    Array of basic content profiles representing the requested items in the library
  * @param  {String}         callback.nextToken  The value to use for the `start` parameter to get the next set of results
  */
-const getContentLibraryItems = function(principalId, visibility, start, limit, callback) {
+const getContentLibraryItems = function (principalId, visibility, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10);
 
   LibraryAPI.Index.list(
@@ -345,15 +346,15 @@ const getContentLibraryItems = function(principalId, visibility, start, limit, c
     principalId,
     visibility,
     { start, limit },
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       const resourceIds = _.pluck(entries, 'resourceId');
-      getMultipleContentItems(resourceIds, null, (err, contentItems) => {
-        if (err) {
-          return callback(err);
+      getMultipleContentItems(resourceIds, null, (error, contentItems) => {
+        if (error) {
+          return callback(error);
         }
 
         // If the library was stale or dirty, it might contain ids for content
@@ -383,7 +384,7 @@ const getContentLibraryItems = function(principalId, visibility, start, limit, c
  * @param  {Object}     [callback.err]      An error that occurred, while iterating rows, if any
  * @see Cassandra#iterateAll
  */
-const iterateAll = function(properties, batchSize, onEach, callback) {
+const iterateAll = function (properties, batchSize, onEach, callback) {
   if (!properties || properties.length === 0) {
     properties = ['contentId'];
   }
@@ -393,7 +394,7 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
    *
    * @see Cassandra#iterateAll
    */
-  const _iterateAllOnEach = function(rows, done) {
+  const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
     return onEach(_.map(rows, Cassandra.rowToHash), done);
   };
@@ -412,23 +413,23 @@ const iterateAll = function(properties, batchSize, onEach, callback) {
  * @param  {Object}     [callback.err]              Error object containing the error message
  * @param  {Content}    [callback.newContentObj]    The content object with the updated `lastModified` field. Note that this may be returned even if there is an error as the content-update operation may have succeeded but the library-update operation fails.
  */
-const updateContentLibraries = function(contentObj, removedMembers, callback) {
+const updateContentLibraries = function (contentObject, removedMembers, callback) {
   // Grab hold of the old last modified timestamp to remove columns in the library CF (if any)
-  const oldLastModified = contentObj.lastModified;
+  const oldLastModified = contentObject.lastModified;
 
   // Update the content item with a new timestamp.
-  updateContent(contentObj, {}, false, (err, newContentObj) => {
-    if (err) {
-      return callback(err);
+  updateContent(contentObject, {}, false, (error, newContentObject) => {
+    if (error) {
+      return callback(error);
     }
 
     // Update the libraries.
-    _updateContentLibraries(contentObj, oldLastModified, newContentObj.lastModified, removedMembers, err => {
-      if (err) {
-        return callback(err, newContentObj);
+    _updateContentLibraries(contentObject, oldLastModified, newContentObject.lastModified, removedMembers, (error) => {
+      if (error) {
+        return callback(error, newContentObject);
       }
 
-      return callback(null, newContentObj);
+      return callback(null, newContentObject);
     });
   });
 };
@@ -443,11 +444,11 @@ const updateContentLibraries = function(contentObj, removedMembers, callback) {
  * @param  {Function}   [callback]          Standard callback function
  * @param  {Object}     [callback.err]      Error object containing the error message
  */
-const _updateContentLibraries = function(contentObj, oldLastModified, newLastModified, removedMembers, callback) {
+const _updateContentLibraries = function (contentObject, oldLastModified, newLastModified, removedMembers, callback) {
   // Grab all the current members.
-  getAllContentMembers(contentObj.id, (err, members) => {
-    if (err) {
-      return callback(err);
+  getAllContentMembers(contentObject.id, (error, members) => {
+    if (error) {
+      return callback(error);
     }
 
     // Extract all the member ids from the members response
@@ -456,11 +457,11 @@ const _updateContentLibraries = function(contentObj, oldLastModified, newLastMod
     if (!oldLastModified) {
       // We are creating a new content item. We only care about who is getting added, so
       // insert it into the library index for all members
-      const insertEntries = _.map(memberIds, memberId => {
+      const insertEntries = _.map(memberIds, (memberId) => {
         return {
           id: memberId,
           rank: newLastModified,
-          resource: contentObj
+          resource: contentObject
         };
       });
       return LibraryAPI.Index.insert(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, insertEntries, callback);
@@ -470,22 +471,22 @@ const _updateContentLibraries = function(contentObj, oldLastModified, newLastMod
     // entries
     const updateEntries = _.chain(memberIds)
       .difference(removedMembers)
-      .map(memberId => {
+      .map((memberId) => {
         return {
           id: memberId,
           newRank: newLastModified,
           oldRank: oldLastModified,
-          resource: contentObj
+          resource: contentObject
         };
       })
       .value();
 
     // Collect any library index remove operations from the member ids that are being removed
-    const removeEntries = _.map(removedMembers, removedMemberId => {
+    const removeEntries = _.map(removedMembers, (removedMemberId) => {
       return {
         id: removedMemberId,
         rank: oldLastModified,
-        resource: contentObj
+        resource: contentObject
       };
     });
 
@@ -495,9 +496,9 @@ const _updateContentLibraries = function(contentObj, oldLastModified, newLastMod
       LibraryAPI.Index.update,
       ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME,
       updateEntries,
-      err => {
-        if (err) {
-          return callback(err);
+      (error) => {
+        if (error) {
+          return callback(error);
         }
 
         // Apply the index removals, if any
@@ -524,13 +525,13 @@ const _updateContentLibraries = function(contentObj, oldLastModified, newLastMod
  * @return {Content}            Converted content object
  * @api private
  */
-const _rowToContent = function(row) {
+const _rowToContent = function (row) {
   const hash = Cassandra.rowToHash(row);
 
   // Try and parse and apply the previews object of the hash
   _parsePreviews(hash);
 
-  const contentObj = new Content(
+  const contentObject = new Content(
     hash.tenantAlias,
     hash.contentId,
     hash.visibility,
@@ -543,20 +544,20 @@ const _rowToContent = function(row) {
     hash.latestRevisionId,
     hash.previews
   );
-  if (isResourceAFile(contentObj.resourceSubType)) {
-    contentObj.filename = hash.filename;
-    contentObj.size = hash.size ? parseInt(hash.size, 10) : 0;
-    contentObj.mime = hash.mime;
-  } else if (isResourceALink(contentObj.resourceSubType)) {
-    contentObj.link = hash.link;
-  } else if (isResourceACollabDoc(contentObj.resourceSubType)) {
-    contentObj.etherpadGroupId = hash.etherpadGroupId;
-    contentObj.etherpadPadId = hash.etherpadPadId;
-  } else if (isResourceACollabSheet(contentObj.resourceSubType)) {
-    contentObj.ethercalcRoomId = hash.ethercalcRoomId;
+  if (isResourceAFile(contentObject.resourceSubType)) {
+    contentObject.filename = hash.filename;
+    contentObject.size = hash.size ? Number.parseInt(hash.size, 10) : 0;
+    contentObject.mime = hash.mime;
+  } else if (isResourceALink(contentObject.resourceSubType)) {
+    contentObject.link = hash.link;
+  } else if (isResourceACollabDoc(contentObject.resourceSubType)) {
+    contentObject.etherpadGroupId = hash.etherpadGroupId;
+    contentObject.etherpadPadId = hash.etherpadPadId;
+  } else if (isResourceACollabSheet(contentObject.resourceSubType)) {
+    contentObject.ethercalcRoomId = hash.ethercalcRoomId;
   }
 
-  return contentObj;
+  return contentObject;
 };
 
 /**
@@ -567,7 +568,7 @@ const _rowToContent = function(row) {
  * @param  {String}     [hash.previews]     The unparsed previews string
  * @api private
  */
-const _parsePreviews = function(hash) {
+const _parsePreviews = function (hash) {
   try {
     if (hash.previews) {
       hash.previews = JSON.parse(hash.previews);

@@ -20,9 +20,9 @@ import * as MessageBoxSearch from 'oae-messagebox/lib/search';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
-import * as DiscussionsDAO from './internal/dao';
-import DiscussionsAPI from './api';
-import { DiscussionsConstants } from './constants';
+import * as DiscussionsDAO from './internal/dao.js';
+import DiscussionsAPI from './api.js';
+import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-search');
 
@@ -40,7 +40,7 @@ const getTenantAlias = prop('tenantAlias');
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
     ['discussion'],
@@ -134,7 +134,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
  * @see MessageBoxSearch.registerMessageSearchDocument
  * @api private
  */
-const _produceDiscussionMessageDocuments = function(resources, callback, _documents, _errs) {
+const _produceDiscussionMessageDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -156,9 +156,9 @@ const _produceDiscussionMessageDocuments = function(resources, callback, _docume
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
     resource.id,
     resource.id,
-    (err, documents) => {
-      if (err) {
-        _errs = _.union(_errs, [err]);
+    (error, documents) => {
+      if (error) {
+        _errs = _.union(_errs, [error]);
       }
 
       _documents = _.union(_documents, documents);
@@ -173,10 +173,10 @@ const _produceDiscussionMessageDocuments = function(resources, callback, _docume
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceDiscussionSearchDocuments = function(resources, callback) {
-  _getDiscussions(resources, (err, discussions) => {
-    if (err) {
-      return callback([err]);
+const _produceDiscussionSearchDocuments = function (resources, callback) {
+  _getDiscussions(resources, (error, discussions) => {
+    if (error) {
+      return callback([error]);
     }
 
     // Some discussions might have already been deleted
@@ -197,11 +197,11 @@ const _produceDiscussionSearchDocuments = function(resources, callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _getDiscussions = function(resources, callback) {
+const _getDiscussions = function (resources, callback) {
   const discussions = [];
   const discussionIds = [];
 
-  _.each(resources, resource => {
+  _.each(resources, (resource) => {
     if (resource.discussion) {
       discussions.push(resource.discussion);
     } else {
@@ -223,7 +223,7 @@ const _getDiscussions = function(resources, callback) {
  * @return {SearchDoc}                  The produced search document.
  * @api private
  */
-const _produceDiscussionSearchDocument = function(discussion) {
+const _produceDiscussionSearchDocument = function (discussion) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
   const fullText = _.compact([discussion.displayName, discussion.description]).join(' ');
 
@@ -270,7 +270,7 @@ SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchD
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformDiscussionDocuments = function(ctx, docs, callback) {
+const _transformDiscussionDocuments = function (ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
     const scalarFields = map(head, doc.fields);
     const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
@@ -303,7 +303,7 @@ SearchAPI.registerSearchDocumentTransformer('discussion', _transformDiscussionDo
  * Reindex all handler
  */
 
-SearchAPI.registerReindexAllHandler('discussion', callback => {
+SearchAPI.registerReindexAllHandler('discussion', (callback) => {
   /*!
    * Handles each iteration of the DiscussionDAO iterate all method, firing tasks for all discussions to
    * be reindexed.
@@ -311,10 +311,10 @@ SearchAPI.registerReindexAllHandler('discussion', callback => {
    * @see DiscussionDAO#iterateAll
    * @api private
    */
-  const _onEach = function(discussionRows, done) {
+  const _onEach = function (discussionRows, done) {
     // Batch up this iteration of task resources
     const discussionResources = [];
-    _.each(discussionRows, discussionRow => {
+    _.each(discussionRows, (discussionRow) => {
       discussionResources.push({ id: discussionRow.id });
     });
 

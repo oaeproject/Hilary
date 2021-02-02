@@ -20,8 +20,8 @@ const { isUserId, unless, isLoggedInUser } = validator;
 import { not } from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
-import * as PrincipalsDAO from './internal/dao';
-import * as PrincipalsUtil from './util';
+import * as PrincipalsDAO from './internal/dao.js';
+import * as PrincipalsUtil from './util.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');
 
@@ -40,7 +40,7 @@ const PrincipalsConfig = setUpConfig('oae-principals');
  * @param  {String}     [locale]        The locale in which the Terms and Conditions should be retrieved. Defaults to the default Terms and Conditions
  * @return {Object}                     An object that holds a `text` key with the Terms and Conditions in the requested locale and a `lastUpdate` key that holds the timestamp when the config was last updated
  */
-const getTermsAndConditions = function(ctx, locale) {
+const getTermsAndConditions = function (ctx, locale) {
   locale = locale || ctx.resolvedLocale();
 
   // Grab the internationalizable field. This will return an object with each Terms and Conditions keyed against its locale
@@ -60,7 +60,7 @@ const getTermsAndConditions = function(ctx, locale) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {User}       callback.user   The updated user
  */
-const acceptTermsAndConditions = function(ctx, userId, callback) {
+const acceptTermsAndConditions = function (ctx, userId, callback) {
   // One cannot accept the Terms and Conditions if it has not been enabled
   const isDisabled = not(PrincipalsConfig.getValue(ctx.tenant().alias, 'termsAndConditions', 'enabled'));
   if (isDisabled) {
@@ -89,9 +89,9 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
   const userTenant = AuthzUtil.getPrincipalFromId(userId).tenantAlias;
   if (ctx.user().id === userId || ctx.user().isAdmin(userTenant)) {
     // Accept the Terms and Conditions
-    PrincipalsDAO.acceptTermsAndConditions(userId, err => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.acceptTermsAndConditions(userId, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       // Retrieve the updated User object and return it
@@ -111,7 +111,7 @@ const acceptTermsAndConditions = function(ctx, userId, callback) {
  * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
  * @return {Boolean}                Whether or not the current user needs to accept or re-accept the Terms and Conditions
  */
-const needsToAcceptTermsAndConditions = function(ctx) {
+const needsToAcceptTermsAndConditions = function (ctx) {
   // Anonymous users can't accept anything
   if (!ctx.user()) {
     return false;

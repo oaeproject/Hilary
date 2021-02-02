@@ -25,7 +25,7 @@ import * as FollowingAuthz from 'oae-following/lib/authz';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const { unless, isUserId, isLoggedInUser } = validator;
 import { FollowingConstants } from 'oae-following/lib/constants';
-import * as FollowingDAO from './internal/dao';
+import * as FollowingDAO from './internal/dao.js';
 
 /**
  * ### Events
@@ -49,7 +49,7 @@ const FollowingAPI = new EmitterAPI.EventEmitter();
  * @param  {User[]}     callback.followers  The followers of the specified user
  * @param  {String}     callback.nextToken  The token to use as the `start` parameter when fetching the next page of followers
  */
-const getFollowers = function(ctx, userId, start, limit, callback) {
+const getFollowers = function (ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -62,38 +62,38 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
   }
 
   // Get the user so we can determine their visibility and permissions
-  PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(userId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine if the current user has access to view the followers
-    FollowingAuthz.canViewFollowers(ctx, user, err => {
-      if (err) {
-        return callback(err);
+    FollowingAuthz.canViewFollowers(ctx, user, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Get the list of followers
-      FollowingDAO.getFollowers(userId, start, limit, (err, followerUserIds, nextToken) => {
-        if (err) {
-          return callback(err);
+      FollowingDAO.getFollowers(userId, start, limit, (error, followerUserIds, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
-        AuthzUtil.filterDeletedIds(followerUserIds, (err, followerUserIds) => {
-          if (err) {
-            return callback(err);
+        AuthzUtil.filterDeletedIds(followerUserIds, (error, followerUserIds) => {
+          if (error) {
+            return callback(error);
           }
 
           // Expand the list of followers into their basic profiles
-          _expandUserIds(ctx, followerUserIds, (err, users) => {
-            if (err) {
-              return callback(err);
+          _expandUserIds(ctx, followerUserIds, (error, users) => {
+            if (error) {
+              return callback(error);
             }
 
             // Emit an event indicating that the followers for a user have been retrieved
-            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWERS, ctx, userId, start, limit, users, err => {
-              if (err) {
-                return callback(err);
+            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWERS, ctx, userId, start, limit, users, (error_) => {
+              if (error_) {
+                return callback(error_);
               }
 
               return callback(null, users, nextToken);
@@ -117,7 +117,7 @@ const getFollowers = function(ctx, userId, start, limit, callback) {
  * @param  {User[]}     callback.followed   The list of users who are being followed by the specified user
  * @param  {String}     callback.nextToken  The token to use as the `start` parameter when fetching the next page of followed users
  */
-const getFollowing = function(ctx, userId, start, limit, callback) {
+const getFollowing = function (ctx, userId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -130,39 +130,39 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
   }
 
   // Get the user so we can determine their visibility and permissions
-  PrincipalsDAO.getPrincipal(userId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(userId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine if the current user has access to view the list of followed users
-    FollowingAuthz.canViewFollowing(ctx, user, err => {
-      if (err) {
-        return callback(err);
+    FollowingAuthz.canViewFollowing(ctx, user, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Get the list of followed user ids
-      FollowingDAO.getFollowing(userId, start, limit, (err, followingUserIds, nextToken) => {
-        if (err) {
-          return callback(err);
+      FollowingDAO.getFollowing(userId, start, limit, (error, followingUserIds, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
         // Remove those that have been deleted
-        AuthzUtil.filterDeletedIds(followingUserIds, (err, followingUserIds) => {
-          if (err) {
-            return callback(err);
+        AuthzUtil.filterDeletedIds(followingUserIds, (error, followingUserIds) => {
+          if (error) {
+            return callback(error);
           }
 
           // Expand the user ids into the list of basic user profiles
-          _expandUserIds(ctx, followingUserIds, (err, users) => {
-            if (err) {
-              return callback(err);
+          _expandUserIds(ctx, followingUserIds, (error, users) => {
+            if (error) {
+              return callback(error);
             }
 
             // Emit an event indicating that the followed users for a user have been retrieved
-            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWING, ctx, userId, start, limit, users, err => {
-              if (err) {
-                return callback(err);
+            FollowingAPI.emit(FollowingConstants.events.GET_FOLLOWING, ctx, userId, start, limit, users, (error_) => {
+              if (error_) {
+                return callback(error_);
               }
 
               return callback(null, users, nextToken);
@@ -182,7 +182,7 @@ const getFollowing = function(ctx, userId, start, limit, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const follow = function(ctx, followedUserId, callback) {
+const follow = function (ctx, followedUserId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -198,20 +198,20 @@ const follow = function(ctx, followedUserId, callback) {
   }
 
   // Get the user to follow to perform permission checks
-  PrincipalsDAO.getPrincipal(followedUserId, (err, followedUser) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(followedUserId, (error, followedUser) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine if the current user is allowed to follow this user
-    FollowingAuthz.canFollow(ctx, followedUser, err => {
-      if (err) {
-        return callback(err);
+    FollowingAuthz.canFollow(ctx, followedUser, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      FollowingDAO.isFollowing(ctx.user().id, [followedUserId], (err, following) => {
-        if (err) {
-          return callback(err);
+      FollowingDAO.isFollowing(ctx.user().id, [followedUserId], (error, following) => {
+        if (error) {
+          return callback(error);
         }
 
         if (following[followedUserId]) {
@@ -221,9 +221,9 @@ const follow = function(ctx, followedUserId, callback) {
         }
 
         // Save the new list of followed users for the current user
-        FollowingDAO.saveFollows(ctx.user().id, [followedUserId], err => {
-          if (err) {
-            return callback(err);
+        FollowingDAO.saveFollows(ctx.user().id, [followedUserId], (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           return FollowingAPI.emit(FollowingConstants.events.FOLLOW, ctx, ctx.user(), followedUser, callback);
@@ -241,7 +241,7 @@ const follow = function(ctx, followedUserId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const unfollow = function(ctx, unfollowedUserId, callback) {
+const unfollow = function (ctx, unfollowedUserId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -257,9 +257,9 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
   }
 
   // A user can always try and delete followers from their list of followers
-  FollowingDAO.deleteFollows(ctx.user().id, [unfollowedUserId], err => {
-    if (err) {
-      return callback(err);
+  FollowingDAO.deleteFollows(ctx.user().id, [unfollowedUserId], (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), unfollowedUserId, callback);
@@ -276,19 +276,19 @@ const unfollow = function(ctx, unfollowedUserId, callback) {
  * @param  {User[]}     callback.users  The basic user profiles of the users in the userIds array in the same order as the ids provided
  * @api private
  */
-const _expandUserIds = function(ctx, userIds, callback) {
+const _expandUserIds = function (ctx, userIds, callback) {
   if (_.isEmpty(userIds)) {
     return callback(null, []);
   }
 
   // Fetch and scrub the basic user profiles
-  PrincipalsUtil.getPrincipals(ctx, userIds, (err, userProfiles) => {
-    if (err) {
-      return callback(err);
+  PrincipalsUtil.getPrincipals(ctx, userIds, (error, userProfiles) => {
+    if (error) {
+      return callback(error);
     }
 
     const userList = [];
-    _.each(userIds, userId => {
+    _.each(userIds, (userId) => {
       userList.push(userProfiles[userId]);
     });
 
@@ -305,16 +305,16 @@ const _expandUserIds = function(ctx, userIds, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  * @api private
  */
-const deleteFollowing = function(ctx, user, callback) {
-  FollowingDAO.getFollowing(user.id, null, null, function(err, userIdsFollowing) {
+const deleteFollowing = function (ctx, user, callback) {
+  FollowingDAO.getFollowing(user.id, null, null, function (error, userIdsFollowing) {
     if (_.isEmpty(userIdsFollowing)) return callback();
 
-    FollowingDAO.deleteFollows(user.id, userIdsFollowing, function(err) {
-      if (err) return callback(err);
+    FollowingDAO.deleteFollows(user.id, userIdsFollowing, function (error) {
+      if (error) return callback(error);
 
-      userIdsFollowing.forEach(function(id) {
-        FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), id, function(err) {
-          if (err) return callback(err);
+      userIdsFollowing.forEach(function (id) {
+        FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), id, function (error) {
+          if (error) return callback(error);
         });
       });
       return callback();
@@ -331,19 +331,19 @@ const deleteFollowing = function(ctx, user, callback) {
  * @param  {Object}     callback.err    An error that occured, if any
  * @api private
  */
-const deleteFollowers = function(ctx, user, callback) {
-  FollowingDAO.getFollowers(user.id, null, null, function(err, userIdsFollowers) {
+const deleteFollowers = function (ctx, user, callback) {
+  FollowingDAO.getFollowers(user.id, null, null, function (error, userIdsFollowers) {
     if (_.isEmpty(userIdsFollowers)) return callback();
 
-    userIdsFollowers.forEach(function(id) {
-      FollowingDAO.deleteFollows(id, [user.id], function(err) {
-        if (err) return callback(err);
+    userIdsFollowers.forEach(function (id) {
+      FollowingDAO.deleteFollows(id, [user.id], function (error) {
+        if (error) return callback(error);
 
-        PrincipalsDAO.getPrincipal(user.id, function(err, userUnfollowed) {
-          if (err) return callback(err);
+        PrincipalsDAO.getPrincipal(user.id, function (error, userUnfollowed) {
+          if (error) return callback(error);
 
-          FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, userUnfollowed, user.id, function(err) {
-            if (err) return callback(err);
+          FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, userUnfollowed, user.id, function (error) {
+            if (error) return callback(error);
           });
         });
       });

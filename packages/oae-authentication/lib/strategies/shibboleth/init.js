@@ -24,14 +24,14 @@ import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
-import * as ShibbolethAPI from './api';
-import ShibbolethStrategy from './strategy';
+import * as ShibbolethAPI from './api.js';
+import ShibbolethStrategy from './strategy.js';
 
 const log = logger('oae-authentication');
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
-export default function(config) {
+function initShibbAuth(config) {
   // Refresh the shibboleth configuration
   ShibbolethAPI.refreshConfiguration(config);
 
@@ -46,7 +46,7 @@ export default function(config) {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function(tenant) {
+  strategy.getPassportStrategy = function (tenant) {
     // We fetch the config values *in* the getPassportStrategy so it can be re-configured at run-time
 
     // The entity ID of the Shibboleth IdP
@@ -61,7 +61,7 @@ export default function(config) {
         idpEntityID,
         passReqToCallback: true
       },
-      (req, headers, callback) => {
+      (request, headers, callback) => {
         log().trace(
           {
             tenant,
@@ -103,39 +103,37 @@ export default function(config) {
         );
 
         // Set the optional profile parameters
-        const opts = {
+        const options = {
           authoritative: true
         };
 
         const invalid = /https?:\/\/|shibboleth!|@/i;
         // Set users whose name resembles a Shibboleth identifier as private (eg. starts with http://)
         if (invalid.test(displayName)) {
-          opts.visibility = AuthzConstants.visibility.PRIVATE;
+          options.visibility = AuthzConstants.visibility.PRIVATE;
         }
 
         // Get an email address from the provided headers
-        opts.email = _getBestAttributeValue(tenant.alias, 'mapEmail', headers);
+        options.email = _getBestAttributeValue(tenant.alias, 'mapEmail', headers);
 
         // Get a locale, if any
         const locale = _getBestAttributeValue(tenant.alias, 'mapLocale', headers, headers.locale);
-        if (locale) {
-          if (locale.match(/^[a-z]{2}_[A-Z]{2}$/)) {
-            opts.locale = locale;
-          }
+        if (locale && locale.match(/^[a-z]{2}_[A-Z]{2}$/)) {
+          options.locale = locale;
         }
 
         // Ensure the tenant is set on the request
-        req.tenant = tenant;
+        request.tenant = tenant;
         AuthenticationUtil.handleExternalGetOrCreateUser(
-          req,
+          request,
           AuthenticationConstants.providers.SHIBBOLETH,
           externalId,
           null,
           displayName,
-          opts,
-          (err, user, loginId, created) => {
-            if (err) {
-              return callback(err);
+          options,
+          (error, user, loginId, created) => {
+            if (error) {
+              return callback(error);
 
               // There is no need to persist the metadata when the user account already exists
             }
@@ -201,9 +199,9 @@ export default function(config) {
               return callback({ code: 500, msg: 'Unable to store Shibboleth metadata' });
             }
 
-            Cassandra.runQuery(q.query, q.parameters, err => {
-              if (err) {
-                return callback(err);
+            Cassandra.runQuery(q.query, q.parameters, (error_) => {
+              if (error_) {
+                return callback(error_);
               }
 
               return callback(null, user);
@@ -219,6 +217,8 @@ export default function(config) {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SHIBBOLETH, strategy);
 }
 
+export default initShibbAuth;
+
 /**
  * Get the value from the attribute that best matches a configured priority list
  *
@@ -229,19 +229,16 @@ export default function(config) {
  * @return {String}                         The value of the attribute that best matched the configured priority list
  * @api private
  */
-const _getBestAttributeValue = function(tenantAlias, configKey, headers, defaultValue) {
+const _getBestAttributeValue = function (tenantAlias, configKey, headers, defaultValue) {
   // Get the priority list from the config
   let priorityList = AuthenticationConfig.getValue(
     tenantAlias,
     AuthenticationConstants.providers.SHIBBOLETH,
     configKey
   );
-  priorityList = _.chain(priorityList.split(' '))
-    .compact()
-    .uniq()
-    .value();
+  priorityList = _.chain(priorityList.split(' ')).compact().uniq().value();
 
-  const attribute = _.find(priorityList, attribute => {
+  const attribute = _.find(priorityList, (attribute) => {
     return headers[attribute] && headers[attribute] !== defaultValue;
   });
 

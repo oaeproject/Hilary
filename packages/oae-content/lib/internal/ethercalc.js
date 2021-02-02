@@ -18,7 +18,7 @@ import EthercalcClient from 'ethercalc-client';
 import cheerio from 'cheerio';
 import { logger } from 'oae-logger';
 
-import * as ContentDAO from './dao';
+import * as ContentDAO from './dao.js';
 import {
   curry,
   startsWith,
@@ -67,9 +67,9 @@ const returnFalse = () => false;
  *
  * @param  {Object}  _ethercalcConfig    The ethercalc config from config.js
  */
-const refreshConfiguration = _ethercalcConfig => {
+const refreshConfiguration = (_ethercalcConfig) => {
   ethercalcConfig = _ethercalcConfig;
-  ethercalcServers = map(eachConfig => {
+  ethercalcServers = map((eachConfig) => {
     return {
       config: eachConfig,
       client: new EthercalcClient(eachConfig.host, eachConfig.port, eachConfig.protocol, eachConfig.timeout)
@@ -103,7 +103,7 @@ const createRoom = async (content, callback) => {
   try {
     const data = await someEthercalcServer.client.createRoom();
     // Ethercalc returns the relative path so strip out starting /
-    roomId = slice(1, Infinity, data);
+    roomId = slice(1, Number.POSITIVE_INFINITY, data);
     log().info({ contentId, ethercalcRoomId: roomId }, 'Created Ethercalc room');
     return callback(null, roomId);
   } catch (error) {
@@ -270,17 +270,17 @@ const setSheetContents = async (roomId, snapshot, callback) => {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {String}     callback.url            The URL that can be used to embed the room
  */
-const joinRoom = (ctx, contentObj, callback) => {
+const joinRoom = (ctx, contentObject, callback) => {
   const user = ctx.user();
   if (isNotDefined(user)) {
     return callback({ code: 401, msg: 'Anonymous users are not allowed to join collaborative spreadsheets' });
   }
 
-  log().trace(`Joining Ethercalc room ${contentObj.ethercalcRoomId} as user ${user}`);
+  log().trace(`Joining Ethercalc room ${contentObject.ethercalcRoomId} as user ${user}`);
 
   // Get the language for the current user.
   const language = isDefined(user.locale) ? head(split('_', user.locale)) : ENGLISH;
-  const url = getRoomUrl(contentObj, user.id, language);
+  const url = getRoomUrl(contentObject, user.id, language);
 
   return callback(null, { url });
 };
@@ -297,13 +297,13 @@ const joinRoom = (ctx, contentObj, callback) => {
  * @return {String}                                 The URL to the room that can be used to embed in a page
  */
 // eslint-disable-next-line no-unused-vars
-const getRoomUrl = (contentObj, userId, language) => {
+const getRoomUrl = (contentObject, userId, language) => {
   const randomServerIndex = Math.floor(Math.random() * ethercalcServers.length);
   return url.format({
-    pathname: `/ethercalc/${randomServerIndex}/${contentObj.ethercalcRoomId}`,
+    pathname: `/ethercalc/${randomServerIndex}/${contentObject.ethercalcRoomId}`,
     query: {
       author: userId,
-      content: contentObj.id
+      content: contentObject.id
     }
   });
 };
@@ -314,19 +314,16 @@ const getRoomUrl = (contentObj, userId, language) => {
  * @param  {String}     content             The content of the ethercalc spreadsheet
  * @return {Boolean}                        Whether or not the content is considered empty
  */
-const isContentEmpty = content => {
+const isContentEmpty = (content) => {
   const FIRST_CELL = '#cell_A1';
-  const findCells = match(/cell_[\w][\d]/g);
+  const findCells = match(/cell_\w\d/g);
   const lookForCellValues = test(/\bcell:\w\d/g);
 
-  const loadFirstCellContents = content =>
-    cheerio
-      .load(content)(FIRST_CELL)
-      .text();
+  const loadFirstCellContents = (content) => cheerio.load(content)(FIRST_CELL).text();
 
   const equalsDefault = equals(DEFAULT_SNAPSHOT);
   const checkIfFirstCellIsEmpty = compose(equalsDefault, trim, loadFirstCellContents);
-  const hasSingleCell = content => compose(equalsOne, length, findCells)(content);
+  const hasSingleCell = (content) => compose(equalsOne, length, findCells)(content);
 
   const isFirstCellEmpty = ifElse(hasSingleCell, checkIfFirstCellIsEmpty, returnFalse);
   const checkIfContentIsEmpty = ifElse(_isHtmlDocument, isFirstCellEmpty, lookForCellValues);
@@ -360,8 +357,8 @@ const isContentEqual = (one, other) => {
  */
 const setEditedBy = (data, callback) => {
   if (and(isDefined(data.contentId), isDefined(data.userId))) {
-    ContentDAO.Ethercalc.setEditedBy(data.contentId, data.userId, err => {
-      if (err) return callback(err);
+    ContentDAO.Ethercalc.setEditedBy(data.contentId, data.userId, (error) => {
+      if (error) return callback(error);
 
       return callback(null);
     });
@@ -375,7 +372,7 @@ const setEditedBy = (data, callback) => {
  * @return {Boolean}                Whether or not the content is a valid HTML spreadsheet
  * @api private
  */
-const _isHtmlDocument = content => {
+const _isHtmlDocument = (content) => {
   if (isNotDefined(content)) return false;
 
   const $ = cheerio.load(content);
@@ -389,7 +386,7 @@ const _isHtmlDocument = content => {
  * @return {Boolean}                Whether or not the content is valid socialcalc
  * @api private
  */
-const _isSCDocument = function(content) {
+const _isSCDocument = function (content) {
   if (isNotDefined(content)) return false;
 
   content = trim(content);

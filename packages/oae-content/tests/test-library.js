@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { beforeEach, describe, it } from 'mocha';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
@@ -78,9 +79,9 @@ describe('Content Libraries', () => {
   /**
    * Test that will verify if the returned items from the library are sorted by their last modified date.
    */
-  it('verify library is sorted on last modified', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify library is sorted on last modified', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
@@ -96,9 +97,9 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
-          items.push(contentObj.id);
+        (error, contentObject) => {
+          assert.notExists(error);
+          items.push(contentObject.id);
 
           createLink(
             asHomer,
@@ -111,9 +112,9 @@ describe('Content Libraries', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, contentObj) => {
-              assert.notExists(err);
-              items.push(contentObj.id);
+            (error, contentObject) => {
+              assert.notExists(error);
+              items.push(contentObject.id);
 
               createLink(
                 asHomer,
@@ -126,25 +127,25 @@ describe('Content Libraries', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, contentObj) => {
-                  assert.notExists(err);
-                  items.push(contentObj.id);
+                (error, contentObject) => {
+                  assert.notExists(error);
+                  items.push(contentObject.id);
 
                   // Get the 2 most recent items.
-                  getLibrary(asHomer, homer.user.id, null, 2, (err, data) => {
-                    assert.notExists(err);
+                  getLibrary(asHomer, homer.user.id, null, 2, (error, data) => {
+                    assert.notExists(error);
                     const library = data.results;
                     assert.lengthOf(library, 2);
                     assert.strictEqual(library[0].id, items[2]);
                     assert.strictEqual(library[1].id, items[1]);
 
                     // Modify the oldest one.
-                    updateContent(asHomer, items[0], { description: 'lalila' }, err => {
-                      assert.notExists(err);
+                    updateContent(asHomer, items[0], { description: 'lalila' }, (error_) => {
+                      assert.notExists(error_);
 
                       // When we retrieve the library the just modified one, should be on-top.
-                      getLibrary(asHomer, homer.user.id, null, 2, (err, data) => {
-                        assert.notExists(err);
+                      getLibrary(asHomer, homer.user.id, null, 2, (error, data) => {
+                        assert.notExists(error);
                         const library = data.results;
                         assert.lengthOf(library, 2);
                         assert.strictEqual(library[0].id, items[0]);
@@ -166,24 +167,24 @@ describe('Content Libraries', () => {
   /**
    * Test that verifies the parameters on the `getContentLibraryItems` method
    */
-  it('verify getLibrary parameter validation', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify getLibrary parameter validation', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
-      getLibrary(asHomer, ' ', null, null, (err /* , data */) => {
-        assert.strictEqual(err.code, 400);
+      getLibrary(asHomer, ' ', null, null, (error /* , data */) => {
+        assert.strictEqual(error.code, 400);
 
-        getLibrary(asHomer, 'invalid-user-id', null, null, (err /* , data */) => {
-          assert.strictEqual(err.code, 400);
+        getLibrary(asHomer, 'invalid-user-id', null, null, (error /* , data */) => {
+          assert.strictEqual(error.code, 400);
 
-          getLibrary(asHomer, 'c:cam:bleh', null, null, (err /* , data */) => {
-            assert.strictEqual(err.code, 400);
+          getLibrary(asHomer, 'c:cam:bleh', null, null, (error /* , data */) => {
+            assert.strictEqual(error.code, 400);
 
-            getLibrary(asHomer, 'u:cam:bleh', null, null, (err /* , data */) => {
-              assert.strictEqual(err.code, 404);
+            getLibrary(asHomer, 'u:cam:bleh', null, null, (error /* , data */) => {
+              assert.strictEqual(error.code, 404);
               callback();
             });
           });
@@ -195,9 +196,9 @@ describe('Content Libraries', () => {
   /*
    * Verifies the parameters on the `removeContentFromLibrary` method.
    */
-  it('verify removeContentFromLibrary parameter validation', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify removeContentFromLibrary parameter validation', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
@@ -212,20 +213,20 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
+        (error, contentObject) => {
+          assert.notExists(error);
 
-          removeContentFromLibrary(asCambridgeAnonymousUser, homer.user.id, contentObj.id, err => {
-            assert.strictEqual(err.code, 401);
+          removeContentFromLibrary(asCambridgeAnonymousUser, homer.user.id, contentObject.id, (error_) => {
+            assert.strictEqual(error_.code, 401);
 
-            removeContentFromLibrary(asHomer, 'invalid-user-id', contentObj.id, err => {
-              assert.strictEqual(err.code, 400);
+            removeContentFromLibrary(asHomer, 'invalid-user-id', contentObject.id, (error_) => {
+              assert.strictEqual(error_.code, 400);
 
-              removeContentFromLibrary(asHomer, homer.user.id, 'invalid-content-id', err => {
-                assert.strictEqual(err.code, 400);
+              removeContentFromLibrary(asHomer, homer.user.id, 'invalid-content-id', (error_) => {
+                assert.strictEqual(error_.code, 400);
 
-                removeContentFromLibrary(asHomer, homer.user.id, 'c:camtest:nonexisting', err => {
-                  assert.strictEqual(err.code, 404);
+                removeContentFromLibrary(asHomer, homer.user.id, 'c:camtest:nonexisting', (error_) => {
+                  assert.strictEqual(error_.code, 404);
                   callback();
                 });
               });
@@ -239,9 +240,9 @@ describe('Content Libraries', () => {
   /**
    * Test that will verify if an item can be removed from a user library.
    */
-  it('verify deleting an item removes it from the library', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify deleting an item removes it from the library', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
@@ -256,14 +257,14 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
+        (error, contentObject) => {
+          assert.notExists(error);
 
-          deleteContent(asHomer, contentObj.id, err => {
-            assert.notExists(err);
+          deleteContent(asHomer, contentObject.id, (error_) => {
+            assert.notExists(error_);
 
-            getLibrary(asHomer, homer.user.id, null, null, (err, data) => {
-              assert.notExists(err);
+            getLibrary(asHomer, homer.user.id, null, null, (error, data) => {
+              assert.notExists(error);
               const library = data.results;
               assert.isEmpty(library);
               callback();
@@ -277,9 +278,9 @@ describe('Content Libraries', () => {
   /**
    * Test that will verify if an item can be removed from a user library if the user only holds a viewer permission.
    */
-  it('verify a content viewer can remove the content item from his library', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify a content viewer can remove the content item from his library', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
       const { 0: homer, 1: marge } = users;
       const asHomer = homer.restContext;
       const asMarge = marge.restContext;
@@ -295,24 +296,24 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, link) => {
-          assert.notExists(err);
+        (error, link) => {
+          assert.notExists(error);
           const sameAsLink = equals(link.id);
 
-          shareContent(asHomer, link.id, [marge.user.id], err => {
-            assert.notExists(err);
+          shareContent(asHomer, link.id, [marge.user.id], (error_) => {
+            assert.notExists(error_);
 
             // Sanity check that Simon has the item
-            getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
-              assert.notExists(err);
+            getLibrary(asMarge, marge.user.id, null, null, (error, data) => {
+              assert.notExists(error);
               const library = data.results;
               assert.lengthOf(library, 1);
               assert.isTrue(sameAsLink(getTopItemId(library)));
 
-              removeContentFromLibrary(asMarge, marge.user.id, link.id, err => {
-                assert.notExists(err);
-                getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
-                  assert.notExists(err);
+              removeContentFromLibrary(asMarge, marge.user.id, link.id, (error_) => {
+                assert.notExists(error_);
+                getLibrary(asMarge, marge.user.id, null, null, (error, data) => {
+                  assert.notExists(error);
                   const library = data.results;
                   assert.isEmpty(library);
                   callback();
@@ -329,9 +330,9 @@ describe('Content Libraries', () => {
    * Test that will verify that removing a piece of content from a library won't leave
    * the content item unmanaged.
    */
-  it('verify a piece of content cannot be left managerless by removing it from the library', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+  it('verify a piece of content cannot be left managerless by removing it from the library', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
@@ -346,12 +347,12 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, contentObj) => {
-          assert.notExists(err);
+        (error, contentObject) => {
+          assert.notExists(error);
 
           // Homer can't remove the content from his library as he is the only manager for it.
-          removeContentFromLibrary(asHomer, homer.user.id, contentObj.id, err => {
-            assert.strictEqual(err.code, 400);
+          removeContentFromLibrary(asHomer, homer.user.id, contentObject.id, (error_) => {
+            assert.strictEqual(error_.code, 400);
             callback();
           });
         }
@@ -368,24 +369,24 @@ describe('Content Libraries', () => {
    * Tenant A becomes private
    * User B should still be able to remove it from his library
    */
-  it('verify a piece of content can be removed after a tenant becomes private', callback => {
+  it('verify a piece of content can be removed after a tenant becomes private', (callback) => {
     // We'll create two new tenants.
     const tenantAliasA = generateTestTenantAlias();
     const tenantAliasB = generateTestTenantAlias();
     const tenantHostA = generateTestTenantHost();
     const tenantHostB = generateTestTenantHost();
-    createTenantWithAdmin(tenantAliasA, tenantHostA, (err, tenantA, adminRestCtxA) => {
-      assert.notExists(err);
-      createTenantWithAdmin(tenantAliasB, tenantHostB, (err, tenantB, adminRestCtxB) => {
-        assert.notExists(err);
+    createTenantWithAdmin(tenantAliasA, tenantHostA, (error, tenantA, adminRestCtxA) => {
+      assert.notExists(error);
+      createTenantWithAdmin(tenantAliasB, tenantHostB, (error, tenantB, adminRestCtxB) => {
+        assert.notExists(error);
 
-        generateTestUsers(adminRestCtxA, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(adminRestCtxA, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: homer } = users;
           const asHomer = homer.restContext;
 
-          generateTestUsers(adminRestCtxB, 1, (err, users) => {
-            assert.notExists(err);
+          generateTestUsers(adminRestCtxB, 1, (error, users) => {
+            assert.notExists(error);
             const { 0: marge } = users;
             const asMarge = marge.restContext;
 
@@ -400,28 +401,28 @@ describe('Content Libraries', () => {
                 viewers: [marge.user.id],
                 folders: NO_FOLDERS
               },
-              (err, contentObj) => {
-                assert.notExists(err);
+              (error, contentObject) => {
+                assert.notExists(error);
 
                 // Sanity check that userB has the item in his library
-                getLibrary(marge.restContext, marge.user.id, null, null, (err, data) => {
-                  assert.notExists(err);
+                getLibrary(marge.restContext, marge.user.id, null, null, (error, data) => {
+                  assert.notExists(error);
                   const library = data.results;
                   assert.lengthOf(library, 1);
-                  assert.strictEqual(library[0].id, contentObj.id);
+                  assert.strictEqual(library[0].id, contentObject.id);
 
                   // Now make tenantA private.
                   ConfigTestUtil.updateConfigAndWait(
                     asGlobalAdmin,
                     tenantAliasA,
                     { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                    err => {
-                      assert.notExists(err);
+                    (error_) => {
+                      assert.notExists(error_);
 
-                      removeContentFromLibrary(asMarge, marge.user.id, contentObj.id, err => {
-                        assert.notExists(err);
-                        getLibrary(asMarge, marge.user.id, null, null, (err, data) => {
-                          assert.notExists(err);
+                      removeContentFromLibrary(asMarge, marge.user.id, contentObject.id, (error_) => {
+                        assert.notExists(error_);
+                        getLibrary(asMarge, marge.user.id, null, null, (error, data) => {
+                          assert.notExists(error);
                           const library = data.results;
                           assert.isEmpty(library);
                           callback();
@@ -441,9 +442,9 @@ describe('Content Libraries', () => {
   /**
    * Verifies a user cannot remove content from another user his library.
    */
-  it('verify a user can only remove content from libraries he owns', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-      assert.notExists(err);
+  it('verify a user can only remove content from libraries he owns', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer, 1: marge } = users;
       const asHomer = homer.restContext;
@@ -460,18 +461,18 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, link) => {
-          assert.notExists(err);
+        (error, link) => {
+          assert.notExists(error);
 
           const sameAsLink = equals(link.id);
 
           // This should fail as Marge can't manage Homer his library.
-          removeContentFromLibrary(asMarge, homer.user.id, link.id, err => {
-            assert.strictEqual(err.code, 401);
+          removeContentFromLibrary(asMarge, homer.user.id, link.id, (error_) => {
+            assert.strictEqual(error_.code, 401);
 
             // Sanity check Homer his library to ensure nothing got removed.
-            getLibrary(asHomer, homer.user.id, null, null, (err, data) => {
-              assert.notExists(err);
+            getLibrary(asHomer, homer.user.id, null, null, (error, data) => {
+              assert.notExists(error);
 
               const library = data.results;
               assert.lengthOf(library, 1);
@@ -488,9 +489,9 @@ describe('Content Libraries', () => {
   /**
    * Test that will verify a user can remove content from a group library by virtue of his group ancestry.
    */
-  it('verify a user can remove content from a group library by virtue of his group ancestry', callback => {
-    generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-      assert.notExists(err);
+  it('verify a user can remove content from a group library by virtue of his group ancestry', (callback) => {
+    generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer, 1: marge, 2: bart } = users;
       const asHomer = homer.restContext;
@@ -498,8 +499,8 @@ describe('Content Libraries', () => {
       const asBart = bart.restContext;
 
       // Create three nested, groups.
-      generateTestGroups(asHomer, 3, (err, groups) => {
-        assert.notExists(err);
+      generateTestGroups(asHomer, 3, (error, groups) => {
+        assert.notExists(error);
 
         const { 1: grandParent, 2: group } = groups;
         const groupIds = map(path(['group', 'id']), groups);
@@ -511,8 +512,8 @@ describe('Content Libraries', () => {
            */
           const permissions = {};
           permissions[marge.user.id] = MANAGER;
-          setGroupMembers(asHomer, group.group.id, permissions, err => {
-            assert.notExists(err);
+          setGroupMembers(asHomer, group.group.id, permissions, (error_) => {
+            assert.notExists(error_);
 
             // Bart shares some content with the top group
             createLink(
@@ -526,25 +527,25 @@ describe('Content Libraries', () => {
                 viewers: [grandParent.group.id],
                 folders: NO_FOLDERS
               },
-              (err, someLink) => {
-                assert.notExists(err);
+              (error, someLink) => {
+                assert.notExists(error);
 
                 const sameAsLink = equals(someLink.id);
 
                 // Sanity check it's there.
-                getLibrary(asHomer, grandParent.group.id, null, null, (err, data) => {
-                  assert.notExists(err);
+                getLibrary(asHomer, grandParent.group.id, null, null, (error, data) => {
+                  assert.notExists(error);
                   assert.lengthOf(data.results, 1);
 
                   assert.isTrue(sameAsLink(getTopItemId(data.results)));
 
                   // Simon decides the content isn't all that great and removes it.
-                  removeContentFromLibrary(asMarge, grandParent.group.id, someLink.id, err => {
-                    assert.notExists(err);
+                  removeContentFromLibrary(asMarge, grandParent.group.id, someLink.id, (error_) => {
+                    assert.notExists(error_);
 
                     // Sanity check that it's gone.
-                    getLibrary(asHomer, grandParent.group.id, null, null, (err, data) => {
-                      assert.notExists(err);
+                    getLibrary(asHomer, grandParent.group.id, null, null, (error, data) => {
+                      assert.notExists(error);
                       assert.isEmpty(data.results);
 
                       return callback();
@@ -568,20 +569,20 @@ describe('Content Libraries', () => {
    * @param  {Content[]}      expectedItems   The expected content item that should return
    * @param  {Function}       callback        Standard callback function
    */
-  const checkLibrary = function(restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
-    getLibrary(restCtx, libraryOwnerId, null, null, (err, items) => {
+  const checkLibrary = function (restCtx, libraryOwnerId, expectAccess, expectedItems, callback) {
+    getLibrary(restCtx, libraryOwnerId, null, null, (error, items) => {
       if (expectAccess) {
-        assert.notExists(err);
+        assert.notExists(error);
 
         // Make sure only the expected items are returned.
         assert.strictEqual(items.results.length, expectedItems.length);
 
-        const filterExpectedItems = item => compose(equals(item.id), prop('id'));
-        forEach(eachItem => {
+        const filterExpectedItems = (item) => compose(equals(item.id), prop('id'));
+        forEach((eachItem) => {
           assert.ok(filter(filterExpectedItems(eachItem), items.results));
         }, expectedItems);
       } else {
-        assert.strictEqual(err.code, 401);
+        assert.strictEqual(error.code, 401);
         assert.isNotOk(items);
       }
 
@@ -600,16 +601,16 @@ describe('Content Libraries', () => {
    * @param  {Content}        callback.loggedinContent    The loggedin piece of content
    * @param  {Content}        callback.publicContent      The public piece of content
    */
-  const createUserAndLibrary = function(restCtx, userVisibility, callback) {
+  const createUserAndLibrary = function (restCtx, userVisibility, callback) {
     // Create a user with the proper visibility
-    generateTestUsers(restCtx, 1, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(restCtx, 1, (error, users) => {
+      assert.notExists(error);
 
       const { 0: homer } = users;
       const asHomer = homer.restContext;
 
-      updateUser(asHomer, homer.user.id, { visibility: userVisibility }, err => {
-        assert.notExists(err);
+      updateUser(asHomer, homer.user.id, { visibility: userVisibility }, (error_) => {
+        assert.notExists(error_);
 
         // Fill up this user his library with 3 content items.
         createLink(
@@ -623,8 +624,8 @@ describe('Content Libraries', () => {
             viewers: NO_VIEWERS,
             folders: NO_FOLDERS
           },
-          (err, privateContent) => {
-            assert.notExists(err);
+          (error, privateContent) => {
+            assert.notExists(error);
             createLink(
               asHomer,
               {
@@ -636,8 +637,8 @@ describe('Content Libraries', () => {
                 viewers: NO_VIEWERS,
                 folders: NO_FOLDERS
               },
-              (err, loggedinContent) => {
-                assert.notExists(err);
+              (error, loggedinContent) => {
+                assert.notExists(error);
                 createLink(
                   asHomer,
                   {
@@ -649,8 +650,8 @@ describe('Content Libraries', () => {
                     viewers: NO_VIEWERS,
                     folders: NO_FOLDERS
                   },
-                  (err, publicContent) => {
-                    assert.notExists(err);
+                  (error, publicContent) => {
+                    assert.notExists(error);
                     callback(homer, privateContent, loggedinContent, publicContent);
                   }
                 );
@@ -673,9 +674,9 @@ describe('Content Libraries', () => {
    * @param  {Content}        callback.loggedinContent    The loggedin piece of content
    * @param  {Content}        callback.publicContent      The public piece of content
    */
-  const createGroupAndLibrary = function(asSomebody, groupVisibility, callback) {
-    createGroup(asSomebody, 'displayName', DESCRIPTION, groupVisibility, NOT_JOINABLE, [], [], (err, group) => {
-      assert.notExists(err);
+  const createGroupAndLibrary = function (asSomebody, groupVisibility, callback) {
+    createGroup(asSomebody, 'displayName', DESCRIPTION, groupVisibility, NOT_JOINABLE, [], [], (error, group) => {
+      assert.notExists(error);
 
       // Fill up the group library with 3 content items.
       createLink(
@@ -689,8 +690,8 @@ describe('Content Libraries', () => {
           viewers: NO_VIEWERS,
           folders: NO_FOLDERS
         },
-        (err, privateContent) => {
-          assert.notExists(err);
+        (error, privateContent) => {
+          assert.notExists(error);
           createLink(
             asSomebody,
             {
@@ -702,8 +703,8 @@ describe('Content Libraries', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, loggedinContent) => {
-              assert.notExists(err);
+            (error, loggedinContent) => {
+              assert.notExists(error);
               createLink(
                 asSomebody,
                 {
@@ -715,8 +716,8 @@ describe('Content Libraries', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err, publicContent) => {
-                  assert.notExists(err);
+                (error, publicContent) => {
+                  assert.notExists(error);
                   callback(group, privateContent, loggedinContent, publicContent);
                 }
               );
@@ -731,7 +732,7 @@ describe('Content Libraries', () => {
    * A testcase that the correct library stream is returned and the library user's visibility
    * settings are respected.
    */
-  it('verify user libraries', callback => {
+  it('verify user libraries', (callback) => {
     // We'll create a private, loggedin and public user, each user's library will contain a private, loggedin and public content item.
     createUserAndLibrary(
       asCambridgeTenantAdmin,
@@ -788,8 +789,8 @@ describe('Content Libraries', () => {
                                         checkLibrary(asGTAnonymousUser, loggedinUser.user.id, false, [], () => {
                                           checkLibrary(asGTAnonymousUser, privateUser.user.id, false, [], () => {
                                             // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin user.
-                                            generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-                                              assert.notExists(err);
+                                            generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+                                              assert.notExists(error);
                                               const { 0: anotherUser } = users;
                                               const asAnotherUser = anotherUser.restContext;
 
@@ -812,8 +813,8 @@ describe('Content Libraries', () => {
                                                         [],
                                                         () => {
                                                           // A loggedin user on *another* tenant can only see the public stream for the public user.
-                                                          generateTestUsers(asGTTenantAdmin, 1, (err, users) => {
-                                                            assert.notExists(err);
+                                                          generateTestUsers(asGTTenantAdmin, 1, (error, users) => {
+                                                            assert.notExists(error);
 
                                                             const { 0: otherTenantUser } = users;
                                                             const asOtherTenantUser = otherTenantUser.restContext;
@@ -936,10 +937,10 @@ describe('Content Libraries', () => {
   /**
    * A testcase that the correct library stream is returned for a group.
    */
-  it('verify group libraries', callback => {
+  it('verify group libraries', (callback) => {
     // Create three groups: private, loggedin, public
-    generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+      assert.notExists(error);
 
       const { 0: groupCreator, 1: anotherUser } = users;
       const asGroupCreator = groupCreator.restContext;
@@ -980,8 +981,8 @@ describe('Content Libraries', () => {
                                   () => {
                                     checkLibrary(asAnotherUser, privateGroup.id, false, [], () => {
                                       // A loggedin user on *another* tenant can only see the public stream for the public group.
-                                      generateTestUsers(asGTTenantAdmin, 1, (err, users) => {
-                                        assert.notExists(err);
+                                      generateTestUsers(asGTTenantAdmin, 1, (error, users) => {
+                                        assert.notExists(error);
 
                                         const { 0: otherTenantUser } = users;
                                         const asOtherTenantUser = otherTenantUser.restContext;
@@ -1051,8 +1052,8 @@ describe('Content Libraries', () => {
                                                                           asGroupCreator,
                                                                           privateGroup.id,
                                                                           changes,
-                                                                          err => {
-                                                                            assert.notExists(err);
+                                                                          (error_) => {
+                                                                            assert.notExists(error_);
                                                                             checkLibrary(
                                                                               asAnotherUser,
                                                                               privateGroup.id,
@@ -1072,8 +1073,8 @@ describe('Content Libraries', () => {
                                                                                   asGroupCreator,
                                                                                   privateGroup.id,
                                                                                   changes,
-                                                                                  err => {
-                                                                                    assert.notExists(err);
+                                                                                  (error_) => {
+                                                                                    assert.notExists(error_);
                                                                                     checkLibrary(
                                                                                       asOtherTenantUser,
                                                                                       privateGroup.id,
@@ -1130,7 +1131,7 @@ describe('Content Libraries', () => {
   /**
    * Test that verifies that a library can be rebuilt from a dirty authz table
    */
-  it('verify a library can be rebuilt from a dirty authz table', callback => {
+  it('verify a library can be rebuilt from a dirty authz table', (callback) => {
     createUserAndLibrary(asCambridgeTenantAdmin, PRIVATE, (homer, privateContent, loggedinContent, publicContent) => {
       const asHomer = homer.restContext;
       // Ensure all the items are in the user's library
@@ -1141,12 +1142,12 @@ describe('Content Libraries', () => {
          * be able to deal with this. Note that we go straight to Cassandra, as the
          * ContentDAO also takes care of removing the item from the appropriate libraries
          */
-        runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], err => {
-          assert.notExists(err);
+        runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], (error) => {
+          assert.notExists(error);
 
           // Purge the library so that it has to be rebuild on the next request
-          LibraryAPI.Index.purge('content:content', homer.user.id, err => {
-            assert.notExists(err);
+          LibraryAPI.Index.purge('content:content', homer.user.id, (error) => {
+            assert.notExists(error);
 
             // We should be able to rebuild the library on-the-fly. The private
             // content item should not be returned as it has been removed

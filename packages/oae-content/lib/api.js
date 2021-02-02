@@ -14,8 +14,8 @@
  */
 
 import fs from 'fs';
-import { basename } from 'path';
-import util from 'util';
+import Path from 'path';
+import { format } from 'util';
 import * as ContentUtils from 'oae-content/lib/backends/util';
 import mime from 'mime';
 import ShortId from 'shortid';
@@ -88,12 +88,12 @@ import {
   isEmpty
 } from 'ramda';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ContentConstants } from './constants';
-import * as ContentDAO from './internal/dao';
-import * as ContentMembersLibrary from './internal/membersLibrary';
-import * as ContentUtil from './internal/util';
-import * as Ethercalc from './internal/ethercalc';
-import * as Etherpad from './internal/etherpad';
+import { ContentConstants } from './constants.js';
+import * as ContentDAO from './internal/dao.js';
+import * as ContentMembersLibrary from './internal/membersLibrary.js';
+import * as ContentUtil from './internal/util.js';
+import * as Ethercalc from './internal/ethercalc.js';
+import * as Etherpad from './internal/etherpad.js';
 
 const Config = setUpConfig('oae-content');
 const log = logger('oae-content');
@@ -110,10 +110,10 @@ const emptyString = '';
 const emptyArray = [];
 
 // Auxiliary functions
-const toArray = x => [x];
+const toArray = (x) => [x];
 const isDefined = Boolean;
 const isNotDefined = compose(not, isDefined);
-const errorCodeEquals = err => equals(err.code, 401);
+const errorCodeEquals = (error) => equals(error.code, 401);
 const isOtherThanUnauthorized = compose(not, errorCodeEquals);
 const isNotCollabdoc = compose(not, ContentUtils.isResourceACollabDoc);
 const isNotCollabsheet = compose(not, ContentUtils.isResourceACollabSheet);
@@ -171,14 +171,14 @@ const getContent = (ctx, contentId, callback) => {
     return callback(error);
   }
 
-  ContentDAO.Content.getContent(contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
-    AuthzPermissions.canView(ctx, contentObj, err => {
-      if (err) return callback(err);
+    AuthzPermissions.canView(ctx, contentObject, (error_) => {
+      if (error_) return callback(error_);
 
-      ContentUtil.augmentContent(ctx, contentObj);
-      return callback(null, contentObj);
+      ContentUtil.augmentContent(ctx, contentObject);
+      return callback(null, contentObject);
     });
   });
 };
@@ -204,16 +204,16 @@ const getFullContentProfile = (ctx, contentId, callback) => {
     return callback(error);
   }
 
-  getContent(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
     // Check whether the user is a manager
     let isManager = true;
-    AuthzPermissions.canManage(ctx, contentObj, err => {
-      if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
-      if (isDefined(err)) isManager = false;
+    AuthzPermissions.canManage(ctx, contentObject, (error_) => {
+      if (both(isDefined, isOtherThanUnauthorized)(error_)) return callback(error_);
+      if (isDefined(error_)) isManager = false;
 
-      return _getFullContentProfile(ctx, contentObj, isManager, callback);
+      return _getFullContentProfile(ctx, contentObject, isManager, callback);
     });
   });
 };
@@ -228,47 +228,47 @@ const getFullContentProfile = (ctx, contentId, callback) => {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Content}    callback.contentProfile     Full content profile
  */
-const _getFullContentProfile = (ctx, contentObj, isManager, callback) => {
+const _getFullContentProfile = (ctx, contentObject, isManager, callback) => {
   // Store the isManager property.
-  contentObj.isManager = isManager;
+  contentObject.isManager = isManager;
 
   // Get the user object for the createdBy property
-  PrincipalsUtil.getPrincipal(ctx, contentObj.createdBy, (err, createdBy) => {
-    if (err) return callback(err);
+  PrincipalsUtil.getPrincipal(ctx, contentObject.createdBy, (error, createdBy) => {
+    if (error) return callback(error);
 
-    contentObj.createdBy = createdBy;
+    contentObject.createdBy = createdBy;
 
     // Check if the user can share this content item
     let canShare = true;
-    AuthzPermissions.canShare(ctx, contentObj, null, AuthzConstants.role.VIEWER, err => {
-      if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
-      if (isDefined(err)) canShare = false;
+    AuthzPermissions.canShare(ctx, contentObject, null, AuthzConstants.role.VIEWER, (error_) => {
+      if (both(isDefined, isOtherThanUnauthorized)(error_)) return callback(error_);
+      if (isDefined(error_)) canShare = false;
 
       // Specify on the return value if the current user can share the content item
-      contentObj.canShare = canShare;
+      contentObject.canShare = canShare;
 
       // For any other than collabdoc or collabsheet, we simply return with the share information
-      if (both(isNotCollabdoc, isNotCollabsheet)(contentObj.resourceSubType)) {
-        emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObj);
-        return callback(null, contentObj);
+      if (both(isNotCollabdoc, isNotCollabsheet)(contentObject.resourceSubType)) {
+        emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObject);
+        return callback(null, contentObject);
       }
 
       // If the content item is a collaborative document, add the latest revision data and isEditor
-      _getRevision(ctx, contentObj, contentObj.latestRevisionId, (err, revision) => {
-        if (err) return callback(err);
+      _getRevision(ctx, contentObject, contentObject.latestRevisionId, (error, revision) => {
+        if (error) return callback(error);
 
-        contentObj.latestRevision = revision;
-        AuthzPermissions.canEdit(ctx, contentObj, err => {
-          if (both(isDefined, isOtherThanUnauthorized)(err)) return callback(err);
+        contentObject.latestRevision = revision;
+        AuthzPermissions.canEdit(ctx, contentObject, (error_) => {
+          if (both(isDefined, isOtherThanUnauthorized)(error_)) return callback(error_);
 
-          if (err) {
-            contentObj.isEditor = false;
+          if (error_) {
+            contentObject.isEditor = false;
           } else {
-            contentObj.isEditor = true;
+            contentObject.isEditor = true;
           }
 
-          emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObj);
-          return callback(null, contentObj);
+          emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObject);
+          return callback(null, contentObject);
         });
       });
     });
@@ -294,7 +294,7 @@ const _getFullContentProfile = (ctx, contentObj, isManager, callback) => {
  * @param  {Content}        callback.content        The created link
  */
 const createLink = (ctx, linkDetails, callback) => {
-  callback = defaultTo(function() {}, callback);
+  callback = defaultTo(function () {}, callback);
   const { displayName, description, additionalMembers, folders } = linkDetails;
 
   // Setting content to default if no visibility setting is provided
@@ -336,16 +336,24 @@ const createLink = (ctx, linkDetails, callback) => {
     folders,
     { link },
     {},
-    (err, content, revision, memberChangeInfo) => {
-      if (err) return callback(err);
+    (error, content, revision, memberChangeInfo) => {
+      if (error) return callback(error);
 
-      emitter.emit(ContentConstants.events.CREATED_CONTENT, ctx, content, revision, memberChangeInfo, folders, errs => {
-        if (errs) {
-          return callback(head(errs));
+      emitter.emit(
+        ContentConstants.events.CREATED_CONTENT,
+        ctx,
+        content,
+        revision,
+        memberChangeInfo,
+        folders,
+        (errs) => {
+          if (errs) {
+            return callback(head(errs));
+          }
+
+          return callback(null, content);
         }
-
-        return callback(null, content);
-      });
+      );
     }
   );
 };
@@ -386,14 +394,14 @@ const createFile = (ctx, fileDetails, callback) => {
  * @api private
  */
 const _getCleanUpCallback = (files, callback) => {
-  return function(...args) {
+  return function (...args) {
     // Remember the arguments so we can pass them to the callback later.
     const callbackArguments = args;
 
     // The first argument is always the error object.
-    const err = callbackArguments[0];
+    const error = callbackArguments[0];
 
-    if (and(isDefined(err), isDefined(files))) {
+    if (and(isDefined(error), isDefined(files))) {
       // Something went wrong with a request that has uploaded files associated to it.
       // In that case we try to remove the files.
       const fileObjects = values(files);
@@ -416,14 +424,14 @@ const _cleanupUploadedFiles = (files, callback) => {
   if (isEmpty(files)) return callback();
 
   const file = files.pop();
-  const hasPathAttribute = file => isDefined(file.path);
+  const hasPathAttribute = (file) => isDefined(file.path);
   if (both(isDefined, hasPathAttribute)(file)) {
-    fs.access(file.path, fs.constants.F_OK, err => {
-      if (isNotDefined(err)) return _cleanupUploadedFiles(files, callback);
+    fs.access(file.path, fs.constants.F_OK, (error) => {
+      if (isNotDefined(error)) return _cleanupUploadedFiles(files, callback);
 
-      fs.unlink(file.path, unlinkErr => {
-        if (unlinkErr) {
-          log().warn({ err: unlinkErr, file }, 'Could not remove the uploaded file.');
+      fs.unlink(file.path, (unlinkError) => {
+        if (unlinkError) {
+          log().warn({ err: unlinkError, file }, 'Could not remove the uploaded file.');
         }
 
         return _cleanupUploadedFiles(files, callback);
@@ -449,8 +457,8 @@ const _cleanupUploadedFiles = (files, callback) => {
  * @param  {Content}        callback.content        The created file
  * @api private
  */
-const _createFile = function(ctx, fileDetails, callback) {
-  callback = defaultTo(function() {}, callback);
+const _createFile = function (ctx, fileDetails, callback) {
+  callback = defaultTo(function () {}, callback);
   const { displayName, description, file, additionalMembers, folders } = fileDetails;
 
   // Setting content to default if no visibility setting is provided
@@ -519,8 +527,8 @@ const _createFile = function(ctx, fileDetails, callback) {
 
   // We store the uploaded file in a location identified by the content id, then further identified by the revision id
   const options = { resourceId: contentId, prefix: revisionId };
-  ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (err, uri) => {
-    if (err) return callback(err);
+  ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (error, uri) => {
+    if (error) return callback(error);
 
     // Create the content and revision object.
     const otherValues = {
@@ -541,8 +549,8 @@ const _createFile = function(ctx, fileDetails, callback) {
       folders,
       otherValues,
       revisionData,
-      (err, content, revision, memberChangeInfo) => {
-        if (err) return callback(err);
+      (error, content, revision, memberChangeInfo) => {
+        if (error) return callback(error);
 
         content.filename = file.name;
         content.size = file.size;
@@ -555,7 +563,7 @@ const _createFile = function(ctx, fileDetails, callback) {
           revision,
           memberChangeInfo,
           folders,
-          errs => {
+          (errs) => {
             if (errs) return callback(head(errs));
 
             return callback(null, content);
@@ -587,8 +595,8 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
 
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);
-  Etherpad.createPad(contentId, (err, ids) => {
-    if (err) return callback(err);
+  Etherpad.createPad(contentId, (error, ids) => {
+    if (error) return callback(error);
 
     _createContent(
       ctx,
@@ -602,8 +610,8 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
       folders,
       ids,
       {},
-      (err, content, revision, memberChangeInfo) => {
-        if (err) return callback(err);
+      (error, content, revision, memberChangeInfo) => {
+        if (error) return callback(error);
 
         content.etherpadPadId = ids.etherpadPadId;
         content.etherpadGroupId = ids.etherpadGroupId;
@@ -615,7 +623,7 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
           revision,
           memberChangeInfo,
           folders,
-          errs => {
+          (errs) => {
             if (errs) return callback(head(errs));
 
             return callback(null, content);
@@ -638,8 +646,8 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
  * @param  {Function} callback                Standard callback function* @param  { Object } callback.err            An error that occurred, if any
  * @param  {Content} callback.content        The created collaborative spreadsheet
  */
-const createCollabSheet = function(ctx, displayName, description, visibility, additionalMembers, folders, callback) {
-  callback = defaultTo(function() {}, callback);
+const createCollabSheet = function (ctx, displayName, description, visibility, additionalMembers, folders, callback) {
+  callback = defaultTo(function () {}, callback);
 
   // Setting content to default if no visibility setting is provided
   visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'collabsheets'), visibility);
@@ -647,8 +655,8 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);
 
-  Ethercalc.createRoom(contentId, function(err, roomId) {
-    if (err) return callback(err);
+  Ethercalc.createRoom(contentId, function (error, roomId) {
+    if (error) return callback(error);
 
     _createContent(
       ctx,
@@ -662,8 +670,8 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
       folders,
       { ethercalcRoomId: roomId },
       {},
-      function(err, content, revision, memberChangeInfo) {
-        if (err) return callback(err);
+      function (error, content, revision, memberChangeInfo) {
+        if (error) return callback(error);
 
         content.ethercalcRoomId = roomId;
 
@@ -674,8 +682,8 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
           revision,
           memberChangeInfo,
           folders,
-          function(err) {
-            if (err) return callback(head(err));
+          function (error) {
+            if (error) return callback(head(error));
 
             return callback(null, content);
           }
@@ -705,7 +713,7 @@ const createCollabSheet = function(ctx, displayName, description, visibility, ad
  * @param  {Revision}       callback.revision   The created revision
  * @api private
  */
-const _createContent = function(
+const _createContent = function (
   ctx,
   contentId,
   revisionId,
@@ -719,7 +727,7 @@ const _createContent = function(
   revisionData,
   callback
 ) {
-  callback = defaultTo(function() {}, callback);
+  callback = defaultTo(function () {}, callback);
 
   // Use an empty description if no description has been provided
   description = defaultTo(emptyString, description);
@@ -770,10 +778,10 @@ const _createContent = function(
       validRoles.push(AuthzConstants.role.EDITOR);
     }
 
-    forEach(role => {
+    forEach((role) => {
       unless(isIn, {
         code: 400,
-        msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+        msg: format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
       })(role, validRoles);
     }, roles);
   } catch (error) {
@@ -781,8 +789,8 @@ const _createContent = function(
   }
 
   // Ensure the specified folders exist and can be managed by the current user
-  canManageFolders(ctx, folderIds, (err, folders) => {
-    if (err) return callback(err);
+  canManageFolders(ctx, folderIds, (error, folders) => {
+    if (error) return callback(error);
 
     // The current user always becomes a manager
     roles[ctx.user().id] = AuthzConstants.role.MANAGER;
@@ -799,12 +807,13 @@ const _createContent = function(
       otherValues,
       revisionData
     ]);
-    ResourceActions.create(ctx, roles, createFn, (err, content, revision, memberChangeInfo) => {
-      if (err) return callback(err);
+    ResourceActions.create(ctx, roles, createFn, (error, content, revision, memberChangeInfo) => {
+      if (error) return callback(error);
 
       // Add the content item to the specified folders, if any
-      _addContentItemToFolders(ctx, content, folders, err => {
-        if (err) log().warn({ err, contentId: content.id, folders }, 'Could not add a content item to a folder');
+      _addContentItemToFolders(ctx, content, folders, (error_) => {
+        if (error_)
+          log().warn({ err: error_, contentId: content.id, folders }, 'Could not add a content item to a folder');
 
         return callback(null, content, revision, memberChangeInfo);
       });
@@ -827,7 +836,7 @@ const canManageFolders = (ctx, folderIds, callback) => {
   if (isEmpty(folderIds)) return callback(null, []);
 
   try {
-    forEach(folderId => {
+    forEach((folderId) => {
       // Validate the folder id
       unless(isResourceId, {
         code: 400,
@@ -838,16 +847,16 @@ const canManageFolders = (ctx, folderIds, callback) => {
     return callback(error);
   }
 
-  getFoldersByIds(folderIds, (err, folders) => {
-    if (err) return callback(err);
+  getFoldersByIds(folderIds, (error, folders) => {
+    if (error) return callback(error);
 
     if (isDifferent(folders.length, folderIds.length)) {
       return callback({ code: 400, msg: 'One or more folders do not exist' });
     }
 
     // Ensure that the user can manage all the folder items
-    _canManageAllFolders(ctx, folders.slice(), err => {
-      if (err) return callback(err);
+    _canManageAllFolders(ctx, folders.slice(), (error_) => {
+      if (error_) return callback(error_);
 
       return callback(null, folders);
     });
@@ -864,14 +873,14 @@ const canManageFolders = (ctx, folderIds, callback) => {
  * @param  {Object}         callback.err    An error object, if any
  * @api private
  */
-const _canManageAllFolders = function(ctx, folders, callback) {
+const _canManageAllFolders = function (ctx, folders, callback) {
   if (isEmpty(folders)) return callback();
 
   // We have to require the FoldersAuthz module inline
   // as we'd get a dependency cycle otherwise
   const folder = folders.pop();
-  AuthzPermissions.canManage(ctx, folder, err => {
-    if (err) return callback(err);
+  AuthzPermissions.canManage(ctx, folder, (error) => {
+    if (error) return callback(error);
 
     return _canManageAllFolders(ctx, folders, callback);
   });
@@ -888,14 +897,14 @@ const _canManageAllFolders = function(ctx, folders, callback) {
  * @param  {Object}         callback.err        An error object, if any
  * @api private
  */
-const _addContentItemToFolders = function(ctx, content, folders, callback) {
+const _addContentItemToFolders = function (ctx, content, folders, callback) {
   if (isEmpty(folders)) return callback();
 
   // We have to require the FoldersAPI inline
   // as we'd get a dependency cycle otherwise
   const folder = folders.pop();
-  require('oae-folders')._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], err => {
-    if (err) return callback(err);
+  require('oae-folders')._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], (error) => {
+    if (error) return callback(error);
 
     _addContentItemToFolders(ctx, content, folders, callback);
   });
@@ -926,29 +935,29 @@ const _addContentItemToFolders = function(ctx, content, folders, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const handlePublish = function(data, callback) {
-  callback = defaultTo(err => {
-    if (err) log().error({ err, data }, 'Error handling etherpad edit');
+const handlePublish = function (data, callback) {
+  callback = defaultTo((error) => {
+    if (error) log().error({ err: error, data }, 'Error handling etherpad edit');
   }, callback);
 
   log().trace({ data }, 'Got an etherpad edit');
 
-  PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getPrincipal(data.userId, (error, user) => {
+    if (error) return callback(error);
 
     const ctx = new Context(user.tenant, user);
 
-    ContentDAO.Content.getContent(data.contentId, (err, contentObj) => {
-      if (err) return callback(err);
+    ContentDAO.Content.getContent(data.contentId, (error, contentObject) => {
+      if (error) return callback(error);
 
       // Get the latest html from etherpad
-      Etherpad.getHTML(contentObj.id, contentObj.etherpadPadId, (err, currentHtmlContent) => {
-        if (err) return callback(err);
+      Etherpad.getHTML(contentObject.id, contentObject.etherpadPadId, (error, currentHtmlContent) => {
+        if (error) return callback(error);
 
         // Get the latest OAE revision and compare the html that in Etherpad.
         // We only need to create a new revision if there is an actual update
-        ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, (err, latestRevision) => {
-          if (err) return callback(err);
+        ContentDAO.Revisions.getRevision(contentObject.latestRevisionId, (error, latestRevision) => {
+          if (error) return callback(error);
 
           const extractContents = path(toArray('etherpadHtml'));
           const equalsCurrentContents = curry(Etherpad.isContentEqual)(currentHtmlContent);
@@ -966,21 +975,21 @@ const handlePublish = function(data, callback) {
            * for this user as well
            */
           if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
-            emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObj);
+            emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObject);
             return callback();
           }
 
           // Otherwise we create a new revision
-          const newRevisionId = _generateRevisionId(contentObj.id);
+          const newRevisionId = _generateRevisionId(contentObject.id);
           ContentDAO.Revisions.createRevision(
             newRevisionId,
-            contentObj.id,
+            contentObject.id,
             data.userId,
             { etherpadHtml: currentHtmlContent },
-            (err, revision) => {
-              if (err) {
+            (error, revision) => {
+              if (error) {
                 log().error(
-                  { err, contentId: contentObj.id },
+                  { err: error, contentId: contentObject.id },
                   'Could not create a revision for this collaborative document'
                 );
                 return callback({
@@ -992,13 +1001,13 @@ const handlePublish = function(data, callback) {
               // Update the content so we can easily retrieve it.
               // This will also bump the collab doc to the top of the library lists
               ContentDAO.Content.updateContent(
-                contentObj,
+                contentObject,
                 { latestRevisionId: revision.revisionId },
                 true,
-                (err, newContentObj) => {
-                  if (err) {
+                (error, newContentObject) => {
+                  if (error) {
                     log().error(
-                      { err, contentId: contentObj.id },
+                      { err: error, contentId: contentObject.id },
                       'Could not update the main Content CF this collaborative document'
                     );
                     return callback({
@@ -1009,10 +1018,16 @@ const handlePublish = function(data, callback) {
 
                   // Add the revision on the content object so the UI doesn't have to
                   // do another request to get the HTML
-                  newContentObj.latestRevision = revision;
+                  newContentObject.latestRevision = revision;
 
                   // Emit an event for activities and preview processing
-                  emitter.emit(ContentConstants.events.UPDATED_CONTENT_BODY, ctx, newContentObj, contentObj, revision);
+                  emitter.emit(
+                    ContentConstants.events.UPDATED_CONTENT_BODY,
+                    ctx,
+                    newContentObject,
+                    contentObject,
+                    revision
+                  );
                   return callback();
                 }
               );
@@ -1045,35 +1060,35 @@ const handlePublish = function(data, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const ethercalcPublish = function(data, callback) {
-  callback = defaultTo(err => {
-    if (err) log().error({ err, data }, 'Error handling ethercalc edit');
+const ethercalcPublish = function (data, callback) {
+  callback = defaultTo((error) => {
+    if (error) log().error({ err: error, data }, 'Error handling ethercalc edit');
   }, callback);
 
-  ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, (err, hasEdited) => {
-    if (err) return callback(err);
+  ContentDAO.Ethercalc.hasUserEditedSpreadsheet(data.contentId, data.userId, (error, hasEdited) => {
+    if (error) return callback(error);
 
     // No edits have been made
     if (not(hasEdited)) return callback();
 
     log().trace({ data }, 'Got an ethercalc edit');
-    ContentDAO.Content.getContent(data.contentId, (err, contentObj) => {
-      if (err) return callback(err);
+    ContentDAO.Content.getContent(data.contentId, (error, contentObject) => {
+      if (error) return callback(error);
 
-      const roomId = contentObj.ethercalcRoomId;
-      PrincipalsDAO.getPrincipal(data.userId, (err, principal) => {
-        if (err) return callback(err);
+      const roomId = contentObject.ethercalcRoomId;
+      PrincipalsDAO.getPrincipal(data.userId, (error, principal) => {
+        if (error) return callback(error);
 
         const ctx = Context.fromUser(principal);
-        Ethercalc.getHTML(roomId, (err, currentHtmlContent) => {
-          if (err) return callback(err);
+        Ethercalc.getHTML(roomId, (error, currentHtmlContent) => {
+          if (error) return callback(error);
 
           /**
            * Get the latest OAE revision and compare the html to what's in Ethercalc.
            * We only need to create a new revision if there is an actual update
            */
-          ContentDAO.Revisions.getRevision(contentObj.latestRevisionId, (err, latestRevision) => {
-            if (err) return callback(err);
+          ContentDAO.Revisions.getRevision(contentObject.latestRevisionId, (error, latestRevision) => {
+            if (error) return callback(error);
 
             const extractContents = path(toArray('ethercalcHtml'));
             const equalsCurrentContents = curry(Ethercalc.isContentEqual)(currentHtmlContent);
@@ -1083,29 +1098,29 @@ const ethercalcPublish = function(data, callback) {
             const hasNoPreviousRevisions = both(compose(not, isDefined, extractContents), isItCurrentlyEmpty);
 
             if (either(hasNotChangedContent, hasNoPreviousRevisions)(latestRevision)) {
-              emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObj);
+              emitter.emit(ContentConstants.events.EDITED_COLLABDOC, ctx, contentObject);
               return callback();
             }
 
             // Otherwise we create a new revision
-            const newRevisionId = _generateRevisionId(contentObj.id);
-            Ethercalc.getRoom(roomId, (err, snapshot) => {
-              if (err) return callback(err);
+            const newRevisionId = _generateRevisionId(contentObject.id);
+            Ethercalc.getRoom(roomId, (error, snapshot) => {
+              if (error) return callback(error);
 
               ContentDAO.Revisions.createRevision(
                 newRevisionId,
-                contentObj.id,
+                contentObject.id,
                 data.userId,
                 {
                   ethercalcHtml: currentHtmlContent,
                   ethercalcSnapshot: snapshot
                 },
-                (err, revision) => {
-                  if (err) {
+                (error, revision) => {
+                  if (error) {
                     log().error(
                       {
-                        err,
-                        contentId: contentObj.id
+                        err: error,
+                        contentId: contentObject.id
                       },
                       'Could not create a revision for this collaborative spreadsheet'
                     );
@@ -1116,12 +1131,12 @@ const ethercalcPublish = function(data, callback) {
                   }
 
                   // eslint-disable-next-line no-unused-vars
-                  Ethercalc.getRoom(roomId, (err, snapshot) => {
-                    if (err) {
+                  Ethercalc.getRoom(roomId, (error, snapshot) => {
+                    if (error) {
                       log().error(
                         {
-                          err,
-                          contentId: contentObj.id
+                          err: error,
+                          contentId: contentObject.id
                         },
                         'Failed to fetch Ethercalc snapshot for this collaborative spreadsheet'
                       );
@@ -1134,17 +1149,17 @@ const ethercalcPublish = function(data, callback) {
                     // Update the content so we can easily retrieve it.
                     // This will also bump the collabsheet to the top of the library lists
                     ContentDAO.Content.updateContent(
-                      contentObj,
+                      contentObject,
                       {
                         latestRevisionId: revision.revisionId
                       },
                       true,
-                      (err, newContentObj) => {
-                        if (err) {
+                      (error, newContentObject) => {
+                        if (error) {
                           log().error(
                             {
-                              err,
-                              contentId: contentObj.id
+                              err: error,
+                              contentId: contentObject.id
                             },
                             'Could not update the main content this collaborative spreadsheet'
                           );
@@ -1155,14 +1170,14 @@ const ethercalcPublish = function(data, callback) {
                         }
 
                         // Add the revision on the content object so the UI doesn't have to do another request to get the HTML
-                        newContentObj.latestRevision = revision;
+                        newContentObject.latestRevision = revision;
 
                         // Emit an event for activities and preview processing
                         emitter.emit(
                           ContentConstants.events.UPDATED_CONTENT_BODY,
                           ctx,
-                          newContentObj,
-                          contentObj,
+                          newContentObject,
+                          contentObject,
                           revision
                         );
                         return callback();
@@ -1201,23 +1216,23 @@ const joinCollabDoc = (ctx, contentId, callback) => {
   }
 
   // Check if we have access to this piece of content.
-  _canEdit(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  _canEdit(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
-    if (ContentUtils.isResourceACollabDoc(contentObj.resourceSubType)) {
+    if (ContentUtils.isResourceACollabDoc(contentObject.resourceSubType)) {
       // Join the pad
-      Etherpad.joinPad(ctx, contentObj, (err, data) => {
-        if (err) return callback(err);
+      Etherpad.joinPad(ctx, contentObject, (error, data) => {
+        if (error) return callback(error);
 
-        ContentDAO.Etherpad.saveAuthorId(data.author.authorID, ctx.user().id, err => {
-          if (err) return callback(err);
+        ContentDAO.Etherpad.saveAuthorId(data.author.authorID, ctx.user().id, (error_) => {
+          if (error_) return callback(error_);
 
           return callback(null, { url: data.url });
         });
       });
-    } else if (ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)) {
-      Ethercalc.joinRoom(ctx, contentObj, function(err, data) {
-        if (err) return callback(err);
+    } else if (ContentUtils.isResourceACollabSheet(contentObject.resourceSubType)) {
+      Ethercalc.joinRoom(ctx, contentObject, function (error, data) {
+        if (error) return callback(error);
 
         callback(null, data);
       });
@@ -1257,31 +1272,31 @@ const deleteContent = (ctx, contentId, callback) => {
     return callback(error);
   }
 
-  const done = (ctx, contentObj, members, callback) => {
-    emitter.emit(ContentConstants.events.DELETED_CONTENT, ctx, contentObj, members, err => {
-      if (err) return callback(head(err));
+  const done = (ctx, contentObject, members, callback) => {
+    emitter.emit(ContentConstants.events.DELETED_CONTENT, ctx, contentObject, members, (error) => {
+      if (error) return callback(head(error));
 
       return callback();
     });
   };
 
   // Fist check whether or not the current user is a manager of the piece of content
-  _canManage(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  _canManage(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
     // Delete the content
-    ContentDAO.Content.deleteContent(contentObj, (err, members) => {
-      if (err) return callback(err);
+    ContentDAO.Content.deleteContent(contentObject, (error, members) => {
+      if (error) return callback(error);
 
-      if (ContentUtils.isResourceACollabSheet(contentObj.resourceSubType)) {
-        Ethercalc.deleteRoom(contentObj.ethercalcRoomId, err => {
-          if (err) return callback(err);
+      if (ContentUtils.isResourceACollabSheet(contentObject.resourceSubType)) {
+        Ethercalc.deleteRoom(contentObject.ethercalcRoomId, (error_) => {
+          if (error_) return callback(error_);
 
           log().info({ contentId }, 'Deleted an Ethercalc room');
-          done(ctx, contentObj, members, callback);
+          done(ctx, contentObject, members, callback);
         });
       } else {
-        done(ctx, contentObj, members, callback);
+        done(ctx, contentObject, members, callback);
       }
     });
   });
@@ -1302,7 +1317,7 @@ const deleteContent = (ctx, contentId, callback) => {
  * @param  {Function}  callback          Standard callback function
  * @param  {Object}    callback.err      An error that occurred, if any
  */
-const shareContent = function(ctx, contentId, principalIds, callback) {
+const shareContent = function (ctx, contentId, principalIds, callback) {
   // Parameter validation
   try {
     unless(isResourceId, {
@@ -1319,14 +1334,14 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
   }
 
   // Check if the content item exists
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
-    ResourceActions.share(ctx, content, principalIds, AuthzConstants.role.VIEWER, (err, memberChangeInfo) => {
-      if (err) return callback(err);
+    ResourceActions.share(ctx, content, principalIds, AuthzConstants.role.VIEWER, (error, memberChangeInfo) => {
+      if (error) return callback(error);
       if (isEmpty(memberChangeInfo.changes)) return callback();
 
-      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, (errs) => {
         if (errs) return callback(head(errs));
 
         return callback();
@@ -1345,12 +1360,12 @@ const shareContent = function(ctx, contentId, principalIds, callback) {
  * @param  {Content}        callback.content    The basic profile of the content item
  * @api private
  */
-const _canManage = function(ctx, contentId, callback) {
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+const _canManage = function (ctx, contentId, callback) {
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
-    AuthzPermissions.canManage(ctx, content, err => {
-      if (err) return callback(err);
+    AuthzPermissions.canManage(ctx, content, (error_) => {
+      if (error_) return callback(error_);
 
       ContentUtil.augmentContent(ctx, content);
       return callback(null, content);
@@ -1367,12 +1382,12 @@ const _canManage = function(ctx, contentId, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Content}        callback.content    The basic profile of the content item
  */
-const _canEdit = function(ctx, contentId, callback) {
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+const _canEdit = function (ctx, contentId, callback) {
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
-    AuthzPermissions.canEdit(ctx, content, err => {
-      if (err) return callback(err);
+    AuthzPermissions.canEdit(ctx, content, (error_) => {
+      if (error_) return callback(error_);
 
       return callback(null, content);
     });
@@ -1388,7 +1403,7 @@ const _canEdit = function(ctx, contentId, callback) {
  * @param  {Function}        callback       Standard callback function
  * @param  {Object}          callback.err   An error that occurred, if any
  */
-const setContentPermissions = function(ctx, contentId, changes, callback) {
+const setContentPermissions = function (ctx, contentId, changes, callback) {
   // Parameter validation
   try {
     unless(isLoggedInUser, {
@@ -1405,8 +1420,8 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
   }
 
   // Check if the content exists
-  getContent(ctx, contentId, (err, content) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, content) => {
+    if (error) return callback(error);
 
     // Ensure all roles applied are valid. Editor is only valid for collabdocs and collabsheets
     const validRoles = [AuthzConstants.role.VIEWER, AuthzConstants.role.MANAGER];
@@ -1420,18 +1435,18 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
         const roleAintFalse = not(equals(role, false));
         unless(bothCheck(roleAintFalse, isOneOfValidRoles), {
           code: 400,
-          msg: util.format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
+          msg: format('Invalid role "%s" specified. Must be one of %s', role, validRoles.join(', '))
         })(role);
       }, changes);
     } catch (error) {
       return callback(error);
     }
 
-    ResourceActions.setRoles(ctx, content, changes, (err, memberChangeInfo) => {
-      if (err) return callback(err);
+    ResourceActions.setRoles(ctx, content, changes, (error, memberChangeInfo) => {
+      if (error) return callback(error);
       if (isEmpty(memberChangeInfo.changes)) return callback();
 
-      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+      emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, (errs) => {
         if (errs) return callback(head(errs));
 
         return callback();
@@ -1452,7 +1467,7 @@ const setContentPermissions = function(ctx, contentId, changes, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callback) {
+const removeContentFromLibrary = function (ctx, libraryOwnerId, contentId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1473,22 +1488,22 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
   }
 
   // Make sure the content exists
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
     // Ensure the library owner exists
-    PrincipalsDAO.getPrincipal(libraryOwnerId, (err, libraryOwner) => {
-      if (err) return callback(err);
+    PrincipalsDAO.getPrincipal(libraryOwnerId, (error, libraryOwner) => {
+      if (error) return callback(error);
 
       // Ensure the user can remove the content item from the library owner's resource
-      AuthzPermissions.canRemoveRole(ctx, libraryOwner, content, (err, memberChangeInfo) => {
-        if (err) return callback(err);
+      AuthzPermissions.canRemoveRole(ctx, libraryOwner, content, (error, memberChangeInfo) => {
+        if (error) return callback(error);
 
         // All validation checks have passed, finally persist the role change and update the user library
-        AuthzAPI.updateRoles(contentId, memberChangeInfo.changes, err => {
-          if (err) return callback(err);
+        AuthzAPI.updateRoles(contentId, memberChangeInfo.changes, (error_) => {
+          if (error_) return callback(error_);
 
-          emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, errs => {
+          emitter.emit(ContentConstants.events.UPDATED_CONTENT_MEMBERS, ctx, content, memberChangeInfo, {}, (errs) => {
             if (errs) return callback(head(errs));
 
             return callback();
@@ -1511,7 +1526,7 @@ const removeContentFromLibrary = function(ctx, libraryOwnerId, contentId, callba
  * @param  {Object[]}       callback.members    Array that contains an object for each member. Each object has a role property that contains the role of the member and a profile property that contains the principal profile of the member
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getContentMembersLibrary = function(ctx, contentId, start, limit, callback) {
+const getContentMembersLibrary = function (ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1528,12 +1543,12 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
     return callback(error);
   }
 
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
     // Determine if and how the current user should access the content members library
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, content.id, content, (err, hasAccess, visibility) => {
-      if (err) return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, content.id, content, (error, hasAccess, visibility) => {
+      if (error) return callback(error);
 
       if (not(hasAccess)) {
         return callback({
@@ -1543,20 +1558,20 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
       }
 
       // Get the members of the content item from the members library
-      ContentMembersLibrary.list(content, visibility, { start, limit }, (err, memberIds, nextToken) => {
-        if (err) return callback(err);
+      ContentMembersLibrary.list(content, visibility, { start, limit }, (error, memberIds, nextToken) => {
+        if (error) return callback(error);
         if (isEmpty(memberIds)) return callback(null, [], nextToken);
 
         // Get the roles of the members on the content item
-        AuthzAPI.getDirectRoles(memberIds, content.id, (err, memberRoles) => {
-          if (err) return callback(err);
+        AuthzAPI.getDirectRoles(memberIds, content.id, (error, memberRoles) => {
+          if (error) return callback(error);
 
           // Get the member profiles
-          PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-            if (err) return callback(err);
+          PrincipalsUtil.getPrincipals(ctx, memberIds, (error, memberProfiles) => {
+            if (error) return callback(error);
 
             const memberList = pipe(
-              map(memberId => {
+              map((memberId) => {
                 const memberProfile = memberProfiles[memberId];
                 const memberRole = memberRoles[memberId];
                 if (and(memberProfile, memberRole)) {
@@ -1588,7 +1603,7 @@ const getContentMembersLibrary = function(ctx, contentId, start, limit, callback
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
-const getContentInvitations = function(ctx, contentId, callback) {
+const getContentInvitations = function (ctx, contentId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -1598,9 +1613,9 @@ const getContentInvitations = function(ctx, contentId, callback) {
     return callback(error);
   }
 
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) {
-      return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) {
+      return callback(error);
     }
 
     return AuthzInvitations.getAllInvitations(ctx, content, callback);
@@ -1616,7 +1631,7 @@ const getContentInvitations = function(ctx, contentId, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const resendContentInvitation = function(ctx, contentId, email, callback) {
+const resendContentInvitation = function (ctx, contentId, email, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -1626,8 +1641,8 @@ const resendContentInvitation = function(ctx, contentId, email, callback) {
     return callback(error);
   }
 
-  ContentDAO.Content.getContent(contentId, (err, content) => {
-    if (err) return callback(err);
+  ContentDAO.Content.getContent(contentId, (error, content) => {
+    if (error) return callback(error);
 
     return ResourceActions.resendInvitation(ctx, content, email, callback);
   });
@@ -1647,9 +1662,9 @@ const resendContentInvitation = function(ctx, contentId, email, callback) {
  * @param  {Object}     [callback.err]      An error that occurred, if any
  * @param  {Content}    [callback.content]  The updated content item
  */
-const updateFileBody = function(ctx, contentId, file, callback) {
-  callback = defaultTo(function(err) {
-    if (err) log().error({ err }, 'Error updating the filebody for %s', contentId);
+const updateFileBody = function (ctx, contentId, file, callback) {
+  callback = defaultTo(function (error) {
+    if (error) log().error({ err: error }, 'Error updating the filebody for %s', contentId);
   }, callback);
 
   // Wrap the callback function into a function that cleans up the file in case something went wrong
@@ -1670,7 +1685,7 @@ const updateFileBody = function(ctx, contentId, file, callback) {
  * @param  {Content}    [callback.content]  The updated content item
  * @api private
  */
-const _updateFileBody = function(ctx, contentId, file, callback) {
+const _updateFileBody = function (ctx, contentId, file, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1711,10 +1726,10 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     return callback(error);
   }
 
-  _canManage(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  _canManage(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
-    if (isDifferent(contentObj.resourceSubType, 'file')) {
+    if (isDifferent(contentObject.resourceSubType, 'file')) {
       return callback({ code: 400, msg: 'This content object is not a file.' });
     }
 
@@ -1728,34 +1743,40 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
     file.type = mime.getType(file.name);
 
     // Store the file, using the current time as the folder name
-    const options = { resourceId: contentObj.id, prefix: revisionId };
-    ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (err, uri) => {
-      if (err) return callback(err);
+    const options = { resourceId: contentObject.id, prefix: revisionId };
+    ContentUtil.getStorageBackend(ctx).store(ctx.tenant().alias, file, options, (error, uri) => {
+      if (error) return callback(error);
 
       // Create the revision
-      const opts = {
+      const options_ = {
         mime: file.type,
         size: file.size.toString(),
         filename: file.name,
         uri
       };
 
-      ContentDAO.Revisions.createRevision(revisionId, contentObj.id, ctx.user().id, opts, (err, revision) => {
-        if (err) return callback(err);
+      ContentDAO.Revisions.createRevision(revisionId, contentObject.id, ctx.user().id, options_, (error_, revision) => {
+        if (error_) return callback(error_);
 
         // Set the new filesize, filename and mimetype on the Content object so the UI
         // can retrieve all the relevant metadata in 1 Cassandra query
-        opts.latestRevisionId = revision.revisionId;
+        options_.latestRevisionId = revision.revisionId;
 
         // We have to set the previews status back to pending
-        opts.previews = { status: ContentConstants.previews.PENDING };
-        ContentDAO.Content.updateContent(contentObj, opts, true, (err, updatedContentObj) => {
-          if (err) return callback(err);
+        options_.previews = { status: ContentConstants.previews.PENDING };
+        ContentDAO.Content.updateContent(contentObject, options_, true, (error, updatedContentObject) => {
+          if (error) return callback(error);
 
-          emitter.emit(ContentConstants.events.UPDATED_CONTENT_BODY, ctx, updatedContentObj, contentObj, revision);
+          emitter.emit(
+            ContentConstants.events.UPDATED_CONTENT_BODY,
+            ctx,
+            updatedContentObject,
+            contentObject,
+            revision
+          );
 
           // Output a full content profile
-          return _getFullContentProfile(ctx, updatedContentObj, true, callback);
+          return _getFullContentProfile(ctx, updatedContentObject, true, callback);
         });
       });
     });
@@ -1777,7 +1798,7 @@ const _updateFileBody = function(ctx, contentId, file, callback) {
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any
  */
-const setPreviewItems = function(
+const setPreviewItems = function (
   ctx,
   contentId,
   revisionId,
@@ -1816,13 +1837,13 @@ const setPreviewItems = function(
     return callback(error);
   }
 
-  ContentDAO.Content.getContent(contentId, (err, contentObj) => {
-    if (err) return cleanUpCallback(err);
+  ContentDAO.Content.getContent(contentId, (error, contentObject) => {
+    if (error) return cleanUpCallback(error);
 
     // Ensure the user is an administrator of the content item's tenant before continuing further
     if (
       isNotDefined(ctx.user()) ||
-      isNotDefined(or(ctx.user().isGlobalAdmin(), ctx.user().isTenantAdmin(contentObj.tenant.alias)))
+      isNotDefined(or(ctx.user().isGlobalAdmin(), ctx.user().isTenantAdmin(contentObject.tenant.alias)))
     ) {
       return cleanUpCallback({
         code: 401,
@@ -1830,8 +1851,8 @@ const setPreviewItems = function(
       });
     }
 
-    ContentDAO.Revisions.getRevision(revisionId, (err, revision) => {
-      if (err) return cleanUpCallback(err);
+    ContentDAO.Revisions.getRevision(revisionId, (error, revision) => {
+      if (error) return cleanUpCallback(error);
 
       // Ensure that the revision supplied is a revision of the specified content item
       try {
@@ -1853,16 +1874,16 @@ const setPreviewItems = function(
       if (or(equals(status, ContentConstants.previews.ERROR), isZero(todo))) {
         // Preview generation failed or no files were uploaded, store that information in the database
         return ContentDAO.Previews.storeMetadata(
-          contentObj,
+          contentObject,
           revisionId,
           status,
           thumbnailUri,
           contentMetadata,
           previewMetadata,
           fileData,
-          err => {
-            emitter.emit(ContentConstants.events.UPDATED_CONTENT_PREVIEW, contentObj);
-            return callback(err);
+          (error_) => {
+            emitter.emit(ContentConstants.events.UPDATED_CONTENT_PREVIEW, contentObject);
+            return callback(error_);
           }
         );
       }
@@ -1879,7 +1900,7 @@ const setPreviewItems = function(
        *
        * @param  {Object}     err     An error that occurred, if any
        */
-      const _finishIteration = function(err) {
+      const _finishIteration = function (error) {
         // If we have already called back (e.g., because of an error), ignore this invokation
         if (called) return;
 
@@ -1887,9 +1908,9 @@ const setPreviewItems = function(
         todo--;
 
         // If we had an error, exit immediately
-        if (err) {
+        if (error) {
           called = true;
-          return cleanUpCallback(err);
+          return cleanUpCallback(error);
         }
 
         if (and(isZero(todo), not(called))) {
@@ -1897,18 +1918,18 @@ const setPreviewItems = function(
           called = true;
           log().trace({ data: fileData }, 'Storing %d content preview files', fileKeys.length);
           ContentDAO.Previews.storeMetadata(
-            contentObj,
+            contentObject,
             revisionId,
             status,
             thumbnailUri,
             contentMetadata,
             previewMetadata,
             fileData,
-            err => {
-              if (err) return callback(err);
+            (error_) => {
+              if (error_) return callback(error_);
 
               // Indicate that we've just updated a preview
-              emitter.emit(ContentConstants.events.UPDATED_CONTENT_PREVIEW, contentObj);
+              emitter.emit(ContentConstants.events.UPDATED_CONTENT_PREVIEW, contentObject);
 
               return callback();
             }
@@ -1917,7 +1938,7 @@ const setPreviewItems = function(
       };
 
       // Iterate each preview item, store it and record it in the `previewMetadata` hash
-      fileKeys.forEach(key => {
+      fileKeys.forEach((key) => {
         const size = sizes[key];
         if (isNotDefined(size)) {
           todo--;
@@ -1926,9 +1947,9 @@ const setPreviewItems = function(
         }
 
         // Store the file with a regular storage backend
-        const options = { resourceId: contentObj.id, prefix: storePrefix };
-        _storePreview(ctx, files[key], options, (err, uri) => {
-          if (err) return _finishIteration(err);
+        const options = { resourceId: contentObject.id, prefix: storePrefix };
+        _storePreview(ctx, files[key], options, (error, uri) => {
+          if (error) return _finishIteration(error);
 
           // Remember the thumbnail uri separately so we can stick it on the main content object
           const sizeIs = equals(size);
@@ -1971,7 +1992,7 @@ const setPreviewItems = function(
  * @param  {String}             callback.downloadInfo.filename  The filename to suggest to the client for the download
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the preview
  */
-const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previewItem, signatureData, callback) {
+const getSignedPreviewDownloadInfo = function (ctx, contentId, revisionId, previewItem, signatureData, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -1999,8 +2020,8 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
     return callback({ code: 401, msg: 'Invalid content signature data for accessing previews' });
   }
 
-  ContentDAO.Previews.getContentPreview(revisionId, previewItem, (err, preview) => {
-    if (err) return callback(err);
+  ContentDAO.Previews.getContentPreview(revisionId, previewItem, (error, preview) => {
+    if (error) return callback(error);
 
     const downloadStrategy = ContentUtil.getStorageBackend(ctx, preview.uri).getDownloadStrategy(
       ctx.tenant().alias,
@@ -2021,11 +2042,11 @@ const getSignedPreviewDownloadInfo = function(ctx, contentId, revisionId, previe
  * @param  {Object}      callback.results    Object with a key `files` that holds an array of strings that are the filenames for previews and a key `signature` which holds the signature and expires parameters that should be sent when retrieving the preview bodies.
  */
 const getPreviewItems = (ctx, contentId, revisionId, callback) => {
-  getContent(ctx, contentId, (err, content) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, content) => {
+    if (error) return callback(error);
 
-    ContentDAO.Previews.getContentPreviews(revisionId, (err, previews) => {
-      if (err) return callback(err);
+    ContentDAO.Previews.getContentPreviews(revisionId, (error, previews) => {
+      if (error) return callback(error);
 
       // Generate an expiring signature
       const signature = Signature.createExpiringResourceSignature(ctx, content.id);
@@ -2049,7 +2070,7 @@ const getPreviewItems = (ctx, contentId, revisionId, callback) => {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Content}        callback.newContentObj  The updated content item
  */
-const updateContentMetadata = function(ctx, contentId, profileFields, callback) {
+const updateContentMetadata = function (ctx, contentId, profileFields, callback) {
   callback = defaultTo(() => {}, callback);
 
   const fieldNames = isDefined(profileFields) ? keys(profileFields) : emptyArray;
@@ -2066,7 +2087,7 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
       msg: 'You should at least specify a new displayName, description, visibility or link'
     })(fieldNames);
 
-    fieldNames.forEach(fieldName => {
+    fieldNames.forEach((fieldName) => {
       unless(isIn, {
         code: 400,
         msg: fieldName + ' is not a recognized content profile field'
@@ -2113,27 +2134,27 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
   }
 
   // First check whether or not the current user is a manager of the piece of content
-  _canManage(ctx, contentId, (err, oldContentObj) => {
-    if (err) return callback(err);
+  _canManage(ctx, contentId, (error, oldContentObject) => {
+    if (error) return callback(error);
 
     if (isDefined(profileFields.link)) {
-      if (isDifferent(oldContentObj.resourceSubType, 'link')) {
+      if (isDifferent(oldContentObject.resourceSubType, 'link')) {
         return callback({ code: 400, msg: 'This piece of content is not a link' });
       }
 
-      if (isDifferent(profileFields.link, oldContentObj.link)) {
+      if (isDifferent(profileFields.link, oldContentObject.link)) {
         // Reset the previews object so we don't show the old preview items while the new link is still being processed
         profileFields.previews = { status: ContentConstants.previews.PENDING };
       }
     }
 
-    ContentDAO.Content.updateContent(oldContentObj, profileFields, true, (err, newContentObj) => {
-      if (err) return callback(err);
+    ContentDAO.Content.updateContent(oldContentObject, profileFields, true, (error, newContentObject) => {
+      if (error) return callback(error);
 
-      emitter.emit(ContentConstants.events.UPDATED_CONTENT, ctx, newContentObj, oldContentObj);
+      emitter.emit(ContentConstants.events.UPDATED_CONTENT, ctx, newContentObject, oldContentObject);
 
       // Add the isManager, createdBy, .. properties.
-      _getFullContentProfile(ctx, newContentObj, true, callback);
+      _getFullContentProfile(ctx, newContentObject, true, callback);
     });
   });
 };
@@ -2156,8 +2177,8 @@ const updateContentMetadata = function(ctx, contentId, profileFields, callback) 
  * @param  {Object}     [callback.err]              An error that occurred, if any
  * @param  {Comment}    [callback.comment]          The created comment
  */
-const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, callback) {
-  callback = defaultTo(function() {}, callback);
+const createComment = function (ctx, contentId, body, replyToCreatedTimestamp, callback) {
+  callback = defaultTo(function () {}, callback);
 
   // Parameter validation
   try {
@@ -2190,23 +2211,23 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
   }
 
   // Verify the user has access to the content object
-  getContent(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
     MessageBoxAPI.createMessage(
       contentId,
       ctx.user().id,
       body,
       { replyToCreated: replyToCreatedTimestamp },
-      (err, message) => {
-        if (err) return callback(err);
+      (error, message) => {
+        if (error) return callback(error);
 
         // Get a UI-appropriate representation of the current user
-        PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (err, createdBy) => {
-          if (err) return callback(err);
+        PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (error, createdBy) => {
+          if (error) return callback(error);
 
           message.createdBy = createdBy;
-          emitter.emit(ContentConstants.events.CREATED_COMMENT, ctx, message, contentObj);
+          emitter.emit(ContentConstants.events.CREATED_COMMENT, ctx, message, contentObject);
           return callback(null, message);
         });
       }
@@ -2226,7 +2247,7 @@ const createComment = function(ctx, contentId, body, replyToCreatedTimestamp, ca
  * @param  {Comment[]}  callback.comments    The comments on the content item
  * @param  {String}     callback.nextToken   The value to provide in the `start` parameter to get the next set of results
  */
-const getComments = function(ctx, contentId, start, limit, callback) {
+const getComments = function (ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   // Parameter validation
@@ -2245,27 +2266,27 @@ const getComments = function(ctx, contentId, start, limit, callback) {
   }
 
   // eslint-disable-next-line no-unused-vars
-  getContent(ctx, contentId, (err, contentObj) => {
-    if (err) {
-      return callback(err);
+  getContent(ctx, contentId, (error, contentObject) => {
+    if (error) {
+      return callback(error);
     }
 
-    MessageBoxAPI.getMessagesFromMessageBox(contentId, start, limit, null, (err, comments, nextToken) => {
-      if (err) return callback(err);
+    MessageBoxAPI.getMessagesFromMessageBox(contentId, start, limit, null, (error, comments, nextToken) => {
+      if (error) return callback(error);
 
       // Get information on the commenters
       const userIds = pipe(pluck('createdBy'), filter(isDefined), uniq)(comments);
 
       // Get the basic principal profiles of the commenters to add to the comments as `createdBy`.
-      PrincipalsUtil.getPrincipals(ctx, userIds, (err, principals) => {
-        if (err) return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, userIds, (error, principals) => {
+        if (error) return callback(error);
 
-        forEach(comment => {
+        forEach((comment) => {
           const principal = principals[comment.createdBy];
           if (isDefined(principal)) comment.createdBy = principal;
         }, comments);
 
-        return callback(err, comments, nextToken);
+        return callback(error, comments, nextToken);
       });
     });
   });
@@ -2282,7 +2303,7 @@ const getComments = function(ctx, contentId, start, limit, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Comment}    [callback.softDeleted]  When the comment has been soft deleted (because it has replies), a stripped down comment object representing the deleted comment will be returned, with the `deleted` parameter set to `false`. If the comment has been deleted from Cassandra, no comment object will be returned.
  */
-const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
+const deleteComment = function (ctx, contentId, commentCreatedDate, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -2302,11 +2323,11 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
     return callback(error);
   }
 
-  getContent(ctx, contentId, (err, content) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, content) => {
+    if (error) return callback(error);
 
-    MessageBoxAPI.getMessages(contentId, [commentCreatedDate], null, (err, messages) => {
-      if (err) return callback(err);
+    MessageBoxAPI.getMessages(contentId, [commentCreatedDate], null, (error, messages) => {
+      if (error) return callback(error);
 
       if (or(isEmpty(messages), not(head(messages)))) {
         return callback({ code: 404, msg: 'The specified comment does not exist' });
@@ -2314,8 +2335,8 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
 
       // Ensure the user has access to manage the message
       const message = head(messages);
-      AuthzPermissions.canManageMessage(ctx, content, message, err => {
-        if (err) return callback(err);
+      AuthzPermissions.canManageMessage(ctx, content, message, (error_) => {
+        if (error_) return callback(error_);
 
         return _deleteComment(ctx, content, message, callback);
       });
@@ -2334,15 +2355,15 @@ const deleteComment = function(ctx, contentId, commentCreatedDate, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Message}        [callback.comment]      If the comment was soft-deleted, this will be the model of the scrubbed deleted comment
  */
-const _deleteComment = function(ctx, content, commentToDelete, callback) {
+const _deleteComment = function (ctx, content, commentToDelete, callback) {
   const messageBoxId = content.id;
   // Delete the comment using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
   MessageBoxAPI.deleteMessage(
     messageBoxId,
     commentToDelete.created,
     { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-    (err, deleteType, deletedComment) => {
-      if (err) return callback(err);
+    (error, deleteType, deletedComment) => {
+      if (error) return callback(error);
 
       // If the comment was hard deleted, it is not returned from the delete message endpoint. However if there is a soft delete and
       // it is returned, we want to return the new version of the comment
@@ -2380,7 +2401,7 @@ const _deleteComment = function(ctx, content, commentToDelete, callback) {
  * @param  {Content[]}      callback.content    The content library items for the specified user or group
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getContentLibraryItems = function(ctx, principalId, start, limit, callback) {
+const getContentLibraryItems = function (ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -2398,12 +2419,12 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
   }
 
   // Get the principal
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) return callback(error);
 
     // Determine which library visibility we need to fetch
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
-      if (err) return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (error, hasAccess, visibility) => {
+      if (error) return callback(error);
 
       if (not(hasAccess)) {
         return callback({ code: 401, msg: 'You do not have access to this library' });
@@ -2414,11 +2435,11 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
         visibility,
         start,
         limit,
-        (err, contentObjects, nextToken) => {
-          if (err) return callback(err);
+        (error, contentObjects, nextToken) => {
+          if (error) return callback(error);
 
-          forEachObjIndexed(contentObj => {
-            ContentUtil.augmentContent(ctx, contentObj);
+          forEachObjIndexed((contentObject) => {
+            ContentUtil.augmentContent(ctx, contentObject);
           }, contentObjects);
 
           // Emit an event indicating that the content library has been retrieved
@@ -2455,7 +2476,7 @@ const getContentLibraryItems = function(ctx, principalId, start, limit, callback
  * @param  {Revision[]}     callback.revisions  The revisions for the specified content item
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
-const getRevisions = function(ctx, contentId, start, limit, callback) {
+const getRevisions = function (ctx, contentId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -2473,11 +2494,11 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
   }
 
   // Check if the user has access on this contentId
-  getContent(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
     // All columns except etherpadHtml
-    const opts = {
+    const options = {
       fields: [
         'contentId',
         'created',
@@ -2495,7 +2516,7 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
       ]
     };
 
-    return _getRevisions(ctx, contentObj, start, limit, opts, callback);
+    return _getRevisions(ctx, contentObject, start, limit, options, callback);
   });
 };
 
@@ -2515,23 +2536,23 @@ const getRevisions = function(ctx, contentId, start, limit, callback) {
  * @param  {String}         callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
+const _getRevisions = function (ctx, contentObject, start, limit, options, callback) {
   // Page the query.
-  ContentDAO.Revisions.getRevisions(contentObj.id, start, limit, opts, (err, revisions, nextToken) => {
-    if (err) return callback(err);
+  ContentDAO.Revisions.getRevisions(contentObject.id, start, limit, options, (error, revisions, nextToken) => {
+    if (error) return callback(error);
 
-    const userIds = map(eachRevision => {
+    const userIds = map((eachRevision) => {
       return eachRevision.createdBy;
     }, revisions);
 
-    PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-      if (err) return callback(err);
+    PrincipalsUtil.getPrincipals(ctx, userIds, (error, users) => {
+      if (error) return callback(error);
 
       // Add the user profiles to the revisions.
-      forEach(eachRevision => {
+      forEach((eachRevision) => {
         if (users[eachRevision.createdBy]) {
           eachRevision.createdBy = users[eachRevision.createdBy];
-          _augmentRevision(ctx, eachRevision, contentObj);
+          _augmentRevision(ctx, eachRevision, contentObject);
         }
       }, revisions);
 
@@ -2550,7 +2571,7 @@ const _getRevisions = function(ctx, contentObj, start, limit, opts, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Revision}       callback.revision   The revision
  */
-const getRevision = function(ctx, contentId, revisionId, callback) {
+const getRevision = function (ctx, contentId, revisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -2567,8 +2588,8 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
   }
 
   // Check if the user has access to this content item
-  getContent(ctx, contentId, (err, content) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, content) => {
+    if (error) return callback(error);
 
     // The user has access, get the revision and augment it with a downloadload link
     // if this piece of content is a file
@@ -2588,7 +2609,7 @@ const getRevision = function(ctx, contentId, revisionId, callback) {
  * @param  {String}             callback.downloadInfo.filename  The filename to suggest to the client for the download
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the revision
  */
-const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
+const getRevisionDownloadInfo = function (ctx, contentId, revisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -2604,8 +2625,8 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
   }
 
   // Check if the user has access to this content item
-  getContent(ctx, contentId, (err, content) => {
-    if (err) return callback(err);
+  getContent(ctx, contentId, (error, content) => {
+    if (error) return callback(error);
 
     const isNotFile = compose(not, equals('file'));
     if (isNotFile(content.resourceSubType)) {
@@ -2622,8 +2643,8 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
     }
 
     // Get the revision that the user wishes to download
-    ContentDAO.Revisions.getRevision(revisionId, (err, revision) => {
-      if (err) return callback(err);
+    ContentDAO.Revisions.getRevision(revisionId, (error, revision) => {
+      if (error) return callback(error);
 
       if (isDifferent(content.id, revision.contentId)) {
         // It's possible that the user specified a revision id that belonged to a different content item. Yikes!
@@ -2656,11 +2677,11 @@ const getRevisionDownloadInfo = function(ctx, contentId, revisionId, callback) {
  * @param  {Revision}       callback.revision   The revision
  * @api private
  */
-const _getRevision = function(ctx, contentObj, revisionId, callback) {
+const _getRevision = function (ctx, contentObject, revisionId, callback) {
   if (isDefined(revisionId)) {
-    ContentDAO.Revisions.getRevision(revisionId, (err, revisionObj) => {
-      if (err) {
-        return callback(err);
+    ContentDAO.Revisions.getRevision(revisionId, (error, revisionObject) => {
+      if (error) {
+        return callback(error);
 
         // Double check that this revision is really attached to the specified contentId.
         // This is to counter that someone tries to get the revision of a piece of content he has no access to.
@@ -2668,25 +2689,25 @@ const _getRevision = function(ctx, contentObj, revisionId, callback) {
         // doing getRevision(ctx, 'c:cam:aliceDoc', 'rev:cam:foo', ..) should return this error.
       }
 
-      if (revisionObj.contentId !== contentObj.id) {
+      if (revisionObject.contentId !== contentObject.id) {
         return callback({
           code: 400,
           msg: 'This revision ID is not associated with the specified piece of content.'
         });
       }
 
-      _augmentRevision(ctx, revisionObj, contentObj);
-      return callback(null, revisionObj);
+      _augmentRevision(ctx, revisionObject, contentObject);
+      return callback(null, revisionObject);
     });
   } else {
     // Get the latest one.
-    _getRevisions(ctx, contentObj, null, 1, null, (err, revisions) => {
-      if (err) {
-        return callback(err);
+    _getRevisions(ctx, contentObject, null, 1, null, (error, revisions) => {
+      if (error) {
+        return callback(error);
       }
 
       if (isEmpty(revisions)) {
-        return callback({ code: 404, msg: 'No revision found for ' + contentObj.id });
+        return callback({ code: 404, msg: 'No revision found for ' + contentObject.id });
       }
 
       // There is no need to augment the revisions here as that has already happened
@@ -2704,7 +2725,7 @@ const _getRevision = function(ctx, contentObj, revisionId, callback) {
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _augmentRevision = function(ctx, revision, contentObj) {
+const _augmentRevision = function (ctx, revision, contentObject) {
   // Replace the thumbnail URI with a signed download URL
   if (revision.thumbnailUri) {
     revision.thumbnailUrl = _getPictureDownloadUrlFromUri(ctx, revision.thumbnailUri, revision.id);
@@ -2728,7 +2749,7 @@ const _augmentRevision = function(ctx, revision, contentObj) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Revision}       callback.revision   The restored revision
  */
-const restoreRevision = function(ctx, contentId, revisionId, callback) {
+const restoreRevision = function (ctx, contentId, revisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -2744,13 +2765,13 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
   }
 
   // Make sure the user is a manager of this piece of content and the revision exists.
-  _canManage(ctx, contentId, (err, contentObj) => {
-    if (err) return callback(err);
+  _canManage(ctx, contentId, (error, contentObject) => {
+    if (error) return callback(error);
 
-    ContentDAO.Revisions.getRevision(revisionId, (err, revision) => {
-      if (err) return callback(err);
+    ContentDAO.Revisions.getRevision(revisionId, (error, revision) => {
+      if (error) return callback(error);
 
-      if (isDifferent(contentObj.id, revision.contentId)) {
+      if (isDifferent(contentObject.id, revision.contentId)) {
         return callback({
           code: 400,
           msg: 'The contentId specified is not the owner of the specified revisionId'
@@ -2759,15 +2780,15 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
 
       // Create a new revision by copying from the specified revision
       const newRevisionId = _generateRevisionId(contentId);
-      ContentDAO.Revisions.createRevision(newRevisionId, contentId, ctx.user().id, revision, (err, newRevision) => {
-        if (err) return callback(err);
+      ContentDAO.Revisions.createRevision(newRevisionId, contentId, ctx.user().id, revision, (error, newRevision) => {
+        if (error) return callback(error);
 
         /*!
          * We need to update the content item in the Content CF.
          * We do so by copying all the non-standard fields from the revision
          * to the Content CF.
          */
-        const blacklist = [
+        const denyList = [
           'revisionId',
           'contentId',
           'createdBy',
@@ -2776,25 +2797,25 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
           'previewsId',
           'downloadPath'
         ];
-        const updates = omit(blacklist, revision);
+        const updates = omit(denyList, revision);
 
         // We also need to update the latest revisionID in the content CF.
         updates.latestRevisionId = newRevisionId;
 
-        ContentDAO.Content.updateContent(contentObj, updates, true, (err, newContentObj) => {
-          if (err) return callback(err);
+        ContentDAO.Content.updateContent(contentObject, updates, true, (error, newContentObject) => {
+          if (error) return callback(error);
 
           // Provide user-level data such as signed URLs for the consumer
-          _augmentRevision(ctx, newRevision, newContentObj);
+          _augmentRevision(ctx, newRevision, newContentObject);
 
           // Emit an event
-          emitter.emit(ContentConstants.events.RESTORED_REVISION, ctx, newContentObj, contentObj, revision);
+          emitter.emit(ContentConstants.events.RESTORED_REVISION, ctx, newContentObject, contentObject, revision);
 
           // If this piece of content is a collaborative document,
           // we need to set the text in etherpad.
-          if (ContentUtils.isResourceACollabDoc(contentObj.resourceSubType)) {
-            Etherpad.setHTML(contentObj.id, contentObj.etherpadPadId, revision.etherpadHtml, err => {
-              if (err) return callback(err);
+          if (ContentUtils.isResourceACollabDoc(contentObject.resourceSubType)) {
+            Etherpad.setHTML(contentObject.id, contentObject.etherpadPadId, revision.etherpadHtml, (error_) => {
+              if (error_) return callback(error_);
 
               return callback(null, newRevision);
             });
@@ -2818,14 +2839,14 @@ const restoreRevision = function(ctx, contentId, revisionId, callback) {
  * @param  {String}             callback.downloadInfo.filename  The filename to suggest to the client for the download
  * @param  {DownloadStrategy}   callback.downloadInfo.strategy  The DownloadStrategy that details how to download the file
  */
-const verifySignedDownloadQueryString = function(ctx, qs, callback) {
+const verifySignedDownloadQueryString = function (ctx, qs, callback) {
   const uri = ContentUtil.verifySignedDownloadQueryString(qs);
   if (not(uri)) {
     return callback({ code: 401, msg: 'Invalid signature data for the provided download url' });
   }
 
   const downloadStrategy = ContentUtil.getStorageBackend(ctx, uri).getDownloadStrategy(ctx.tenant().alias, uri);
-  return callback(null, { strategy: downloadStrategy, filename: basename(uri) });
+  return callback(null, { strategy: downloadStrategy, filename: Path.basename(uri) });
 };
 
 /**
@@ -2844,7 +2865,7 @@ const verifySignedDownloadQueryString = function(ctx, qs, callback) {
  * @param  {String}         callback.uri        The URI to use to reference this preview in the future
  * @api private
  */
-const _storePreview = function(ctx, previewReference, options, callback) {
+const _storePreview = function (ctx, previewReference, options, callback) {
   if (isString(previewReference)) {
     // If the reference is a string, it is simply an external link to some file. We will use a remote uri
     // to reference it
@@ -2865,7 +2886,7 @@ const _storePreview = function(ctx, previewReference, options, callback) {
  * @return {String}                 A reference that can be used directly in a link to download the file
  * @api private
  */
-const _getPictureDownloadUrlFromUri = function(ctx, uri, parentId) {
+const _getPictureDownloadUrlFromUri = function (ctx, uri, parentId) {
   try {
     return ContentUtil.getSignedDownloadUrl(ctx, uri);
   } catch {
@@ -2887,7 +2908,7 @@ const _getPictureDownloadUrlFromUri = function(ctx, uri, parentId) {
 // eslint-disable-next-line no-unused-vars
 const _makeAllPermissionChanges = (memberIds, role) => {
   const roleChanges = {};
-  forEach(memberId => {
+  forEach((memberId) => {
     roleChanges[memberId] = role;
   }, memberIds);
   return roleChanges;
@@ -2900,7 +2921,7 @@ const _makeAllPermissionChanges = (memberIds, role) => {
  * @return {String}                     The new content ID.
  * @api private
  */
-const _generateContentId = tenantAlias => AuthzUtil.toId('c', tenantAlias, ShortId.generate());
+const _generateContentId = (tenantAlias) => AuthzUtil.toId('c', tenantAlias, ShortId.generate());
 
 /**
  * Generates a new revision ID for a content item by ID.
@@ -2909,7 +2930,7 @@ const _generateContentId = tenantAlias => AuthzUtil.toId('c', tenantAlias, Short
  * @return {String}                 The new revision ID
  * @api private
  */
-const _generateRevisionId = function(contentId) {
+const _generateRevisionId = function (contentId) {
   const { tenantAlias } = AuthzUtil.getResourceFromId(contentId);
   return AuthzUtil.toId('rev', tenantAlias, ShortId.generate());
 };

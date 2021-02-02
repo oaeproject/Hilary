@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import ShortId from 'shortid';
 import * as AuthzUtil from 'oae-authz/lib/util';
 
@@ -39,7 +39,7 @@ const LINK = 'link';
  * @param  {String}     uri     The uri for the resource, in format: 'local:/path/to/resource'
  * @return {Object}             An object describing the parts of the uri, as described in the description
  */
-const splitUri = function(uri) {
+const splitUri = function (uri) {
   const parts = uri.split(':');
   const storageType = parts.shift();
   const location = parts.join(':');
@@ -62,7 +62,7 @@ const splitUri = function(uri) {
  * @param  {String} [options.prefix]        An optional prefix that gets tacked on *AFTER* the hashing of the resource id but *BEFORE* the filename
  * @return {String}                         A URI
  */
-const generateUri = function(file, options) {
+const generateUri = function (file, options) {
   options = options || {};
   const filename = options.filename || file.name;
   let hash = null;
@@ -97,7 +97,7 @@ const generateUri = function(file, options) {
   // we make sure that it doesn't contain any "wrong" characters.
   // Rather than blacklisting every illegal character for every file system
   // we simply whitelist a set of known characters.
-  uri = uri.replace(/[^-_0-9A-Za-z/.]/g, '-');
+  uri = uri.replace(/[^-\w/.]/g, '-');
 
   return uri;
 };
@@ -108,8 +108,8 @@ const generateUri = function(file, options) {
  * @param  {String} resourceId The resource ID to hash
  * @return {String}            The partial file URI
  */
-const _hash = function(resourceType, tenantAlias, resourceId) {
-  return util.format(
+const _hash = function (resourceType, tenantAlias, resourceId) {
+  return format(
     '%s/%s/%s/%s/%s/%s/%s',
     resourceType,
     tenantAlias,
@@ -128,27 +128,27 @@ const _hash = function(resourceType, tenantAlias, resourceId) {
  * @param  {Number} minLength The minimum length of the returned string.
  * @return {String}           The padded string. If the input string is longer than the `minLength` it will be returned as-is.
  */
-const _padRight = function(str, minLength) {
-  while (str.length < minLength) {
-    str += VALID_CHARACTERS[Math.floor(Math.random() * VALID_CHARACTERS.length)];
+const _padRight = function (string, minLength) {
+  while (string.length < minLength) {
+    string += VALID_CHARACTERS[Math.floor(Math.random() * VALID_CHARACTERS.length)];
   }
 
-  return str;
+  return string;
 };
 
-const isResourceACollabSheet = function(resourceType) {
+const isResourceACollabSheet = function (resourceType) {
   return resourceType === COLLABSHEET;
 };
 
-const isResourceACollabDoc = function(resourceType) {
+const isResourceACollabDoc = function (resourceType) {
   return resourceType === COLLABDOC;
 };
 
-const isResourceALink = function(resourceType) {
+const isResourceALink = function (resourceType) {
   return resourceType === LINK;
 };
 
-const isResourceAFile = function(resourceType) {
+const isResourceAFile = function (resourceType) {
   return resourceType === FILE;
 };
 

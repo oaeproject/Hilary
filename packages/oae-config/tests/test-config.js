@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, before, afterEach } from 'mocha';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -59,7 +60,7 @@ describe('Configuration', () => {
   /*!
    * Function that will fill up the global admin, tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the anonymous cam rest context
     asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
 
@@ -73,8 +74,8 @@ describe('Configuration', () => {
     asGlobalAdmin = createGlobalAdminRestContext();
 
     // Fill up the rest context for our test user
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: john } = users;
       asJohn = john.restContext;
 
@@ -85,7 +86,7 @@ describe('Configuration', () => {
   /*!
    * Clear the configuration values that are changed during tests
    */
-  afterEach(callback => {
+  afterEach((callback) => {
     // An update object to apply that will clear the values for the global admin
     const globalClearValues = [
       'oae-authentication/twitter/enabled',
@@ -111,12 +112,12 @@ describe('Configuration', () => {
     ];
 
     // Reset the global admin values by setting them to the empty string
-    clearConfigAndWait(asGlobalAdmin, null, globalClearValues, err => {
-      assert.notExists(err);
+    clearConfigAndWait(asGlobalAdmin, null, globalClearValues, (error) => {
+      assert.notExists(error);
 
       // Reset the tenant values by using the tenant admin clear config
-      clearConfigAndWait(asCambridgeTenantAdmin, null, tenantClearValues, err => {
-        assert.notExists(err);
+      clearConfigAndWait(asCambridgeTenantAdmin, null, tenantClearValues, (error) => {
+        assert.notExists(error);
         return callback();
       });
     });
@@ -126,17 +127,17 @@ describe('Configuration', () => {
     /**
      * Test that verifies that the configuration schema can be retrieved on the global admin server
      */
-    it('verify get schema global', callback => {
-      getSchema(asGlobalAdmin, (err, schema) => {
-        assert.notExists(err);
+    it('verify get schema global', (callback) => {
+      getSchema(asGlobalAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.ok(schema);
         assert.ok(schema['oae-authentication'].title);
         assert.strictEqual(schema['oae-authentication'].twitter.elements.enabled.defaultValue, true);
 
         // Verify that the anonymous users can't retrieve the schema
-        getSchema(asGlobalAnonymousUser, (err, schema) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+        getSchema(asGlobalAnonymousUser, (error, schema) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
           assert.notExists(schema);
 
           return callback();
@@ -147,23 +148,23 @@ describe('Configuration', () => {
     /**
      * Test that verifies that the configuration schema can be retrieved on the tenant server
      */
-    it('verify get schema tenant', callback => {
-      getSchema(asCambridgeTenantAdmin, (err, schema) => {
-        assert.notExists(err);
+    it('verify get schema tenant', (callback) => {
+      getSchema(asCambridgeTenantAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.ok(schema);
         assert.ok(schema['oae-authentication'].title);
         assert.strictEqual(schema['oae-authentication'].twitter.elements.enabled.defaultValue, true);
 
         // Verify that regular tenant users can't retrieve the schema
-        getSchema(asJohn, (err, schema) => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 401);
+        getSchema(asJohn, (error, schema) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
           assert.notExists(schema);
 
           // Verify that only anonymous users can't retrieve the schema
-          getSchema(asCambridgeAnonymousUser, (err, schema) => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 401);
+          getSchema(asCambridgeAnonymousUser, (error, schema) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 401);
             assert.notExists(schema);
 
             return callback();
@@ -176,15 +177,15 @@ describe('Configuration', () => {
      * Test that verifies that the configuration schema for a global admin has `globalAdminOnly` values and
      * that the schema for a tenant admin excludes `globalAdminOnly` values.
      */
-    it('verify globalAdminOnly', callback => {
-      getSchema(asGlobalAdmin, (err, schema) => {
-        assert.notExists(err);
+    it('verify globalAdminOnly', (callback) => {
+      getSchema(asGlobalAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.ok(schema);
         assert.ok(schema['oae-content'].title);
         assert.strictEqual(schema['oae-content'].storage.elements['amazons3-access-key'].defaultValue, '<access-key>');
 
-        getSchema(asCambridgeTenantAdmin, (err, schema) => {
-          assert.notExists(err);
+        getSchema(asCambridgeTenantAdmin, (error, schema) => {
+          assert.notExists(error);
           assert.ok(schema);
           assert.ok(schema['oae-content'].title);
           assert.strictEqual(schema['oae-content'].storage.elements['amazons3-access-key'], undefined);
@@ -198,9 +199,9 @@ describe('Configuration', () => {
      * Test that verifies that a `defaultValue` always returns in the schema, even when it's not provided
      * in the configuration file
      */
-    it('verify defaultValue always returns', callback => {
-      getSchema(asGlobalAdmin, (err, schema) => {
-        assert.notExists(err);
+    it('verify defaultValue always returns', (callback) => {
+      getSchema(asGlobalAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.strictEqual(schema['oae-email'].general.elements.fromAddress.defaultValue, '');
 
         return callback();
@@ -212,7 +213,7 @@ describe('Configuration', () => {
     /**
      * Test that verifies that a single configuration value can be retrieved from the cached configuration
      */
-    it('verify get single config value', callback => {
+    it('verify get single config value', (callback) => {
       const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
       const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
 
@@ -240,7 +241,7 @@ describe('Configuration', () => {
     /**
      * Test that verifies the validation for retrieving a config value from the cached configuration
      */
-    it('verify validation', callback => {
+    it('verify validation', (callback) => {
       // Verify that initializing a config factory needs a module name. This should throw an error
       assert.throws(() => {
         ConfigAPI.setUpConfig();
@@ -259,7 +260,7 @@ describe('Configuration', () => {
     /**
      * Test that verifies the last updated timestamp is reflected when a value gets updated
      */
-    it('verify the last updated timestamp increases when updated', callback => {
+    it('verify the last updated timestamp increases when updated', (callback) => {
       const PrincipalsConfig = ConfigAPI.setUpConfig('oae-principals');
 
       // Not passing in any of the `tenantAlias`, `feature` or `element` parameters should result in the epoch date being returned
@@ -280,16 +281,16 @@ describe('Configuration', () => {
       const tenantAlias = generateTestTenantAlias();
       const host = generateTestTenantHost();
 
-      createTenantWithAdmin(tenantAlias, host, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      createTenantWithAdmin(tenantAlias, host, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Record the current value of the recaptcha config update timestamp
         const recaptchaUpdateTime = PrincipalsConfig.getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime();
         assert.isAbove(recaptchaUpdateTime, 0);
 
         // Enable recaptcha on the tenant
-        updateConfigAndWait(tenantAdminRestContext, null, { 'oae-principals/recaptcha/enabled': true }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(tenantAdminRestContext, null, { 'oae-principals/recaptcha/enabled': true }, (error_) => {
+          assert.notExists(error_);
 
           // Ensure the config value update time is larger than it was before
           assert.ok(
@@ -304,22 +305,22 @@ describe('Configuration', () => {
     /**
      * Test that verifies the last updated timestamp does not get updated when the value does not change
      */
-    it('verify the last updated timestamp does not change when the config value did not change', callback => {
+    it('verify the last updated timestamp does not change when the config value did not change', (callback) => {
       const PrincipalsConfig = setUpConfig('oae-principals');
       const { getLastUpdated } = PrincipalsConfig;
       const tenantAlias = generateTestTenantAlias();
       const host = generateTestTenantHost();
 
-      createTenantWithAdmin(tenantAlias, host, (err, tenant, tenantAdminRestContext) => {
-        assert.notExists(err);
+      createTenantWithAdmin(tenantAlias, host, (error, tenant, tenantAdminRestContext) => {
+        assert.notExists(error);
 
         // Record the current value of the recaptcha config update timestamp
         const recaptchaUpdateTime = getLastUpdated(tenantAlias, 'recaptcha', 'enabled').getTime();
         assert.isAbove(recaptchaUpdateTime, 0);
 
         // Update a different configuration field. Let's enable the twitter!
-        updateConfigAndWait(tenantAdminRestContext, null, { 'oae-authentication/twitter/enabled': true }, err => {
-          assert.notExists(err);
+        updateConfigAndWait(tenantAdminRestContext, null, { 'oae-authentication/twitter/enabled': true }, (error_) => {
+          assert.notExists(error_);
 
           // Ensure the recaptcha config update timestamp has not updated
           assert.strictEqual(
@@ -337,10 +338,10 @@ describe('Configuration', () => {
     /**
      * Test that verifies that the configuration can be retrieved on the global server
      */
-    it('verify get global config', callback => {
+    it('verify get global config', (callback) => {
       // Get the config as an admin user
-      getTenantConfig(asGlobalAdmin, null, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(asGlobalAdmin, null, (error, config) => {
+        assert.notExists(error);
         assert.ok(config);
 
         // Verify that a public value is present
@@ -351,8 +352,8 @@ describe('Configuration', () => {
         assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
 
         // Get the config as an anonymous user
-        getTenantConfig(asGlobalAnonymousUser, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asGlobalAnonymousUser, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
 
           // Verify that a public value is present
@@ -370,10 +371,10 @@ describe('Configuration', () => {
     /**
      * Test that verifies that the configuration can be retrieved on the tenant server
      */
-    it('verify get tenant config', callback => {
+    it('verify get tenant config', (callback) => {
       // Get the config as an admin user
-      getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+        assert.notExists(error);
         assert.ok(config);
 
         // Verify that a public value is present
@@ -384,8 +385,8 @@ describe('Configuration', () => {
         assert.notExists(config['oae-content'].storage);
 
         // Get the config as a logged in user
-        getTenantConfig(asJohn, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asJohn, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
 
           // Verify that a public value is present
@@ -396,8 +397,8 @@ describe('Configuration', () => {
           assert.ok(!config['oae-content'].storage);
 
           // Get the config as an anonymous user
-          getTenantConfig(asCambridgeAnonymousUser, null, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asCambridgeAnonymousUser, null, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
 
             // Verify that a public value is present
@@ -416,36 +417,36 @@ describe('Configuration', () => {
     /**
      * Test that verifies config fields on admin can be cleared
      */
-    it('verify clear global config', callback => {
+    it('verify clear global config', (callback) => {
       // Start with an overriden configuration value
-      updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': false }, err => {
-        assert.notExists(err);
+      updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': false }, (error) => {
+        assert.notExists(error);
 
         // Validate that the change has been made
-        getTenantConfig(asGlobalAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asGlobalAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
           assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
           // Validate that the change is reflected in the tenant configuration
-          getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
             assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
             // Clear the global admin value
-            clearConfigAndWait(asGlobalAdmin, null, ['oae-authentication/twitter/enabled'], err => {
-              assert.ok(!err);
+            clearConfigAndWait(asGlobalAdmin, null, ['oae-authentication/twitter/enabled'], (error_) => {
+              assert.ok(!error_);
 
               // Validate that the global config value has reverted to the default
-              getTenantConfig(asGlobalAdmin, null, (err, config) => {
-                assert.notExists(err);
+              getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                assert.notExists(error);
                 assert.ok(config);
                 assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
                 // Validate that the tenant config value has reverted to the default
-                getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                  assert.notExists(err);
+                getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                  assert.notExists(error);
                   assert.ok(config);
                   assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
@@ -461,29 +462,29 @@ describe('Configuration', () => {
     /**
      * Test that verifies clearing config fields
      */
-    it('verify clear tenant config', callback => {
-      updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-authentication/twitter/enabled': false }, err => {
-        assert.notExists(err);
+    it('verify clear tenant config', (callback) => {
+      updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-authentication/twitter/enabled': false }, (error) => {
+        assert.notExists(error);
 
         // Validate that the change has been made and has overriden the global config
-        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
           assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
           // Validate that the global admin still has the old values
-          getTenantConfig(asGlobalAdmin, null, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asGlobalAdmin, null, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
             assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
             // Clear the override
-            clearConfigAndWait(asCambridgeTenantAdmin, null, ['oae-authentication/twitter/enabled'], err => {
-              assert.notExists(err);
+            clearConfigAndWait(asCambridgeTenantAdmin, null, ['oae-authentication/twitter/enabled'], (error_) => {
+              assert.notExists(error_);
 
               // Verify that the value reverts to the default
-              getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                assert.notExists(err);
+              getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                assert.notExists(error);
                 assert.ok(config);
                 assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
@@ -492,28 +493,33 @@ describe('Configuration', () => {
                   asCambridgeTenantAdmin,
                   null,
                   { 'oae-authentication/twitter/enabled': false },
-                  err => {
-                    assert.notExists(err);
+                  (error_) => {
+                    assert.notExists(error_);
 
                     // Validate that the change has been made and has overriden the global config
-                    getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                      assert.notExists(err);
+                    getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                      assert.notExists(error);
                       assert.ok(config);
                       assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
                       // Clear the config
-                      clearConfigAndWait(asCambridgeTenantAdmin, null, 'oae-authentication/twitter/enabled', err => {
-                        assert.notExists(err);
+                      clearConfigAndWait(
+                        asCambridgeTenantAdmin,
+                        null,
+                        'oae-authentication/twitter/enabled',
+                        (error_) => {
+                          assert.notExists(error_);
 
-                        // Verify that the value reverts to the default
-                        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                          assert.notExists(err);
-                          assert.ok(config);
-                          assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
+                          // Verify that the value reverts to the default
+                          getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                            assert.notExists(error);
+                            assert.ok(config);
+                            assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
-                          return callback();
-                        });
-                      });
+                            return callback();
+                          });
+                        }
+                      );
                     });
                   }
                 );
@@ -527,7 +533,7 @@ describe('Configuration', () => {
     /**
      * Test that verifies that clearing both an element and one of its optional keys at the same time is not allowed
      */
-    it('verify clearing both an element and one of its optional keys at the same time is not allowed', callback => {
+    it('verify clearing both an element and one of its optional keys at the same time is not allowed', (callback) => {
       const configUpdate = {
         'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
         'oae-principals/termsAndConditions/text/en_GB': 'British English',
@@ -535,28 +541,28 @@ describe('Configuration', () => {
         'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
         'oae-principals/termsAndConditions/text/fr_FR': 'French French'
       };
-      updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, err => {
-        assert.notExists(err);
+      updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, (error) => {
+        assert.notExists(error);
 
         // Clearing both en_GB and the entire text element should result in an error
         clearConfigAndWait(
           asCambridgeTenantAdmin,
           null,
           ['oae-principals/termsAndConditions/text/en_GB', 'oae-principals/termsAndConditions/text'],
-          err => {
-            assert.strictEqual(err.code, 400);
+          (error) => {
+            assert.strictEqual(error.code, 400);
 
             // The order should not matter
             clearConfigAndWait(
               asCambridgeTenantAdmin,
               null,
               ['oae-principals/termsAndConditions/text', 'oae-principals/termsAndConditions/text/en_GB'],
-              err => {
-                assert.strictEqual(err.code, 400);
+              (error) => {
+                assert.strictEqual(error.code, 400);
 
                 // Assert all the values are still there
-                getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                  assert.notExists(err);
+                getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                  assert.notExists(error);
                   assert.isObject(config['oae-principals'].termsAndConditions.text);
                   assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 6);
                   assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -578,7 +584,7 @@ describe('Configuration', () => {
     /**
      * Test that verifies that optional keys can be cleared from a config element
      */
-    it('verify clear config when using optional keys', callback => {
+    it('verify clear config when using optional keys', (callback) => {
       const configUpdate = {
         'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
         'oae-principals/termsAndConditions/text/en_GB': 'British English',
@@ -586,12 +592,12 @@ describe('Configuration', () => {
         'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
         'oae-principals/termsAndConditions/text/fr_FR': 'French French'
       };
-      updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, err => {
-        assert.notExists(err);
+      updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, (error) => {
+        assert.notExists(error);
 
         // Verify all the values are present
-        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.isObject(config['oae-principals'].termsAndConditions.text);
           assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 6);
           assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -602,105 +608,110 @@ describe('Configuration', () => {
           assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
 
           // Clearing just the British English value should not affect the other values
-          clearConfigAndWait(asCambridgeTenantAdmin, null, ['oae-principals/termsAndConditions/text/en_GB'], err => {
-            assert.notExists(err);
+          clearConfigAndWait(
+            asCambridgeTenantAdmin,
+            null,
+            ['oae-principals/termsAndConditions/text/en_GB'],
+            (error_) => {
+              assert.notExists(error_);
 
-            // Verify the other values are unaffected
-            getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-              assert.notExists(err);
-              assert.isObject(config['oae-principals'].termsAndConditions.text);
-              assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 5);
-              assert.notExists(config['oae-principals'].termsAndConditions.text.en_GB);
-              assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-              assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
-              assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
-              assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_BE, 'Belgian French');
-              assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
+              // Verify the other values are unaffected
+              getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                assert.notExists(error);
+                assert.isObject(config['oae-principals'].termsAndConditions.text);
+                assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 5);
+                assert.notExists(config['oae-principals'].termsAndConditions.text.en_GB);
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_BE, 'Belgian French');
+                assert.strictEqual(config['oae-principals'].termsAndConditions.text.fr_FR, 'French French');
 
-              // Try clearing multiple keys
-              clearConfigAndWait(
-                asCambridgeTenantAdmin,
-                null,
-                ['oae-principals/termsAndConditions/text/fr_BE', 'oae-principals/termsAndConditions/text/fr_FR'],
-                err => {
-                  assert.notExists(err);
+                // Try clearing multiple keys
+                clearConfigAndWait(
+                  asCambridgeTenantAdmin,
+                  null,
+                  ['oae-principals/termsAndConditions/text/fr_BE', 'oae-principals/termsAndConditions/text/fr_FR'],
+                  (error_) => {
+                    assert.notExists(error_);
 
-                  // Verify the other values are unaffected
-                  getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                    assert.notExists(err);
-                    assert.isObject(config['oae-principals'].termsAndConditions.text);
-                    assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 3);
-                    assert.notExists(config['oae-principals'].termsAndConditions.text.en_GB);
-                    assert.notExists(config['oae-principals'].termsAndConditions.text.fr_FR);
-                    assert.notExists(config['oae-principals'].termsAndConditions.text.fr_BE);
-                    assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-                    assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
-                    assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
+                    // Verify the other values are unaffected
+                    getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                      assert.notExists(error);
+                      assert.isObject(config['oae-principals'].termsAndConditions.text);
+                      assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 3);
+                      assert.notExists(config['oae-principals'].termsAndConditions.text.en_GB);
+                      assert.notExists(config['oae-principals'].termsAndConditions.text.fr_FR);
+                      assert.notExists(config['oae-principals'].termsAndConditions.text.fr_BE);
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_CA, 'Canadian English');
+                      assert.strictEqual(config['oae-principals'].termsAndConditions.text.en_US, 'American English');
 
-                    // Reset the T&C field in its entirety
-                    clearConfigAndWait(
-                      asCambridgeTenantAdmin,
-                      null,
-                      ['oae-principals/termsAndConditions/text'],
-                      err => {
-                        assert.notExists(err);
+                      // Reset the T&C field in its entirety
+                      clearConfigAndWait(
+                        asCambridgeTenantAdmin,
+                        null,
+                        ['oae-principals/termsAndConditions/text'],
+                        (error_) => {
+                          assert.notExists(error_);
 
-                        // Only the default key should be present
-                        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                          assert.notExists(err);
-                          assert.isObject(config['oae-principals'].termsAndConditions.text);
-                          assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 1);
-                          assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                          // Only the default key should be present
+                          getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                            assert.notExists(error);
+                            assert.isObject(config['oae-principals'].termsAndConditions.text);
+                            assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 1);
+                            assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
 
-                          // Check that we can still set a value
-                          const configUpdate = {
-                            'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
-                            'oae-principals/termsAndConditions/text/en_GB': 'British English',
-                            'oae-principals/termsAndConditions/text/en_US': 'American English',
-                            'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
-                            'oae-principals/termsAndConditions/text/fr_FR': 'French French'
-                          };
-                          updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, err => {
-                            assert.notExists(err);
+                            // Check that we can still set a value
+                            const configUpdate = {
+                              'oae-principals/termsAndConditions/text/en_CA': 'Canadian English',
+                              'oae-principals/termsAndConditions/text/en_GB': 'British English',
+                              'oae-principals/termsAndConditions/text/en_US': 'American English',
+                              'oae-principals/termsAndConditions/text/fr_BE': 'Belgian French',
+                              'oae-principals/termsAndConditions/text/fr_FR': 'French French'
+                            };
+                            updateConfigAndWait(asCambridgeTenantAdmin, null, configUpdate, (error_) => {
+                              assert.notExists(error_);
 
-                            // Verify the update
-                            getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                              assert.notExists(err);
-                              assert.isObject(config['oae-principals'].termsAndConditions.text);
-                              assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 6);
-                              assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.en_CA,
-                                'Canadian English'
-                              );
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.en_GB,
-                                'British English'
-                              );
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.en_US,
-                                'American English'
-                              );
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.fr_BE,
-                                'Belgian French'
-                              );
-                              assert.strictEqual(
-                                config['oae-principals'].termsAndConditions.text.fr_FR,
-                                'French French'
-                              );
+                              // Verify the update
+                              getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                                assert.notExists(error);
+                                assert.isObject(config['oae-principals'].termsAndConditions.text);
+                                assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 6);
+                                assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_CA,
+                                  'Canadian English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_GB,
+                                  'British English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.en_US,
+                                  'American English'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.fr_BE,
+                                  'Belgian French'
+                                );
+                                assert.strictEqual(
+                                  config['oae-principals'].termsAndConditions.text.fr_FR,
+                                  'French French'
+                                );
 
-                              return callback();
+                                return callback();
+                              });
                             });
                           });
-                        });
-                      }
-                    );
-                  });
-                }
-              );
-            });
-          });
+                        }
+                      );
+                    });
+                  }
+                );
+              });
+            }
+          );
         });
       });
     });
@@ -708,10 +719,10 @@ describe('Configuration', () => {
     /**
      * Test that verifies that the configuration can be retrieved for the tenant server through the global admin
      */
-    it('verify get tenant config through global tenant', callback => {
+    it('verify get tenant config through global tenant', (callback) => {
       // Get the config as an admin user
-      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+        assert.notExists(error);
         assert.ok(config);
 
         // Verify that a public value is present
@@ -724,8 +735,8 @@ describe('Configuration', () => {
         assert.strictEqual(config['oae-content'].storage['amazons3-access-key'], '<access-key>');
 
         // Get the config as an anonymous user
-        getTenantConfig(asGlobalAnonymousUser, global.oaeTests.tenants.cam.alias, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asGlobalAnonymousUser, global.oaeTests.tenants.cam.alias, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
 
           // Verify that a public value is present
@@ -745,41 +756,41 @@ describe('Configuration', () => {
     /**
      * Test that verifies that a global configuration value can be persisted
      */
-    it('verify set config value global', callback => {
-      updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': false }, err => {
-        assert.notExists(err);
+    it('verify set config value global', (callback) => {
+      updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': false }, (error) => {
+        assert.notExists(error);
 
         // Validate that the change has been made
-        getTenantConfig(asGlobalAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asGlobalAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
           assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
           // Validate that the tenant admin can see this as well
-          getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
             assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
             // Set a new value for a suppressed config value
-            updateConfigAndWait(asGlobalAdmin, null, { 'oae-principals/recaptcha/privateKey': 'newKey' }, err => {
-              assert.notExists(err);
+            updateConfigAndWait(asGlobalAdmin, null, { 'oae-principals/recaptcha/privateKey': 'newKey' }, (error_) => {
+              assert.notExists(error_);
 
               // Validate that the change has been made
-              getTenantConfig(asGlobalAdmin, null, (err, config) => {
-                assert.notExists(err);
+              getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                assert.notExists(error);
                 assert.ok(config);
                 assert.strictEqual(config['oae-principals'].recaptcha.privateKey, 'newKey');
 
                 // Validate that the tenant admin can see this as well
-                getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                  assert.notExists(err);
+                getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                  assert.notExists(error);
                   assert.ok(config);
                   assert.strictEqual(config['oae-principals'].recaptcha.privateKey, 'newKey');
 
                   // Validate that a non-admin user can still not see this
-                  getTenantConfig(asJohn, null, (err, config) => {
-                    assert.notExists(err);
+                  getTenantConfig(asJohn, null, (error, config) => {
+                    assert.notExists(error);
                     assert.ok(config);
                     assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
 
@@ -796,19 +807,19 @@ describe('Configuration', () => {
     /**
      * Test that verifies that a tenant configuration value can be persisted
      */
-    it('verify set tenant config value', callback => {
-      updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-authentication/twitter/enabled': false }, err => {
-        assert.notExists(err);
+    it('verify set tenant config value', (callback) => {
+      updateConfigAndWait(asCambridgeTenantAdmin, null, { 'oae-authentication/twitter/enabled': false }, (error) => {
+        assert.notExists(error);
 
         // Validate that the change has been made and has overriden the global config
-        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.ok(config);
           assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
           // Validate that the new value can be retrieved through the global admin
-          getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
             assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
@@ -817,24 +828,24 @@ describe('Configuration', () => {
               asCambridgeTenantAdmin,
               null,
               { 'oae-principals/recaptcha/privateKey': 'newTenantKey' },
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
 
                 // Validate that the tenant admin can see this as well
-                getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                  assert.notExists(err);
+                getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+                  assert.notExists(error);
                   assert.ok(config);
                   assert.strictEqual(config['oae-principals'].recaptcha.privateKey, 'newTenantKey');
 
                   // Validate that a non-admin user can still not see this
-                  getTenantConfig(asJohn, null, (err, config) => {
-                    assert.notExists(err);
+                  getTenantConfig(asJohn, null, (error, config) => {
+                    assert.notExists(error);
                     assert.ok(config);
                     assert.strictEqual(config['oae-principals'].recaptcha.privateKey, undefined);
 
                     // Validate that the global admin still has the old values
-                    getTenantConfig(asGlobalAdmin, null, (err, config) => {
-                      assert.notExists(err);
+                    getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                      assert.notExists(error);
                       assert.ok(config);
                       assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
                       assert.strictEqual(config['oae-principals'].recaptcha.privateKey, RECAPTCHA_KEY);
@@ -853,23 +864,23 @@ describe('Configuration', () => {
     /**
      * Test that verifies that a tenant configuration value can be persisted through the global server
      */
-    it('verify set tenant config value from global tenant', callback => {
+    it('verify set tenant config value from global tenant', (callback) => {
       updateConfigAndWait(
         asGlobalAdmin,
         global.oaeTests.tenants.cam.alias,
         { 'oae-authentication/twitter/enabled': false },
-        err => {
-          assert.notExists(err);
+        (error) => {
+          assert.notExists(error);
 
           // Validate that the change has been made from the global admin
-          getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+            assert.notExists(error);
             assert.ok(config);
             assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
             // Validate that the change has been made from the tenant admin
-            getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-              assert.notExists(err);
+            getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+              assert.notExists(error);
               assert.ok(config);
               assert.strictEqual(config['oae-authentication'].twitter.enabled, false);
 
@@ -883,10 +894,10 @@ describe('Configuration', () => {
     /**
      * Test that boolean and non-boolean values are coerced correctly
      */
-    it('verify config value coercion', callback => {
+    it('verify config value coercion', (callback) => {
       // Get Boolean config value that's supposed to be `true`
-      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+        assert.notExists(error);
         assert.ok(config);
         assert.strictEqual(config['oae-authentication'].local.enabled, true);
 
@@ -895,11 +906,11 @@ describe('Configuration', () => {
           asGlobalAdmin,
           global.oaeTests.tenants.cam.alias,
           { 'oae-authentication/local/enabled': '0' },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
-            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-              assert.notExists(err);
+            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+              assert.notExists(error);
               assert.ok(config);
               assert.strictEqual(config['oae-authentication'].local.enabled, false);
 
@@ -908,11 +919,11 @@ describe('Configuration', () => {
                 asGlobalAdmin,
                 global.oaeTests.tenants.cam.alias,
                 { 'oae-authentication/local/enabled': '1' },
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
-                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                    assert.notExists(err);
+                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                    assert.notExists(error);
                     assert.ok(config);
                     assert.strictEqual(config['oae-authentication'].local.enabled, true);
 
@@ -921,11 +932,11 @@ describe('Configuration', () => {
                       asGlobalAdmin,
                       global.oaeTests.tenants.cam.alias,
                       { 'oae-authentication/local/enabled': 'false' },
-                      err => {
-                        assert.notExists(err);
+                      (error_) => {
+                        assert.notExists(error_);
 
-                        getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                          assert.notExists(err);
+                        getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                          assert.notExists(error);
                           assert.ok(config);
                           assert.strictEqual(config['oae-authentication'].local.enabled, false);
 
@@ -934,17 +945,17 @@ describe('Configuration', () => {
                             asGlobalAdmin,
                             global.oaeTests.tenants.cam.alias,
                             { 'oae-authentication/local/enabled': 'true' },
-                            err => {
-                              assert.notExists(err);
+                            (error_) => {
+                              assert.notExists(error_);
 
-                              getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                                assert.notExists(err);
+                              getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                                assert.notExists(error);
                                 assert.ok(config);
                                 assert.strictEqual(config['oae-authentication'].local.enabled, true);
 
                                 // Get non-Boolean config value
-                                getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                                  assert.notExists(err);
+                                getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                                  assert.notExists(error);
                                   assert.ok(config);
 
                                   // Change the value to '1' and ensure it isn't coerced to a boolean
@@ -952,14 +963,14 @@ describe('Configuration', () => {
                                     asGlobalAdmin,
                                     global.oaeTests.tenants.cam.alias,
                                     { 'oae-email/general/fromName': '1' },
-                                    err => {
-                                      assert.notExists(err);
+                                    (error_) => {
+                                      assert.notExists(error_);
 
                                       getTenantConfig(
                                         asGlobalAdmin,
                                         global.oaeTests.tenants.cam.alias,
-                                        (err, config) => {
-                                          assert.notExists(err);
+                                        (error, config) => {
+                                          assert.notExists(error);
                                           assert.ok(config);
                                           assert.strictEqual(config['oae-email'].general.fromName, '1');
 
@@ -968,14 +979,14 @@ describe('Configuration', () => {
                                             asGlobalAdmin,
                                             global.oaeTests.tenants.cam.alias,
                                             { 'oae-email/general/fromName': '0' },
-                                            err => {
-                                              assert.notExists(err);
+                                            (error_) => {
+                                              assert.notExists(error_);
 
                                               getTenantConfig(
                                                 asGlobalAdmin,
                                                 global.oaeTests.tenants.cam.alias,
-                                                (err, config) => {
-                                                  assert.notExists(err);
+                                                (error, config) => {
+                                                  assert.notExists(error);
                                                   assert.ok(config);
                                                   assert.strictEqual(config['oae-email'].general.fromName, '0');
 
@@ -1007,43 +1018,43 @@ describe('Configuration', () => {
     /**
      * Test that verifies validation on setting and retrieving config
      */
-    it('verify configuration validation', callback => {
+    it('verify configuration validation', (callback) => {
       // Missing configField
-      updateConfigAndWait(asGlobalAdmin, null, { null: false }, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 404);
+      updateConfigAndWait(asGlobalAdmin, null, { null: false }, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 404);
 
         // Missing configValue
-        updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': null }, err => {
-          assert.ok(err);
-          assert.strictEqual(err.code, 400);
+        updateConfigAndWait(asGlobalAdmin, null, { 'oae-authentication/twitter/enabled': null }, (error) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
 
           // Try changing the config with an invalid tenant id
-          updateConfigAndWait(asGlobalAdmin, ' ', { 'oae-authentication/twitter/enabled': false }, err => {
-            assert.ok(err);
-            assert.strictEqual(err.code, 400);
+          updateConfigAndWait(asGlobalAdmin, ' ', { 'oae-authentication/twitter/enabled': false }, (error) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
 
             // Ensure the value did not change
-            getTenantConfig(asGlobalAdmin, null, (err, config) => {
-              assert.notExists(err);
+            getTenantConfig(asGlobalAdmin, null, (error, config) => {
+              assert.notExists(error);
               assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
               // Try updating a non-existing configuration option
-              updateConfigAndWait(asGlobalAdmin, null, { 'oae-non/existing/options': 'moops' }, err => {
-                assert.ok(err);
-                assert.strictEqual(err.code, 404);
+              updateConfigAndWait(asGlobalAdmin, null, { 'oae-non/existing/options': 'moops' }, (error_) => {
+                assert.ok(error_);
+                assert.strictEqual(error_.code, 404);
 
                 // Set the amazon s3 access key to a non-empty string so we can later verify we can set it to the empty string
                 updateConfigAndWait(
                   asGlobalAdmin,
                   null,
                   { 'oae-content/storage/amazons3-access-key': 'blahblahblah' },
-                  err => {
-                    assert.notExists(err);
+                  (error_) => {
+                    assert.notExists(error_);
 
                     // Verify the value changed to the string we set
-                    getTenantConfig(asGlobalAdmin, null, (err, testSetEmptyStringConfig) => {
-                      assert.notExists(err);
+                    getTenantConfig(asGlobalAdmin, null, (error, testSetEmptyStringConfig) => {
+                      assert.notExists(error);
                       assert.strictEqual(
                         testSetEmptyStringConfig['oae-content'].storage['amazons3-access-key'],
                         'blahblahblah'
@@ -1054,141 +1065,151 @@ describe('Configuration', () => {
                         asGlobalAdmin,
                         null,
                         { 'oae-content/storage/amazons3-access-key': '' },
-                        err => {
-                          assert.notExists(err);
+                        (error_) => {
+                          assert.notExists(error_);
 
                           // Verify the value became the empty string
-                          getTenantConfig(asGlobalAdmin, null, (err, testSetEmptyStringConfig) => {
-                            assert.notExists(err);
+                          getTenantConfig(asGlobalAdmin, null, (error, testSetEmptyStringConfig) => {
+                            assert.notExists(error);
                             assert.strictEqual(
                               testSetEmptyStringConfig['oae-content'].storage['amazons3-access-key'],
                               ''
                             );
 
                             // Try changing the tenant config as a regular user (non-admin)
-                            updateConfigAndWait(asJohn, null, { 'oae-authentication/twitter/enabled': false }, err => {
-                              assert.ok(err);
-                              assert.strictEqual(err.code, 401);
+                            updateConfigAndWait(
+                              asJohn,
+                              null,
+                              { 'oae-authentication/twitter/enabled': false },
+                              (error_) => {
+                                assert.ok(error_);
+                                assert.strictEqual(error_.code, 401);
 
-                              // Try changing the tenant config as an anonymous user
-                              updateConfigAndWait(
-                                asCambridgeAnonymousUser,
-                                null,
-                                { 'oae-authentication/twitter/enabled': false },
-                                err => {
-                                  assert.ok(err);
-                                  assert.strictEqual(err.code, 401);
+                                // Try changing the tenant config as an anonymous user
+                                updateConfigAndWait(
+                                  asCambridgeAnonymousUser,
+                                  null,
+                                  { 'oae-authentication/twitter/enabled': false },
+                                  (error_) => {
+                                    assert.ok(error_);
+                                    assert.strictEqual(error_.code, 401);
 
-                                  // Try changing the global config as an anonymous user
-                                  updateConfigAndWait(
-                                    asGlobalAnonymousUser,
-                                    null,
-                                    { 'oae-authentication/twitter/enabled': false },
-                                    err => {
-                                      assert.ok(err);
-                                      assert.strictEqual(err.code, 401);
+                                    // Try changing the global config as an anonymous user
+                                    updateConfigAndWait(
+                                      asGlobalAnonymousUser,
+                                      null,
+                                      { 'oae-authentication/twitter/enabled': false },
+                                      (error_) => {
+                                        assert.ok(error_);
+                                        assert.strictEqual(error_.code, 401);
 
-                                      // Ensure Cambridge configuration of twitter did not change
-                                      getTenantConfig(asJohn, null, (err, config) => {
-                                        assert.notExists(err);
-                                        assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
-
-                                        // Ensure global configuration of twitter did not change
-                                        getTenantConfig(asGlobalAdmin, null, (err, config) => {
-                                          assert.notExists(err);
+                                        // Ensure Cambridge configuration of twitter did not change
+                                        getTenantConfig(asJohn, null, (error, config) => {
+                                          assert.notExists(error);
                                           assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
-                                          // Try changing the global config as a regular user (non-admin)
-                                          updateConfigAndWait(
-                                            asJohn,
-                                            null,
-                                            {
-                                              'oae-content/storage/amazons3-access-key': 'moops'
-                                            },
-                                            err => {
-                                              assert.ok(err);
-                                              assert.strictEqual(err.code, 401);
+                                          // Ensure global configuration of twitter did not change
+                                          getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                                            assert.notExists(error);
+                                            assert.strictEqual(config['oae-authentication'].twitter.enabled, true);
 
-                                              // Ensure the amazons3 access key value did not change from the empty string
-                                              getTenantConfig(
-                                                asGlobalAdmin,
-                                                global.oaeTests.tenants.cam.alias,
-                                                (err, config) => {
-                                                  assert.notExists(err);
-                                                  assert.strictEqual(
-                                                    config['oae-content'].storage['amazons3-access-key'],
-                                                    ''
-                                                  );
+                                            // Try changing the global config as a regular user (non-admin)
+                                            updateConfigAndWait(
+                                              asJohn,
+                                              null,
+                                              {
+                                                'oae-content/storage/amazons3-access-key': 'moops'
+                                              },
+                                              (error_) => {
+                                                assert.ok(error_);
+                                                assert.strictEqual(error_.code, 401);
 
-                                                  // Try changing a config option that is not editable by a tenant (tenantOverride=false) as a tenant admin
-                                                  updateConfigAndWait(
-                                                    asCambridgeTenantAdmin,
-                                                    null,
-                                                    {
-                                                      'oae-google-analytics/google-analytics/globalEnabled': '1'
-                                                    },
-                                                    err => {
-                                                      assert.ok(err);
-                                                      assert.strictEqual(err.code, 401);
+                                                // Ensure the amazons3 access key value did not change from the empty string
+                                                getTenantConfig(
+                                                  asGlobalAdmin,
+                                                  global.oaeTests.tenants.cam.alias,
+                                                  (error, config) => {
+                                                    assert.notExists(error);
+                                                    assert.strictEqual(
+                                                      config['oae-content'].storage['amazons3-access-key'],
+                                                      ''
+                                                    );
 
-                                                      // Ensure the value did not change
-                                                      getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-                                                        assert.notExists(err);
-                                                        assert.strictEqual(
-                                                          config['oae-google-analytics']['google-analytics']
-                                                            .globalEnabled,
-                                                          false
-                                                        );
+                                                    // Try changing a config option that is not editable by a tenant (tenantOverride=false) as a tenant admin
+                                                    updateConfigAndWait(
+                                                      asCambridgeTenantAdmin,
+                                                      null,
+                                                      {
+                                                        'oae-google-analytics/google-analytics/globalEnabled': '1'
+                                                      },
+                                                      (error_) => {
+                                                        assert.ok(error_);
+                                                        assert.strictEqual(error_.code, 401);
 
-                                                        // Verify that a global administrator can update `tenantOverride=false` configuration options
-                                                        updateConfigAndWait(
-                                                          asGlobalAdmin,
+                                                        // Ensure the value did not change
+                                                        getTenantConfig(
+                                                          asCambridgeTenantAdmin,
                                                           null,
-                                                          {
-                                                            'oae-google-analytics/google-analytics/globalEnabled': '1'
-                                                          },
-                                                          err => {
-                                                            assert.notExists(err);
+                                                          (error, config) => {
+                                                            assert.notExists(error);
+                                                            assert.strictEqual(
+                                                              config['oae-google-analytics']['google-analytics']
+                                                                .globalEnabled,
+                                                              false
+                                                            );
 
-                                                            // Ensure the value changed
-                                                            getTenantConfig(
-                                                              asCambridgeTenantAdmin,
+                                                            // Verify that a global administrator can update `tenantOverride=false` configuration options
+                                                            updateConfigAndWait(
+                                                              asGlobalAdmin,
                                                               null,
-                                                              (err, config) => {
-                                                                assert.notExists(err);
-                                                                assert.strictEqual(
-                                                                  config['oae-google-analytics']['google-analytics']
-                                                                    .globalEnabled,
-                                                                  true
+                                                              {
+                                                                'oae-google-analytics/google-analytics/globalEnabled':
+                                                                  '1'
+                                                              },
+                                                              (error_) => {
+                                                                assert.notExists(error_);
+
+                                                                // Ensure the value changed
+                                                                getTenantConfig(
+                                                                  asCambridgeTenantAdmin,
+                                                                  null,
+                                                                  (error, config) => {
+                                                                    assert.notExists(error);
+                                                                    assert.strictEqual(
+                                                                      config['oae-google-analytics']['google-analytics']
+                                                                        .globalEnabled,
+                                                                      true
+                                                                    );
+
+                                                                    // Verify getting tenant configuration through the global server needs a valid ID
+                                                                    getTenantConfig(asGlobalAdmin, ' ', (
+                                                                      error__ /* , config */
+                                                                    ) => {
+                                                                      assert.ok(error__);
+                                                                      assert.strictEqual(error__.code, 400);
+
+                                                                      return callback();
+                                                                    });
+                                                                  }
                                                                 );
-
-                                                                // Verify getting tenant configuration through the global server needs a valid ID
-                                                                getTenantConfig(asGlobalAdmin, ' ', (
-                                                                  err /* , config */
-                                                                ) => {
-                                                                  assert.ok(err);
-                                                                  assert.strictEqual(err.code, 400);
-
-                                                                  return callback();
-                                                                });
                                                               }
                                                             );
                                                           }
                                                         );
-                                                      });
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          });
                                         });
-                                      });
-                                    }
-                                  );
-                                }
-                              );
-                            });
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
                           });
                         }
                       );
@@ -1205,10 +1226,10 @@ describe('Configuration', () => {
     /**
      * Test that verifies the functionality of an internationalizable text config field
      */
-    it('verify internationalizable field', callback => {
+    it('verify internationalizable field', (callback) => {
       // Verify there is a default key
-      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+        assert.notExists(error);
         assert.isObject(config['oae-principals'].termsAndConditions.text);
         assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 1);
         assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -1218,10 +1239,10 @@ describe('Configuration', () => {
           asGlobalAdmin,
           global.oaeTests.tenants.cam.alias,
           { 'oae-principals/termsAndConditions/text/en_US': 'Some legalese in American English' },
-          err => {
-            assert.notExists(err);
-            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-              assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
+            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+              assert.notExists(error);
               assert.isObject(config['oae-principals'].termsAndConditions.text);
               assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 2);
               assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -1237,10 +1258,10 @@ describe('Configuration', () => {
                 {
                   'oae-principals/termsAndConditions/text/nl_BE': 'Een waterdicht legaal contract'
                 },
-                err => {
-                  assert.notExists(err);
-                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                    assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
+                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                    assert.notExists(error);
                     assert.isObject(config['oae-principals'].termsAndConditions.text);
                     assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 3);
                     assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -1260,10 +1281,10 @@ describe('Configuration', () => {
                       {
                         'oae-principals/termsAndConditions/text/en_US': 'Some updated legalese in American English'
                       },
-                      err => {
-                        assert.notExists(err);
-                        getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                          assert.notExists(err);
+                      (error_) => {
+                        assert.notExists(error_);
+                        getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                          assert.notExists(error);
                           assert.isObject(config['oae-principals'].termsAndConditions.text);
                           assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 3);
                           assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -1282,11 +1303,11 @@ describe('Configuration', () => {
                             'oae-principals/termsAndConditions/text/fr_FR': 'fr fr text'
                           };
 
-                          updateConfigAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, update, err => {
-                            assert.notExists(err);
+                          updateConfigAndWait(asGlobalAdmin, global.oaeTests.tenants.cam.alias, update, (error_) => {
+                            assert.notExists(error_);
 
-                            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                              assert.notExists(err);
+                            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                              assert.notExists(error);
                               assert.isObject(config['oae-principals'].termsAndConditions.text);
                               assert.lengthOf(keys(config['oae-principals'].termsAndConditions.text), 4);
                               assert.strictEqual(config['oae-principals'].termsAndConditions.text.default, '');
@@ -1315,79 +1336,84 @@ describe('Configuration', () => {
     /**
      * Test that verifies text config values get trimmed
      */
-    it('verify text field gets trimmed', callback => {
+    it('verify text field gets trimmed', (callback) => {
       // Set the recaptcha public key to a value that needs trimming on the global tenant
-      updateConfigAndWait(asGlobalAdmin, null, { 'oae-principals/recaptcha/publicKey': ' untrimmed value ' }, err => {
-        assert.notExists(err);
+      updateConfigAndWait(
+        asGlobalAdmin,
+        null,
+        { 'oae-principals/recaptcha/publicKey': ' untrimmed value ' },
+        (error) => {
+          assert.notExists(error);
 
-        // Ensure the recaptcha public key is trimmed
-        getTenantConfig(asGlobalAdmin, null, (err, config) => {
-          assert.notExists(err);
-          assert.strictEqual(config['oae-principals'].recaptcha.publicKey, 'untrimmed value');
+          // Ensure the recaptcha public key is trimmed
+          getTenantConfig(asGlobalAdmin, null, (error, config) => {
+            assert.notExists(error);
+            assert.strictEqual(config['oae-principals'].recaptcha.publicKey, 'untrimmed value');
 
-          // Set the recaptcha public key to only whitespace and ensure it is treated like the empty string
-          updateConfigAndWait(asGlobalAdmin, null, { 'oae-principals/recaptcha/publicKey': ' ' }, err => {
-            assert.notExists(err);
+            // Set the recaptcha public key to only whitespace and ensure it is treated like the empty string
+            updateConfigAndWait(asGlobalAdmin, null, { 'oae-principals/recaptcha/publicKey': ' ' }, (error_) => {
+              assert.notExists(error_);
 
-            // It should have become the empty string
-            getTenantConfig(asGlobalAdmin, null, (err, config) => {
-              assert.notExists(err);
-              assert.strictEqual(config['oae-principals'].recaptcha.publicKey, '');
+              // It should have become the empty string
+              getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                assert.notExists(error);
+                assert.strictEqual(config['oae-principals'].recaptcha.publicKey, '');
 
-              // Set the recaptcha public key to a value that needs trimming on a user tenant
-              updateConfigAndWait(
-                asGlobalAdmin,
-                global.oaeTests.tenants.cam.alias,
-                { 'oae-principals/recaptcha/publicKey': ' untrimmed value ' },
-                err => {
-                  assert.notExists(err);
+                // Set the recaptcha public key to a value that needs trimming on a user tenant
+                updateConfigAndWait(
+                  asGlobalAdmin,
+                  global.oaeTests.tenants.cam.alias,
+                  { 'oae-principals/recaptcha/publicKey': ' untrimmed value ' },
+                  (error_) => {
+                    assert.notExists(error_);
 
-                  // Ensure the recaptcha public key is trimmed
-                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                    assert.notExists(err);
-                    assert.strictEqual(config['oae-principals'].recaptcha.publicKey, 'untrimmed value');
+                    // Ensure the recaptcha public key is trimmed
+                    getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                      assert.notExists(error);
+                      assert.strictEqual(config['oae-principals'].recaptcha.publicKey, 'untrimmed value');
 
-                    // Set the recaptcha public key to only whitespace and ensure it is treated like the empty string
-                    updateConfigAndWait(
-                      asGlobalAdmin,
-                      global.oaeTests.tenants.cam.alias,
-                      { 'oae-principals/recaptcha/publicKey': ' ' },
-                      err => {
-                        assert.notExists(err);
+                      // Set the recaptcha public key to only whitespace and ensure it is treated like the empty string
+                      updateConfigAndWait(
+                        asGlobalAdmin,
+                        global.oaeTests.tenants.cam.alias,
+                        { 'oae-principals/recaptcha/publicKey': ' ' },
+                        (error_) => {
+                          assert.notExists(error_);
 
-                        // Ensure the recaptcha public key became the empty string
-                        getTenantConfig(asGlobalAdmin, null, (err, config) => {
-                          assert.notExists(err);
-                          assert.strictEqual(config['oae-principals'].recaptcha.publicKey, '');
+                          // Ensure the recaptcha public key became the empty string
+                          getTenantConfig(asGlobalAdmin, null, (error, config) => {
+                            assert.notExists(error);
+                            assert.strictEqual(config['oae-principals'].recaptcha.publicKey, '');
 
-                          return callback();
-                        });
-                      }
-                    );
-                  });
-                }
-              );
+                            return callback();
+                          });
+                        }
+                      );
+                    });
+                  }
+                );
+              });
             });
           });
-        });
-      });
+        }
+      );
     });
 
     /**
      * Test that verifies the functionality of the list config field
      */
-    it('verify list field', callback => {
+    it('verify list field', (callback) => {
       // Verify the `list` property is returned in the schema and that it contains the correct objects
-      RestAPI.Config.getSchema(asGlobalAdmin, (err, schema) => {
-        assert.notExists(err);
+      RestAPI.Config.getSchema(asGlobalAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.isArray(schema['oae-principals'].group.elements.visibility.list);
-        forEach(listOption => {
+        forEach((listOption) => {
           assert.ok(listOption.name);
           assert.ok(listOption.value);
         }, schema['oae-principals'].group.elements.visibility.list);
 
         // Assert that there is a value 'private' in the list
-        const privateValues = filter(option => {
+        const privateValues = filter((option) => {
           return equals(option.value, 'private');
         }, schema['oae-principals'].group.elements.visibility.list);
         assert.lengthOf(privateValues, 1);
@@ -1397,11 +1423,11 @@ describe('Configuration', () => {
           asGlobalAdmin,
           global.oaeTests.tenants.cam.alias,
           { 'oae-principals/group/visibility': 'private' },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
-            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-              assert.notExists(err);
+            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+              assert.notExists(error);
               assert.strictEqual(config['oae-principals'].group.visibility, 'private');
 
               // Clear the config and ensure it goes back to the default
@@ -1409,11 +1435,11 @@ describe('Configuration', () => {
                 asGlobalAdmin,
                 global.oaeTests.tenants.cam.alias,
                 ['oae-principals/group/visibility'],
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
-                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                    assert.notExists(err);
+                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                    assert.notExists(error);
                     assert.strictEqual(config['oae-principals'].group.visibility, 'public');
 
                     return callback();
@@ -1429,18 +1455,18 @@ describe('Configuration', () => {
     /**
      * Test that verifies the functionality of the radio config field
      */
-    it('verify radio field', callback => {
+    it('verify radio field', (callback) => {
       // Verify the `group` property is returned in the schema and that it contains the correct objects
-      getSchema(asGlobalAdmin, (err, schema) => {
-        assert.notExists(err);
+      getSchema(asGlobalAdmin, (error, schema) => {
+        assert.notExists(error);
         assert.isArray(schema['oae-content'].storage.elements.backend.group);
-        forEach(listOption => {
+        forEach((listOption) => {
           assert.ok(listOption.name);
           assert.ok(listOption.value);
         }, schema['oae-content'].storage.elements.backend.group);
 
         // Assert that there is a value 'amazons3' in the set
-        const amazons3Values = filter(option => {
+        const amazons3Values = filter((option) => {
           return equals(option.value, 'amazons3');
         }, schema['oae-content'].storage.elements.backend.group);
         assert.lengthOf(amazons3Values, 1);
@@ -1450,11 +1476,11 @@ describe('Configuration', () => {
           asGlobalAdmin,
           global.oaeTests.tenants.cam.alias,
           { 'oae-content/storage/backend': 'amazons3' },
-          err => {
-            assert.notExists(err);
+          (error_) => {
+            assert.notExists(error_);
 
-            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-              assert.notExists(err);
+            getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+              assert.notExists(error);
               assert.strictEqual(config['oae-content'].storage.backend, 'amazons3');
 
               // Clear the config and ensure it goes back to the default
@@ -1462,11 +1488,11 @@ describe('Configuration', () => {
                 asGlobalAdmin,
                 global.oaeTests.tenants.cam.alias,
                 ['oae-content/storage/backend'],
-                err => {
-                  assert.notExists(err);
+                (error_) => {
+                  assert.notExists(error_);
 
-                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (err, config) => {
-                    assert.notExists(err);
+                  getTenantConfig(asGlobalAdmin, global.oaeTests.tenants.cam.alias, (error, config) => {
+                    assert.notExists(error);
                     assert.strictEqual(config['oae-content'].storage.backend, 'local');
 
                     return callback();

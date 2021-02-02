@@ -31,7 +31,7 @@ const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 
 let globalTenantAlias = null;
 
-export default function(config) {
+function initLocalAuth(config) {
   globalTenantAlias = config.servers.globalAdminAlias;
 
   // Build up the OAE strategy.
@@ -40,7 +40,7 @@ export default function(config) {
   /**
    * @see oae-authentication/lib/strategy#shouldBeEnabled
    */
-  strategy.shouldBeEnabled = function(tenantAlias) {
+  strategy.shouldBeEnabled = function (tenantAlias) {
     // The global tenant should always have local login enabled.
     if (tenantAlias === globalTenantAlias) {
       return true;
@@ -58,29 +58,29 @@ export default function(config) {
   /**
    * @see oae-authentication/lib/strategy#getPassportStrategy
    */
-  strategy.getPassportStrategy = function() {
+  strategy.getPassportStrategy = function () {
     const passportStrategy = new LocalStrategy(
       { passReqToCallback: true },
-      (req, username, password, done) => {
-        const { tenant } = req;
+      (request, username, password, done) => {
+        const { tenant } = request;
 
-        AuthenticationAPI.checkPassword(tenant.alias, username, password, (err, userId) => {
-          if (err && err.code === 401) {
+        AuthenticationAPI.checkPassword(tenant.alias, username, password, (error, userId) => {
+          if (error && error.code === 401) {
             // The provided password was incorrect
             return done(null, false);
           }
 
-          if (err) {
+          if (error) {
             // Some internal error occurred
-            return done(err);
+            return done(error);
           }
 
           // By this point we know that we were succesfully logged in. Retrieve
           // the user account and stick it in the context.
           const ctx = new Context(tenant, new User(tenant.alias, userId));
-          PrincipalsAPI.getUser(ctx, userId, (err, user) => {
-            if (err) {
-              return done(err);
+          PrincipalsAPI.getUser(ctx, userId, (error, user) => {
+            if (error) {
+              return done(error);
             }
 
             if (user.deleted) {
@@ -91,13 +91,13 @@ export default function(config) {
               tenant,
               AuthenticationConstants.providers.LOCAL
             );
-            const authObj = { user, strategyId };
+            const authObject = { user, strategyId };
             AuthenticationUtil.logAuthenticationSuccess(
-              req,
-              authObj,
+              request,
+              authObject,
               AuthenticationConstants.providers.LOCAL
             );
-            return done(null, authObj);
+            return done(null, authObject);
           });
         });
       }
@@ -118,3 +118,5 @@ export default function(config) {
   );
   passport.use(adminLocalPassportStrategyName, strategy.getPassportStrategy(globalTenant));
 }
+
+export default initLocalAuth;

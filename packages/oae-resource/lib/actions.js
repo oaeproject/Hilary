@@ -69,7 +69,7 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   The member change info object that describes the resource members
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    The email change info object that describes the resource invitations
  */
-const create = function(ctx, roles, createFn, callback) {
+const create = function (ctx, roles, createFn, callback) {
   try {
     unless(isLoggedInUser, {
       code: 400,
@@ -78,7 +78,7 @@ const create = function(ctx, roles, createFn, callback) {
 
     // Ensure all member ids are valid members
     const memberIds = _.keys(roles);
-    memberIds.forEach(memberId => {
+    memberIds.forEach((memberId) => {
       unless(isValidShareTarget, {
         code: 400,
         msg:
@@ -100,24 +100,24 @@ const create = function(ctx, roles, createFn, callback) {
   }
 
   // Get the target resources being added as members and invitations to the new resource
-  _getTargetRoles(roles, (err, targetRolesById) => {
-    if (err) {
-      return callback(err);
+  _getTargetRoles(roles, (error, targetRolesById) => {
+    if (error) {
+      return callback(error);
     }
 
     const targetRoles = _.values(targetRolesById);
 
     // Determine that the current user can perform this create action given the target members
-    AuthzPermissions.canCreate(ctx, targetRoles, (err, memberChangeInfo, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canCreate(ctx, targetRoles, (error, memberChangeInfo, emailChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       // Perform the create action
       createFn((...args) => {
-        const [err, resource] = args;
-        if (err) {
-          return callback(err);
+        const [error, resource] = args;
+        if (error) {
+          return callback(error);
         }
 
         // Get all the results of the create function. There could be more than just the
@@ -125,15 +125,15 @@ const create = function(ctx, roles, createFn, callback) {
         const createFnResults = args.slice(1);
 
         // Apply the changes to the authz members, if any
-        _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
-          if (err) {
-            return callback(err);
+        _applyMemberChanges(ctx, resource, memberChangeInfo, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           // Apply the changes to the authz invitations, if any
-          _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
-            if (err) {
-              return callback(err);
+          _applyInvitationChanges(ctx, resource, emailChangeInfo, (error_) => {
+            if (error_) {
+              return callback(error_);
             }
 
             // Return to the caller, appending the members and emails changes to the
@@ -159,7 +159,7 @@ const create = function(ctx, roles, createFn, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   Describes the resource member updates
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
-const share = function(ctx, resource, targetIds, role, callback) {
+const share = function (ctx, resource, targetIds, role, callback) {
   try {
     unless(isLoggedInUser, {
       code: 400,
@@ -188,7 +188,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
       resourceId = resource.id;
     }
 
-    targetIds.forEach(targetId => {
+    targetIds.forEach((targetId) => {
       unless(isValidShareTarget, {
         code: 400,
         msg:
@@ -211,29 +211,29 @@ const share = function(ctx, resource, targetIds, role, callback) {
   }
 
   // Split the targets into principal profiles and emails
-  _getTargets(targetIds, (err, targetsByTargetId) => {
-    if (err) {
-      return callback(err);
+  _getTargets(targetIds, (error, targetsByTargetId) => {
+    if (error) {
+      return callback(error);
     }
 
     const targets = _.values(targetsByTargetId);
 
     // Determine if the share violates any privacy or access
-    AuthzPermissions.canShare(ctx, resource, targets, role, (err, memberChangeInfo, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canShare(ctx, resource, targets, role, (error, memberChangeInfo, emailChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       // Apply the changes to the authz members, if any
-      _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
-        if (err) {
-          return callback(err);
+      _applyMemberChanges(ctx, resource, memberChangeInfo, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Apply the changes to the authz invitations, if any
-        _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
-          if (err) {
-            return callback(err);
+        _applyInvitationChanges(ctx, resource, emailChangeInfo, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           return callback(null, memberChangeInfo, emailChangeInfo);
@@ -254,7 +254,7 @@ const share = function(ctx, resource, targetIds, role, callback) {
  * @param  {MemberChangeInfo}   callback.memberChangeInfo   Describes the resource member updates
  * @param  {EmailChangeInfo}    callback.emailChangeInfo    Describes the resource invitation updates
  */
-const setRoles = function(ctx, resource, roles, callback) {
+const setRoles = function (ctx, resource, roles, callback) {
   try {
     unless(isLoggedInUser, {
       code: 400,
@@ -306,29 +306,29 @@ const setRoles = function(ctx, resource, roles, callback) {
   }
 
   // Split the targets into principal profiles and emails
-  _getTargetRoles(roles, (err, targetRolesById) => {
-    if (err) {
-      return callback(err);
+  _getTargetRoles(roles, (error, targetRolesById) => {
+    if (error) {
+      return callback(error);
     }
 
     const targetRoles = _.values(targetRolesById);
 
     // Permission check to ensure the current user is allowed to set these roles
-    AuthzPermissions.canSetRoles(ctx, resource, targetRoles, (err, memberChangeInfo, emailChangeInfo) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canSetRoles(ctx, resource, targetRoles, (error, memberChangeInfo, emailChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       // Apply the changes to the authz members, if any
-      _applyMemberChanges(ctx, resource, memberChangeInfo, err => {
-        if (err) {
-          return callback(err);
+      _applyMemberChanges(ctx, resource, memberChangeInfo, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Apply the changes to the authz invitations, if any
-        _applyInvitationChanges(ctx, resource, emailChangeInfo, err => {
-          if (err) {
-            return callback(err);
+        _applyInvitationChanges(ctx, resource, emailChangeInfo, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           return callback(null, memberChangeInfo, emailChangeInfo);
@@ -347,7 +347,7 @@ const setRoles = function(ctx, resource, roles, callback) {
  * @param  {Function}           callback        Standard callback function
  * @param  {Object}             callback.err    An error that occurred, if any
  */
-const resendInvitation = function(ctx, resource, email, callback) {
+const resendInvitation = function (ctx, resource, email, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -370,22 +370,22 @@ const resendInvitation = function(ctx, resource, email, callback) {
   email = email.toLowerCase();
 
   // Only managers can resend invitations
-  AuthzPermissions.canManage(ctx, resource, err => {
-    if (err) {
-      return callback(err);
+  AuthzPermissions.canManage(ctx, resource, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the invitation storage hash for which to resend an invitation
     const resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    AuthzInvitationsDAO.getInvitation(resourceAuthzId, email, (err, invitationHash) => {
-      if (err) {
-        return callback(err);
+    AuthzInvitationsDAO.getInvitation(resourceAuthzId, email, (error, invitationHash) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the email token for the specified email
-      AuthzInvitationsDAO.getOrCreateTokensByEmails([email], (err, tokensByEmail) => {
-        if (err) {
-          return callback(err);
+      AuthzInvitationsDAO.getOrCreateTokensByEmails([email], (error, tokensByEmail) => {
+        if (error) {
+          return callback(error);
         }
 
         // Re-emit the invite event
@@ -407,7 +407,7 @@ const resendInvitation = function(ctx, resource, email, callback) {
  * @param  {String}         callback.email      The email address that was associated to the token
  * @param  {Resource[]}     callback.resources  The resources to which the user's access changed (user could have been added or promoted) while accepting this invitation
  */
-const acceptInvitation = function(ctx, token, callback) {
+const acceptInvitation = function (ctx, token, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -423,18 +423,18 @@ const acceptInvitation = function(ctx, token, callback) {
   }
 
   // Perform the accept action
-  _acceptInvitation(ctx, token, (err, email, invitationHashes, memberChangeInfosByResourceId) => {
-    if (err) {
-      return callback(err);
+  _acceptInvitation(ctx, token, (error, email, invitationHashes, memberChangeInfosByResourceId) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the profiles of all the users that performed invitations to this user
     const inviterUserIds = _.pluck(invitationHashes, 'inviterUserId');
-    PrincipalsDAO.getPrincipals(inviterUserIds, null, (err, inviterUsersById) => {
-      if (err) {
+    PrincipalsDAO.getPrincipals(inviterUserIds, null, (error, inviterUsersById) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             inviterUserIds
           },
           'Failed to get inviter users after an email invitation was accepted'
@@ -447,13 +447,13 @@ const acceptInvitation = function(ctx, token, callback) {
 
       // If the user doesn't have a verified email, lets give them this one since we know it's
       // legit with this token
-      _ensureVerifiedEmail(ctx, email, err => {
-        if (err) {
+      _ensureVerifiedEmail(ctx, email, (error_) => {
+        if (error_) {
           // Whine in the logs if this fails, but it's not critical so we can still
           // otherwise succeed
           log().warn(
             {
-              err,
+              err: error_,
               user: ctx.user(),
               email
             },
@@ -473,14 +473,14 @@ const acceptInvitation = function(ctx, token, callback) {
           token,
           (errs, results) => {
             if (errs) {
-              _.each(errs, err => {
-                log().warn({ err }, 'An error occurred while handling an "accept invitation" event');
+              _.each(errs, (error_) => {
+                log().warn({ err: error_ }, 'An error occurred while handling an "accept invitation" event');
               });
             }
 
             const fullResources = _.chain(results)
               .flatten()
-              .filter(resource => {
+              .filter((resource) => {
                 return !resource.deleted;
               })
               .value();
@@ -492,7 +492,7 @@ const acceptInvitation = function(ctx, token, callback) {
             // after we emit it. There needs to be a resource registry where we can better
             // abstract over these things so we can handle multi-resource actions like this
             // better
-            _.each(invitationHashes, invitationHash => {
+            _.each(invitationHashes, (invitationHash) => {
               const resource = fullResourcesByAuthzId[invitationHash.resourceId];
               const inviterUser = inviterUsersById[invitationHash.inviterUserId];
               if (resource) {
@@ -502,7 +502,7 @@ const acceptInvitation = function(ctx, token, callback) {
 
             // Provide only the base resource properties for the user accepting the
             // invitation
-            const baseResources = _.map(fullResources, resource => {
+            const baseResources = _.map(fullResources, (resource) => {
               return _.pick(resource, [
                 'id',
                 'tenant',
@@ -532,7 +532,7 @@ const acceptInvitation = function(ctx, token, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _ensureVerifiedEmail = function(ctx, email, callback) {
+const _ensureVerifiedEmail = function (ctx, email, callback) {
   if (ctx.user().email) {
     // If the user already has a verified email, don't reset it
     return callback();
@@ -553,24 +553,24 @@ const _ensureVerifiedEmail = function(ctx, email, callback) {
  * @param  {Object}     callback.memberChangeInfosByResourceId  The member change infos describing the members changes that were actually applied for each resource id
  * @api private
  */
-const _acceptInvitation = function(ctx, token, callback) {
+const _acceptInvitation = function (ctx, token, callback) {
   // Get the email address that this token validates on behalf of
-  AuthzInvitationsDAO.getEmailByToken(token, (err, email) => {
-    if (err) {
-      return callback(err);
+  AuthzInvitationsDAO.getEmailByToken(token, (error, email) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get all the invitations that have been sent for this email address
-    AuthzInvitationsDAO.getAllInvitationsByEmail(email, (err, invitationHashes) => {
-      if (err) {
-        return callback(err);
+    AuthzInvitationsDAO.getAllInvitationsByEmail(email, (error, invitationHashes) => {
+      if (error) {
+        return callback(error);
       }
 
       // Build the requested member role changes to associate the user accepting this
       // invitation. There will be at most one role change per resource, as a user can only
       // be invited to a resource once
       const memberRolesByResourceId = {};
-      _.each(invitationHashes, invitationHash => {
+      _.each(invitationHashes, (invitationHash) => {
         const { resourceId } = invitationHash;
         memberRolesByResourceId[resourceId] = memberRolesByResourceId[resourceId] || {};
         memberRolesByResourceId[resourceId][ctx.user().id] = invitationHash.role;
@@ -580,23 +580,23 @@ const _acceptInvitation = function(ctx, token, callback) {
       // user. For example, if they are accepting an invitation to another one of their email
       // addresses, and their account already has manager access to the resource, the role
       // change will be rejected because they shouldn't be demoted due to an invitation
-      _applyAllMemberChanges(memberRolesByResourceId, (err, idChangeInfosByResourceId) => {
-        if (err) {
-          return callback(err);
+      _applyAllMemberChanges(memberRolesByResourceId, (error, idChangeInfosByResourceId) => {
+        if (error) {
+          return callback(error);
         }
 
         const membersById = _.object([[ctx.user().id, ctx.user()]]);
-        const memberChangeInfosByResourceId = _.mapObject(idChangeInfosByResourceId, idChangeInfo => {
+        const memberChangeInfosByResourceId = _.mapObject(idChangeInfosByResourceId, (idChangeInfo) => {
           // Map the id change infos into member change infos
           return AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, membersById);
         });
 
         // Remove all invitations for the email
-        AuthzInvitationsDAO.deleteInvitationsByEmail(email, err => {
-          if (err) {
+        AuthzInvitationsDAO.deleteInvitationsByEmail(email, (error_) => {
+          if (error_) {
             log().warn(
               {
-                err,
+                err: error_,
                 email
               },
               'Failed to delete invitations after an email invitation has been accepted'
@@ -620,10 +620,10 @@ const _acceptInvitation = function(ctx, token, callback) {
  * @param  {ShareTarget[]}  callback.targetRolesById    The share targets, keyed by their original target id, with their desired roles applied
  * @api private
  */
-const _getTargetRoles = function(roles, callback) {
-  _getTargets(_.keys(roles), (err, targetsById) => {
-    if (err) {
-      return callback(err);
+const _getTargetRoles = function (roles, callback) {
+  _getTargets(_.keys(roles), (error, targetsById) => {
+    if (error) {
+      return callback(error);
     }
 
     // Apply the roles to each share target
@@ -645,7 +645,7 @@ const _getTargetRoles = function(roles, callback) {
  * @param  {Object}         callback.targetsById    An object keyed by the target id whose value is the actual ShareTarget parsed from the target ids
  * @api private
  */
-const _getTargets = function(targetIds, callback) {
+const _getTargets = function (targetIds, callback) {
   // Map the original target ids to each parsed target
   const targetsById = {};
 
@@ -660,7 +660,7 @@ const _getTargets = function(targetIds, callback) {
   const emails = [];
 
   // Populate the parsed targets and emails to share with
-  _.each(targetIds, targetId => {
+  _.each(targetIds, (targetId) => {
     const target = AuthzUtil.parseShareTarget(targetId);
     if (target) {
       targetsById[targetId] = target;
@@ -671,14 +671,14 @@ const _getTargets = function(targetIds, callback) {
     }
   });
 
-  const innerCallback = function(err, userIdsByEmails) {
-    if (err) {
-      return callback(err);
+  const innerCallback = function (error, userIdsByEmails) {
+    if (error) {
+      return callback(error);
     }
 
     // For each email for which we have a distinct user account, assign the principal id to the
     // target, as we will associate the share to that user account
-    _.each(emails, email => {
+    _.each(emails, (email) => {
       const originalTargetId = emailCaseMapping[email];
       const userIds = userIdsByEmails[email];
       if (_.size(userIds) === 1) {
@@ -688,24 +688,20 @@ const _getTargets = function(targetIds, callback) {
 
     // Expand all our principals into principal profiles. If there are no principals associated
     // to the share targets, we short-circuit with just our email targets
-    const principalIds = _.chain(targetsById)
-      .pluck('principalId')
-      .uniq()
-      .compact()
-      .value();
+    const principalIds = _.chain(targetsById).pluck('principalId').uniq().compact().value();
     if (_.isEmpty(principalIds)) {
       // If there are no principal profiles to expand, just return
       return callback(null, targetsById);
     }
 
-    PrincipalsDAO.getExistingPrincipals(principalIds, null, (err, principalsById) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getExistingPrincipals(principalIds, null, (error, principalsById) => {
+      if (error) {
+        return callback(error);
       }
 
       // Update each target in place to swap out its `principalId` for the full `principal`
       // profile
-      _.each(targetsById, target => {
+      _.each(targetsById, (target) => {
         const { principalId } = target;
         if (principalId) {
           target.principal = principalsById[principalId];
@@ -735,7 +731,7 @@ const _getTargets = function(targetIds, callback) {
  * @param  {Object}     callback.idChangeInfosByResourceId  An object keyed by resource id, whose values are the `MemberChangeInfo` objects that describe the canonical changes to apply to the member roles
  * @api private
  */
-const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
+const _applyAllMemberChanges = function (memberRolesByResourceId, callback) {
   if (_.isEmpty(memberRolesByResourceId)) {
     return callback(null, {});
   }
@@ -752,9 +748,9 @@ const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
     // First determine what changes to actually apply. If someone accepts an invitation and they
     // already have manager role, an invitation that invited them as viewer should not demote
     // their role. Therefore, we only take into consideration promotions, similar to share
-    AuthzAPI.computeMemberRolesAfterChanges(resourceId, memberRoles, { promoteOnly: true }, (err, idChangeInfo) => {
-      if (err) {
-        log().warn({ err }, 'An error occurred computing member role changes when an invitation was accepted');
+    AuthzAPI.computeMemberRolesAfterChanges(resourceId, memberRoles, { promoteOnly: true }, (error, idChangeInfo) => {
+      if (error) {
+        log().warn({ err: error }, 'An error occurred computing member role changes when an invitation was accepted');
         return _done();
       }
 
@@ -766,9 +762,9 @@ const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
       // Perform the actual changes in the resource roles. When an invitation is created, it
       // is the authz id that is persisted as the resource id in the invitations schema.
       // Therefore, we can safely use this resource id to update the roles in the authz api
-      AuthzAPI.updateRoles(resourceId, idChangeInfo.changes, err => {
-        if (err) {
-          log().warn({ err }, 'An error occurred applying member role changes when an invitation was accepted');
+      AuthzAPI.updateRoles(resourceId, idChangeInfo.changes, (error_) => {
+        if (error_) {
+          log().warn({ err: error_ }, 'An error occurred applying member role changes when an invitation was accepted');
           return _done();
         }
 
@@ -791,7 +787,7 @@ const _applyAllMemberChanges = function(memberRolesByResourceId, callback) {
  * @param  {Object}             callback.err        An error that occurred, if any
  * @api private
  */
-const _applyMemberChanges = function(ctx, resource, memberChangeInfo, callback) {
+const _applyMemberChanges = function (ctx, resource, memberChangeInfo, callback) {
   if (_.isEmpty(memberChangeInfo.changes)) {
     return callback();
   }
@@ -810,7 +806,7 @@ const _applyMemberChanges = function(ctx, resource, memberChangeInfo, callback) 
  * @param  {Object}             callback.err        An error that occurred, if any
  * @api private
  */
-const _applyInvitationChanges = function(ctx, resource, emailChangeInfo, callback) {
+const _applyInvitationChanges = function (ctx, resource, emailChangeInfo, callback) {
   const addedEmailRoles = _.pick(emailChangeInfo.changes, emailChangeInfo.emails.added);
   const updatedEmailRoles = _.omit(emailChangeInfo.changes, emailChangeInfo.emails.added);
   const authzResourceId = AuthzUtil.getAuthzId(resource);
@@ -819,9 +815,9 @@ const _applyInvitationChanges = function(ctx, resource, emailChangeInfo, callbac
     AuthzInvitationsDAO.updateInvitationRoles,
     authzResourceId,
     updatedEmailRoles,
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       OaeUtil.invokeIfNecessary(
@@ -830,9 +826,9 @@ const _applyInvitationChanges = function(ctx, resource, emailChangeInfo, callbac
         authzResourceId,
         addedEmailRoles,
         ctx.user().id,
-        (err, emailTokens) => {
-          if (err) {
-            return callback(err);
+        (error, emailTokens) => {
+          if (error) {
+            return callback(error);
           }
 
           return _emitInvited(ctx, resource, addedEmailRoles, emailTokens, callback);
@@ -854,7 +850,7 @@ const _applyInvitationChanges = function(ctx, resource, emailChangeInfo, callbac
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _emitInvited = function(ctx, resource, emailRoles, emailTokens, callback) {
+const _emitInvited = function (ctx, resource, emailRoles, emailTokens, callback) {
   if (_.isEmpty(emailRoles)) {
     return callback();
   }
@@ -866,7 +862,7 @@ const _emitInvited = function(ctx, resource, emailRoles, emailTokens, callback) 
 
   // Emit the invitations that were sent along with the email tokens that can be used to accept
   // them
-  ResourceActions.emit(ResourceConstants.events.INVITED, ctx, invitations, emailTokens, errs => {
+  ResourceActions.emit(ResourceConstants.events.INVITED, ctx, invitations, emailTokens, (errs) => {
     if (errs) {
       log().warn(
         {

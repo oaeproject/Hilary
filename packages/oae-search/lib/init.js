@@ -14,9 +14,9 @@
  */
 
 import * as SearchAPI from 'oae-search';
-import generalSearch from './searches/general';
-import deletedSearch from './searches/deleted';
-import { queryBuilder, postProcessor } from './searches/email';
+import generalSearch from './searches/general.js';
+import deletedSearch from './searches/deleted.js';
+import { queryBuilder, postProcessor } from './searches/email.js';
 
 export function init(config, callback) {
   const destroy = config.search.index.destroyOnStartup === true;
@@ -26,8 +26,8 @@ export function init(config, callback) {
   SearchAPI.registerSearch('deleted', deletedSearch);
   SearchAPI.registerSearch('email', queryBuilder, postProcessor);
 
-  SearchAPI.refreshSearchConfiguration(config.search, err => {
-    if (err) return callback(err);
+  SearchAPI.refreshSearchConfiguration(config.search, (error) => {
+    if (error) return callback(error);
 
     // Build the index and seed the search schema
     return SearchAPI.buildIndex(destroy, callback);

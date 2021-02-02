@@ -14,34 +14,35 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import * as Pubsub from 'oae-util/lib/pubsub';
 
 describe('Pubsub', () => {
   describe('#publish()', () => {
-    it('verify missing channel parameter', callback => {
-      Pubsub.publish(undefined, 'some message', err => {
-        assert.strictEqual(err.code, 400);
+    it('verify missing channel parameter', (callback) => {
+      Pubsub.publish(undefined, 'some message', (error) => {
+        assert.strictEqual(error.code, 400);
         callback();
       });
     });
 
-    it('verify missing message parameter', callback => {
-      Pubsub.publish('oae-tests', undefined, err => {
-        assert.strictEqual(err.code, 400);
+    it('verify missing message parameter', (callback) => {
+      Pubsub.publish('oae-tests', undefined, (error) => {
+        assert.strictEqual(error.code, 400);
         callback();
       });
     });
 
-    it('verify publication', callback => {
+    it('verify publication', (callback) => {
       const channel = 'oae-tests';
       const message = 'This message will go to all the nodes in the cluster.';
-      Pubsub.emitter.on(channel, receivedMessage => {
+      Pubsub.emitter.on(channel, (receivedMessage) => {
         assert.strictEqual(receivedMessage, message);
         callback();
       });
-      Pubsub.publish(channel, message, err => {
-        assert.notExists(err);
+      Pubsub.publish(channel, message, (error) => {
+        assert.notExists(error);
       });
     });
   });

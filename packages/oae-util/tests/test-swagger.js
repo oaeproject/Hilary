@@ -14,20 +14,21 @@
  */
 
 import { assert } from 'chai';
-import util from 'util';
+import { describe, before, it } from 'mocha';
+import { format } from 'util';
 import path from 'path';
 
 import { keys, equals, indexBy, prop, forEach, find, propSatisfies, not, pluck, has, contains } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as Swagger from '../lib/swagger';
+import * as Swagger from '../lib/swagger.js';
 
 describe('Swagger', () => {
   let asAnonymousUserOnLocalhost = null;
   let asGlobalAdmin = null;
 
-  before(callback => {
+  before((callback) => {
     asAnonymousUserOnLocalhost = TestsUtil.createTenantRestContext(global.oaeTests.tenants.localhost.host);
     asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
 
@@ -42,13 +43,13 @@ describe('Swagger', () => {
     /**
      * Test that verifies that we get a Swagger resource list with the expected contents
      */
-    it('verify get resource list', callback => {
-      RestAPI.Doc.getSwaggerResources(asAnonymousUserOnLocalhost, (err, resources) => {
-        assert.notExists(err);
+    it('verify get resource list', (callback) => {
+      RestAPI.Doc.getSwaggerResources(asAnonymousUserOnLocalhost, (error, resources) => {
+        assert.notExists(error);
         assert.isString(resources.apiVersion);
         assert.isString(resources.swaggerVersion);
         assert.isArray(resources.apis);
-        forEach(api => {
+        forEach((api) => {
           assert.isString(api.path);
         }, resources.apis);
         assert.ok(
@@ -64,16 +65,16 @@ describe('Swagger', () => {
     /**
      * Test that verifies that we can get API declarations for all defined routes
      */
-    it('verify get api declarations', callback => {
-      RestAPI.Doc.getSwaggerResources(asAnonymousUserOnLocalhost, (err, resources) => {
-        assert.notExists(err);
+    it('verify get api declarations', (callback) => {
+      RestAPI.Doc.getSwaggerResources(asAnonymousUserOnLocalhost, (error, resources) => {
+        assert.notExists(error);
         assert.ok(resources.apis);
         let completed = 0;
-        forEach(api => {
+        forEach((api) => {
           // Strip the leading '/'
           const id = api.path.slice(1);
-          RestAPI.Doc.getSwaggerApi(asAnonymousUserOnLocalhost, id, (err, data) => {
-            assert.notExists(err);
+          RestAPI.Doc.getSwaggerApi(asAnonymousUserOnLocalhost, id, (error, data) => {
+            assert.notExists(error);
             assert.ok(data.apiVersion);
             assert.ok(data.swaggerVersion);
             assert.strictEqual(data.basePath, 'http://localhost:2001/api');
@@ -81,15 +82,15 @@ describe('Swagger', () => {
             assert.isArray(data.apis);
             assert.isObject(data.models);
             // Verify models
-            forEach(model => {
+            forEach((model) => {
               assert.isString(model.id, 'Model id must be a String');
               assert.isArray(model.required, 'Model required must be an Array');
               assert.isObject(model.properties, 'Model properties must be an Object');
-              forEach(id => {
+              forEach((id) => {
                 assert.isString(id, 'Required property ids must be Strings');
-                assert.ok(model.properties[id], util.format('Required property "%s" is not defined', id));
+                assert.ok(model.properties[id], format('Required property "%s" is not defined', id));
               }, model.required);
-              forEach(property => {
+              forEach((property) => {
                 assert.isString(property.type);
                 if (property.type === 'array') {
                   assert.isObject(property.items, 'Arrays must have an item type');
@@ -102,51 +103,48 @@ describe('Swagger', () => {
                     assert.include(
                       Swagger.Constants.primitives,
                       property.items.type,
-                      util.format(
-                        'Array item type "%s" is not a primitive type, did you mean $ref',
-                        property.items.type
-                      )
+                      format('Array item type "%s" is not a primitive type, did you mean $ref', property.items.type)
                     );
                   } else {
                     // Complex type, make sure there's a model for it
                     assert.ok(
                       data.models[property.items.$ref],
-                      util.format('Array item $ref "%s" is not defined in models', property.items.$ref)
+                      format('Array item $ref "%s" is not defined in models', property.items.$ref)
                     );
                   }
                 } else if (not(contains(property.type, Swagger.Constants.primitives))) {
                   // Complex type, make sure there's a model for it
                   assert.ok(
                     data.models[property.type],
-                    util.format('Property type "%s" is not defined in models', property.type)
+                    format('Property type "%s" is not defined in models', property.type)
                   );
                 }
               }, model.properties);
             }, data.models);
 
             // Verify apis
-            forEach(api => {
+            forEach((api) => {
               assert.isObject(api, 'APIs must be Objects');
               assert.isString(api.path, 'API paths must be Strings');
               assert.isArray(api.operations, 'API operations must be an Array');
-              forEach(operation => {
+              forEach((operation) => {
                 assert.isObject(operation, 'Operations must be Objects');
                 assert.isString(operation.path, 'Operation path must be a String');
                 const verbs = ['GET', 'POST', 'PUT', 'DELETE'];
                 assert.include(
                   verbs,
                   operation.method,
-                  util.format('Operation method "%s" is not one of "GET", "POST", "PUT", or "DELETE"', operation.method)
+                  format('Operation method "%s" is not one of "GET", "POST", "PUT", or "DELETE"', operation.method)
                 );
                 assert.isString(operation.nickname, 'Operation nickname must be a String');
                 assert.notInclude(
                   operation.nickname,
                   ' ',
-                  util.format('Operation nickname "%s" cannot contain spaces', operation.nickname)
+                  format('Operation nickname "%s" cannot contain spaces', operation.nickname)
                 );
                 assert.isString(operation.summary, 'Operation summary must be a String');
                 assert.isString(operation.responseClass, 'Operation responseClass must be a String');
-                const responseClass = operation.responseClass.replace(/^List\[/, '').replace(/\]/, '');
+                const responseClass = operation.responseClass.replace(/^List\[/, '').replace(/]/, '');
                 if (
                   not(contains(responseClass, Swagger.Constants.primitives)) &&
                   responseClass !== 'void' &&
@@ -154,44 +152,44 @@ describe('Swagger', () => {
                 ) {
                   assert.ok(
                     data.models[responseClass],
-                    util.format('ResponseClass type "%s" is undefined in models', responseClass)
+                    format('ResponseClass type "%s" is undefined in models', responseClass)
                   );
                 }
 
                 assert.isArray(operation.parameters, 'Operation parameters must be an Array');
-                forEach(parameter => {
+                forEach((parameter) => {
                   assert.isString(parameter.name, 'Parameter name must be a String');
                   assert.isString(parameter.description, 'Parameter description must be a String');
-                  const dataType = parameter.dataType.replace(/^List\[/, '').replace(/\]/, '');
+                  const dataType = parameter.dataType.replace(/^List\[/, '').replace(/]/, '');
                   if (not(contains(dataType, Swagger.Constants.primitives)) && dataType !== 'File') {
                     assert.ok(
                       data.models[dataType],
-                      util.format('Parameter dataType "%s" is undefined in models', dataType)
+                      format('Parameter dataType "%s" is undefined in models', dataType)
                     );
                   }
 
                   assert.isBoolean(parameter.required, 'Parameter required must be a Boolean');
                   assert.isBoolean(parameter.allowMultiple, 'Parameter allowMultiple must be a Boolean');
-                  const paramTypes = ['body', 'path', 'query', 'form', 'header'];
+                  const parameterTypes = ['body', 'path', 'query', 'form', 'header'];
                   assert.include(
-                    paramTypes,
+                    parameterTypes,
                     parameter.paramType,
-                    util.format(
+                    format(
                       'Param type "%s" is not one of "body", "path", "query", "form", or "header"',
                       parameter.paramType
                     )
                   );
                   if (parameter.paramType === 'path') {
                     assert.ok(
-                      api.path.includes(util.format('{%s}', parameter.name)),
-                      util.format('Path parameter "%s" does not appear in api path', parameter.name)
+                      api.path.includes(format('{%s}', parameter.name)),
+                      format('Path parameter "%s" does not appear in api path', parameter.name)
                     );
                   }
 
                   if (contains(parameter.paramType, ['path', 'query', 'header'])) {
                     assert.ok(
                       contains(parameter.dataType, Swagger.Constants.primitives),
-                      util.format('%s parameter "%s" must be of a primitive type', parameter.paramType, parameter.name)
+                      format('%s parameter "%s" must be of a primitive type', parameter.paramType, parameter.name)
                     );
                   }
                 }, operation.parameters);
@@ -201,8 +199,8 @@ describe('Swagger', () => {
             completed++;
             if (completed === resources.apis.length) {
               // Verify the "test" api documentation
-              RestAPI.Doc.getSwaggerApi(asAnonymousUserOnLocalhost, 'test', (err, data) => {
-                assert.notExists(err);
+              RestAPI.Doc.getSwaggerApi(asAnonymousUserOnLocalhost, 'test', (error, data) => {
+                assert.notExists(error);
                 assert.strictEqual(data.apis.length, 1);
                 assert.strictEqual(data.apis[0].operations.length, 1);
 
@@ -219,75 +217,75 @@ describe('Swagger', () => {
                 assert.strictEqual(operation.nickname, 'testEndpoint');
                 assert.strictEqual(operation.responseClass, 'List[Test]');
                 assert.strictEqual(operation.parameters.length, 9);
-                const params = indexBy(prop('name'), operation.parameters);
+                const parameters = indexBy(prop('name'), operation.parameters);
 
                 // Verify a path parameter
-                assert.strictEqual(params.var.description, 'A path parameter');
-                assert.strictEqual(params.var.dataType, 'string');
-                assert.strictEqual(params.var.required, true);
-                assert.strictEqual(params.var.allowMultiple, false);
-                assert.strictEqual(params.var.allowableValues.valueType, 'LIST');
-                assert.lengthOf(params.var.allowableValues.values, 2);
-                assert.include(params.var.allowableValues.values, 'choice1');
-                assert.include(params.var.allowableValues.values, 'choice2');
-                assert.strictEqual(params.var.paramType, 'path');
+                assert.strictEqual(parameters.var.description, 'A path parameter');
+                assert.strictEqual(parameters.var.dataType, 'string');
+                assert.strictEqual(parameters.var.required, true);
+                assert.strictEqual(parameters.var.allowMultiple, false);
+                assert.strictEqual(parameters.var.allowableValues.valueType, 'LIST');
+                assert.lengthOf(parameters.var.allowableValues.values, 2);
+                assert.include(parameters.var.allowableValues.values, 'choice1');
+                assert.include(parameters.var.allowableValues.values, 'choice2');
+                assert.strictEqual(parameters.var.paramType, 'path');
                 // Verify a body parameter
-                assert.strictEqual(params.var2.description, 'A body parameter');
-                assert.strictEqual(params.var2.dataType, 'string');
-                assert.strictEqual(params.var2.required, true);
-                assert.strictEqual(params.var2.allowMultiple, false);
-                assert.strictEqual(params.var2.paramType, 'body');
+                assert.strictEqual(parameters.var2.description, 'A body parameter');
+                assert.strictEqual(parameters.var2.dataType, 'string');
+                assert.strictEqual(parameters.var2.required, true);
+                assert.strictEqual(parameters.var2.allowMultiple, false);
+                assert.strictEqual(parameters.var2.paramType, 'body');
                 // Verify a query parameter
-                assert.strictEqual(params.var3.description, 'A query parameter');
-                assert.strictEqual(params.var3.dataType, 'number');
-                assert.strictEqual(params.var3.required, false);
-                assert.strictEqual(params.var3.allowMultiple, false);
-                assert.strictEqual(params.var3.paramType, 'query');
+                assert.strictEqual(parameters.var3.description, 'A query parameter');
+                assert.strictEqual(parameters.var3.dataType, 'number');
+                assert.strictEqual(parameters.var3.required, false);
+                assert.strictEqual(parameters.var3.allowMultiple, false);
+                assert.strictEqual(parameters.var3.paramType, 'query');
                 // Verify a required query parameter
-                assert.strictEqual(params.var4.description, 'A required query parameter');
-                assert.strictEqual(params.var4.dataType, 'string');
-                assert.strictEqual(params.var4.required, true);
-                assert.strictEqual(params.var4.allowMultiple, false);
-                assert.strictEqual(params.var4.paramType, 'query');
+                assert.strictEqual(parameters.var4.description, 'A required query parameter');
+                assert.strictEqual(parameters.var4.dataType, 'string');
+                assert.strictEqual(parameters.var4.required, true);
+                assert.strictEqual(parameters.var4.allowMultiple, false);
+                assert.strictEqual(parameters.var4.paramType, 'query');
                 // Verify a query parameter that can appear multiple times
-                assert.strictEqual(params.var5.description, 'A query parameter that can appear multiple times');
-                assert.strictEqual(params.var5.dataType, 'string');
-                assert.isFalse(params.var5.required);
-                assert.isTrue(params.var5.allowMultiple);
-                assert.strictEqual(params.var5.paramType, 'query');
+                assert.strictEqual(parameters.var5.description, 'A query parameter that can appear multiple times');
+                assert.strictEqual(parameters.var5.dataType, 'string');
+                assert.isFalse(parameters.var5.required);
+                assert.isTrue(parameters.var5.allowMultiple);
+                assert.strictEqual(parameters.var5.paramType, 'query');
 
                 // Verify a required query parameter that can appear multiple times
                 assert.strictEqual(
-                  params.var6.description,
+                  parameters.var6.description,
                   'A required query parameter that can appear multiple times'
                 );
-                assert.strictEqual(params.var6.dataType, 'string');
-                assert.isTrue(params.var6.required);
-                assert.isTrue(params.var6.allowMultiple);
-                assert.strictEqual(params.var6.paramType, 'query');
+                assert.strictEqual(parameters.var6.dataType, 'string');
+                assert.isTrue(parameters.var6.required);
+                assert.isTrue(parameters.var6.allowMultiple);
+                assert.strictEqual(parameters.var6.paramType, 'query');
 
                 // Verify a header parameter
-                assert.strictEqual(params.var7.description, 'A header parameter');
-                assert.strictEqual(params.var7.dataType, 'string');
-                assert.strictEqual(params.var7.required, false);
-                assert.strictEqual(params.var7.allowMultiple, false);
-                assert.strictEqual(params.var7.paramType, 'header');
+                assert.strictEqual(parameters.var7.description, 'A header parameter');
+                assert.strictEqual(parameters.var7.dataType, 'string');
+                assert.strictEqual(parameters.var7.required, false);
+                assert.strictEqual(parameters.var7.allowMultiple, false);
+                assert.strictEqual(parameters.var7.paramType, 'header');
 
                 // Verify a form parameter
-                assert.strictEqual(params.var8.description, 'A form parameter');
-                assert.strictEqual(params.var8.dataType, 'File');
-                assert.isTrue(params.var8.required);
-                assert.isFalse(params.var8.allowMultiple);
-                assert.strictEqual(params.var8.paramType, 'form');
+                assert.strictEqual(parameters.var8.description, 'A form parameter');
+                assert.strictEqual(parameters.var8.dataType, 'File');
+                assert.isTrue(parameters.var8.required);
+                assert.isFalse(parameters.var8.allowMultiple);
+                assert.strictEqual(parameters.var8.paramType, 'form');
 
                 // Verify an optional form parameter
-                assert.strictEqual(params.var9.description, 'An optional form parameter');
-                assert.strictEqual(params.var9.dataType, 'string');
-                assert.isFalse(params.var9.required);
-                assert.isFalse(params.var9.allowMultiple);
-                assert.strictEqual(params.var9.paramType, 'form');
-                assert.include(params.var9.allowableValues.values, 'choice1');
-                assert.include(params.var9.allowableValues.values, 'choice2');
+                assert.strictEqual(parameters.var9.description, 'An optional form parameter');
+                assert.strictEqual(parameters.var9.dataType, 'string');
+                assert.isFalse(parameters.var9.required);
+                assert.isFalse(parameters.var9.allowMultiple);
+                assert.strictEqual(parameters.var9.paramType, 'form');
+                assert.include(parameters.var9.allowableValues.values, 'choice1');
+                assert.include(parameters.var9.allowableValues.values, 'choice2');
 
                 // Verify the responseMessages
                 const responseMessages = indexBy(prop('code'), operation.responseMessages);
@@ -331,8 +329,8 @@ describe('Swagger', () => {
                 assert.strictEqual(data.models.Test3.properties.test2.type, 'Test2');
 
                 // Verify the admin `test` documentation
-                RestAPI.Doc.getSwaggerApi(asGlobalAdmin, 'test', (err, data) => {
-                  assert.notExists(err);
+                RestAPI.Doc.getSwaggerApi(asGlobalAdmin, 'test', (error, data) => {
+                  assert.notExists(error);
                   assert.lengthOf(data.apis, 1);
                   assert.lengthOf(data.apis[0].operations, 1);
 

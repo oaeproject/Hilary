@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
 
 import _ from 'underscore';
@@ -50,18 +50,18 @@ const log = logger('principals-memberslibrary');
  * @param  {String}     callback.memberEntries[i].role  The role of the member principal in the group
  * @param  {String}     callback.nextToken              The token to use for the `start` parameter for the next invocation to get the next page of results. If `null`, indicates that there are no more items to list
  */
-const list = function(group, visibility, opts, callback) {
+const list = function (group, visibility, options, callback) {
   LibraryAPI.Index.list(
     PrincipalsConstants.library.MEMBERS_INDEX_NAME,
     group.id,
     visibility,
-    opts,
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    options,
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      const memberEntries = _.map(entries, entry => {
+      const memberEntries = _.map(entries, (entry) => {
         return { id: entry.resourceId, role: entry.value };
       });
 
@@ -79,20 +79,20 @@ const list = function(group, visibility, opts, callback) {
  */
 LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERS_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
-    AuthzAPI.getAuthzMembers(libraryId, start, limit, (err, memberEntries) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getAuthzMembers(libraryId, start, limit, (error, memberEntries) => {
+      if (error) {
+        return callback(error);
       }
 
       PrincipalsDAO.getPrincipals(
         _.pluck(memberEntries, 'id'),
         ['principalId', 'tenantAlias', 'visibility', 'smallPictureUri'],
-        (err, members) => {
-          if (err) {
-            return callback(err);
+        (error, members) => {
+          if (error) {
+            return callback(error);
           }
 
-          const resources = _.map(memberEntries, memberEntry => {
+          const resources = _.map(memberEntries, (memberEntry) => {
             const member = members[memberEntry.id];
             const { role } = memberEntry;
             return {
@@ -131,7 +131,7 @@ LibraryAPI.Search.registerLibrarySearch('members-library', ['user', 'group'], {
  * @param  {User|Group}     updatedPrincipal    The updated copy of the principal
  * @param  {User|Group}     oldPrincipal        The old copy of the principal before update
  */
-const _updatePrincipalInMembersLibraries = function(ctx, updatedPrincipal, oldPrincipal) {
+const _updatePrincipalInMembersLibraries = function (ctx, updatedPrincipal, oldPrincipal) {
   // If there is no change in state of their profile picture or visibility, we don't have to make
   // any updates
   if (
@@ -146,15 +146,15 @@ const _updatePrincipalInMembersLibraries = function(ctx, updatedPrincipal, oldPr
   AuthzAPI.getAllRolesForPrincipalAndResourceType(
     updatedPrincipal.id,
     AuthzConstants.resourceTypes.GROUP,
-    (err, allRoles) => {
-      if (err) {
+    (error, allRoles) => {
+      if (error) {
         return log().error(
-          { err, userId: updatedPrincipal.id },
+          { err: error, userId: updatedPrincipal.id },
           'An error occurred while trying to update all members libraries to which a user belongs'
         );
       }
 
-      const entries = _.map(allRoles, groupRole => {
+      const entries = _.map(allRoles, (groupRole) => {
         return {
           id: groupRole.id,
           oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
@@ -181,14 +181,17 @@ PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, _updatePrincipalI
  */
 PrincipalsEmitter.when(
   PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
-  (ctx, group, oldGroup, memberChangeInfo, opts, callback) => {
+  (ctx, group, oldGroup, memberChangeInfo, options, callback) => {
     // When group members are updated (users are removed / roles updated, etc...) it's just easier
     // to purge the library unless there is good reason to do surgical library updates (e.g., known
     // performance issues with many group members updates)
-    LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, err => {
-      if (err) {
-        log().error({ err, groupId: group.id }, 'An unexpected error occurred trying to purge a group members library');
-        return callback(err);
+    LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, (error) => {
+      if (error) {
+        log().error(
+          { err: error, groupId: group.id },
+          'An unexpected error occurred trying to purge a group members library'
+        );
+        return callback(error);
       }
 
       return callback();
@@ -208,13 +211,13 @@ PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, old
     value: joinRole
   };
 
-  LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], err => {
-    if (err) {
+  LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], (error) => {
+    if (error) {
       log().error(
-        { err, groupId: group.id, userId: ctx.user().id },
+        { err: error, groupId: group.id, userId: ctx.user().id },
         'An unexpected error occurred trying to insert a user into a group members library'
       );
-      return callback(err);
+      return callback(error);
     }
 
     return callback();
@@ -251,7 +254,7 @@ PrincipalsEmitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberC
  * @return {Number}                     The numeric rank to use for the principal in a members list
  * @api private
  */
-const _getMembersLibraryRank = function(groupId, principal, role) {
+const _getMembersLibraryRank = function (groupId, principal, role) {
   const libraryTenantAlias = AuthzUtil.getResourceFromId(groupId).tenantAlias;
 
   // The picture visibility rank is based on if they have a profile picture, and how widely it
@@ -292,7 +295,7 @@ const _getMembersLibraryRank = function(groupId, principal, role) {
   // Picture visibility (which implies link visibility) is the most important, secondary
   // importance given to their link visibility. Finally, all else being equal, we prefer manager
   // profiles over members
-  return util.format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
+  return format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
 };
 
 /**
@@ -301,7 +304,7 @@ const _getMembersLibraryRank = function(groupId, principal, role) {
  * @param  {User|Group}     principal   The principal to check
  * @return {Boolean}                    Whether or not the principal has a profile picture
  */
-const _hasProfilePicture = function(principal) {
+const _hasProfilePicture = function (principal) {
   // Force explicit booleans as truthy/falsey makes checking for differences difficult
   if (principal.picture && principal.picture.smallUri) {
     return true;
@@ -324,7 +327,7 @@ const _hasProfilePicture = function(principal) {
  * @param  {Object}         callback.errs       An error that occurred, if any
  * @api private
  */
-const _handleInvalidateMembersLibrary = function(group, membershipsGraph, membersGraph, callback) {
+const _handleInvalidateMembersLibrary = function (group, membershipsGraph, membersGraph, callback) {
   LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, callback);
 };
 

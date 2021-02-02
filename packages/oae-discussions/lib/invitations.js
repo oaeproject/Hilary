@@ -15,6 +15,7 @@
 
 import DiscussionsAPI from 'oae-discussions';
 
+import { pipe, filter, keys, isEmpty } from 'ramda';
 import _ from 'underscore';
 
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
@@ -40,19 +41,14 @@ ResourceActions.emitter.when(
   ResourceConstants.events.ACCEPTED_INVITATION,
   (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
     // Filter the invitations and changes down to only discussion invitations
-    const discussionIds = _.chain(memberChangeInfosByResourceId)
-      .keys()
-      .filter(_isDiscussionId)
-      .value();
-    if (_.isEmpty(discussionIds)) {
-      return callback();
-    }
+    const discussionIds = pipe(keys, filter(_isDiscussionId))(memberChangeInfosByResourceId);
+    if (isEmpty(discussionIds)) return callback();
 
-    DiscussionsDAO.getDiscussionsById(discussionIds, null, (err, discussions) => {
-      if (err) {
+    DiscussionsDAO.getDiscussionsById(discussionIds, null, (error, discussions) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             discussionIds
           },
           'An error occurred while getting discussions to update discussion libraries after an invitation was accepted'
@@ -65,7 +61,7 @@ ResourceActions.emitter.when(
       callback(null, discussions);
 
       // Fire members update tasks for each discussion
-      _.each(discussions, discussion => {
+      _.each(discussions, (discussion) => {
         const invitationHash = _.findWhere(invitationHashes, { resourceId: discussion.id });
         const inviterUser = inviterUsersById[invitationHash.inviterUserId];
 
@@ -89,11 +85,11 @@ ResourceActions.emitter.when(
  * When a discussion is deleted, we delete all invitations associated to it
  */
 DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, memberIds, callback) => {
-  AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, err => {
-    if (err) {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           discussionId: discussion.id
         },
         'An error occurred while removing invitations after a discussion was deleted'
@@ -111,6 +107,6 @@ DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discus
  * @return {Boolean}                    Whether or not the string was a discussion id
  * @api private
  */
-const _isDiscussionId = function(discussionId) {
+const _isDiscussionId = function (discussionId) {
   return AuthzUtil.isResourceId(discussionId) && discussionId.indexOf('d:') === 0;
 };

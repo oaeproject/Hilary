@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import util from 'util';
+import { format } from 'util';
 import ShortId from 'shortid';
 import Counter from 'oae-util/lib/counter';
 import { generateRandomText } from 'oae-tests';
@@ -34,7 +34,7 @@ TenantsAPI.emitter.on('cached', asyncOperationsCounter.decr);
  *
  * @param  {Function}   callback    Standard callback function
  */
-const whenTenantChangePropagated = function(callback) {
+const whenTenantChangePropagated = function (callback) {
   // The tenant needs to be cached with the TenantsAPI before returning to the caller
   asyncOperationsCounter.whenZero(callback);
 };
@@ -49,9 +49,9 @@ const whenTenantChangePropagated = function(callback) {
  * @param  {TenantNetwork}  [callback.tenant...]    All tenants that were created as new callback arguments
  * @throws {AssertionError}                         Thrown if there is an error creating any of the tenants
  */
-const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, _created) {
+const generateTestTenants = function (globalAdminRestCtx, numberToCreate, callback, _created) {
   _created = _created || [];
-  if (_created.length === numToCreate) {
+  if (_created.length === numberToCreate) {
     // Invoke the callback with all the tenants created
     return callback.apply(callback, _created);
   }
@@ -60,10 +60,10 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
   const alias = generateTestTenantAlias();
   const description = generateRandomText();
   const host = generateTestTenantHost(null, generateRandomText());
-  createTenantAndWait(globalAdminRestCtx, alias, description, host, { emailDomains: host }, (err, tenant) => {
-    assert.ok(!err);
+  createTenantAndWait(globalAdminRestCtx, alias, description, host, { emailDomains: host }, (error, tenant) => {
+    assert.ok(!error);
     _created.push(tenant);
-    return generateTestTenants(globalAdminRestCtx, numToCreate, callback, _created);
+    return generateTestTenants(globalAdminRestCtx, numberToCreate, callback, _created);
   });
 };
 
@@ -72,10 +72,10 @@ const generateTestTenants = function(globalAdminRestCtx, numToCreate, callback, 
  *
  * For method parameter descriptions, @see RestAPI.Tenant#createTenant
  */
-const createTenantAndWait = function(globalAdminRestCtx, alias, displayName, host, opts, callback) {
-  RestAPI.Tenants.createTenant(globalAdminRestCtx, alias, displayName, host, opts, (err, tenant) => {
-    if (err) {
-      return callback(err);
+const createTenantAndWait = function (globalAdminRestCtx, alias, displayName, host, options, callback) {
+  RestAPI.Tenants.createTenant(globalAdminRestCtx, alias, displayName, host, options, (error, tenant) => {
+    if (error) {
+      return callback(error);
     }
 
     // Wait until all current config events have fired until calling back
@@ -90,9 +90,9 @@ const createTenantAndWait = function(globalAdminRestCtx, alias, displayName, hos
  *
  * For method parameter descriptions, @see RestAPI.Tenant#updateTenant
  */
-const updateTenantAndWait = function(restContext, tenantAlias, update, callback) {
-  RestAPI.Tenants.updateTenant(restContext, tenantAlias, update, err => {
-    assert.ok(!err);
+const updateTenantAndWait = function (restContext, tenantAlias, update, callback) {
+  RestAPI.Tenants.updateTenant(restContext, tenantAlias, update, (error) => {
+    assert.ok(!error);
 
     // Wait until the tenant change propagated through the entire system
     whenTenantChangePropagated(callback);
@@ -104,9 +104,9 @@ const updateTenantAndWait = function(restContext, tenantAlias, update, callback)
  *
  * For method parameter descriptions, @see RestAPI.Tenant#stopTenant
  */
-const stopTenantAndWait = function(restContext, tenantAlias, callback) {
-  RestAPI.Tenants.stopTenant(restContext, tenantAlias, err => {
-    assert.ok(!err);
+const stopTenantAndWait = function (restContext, tenantAlias, callback) {
+  RestAPI.Tenants.stopTenant(restContext, tenantAlias, (error) => {
+    assert.ok(!error);
 
     // Wait until the tenant change propagated through the entire system
     whenTenantChangePropagated(callback);
@@ -118,9 +118,9 @@ const stopTenantAndWait = function(restContext, tenantAlias, callback) {
  *
  * For method parameter descriptions, @see RestAPI.Tenant#startTenant
  */
-const startTenantAndWait = function(restContext, tenantAlias, callback) {
-  RestAPI.Tenants.startTenant(restContext, tenantAlias, err => {
-    assert.ok(!err);
+const startTenantAndWait = function (restContext, tenantAlias, callback) {
+  RestAPI.Tenants.startTenant(restContext, tenantAlias, (error) => {
+    assert.ok(!error);
 
     // Wait until the tenant change propagated through the entire system
     whenTenantChangePropagated(callback);
@@ -137,18 +137,18 @@ const startTenantAndWait = function(restContext, tenantAlias, callback) {
  * @param  {TenantNetwork}  [callback.tenantNetwork...]     All tenant networks that were created as new callback arguments
  * @throws {AssertionError}                                 Thrown if there is an error creating any of the tenant networks
  */
-const generateTestTenantNetworks = function(globalAdminRestCtx, numToCreate, callback, _created) {
+const generateTestTenantNetworks = function (globalAdminRestCtx, numberToCreate, callback, _created) {
   _created = _created || [];
-  if (_created.length === numToCreate) {
+  if (_created.length === numberToCreate) {
     // Invoke the callback with all the tenant networks created
     return callback.apply(callback, _created);
   }
 
   // Create a tenant network with a random displayName
-  RestAPI.Tenants.createTenantNetwork(globalAdminRestCtx, ShortId.generate(), (err, tenantNetwork) => {
-    assert.ok(!err);
+  RestAPI.Tenants.createTenantNetwork(globalAdminRestCtx, ShortId.generate(), (error, tenantNetwork) => {
+    assert.ok(!error);
     _created.push(tenantNetwork);
-    return generateTestTenantNetworks(globalAdminRestCtx, numToCreate, callback, _created);
+    return generateTestTenantNetworks(globalAdminRestCtx, numberToCreate, callback, _created);
   });
 };
 
@@ -159,7 +159,7 @@ const generateTestTenantNetworks = function(globalAdminRestCtx, numToCreate, cal
  * @param  {Tenant}         expected    The expected tenant object
  * @throws {AssertionError}             Thrown if the actual tenant does not match the expected model
  */
-const assertTenantsEqual = function(actual, expected) {
+const assertTenantsEqual = function (actual, expected) {
   assert.strictEqual(actual.alias, expected.alias);
   assert.strictEqual(actual.displayName, expected.displayName);
   assert.strictEqual(actual.host, expected.host);
@@ -173,9 +173,8 @@ const assertTenantsEqual = function(actual, expected) {
  * @param  {String}     [seed]  String that should be used as the first part of the generated alias. Defaults to "tenant"
  * @return {String}             The generated tenant alias
  */
-const generateTestTenantAlias = function(seed) {
-  seed = seed || 'tenant';
-  return util.format('%s-%s', seed, ShortId.generate()).toLowerCase();
+const generateTestTenantAlias = function (seed = 'tenant') {
+  return format('%s-%s', seed, ShortId.generate()).toLowerCase();
 };
 
 /**
@@ -184,11 +183,11 @@ const generateTestTenantAlias = function(seed) {
  * @param  {String}     [seed]  String that should be used as the first part of the generated host name. Defaults to "host"
  * @return {String}             The generated tenant host
  */
-const generateTestTenantHost = function(seed, randomText) {
+const generateTestTenantHost = function (seed, randomText) {
   seed = seed || 'host';
   // This is so wrong
   randomText = randomText || generateRandomText();
-  return util.format('%s-%s.local', seed, randomText);
+  return format('%s-%s.local', seed, randomText);
 };
 
 /**
@@ -198,15 +197,15 @@ const generateTestTenantHost = function(seed, randomText) {
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if any assertions failed
  */
-const clearTenantLandingPage = function(adminRestContext, callback) {
+const clearTenantLandingPage = function (adminRestContext, callback) {
   const config = {};
   for (let i = 1; i <= 12; i++) {
-    const blockName = util.format('block_%d', i);
+    const blockName = format('block_%d', i);
     config['oae-tenants/' + blockName + '/type'] = 'empty';
   }
 
-  ConfigTestUtil.updateConfigAndWait(adminRestContext, null, config, err => {
-    assert.ok(!err);
+  ConfigTestUtil.updateConfigAndWait(adminRestContext, null, config, (error) => {
+    assert.ok(!error);
     return callback();
   });
 };

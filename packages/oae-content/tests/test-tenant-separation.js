@@ -14,7 +14,8 @@
  */
 
 import { assert } from 'chai';
-import util from 'util';
+import { describe, it, before } from 'mocha';
+import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
@@ -61,7 +62,7 @@ describe('Content', () => {
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up tenant admin rest contexts
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asGeorgiaTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
@@ -82,7 +83,7 @@ describe('Content', () => {
      * @param  {Number}             expectedHttpCode        The expected HTTP status code
      * @param  {Function}           callback                Standard callback function
      */
-    const verifyShare = function(
+    const verifyShare = function (
       asActorUser,
       objectContent,
       targetPrincipalId,
@@ -92,30 +93,30 @@ describe('Content', () => {
       callback
     ) {
       // Get the me object of the target in case we need to do a validated share with their email
-      getMe(asTargetUser, (err, me) => {
-        assert.notExists(err);
+      getMe(asTargetUser, (error, me) => {
+        assert.notExists(error);
 
         // If we've chosen to use a user id that is validated with email, then attach the email to the user id
         let targetId = targetPrincipalId;
         if (isString(validateEmail)) {
-          targetId = util.format('%s:%s', validateEmail, targetPrincipalId);
+          targetId = format('%s:%s', validateEmail, targetPrincipalId);
         } else if (validateEmail) {
-          targetId = util.format('%s:%s', me.email, targetPrincipalId);
+          targetId = format('%s:%s', me.email, targetPrincipalId);
         }
 
-        shareContent(asActorUser, objectContent.id, [targetId], err => {
+        shareContent(asActorUser, objectContent.id, [targetId], (error_) => {
           if (is200(expectedHttpCode)) {
-            assert.notExists(err);
+            assert.notExists(error_);
           } else {
-            assert.strictEqual(err.code, expectedHttpCode);
+            assert.strictEqual(error_.code, expectedHttpCode);
           }
 
           // If we shared with an email, use the target rest context as the principal id whose library to check
           const targetId = isEmail(targetPrincipalId) ? me.id : targetPrincipalId;
 
           // Sanity check that the item appears in the library, if applicable
-          getLibrary(asTargetUser, targetId, null, 100, (err, data) => {
-            assert.notExists(err);
+          getLibrary(asTargetUser, targetId, null, 100, (error, data) => {
+            assert.notExists(error);
             const library = data.results;
             const foundIt = find(propSatisfies(equals(objectContent.id), ID), library);
             if (is200(expectedHttpCode)) {
@@ -133,25 +134,25 @@ describe('Content', () => {
     /**
      * Test that verifies that a public user A from a public tenant A can access a public content item from a external tenant B
      */
-    it('verify user can access public content from external tenant', callback => {
+    it('verify user can access public content from external tenant', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB /* , privateTenantA, privateTenantB */) => {
         const asPublicUserOnTenantA = publicTenantA.publicUser.restContext;
 
         // Accessing public content in a public tenant from a public tenant should succeed
-        getContent(asPublicUserOnTenantA, publicTenantB.publicContent.id, (err, contentObj) => {
-          assert.notExists(err);
-          assert.ok(contentObj);
-          assert.strictEqual(contentObj.id, publicTenantB.publicContent.id);
+        getContent(asPublicUserOnTenantA, publicTenantB.publicContent.id, (error, contentObject) => {
+          assert.notExists(error);
+          assert.ok(contentObject);
+          assert.strictEqual(contentObject.id, publicTenantB.publicContent.id);
 
           // Accessing loggedin content in a public tenant from a public tenant should fail
-          getContent(asPublicUserOnTenantA, publicTenantB.loggedinContent.id, (err, contentObj) => {
-            assert.strictEqual(err.code, 401);
-            assert.isNotOk(contentObj);
+          getContent(asPublicUserOnTenantA, publicTenantB.loggedinContent.id, (error, contentObject) => {
+            assert.strictEqual(error.code, 401);
+            assert.isNotOk(contentObject);
 
             // Accessing private content in a public tenant from a public tenant should fail
-            getContent(asPublicUserOnTenantA, publicTenantB.privateContent.id, (err, contentObj) => {
-              assert.strictEqual(err.code, 401);
-              assert.isNotOk(contentObj);
+            getContent(asPublicUserOnTenantA, publicTenantB.privateContent.id, (error, contentObject) => {
+              assert.strictEqual(error.code, 401);
+              assert.isNotOk(contentObject);
               callback();
             });
           });
@@ -162,7 +163,7 @@ describe('Content', () => {
     /**
      * Test that verifies the object -> target sharing permutations
      */
-    it('verify content sharing permutations from object to target (users)', callback => {
+    it('verify content sharing permutations from object to target (users)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         // In all these cases, the target user should see the content item in his library
         verifyShare(
@@ -353,7 +354,7 @@ describe('Content', () => {
      * Test that verifies the object -> target sharing permutations using the target user email
      * address
      */
-    it('verify content sharing permutations from object to target by email address (users)', callback => {
+    it('verify content sharing permutations from object to target by email address (users)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         // In all these cases, the target user should see the content item in his library
         verifyShare(
@@ -543,7 +544,7 @@ describe('Content', () => {
     /**
      * Test that verifies the object -> target sharing permutations
      */
-    it('verify content sharing permutations from object to target (non joinable groups)', callback => {
+    it('verify content sharing permutations from object to target (non joinable groups)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         // In all these cases, the target user should see the content item in his library
         verifyShare(
@@ -744,7 +745,7 @@ describe('Content', () => {
       });
     });
 
-    it('verify content sharing permutations from object to target (joinable groups)', callback => {
+    it('verify content sharing permutations from object to target (joinable groups)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         // These cases should fail
         verifyShare(
@@ -812,13 +813,13 @@ describe('Content', () => {
     /**
      * Test that verifies the actor -> object sharing permutations
      */
-    it('verify content sharing permutations from actor to object', callback => {
+    it('verify content sharing permutations from actor to object', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         const asAdminToPublicTenantA = publicTenantA.adminRestContext;
 
         // Create some more users as we can only share it with a target user once.
-        generateTestUsers(asAdminToPublicTenantA, 3, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asAdminToPublicTenantA, 3, (error, users) => {
+          assert.notExists(error);
           const targetUsers = users;
 
           // In all these cases, the target user should see the content item in his library
@@ -954,7 +955,7 @@ describe('Content', () => {
      * Test that verifies the actor -> target sharing permutations when the sharing user has
      * provided a correct validation email
      */
-    it('verify content sharing permutations from actor to target (users) with email only', callback => {
+    it('verify content sharing permutations from actor to target (users) with email only', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA) => {
         /**
          * Ensure the user cannot share with the private user of their own tenant
@@ -1035,7 +1036,7 @@ describe('Content', () => {
      * Test that verifies the actor -> target sharing permutations when the sharing user has
      * provided a correct validation email
      */
-    it('verify content sharing permutations from actor to target (users) with a validating email', callback => {
+    it('verify content sharing permutations from actor to target (users) with a validating email', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA) => {
         /**
          * Ensure the user cannot share with the private user of their own tenant without a
@@ -1177,12 +1178,12 @@ describe('Content', () => {
     /**
      * Test that verifies the actor -> target sharing permutations
      */
-    it('verify content sharing permutations from actor to target (users)', callback => {
+    it('verify content sharing permutations from actor to target (users)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         const asAdminToPublicTenantB = publicTenantB.adminRestContext;
         // Create some more users as we can only share it with a target user once.
-        generateTestUsers(asAdminToPublicTenantB, 3, (err, targetUsers) => {
-          assert.notExists(err);
+        generateTestUsers(asAdminToPublicTenantB, 3, (error, targetUsers) => {
+          assert.notExists(error);
 
           // In all these cases, the target user should see the content item in their library because they are public users
           verifyShare(
@@ -1376,11 +1377,11 @@ describe('Content', () => {
     /**
      * Test that verifies the actor -> target sharing permutations
      */
-    it('verify content sharing permutations from actor to target (non joinable groups)', callback => {
+    it('verify content sharing permutations from actor to target (non joinable groups)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         const asAdminToPublicTenantB = publicTenantB.adminRestContext;
         // Create some more users as we can only share it with a target user once.
-        generateTestGroups(asAdminToPublicTenantB, 3, function(...args) {
+        generateTestGroups(asAdminToPublicTenantB, 3, function (...args) {
           const groups = map(prop('group'), last(args));
 
           // In all these cases, the target user should see the content item in his library
@@ -1574,7 +1575,7 @@ describe('Content', () => {
     });
 
     // TODO: issue-1492 I think this is mostly buggy behaviour, all of these asserts to 20
-    it('verify content sharing permutations from actor to target (joinable groups)', callback => {
+    it('verify content sharing permutations from actor to target (joinable groups)', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         const asAdminToPublicTenantB = publicTenantB.adminRestContext;
 
@@ -1711,18 +1712,18 @@ describe('Content', () => {
     /**
      * Test that verifies that a user from an external tenant is limited to only the public content library of users
      */
-    it('verify user sees only public libraries of external tenant users', callback => {
+    it('verify user sees only public libraries of external tenant users', (callback) => {
       // Create 2 users in tenant A (cam)
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer, 1: marge } = users;
         const asHomer = homer.restContext;
         const asMarge = marge.restContext;
 
         // Create a user in tenant B (gt)
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
 
           const { 0: lisa } = users;
           const asLisa = lisa.restContext;
@@ -1739,8 +1740,8 @@ describe('Content', () => {
               viewers: NO_VIEWERS,
               folders: NO_FOLDERS
             },
-            (err, publicContentA) => {
-              assert.notExists(err);
+            (error, publicContentA) => {
+              assert.notExists(error);
 
               // Create "loggedin" content in tenant A
               createLink(
@@ -1754,17 +1755,17 @@ describe('Content', () => {
                   viewers: NO_VIEWERS,
                   folders: NO_FOLDERS
                 },
-                (err /* , loggedInContentA */) => {
-                  assert.notExists(err);
+                (error /* , loggedInContentA */) => {
+                  assert.notExists(error);
 
                   // Verify user A2 can see both public and logged in content items
-                  getLibrary(asMarge, homer.user.id, null, 10, (err, libraryA) => {
-                    assert.notExists(err);
+                  getLibrary(asMarge, homer.user.id, null, 10, (error, libraryA) => {
+                    assert.notExists(error);
                     assert.lengthOf(libraryA.results, 2);
 
                     // Verify user B cannot see the loggedin content item, but can see the public content item
-                    getLibrary(asLisa, homer.user.id, null, 10, (err, libraryA) => {
-                      assert.notExists(err);
+                    getLibrary(asLisa, homer.user.id, null, 10, (error, libraryA) => {
+                      assert.notExists(error);
                       assert.lengthOf(libraryA.results, 1);
                       assert.strictEqual(libraryA.results[0].id, publicContentA.id);
 
@@ -1782,24 +1783,24 @@ describe('Content', () => {
     /**
      * Test that verifies that users from an external tenant are limited to a group's public content library
      */
-    it('verify user sees only public library of external tenant groups', callback => {
+    it('verify user sees only public library of external tenant groups', (callback) => {
       // Create a user in tenant A (cam)
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
 
         const { 0: homer } = users;
         const asHomer = homer.restContext;
 
         // Create a user in tenant B (gt)
-        generateTestUsers(asGeorgiaTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+        generateTestUsers(asGeorgiaTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: marge } = users;
           const asMarge = marge.restContext;
 
           // Create a group in tenant A
           const groupName = generateTestUserId();
-          createGroup(asHomer, groupName, groupName, PUBLIC, NOT_JOINABLE, [], [], (err, groupA) => {
-            assert.notExists(err);
+          createGroup(asHomer, groupName, groupName, PUBLIC, NOT_JOINABLE, [], [], (error, groupA) => {
+            assert.notExists(error);
 
             // Create "public" content in tenant A
             createLink(
@@ -1813,8 +1814,8 @@ describe('Content', () => {
                 viewers: [groupA.id],
                 folders: NO_FOLDERS
               },
-              (err, publicContentA) => {
-                assert.notExists(err);
+              (error, publicContentA) => {
+                assert.notExists(error);
 
                 // Create "loggedin" content in tenant A
                 createLink(
@@ -1828,17 +1829,17 @@ describe('Content', () => {
                     viewers: [groupA.id],
                     folders: NO_FOLDERS
                   },
-                  (err /* , loggedInContentA */) => {
-                    assert.notExists(err);
+                  (error /* , loggedInContentA */) => {
+                    assert.notExists(error);
 
                     // Verify user A can see both public and logged in content items for the group
-                    getLibrary(asHomer, groupA.id, null, 10, (err, libraryA) => {
-                      assert.notExists(err);
+                    getLibrary(asHomer, groupA.id, null, 10, (error, libraryA) => {
+                      assert.notExists(error);
                       assert.lengthOf(libraryA.results, 2);
 
                       // Verify user B cannot see the loggedin content item, but can see the public content item
-                      getLibrary(asMarge, groupA.id, null, 10, (err, libraryB) => {
-                        assert.notExists(err);
+                      getLibrary(asMarge, groupA.id, null, 10, (error, libraryB) => {
+                        assert.notExists(error);
                         assert.lengthOf(libraryB.results, 1);
                         assert.strictEqual(libraryB.results[0].id, publicContentA.id);
 
@@ -1858,7 +1859,7 @@ describe('Content', () => {
      * Verify that users who are members of a piece of content and originate from a tenant
      * who has changed their tenant privacy, can still be interacted with
      */
-    it('verify users from a private tenant can be updated/removed as content members', callback => {
+    it('verify users from a private tenant can be updated/removed as content members', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB /* , privateTenantA, privateTenantB */) => {
         const actor = publicTenantA.publicUser;
         const asActor = actor.restContext;
@@ -1875,26 +1876,26 @@ describe('Content', () => {
             viewers: [sharedUser.id],
             folders: NO_FOLDERS
           },
-          (err, contentObj) => {
-            assert.notExists(err);
+          (error, contentObject) => {
+            assert.notExists(error);
 
             // Make that tenant private
             updateConfigAndWait(
               asGlobalAdmin,
               publicTenantB.tenant.alias,
               { 'oae-tenants/tenantprivacy/tenantprivate': true },
-              err => {
-                assert.notExists(err);
+              (error_) => {
+                assert.notExists(error_);
 
                 // Changing the role of a user from a private tenant (that was already a member) should work
                 const update = {};
                 update[sharedUser.id] = MANAGER;
 
-                updateMembers(asActor, contentObj.id, update, err => {
-                  assert.notExists(err);
+                updateMembers(asActor, contentObject.id, update, (error_) => {
+                  assert.notExists(error_);
                   // Verify that the user is still there and is a manager
-                  getMembers(asActor, contentObj.id, null, 10, (err, data) => {
-                    assert.notExists(err);
+                  getMembers(asActor, contentObject.id, null, 10, (error, data) => {
+                    assert.notExists(error);
 
                     const sharedMember = find(pathSatisfies(equals(sharedUser.id), [PROFILE, ID]), data.results);
                     assert.strictEqual(sharedMember.profile.id, publicTenantB.publicUser.user.id);
@@ -1903,12 +1904,12 @@ describe('Content', () => {
                     // Removing a private user (that was already a member) should work
                     update[sharedUser.id] = false;
 
-                    updateMembers(asActor, contentObj.id, update, err => {
-                      assert.notExists(err);
+                    updateMembers(asActor, contentObject.id, update, (error_) => {
+                      assert.notExists(error_);
 
                       // Verify that the user has been removed
-                      getMembers(asActor, contentObj.id, null, 10, (err, data) => {
-                        assert.notExists(err);
+                      getMembers(asActor, contentObject.id, null, 10, (error, data) => {
+                        assert.notExists(error);
 
                         assert.isNotOk(find(pathSatisfies(equals(sharedUser.id), [PROFILE, ID]), data.results));
                         callback();

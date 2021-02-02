@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 const libraryIndexes = {};
@@ -22,15 +22,13 @@ const libraryIndexes = {};
  * Register a library index with the registry
  * @see Library#Index#registerLibraryIndex
  */
-const registerLibraryIndex = function(name, options) {
+const registerLibraryIndex = function (name, options) {
   options = options || {};
 
   if (libraryIndexes[name]) {
-    throw new Error(util.format('Attempted to register duplicate library index with name "%s"', name));
+    throw new Error(format('Attempted to register duplicate library index with name "%s"', name));
   } else if (!_.isFunction(options.pageResources)) {
-    throw new TypeError(
-      util.format('Attempted to register library index "%s" that has no "pageResources" function', name)
-    );
+    throw new TypeError(format('Attempted to register library index "%s" that has no "pageResources" function', name));
   }
 
   libraryIndexes[name] = options;
@@ -42,7 +40,7 @@ const registerLibraryIndex = function(name, options) {
  * @param  {String}     name        The name of the library index to get
  * @return {Object}                 The library index options object that was registered with this library index
  */
-const getRegisteredLibraryIndex = function(name) {
+const getRegisteredLibraryIndex = function (name) {
   return libraryIndexes[name];
 };
 

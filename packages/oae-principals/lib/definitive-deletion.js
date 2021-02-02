@@ -36,9 +36,9 @@ import { setUpConfig } from 'oae-config';
 import { logger } from 'oae-logger';
 import * as GroupAPI from './api.group';
 import * as PrincipalsAPI from './api.user';
-import { PrincipalsConstants } from './constants';
-import * as PrincipalsDAO from './internal/dao';
-import PrincipalsEmitter from './internal/emitter';
+import { PrincipalsConstants } from './constants.js';
+import * as PrincipalsDAO from './internal/dao.js';
+import PrincipalsEmitter from './internal/emitter.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');
 const log = logger('oae-principals');
@@ -69,12 +69,12 @@ const GROUP_PREFIX = 'g';
  * @param  {Object}     callback.userArchive    Return user archive
  */
 const fetchOrCloneFromUser = (ctx, user, callback) => {
-  PrincipalsDAO.getArchivedUser(user.tenant.alias, (err, userClone) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getArchivedUser(user.tenant.alias, (error, userClone) => {
+    if (error) return callback(error);
     if (userClone) return callback(null, userClone);
 
     // Persist the user object
-    const userOpts = {
+    const userOptions = {
       tenant: { alias: user.tenant.alias },
       visibility: PUBLIC,
       emailPreference: 'never',
@@ -86,16 +86,16 @@ const fetchOrCloneFromUser = (ctx, user, callback) => {
     const displayName = user.tenant.alias + ' archive';
 
     // Create a record in the principals table
-    PrincipalsAPI.createUser(ctx, user.tenant.alias, displayName, userOpts, (err, userClone) => {
-      if (err) return callback(err);
+    PrincipalsAPI.createUser(ctx, user.tenant.alias, displayName, userOptions, (error, userClone) => {
+      if (error) return callback(error);
 
       // Create a user archive in the table archiveByTenant
-      PrincipalsDAO.createArchivedUser(user.tenant.alias, userClone.id, err => {
-        if (err) return callback(err);
+      PrincipalsDAO.createArchivedUser(user.tenant.alias, userClone.id, (error_) => {
+        if (error_) return callback(error_);
 
         // Get and return the userArchive
-        PrincipalsDAO.getArchivedUser(user.tenant.alias, (err, userClone) => {
-          if (err) return callback(err);
+        PrincipalsDAO.getArchivedUser(user.tenant.alias, (error, userClone) => {
+          if (error) return callback(error);
 
           return callback(null, userClone);
         });
@@ -115,7 +115,7 @@ const fetchOrCloneFromUser = (ctx, user, callback) => {
  * @param  {Object}     callback.listEmail      Array of users to email
  */
 const transferPermissionsToCloneUser = (ctx, user, cloneUsers, callback) => {
-  callback = callback || function() {};
+  callback = callback || function () {};
 
   const listEmail = [];
   const listOfIdElementToBeTransferred = [];
@@ -124,19 +124,19 @@ const transferPermissionsToCloneUser = (ctx, user, cloneUsers, callback) => {
     RESOURCE_TYPES,
     (resourceType, done) => {
       _transferResourcePermissions(ctx, user, cloneUsers, listEmail, listOfIdElementToBeTransferred, resourceType, (
-        err /* ListEmail, listOfIdElementToBeTransferred */
+        error /* ListEmail, listOfIdElementToBeTransferred */
       ) => {
-        if (err) return done(err);
+        if (error) return done(error);
 
         return done();
       });
     },
     () => {
-      _addToArchive(cloneUsers.archiveId, user, listOfIdElementToBeTransferred, err => {
-        if (err) return callback(err);
+      _addToArchive(cloneUsers.archiveId, user, listOfIdElementToBeTransferred, (error) => {
+        if (error) return callback(error);
 
-        _sendEmail(ctx, listEmail, cloneUsers, user, (err, listEmail) => {
-          if (err) return callback(err);
+        _sendEmail(ctx, listEmail, cloneUsers, user, (error, listEmail) => {
+          if (error) return callback(error);
 
           return callback(null, listEmail);
         });
@@ -170,8 +170,8 @@ const _addMemberToList = (list, resource, memberList, action, callback) => {
   async.eachSeries(
     memberList,
     (member, done) => {
-      _parseMember(list, resource, member, action, (err, newList) => {
-        if (err) return done(err);
+      _parseMember(list, resource, member, action, (error, newList) => {
+        if (error) return done(error);
 
         list = newList;
         return done();
@@ -203,7 +203,7 @@ const _parseMember = (list, resource, user, action, callback) => {
 
       return done();
     },
-    isUserFound => {
+    (isUserFound) => {
       if (!isUserFound) {
         if (action === true) {
           list.push({ contentWillBeDeleted: [resource], userJustLeaving: [], profile: user.profile });
@@ -230,9 +230,9 @@ const _parseMember = (list, resource, user, action, callback) => {
 const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, user: userDeleted.id }, 'Unable to send a user a verification email');
+    function (error) {
+      if (error) {
+        log().error({ err: error, user: userDeleted.id }, 'Unable to send a user a verification email');
       }
     };
 
@@ -240,8 +240,8 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
     return callback();
   }
 
-  PrincipalsDAO.getPrincipalSkipCache(cloneUser.archiveId, (err, cloneUser) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getPrincipalSkipCache(cloneUser.archiveId, (error, cloneUser) => {
+    if (error) return callback(error);
 
     // Grab the configuration field. This will return the number of months
     const month = PrincipalsConfig.getValue(ctx.tenant().alias, 'user', DELETE);
@@ -261,8 +261,8 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
 
         const token = shortId.generate();
 
-        PrincipalsDAO.storeEmailToken(user.profile.id, user.profile.email, token, err => {
-          if (err) return callback(err);
+        PrincipalsDAO.storeEmailToken(user.profile.id, user.profile.email, token, (error_) => {
+          if (error_) return callback(error_);
 
           const resource = _.omit(user, 'profile');
           user = _.omit(user, ['contentWillBeDeleted', 'userJustLeaving']);
@@ -324,8 +324,8 @@ const _transferResourcePermissions = (
   resourceType,
   callback
 ) => {
-  _getLibrary(ctx, user.id, resourceType, (err, libraryContents) => {
-    if (err) return callback(err);
+  _getLibrary(ctx, user.id, resourceType, (error, libraryContents) => {
+    if (error) return callback(error);
 
     if (_.isEmpty(libraryContents)) {
       return callback(null, listElementByMember, listOfIdElementToBeTransferred);
@@ -335,16 +335,16 @@ const _transferResourcePermissions = (
       libraryContents,
       (eachLibraryItem, done) => {
         // Search if other user have right on this document
-        _getMembers(ctx, eachLibraryItem.id, resourceType, (err, memberList) => {
-          if (err) return callback(err);
+        _getMembers(ctx, eachLibraryItem.id, resourceType, (error, memberList) => {
+          if (error) return callback(error);
 
           // If he's not a manager, do nothing
-          _isManagerOfContent(user.id, eachLibraryItem, resourceType, (err, isManager) => {
-            if (err) return callback(err);
+          _isManagerOfContent(user.id, eachLibraryItem, resourceType, (error, isManager) => {
+            if (error) return callback(error);
 
             // Remove the deleted user from the member list
-            _removeUserFromMemberList(memberList, user.id, (err, newMemberList) => {
-              if (err) return callback(err);
+            _removeUserFromMemberList(memberList, user.id, (error, newMemberList) => {
+              if (error) return callback(error);
 
               if (isManager) {
                 // If member list is empty
@@ -352,17 +352,17 @@ const _transferResourcePermissions = (
                   listOfIdElementToBeTransferred.push(eachLibraryItem.id);
 
                   // Make user archive a manager of the resource
-                  _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, err => {
-                    if (err) return callback(err);
+                  _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, (error_) => {
+                    if (error_) return callback(error_);
 
-                    _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
-                      if (err) return callback(err);
+                    _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                      if (error_) return callback(error_);
 
                       done();
                     });
                   });
                 } else {
-                  const hasAnotherManager = _.find(newMemberList, member => {
+                  const hasAnotherManager = _.find(newMemberList, (member) => {
                     return member.role === AuthzConstants.role.MANAGER;
                   });
 
@@ -375,13 +375,13 @@ const _transferResourcePermissions = (
                       newMemberList,
                       false,
                       (
-                        err
+                        error
                         /* ListElementByMember */
                       ) => {
-                        if (err) return callback(err);
+                        if (error) return callback(error);
 
-                        _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
-                          if (err) return callback(err);
+                        _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                          if (error_) return callback(error_);
 
                           done();
                         });
@@ -393,8 +393,8 @@ const _transferResourcePermissions = (
                     listOfIdElementToBeTransferred.push(eachLibraryItem.id);
 
                     // Make user archive a manager of the resource
-                    _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, err => {
-                      if (err) return callback(err);
+                    _updateRoles(ctx, eachLibraryItem, archiveUser, resourceType, (error_) => {
+                      if (error_) return callback(error_);
 
                       // We will notify the members that the user will remove his account and make the user archive manager of the resource
                       _addMemberToList(
@@ -403,13 +403,13 @@ const _transferResourcePermissions = (
                         newMemberList,
                         true,
                         (
-                          err
+                          error
                           /* ListElementByMember */
                         ) => {
-                          if (err) return callback(err);
+                          if (error) return callback(error);
 
-                          _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
-                            if (err) return callback(err);
+                          _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                            if (error_) return callback(error_);
 
                             done();
                           });
@@ -421,12 +421,12 @@ const _transferResourcePermissions = (
               } else {
                 // We will just notify the members that the user will remove his account
                 _addMemberToList(listElementByMember, eachLibraryItem, newMemberList, false, (
-                  err /* ListElementByMember */
+                  error /* ListElementByMember */
                 ) => {
-                  if (err) return callback(err);
+                  if (error) return callback(error);
 
-                  _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, err => {
-                    if (err) return callback(err);
+                  _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                    if (error_) return callback(error_);
 
                     done();
                   });
@@ -456,7 +456,7 @@ const _transferResourcePermissions = (
 const _removeUserFromMemberList = (memberList, userId, callback) => {
   return callback(
     null,
-    _.reject(memberList, element => {
+    _.reject(memberList, (element) => {
       return element.profile.id === userId;
     })
   );
@@ -482,12 +482,12 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
   }
 
   // Return list of ids after removing duplicate elements
-  const duplicationRemoved = elementId.filter((elem, index, self) => {
-    return index === self.indexOf(elem);
+  const duplicationRemoved = elementId.filter((element, index, self) => {
+    return index === self.indexOf(element);
   });
 
   const monthsUntilDeletion = PrincipalsConfig.getValue(principalToEliminate.tenant.alias, 'user', DELETE);
-  const deletionDate = addMonths(new Date(), parseInt(monthsUntilDeletion, 10));
+  const deletionDate = addMonths(new Date(), Number.parseInt(monthsUntilDeletion, 10));
 
   // Add the element to data archive
   PrincipalsDAO.addDataToArchive(
@@ -495,8 +495,8 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
     principalToEliminate.id,
     duplicationRemoved,
     deletionDate.toString(),
-    err => {
-      if (err) return callback(err);
+    (error) => {
+      if (error) return callback(error);
 
       return callback();
     }
@@ -517,8 +517,8 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
 const _isManagerOfContent = (userId, resource, resourceType, callback) => {
   const elementId = resourceType === FOLDER ? resource.groupId : resource.id;
 
-  AuthzAPI.hasRole(userId, elementId, AuthzConstants.role.MANAGER, (err, hasRole) => {
-    if (err) return callback(err);
+  AuthzAPI.hasRole(userId, elementId, AuthzConstants.role.MANAGER, (error, hasRole) => {
+    if (error) return callback(error);
 
     return callback(null, hasRole);
   });
@@ -543,40 +543,40 @@ const _removeFromLibrary = (ctx, userId, element, type, callback) => {
 
   switch (type) {
     case CONTENT:
-      ContentAPI.removeContentFromLibrary(ctx, userId, element.id, err => {
-        if (err) return callback(err);
+      ContentAPI.removeContentFromLibrary(ctx, userId, element.id, (error) => {
+        if (error) return callback(error);
 
         return callback();
       });
       break;
 
     case FOLDER:
-      FolderAPI.removeFolderFromLibrary(ctx, userId, element.id, err => {
-        if (err) return callback(err);
+      FolderAPI.removeFolderFromLibrary(ctx, userId, element.id, (error) => {
+        if (error) return callback(error);
 
         return callback();
       });
       break;
 
     case DISCUSSION:
-      DiscussionAPI.removeDiscussionFromLibrary(ctx, userId, element.id, err => {
-        if (err) return callback(err);
+      DiscussionAPI.removeDiscussionFromLibrary(ctx, userId, element.id, (error) => {
+        if (error) return callback(error);
 
         return callback();
       });
       break;
 
     case MEETING:
-      MeetingsAPI.Meetings.removeMeetingFromLibrary(ctx, userId, element.id, err => {
-        if (err) return callback(err);
+      MeetingsAPI.Meetings.removeMeetingFromLibrary(ctx, userId, element.id, (error) => {
+        if (error) return callback(error);
 
         return callback();
       });
       break;
 
     case GROUP:
-      AuthzAPI.updateRoles(element.id, changes, err => {
-        if (err) return callback(err);
+      AuthzAPI.updateRoles(element.id, changes, (error) => {
+        if (error) return callback(error);
 
         return callback();
       });
@@ -601,40 +601,40 @@ const _removeFromLibrary = (ctx, userId, element, type, callback) => {
 const _getMembers = (ctx, elementId, type, callback) => {
   switch (type) {
     case CONTENT:
-      ContentAPI.getContentMembersLibrary(ctx, elementId, null, null, (err, memberList) => {
-        if (err) return callback(err);
+      ContentAPI.getContentMembersLibrary(ctx, elementId, null, null, (error, memberList) => {
+        if (error) return callback(error);
 
         return callback(null, memberList);
       });
       break;
 
     case FOLDER:
-      FolderAPI.getFolderMembers(ctx, elementId, null, null, (err, memberList) => {
-        if (err) return callback(err);
+      FolderAPI.getFolderMembers(ctx, elementId, null, null, (error, memberList) => {
+        if (error) return callback(error);
 
         return callback(null, memberList);
       });
       break;
 
     case DISCUSSION:
-      DiscussionAPI.getDiscussionMembers(ctx, elementId, null, null, (err, memberList) => {
-        if (err) return callback(err);
+      DiscussionAPI.getDiscussionMembers(ctx, elementId, null, null, (error, memberList) => {
+        if (error) return callback(error);
 
         return callback(null, memberList);
       });
       break;
 
     case MEETING:
-      MeetingsAPI.Meetings.getMeetingMembers(ctx, elementId, null, null, (err, memberList) => {
-        if (err) return callback(err);
+      MeetingsAPI.Meetings.getMeetingMembers(ctx, elementId, null, null, (error, memberList) => {
+        if (error) return callback(error);
 
         return callback(null, memberList);
       });
       break;
 
     case GROUP:
-      GroupAPI.getMembersLibrary(ctx, elementId, null, null, (err, memberList) => {
-        if (err) return callback(err);
+      GroupAPI.getMembersLibrary(ctx, elementId, null, null, (error, memberList) => {
+        if (error) return callback(error);
 
         return callback(null, memberList);
       });
@@ -659,40 +659,40 @@ const _getMembers = (ctx, elementId, type, callback) => {
 const _getLibrary = (ctx, userId, type, callback) => {
   switch (type) {
     case CONTENT:
-      ContentAPI.getContentLibraryItems(ctx, userId, null, null, (err, contents) => {
-        if (err) return callback(err);
+      ContentAPI.getContentLibraryItems(ctx, userId, null, null, (error, contents) => {
+        if (error) return callback(error);
 
         return callback(null, contents);
       });
       break;
 
     case FOLDER:
-      FolderAPI.getFoldersLibrary(ctx, userId, null, null, (err, folders) => {
-        if (err) return callback(err);
+      FolderAPI.getFoldersLibrary(ctx, userId, null, null, (error, folders) => {
+        if (error) return callback(error);
 
         return callback(null, folders);
       });
       break;
 
     case DISCUSSION:
-      DiscussionAPI.getDiscussionsLibrary(ctx, userId, null, null, (err, discussions) => {
-        if (err) return callback(err);
+      DiscussionAPI.getDiscussionsLibrary(ctx, userId, null, null, (error, discussions) => {
+        if (error) return callback(error);
 
         return callback(null, discussions);
       });
       break;
 
     case MEETING:
-      MeetingsAPI.Meetings.getMeetingsLibrary(ctx, userId, null, null, (err, meetings) => {
-        if (err) return callback(err);
+      MeetingsAPI.Meetings.getMeetingsLibrary(ctx, userId, null, null, (error, meetings) => {
+        if (error) return callback(error);
 
         return callback(null, meetings);
       });
       break;
 
     case GROUP:
-      GroupAPI.getMembershipsLibrary(ctx, userId, null, null, (err, groups) => {
-        if (err) return callback(err);
+      GroupAPI.getMembershipsLibrary(ctx, userId, null, null, (error, groups) => {
+        if (error) return callback(error);
 
         return callback(null, groups);
       });
@@ -719,20 +719,20 @@ const _updateRoles = (ctx, element, archiveUser, type, callback) => {
   update[archiveUser.archiveId] = AuthzConstants.role.MANAGER;
 
   if (type === FOLDER) {
-    AuthzAPI.updateRoles(element.groupId, update, (err /* update */) => {
-      if (err) return callback(err);
+    AuthzAPI.updateRoles(element.groupId, update, (error /* update */) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else if (type === CONTENT) {
-    ContentAPI.setContentPermissions(ctx, element.id, update, (err /* update */) => {
-      if (err) return callback(err);
+    ContentAPI.setContentPermissions(ctx, element.id, update, (error /* update */) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else {
-    AuthzAPI.updateRoles(element.id, update, (err /* update */) => {
-      if (err) return callback(err);
+    AuthzAPI.updateRoles(element.id, update, (error /* update */) => {
+      if (error) return callback(error);
 
       return callback();
     });
@@ -753,24 +753,24 @@ const _updateRoles = (ctx, element, archiveUser, type, callback) => {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const eliminateUser = (ctx, user, alias, callback) => {
-  callback = callback || function() {};
+  callback = callback || function () {};
 
   // Get userArchive
-  PrincipalsDAO.getArchivedUser(alias, (err, userArchive) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getArchivedUser(alias, (error, userArchive) => {
+    if (error) return callback(error);
 
     // Get all data from user archive where data belonged to the user removed
-    PrincipalsDAO.getDataFromArchive(userArchive.archiveId, user.id, (err, data) => {
-      if (err) {
+    PrincipalsDAO.getDataFromArchive(userArchive.archiveId, user.id, (error, data) => {
+      if (error) {
         log().info({ userId: user.id, name: 'oae-principals' }, 'Unable to get data to eliminate, aborting.');
-        return callback(err);
+        return callback(error);
       }
 
       async.series(
         {
           deleteResources(done) {
-            _deleteResourcePermissions(ctx, user, userArchive.archiveId, data, err => {
-              if (err) {
+            _deleteResourcePermissions(ctx, user, userArchive.archiveId, data, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals', archiveId: userArchive.archiveId },
                   'Unable to delete resource permissions, skipping this step.'
@@ -781,8 +781,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           removeProfile(done) {
-            removeProfilePicture(ctx, user, err => {
-              if (err) {
+            removeProfilePicture(ctx, user, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to delete profile picture, skipping this step.'
@@ -793,8 +793,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           deleteFollowers(done) {
-            FollowingAPI.deleteFollowers(ctx, user, err => {
-              if (err) {
+            FollowingAPI.deleteFollowers(ctx, user, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to delete user followers, skipping this step.'
@@ -805,8 +805,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           deleteFollowing(done) {
-            FollowingAPI.deleteFollowing(ctx, user, err => {
-              if (err) {
+            FollowingAPI.deleteFollowing(ctx, user, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to delete user following, skipping this step.'
@@ -817,8 +817,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           deleteInvitations(done) {
-            AuthzInvitationDAO.deleteInvitationsByEmail(user.email, err => {
-              if (err) {
+            AuthzInvitationDAO.deleteInvitationsByEmail(user.email, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to delete invitations, skipping this step.'
@@ -829,8 +829,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           deleteActivity(done) {
-            ActivityAPI.removeActivityStream(ctx, user.id, err => {
-              if (err) {
+            ActivityAPI.removeActivityStream(ctx, user.id, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to delete user activity streams, skipping this step.'
@@ -841,13 +841,13 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           },
           removeFromCronTable(done) {
-            PrincipalsDAO.removePrincipalFromDataArchive(userArchive.archiveId, user.id, err => {
-              if (err) {
+            PrincipalsDAO.removePrincipalFromDataArchive(userArchive.archiveId, user.id, (error_) => {
+              if (error_) {
                 log().info(
                   { userId: user.id, name: 'oae-principals', archiveId: userArchive.archiveId },
                   'Unable to remove principal from data archive, skipping this step.'
                 );
-                return callback(err);
+                return callback(error_);
               }
 
               done();
@@ -855,8 +855,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
           },
           isDeleted(done) {
             // Determine if the principal was already deleted in the authz index before we set them and flip the principals deleted flag
-            AuthzDelete.isDeleted([user.id], (err /* wasDeleted */) => {
-              if (err) {
+            AuthzDelete.isDeleted([user.id], (error /* wasDeleted */) => {
+              if (error) {
                 log().info(
                   { userId: user.id, name: 'oae-principals' },
                   'Unable to remove principal from authz index, skipping this step.'
@@ -867,8 +867,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
             });
           }
         },
-        err => {
-          if (err) {
+        (error_) => {
+          if (error_) {
             log().info(
               { userId: user.id, name: 'oae-principals' },
               'Found some errors while deleting data associated to user, moving on...'
@@ -876,23 +876,23 @@ const eliminateUser = (ctx, user, alias, callback) => {
           }
 
           // Get the login to delete the user form the table AuthenticationLoginId
-          require('oae-authentication').getUserLoginIds(ctx, user.id, (err, login) => {
-            if (err) return callback(err);
+          require('oae-authentication').getUserLoginIds(ctx, user.id, (error, login) => {
+            if (error) return callback(error);
 
             // Set (or re-Set) the principal as deleted in the authz index
-            AuthzDelete.setDeleted(user.id, err => {
-              if (err) {
+            AuthzDelete.setDeleted(user.id, (error_) => {
+              if (error_) {
                 log().info('Unable to delete user from Authz index.');
-                return callback(err);
+                return callback(error_);
               }
 
               // Delete a user from the database
-              PrincipalsDAO.fullyDeletePrincipal(user, login, err => {
-                if (err) return callback(err);
+              PrincipalsDAO.fullyDeletePrincipal(user, login, (error_) => {
+                if (error_) return callback(error_);
 
                 // Notify that a user has been deleted
-                PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, err => {
-                  if (err) return callback(err);
+                PrincipalsEmitter.emit(PrincipalsConstants.events.DELETED_USER, ctx, user, (error_) => {
+                  if (error_) return callback(error_);
 
                   // Notify consumers that a user has been deleted
                   log().info(
@@ -919,8 +919,8 @@ const eliminateUser = (ctx, user, alias, callback) => {
  * @param  {Object}     callback.err    An error that occured, if any
  */
 const removeProfilePicture = (ctx, user, callback) => {
-  PrincipalsDAO.getPrincipal(user.id, (err, principal) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getPrincipal(user.id, (error, principal) => {
+    if (error) return callback(error);
     if (_.isEmpty(principal.picture)) return callback();
 
     const pathSmallPicture = principal.picture.smallUri.split(':');
@@ -929,14 +929,14 @@ const removeProfilePicture = (ctx, user, callback) => {
 
     const pathStorageBackend = ContentUtil.getStorageBackend(ctx, principal.picture.largeUri).getRootDirectory();
 
-    fs.unlink(pathStorageBackend + '/' + pathSmallPicture[1], err => {
-      if (err) return callback(err);
+    fs.unlink(pathStorageBackend + '/' + pathSmallPicture[1], (error_) => {
+      if (error_) return callback(error_);
 
-      fs.unlink(pathStorageBackend + '/' + pathMediumPicture[1], err => {
-        if (err) return callback(err);
+      fs.unlink(pathStorageBackend + '/' + pathMediumPicture[1], (error_) => {
+        if (error_) return callback(error_);
 
-        fs.unlink(pathStorageBackend + '/' + pathLargePicture[1], err => {
-          if (err) return callback(err);
+        fs.unlink(pathStorageBackend + '/' + pathLargePicture[1], (error_) => {
+          if (error_) return callback(error_);
 
           return callback();
         });
@@ -975,21 +975,21 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
         const resourceType = splitId[0];
 
         // If it's a folder get the idGroup
-        _ifFolderGetIdGroup(ctx, idResource, splitId[0], (err, idFolder) => {
-          if (err) return callback(err);
+        _ifFolderGetIdGroup(ctx, idResource, splitId[0], (error, idFolder) => {
+          if (error) return callback(error);
           if (idFolder) idResource = idFolder;
 
           // Get role
-          AuthzAPI.getAllAuthzMembers(idResource, (err, memberIdRoles) => {
-            if (err) return callback(err);
+          AuthzAPI.getAllAuthzMembers(idResource, (error, memberIdRoles) => {
+            if (error) return callback(error);
 
             const doesResourceHaveManagers =
               _.chain(memberIdRoles)
-                .reject(each => {
+                .reject((each) => {
                   return each.id === archiveId;
                 })
                 .pluck('role')
-                .filter(role => {
+                .filter((role) => {
                   return role === AuthzConstants.role.MANAGER;
                 })
                 .value().length > 0;
@@ -1000,28 +1000,28 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
             // Remove the resource with the appropriate method
             switch (resourceType) {
               case CONTENT_PREFIX:
-                _deletePermissionsOnContent(ctx, shouldProceed, archiveId, idResource, err => {
-                  if (err) return callback(err);
+                _deletePermissionsOnContent(ctx, shouldProceed, archiveId, idResource, (error_) => {
+                  if (error_) return callback(error_);
                 });
                 break;
               case DISCUSSION_PREFIX:
-                _deletePermissionsOnDiscussion(ctx, shouldProceed, archiveId, idResource, err => {
-                  if (err) return callback(err);
+                _deletePermissionsOnDiscussion(ctx, shouldProceed, archiveId, idResource, (error_) => {
+                  if (error_) return callback(error_);
                 });
                 break;
               case FOLDER_PREFIX:
-                _deletePermissionsOnFolder(ctx, shouldProceed, archiveId, id, err => {
-                  if (err) return callback(err);
+                _deletePermissionsOnFolder(ctx, shouldProceed, archiveId, id, (error_) => {
+                  if (error_) return callback(error_);
                 });
                 break;
               case GROUP_PREFIX:
-                _deletePermissionsOnGroup(ctx, shouldProceed, archiveId, idResource, err => {
-                  if (err) return callback(err);
+                _deletePermissionsOnGroup(ctx, shouldProceed, archiveId, idResource, (error_) => {
+                  if (error_) return callback(error_);
                 });
                 break;
               case MEETING_PREFIX:
-                _deletePermissionsOnMeeting(ctx, shouldProceed, archiveId, idResource, err => {
-                  if (err) return callback(err);
+                _deletePermissionsOnMeeting(ctx, shouldProceed, archiveId, idResource, (error_) => {
+                  if (error_) return callback(error_);
                 });
                 break;
               default:
@@ -1051,8 +1051,8 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
  */
 const _ifFolderGetIdGroup = (ctx, idResource, splitId, callback) => {
   if (splitId === FOLDER_PREFIX) {
-    FolderAPI.getFolder(ctx, idResource, (err, folder) => {
-      if (err) return callback(err);
+    FolderAPI.getFolder(ctx, idResource, (error, folder) => {
+      if (error) return callback(error);
 
       return callback(null, folder.groupId);
     });
@@ -1074,15 +1074,15 @@ const _ifFolderGetIdGroup = (ctx, idResource, splitId, callback) => {
  */
 const _deletePermissionsOnContent = (ctx, del, archiveId, idResource, callback) => {
   if (del) {
-    ContentAPI.deleteContent(ctx, idResource, err => {
-      if (err) return callback(err);
+    ContentAPI.deleteContent(ctx, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else {
     // If there is another manager on the content, remove it from the library
-    ContentAPI.removeContentFromLibrary(ctx, archiveId, idResource, err => {
-      if (err) return callback(err);
+    ContentAPI.removeContentFromLibrary(ctx, archiveId, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
@@ -1103,15 +1103,15 @@ const _deletePermissionsOnContent = (ctx, del, archiveId, idResource, callback) 
 const _deletePermissionsOnDiscussion = (ctx, del, archiveId, idResource, callback) => {
   if (del) {
     // Remove the actual discussion profile
-    DiscussionAPI.deleteDiscussion(ctx, idResource, err => {
-      if (err) return callback(err);
+    DiscussionAPI.deleteDiscussion(ctx, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else {
     // If there is another manager on the discussion, remove it from the library
-    DiscussionAPI.removeDiscussionFromLibrary(ctx, archiveId, idResource, err => {
-      if (err) return callback(err);
+    DiscussionAPI.removeDiscussionFromLibrary(ctx, archiveId, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
@@ -1131,15 +1131,15 @@ const _deletePermissionsOnDiscussion = (ctx, del, archiveId, idResource, callbac
  */
 const _deletePermissionsOnFolder = (ctx, del, archiveId, idResource, callback) => {
   if (del) {
-    FolderAPI.deleteFolder(ctx, idResource, false, (err /* content */) => {
-      if (err) return callback(err);
+    FolderAPI.deleteFolder(ctx, idResource, false, (error /* content */) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else {
     // If there is another manager on the folder, remove it from the library
-    FolderAPI.removeFolderFromLibrary(ctx, archiveId, idResource, err => {
-      if (err) return callback(err);
+    FolderAPI.removeFolderFromLibrary(ctx, archiveId, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
@@ -1160,22 +1160,22 @@ const _deletePermissionsOnFolder = (ctx, del, archiveId, idResource, callback) =
 const _deletePermissionsOnGroup = (ctx, del, archiveId, idResource, callback) => {
   if (del) {
     // Remove group
-    GroupAPI.deleteGroup(ctx, idResource, err => {
-      if (err) return callback(err);
+    GroupAPI.deleteGroup(ctx, idResource, (error) => {
+      if (error) return callback(error);
 
       // Remove roles
       const update = {};
       update[archiveId] = false;
-      AuthzAPI.updateRoles(idResource, update, (err /* usersToInvalidate */) => {
-        if (err) return callback(err);
+      AuthzAPI.updateRoles(idResource, update, (error /* usersToInvalidate */) => {
+        if (error) return callback(error);
 
         return callback();
       });
     });
   } else {
     // If there is another manager on the group, remove it from the library
-    GroupAPI.leaveGroup(ctx, idResource, err => {
-      if (err) return callback(err);
+    GroupAPI.leaveGroup(ctx, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
@@ -1196,15 +1196,15 @@ const _deletePermissionsOnGroup = (ctx, del, archiveId, idResource, callback) =>
 const _deletePermissionsOnMeeting = (ctx, del, archiveId, idResource, callback) => {
   if (del) {
     // Remove meeting
-    MeetingsAPI.Meetings.deleteMeeting(ctx, idResource, err => {
-      if (err) return callback(err);
+    MeetingsAPI.Meetings.deleteMeeting(ctx, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });
   } else {
     // If there is another manager on the meeting, remove it from the library
-    MeetingsAPI.Meetings.removeMeetingFromLibrary(ctx, archiveId, idResource, err => {
-      if (err) return callback(err);
+    MeetingsAPI.Meetings.removeMeetingFromLibrary(ctx, archiveId, idResource, (error) => {
+      if (error) return callback(error);
 
       return callback();
     });

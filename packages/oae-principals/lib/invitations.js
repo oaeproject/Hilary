@@ -14,6 +14,7 @@
  */
 
 import _ from 'underscore';
+import { pipe, keys, filter, isEmpty } from 'ramda';
 
 import { Invitation } from 'oae-authz/lib/invitations/model';
 import { ResourceConstants } from 'oae-resource/lib/constants';
@@ -38,21 +39,16 @@ ResourceActions.emitter.when(
   ResourceConstants.events.ACCEPTED_INVITATION,
   (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
     // Filter the invitations and changes down to only group invitations
-    let groupIds = _.chain(memberChangeInfosByResourceId)
-      .keys()
-      .filter(AuthzUtil.isGroupId)
-      .value();
-    if (_.isEmpty(groupIds)) {
-      return callback();
-    }
+    let groupIds = pipe(keys, filter(AuthzUtil.isGroupId))(memberChangeInfosByResourceId);
+    if (isEmpty(groupIds)) return callback();
 
     // Note that some of these group ids could be folder authz ids. Therefore we need to limit to
     // only actual group resources that come from this query
-    PrincipalsDAO.getPrincipals(groupIds, null, (err, groupsById) => {
-      if (err) {
+    PrincipalsDAO.getPrincipals(groupIds, null, (error, groupsById) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             groupIds
           },
           'An error occurred while getting groups to update group libraries after an invitation was accepted'
@@ -63,7 +59,7 @@ ResourceActions.emitter.when(
       // Filter out soft-deleted groups
       const groups = _.chain(groupsById)
         .values()
-        .filter(group => {
+        .filter((group) => {
           return !group.deleted;
         })
         .value();
@@ -75,13 +71,13 @@ ResourceActions.emitter.when(
 
       // Touch all the group last modified timestamps who are having an invitation accepted
       // for them
-      _touchAllGroups(groups, updatedGroupsById => {
+      _touchAllGroups(groups, (updatedGroupsById) => {
         // Invoke the "accept invitation" handler with the resources when we have them. We
         // invoke this after the get principals call for test synchronization
         callback(null, _.values(updatedGroupsById));
 
         // Fire members update tasks for each group
-        _.each(groups, group => {
+        _.each(groups, (group) => {
           const updatedGroup = updatedGroupsById[group.id];
           if (!updatedGroup) {
             return;
@@ -117,7 +113,7 @@ ResourceActions.emitter.when(
  * @param  {Object}     callback.updatedGroupsById      The updated group profiles, keyed by group id
  * @api private
  */
-const _touchAllGroups = function(groups, callback) {
+const _touchAllGroups = function (groups, callback) {
   const updatedGroupsById = {};
   const _done = _.chain(groups)
     .size()
@@ -126,12 +122,12 @@ const _touchAllGroups = function(groups, callback) {
     })
     .value();
 
-  _.each(groups, group => {
-    PrincipalsUtil.touchLastModified(group, (err, updatedGroup) => {
-      if (err) {
+  _.each(groups, (group) => {
+    PrincipalsUtil.touchLastModified(group, (error, updatedGroup) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             groupId: group.id
           },
           'An error occurred while updating group libraries after invitation was accepted'

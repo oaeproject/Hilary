@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, beforeEach, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
@@ -36,7 +37,7 @@ describe('Discussion Activity', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up global admin rest context
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     callback();
@@ -45,7 +46,7 @@ describe('Discussion Activity', () => {
   /**
    * Drain the email queue
    */
-  beforeEach(callback => {
+  beforeEach((callback) => {
     clearEmailCollections(callback);
   });
 
@@ -54,9 +55,9 @@ describe('Discussion Activity', () => {
       /**
        * Test that verifies the properties of the discussion entity
        */
-      it('verify the discussion entity model contains the correct information', callback => {
-        generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+      it('verify the discussion entity model contains the correct information', (callback) => {
+        generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: simon } = users;
 
           createDiscussion(
@@ -66,13 +67,13 @@ describe('Discussion Activity', () => {
             'loggedin',
             null,
             null,
-            (err, discussion) => {
-              assert.notExists(err);
+            (error, discussion) => {
+              assert.notExists(error);
               assert.ok(discussion);
 
               // Simon should've received a discussion activity in his stream
-              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 const entity = activityStream.items[0];
                 assert.strictEqual(entity['oae:activityType'], 'discussion-create');
                 assert.strictEqual(entity.verb, 'create');
@@ -95,9 +96,9 @@ describe('Discussion Activity', () => {
       /**
        * Test that verifies the properties of the discussion entity when updating.
        */
-      it('verify the discussion entity model contains the correct information when updating a discussion', callback => {
-        generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-          assert.notExists(err);
+      it('verify the discussion entity model contains the correct information when updating a discussion', (callback) => {
+        generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+          assert.notExists(error);
           const { 0: simon } = users;
           createDiscussion(
             simon.restContext,
@@ -106,18 +107,18 @@ describe('Discussion Activity', () => {
             'loggedin',
             null,
             null,
-            (err, discussion) => {
-              assert.notExists(err);
+            (error, discussion) => {
+              assert.notExists(error);
               assert.ok(discussion);
 
               RestAPI.Discussions.updateDiscussion(simon.restContext, discussion.id, { displayName: 'Not bonobos' }, (
-                err /* , updatedDiscussion */
+                error /* , updatedDiscussion */
               ) => {
-                assert.notExists(err);
+                assert.notExists(error);
 
                 // Simon should've received two entries in his stream (1 create and 1 update)
-                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                  assert.notExists(error);
                   const entity = activityStream.items[0];
                   assert.strictEqual(entity['oae:activityType'], 'discussion-update');
                   assert.strictEqual(entity.verb, 'update');
@@ -131,12 +132,12 @@ describe('Discussion Activity', () => {
                   assert.strictEqual(entity.object['oae:profilePath'], discussion.profilePath);
 
                   RestAPI.Discussions.updateDiscussion(simon.restContext, discussion.id, { visibility: 'public' }, (
-                    err /* , updatedDiscussion */
+                    error /* , updatedDiscussion */
                   ) => {
-                    assert.notExists(err);
+                    assert.notExists(error);
 
-                    collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                      assert.notExists(error);
                       const entity = activityStream.items[0];
                       assert.strictEqual(entity['oae:activityType'], 'discussion-update-visibility');
                       assert.strictEqual(entity.verb, 'update');
@@ -155,9 +156,9 @@ describe('Discussion Activity', () => {
       /**
        * Test that verifies the properties of a discussion message
        */
-      it('verify the discussion message entity model contains the correct information', callback => {
-        generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-          assert.notExists(err);
+      it('verify the discussion message entity model contains the correct information', (callback) => {
+        generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+          assert.notExists(error);
           const { 0: simon, 1: nico } = users;
           createDiscussion(
             simon.restContext,
@@ -166,14 +167,14 @@ describe('Discussion Activity', () => {
             'loggedin',
             null,
             null,
-            (err, discussion) => {
-              assert.notExists(err);
+            (error, discussion) => {
+              assert.notExists(error);
               assert.ok(discussion);
 
-              createMessage(simon.restContext, discussion.id, 'My message', null, (err, message) => {
-                assert.notExists(err);
-                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                  assert.notExists(err);
+              createMessage(simon.restContext, discussion.id, 'My message', null, (error, message) => {
+                assert.notExists(error);
+                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                  assert.notExists(error);
                   const entity = activityStream.items[0];
                   assert.strictEqual(entity['oae:activityType'], 'discussion-message');
                   assert.strictEqual(entity.verb, 'post');
@@ -203,11 +204,11 @@ describe('Discussion Activity', () => {
                   );
 
                   // Nico replies
-                  createMessage(nico.restContext, discussion.id, 'A reply', message.created, (err, nicosMessage) => {
-                    assert.notExists(err);
+                  createMessage(nico.restContext, discussion.id, 'A reply', message.created, (error, nicosMessage) => {
+                    assert.notExists(error);
 
-                    collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                      assert.notExists(error);
 
                       // The first item should still be a discussion-message.
                       // The object and actor will now be collections rather than a single message/person
@@ -283,9 +284,9 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies that a message activity is routed to the managers and recent contributers their notification stream of a private discussion item
      */
-    it('verify message activity is routed to the managers and recent contributors notification stream of a private discussion', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 4, (err, users) => {
-        assert.notExists(err);
+    it('verify message activity is routed to the managers and recent contributors notification stream of a private discussion', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 4, (error, users) => {
+        assert.notExists(error);
         const { 0: simon, 1: nico, 2: bert, 3: stuart } = users;
         const asSimon = simon.restContext;
         const asBert = bert.restContext;
@@ -301,22 +302,22 @@ describe('Discussion Activity', () => {
           'private',
           managers,
           members,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
 
-            createMessage(asBert, discussion.id, 'Message A', null, (err /* , message */) => {
-              assert.notExists(err);
+            createMessage(asBert, discussion.id, 'Message A', null, (error /* , message */) => {
+              assert.notExists(error);
 
               // Assert that the managers got it
-              ActivityTestsUtil.collectAndGetNotificationStream(asSimon, null, (err, activityStream) => {
-                assert.notExists(err);
+              ActivityTestsUtil.collectAndGetNotificationStream(asSimon, null, (error, activityStream) => {
+                assert.notExists(error);
                 assert.ok(find(propSatisfies(equals('discussion-message'), 'oae:activityType'), activityStream.items));
 
                 // Simon should have a single notification: message A posted by Bert
                 assert.lengthOf(activityStream.items, 1);
 
-                ActivityTestsUtil.collectAndGetNotificationStream(asNico, null, (err, activityStream) => {
-                  assert.notExists(err);
+                ActivityTestsUtil.collectAndGetNotificationStream(asNico, null, (error, activityStream) => {
+                  assert.notExists(error);
                   assert.ok(
                     find(propSatisfies(equals('discussion-message'), 'oae:activityType'), activityStream.items)
                   );
@@ -325,12 +326,12 @@ describe('Discussion Activity', () => {
                   assert.lengthOf(activityStream.items, 2);
 
                   // Create another message and assert that both the managers and the recent contributers get a notification
-                  createMessage(asNico, discussion.id, 'Message B', null, (err /* , message */) => {
-                    assert.notExists(err);
+                  createMessage(asNico, discussion.id, 'Message B', null, (error /* , message */) => {
+                    assert.notExists(error);
 
                     // Because Bert made a message previously, he should get a notification as well
-                    ActivityTestsUtil.collectAndGetNotificationStream(asBert, null, (err, activityStream) => {
-                      assert.notExists(err);
+                    ActivityTestsUtil.collectAndGetNotificationStream(asBert, null, (error, activityStream) => {
+                      assert.notExists(error);
                       // Bert should have two notifications: discussion created and Nico's post. His own post should not.
                       assert.lengthOf(activityStream.items, 2);
 
@@ -341,8 +342,8 @@ describe('Discussion Activity', () => {
                       assert.lengthOf(messageActivities, 1);
 
                       // Sanity-check that the managers got it as well
-                      ActivityTestsUtil.collectAndGetNotificationStream(asNico, null, (err, activityStream) => {
-                        assert.notExists(err);
+                      ActivityTestsUtil.collectAndGetNotificationStream(asNico, null, (error, activityStream) => {
+                        assert.notExists(error);
                         // Nico should have the same two notifications as before: discussion created and post by Bert (message A)
                         assert.lengthOf(activityStream.items, 2);
 
@@ -352,8 +353,8 @@ describe('Discussion Activity', () => {
                         );
                         assert.lengthOf(messageActivities, 1);
 
-                        ActivityTestsUtil.collectAndGetNotificationStream(asSimon, null, (err, activityStream) => {
-                          assert.notExists(err);
+                        ActivityTestsUtil.collectAndGetNotificationStream(asSimon, null, (error, activityStream) => {
+                          assert.notExists(error);
                           // Simon should have a single notification combining messageA posted by Bert and messageB posted by Nico
                           assert.lengthOf(activityStream.items, 1);
 
@@ -381,9 +382,9 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies when a discussion is updated, an activity is generated for the action
      */
-    it('verify updating a discussion results in an activity being generated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-        assert.notExists(err);
+    it('verify updating a discussion results in an activity being generated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+        assert.notExists(error);
         const { 0: simon } = users;
 
         // Create a discussion to share
@@ -394,21 +395,21 @@ describe('Discussion Activity', () => {
           'loggedin',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
             assert.ok(discussion);
 
             RestAPI.Discussions.updateDiscussion(
               simon.restContext,
               discussion.id,
               { displayName: 'Blah!' },
-              (err, discussionProfile) => {
-                assert.notExists(err);
+              (error, discussionProfile) => {
+                assert.notExists(error);
                 assert.ok(discussionProfile);
 
                 // Collect the activities
-                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                  assert.notExists(err);
+                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                  assert.notExists(error);
 
                   // Verify the discussion-share activity is the newest one in the feed
                   const activity = activityStream.items[0];
@@ -429,9 +430,9 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies when a discussion is shared, an activity is generated for the action
      */
-    it('verify sharing a discussion results in an activity being generated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify sharing a discussion results in an activity being generated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: simon, 1: nico } = users;
 
         // Create a discussion to share
@@ -442,17 +443,17 @@ describe('Discussion Activity', () => {
           'loggedin',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
             assert.ok(discussion);
 
             // Simon shares the discussion with nicolaas
-            shareDiscussion(simon.restContext, discussion.id, [nico.user.id], err => {
-              assert.notExists(err);
+            shareDiscussion(simon.restContext, discussion.id, [nico.user.id], (error_) => {
+              assert.notExists(error_);
 
               // Collect the activities
-              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 // Verify the discussion-share activity is the newest one in the feed
                 const activity = activityStream.items[0];
@@ -473,10 +474,10 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies when a user is added as a manager to a discussion, a share activity is generated
      */
-    it('verify adding user by updating permissions of a discussion results in a share activity being generated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+    it('verify adding user by updating permissions of a discussion results in a share activity being generated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         const { 0: simon, 1: branden } = users;
-        assert.notExists(err);
+        assert.notExists(error);
 
         // Create a discussion to share
         createDiscussion(
@@ -486,20 +487,20 @@ describe('Discussion Activity', () => {
           'loggedin',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
             assert.ok(discussion);
 
             const memberUpdates = {};
             memberUpdates[branden.user.id] = 'member';
 
             // Simon shares the discussion with Branden
-            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, err => {
-              assert.notExists(err);
+            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, (error_) => {
+              assert.notExists(error_);
 
               // Collect the activities
-              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 // Verify the discussion-share activity is the newest one in the feed
                 const activity = activityStream.items[0];
@@ -520,10 +521,10 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies when a user is being promoted to a manager in to a discussion, a discussion-update-member-role activity is generated
      */
-    it('verify updating user role of a discussion results in a discussion-update-member-role activity being generated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
+    it('verify updating user role of a discussion results in a discussion-update-member-role activity being generated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         const { 0: simon, 1: branden } = users;
-        assert.notExists(err);
+        assert.notExists(error);
 
         // Create a discussion with a member
         createDiscussion(
@@ -533,19 +534,19 @@ describe('Discussion Activity', () => {
           'loggedin',
           null,
           [branden.user.id],
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
             assert.ok(discussion);
 
             // Simon promotes Branden to manager
             const memberUpdates = {};
             memberUpdates[branden.user.id] = 'manager';
-            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, err => {
-              assert.notExists(err);
+            RestAPI.Discussions.updateDiscussionMembers(simon.restContext, discussion.id, memberUpdates, (error_) => {
+              assert.notExists(error_);
 
               // Verify the discussion-update-member-role activity is present
-              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
                 ActivityTestsUtil.assertActivity(
                   activityStream.items[0],
                   'discussion-update-member-role',
@@ -565,9 +566,9 @@ describe('Discussion Activity', () => {
     /**
      * Test that verifies when a user adds a discussion to their library, an activity is generated
      */
-    it('verify adding a discussion to your library results in an discussion-ad-to-library activity being generated', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify adding a discussion to your library results in an discussion-ad-to-library activity being generated', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
         const { 0: simon, 1: nico } = users;
 
         // Create a discussion to share
@@ -578,17 +579,17 @@ describe('Discussion Activity', () => {
           'loggedin',
           null,
           null,
-          (err, discussion) => {
-            assert.notExists(err);
+          (error, discussion) => {
+            assert.notExists(error);
             assert.ok(discussion);
 
             // Nicolaas adds the discussion to his library
-            shareDiscussion(nico.restContext, discussion.id, [nico.user.id], err => {
-              assert.notExists(err);
+            shareDiscussion(nico.restContext, discussion.id, [nico.user.id], (error_) => {
+              assert.notExists(error_);
 
               // Collect the activities
-              collectAndGetActivityStream(nico.restContext, nico.user.id, null, (err, activityStream) => {
-                assert.notExists(err);
+              collectAndGetActivityStream(nico.restContext, nico.user.id, null, (error, activityStream) => {
+                assert.notExists(error);
 
                 // Verify the discussion-share activity is the newest one in the feed
                 const activity = activityStream.items[0];
@@ -611,9 +612,9 @@ describe('Discussion Activity', () => {
      * Test that verifies an email is sent to the discussion managers when someone posts a message, and that private users
      * are appropriately scrubbed.
      */
-    it('verify discussion message email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 3, (err, users) => {
-        assert.notExists(err);
+    it('verify discussion message email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
+        assert.notExists(error);
 
         const { 0: mrvisser, 1: simong, 2: nicolaas } = users;
 
@@ -626,8 +627,8 @@ describe('Discussion Activity', () => {
         // Update Simon
         assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
           // Create the discussion
-          createDiscussion(mrvisser.restContext, 'A talk', 'about computers', 'public', [], [], (err, discussion) => {
-            assert.notExists(err);
+          createDiscussion(mrvisser.restContext, 'A talk', 'about computers', 'public', [], [], (error, discussion) => {
+            assert.notExists(error);
 
             // Post a new message
             createMessage(
@@ -635,10 +636,10 @@ describe('Discussion Activity', () => {
               discussion.id,
               '<script>Nice discussion.</script>\n\nWould read again',
               null,
-              (err /* , simongMessage */) => {
-                assert.notExists(err);
+              (error /* , simongMessage */) => {
+                assert.notExists(error);
 
-                collectAndFetchAllEmails(emails => {
+                collectAndFetchAllEmails((emails) => {
                   // There should be exactly one email, the one sent to mrvisser (manager of discussion receives discussion-message notification)
                   assert.strictEqual(emails.length, 1);
 
@@ -672,11 +673,11 @@ describe('Discussion Activity', () => {
 
                   // Send a message as nicolaas and ensure the recent commenter, simong receives an email about it
                   createMessage(nicolaas.restContext, discussion.id, 'I have a computer, too', null, (
-                    err /* , nicolaasMessage */
+                    error /* , nicolaasMessage */
                   ) => {
-                    assert.notExists(err);
+                    assert.notExists(error);
 
-                    collectAndFetchAllEmails(emails => {
+                    collectAndFetchAllEmails((emails) => {
                       // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
                       assert.strictEqual(emails.length, 2);
 
@@ -698,9 +699,9 @@ describe('Discussion Activity', () => {
      * Test that verifies an email is sent to the members when a discussion is created, and that private users are
      * appropriately scrubbed.
      */
-    it('verify discussion-create email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify discussion-create email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: mrvisser, 1: simong } = users;
 
@@ -720,11 +721,11 @@ describe('Discussion Activity', () => {
             'public',
             [],
             [mrvisser.user.id],
-            (err, discussion) => {
-              assert.notExists(err);
+            (error, discussion) => {
+              assert.notExists(error);
 
               // Mrvisser should get an email, with simong's information scrubbed
-              collectAndFetchAllEmails(emails => {
+              collectAndFetchAllEmails((emails) => {
                 // There should be exactly one email, the one sent to mrvisser
                 assert.strictEqual(emails.length, 1);
 
@@ -759,9 +760,9 @@ describe('Discussion Activity', () => {
      * Test that verifies an email is sent to the target users when a discussion is shared, and that private users are
      * appropriately scrubbed.
      */
-    it('verify discussion-share email and privacy', callback => {
-      generateTestUsers(asCambridgeTenantAdmin, 2, (err, users) => {
-        assert.notExists(err);
+    it('verify discussion-share email and privacy', (callback) => {
+      generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
+        assert.notExists(error);
 
         const { 0: mrvisser, 1: simong } = users;
 
@@ -774,16 +775,16 @@ describe('Discussion Activity', () => {
         // Update Simon
         assertUpdateUserSucceeds(simong.restContext, simong.user.id, simongUpdate, () => {
           // Create the link, then share it with mrvisser. We will ensure that mrvisser gets the email about the share
-          createDiscussion(simong.restContext, 'A talk', 'about the moon', 'public', [], [], (err, discussion) => {
-            assert.notExists(err);
+          createDiscussion(simong.restContext, 'A talk', 'about the moon', 'public', [], [], (error, discussion) => {
+            assert.notExists(error);
 
             // Collect the createLink activity
             collectAndFetchAllEmails((/* emails */) => {
-              shareDiscussion(simong.restContext, discussion.id, [mrvisser.user.id], err => {
-                assert.notExists(err);
+              shareDiscussion(simong.restContext, discussion.id, [mrvisser.user.id], (error_) => {
+                assert.notExists(error_);
 
                 // Mrvisser should get an email, with simong's information scrubbed
-                collectAndFetchAllEmails(emails => {
+                collectAndFetchAllEmails((emails) => {
                   // There should be exactly one email, the one sent to mrvisser
                   assert.strictEqual(emails.length, 1);
 

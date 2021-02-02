@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
@@ -57,12 +57,12 @@ const {
 import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 import { forEachObjIndexed } from 'ramda';
-import * as FoldersFoldersLibrary from './internal/foldersLibrary';
-import * as FoldersAuthz from './authz';
-import * as FoldersContentLibrary from './internal/contentLibrary';
-import * as FoldersDAO from './internal/dao';
+import * as FoldersFoldersLibrary from './internal/foldersLibrary.js';
+import * as FoldersAuthz from './authz.js';
+import * as FoldersContentLibrary from './internal/contentLibrary.js';
+import * as FoldersDAO from './internal/dao.js';
 
-import { FoldersConstants } from './constants';
+import { FoldersConstants } from './constants.js';
 
 const log = logger('oae-folders-api');
 
@@ -136,7 +136,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     forEachObjIndexed(role => {
       unless(isIn, {
         code: 400,
-        msg: util.format('The role "%s" is not a valid member role for a folder', role)
+        msg: format('The role "%s" is not a valid member role for a folder', role)
       })(role, FoldersConstants.role.ALL_PRIORITY);
     }, roles);
   } catch (error) {
@@ -150,12 +150,12 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
       return roles[principalId] === AuthzConstants.role.MANAGER;
     })
     .value();
-  GroupAPI.canManageAny(ctx, managerIds, (err, canManageAny) => {
-    if (err && err.code !== 404) {
-      return callback(err);
+  GroupAPI.canManageAny(ctx, managerIds, (error, canManageAny) => {
+    if (error && error.code !== 404) {
+      return callback(error);
     }
 
-    if (err) {
+    if (error) {
       return callback({ code: 400, msg: 'One or more target principals could not be found' });
     }
 
@@ -166,9 +166,9 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     }
 
     const createFn = _.partial(FoldersDAO.createFolder, ctx.user().id, displayName, description, visibility);
-    ResourceActions.create(ctx, roles, createFn, (err, folder, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.create(ctx, roles, createFn, (error, folder, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       FoldersAPI.emit(FoldersConstants.events.CREATED_FOLDER, ctx, folder, memberChangeInfo, errs => {
@@ -206,7 +206,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
 
     unless(isResourceId, {
       code: 400,
-      msg: util.format('The folder id "%s" is not a valid resource id', folderId)
+      msg: format('The folder id "%s" is not a valid resource id', folderId)
     })(folderId);
 
     unless(isObject, {
@@ -223,7 +223,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
       msg: 'One of ' + legalUpdateFields.join(', ') + ' must be provided'
     })(_.intersection(updateFields, legalUpdateFields));
 
-    forEachObjIndexed((val, key) => {
+    forEachObjIndexed((value, key) => {
       unless(isIn, {
         code: 400,
         msg: 'Unknown update field provided'
@@ -252,21 +252,21 @@ const updateFolder = function(ctx, folderId, updates, callback) {
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can manage the folder
-    AuthzPermissions.canManage(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Update the folder's metadata
-      FoldersDAO.updateFolder(folder, updates, (err, updatedFolder) => {
-        if (err) {
-          return callback(err);
+      FoldersDAO.updateFolder(folder, updates, (error, updatedFolder) => {
+        if (error) {
+          return callback(error);
         }
 
         FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER, ctx, updatedFolder, folder);
@@ -299,7 +299,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
 
     unless(isResourceId, {
       code: 400,
-      msg: util.format('The folder id "%s" is not a valid resource id', folderId)
+      msg: format('The folder id "%s" is not a valid resource id', folderId)
     })(folderId);
 
     unless(isNotEmpty, {
@@ -316,15 +316,15 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can manage the folder
-    AuthzPermissions.canManage(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Apply the visibility on all the content items in the folder
@@ -357,17 +357,23 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
  */
 const _updateFolderContentVisibility = function(ctx, folder, visibility, callback) {
   // Get all the content items in this folder
-  FoldersAuthz.getContentInFolder(folder, (err, contentIds) => {
-    if (err) {
-      log().error({ err, folderId: folder.id }, 'Got an error when updating the visibility of content in a folder');
-      return callback(err);
+  FoldersAuthz.getContentInFolder(folder, (error, contentIds) => {
+    if (error) {
+      log().error(
+        { err: error, folderId: folder.id },
+        'Got an error when updating the visibility of content in a folder'
+      );
+      return callback(error);
     }
 
     // Get the content objects
-    ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
-      if (err) {
-        log().error({ err, folderId: folder.id }, 'Got an error when updating the visibility of content in a folder');
-        return callback(err);
+    ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
+      if (error) {
+        log().error(
+          { err: error, folderId: folder.id },
+          'Got an error when updating the visibility of content in a folder'
+        );
+        return callback(error);
       }
 
       contentItems = _.chain(contentItems)
@@ -388,9 +394,9 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
        * Executed once all the content items have been updated
        */
       const done = function() {
-        FoldersContentLibrary.purge(folder, err => {
-          if (err) {
-            return callback(err);
+        FoldersContentLibrary.purge(folder, error_ => {
+          if (error_) {
+            return callback(error_);
           }
 
           // Sign the previews for each content item
@@ -427,8 +433,8 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
 
         // Try and update each content item
         _.each(contentItemsToUpdate, content => {
-          _updateContentVisibility(ctx, content, visibility, err => {
-            if (err) {
+          _updateContentVisibility(ctx, content, visibility, error_ => {
+            if (error_) {
               failedContent.push(content);
             }
 
@@ -456,14 +462,14 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
  * @api private
  */
 const _updateContentVisibility = function(ctx, content, visibility, callback) {
-  AuthzPermissions.canManage(ctx, content, err => {
-    if (err) {
-      return callback(err);
+  AuthzPermissions.canManage(ctx, content, error => {
+    if (error) {
+      return callback(error);
     }
 
-    ContentDAO.Content.updateContent(content, { visibility }, true, err => {
-      if (err) {
-        return callback(err);
+    ContentDAO.Content.updateContent(content, { visibility }, true, error => {
+      if (error) {
+        return callback(error);
       }
 
       // Because we updated the visibility with the DAO, we'll need to
@@ -491,22 +497,22 @@ const getFolder = function(ctx, folderId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
-      msg: util.format('The folder id "%s" is not a valid resource id', folderId)
+      msg: format('The folder id "%s" is not a valid resource id', folderId)
     })(folderId);
   } catch (error) {
     return callback(error);
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canView(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canView(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Sign the folder previews (if any)
@@ -536,16 +542,16 @@ const getFullFolderProfile = function(ctx, folderId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
-      msg: util.format('The folder id "%s" is not a valid resource id', folderId)
+      msg: format('The folder id "%s" is not a valid resource id', folderId)
     })(folderId);
   } catch (error) {
     return callback(error);
   }
 
   // Get the folder from storage to use for permissions checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     _getFullFolderProfile(ctx, folder, callback);
@@ -570,9 +576,9 @@ const getFullFolderProfile = function(ctx, folderId, callback) {
  * @api private
  */
 const _getFullFolderProfile = function(ctx, folder, callback) {
-  AuthzPermissions.resolveEffectivePermissions(ctx, folder, (err, permissions) => {
-    if (err) {
-      return callback(err);
+  AuthzPermissions.resolveEffectivePermissions(ctx, folder, (error, permissions) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!permissions.canView) {
@@ -592,11 +598,11 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
     }
 
     // Populate the creator of the folder
-    PrincipalsUtil.getPrincipal(ctx, folder.createdBy, (err, creator) => {
-      if (err) {
+    PrincipalsUtil.getPrincipal(ctx, folder.createdBy, (error, creator) => {
+      if (error) {
         log(ctx).warn(
           {
-            err,
+            err: error,
             userId: folder.createdBy,
             folderId: folder.id
           },
@@ -636,37 +642,37 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
     return callback(error);
   }
 
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
-      _deleteFolder(folder, (err, memberIds) => {
-        if (err) {
-          return callback(err);
+      _deleteFolder(folder, (error, memberIds) => {
+        if (error) {
+          return callback(error);
         }
 
         // eslint-disable-next-line no-unused-vars
         FoldersAPI.emit(FoldersConstants.events.DELETED_FOLDER, ctx, folder, memberIds, errs => {
           // Get all the content items that were in this folder so we can either
           // remove the content items or remove the authz link
-          FoldersAuthz.getContentInFolder(folder, (err, contentIds) => {
-            if (err) {
-              return callback(err);
+          FoldersAuthz.getContentInFolder(folder, (error, contentIds) => {
+            if (error) {
+              return callback(error);
             }
 
             // Delete the content if we were instructed to do so
             if (deleteContent) {
               _deleteContent(ctx, contentIds, failedContent => {
                 // Get the content objects that we couldn't delete
-                ContentDAO.Content.getMultipleContentItems(failedContent, null, (err, contentItems) => {
-                  if (err) {
-                    return callback(err);
+                ContentDAO.Content.getMultipleContentItems(failedContent, null, (error, contentItems) => {
+                  if (error) {
+                    return callback(error);
                   }
 
                   _.chain(contentItems)
@@ -709,9 +715,9 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
  */
 const _deleteFolder = function(folder, callback) {
   // Get all the principal ids who are a member of this folder
-  AuthzAPI.getAllAuthzMembers(folder.groupId, (err, memberRoles) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAllAuthzMembers(folder.groupId, (error, memberRoles) => {
+    if (error) {
+      return callback(error);
     }
 
     // Remove each principal from this folder
@@ -722,15 +728,15 @@ const _deleteFolder = function(folder, callback) {
     });
 
     // Update the authz associations
-    AuthzAPI.updateRoles(folder.groupId, roleChanges, err => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.updateRoles(folder.groupId, roleChanges, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Remove the actual folder
-      FoldersDAO.deleteFolder(folder.id, err => {
-        if (err) {
-          return callback(err);
+      FoldersDAO.deleteFolder(folder.id, error_ => {
+        if (error_) {
+          return callback(error_);
         }
 
         return callback(null, memberIds);
@@ -767,9 +773,9 @@ const _deleteContent = function(ctx, contentIds, callback, _failedContent) {
 
   // Delete each content item
   _.each(contentIdsToDelete, contentId => {
-    ContentAPI.deleteContent(ctx, contentId, err => {
+    ContentAPI.deleteContent(ctx, contentId, error => {
       // Keep track of the content items that could not be deleted
-      if (err) {
+      if (error) {
         _failedContent.push(contentId);
       }
 
@@ -806,11 +812,11 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
     // Remove the folder as an authz member
     const roleChange = {};
     roleChange[folder.groupId] = false;
-    AuthzAPI.updateRoles(contentId, roleChange, err => {
-      if (err) {
+    AuthzAPI.updateRoles(contentId, roleChange, error => {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             folderId: folder.id,
             folderGroupId: folder.groupId,
             contentId
@@ -850,21 +856,21 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
     return callback(error);
   }
 
-  getFolder(ctx, folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  getFolder(ctx, folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the folder members
-    AuthzAPI.getAuthzMembers(folder.groupId, start, limit, (err, memberRoles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getAuthzMembers(folder.groupId, start, limit, (error, memberRoles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the basic profiles for all of these principals
-      PrincipalsUtil.getPrincipals(ctx, _.pluck(memberRoles, 'id'), (err, memberProfiles) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, _.pluck(memberRoles, 'id'), (error, memberProfiles) => {
+        if (error) {
+          return callback(error);
         }
 
         // Merge the member profiles and roles into a single object
@@ -900,9 +906,9 @@ const getFolderInvitations = function(ctx, folderId, callback) {
     return callback(error);
   }
 
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     return AuthzInvitations.getAllInvitations(ctx, folder, callback);
@@ -928,9 +934,9 @@ const resendFolderInvitation = function(ctx, folderId, email, callback) {
     return callback(error);
   }
 
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     return ResourceActions.resendInvitation(ctx, folder, email, callback);
@@ -964,15 +970,15 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
   }
 
   // Ensure the folder exists
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Perform the share operation
-    ResourceActions.share(ctx, folder, principalIds, AuthzConstants.role.VIEWER, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.share(ctx, folder, principalIds, AuthzConstants.role.VIEWER, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(memberChangeInfo.changes)) {
@@ -1036,15 +1042,15 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
   }
 
   // Get the folder object, throwing an error if it doesn't exist, but not applying permissions checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Set the folder roles
-    ResourceActions.setRoles(ctx, folder, changes, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.setRoles(ctx, folder, changes, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(memberChangeInfo.changes)) {
@@ -1097,7 +1103,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     forEachObjIndexed(contentId => {
       unless(isResourceId, {
         code: 400,
-        msg: util.format('The id "%s" is not a valid content id', contentId)
+        msg: format('The id "%s" is not a valid content id', contentId)
       })(contentId);
     }, contentIds);
   } catch (error) {
@@ -1105,15 +1111,15 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
   }
 
   // Get the folder to which we're trying to add the content items
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the content profiles of all items being added for permission checks
-    ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
-      if (err) {
-        return callback(err);
+    ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
+      if (error) {
+        return callback(error);
       }
 
       // Return an error if one or more content items could not be found
@@ -1126,23 +1132,23 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
       }
 
       // Determine if the content items can be added to the folder
-      FoldersAuthz.canAddItemsToFolder(ctx, folder, contentItems, err => {
-        if (err && err.code !== 401) {
-          return callback(err);
+      FoldersAuthz.canAddItemsToFolder(ctx, folder, contentItems, error_ => {
+        if (error_ && error_.code !== 401) {
+          return callback(error_);
         }
 
-        if (err && !_.isEmpty(err.invalidContentIds)) {
+        if (error_ && !_.isEmpty(error_.invalidContentIds)) {
           return callback({
             code: 401,
-            msg: util.format(
+            msg: format(
               'You are not authorized to add the following items to the folder: %s',
-              err.invalidContentIds.join(', ')
+              error_.invalidContentIds.join(', ')
             )
           });
         }
 
-        if (err) {
-          return callback(err);
+        if (error_) {
+          return callback(error_);
         }
 
         // Add all the items to the folder
@@ -1165,17 +1171,17 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
  */
 const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, contentItems, callback) {
   // First, make the folder a member of all the content items
-  _addContentItemsToAuthzFolder(folder, contentItems.slice(), err => {
-    if (err) {
-      return callback(err);
+  _addContentItemsToAuthzFolder(folder, contentItems.slice(), error => {
+    if (error) {
+      return callback(error);
     }
 
     // Second, add the content items in the folder's library buckets
-    FoldersContentLibrary.insert(folder, contentItems, err => {
-      if (err) {
+    FoldersContentLibrary.insert(folder, contentItems, error => {
+      if (error) {
         log(ctx).warn(
           {
-            err,
+            err: error,
             folderId: folder.id,
             contentIds: _.pluck(contentItems, 'id')
           },
@@ -1185,7 +1191,7 @@ const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, con
 
       FoldersAPI.emit(FoldersConstants.events.ADDED_CONTENT_ITEMS, ctx, actionContext, folder, contentItems);
 
-      return callback(err);
+      return callback(error);
     });
   });
 };
@@ -1225,7 +1231,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     forEachObjIndexed(contentId => {
       unless(isResourceId, {
         code: 400,
-        msg: util.format('The id "%s" is not a valid content id', contentId)
+        msg: format('The id "%s" is not a valid content id', contentId)
       })(contentId);
     }, contentIds);
   } catch (error) {
@@ -1233,21 +1239,21 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
   }
 
   // Get the folder from which we're trying to remove the content items
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure that the user is allowed to remove items from this folder
-    AuthzPermissions.canManage(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Get the content profiles of all items being removed
-      ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
-        if (err) {
-          return callback(err);
+      ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
+        if (error) {
+          return callback(error);
         }
 
         // Return an error if one or more content items could not be found
@@ -1260,16 +1266,16 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
         }
 
         // Remove all the items from the folder
-        _removeContentItemsFromFolder(folder, contentIds.slice(), err => {
-          if (err) {
-            return callback(err);
+        _removeContentItemsFromFolder(folder, contentIds.slice(), error_ => {
+          if (error_) {
+            return callback(error_);
           }
 
-          FoldersContentLibrary.remove(folder, contentItems, err => {
-            if (err) {
+          FoldersContentLibrary.remove(folder, contentItems, error_ => {
+            if (error_) {
               log(ctx).warn(
                 {
-                  err,
+                  err: error_,
                   folderId: folder.id,
                   contentIds
                 },
@@ -1311,15 +1317,15 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
   }
 
   // Get the principal
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!hasAccess) {
@@ -1327,15 +1333,15 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
       }
 
       // Get the folder ids from the library index
-      FoldersFoldersLibrary.list(principal, visibility, { start, limit }, (err, folderIds, nextToken) => {
-        if (err) {
-          return callback(err);
+      FoldersFoldersLibrary.list(principal, visibility, { start, limit }, (error, folderIds, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
         // Get the folder objects from the folderIds
-        FoldersDAO.getFoldersByIds(folderIds, (err, folders) => {
-          if (err) {
-            return callback(err);
+        FoldersDAO.getFoldersByIds(folderIds, (error, folders) => {
+          if (error) {
+            return callback(error);
           }
 
           folders = _.map(folders, folder => {
@@ -1374,9 +1380,9 @@ const getManagedFolders = function(ctx, callback) {
   }
 
   // Get all the groups this user is a member of
-  AuthzAPI.getRolesForPrincipalAndResourceType(ctx.user().id, 'g', null, 1000, (err, roles) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getRolesForPrincipalAndResourceType(ctx.user().id, 'g', null, 1000, (error, roles) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get all the groups the user manages
@@ -1390,9 +1396,9 @@ const getManagedFolders = function(ctx, callback) {
       .value();
 
     // Get all the folders that match these groups
-    FoldersDAO.getFoldersByGroupIds(managedGroupIds, (err, folders) => {
-      if (err) {
-        return callback(err);
+    FoldersDAO.getFoldersByGroupIds(managedGroupIds, (error, folders) => {
+      if (error) {
+        return callback(error);
       }
 
       folders = _.chain(folders)
@@ -1443,27 +1449,27 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
   }
 
   // Make sure the folder exists
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Make sure the target user exists
-    PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+      if (error) {
+        return callback(error);
       }
 
       // Verify the current user has access to remove folders from the target library
-      AuthzPermissions.canRemoveRole(ctx, principal, folder, (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canRemoveRole(ctx, principal, folder, (error, memberChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         // All validation checks have passed, finally persist the role change and update the library
-        AuthzAPI.updateRoles(folder.groupId, memberChangeInfo.changes, err => {
-          if (err) {
-            return callback(err);
+        AuthzAPI.updateRoles(folder.groupId, memberChangeInfo.changes, error_ => {
+          if (error_) {
+            return callback(error_);
           }
 
           FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
@@ -1504,29 +1510,29 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
   }
 
   // Get the folder
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, folder.groupId, folder, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, folder.groupId, folder, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!hasAccess) {
         return callback({ code: 401, msg: 'You do not have access to this folder' });
       }
 
-      FoldersContentLibrary.list(folder, visibility, { start, limit }, (err, contentIds, nextToken) => {
-        if (err) {
-          return callback(err);
+      FoldersContentLibrary.list(folder, visibility, { start, limit }, (error, contentIds, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
-        ContentDAO.Content.getMultipleContentItems(contentIds, null, (err, contentItems) => {
-          if (err) {
-            return callback(err);
+        ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
+          if (error) {
+            return callback(error);
           }
 
           contentItems = _.chain(contentItems)
@@ -1596,15 +1602,15 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canInteract(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canInteract(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Create the message
@@ -1613,15 +1619,15 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
         ctx.user().id,
         body,
         { replyToCreated: replyToCreatedTimestamp },
-        (err, message) => {
-          if (err) {
-            return callback(err);
+        (error, message) => {
+          if (error) {
+            return callback(error);
           }
 
           // Get a UI-appropriate representation of the current user
-          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (err, createdBy) => {
-            if (err) {
-              return callback(err);
+          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (error, createdBy) => {
+            if (error) {
+              return callback(error);
             }
 
             message.createdBy = createdBy;
@@ -1673,15 +1679,15 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to delete it
-    MessageBoxAPI.getMessages(folderId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
-      if (err) {
-        return callback(err);
+    MessageBoxAPI.getMessages(folderId, [messageCreatedDate], { scrubDeleted: false }, (error, messages) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!messages[0]) {
@@ -1691,9 +1697,9 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
       const message = messages[0];
 
       // Determine if we have access to delete the folder message
-      AuthzPermissions.canManageMessage(ctx, folder, message, err => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canManageMessage(ctx, folder, message, error_ => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
@@ -1701,9 +1707,9 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
           folderId,
           messageCreatedDate,
           { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-          (err, deleteType, deletedMessage) => {
-            if (err) {
-              return callback(err);
+          (error, deleteType, deletedMessage) => {
+            if (error) {
+              return callback(error);
             }
 
             FoldersAPI.emit(FoldersConstants.events.DELETED_COMMENT, ctx, message, folder, deleteType);
@@ -1751,21 +1757,21 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
   }
 
   // Get the folder from storage to use for permission checks
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canView(ctx, folder, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canView(ctx, folder, error_ => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Fetch the messages from the message box
-      MessageBoxAPI.getMessagesFromMessageBox(folderId, start, limit, null, (err, messages, nextToken) => {
-        if (err) {
-          return callback(err);
+      MessageBoxAPI.getMessagesFromMessageBox(folderId, start, limit, null, (error, messages, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
         // Get the unique user ids from the messages so we can retrieve their full user objects
@@ -1778,9 +1784,9 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
           .value();
 
         // Get the basic principal profiles of the messagers
-        PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-          if (err) {
-            return callback(err);
+        PrincipalsUtil.getPrincipals(ctx, userIds, (error, users) => {
+          if (error) {
+            return callback(error);
           }
 
           // Attach the user profiles to the message objects
@@ -1790,7 +1796,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
             }
           });
 
-          return callback(err, messages, nextToken);
+          return callback(error, messages, nextToken);
         });
       });
     });
@@ -1816,9 +1822,9 @@ const _addContentItemsToAuthzFolder = function(folder, contentItems, callback) {
   roleChange[folder.groupId] = AuthzConstants.role.VIEWER;
 
   const contentItem = contentItems.pop();
-  AuthzAPI.updateRoles(contentItem.id, roleChange, err => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.updateRoles(contentItem.id, roleChange, error => {
+    if (error) {
+      return callback(error);
     }
 
     return _addContentItemsToAuthzFolder(folder, contentItems, callback);
@@ -1844,9 +1850,9 @@ const _removeContentItemsFromFolder = function(folder, contentIds, callback) {
   roleChange[folder.groupId] = false;
 
   const contentId = contentIds.pop();
-  AuthzAPI.updateRoles(contentId, roleChange, err => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.updateRoles(contentId, roleChange, error => {
+    if (error) {
+      return callback(error);
     }
 
     return _removeContentItemsFromFolder(folder, contentIds, callback);

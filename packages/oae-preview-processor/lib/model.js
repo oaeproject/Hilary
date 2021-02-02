@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
+import { format } from 'util';
 import rimraf from 'rimraf';
 
 import { logger } from 'oae-logger';
@@ -43,7 +43,7 @@ const extensionRegex = /^[a-zA-Z]+$/;
  * @param  {String}         revisionId      The revision ID of the piece of content we'll be processing.
  * @return {PreviewContext}                 A PreviewContext object.
  */
-const PreviewContext = function(config, contentId, revisionId) {
+const PreviewContext = function (config, contentId, revisionId) {
   const protocol = config.servers.useHttps ? 'https' : 'http';
   const host = config.servers.serverInternalAddress || config.servers.globalAdminHost;
   const strictSSL = config.servers.strictHttps;
@@ -85,7 +85,7 @@ const PreviewContext = function(config, contentId, revisionId) {
   /**
    * Removes the directory where all images should be stored in.
    */
-  that.cleanup = function() {
+  that.cleanup = function () {
     log().trace({ contentId }, 'Removing %s', that.baseDir);
     try {
       rimraf.sync(that.baseDir);
@@ -101,18 +101,18 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {Function}    callback        Standard callback function
    * @param  {Object}      callback.err    An error that occurred, if any
    */
-  that.login = function(callback) {
+  that.login = function (callback) {
     const tenantAlias = that.contentId.split(':')[1];
     log().trace({ contentId }, 'Logging into %s', tenantAlias);
 
     // Log in via signed auth, and get a new RestContext
-    RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(globalRestContext, tenantAlias, (err, requestInfo) => {
-      if (err) {
+    RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(globalRestContext, tenantAlias, (error, requestInfo) => {
+      if (error) {
         log().error(
-          { err, contentId },
+          { err: error, contentId },
           'We could not get signed authentication request info for the tenant. The status of the content item will not be set'
         );
-        return callback(err);
+        return callback(error);
       }
 
       // Parse the URL we should use to authenticate to the tenant
@@ -126,20 +126,20 @@ const PreviewContext = function(config, contentId, revisionId) {
 
       // Use internal address if configured
       const host = config.servers.serverInternalAddress || hostHeader;
-      const restCtx = new RestContext(util.format('%s//%s', protocol, host), {
+      const restCtx = new RestContext(format('%s//%s', protocol, host), {
         hostHeader,
         strictSSL
       });
 
       // Perform the actual login
       // eslint-disable-next-line no-unused-vars
-      RestAPI.Admin.doSignedAuthentication(restCtx, requestInfo.body, (err, body, response) => {
-        if (err) {
+      RestAPI.Admin.doSignedAuthentication(restCtx, requestInfo.body, (error, body, response) => {
+        if (error) {
           log().error(
-            { err, contentId },
+            { err: error, contentId },
             'We could not log in on the tenant. The status of the content item will not be set'
           );
-          return callback(err);
+          return callback(error);
         }
 
         // Use this context for subsequent requests to the tenant
@@ -156,20 +156,20 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {Function}   callback        Standard callback function
    * @param  {Object}     callback.err    An error that occurred, if any
    */
-  that.getContentData = callback => {
-    RestAPI.Content.getContent(that.tenantRestContext, contentId, (err, content) => {
-      if (err) {
-        log().error({ err, contentId }, 'Could not get the content profile.');
-        return callback(err);
+  that.getContentData = (callback) => {
+    RestAPI.Content.getContent(that.tenantRestContext, contentId, (error, content) => {
+      if (error) {
+        log().error({ err: error, contentId }, 'Could not get the content profile.');
+        return callback(error);
       }
 
       // Stick the piece of content on the context.
       that.content = content;
 
-      RestAPI.Content.getRevision(that.tenantRestContext, contentId, revisionId, (err, revision) => {
-        if (err) {
-          log().error({ err, contentId, revisionId }, 'Could not get the revision');
-          return callback(err);
+      RestAPI.Content.getRevision(that.tenantRestContext, contentId, revisionId, (error, revision) => {
+        if (error) {
+          log().error({ err: error, contentId, revisionId }, 'Could not get the revision');
+          return callback(error);
         }
 
         // Stick the revision on the context.
@@ -188,7 +188,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {Object}     callback.err    An error that occurred, if any
    * @param  {String}     callback.path   The path on disk where the file has been downloaded to.
    */
-  that.download = function(callback) {
+  that.download = function (callback) {
     // For security reasons we will *NOT* use the actual filename
     // as this path could end up in commands that need to be executed.
     // We will tack on the extension if-and-only-if that extension only exists out of a-zA-Z characters.
@@ -203,15 +203,15 @@ const PreviewContext = function(config, contentId, revisionId) {
 
     const path = that.baseDir + '/' + safeContentId + '.' + extension;
     log().trace({ contentId }, 'Downloading %s to %s', that.revision.filename, path);
-    RestAPI.Content.download(that.tenantRestContext, contentId, revisionId, path, err => {
-      if (err) {
-        log().error({ err, contentId }, 'Error trying to download the file');
-        fs.unlink(path, unlinkErr => {
-          if (unlinkErr) {
-            log().error({ err: unlinkErr, contentId }, 'Could not remove the downloaded file on download error');
+    RestAPI.Content.download(that.tenantRestContext, contentId, revisionId, path, (error) => {
+      if (error) {
+        log().error({ err: error, contentId }, 'Error trying to download the file');
+        fs.unlink(path, (unlinkError) => {
+          if (unlinkError) {
+            log().error({ err: unlinkError, contentId }, 'Could not remove the downloaded file on download error');
           }
 
-          callback(err);
+          callback(error);
         });
       } else {
         callback(null, path);
@@ -224,7 +224,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    *
    * @param  {String} path The path where the thumbnail image is located.
    */
-  that.setThumbnail = function(path) {
+  that.setThumbnail = function (path) {
     _thumbnailPath = path;
   };
 
@@ -234,7 +234,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {String} path The path where a preview image is located.
    * @param  {String} size The size of this file. One of 'small', 'medium', 'large', 'activity' or 'thumbnail'.
    */
-  that.addPreview = function(path, size) {
+  that.addPreview = function (path, size) {
     _previews.push({ path, size });
   };
 
@@ -244,14 +244,14 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {String}     name    The key that should be used on the piece of content. (ex: pageCount)
    * @param  {String}     value   The value. (ex: 7)
    */
-  that.addPreviewMetadata = function(name, value) {
+  that.addPreviewMetadata = function (name, value) {
     _previewMetadata[name] = value;
   };
 
   /**
    * @return {Object} An object that holds the extra preview metadata that should be stored. Any changes made to this object will be passed along the the `savePreviews` method.
    */
-  that.getPreviewMetadata = function() {
+  that.getPreviewMetadata = function () {
     return _previewMetadata;
   };
 
@@ -261,28 +261,28 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {String}     name    The key that should be used on the piece of content. (ex: displayName)
    * @param  {String}     value   The value
    */
-  that.addContentMetadata = function(name, value) {
+  that.addContentMetadata = function (name, value) {
     _contentMetadata[name] = value;
   };
 
   /**
    * @return {Object} An object that holds the extra content metadata that should be stored. Any changes made to this object will be passed along the the `savePreviews` method.
    */
-  that.getContentMetadata = function() {
+  that.getContentMetadata = function () {
     return _contentMetadata;
   };
 
   /**
    * @return {Object[]}  An array of preview objects. Each object has a 'path' key that specifies where the preview is stored and a 'size' key that specifies which type of preview this is.
    */
-  that.getPreviews = function() {
+  that.getPreviews = function () {
     return _previews;
   };
 
   /**
    * @return {String}    The path to the thumbnail
    */
-  that.getThumbnail = function() {
+  that.getThumbnail = function () {
     return _thumbnailPath;
   };
 
@@ -294,13 +294,13 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {Function}    callback        Standard callback function
    * @param  {Object}      callback.err    An error that occurred, if any
    */
-  that.savePreviews = function(callback) {
+  that.savePreviews = function (callback) {
     log().trace({ contentId }, 'Saving previews');
     const files = {};
     const sizes = {};
     // The thumbnail (if any)
     if (_thumbnailPath) {
-      files['thumbnail.png'] = function() {
+      files['thumbnail.png'] = function () {
         return fs.createReadStream(_thumbnailPath);
       };
 
@@ -308,12 +308,12 @@ const PreviewContext = function(config, contentId, revisionId) {
     }
 
     // The preview images.
-    _previews.forEach(preview => {
+    _previews.forEach((preview) => {
       let filename;
       // Local paths start with a '/'
       if (preview.path.match(/^\//)) {
         filename = path.basename(preview.path);
-        files[filename] = function() {
+        files[filename] = function () {
           return fs.createReadStream(preview.path);
         };
       } else {
@@ -344,7 +344,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    * @param  {String}     status      The status that should be set. One of ContentConstants.previews
    * @param  {Function}   callback    Standard callback function
    */
-  that.setStatus = function(status, callback) {
+  that.setStatus = function (status, callback) {
     log().trace({ contentId }, 'Setting status to %s', status);
     _status = status;
     RestAPI.Content.setPreviewItems(that.tenantRestContext, contentId, revisionId, status, {}, {}, {}, {}, callback);
@@ -355,7 +355,7 @@ const PreviewContext = function(config, contentId, revisionId) {
    *
    * @return {String} The processing status of the piece of content
    */
-  that.getStatus = function() {
+  that.getStatus = function () {
     return _status;
   };
 

@@ -36,33 +36,35 @@ const { isUserId, unless } = validator;
  * @param  {Object}        callback.err        An error that occurred, if any
  * @param  {SearchResult}  callback.results    An object that represents the results of the query
  */
-export default function(ctx, opts, callback) {
+function searchFollowing(ctx, options, callback) {
   // Sanitize the search options
-  opts = SearchUtil.sanitizeSearchParams(opts);
+  options = SearchUtil.sanitizeSearchParams(options);
 
   try {
     unless(isUserId, {
       code: 400,
       msg: 'Must specificy an id of a user to search their following list'
-    })(opts.userId);
+    })(options.userId);
   } catch (error) {
     return callback(error);
   }
 
-  PrincipalsDAO.getPrincipal(opts.userId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(options.userId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
-    FollowingAuthz.canViewFollowing(ctx, user, err => {
-      if (err) {
-        return callback(err);
+    FollowingAuthz.canViewFollowing(ctx, user, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      return _search(ctx, opts, callback);
+      return _search(ctx, options, callback);
     });
   });
 }
+
+export default searchFollowing;
 
 /**
  * Perform the search that searches a user's list of followed users
@@ -74,19 +76,19 @@ export default function(ctx, opts, callback) {
  * @param  {SearchResult}  callback.results    An object that represents the results of the query
  * @api private
  */
-const _search = function(ctx, opts, callback) {
+const _search = function (ctx, options, callback) {
   // The query object for the Query DSL
-  const query = { bool: { should: [SearchUtil.createQueryStringQuery(opts.q)] } };
+  const query = { bool: { should: [SearchUtil.createQueryStringQuery(options.q)] } };
 
   // The filter object for the Query DSL
   const filter = SearchUtil.filterAnd(
     SearchUtil.filterResources(['user']),
     SearchUtil.createHasChildQuery(
       FollowingConstants.search.MAPPING_RESOURCE_FOLLOWERS,
-      SearchUtil.filterTerms('followers', [opts.userId])
+      SearchUtil.filterTerms('followers', [options.userId])
     )
   );
 
   // Wrap the query and filter into the top-level Query DSL "query" object and return it
-  return callback(null, SearchUtil.createQuery(query, filter, opts));
+  return callback(null, SearchUtil.createQuery(query, filter, options));
 };

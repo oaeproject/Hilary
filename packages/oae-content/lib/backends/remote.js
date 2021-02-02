@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import { ContentConstants } from '../constants';
-import { DownloadStrategy } from '../model';
-import * as BackendUtil from './util';
+import { ContentConstants } from '../constants.js';
+import { DownloadStrategy } from '../model.js';
+import * as BackendUtil from './util.js';
 
 /**
  * This backend isn't actually able to to store or retrieve anything.
@@ -30,28 +30,28 @@ import * as BackendUtil from './util';
 /**
  * @borrows Interface.store as Remote.store
  */
-const store = function(tenantAlias, file, options, callback) {
+const store = function (tenantAlias, file, options, callback) {
   callback({ code: 501, msg: 'Not implemented' });
 };
 
 /**
  * @borrows Interface.get as Remote.get
  */
-const get = function(tenantAlias, uri, callback) {
+const get = function (tenantAlias, uri, callback) {
   callback({ code: 501, msg: 'Not implemented' });
 };
 
 /**
  * @borrows Interface.remove as Remote.remove
  */
-const remove = function(tenantAlias, uri, callback) {
+const remove = function (tenantAlias, uri, callback) {
   callback({ code: 501, msg: 'Not implemented' });
 };
 
 /**
  * @borrows Interface.getDownloadStrategy as Remote.getDownloadStrategy
  */
-const getDownloadStrategy = function(tenantAlias, uri) {
+const getDownloadStrategy = function (tenantAlias, uri) {
   // The URI will look something like: remote:http://www.google.com. To get the target URL we simply strip out the
   // scheme portion of the URI
   return new DownloadStrategy(ContentConstants.backend.DOWNLOAD_STRATEGY_DIRECT, BackendUtil.splitUri(uri).location);

@@ -22,15 +22,15 @@ import * as OAE from 'oae-util/lib/oae';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import { telemetry } from 'oae-telemetry';
 
-import * as OAuthDAO from './internal/dao';
+import * as OAuthDAO from './internal/dao.js';
 
 const BearerStrategy = passportBearer.Strategy;
 const Telemetry = telemetry('oauth');
 
 // Used to check if the authorization header starts with "Bearer "
-const BEARER_REGEX = /^Bearer /i;
+const BEARER_REGEX = /^bearer /i;
 
-export default function() {
+function initOAuthAuth() {
   /*!
    * This strategy is used to authenticate users based on an access token (aka a bearer token).
    *
@@ -38,9 +38,9 @@ export default function() {
    */
   passport.use(
     new BearerStrategy((accessToken, callback) => {
-      OAuthDAO.AccessTokens.getAccessToken(accessToken, (err, token) => {
-        if (err) {
-          return callback(err);
+      OAuthDAO.AccessTokens.getAccessToken(accessToken, (error, token) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!token) {
@@ -48,13 +48,13 @@ export default function() {
         }
 
         // The access token exists in the DB, authenticate the request with the associated user ID
-        PrincipalsDAO.getPrincipal(token.userId, (err, user) => {
-          if (err && err.code === 404) {
+        PrincipalsDAO.getPrincipal(token.userId, (error, user) => {
+          if (error && error.code === 404) {
             return callback(null, false);
           }
 
-          if (err) {
-            return callback(err);
+          if (error) {
+            return callback(error);
           }
 
           // Although OAE doesn't use OAuth scopes, we need to pass one in the callback
@@ -69,24 +69,24 @@ export default function() {
    * that there is a token in the request. This needs to run before any other middleware that does something with
    * the user, as this middleware will put the `user` object on the request.
    */
-  OAE.tenantServer.use((req, res, next) => {
-    if (!_hasAccessToken(req)) {
+  OAE.tenantServer.use((request, response, next) => {
+    if (!_hasAccessToken(request)) {
       // Don't invoke the OAuth workflow if there is no OAuth access token
       return next();
     }
 
-    passport.authenticate(['bearer'], { session: false })(req, res, () => {
-      if (req.oaeAuthInfo && req.oaeAuthInfo.user) {
+    passport.authenticate(['bearer'], { session: false })(request, response, () => {
+      if (request.oaeAuthInfo && request.oaeAuthInfo.user) {
         Telemetry.incr('success');
 
         // We add the `oauth` strategyName in the authentication info
-        req.oaeAuthInfo.strategyId = AuthenticationUtil.getStrategyId(
-          req.oaeAuthInfo.user.tenant,
+        request.oaeAuthInfo.strategyId = AuthenticationUtil.getStrategyId(
+          request.oaeAuthInfo.user.tenant,
           AuthenticationConstants.providers.OAUTH
         );
 
         // If the user has authenticated via OAuth, we can skip the CSRF validation check
-        req._checkCSRF = false;
+        request._checkCSRF = false;
       } else {
         Telemetry.incr('fail');
       }
@@ -97,16 +97,20 @@ export default function() {
   });
 }
 
+export default initOAuthAuth;
+
 /**
  * Find an OAuth access token in the HTTP request.
  *
  * @param  {Request}    req     The HTTP request in which to look for the OAuth access token
  * @return {Boolean}            Whether or not the request contains an OAuth access token
  */
-const _hasAccessToken = function(req) {
+const _hasAccessToken = function (request) {
   return (
-    (req.query && req.query.access_token) ||
-    (req.body && req.body.access_token) ||
-    (req.headers && req.headers.authorization && BEARER_REGEX.test(req.headers.authorization))
+    (request.query && request.query.access_token) ||
+    (request.body && request.body.access_token) ||
+    (request.headers &&
+      request.headers.authorization &&
+      BEARER_REGEX.test(request.headers.authorization))
   );
 };

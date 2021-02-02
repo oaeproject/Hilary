@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { beforeEach, afterEach, after, before } from 'mocha';
+
 import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
 import nock from 'nock';
@@ -32,14 +34,15 @@ const { argv } = require('optimist')
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
 
-// Determine whether or not we should drop the keyspace before the test. In cases
-// where we want to set up the schema by another means (e.g., to test unit tests
-// over migrations), it is handy to use a schema that was pre-arranged for the
-// test
+/**
+ * Determine whether or not we should drop the keyspace before the test. In cases
+ * where we want to set up the schema by another means (e.g., to test unit tests
+ *  over migrations), it is handy to use a schema that was pre-arranged for the test
+ */
 const dropKeyspaceBeforeTest = process.env.OAE_TEST_DROP_KEYSPACE_BEFORE !== 'false';
 
 // First set up the keyspace and all of the column families required for all of the different OAE modules
-before(function(callback) {
+before(function (callback) {
   // Set an env var for running tests. This is being used in `redis.js`
   process.env.OAE_TESTS_RUNNING = 'true';
 
@@ -53,15 +56,15 @@ before(function(callback) {
   });
 });
 
-beforeEach(function(callback) {
+beforeEach(function (callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-  flush(err => {
-    if (err) return callback(err);
+  flush((error) => {
+    if (error) return callback(error);
     return callback();
   });
 });
 
-afterEach(function(callback) {
+afterEach(function (callback) {
   // Ensure we don't mess with the HTTP stack by accident
   nock.enableNetConnect();
 
@@ -72,9 +75,11 @@ afterEach(function(callback) {
   return callback();
 });
 
-// Executed once all of the tests for all of the different modules have finished running or
-// when one of the tests has caused an error. Drop the keyspace after all the tests are done
-after(callback => {
+/**
+ * Executed once all of the tests for all of the different modules have finished running or
+ * when one of the tests has caused an error. Drop the keyspace after all the tests are done
+ */
+after((callback) => {
   // Unset an env var for running tests once they are over
   process.env.OAE_TESTS_RUNNING = '';
   TestsUtil.cleanUpAfterTests(callback);

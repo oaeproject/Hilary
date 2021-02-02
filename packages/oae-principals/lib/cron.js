@@ -20,7 +20,7 @@ import { CronJob } from 'cron';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
-import * as PrincipalsDAO from './internal/dao';
+import * as PrincipalsDAO from './internal/dao.js';
 
 const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -33,7 +33,7 @@ const DEFAULT_TIMEZONE = 'Etc/UTC';
  * @param  {Function}    callback        Standard callback function
  * @api private
  */
-const programUserDeletionTask = function(globalContext, callback) {
+const programUserDeletionTask = function (globalContext, callback) {
   let timezone = PrincipalsConfig.getValue(globalContext.tenant().alias, 'timezone', 'timezone');
 
   if (!timezone) {
@@ -46,12 +46,12 @@ const programUserDeletionTask = function(globalContext, callback) {
    */
   const job = new CronJob(
     '00 00 00 * * 6', // '0 */2 * * * *',
-    function() {
+    function () {
       const actualDate = new Date();
 
       // Get list of pricipals which must be deleted
-      PrincipalsDAO.getExpiredUser(actualDate, function(err, principalsToDelete) {
-        if (err) return callback(err);
+      PrincipalsDAO.getExpiredUser(actualDate, function (error, principalsToDelete) {
+        if (error) return callback(error);
 
         if (_.isEmpty(principalsToDelete)) return;
 
@@ -59,26 +59,26 @@ const programUserDeletionTask = function(globalContext, callback) {
         eachSeries(
           principalsToDelete,
           (principal, done) => {
-            PrincipalsDAO.getPrincipal(principal.principalId, (err, principal) => {
-              if (err) {
+            PrincipalsDAO.getPrincipal(principal.principalId, (error, principal) => {
+              if (error) {
                 // If the principal does not exist anymore for some reason, skip the rest
-                errors.push(err);
+                errors.push(error);
                 return done();
               }
 
               const { alias } = principal.tenant;
-              UserDeletionUtil.eliminateUser(globalContext, principal, alias, err => {
-                if (err) {
+              UserDeletionUtil.eliminateUser(globalContext, principal, alias, (error_) => {
+                if (error_) {
                   // If there's been any error, save it and move on
-                  errors.push(err);
+                  errors.push(error_);
                 }
 
                 done();
               });
             });
           },
-          err => {
-            if (err || errors.length > 0) {
+          (error_) => {
+            if (error_ || errors.length > 0) {
               log().info({ errors }, 'Errors during user definitive elimination: ');
             }
 

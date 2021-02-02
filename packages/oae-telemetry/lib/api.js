@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
@@ -54,8 +54,8 @@ const emitter = TelemetryAPI;
  * @param  {Function} callback        Standard callback function
  */
 const init = (_telemetryConfig, callback) => {
-  Locking.init((err, _locker) => {
-    if (err) return callback(err);
+  Locking.init((error, _locker) => {
+    if (error) return callback(error);
 
     locker = _locker;
     lockerRedisClient = head(locker.servers);
@@ -83,8 +83,8 @@ const _initPublish = (telemetryConfig, callback) => {
      * rebooted it doesn't put off the reset for potentially another
      * full day
      */
-    _resetTelemetryCounts(err => {
-      if (err) return callback(err);
+    _resetTelemetryCounts((error) => {
+      if (error) return callback(error);
 
       // Begin the publish and reset intervals
       publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
@@ -122,7 +122,7 @@ const _resetTelemetry = (publishIntervalId, resetIntervalId) => {
  *
  * @param  {String} module The module.
  */
-const telemetry = function(module) {
+const telemetry = function (module) {
   return new Telemetry(module);
 };
 
@@ -132,7 +132,7 @@ const telemetry = function(module) {
  * @param  {String} module A module to namespace counts in.
  * @api private
  */
-const Telemetry = function(module) {
+const Telemetry = function (module) {
   // Holds the exported methods of the object
   const that = {};
 
@@ -142,7 +142,7 @@ const Telemetry = function(module) {
    * @param  {String}     name            The name of the item to increment
    * @param  {Number}     [count]         If specified, the metric will be incremented this many times. Default: 1
    */
-  that.incr = function(name, count) {
+  that.incr = function (name, count) {
     if (!_enabled()) {
       // Don't do anything if we're not enabled
       return;
@@ -159,7 +159,7 @@ const Telemetry = function(module) {
    * @param  {String}  name    The name to append a value on.
    * @param  {Number}  value   The value that should be added.
    */
-  that.append = function(name, value) {
+  that.append = function (name, value) {
     if (!_enabled()) {
       // Don't do anything if we're not enabled
       return;
@@ -176,7 +176,7 @@ const Telemetry = function(module) {
    * @param  {String}  name    The name to append the timing value on
    * @param  {Number}  from    The millis from which the duration should be based.
    */
-  that.appendDuration = function(name, from) {
+  that.appendDuration = function (name, from) {
     if (!_enabled()) {
       return;
     }
@@ -203,22 +203,22 @@ const serverTelemetry = telemetry('server');
  * @param  {Request}    req     The request.
  * @param  {Response}   res     The response
  */
-const request = function(req, res) {
+const request = function (request_, response) {
   if (!_enabled()) {
     // Don't do anything if we're not enabled
     return;
   }
 
   // Count all requests per method type
-  serverTelemetry.incr(util.format('%s.count', req.method));
+  serverTelemetry.incr(format('%s.count', request_.method));
 
   // Do some time measuring
   const start = Date.now();
-  res.on('finish', () => {
-    if (req.telemetryUrl) {
+  response.on('finish', () => {
+    if (request_.telemetryUrl) {
       // Build the per-path telemetry keys for count and time
-      const requestCountName = util.format('%s.%s.count', req.method, req.telemetryUrl);
-      const requestTimeName = util.format('%s.%s.time', req.method, req.telemetryUrl);
+      const requestCountName = format('%s.%s.count', request_.method, request_.telemetryUrl);
+      const requestTimeName = format('%s.%s.time', request_.method, request_.telemetryUrl);
 
       // Record the count and response time for the request
       serverTelemetry.incr(requestCountName);
@@ -233,23 +233,23 @@ const request = function(req, res) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const reset = function(callback) {
+const reset = function (callback) {
   _resetGlobalCounts(() => {
     _resetLocalHistograms();
     _resetLocalCounts();
 
     // Also reset the locks
-    lockerRedisClient.del(_getTelemetryCountResetLock(), resetErr => {
-      if (resetErr) {
-        log().error({ err: resetErr }, 'Error trying to reset the count reset lock');
+    lockerRedisClient.del(_getTelemetryCountResetLock(), (resetError) => {
+      if (resetError) {
+        log().error({ err: resetError }, 'Error trying to reset the count reset lock');
       }
 
-      lockerRedisClient.del(_getTelemetryCountPublishLock(), publishErr => {
-        if (publishErr) {
-          log().error({ err: publishErr }, 'Error trying to reset the telemetry publish lock');
+      lockerRedisClient.del(_getTelemetryCountPublishLock(), (publishError) => {
+        if (publishError) {
+          log().error({ err: publishError }, 'Error trying to reset the telemetry publish lock');
         }
 
-        return callback(resetErr || publishErr);
+        return callback(resetError || publishError);
       });
     });
   });
@@ -262,11 +262,11 @@ const reset = function(callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Object}     callback.data   The current telemetry data
  */
-const getTelemetryData = function(callback) {
+const getTelemetryData = function (callback) {
   _pushCountsToRedis(() => {
-    _getCounts((err, countsHash) => {
-      if (err) {
-        return callback(err);
+    _getCounts((error, countsHash) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _mergeHistograms(countsHash));
@@ -279,11 +279,11 @@ const getTelemetryData = function(callback) {
  *
  * @api private
  */
-const _publishTelemetryData = function() {
+const _publishTelemetryData = function () {
   // First push all our locally stored counts to redis
   _pushCountsToRedis(() => {
     // Only get the counts if we successfully acquire a lock for them
-    _lockAndGetCounts(countsHash => {
+    _lockAndGetCounts((countsHash) => {
       const data = _mergeHistograms(countsHash);
       publisher.publish(data);
 
@@ -300,21 +300,21 @@ const _publishTelemetryData = function() {
  * @param  {Function}    callback    Standard callback function
  * @api private
  */
-const _resetTelemetryCounts = function(callback) {
-  callback = callback || function() {};
-  Locking.acquire(_getTelemetryCountResetLock(), telemetryConfig.resetInterval, (err /* , token */) => {
-    if (err) {
+const _resetTelemetryCounts = function (callback) {
+  callback = callback || function () {};
+  Locking.acquire(_getTelemetryCountResetLock(), telemetryConfig.resetInterval, (error /* , token */) => {
+    if (error) {
       // We didn't acquire the lock, so don't bother resetting
-      log().error({ err }, 'Error acquiring lock to reset telemetry data');
+      log().error({ err: error }, 'Error acquiring lock to reset telemetry data');
       return callback();
     }
 
     // Reset the local counts as well. This helps defeat race conditions in unit tests and doesn't really
     // cause any more "damage" than the global reset does on its own any way
     _resetLocalCounts();
-    _resetGlobalCounts(err => {
-      if (err) {
-        log().error({ err }, 'Error resetting the telemetry data');
+    _resetGlobalCounts((error_) => {
+      if (error_) {
+        log().error({ err: error_ }, 'Error resetting the telemetry data');
       } else {
         TelemetryAPI.emit('reset');
       }
@@ -330,7 +330,7 @@ const _resetTelemetryCounts = function(callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _pushCountsToRedis = function(callback) {
+const _pushCountsToRedis = function (callback) {
   if (isEmpty(stats.counts)) {
     return callback();
   }
@@ -348,9 +348,9 @@ const _pushCountsToRedis = function(callback) {
   // Reset the counts in this process tick to avoid losing counts
   _resetLocalCounts();
 
-  multi.exec(err => {
-    if (err) {
-      log().error({ err }, 'Error pushing local counts to redis');
+  multi.exec((error) => {
+    if (error) {
+      log().error({ err: error }, 'Error pushing local counts to redis');
     }
 
     return callback();
@@ -366,19 +366,19 @@ const _pushCountsToRedis = function(callback) {
  * @param  {Object}     [callback.counts]   The counts data, a hash of key -> value in the raw manner that they were stored in redis. If not specified, it means either we failed to get the counts or it was not time to do so. If there was an error, it will be logged internally.
  * @api private
  */
-const _lockAndGetCounts = function(callback) {
+const _lockAndGetCounts = function (callback) {
   // Try and fetch the lock for the duration of the publishing interval
-  Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (err /* , token */) => {
-    if (err) {
+  Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (error /* , token */) => {
+    if (error) {
       // Migration from redback to redlock:
-      log().error({ err }, 'Error acquiring lock to publish telemetry counts');
+      log().error({ err: error }, 'Error acquiring lock to publish telemetry counts');
       // We didn't acquire the lock, so don't bother with the counts
       return callback();
     }
 
     // Fetch the full counts hash in redis
-    _getCounts((err, countsHash) => {
-      if (err) {
+    _getCounts((error, countsHash) => {
+      if (error) {
         return callback();
       }
 
@@ -397,16 +397,16 @@ const _lockAndGetCounts = function(callback) {
  * @param  {Object}     callback.counts The raw counts, keyed by the provided count key and the value is the current value of the counts
  * @api private
  */
-const _getCounts = function(callback) {
-  Redis.getClient().hgetall(_getTelemetryCountHashKey(), (err, countsHash) => {
-    if (err) {
-      log().error({ err }, 'Error querying telemetry counts from redis');
-      return callback(err);
+const _getCounts = function (callback) {
+  Redis.getClient().hgetall(_getTelemetryCountHashKey(), (error, countsHash) => {
+    if (error) {
+      log().error({ err: error }, 'Error querying telemetry counts from redis');
+      return callback(error);
     }
 
     // Redis will return each value as a string, so we need to cast them to integers
     _.each(countsHash, (value, key) => {
-      countsHash[key] = parseInt(value, 10);
+      countsHash[key] = Number.parseInt(value, 10);
     });
 
     return callback(null, countsHash);
@@ -420,7 +420,7 @@ const _getCounts = function(callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _resetGlobalCounts = function(callback) {
+const _resetGlobalCounts = function (callback) {
   Redis.getClient().del(_getTelemetryCountHashKey(), callback);
 };
 
@@ -431,7 +431,7 @@ const _resetGlobalCounts = function(callback) {
  * @return {Object}              The counts data merged with the telemetry data
  * @api private
  */
-const _mergeHistograms = function(countsHash) {
+const _mergeHistograms = function (countsHash) {
   const mergedData = {};
 
   // Collect the count metrics if necessary
@@ -462,7 +462,7 @@ const _mergeHistograms = function(countsHash) {
  * @param  {Object}     [telemetryConfig]   The object containing the configuration properties. See the `config.telemetry` object in the base `./config.js` for more information
  * @api private
  */
-const _applyTelemetryConfig = function(_telemetryConfig) {
+const _applyTelemetryConfig = function (_telemetryConfig) {
   telemetryConfig = _.extend({}, _telemetryConfig);
   telemetryConfig.enabled = telemetryConfig.enabled === true;
   telemetryConfig.publishInterval = OaeUtil.getNumberParam(telemetryConfig.publishInterval, 30, 1);
@@ -475,7 +475,7 @@ const _applyTelemetryConfig = function(_telemetryConfig) {
  *
  * @api private
  */
-const _resetLocalHistograms = function() {
+const _resetLocalHistograms = function () {
   stats = stats || {};
   stats.histograms = {};
 };
@@ -485,7 +485,7 @@ const _resetLocalHistograms = function() {
  *
  * @api private
  */
-const _resetLocalCounts = function() {
+const _resetLocalCounts = function () {
   stats = stats || {};
   stats.counts = {};
 };
@@ -497,7 +497,7 @@ const _resetLocalCounts = function() {
  * @return {Number}        How many milliseconds have elapsed since the `from` time until now.
  * @api private
  */
-const _duration = function(from) {
+const _duration = function (from) {
   return Date.now() - from;
 };
 
@@ -505,7 +505,7 @@ const _duration = function(from) {
  * @return {Boolean}    Whether or not the the TelemetryAPI is initialized and has been enabled
  * @api private
  */
-const _enabled = function() {
+const _enabled = function () {
   return telemetryConfig && telemetryConfig.enabled;
 };
 
@@ -513,7 +513,7 @@ const _enabled = function() {
  * @return {String}     The key for the lock that unlocks access to publish the redis telemetry data
  * @api private
  */
-const _getTelemetryCountPublishLock = function() {
+const _getTelemetryCountPublishLock = function () {
   return 'oae-telemetry:counts:publishLock';
 };
 
@@ -521,7 +521,7 @@ const _getTelemetryCountPublishLock = function() {
  * @return {String}     The key for the lock that unlocks access to reset the redis telemetry data
  * @api private
  */
-const _getTelemetryCountResetLock = function() {
+const _getTelemetryCountResetLock = function () {
   return 'oae-telemetry:counts:resetLock';
 };
 
@@ -529,7 +529,7 @@ const _getTelemetryCountResetLock = function() {
  * @return {String}     The key for the redis hash that holds all of the telemetry count information
  * @api private
  */
-const _getTelemetryCountHashKey = function() {
+const _getTelemetryCountHashKey = function () {
   return 'oae-telemetry:counts:data';
 };
 
@@ -537,15 +537,15 @@ const _getTelemetryCountHashKey = function() {
  * @return {String}     The hash key for metric associated to this module and name.
  * @api private
  */
-const _getTelemetryCountKey = function(module, name) {
-  return util.format('%s:%s', module, name);
+const _getTelemetryCountKey = function (module, name) {
+  return format('%s:%s', module, name);
 };
 
 /**
  * @return {Object}     The object from which a telemetry count key was generated using #_getTelemetryCountKey(module, name)
  * @api private
  */
-const _getTelemetryCountKeyParts = function(telemetryCountKey) {
+const _getTelemetryCountKeyParts = function (telemetryCountKey) {
   const split = telemetryCountKey.split(':');
   return {
     module: split.shift(),

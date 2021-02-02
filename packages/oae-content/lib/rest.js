@@ -27,8 +27,8 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
 import * as OAE from 'oae-util/lib/oae';
 import * as OaeUtil from 'oae-util/lib/util';
 
-import * as ContentAPI from './api';
-import { ContentConstants } from './constants';
+import * as ContentAPI from './api.js';
+import { ContentConstants } from './constants.js';
 
 /**
  * Verify the signature information provided by a signed download request and
@@ -38,13 +38,13 @@ import { ContentConstants } from './constants';
  * @param  {Response}    res    The Express Response object
  * @api private
  */
-const _handleSignedDownload = function(req, res) {
-  ContentAPI.verifySignedDownloadQueryString(req.ctx, req.query, (err, downloadInfo) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _handleSignedDownload = function (request, response) {
+  ContentAPI.verifySignedDownloadQueryString(request.ctx, request.query, (error, downloadInfo) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return _handleDownload(res, downloadInfo, true);
+    return _handleDownload(response, downloadInfo, true);
   });
 };
 
@@ -165,53 +165,53 @@ const _handleSignedDownload = function(req, res) {
  * @HttpResponse                    400                 The additional members should be specified as an object
  * @HttpResponse                    401                 You have to be logged in to be able to create a content item
  */
-OAE.tenantRouter.on('post', '/api/content/create', (req, res) => {
+OAE.tenantRouter.on('post', '/api/content/create', (request, response) => {
   // Ensure proper arrays for the multi-value parameters
-  req.body.managers = OaeUtil.toArray(req.body.managers);
-  req.body.editors = OaeUtil.toArray(req.body.editors);
-  req.body.viewers = OaeUtil.toArray(req.body.viewers);
-  req.body.folders = OaeUtil.toArray(req.body.folders);
+  request.body.managers = OaeUtil.toArray(request.body.managers);
+  request.body.editors = OaeUtil.toArray(request.body.editors);
+  request.body.viewers = OaeUtil.toArray(request.body.viewers);
+  request.body.folders = OaeUtil.toArray(request.body.folders);
 
   // Construct a hash for additional members that maps each user to their role
   const additionalMembers = {};
-  _.each(req.body.managers, userId => {
+  _.each(request.body.managers, (userId) => {
     additionalMembers[userId] = AuthzConstants.role.MANAGER;
   });
-  _.each(req.body.editors, userId => {
+  _.each(request.body.editors, (userId) => {
     additionalMembers[userId] = AuthzConstants.role.EDITOR;
   });
-  _.each(req.body.viewers, userId => {
+  _.each(request.body.viewers, (userId) => {
     additionalMembers[userId] = AuthzConstants.role.VIEWER;
   });
 
   let uploadedFile = null;
-  if (req.files && req.files.file) {
-    uploadedFile = req.files.file;
+  if (request.files && request.files.file) {
+    uploadedFile = request.files.file;
   }
 
   _createContent(
-    req.ctx,
-    req.body.resourceSubType,
-    req.body.displayName,
-    req.body.description,
-    req.body.visibility,
-    req.body.link,
+    request.ctx,
+    request.body.resourceSubType,
+    request.body.displayName,
+    request.body.description,
+    request.body.visibility,
+    request.body.link,
     uploadedFile,
     additionalMembers,
-    req.body.folders,
-    (err, contentObj) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.body.folders,
+    (error, contentObject) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
       // Set the response type to text/plain for file uploads, as the UI uses an iFrame upload mechanism
       // to support IE9 file uploads. If the response type is not set to text/plain, IE9 will try to
       // download the response
-      if (req.files && req.files.file) {
-        res.set('Content-Type', 'text/plain');
+      if (request.files && request.files.file) {
+        response.set('Content-Type', 'text/plain');
       }
 
-      return res.status(201).send(contentObj);
+      return response.status(201).send(contentObject);
     }
   );
 });
@@ -233,7 +233,7 @@ OAE.tenantRouter.on('post', '/api/content/create', (req, res) => {
  * @param  {Content}        callback.content        The created content object
  * @api private
  */
-const _createContent = function(
+const _createContent = function (
   ctx,
   resourceSubType,
   displayName,
@@ -313,13 +313,13 @@ const _createContent = function(
  * @HttpResponse                        401                 You are not allowed to manage this piece of content
  * @HttpResponse                        401                 You have to be logged in to be able to delete a content item'
  */
-OAE.tenantRouter.on('delete', '/api/content/:contentId', (req, res) => {
-  ContentAPI.deleteContent(req.ctx, req.params.contentId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/content/:contentId', (request, response) => {
+  ContentAPI.deleteContent(request.ctx, request.params.contentId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -336,13 +336,13 @@ OAE.tenantRouter.on('delete', '/api/content/:contentId', (req, res) => {
  * @HttpResponse                        200                 Content available
  * @HttpResponse                        400                 A content id must be provided
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId', (req, res) => {
-  ContentAPI.getFullContentProfile(req.ctx, req.params.contentId, (err, contentProfile) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/content/:contentId', (request, response) => {
+  ContentAPI.getFullContentProfile(request.ctx, request.params.contentId, (error, contentProfile) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(contentProfile);
+    response.status(200).send(contentProfile);
   });
 });
 
@@ -373,13 +373,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId', (req, res) => {
  * @HttpResponse                        401                 You are not allowed to manage this piece of content
  * @HttpResponse                        401                 You have to be logged in to be able to update a content item
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId', (req, res) => {
-  ContentAPI.updateContentMetadata(req.ctx, req.params.contentId, req.body, (err, newContentObj) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/content/:contentId', (request, response) => {
+  ContentAPI.updateContentMetadata(request.ctx, request.params.contentId, request.body, (error, newContentObject) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(newContentObj);
+    response.status(200).send(newContentObject);
   });
 });
 
@@ -399,13 +399,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId', (req, res) => {
  * @HttpResponse                        400                 Only file content items can be downloaded
  * @HttpResponse                        404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/download', (req, res) => {
-  ContentAPI.getRevisionDownloadInfo(req.ctx, req.params.contentId, null, (err, downloadInfo) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/content/:contentId/download', (request, response) => {
+  ContentAPI.getRevisionDownloadInfo(request.ctx, request.params.contentId, null, (error, downloadInfo) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return _handleDownload(res, downloadInfo, false);
+    return _handleDownload(response, downloadInfo, false);
   });
 });
 
@@ -429,14 +429,19 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/download', (req, res) => {
  * @HttpResponse                        400                 The revision id provided is not associated with the specified content item
  * @HttpResponse                        404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/download/:revisionId', (req, res) => {
-  ContentAPI.getRevisionDownloadInfo(req.ctx, req.params.contentId, req.params.revisionId, (err, downloadInfo) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/content/:contentId/download/:revisionId', (request, response) => {
+  ContentAPI.getRevisionDownloadInfo(
+    request.ctx,
+    request.params.contentId,
+    request.params.revisionId,
+    (error, downloadInfo) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    return _handleDownload(res, downloadInfo, true);
-  });
+      return _handleDownload(response, downloadInfo, true);
+    }
+  );
 });
 
 /**
@@ -457,21 +462,26 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/download/:revisionId', (req,
  * @HttpResponse                    401                     You have to be logged in to be able to update a content item
  * @HttpResponse                    404                     Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/newversion', (req, res) => {
-  if (!req.files || !req.files.file) {
-    return res.status(400).send('Missing file parameter');
+OAE.tenantRouter.on('post', '/api/content/:contentId/newversion', (request, response) => {
+  if (!request.files || !request.files.file) {
+    return response.status(400).send('Missing file parameter');
   }
 
-  ContentAPI.updateFileBody(req.ctx, req.params.contentId, req.files.file, (err, updatedContentObj) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+  ContentAPI.updateFileBody(
+    request.ctx,
+    request.params.contentId,
+    request.files.file,
+    (error, updatedContentObject) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
-    // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
-    res.set('Content-Type', 'text/plain');
-    res.status(200).send(updatedContentObj);
-  });
+      // Set the response type to text/plain, as the UI uses an iFrame upload mechanism to support IE9
+      // file uploads. If the response type is not set to text/plain, IE9 will try to download the response.
+      response.set('Content-Type', 'text/plain');
+      response.status(200).send(updatedContentObject);
+    }
+  );
 });
 
 /**
@@ -489,13 +499,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/newversion', (req, res) => 
  * @HttpResponse                    401                     You need to be a manager of this piece of content to be able to join it
  * @HttpResponse                    404                     Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/join', (req, res) => {
-  ContentAPI.joinCollabDoc(req.ctx, req.params.contentId, (err, data) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/content/:contentId/join', (request, response) => {
+  ContentAPI.joinCollabDoc(request.ctx, request.params.contentId, (error, data) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(data);
+    response.status(200).send(data);
   });
 });
 
@@ -522,18 +532,18 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/join', (req, res) => {
  * @HttpResponse                    401                     Only administrators can attach preview items to a content item
  * @HttpResponse                    404                     Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previews', (req, res) => {
+OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previews', (request, response) => {
   let contentMetadata = null;
   let previewMetadata = null;
   let sizes = null;
   let files = null;
   try {
-    contentMetadata = JSON.parse(req.body.contentMetadata);
-    previewMetadata = JSON.parse(req.body.previewMetadata);
-    sizes = JSON.parse(req.body.sizes);
+    contentMetadata = JSON.parse(request.body.contentMetadata);
+    previewMetadata = JSON.parse(request.body.previewMetadata);
+    sizes = JSON.parse(request.body.sizes);
 
-    if (req.body.links) {
-      files = JSON.parse(req.body.links);
+    if (request.body.links) {
+      files = JSON.parse(request.body.links);
     }
   } catch {
     let invalidField = null;
@@ -547,29 +557,29 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previ
       invalidField = 'links';
     }
 
-    return res.status(400).send('Malformed metadata object. Expected proper JSON for: ' + invalidField);
+    return response.status(400).send('Malformed metadata object. Expected proper JSON for: ' + invalidField);
   }
 
-  if (req.files) {
+  if (request.files) {
     files = files || {};
-    _.extend(files, req.files);
+    _.extend(files, request.files);
   }
 
   ContentAPI.setPreviewItems(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    req.body.status,
+    request.ctx,
+    request.params.contentId,
+    request.params.revisionId,
+    request.body.status,
     files,
     sizes,
     contentMetadata,
     previewMetadata,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(201).end();
+      response.status(201).end();
     }
   );
 });
@@ -590,13 +600,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previ
  * @HttpResponse                    401                     You don't have access to this piece of content
  * @HttpResponse                    404                     Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews', (req, res) => {
-  ContentAPI.getPreviewItems(req.ctx, req.params.contentId, req.params.revisionId, (err, previews) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews', (request, response) => {
+  ContentAPI.getPreviewItems(request.ctx, request.params.contentId, request.params.revisionId, (error, previews) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(previews);
+    response.status(200).send(previews);
   });
 });
 
@@ -625,24 +635,24 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previe
  * @HttpResponse                        401                 Invalid content signature data for accessing previews
  * @HttpResponse                        404                 Preview not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews/:item', (req, res) => {
+OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews/:item', (request, response) => {
   const signature = {
-    signature: req.query.signature,
-    expires: req.query.expires,
-    lastModified: req.query.lastmodified
+    signature: request.query.signature,
+    expires: request.query.expires,
+    lastModified: request.query.lastmodified
   };
   ContentAPI.getSignedPreviewDownloadInfo(
-    req.ctx,
-    req.params.contentId,
-    req.params.revisionId,
-    req.params.item,
+    request.ctx,
+    request.params.contentId,
+    request.params.revisionId,
+    request.params.item,
     signature,
-    (err, downloadInfo) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, downloadInfo) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return _handleDownload(res, downloadInfo, true);
+      return _handleDownload(response, downloadInfo, true);
     }
   );
 });
@@ -664,15 +674,21 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previe
  * @HttpResponse                    400                 A valid limit should be passed in
  * @HttpResponse                    404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/revisions', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  ContentAPI.getRevisions(req.ctx, req.params.contentId, req.query.start, limit, (err, revisions, nextToken) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/content/:contentId/revisions', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  ContentAPI.getRevisions(
+    request.ctx,
+    request.params.contentId,
+    request.query.start,
+    limit,
+    (error, revisions, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send({ results: revisions, nextToken });
-  });
+      response.status(200).send({ results: revisions, nextToken });
+    }
+  );
 });
 
 /**
@@ -691,13 +707,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions', (req, res) => {
  * @HttpResponse                    400                 A valid revisionId must be provided
  * @HttpResponse                    404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (req, res) => {
-  ContentAPI.getRevision(req.ctx, req.params.contentId, req.params.revisionId, (err, revision) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (request, response) => {
+  ContentAPI.getRevision(request.ctx, request.params.contentId, request.params.revisionId, (error, revision) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(revision);
+    response.status(200).send(revision);
   });
 });
 
@@ -719,13 +735,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (req
  * @HttpResponse                    401                 Manager rights are required to restore a revision
  * @HttpResponse                    404                 Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/restore', (req, res) => {
-  ContentAPI.restoreRevision(req.ctx, req.params.contentId, req.params.revisionId, (err, newRevision) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/restore', (request, response) => {
+  ContentAPI.restoreRevision(request.ctx, request.params.contentId, request.params.revisionId, (error, newRevision) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(newRevision);
+    response.status(200).send(newRevision);
   });
 });
 
@@ -747,19 +763,19 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/resto
  * @HttpResponse                    401                 You are not authorized to access the members of this content item
  * @HttpResponse                    404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/members', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
+OAE.tenantRouter.on('get', '/api/content/:contentId/members', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
   ContentAPI.getContentMembersLibrary(
-    req.ctx,
-    req.params.contentId,
-    req.query.start,
+    request.ctx,
+    request.params.contentId,
+    request.query.start,
     limit,
-    (err, members, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, members, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: members, nextToken });
+      response.status(200).send({ results: members, nextToken });
     }
   );
 });
@@ -785,19 +801,19 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/members', (req, res) => {
  * @HttpResponse                        401                 You are not allowed to manage this piece of content
  * @HttpResponse                        404                 Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/members', (req, res) => {
+OAE.tenantRouter.on('post', '/api/content/:contentId/members', (request, response) => {
   // Parse the incoming false values
-  const requestKeys = _.keys(req.body);
+  const requestKeys = _.keys(request.body);
   for (const element of requestKeys) {
-    req.body[element] = OaeUtil.castToBoolean(req.body[element]);
+    request.body[element] = OaeUtil.castToBoolean(request.body[element]);
   }
 
-  ContentAPI.setContentPermissions(req.ctx, req.params.contentId, req.body, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  ContentAPI.setContentPermissions(request.ctx, request.params.contentId, request.body, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -816,13 +832,13 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/members', (req, res) => {
  * @HttpResponse                        401                 You are not allowed to get invitations for this content item
  * @HttpResponse                        404                 Content not available
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/invitations', (req, res) => {
-  ContentAPI.getContentInvitations(req.ctx, req.params.contentId, (err, invitations) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('get', '/api/content/:contentId/invitations', (request, response) => {
+  ContentAPI.getContentInvitations(request.ctx, request.params.contentId, (error, invitations) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send({ results: invitations });
+    return response.status(200).send({ results: invitations });
   });
 });
 
@@ -844,13 +860,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/invitations', (req, res) => 
  * @HttpResponse                        404                 Content not available
  * @HttpResponse                        404                 No invitation for the specified email exists for the content item
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/invitations/:email/resend', (req, res) => {
-  ContentAPI.resendContentInvitation(req.ctx, req.params.contentId, req.params.email, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('post', '/api/content/:contentId/invitations/:email/resend', (request, response) => {
+  ContentAPI.resendContentInvitation(request.ctx, request.params.contentId, request.params.email, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -877,15 +893,15 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/invitations/:email/resend',
  * @HttpResponse                401                 You have to be logged in to be able to share content
  * @HttpResponse                404                 Content not available
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/share', (req, res) => {
+OAE.tenantRouter.on('post', '/api/content/:contentId/share', (request, response) => {
   // Make sure viewers is an array
-  req.body.viewers = OaeUtil.toArray(req.body.viewers);
-  ContentAPI.shareContent(req.ctx, req.params.contentId, req.body.viewers, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  request.body.viewers = OaeUtil.toArray(request.body.viewers);
+  ContentAPI.shareContent(request.ctx, request.params.contentId, request.body.viewers, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -918,14 +934,20 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/share', (req, res) => {
  * @HttpResponse                404                 Content not available
  * @HttpResponse                500                 Failed to create a new message
  */
-OAE.tenantRouter.on('post', '/api/content/:contentId/messages', (req, res) => {
-  ContentAPI.createComment(req.ctx, req.params.contentId, req.body.body, req.body.replyTo, (err, message) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('post', '/api/content/:contentId/messages', (request, response) => {
+  ContentAPI.createComment(
+    request.ctx,
+    request.params.contentId,
+    request.body.body,
+    request.body.replyTo,
+    (error, message) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(201).send(message);
-  });
+      response.status(201).send(message);
+    }
+  );
 });
 
 /**
@@ -948,15 +970,21 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/messages', (req, res) => {
  * @HttpResponse                    400                 A valid limit should be passed in
  * @HttpResponse                    400                 Invalid content resource id provided
  */
-OAE.tenantRouter.on('get', '/api/content/:contentId/messages', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 10, 1, 25);
-  ContentAPI.getComments(req.ctx, req.params.contentId, req.query.start, limit, (err, messages, nextToken) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
-    }
+OAE.tenantRouter.on('get', '/api/content/:contentId/messages', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 10, 1, 25);
+  ContentAPI.getComments(
+    request.ctx,
+    request.params.contentId,
+    request.query.start,
+    limit,
+    (error, messages, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    res.status(200).send({ results: messages, nextToken });
-  });
+      response.status(200).send({ results: messages, nextToken });
+    }
+  );
 });
 
 /**
@@ -987,13 +1015,13 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/messages', (req, res) => {
  * @HttpResponse                        404                 The specified comment does not exist
  * @HttpResponse                        404                 The specified message did not exist
  */
-OAE.tenantRouter.on('delete', '/api/content/:contentId/messages/:created', (req, res) => {
-  ContentAPI.deleteComment(req.ctx, req.params.contentId, req.params.created, (err, deleted) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/content/:contentId/messages/:created', (request, response) => {
+  ContentAPI.deleteComment(request.ctx, request.params.contentId, request.params.created, (error, deleted) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(deleted);
+    response.status(200).send(deleted);
   });
 });
 
@@ -1014,19 +1042,19 @@ OAE.tenantRouter.on('delete', '/api/content/:contentId/messages/:created', (req,
  * @HttpResponse                    400                 A valid limit should be passed in
  * @HttpResponse                    401                 You do not have access to this library
  */
-OAE.tenantRouter.on('get', '/api/content/library/:principalId', (req, res) => {
-  const limit = OaeUtil.getNumberParam(req.query.limit, 12, 1, 25);
+OAE.tenantRouter.on('get', '/api/content/library/:principalId', (request, response) => {
+  const limit = OaeUtil.getNumberParam(request.query.limit, 12, 1, 25);
   ContentAPI.getContentLibraryItems(
-    req.ctx,
-    req.params.principalId,
-    req.query.start,
+    request.ctx,
+    request.params.principalId,
+    request.query.start,
     limit,
-    (err, items, nextToken) => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    (error, items, nextToken) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      res.status(200).send({ results: items, nextToken });
+      response.status(200).send({ results: items, nextToken });
     }
   );
 });
@@ -1054,13 +1082,13 @@ OAE.tenantRouter.on('get', '/api/content/library/:principalId', (req, res) => {
  * @HttpResponse                    401                     You are not authorized to delete a piece of content from this library
  * @HttpResponse                    401                     You must be authenticated to remove a piece of content from a library
  */
-OAE.tenantRouter.on('delete', '/api/content/library/:principalId/:contentId', (req, res) => {
-  ContentAPI.removeContentFromLibrary(req.ctx, req.params.principalId, req.params.contentId, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.tenantRouter.on('delete', '/api/content/library/:principalId/:contentId', (request, response) => {
+  ContentAPI.removeContentFromLibrary(request.ctx, request.params.principalId, request.params.contentId, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).end();
+    response.status(200).end();
   });
 });
 
@@ -1095,45 +1123,48 @@ OAE.tenantRouter.on('get', '/api/download/signed', _handleSignedDownload);
  * @param  {Boolean}            [expiresMax]            Whether a far future expires response header should be set
  * @api private
  */
-const _handleDownload = function(res, downloadInfo, expiresMax) {
+const _handleDownload = function (response, downloadInfo, expiresMax) {
   const downloadStrategy = downloadInfo.strategy;
 
   // A 204 suggest that the LB (nginx, apache, lighthttpd, ..) will be handling the download via the x-sendfile mechanism
   if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_INTERNAL) {
     // Nginx internal download
-    res.setHeader('X-Accel-Redirect', downloadStrategy.target);
+    response.setHeader('X-Accel-Redirect', downloadStrategy.target);
 
     // Apache internal download
-    res.setHeader('X-Sendfile', downloadStrategy.target);
+    response.setHeader('X-Sendfile', downloadStrategy.target);
 
     // Lighthttpd internal download
-    res.setHeader('X-LIGHTTPD-send-file', downloadStrategy.target);
+    response.setHeader('X-LIGHTTPD-send-file', downloadStrategy.target);
 
     if (expiresMax) {
       // Add the cache headers manually as some webservers are not
       // able to deal with setting cache headers and internal redirects
       // @see https://github.com/oaeproject/Hilary/issues/995
-      res.setHeader('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT');
-      res.setHeader('Cache-Control', 'max-age=315360000');
+      response.setHeader('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT');
+      response.setHeader('Cache-Control', 'max-age=315360000');
     }
 
-    res.setHeader('Content-Disposition', 'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"');
-    res.status(204).send(downloadStrategy.target);
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"'
+    );
+    response.status(204).send(downloadStrategy.target);
 
     // A redirect strategy will invoke a redirect to the target
   } else if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_REDIRECT) {
     // We can't guarantee that the backend won't want to update some details about the target over time. e.g., update some tracking
     // variables over time for analytics or additional security. Therefore, we do a temporary redirect (302)
-    res.setHeader('Location', downloadStrategy.target);
-    return res.status(302).end();
+    response.setHeader('Location', downloadStrategy.target);
+    return response.status(302).end();
 
     // The app server will send the file to the client. This should *NOT* be used in production and is only really here for easier unit
     // testing purposes
   } else if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_TEST) {
-    return res.download(downloadStrategy.target);
+    return response.download(downloadStrategy.target);
 
     // In all other cases we respond with a 404
   } else {
-    res.status(404).end();
+    response.status(404).end();
   }
 };

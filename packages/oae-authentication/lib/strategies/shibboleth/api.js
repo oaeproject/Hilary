@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as Signature from 'oae-util/lib/signature';
@@ -34,7 +34,7 @@ let config = null;
  *
  * @param  {Object}     _config     The configuration object as defined in `config.js`
  */
-const refreshConfiguration = function(_config) {
+const refreshConfiguration = function (_config) {
   config = _config;
 };
 
@@ -43,7 +43,7 @@ const refreshConfiguration = function(_config) {
  *
  * @return {String}     The hostname of the "tenant" that is exposing the SP logic
  */
-const getSPHost = function() {
+const getSPHost = function () {
   return config.servers.shibbolethSPHost;
 };
 
@@ -53,7 +53,7 @@ const getSPHost = function() {
  * @param  {String}     tenantAlias     The alias of the tenant for which to check if the Shibboleth strategy is enabled
  * @return {Boolean}                    `true` if the strategy is enabled, `false` otherwise
  */
-const isEnabled = function(tenantAlias) {
+const isEnabled = function (tenantAlias) {
   return AuthenticationConfig.getValue(
     tenantAlias,
     AuthenticationConstants.providers.SHIBBOLETH,
@@ -67,16 +67,16 @@ const isEnabled = function(tenantAlias) {
  * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
  * @return {String}             The URL to the Shibboleth Service Provider
  */
-const getServiceProviderUrl = function(ctx) {
+const getServiceProviderUrl = function (ctx) {
   // The URL at which the Shibboleth SP software (`Apache` + `mod_shib`) is running
-  const spURL = util.format('https://%s', getSPHost());
+  const spURL = format('https://%s', getSPHost());
 
   // Generate a signature
   const data = { tenantAlias: ctx.tenant().alias };
   const signature = Signature.createExpiringSignature(data, 60, 60);
 
   // Create and return the full URL
-  return util.format(
+  return format(
     '%s/api/auth/shibboleth/sp?tenantAlias=%s&signature=%s&expires=%s',
     spURL,
     ctx.tenant().alias,
@@ -97,7 +97,7 @@ const getServiceProviderUrl = function(ctx) {
  * @param  {Object}     callback.err        An error object, if any
  * @param  {Tenant}     callback.tenant     The full tenant object for the given tenant alias
  */
-const validateInitiateParameters = function(tenantAlias, signature, expires, callback) {
+const validateInitiateParameters = function (tenantAlias, signature, expires, callback) {
   try {
     unless(isNotEmpty, {
       code: 400,
@@ -152,7 +152,7 @@ const validateInitiateParameters = function(tenantAlias, signature, expires, cal
  * @param  {Object}     callback.err        An error object, if any
  * @param  {Tenant}     callback.tenant     The full tenant object for the given tenant alias
  */
-const getShibbolethEnabledTenant = function(tenantAlias, callback) {
+const getShibbolethEnabledTenant = function (tenantAlias, callback) {
   const tenant = TenantsAPI.getTenant(tenantAlias);
   if (!tenant) {
     return callback({ code: 400, msg: 'An unknown tenant was specified' });
@@ -173,10 +173,10 @@ const getShibbolethEnabledTenant = function(tenantAlias, callback) {
  * @param  {User}       user        The user object identifying the user who should be authenticated on the tenant
  * @return {String}                 The full URL to which the user should be redirected
  */
-const getAuthenticatedUserRedirectUrl = function(tenant, user) {
+const getAuthenticatedUserRedirectUrl = function (tenant, user) {
   const data = { userId: user.id };
   const signature = Signature.createExpiringSignature(data, 60, 60);
-  return util.format(
+  return format(
     'https://%s/api/auth/shibboleth/callback?userId=%s&signature=%s&expires=%s',
     tenant.host,
     user.id,
@@ -197,7 +197,7 @@ const getAuthenticatedUserRedirectUrl = function(tenant, user) {
  * @param  {Object}     callback.err        An error object, if any
  * @param  {User}       callback.user       The retrieved user
  */
-const getUser = function(tenant, userId, signature, expires, callback) {
+const getUser = function (tenant, userId, signature, expires, callback) {
   try {
     unless(isNotEmpty, {
       code: 400,
@@ -239,21 +239,21 @@ const getUser = function(tenant, userId, signature, expires, callback) {
   }
 
   // Ensure shibboleth is enabled on this tenant
-  getShibbolethEnabledTenant(tenant.alias, err => {
-    if (err) {
-      return callback(err);
+  getShibbolethEnabledTenant(tenant.alias, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the user object
-    PrincipalsDAO.getPrincipal(userId, (err, user) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(userId, (error, user) => {
+      if (error) {
+        return callback(error);
       }
 
       if (user.deleted) {
         return callback({
           code: 401,
-          msg: util.format('Target user has been deleted: %s', userId)
+          msg: format('Target user has been deleted: %s', userId)
         });
       }
 

@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, after, beforeEach, afterEach } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';
@@ -32,9 +33,9 @@ describe('Content', () => {
     /**
      * Sets up a directory with some dummy files.
      */
-    beforeEach(callback => {
-      fs.mkdir(dir, { recursive: true }, err => {
-        assert.ok(!err);
+    beforeEach((callback) => {
+      fs.mkdir(dir, { recursive: true }, (error) => {
+        assert.ok(!error);
 
         // Dump some files in there.
         fs.writeFileSync(dir + '/a', 'a', 'utf8');
@@ -61,13 +62,13 @@ describe('Content', () => {
     /**
      * Verify that the files get removed.
      */
-    it('verify files get removed', callback => {
+    it('verify files get removed', (callback) => {
       Cleaner.start(dir, 1);
-      const onCleaned = cleanedDir => {
+      const onCleaned = (cleanedDir) => {
         if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
-          fs.readdir(dir, (err, files) => {
-            assert.ok(!err);
+          fs.readdir(dir, (error, files) => {
+            assert.ok(!error);
             assert.strictEqual(files.length, 0);
             callback();
           });
@@ -80,7 +81,7 @@ describe('Content', () => {
     /**
      * Verify that only old files get removed.
      */
-    it('verify only old files get removed', callback => {
+    it('verify only old files get removed', (callback) => {
       // Create a brand new file.
       fs.writeFileSync(dir + '/d', 'd', 'utf8');
 
@@ -90,11 +91,11 @@ describe('Content', () => {
       // Stop removing immediately (ie: run only once)
       Cleaner.stop(dir);
 
-      const onCleaned = cleanedDir => {
+      const onCleaned = (cleanedDir) => {
         if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
-          fs.readdir(dir, (err, files) => {
-            assert.ok(!err);
+          fs.readdir(dir, (error, files) => {
+            assert.ok(!error);
             assert.strictEqual(files.length, 1);
             assert.strictEqual(files[0], 'd');
             callback();

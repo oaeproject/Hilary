@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
+import { pipe, map, find, both, forEachObjIndexed, equals } from 'ramda';
 import ShortId from 'shortid';
 
 import { logger } from 'oae-logger';
@@ -44,13 +45,13 @@ const {
 } = validator;
 import isIn from 'validator/lib/isIn';
 import { AuthzConstants } from 'oae-authz/lib/constants';
-import { both, forEachObjIndexed, equals } from 'ramda';
-import * as PrincipalsDAO from './internal/dao';
-import * as PrincipalsMembersLibrary from './libraries/members';
-import PrincipalsEmitter from './internal/emitter';
-import * as PrincipalsUtil from './util';
 
-import { PrincipalsConstants } from './constants';
+import * as PrincipalsDAO from './internal/dao.js';
+import * as PrincipalsMembersLibrary from './libraries/members.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsUtil from './util.js';
+
+import { PrincipalsConstants } from './constants.js';
 
 const log = logger('oae-principals');
 const Config = setUpConfig('oae-principals');
@@ -69,7 +70,7 @@ const JOINABLE = 'joinable';
  * @param  {Object}   callback.err    An error that occurred, if any
  * @param  {Group}    callback.group  The group object
  */
-const getGroup = function(ctx, groupId, callback) {
+const getGroup = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -96,20 +97,20 @@ const getGroup = function(ctx, groupId, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {Group}     callback.group  The agumented group object
  */
-const getFullGroupProfile = function(ctx, groupId, callback) {
-  getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+const getFullGroupProfile = function (ctx, groupId, callback) {
+  getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", groupId) });
     }
 
     // eslint-disable-next-line no-unused-vars
-    AuthzPermissions.resolveEffectivePermissions(ctx, group, (err, permissions, effectiveRole) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.resolveEffectivePermissions(ctx, group, (error, permissions, effectiveRole) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!permissions.canView) {
@@ -118,9 +119,9 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
 
       const currentUser = ctx.user();
       const currentUserId = currentUser && currentUser.id;
-      OaeUtil.invokeIfNecessary(currentUserId, AuthzAPI.hasAnyRole, currentUserId, group.id, (err, hasAnyRole) => {
-        if (err) {
-          return callback(err);
+      OaeUtil.invokeIfNecessary(currentUserId, AuthzAPI.hasAnyRole, currentUserId, group.id, (error, hasAnyRole) => {
+        if (error) {
+          return callback(error);
         }
 
         group.isMember = permissions.canManage || hasAnyRole;
@@ -139,9 +140,9 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
           PrincipalsUtil.getPrincipal,
           ctx,
           group.createdBy,
-          (err, createdBy) => {
-            if (err) {
-              return callback(err);
+          (error, createdBy) => {
+            if (error) {
+              return callback(error);
             }
 
             if (createdBy) {
@@ -149,13 +150,13 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
             }
 
             // As part of the group profile, get the top 8 members in the members library
-            _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (err, members) => {
-              if (err) {
-                return callback(err);
+            _getMembersLibrary(ctx, group, hasAnyRole, null, 8, (error, members) => {
+              if (error) {
+                return callback(error);
               }
 
               // Add the members list to the full group profile
-              group.members = _.filter(members, member => {
+              group.members = _.filter(members, (member) => {
                 // We should not show any members whose profile is not linkable
                 if (member.profile) return member.profile.profilePath;
               });
@@ -164,9 +165,9 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
 
               if (currentUser && PrincipalsUtil.isUser(currentUserId)) {
                 // eslint-disable-next-line no-unused-vars
-                PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (err, results) => {
-                  if (err) {
-                    return callback(err);
+                PrincipalsDAO.setLatestVisit(currentUser, group, new Date(), (error, results) => {
+                  if (error) {
+                    return callback(error);
                   }
 
                   return callback(null, group);
@@ -194,7 +195,7 @@ const getFullGroupProfile = function(ctx, groupId, callback) {
  * @param  {User[]|Group[]}     callback.members        An array of the direct members of the group
  * @param  {String}             callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
+const getMembersLibrary = function (ctx, groupId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -207,13 +208,13 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
   }
 
   // Ensure that this group exists
-  getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", groupId) });
     }
 
     // Get the members library to which the current user has access
@@ -230,7 +231,7 @@ const getMembersLibrary = function(ctx, groupId, start, limit, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
-const getGroupInvitations = function(ctx, groupId, callback) {
+const getGroupInvitations = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -240,9 +241,9 @@ const getGroupInvitations = function(ctx, groupId, callback) {
     return callback(error);
   }
 
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     return AuthzInvitations.getAllInvitations(ctx, group, callback);
@@ -258,7 +259,7 @@ const getGroupInvitations = function(ctx, groupId, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const resendGroupInvitation = function(ctx, groupId, email, callback) {
+const resendGroupInvitation = function (ctx, groupId, email, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -268,9 +269,9 @@ const resendGroupInvitation = function(ctx, groupId, email, callback) {
     return callback(error);
   }
 
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     return ResourceActions.resendInvitation(ctx, group, email, callback);
@@ -291,7 +292,7 @@ const resendGroupInvitation = function(ctx, groupId, email, callback) {
  * @param  {String}             callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback) {
+const _getMembersLibrary = function (ctx, group, hasRole, start, limit, callback) {
   // Ensure proper permissions if we haven't determined that they have an explicit role
   OaeUtil.invokeIfNecessary(
     !hasRole,
@@ -299,9 +300,9 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
     ctx,
     group.id,
     group,
-    (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (hasRole) {
@@ -318,19 +319,19 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
       }
 
       // Get the members from the members library and their basic profile
-      PrincipalsMembersLibrary.list(group, visibility, { start, limit }, (err, memberEntries, nextToken) => {
-        if (err) {
-          return callback(err);
+      PrincipalsMembersLibrary.list(group, visibility, { start, limit }, (error, memberEntries, nextToken) => {
+        if (error) {
+          return callback(error);
         }
 
         const memberIds = _.pluck(memberEntries, 'id');
-        PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-          if (err) {
-            return callback(err);
+        PrincipalsUtil.getPrincipals(ctx, memberIds, (error, memberProfiles) => {
+          if (error) {
+            return callback(error);
           }
 
           const members = _.chain(memberEntries)
-            .map(memberEntry => {
+            .map((memberEntry) => {
               let result;
               if (_.contains(_.keys(memberProfiles), memberEntry.id)) {
                 result = {
@@ -363,7 +364,7 @@ const _getMembersLibrary = function(ctx, group, hasRole, start, limit, callback)
  * @param  {Group[]}     callback.groups         The principal's group memberships, either directly or indirectly
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getMembershipsLibrary = function(ctx, principalId, start, limit, callback) {
+const getMembershipsLibrary = function (ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -375,18 +376,18 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
     return callback(error);
   }
 
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     if (principal.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", principalId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", principalId) });
     }
 
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!hasAccess) {
@@ -413,7 +414,7 @@ const getMembershipsLibrary = function(ctx, principalId, start, limit, callback)
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  * @api private
  */
-const _getMembershipsLibrary = function(ctx, principalId, visibility, start, limit, callback, _items) {
+const _getMembershipsLibrary = function (ctx, principalId, visibility, start, limit, callback, _items) {
   _items = _items || [];
 
   LibraryAPI.Index.list(
@@ -421,20 +422,20 @@ const _getMembershipsLibrary = function(ctx, principalId, visibility, start, lim
     principalId,
     visibility,
     { start, limit },
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       const groupIds = _.pluck(entries, 'resourceId');
-      PrincipalsUtil.getPrincipals(ctx, groupIds, (err, groupsHash) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, groupIds, (error, groupsHash) => {
+        if (error) {
+          return callback(error);
         }
 
         // Place the groups in the same order as `groupIds`
         const results = _.chain(groupIds)
-          .map(groupId => {
+          .map((groupId) => {
             return groupsHash[groupId];
           })
           .compact()
@@ -487,7 +488,7 @@ const _getMembershipsLibrary = function(ctx, principalId, visibility, start, lim
  * @param  {Object}      callback.err            An error that occurred, if any
  * @param  {Group[]}     callback.groups         The user's most recently visited groups
  */
-const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
+const getRecentGroupsForUserId = function (ctx, principalId, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 5, 1);
 
   try {
@@ -500,16 +501,16 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   }
 
   if (!PrincipalsDAO.isUser(principalId)) {
-    return callback({ code: 400, msg: util.format("Couldn't find user: %s", principalId) });
+    return callback({ code: 400, msg: format("Couldn't find user: %s", principalId) });
   }
 
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     if (principal.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find user: %s", principalId) });
+      return callback({ code: 404, msg: format("Couldn't find user: %s", principalId) });
     }
 
     return _getRecentGroupsForUserId(ctx, principalId, limit, callback);
@@ -527,24 +528,22 @@ const getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
  * @param  {Group[]}     callback.groups         The user's recently visited groups
  * @api private
  */
-const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
-  PrincipalsDAO.getVisitedGroups(principalId, (err, items) => {
-    if (err) {
-      return callback(err);
+const _getRecentGroupsForUserId = function (ctx, principalId, limit, callback) {
+  PrincipalsDAO.getVisitedGroups(principalId, (error, items) => {
+    if (error) {
+      return callback(error);
     }
 
-    const sorted = _.sortBy(items, 'latestVisit')
-      .reverse()
-      .slice(0, 5);
+    const sorted = _.sortBy(items, 'latestVisit').reverse().slice(0, 5);
     const groupIds = _.pluck(sorted, 'groupId');
 
-    PrincipalsUtil.getPrincipals(ctx, groupIds, (err, groups) => {
-      if (err) {
-        return callback(err);
+    PrincipalsUtil.getPrincipals(ctx, groupIds, (error, groups) => {
+      if (error) {
+        return callback(error);
       }
 
       const results = _.chain(groupIds)
-        .map(groupId => {
+        .map((groupId) => {
           return groups[groupId];
         })
         .compact()
@@ -555,12 +554,12 @@ const _getRecentGroupsForUserId = function(ctx, principalId, limit, callback) {
   });
 };
 
-const _validateEveryRoleChange = changes => {
+const _validateEveryRoleChange = (changes) => {
   const validRoles = PrincipalsConstants.role.ALL_PRIORITY;
   forEachObjIndexed((role /* , memberId */) => {
     unless(bothCheck(isRoleValid(role), isIn), {
       code: 400,
-      msg: util.format('Role must be one of %s', validRoles.join(', '))
+      msg: format('Role must be one of %s', validRoles.join(', '))
     })(role, validRoles);
   }, changes);
 };
@@ -574,7 +573,7 @@ const _validateEveryRoleChange = changes => {
  * @param  {Function}    [callback]         Standard callback function
  * @param  {Object}      [callback.err]     The error that occured, if any
  */
-const setGroupMembers = function(ctx, groupId, changes, callback) {
+const setGroupMembers = function (ctx, groupId, changes, callback) {
   // Validation
   try {
     unless(isGroupId, {
@@ -595,27 +594,27 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
   }
 
   // Check if the group exists
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", groupId) });
     }
 
-    ResourceActions.setRoles(ctx, group, changes, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.setRoles(ctx, group, changes, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(memberChangeInfo.changes)) {
         return callback();
       }
 
-      PrincipalsUtil.touchLastModified(group, (err, updatedGroup) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.touchLastModified(group, (error, updatedGroup) => {
+        if (error) {
+          return callback(error);
         }
 
         PrincipalsEmitter.emit(
@@ -625,7 +624,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
           group,
           memberChangeInfo,
           {},
-          errs => {
+          (errs) => {
             if (errs) {
               return callback(_.first(errs));
             }
@@ -646,7 +645,7 @@ const setGroupMembers = function(ctx, groupId, changes, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const leaveGroup = function(ctx, groupId, callback) {
+const leaveGroup = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -662,26 +661,26 @@ const leaveGroup = function(ctx, groupId, callback) {
   }
 
   // Verify the group exists
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format('Group not found: %s', group.id) });
+      return callback({ code: 404, msg: format('Group not found: %s', group.id) });
     }
 
-    AuthzPermissions.canRemoveRole(ctx, ctx.user(), group, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canRemoveRole(ctx, ctx.user(), group, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
-      AuthzAPI.updateRoles(group.id, memberChangeInfo.changes, err => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.updateRoles(group.id, memberChangeInfo.changes, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
-        PrincipalsEmitter.emit(PrincipalsConstants.events.LEFT_GROUP, ctx, group, memberChangeInfo, errs => {
+        PrincipalsEmitter.emit(PrincipalsConstants.events.LEFT_GROUP, ctx, group, memberChangeInfo, (errs) => {
           if (errs) {
             return callback(_.first(errs));
           }
@@ -702,7 +701,7 @@ const leaveGroup = function(ctx, groupId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const joinGroup = function(ctx, groupId, callback) {
+const joinGroup = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -718,29 +717,29 @@ const joinGroup = function(ctx, groupId, callback) {
   }
 
   // Verify the group exists
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", groupId) });
     }
 
-    AuthzPermissions.canJoin(ctx, group, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canJoin(ctx, group, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       // Apply the changes
-      AuthzAPI.updateRoles(group.id, memberChangeInfo.changes, err => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.updateRoles(group.id, memberChangeInfo.changes, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
-        PrincipalsUtil.touchLastModified(group, (err, updatedGroup) => {
-          if (err) {
-            return callback(err);
+        PrincipalsUtil.touchLastModified(group, (error, updatedGroup) => {
+          if (error) {
+            return callback(error);
           }
 
           // Emit an event indicating that this group was joined by the current user in context
@@ -750,7 +749,7 @@ const joinGroup = function(ctx, groupId, callback) {
             updatedGroup,
             group,
             memberChangeInfo,
-            errs => {
+            (errs) => {
               if (errs) {
                 return callback(_.first(errs));
               }
@@ -777,7 +776,7 @@ const joinGroup = function(ctx, groupId, callback) {
  * @param  {Object}    [callback.err]       An error that occured, if any
  * @param  {Group}     [callback.group]     The created group
  */
-const createGroup = function(ctx, displayName, description, visibility, joinable, roles, callback) {
+const createGroup = function (ctx, displayName, description, visibility, joinable, roles, callback) {
   const tenantAlias = ctx.tenant().alias;
 
   // Default parameters
@@ -787,9 +786,9 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
   roles = roles || {};
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'An error occurred while creating a group');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'An error occurred while creating a group');
       }
     };
 
@@ -844,12 +843,12 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
     joinable,
     ctx.user().id
   );
-  ResourceActions.create(ctx, roles, createFn, (err, group, memberChangeInfo) => {
-    if (err) {
-      return callback(err);
+  ResourceActions.create(ctx, roles, createFn, (error, group, memberChangeInfo) => {
+    if (error) {
+      return callback(error);
     }
 
-    PrincipalsEmitter.emit(PrincipalsConstants.events.CREATED_GROUP, ctx, group, memberChangeInfo, errs => {
+    PrincipalsEmitter.emit(PrincipalsConstants.events.CREATED_GROUP, ctx, group, memberChangeInfo, (errs) => {
       if (errs) {
         return callback(_.first(errs));
       }
@@ -873,7 +872,7 @@ const createGroup = function(ctx, displayName, description, visibility, joinable
  * @param  {Object}         callback.err                    An error that occured, if any
  * @param  {Group}          callback.updatedGroup           The updated group
  */
-const updateGroup = function(ctx, groupId, profileFields, callback) {
+const updateGroup = function (ctx, groupId, profileFields, callback) {
   // Parameter validation
   const fieldNames = profileFields ? _.keys(profileFields) : [];
   try {
@@ -887,8 +886,8 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
       msg: 'You should specify at least one field'
     })(fieldNames);
 
-    fieldNames.forEach(fieldName => {
-      const isField = field => equals(fieldName, field);
+    fieldNames.forEach((fieldName) => {
+      const isField = (field) => equals(fieldName, field);
       unless(isIn, {
         code: 400,
         msg: fieldName + ' is not a recognized group profile field'
@@ -911,7 +910,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
         code: 400,
         msg: 'A display name can be at most 1000 characters long'
       })(profileFields.displayName);
-      unless(bothCheck(both(isField, x => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
+      unless(bothCheck(both(isField, (x) => Boolean(profileFields[x]))(DESCRIPTION), isMediumString), {
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })(profileFields.description);
@@ -926,32 +925,32 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
   }
 
   // Ensure the target group exists
-  PrincipalsDAO.getPrincipal(groupId, (err, oldStorageGroup) => {
-    if (err) return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, oldStorageGroup) => {
+    if (error) return callback(error);
 
     if (oldStorageGroup.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: %s", groupId) });
     }
 
     // Check if we can update this group
-    AuthzPermissions.canManage(ctx, oldStorageGroup, err => {
-      if (err) return callback(err);
+    AuthzPermissions.canManage(ctx, oldStorageGroup, (error_) => {
+      if (error_) return callback(error_);
 
       profileFields = _.extend({}, profileFields, {
         lastModified: Date.now().toString(),
         description: profileFields.description ? MessageBoxAPI.replaceLinks(profileFields.description) : ''
       });
 
-      PrincipalsDAO.updatePrincipal(groupId, profileFields, err => {
-        if (err) return callback(err);
+      PrincipalsDAO.updatePrincipal(groupId, profileFields, (error_) => {
+        if (error_) return callback(error_);
 
         // Keep track of the updated storage group model so we can emit it in the UPDATE_GROUP event
         const updatedStorageGroup = _.extend({}, oldStorageGroup, profileFields);
 
         // Get the user-facing updated group object to return to the user
         // eslint-disable-next-line no-unused-vars
-        PrincipalsUtil.getPrincipal(ctx, groupId, (err, updatedGroup) => {
-          if (err) return callback(err);
+        PrincipalsUtil.getPrincipal(ctx, groupId, (error, updatedGroup) => {
+          if (error) return callback(error);
 
           // Emit the fact that we have updated this group
           PrincipalsEmitter.emit(
@@ -959,7 +958,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
             ctx,
             updatedStorageGroup,
             oldStorageGroup,
-            errs => {
+            (errs) => {
               if (errs) return callback(_.first(errs));
 
               return getFullGroupProfile(ctx, groupId, callback);
@@ -979,7 +978,7 @@ const updateGroup = function(ctx, groupId, profileFields, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
  */
-const deleteGroup = function(ctx, groupId, callback) {
+const deleteGroup = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -989,21 +988,21 @@ const deleteGroup = function(ctx, groupId, callback) {
     return callback(error);
   }
 
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     // Check if the user has permission to delete the group
-    AuthzPermissions.canManage(ctx, group, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, group, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Mark the group as deleted
-      PrincipalsDAO.deletePrincipal(groupId, err => {
-        if (err) {
-          return callback(err);
+      PrincipalsDAO.deletePrincipal(groupId, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Notify consumers that a group has been deleted
@@ -1021,7 +1020,7 @@ const deleteGroup = function(ctx, groupId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
  */
-const restoreGroup = function(ctx, groupId, callback) {
+const restoreGroup = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -1031,9 +1030,9 @@ const restoreGroup = function(ctx, groupId, callback) {
     return callback(error);
   }
 
-  canRestoreGroup(ctx, groupId, (err, canRestore, group) => {
-    if (err) {
-      return callback(err);
+  canRestoreGroup(ctx, groupId, (error, canRestore, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!canRestore) {
@@ -1041,9 +1040,9 @@ const restoreGroup = function(ctx, groupId, callback) {
     }
 
     // Unmark the group as deleted
-    PrincipalsDAO.restorePrincipal(groupId, err => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.restorePrincipal(groupId, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Notify consumers that a group has been restored
@@ -1062,15 +1061,15 @@ const restoreGroup = function(ctx, groupId, callback) {
  * @param  {Boolean}    callback.canRestore     Whether or not the user can restore the group
  * @param  {Group}      callback.group          The group object that was fetched from the database
  */
-const canRestoreGroup = function(ctx, groupId, callback) {
+const canRestoreGroup = function (ctx, groupId, callback) {
   if (!ctx.user()) {
     return callback(null, false);
   }
 
   // Get the group so we can look at its tenant
-  getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!ctx.user().isAdmin(group.tenant.alias)) {
@@ -1092,7 +1091,7 @@ const canRestoreGroup = function(ctx, groupId, callback) {
  * @param  {Object}     callback.err                An error that occured, if any
  * @param  {Boolean}    callback.canManageAny       Whether or not the current user can manage any of the principals
  */
-const canManageAny = function(ctx, principalIds, callback) {
+const canManageAny = function (ctx, principalIds, callback) {
   // Anonymous users cannot manage anything
   if (!ctx.user()) {
     return callback(null, false);
@@ -1103,14 +1102,16 @@ const canManageAny = function(ctx, principalIds, callback) {
     return callback(null, true);
   }
 
-  // Tenant admins can only manage principals who belong to their tenant.
-  // If there is one, that is sufficient
-  const canAdminOne = _.chain(principalIds)
-    .map(principalId => {
+  /**
+   * Tenant admins can only manage principals who belong to their tenant.
+   * If there is one, that is sufficient
+   */
+  const canAdminOne = pipe(
+    map((principalId) => {
       return AuthzUtil.getResourceFromId(principalId).tenantAlias;
-    })
-    .find(ctx.user().isAdmin)
-    .value();
+    }),
+    find(ctx.user().isAdmin)
+  )(principalIds);
   if (canAdminOne) {
     return callback(null, true);
   }
@@ -1130,26 +1131,26 @@ const canManageAny = function(ctx, principalIds, callback) {
  * @param  {Boolean}    callback.canManageAny       Whether or not the current user can manage any of the groups
  * @api private
  */
-const _canManageAnyGroups = function(ctx, groupIds, callback) {
+const _canManageAnyGroups = function (ctx, groupIds, callback) {
   if (_.isEmpty(groupIds)) {
     return callback(null, false);
   }
 
   const groupId = groupIds.pop();
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, group, err => {
-      if (err && err.code === 401) {
+    AuthzPermissions.canManage(ctx, group, (error_) => {
+      if (error_ && error_.code === 401) {
         // Try the next group
         return _canManageAnyGroups(ctx, groupIds, callback);
       }
 
-      if (err) {
+      if (error_) {
         // A system error occurred
-        return callback(err);
+        return callback(error_);
       }
 
       // The manage check succeeded, therefore we can manage at least one
@@ -1158,7 +1159,7 @@ const _canManageAnyGroups = function(ctx, groupIds, callback) {
   });
 };
 
-const _validateJoinGroupRequest = function(ctx, groupId, callback) {
+const _validateJoinGroupRequest = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -1184,19 +1185,19 @@ const _validateJoinGroupRequest = function(ctx, groupId, callback) {
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
  */
-const createRequestJoinGroup = function(ctx, groupId, callback) {
-  _validateJoinGroupRequest(ctx, groupId, err => {
-    if (err) return callback(err);
+const createRequestJoinGroup = function (ctx, groupId, callback) {
+  _validateJoinGroupRequest(ctx, groupId, (error) => {
+    if (error) return callback(error);
 
     // If the request exists, return
-    PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, err => {
-      if (err) return callback(err);
+    PrincipalsDAO.createRequestJoinGroup(ctx.user().id, groupId, (error) => {
+      if (error) return callback(error);
 
-      PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-        if (err) return callback(err);
+      PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+        if (error) return callback(error);
 
-        AuthzAPI.getAuthzMembers(groupId, null, null, (err, memberInfos) => {
-          if (err) return callback(err);
+        AuthzAPI.getAuthzMembers(groupId, null, null, (error, memberInfos) => {
+          if (error) return callback(error);
 
           // Notify managers that someone asked to be part of this group
           return PrincipalsEmitter.emit(
@@ -1223,28 +1224,28 @@ const createRequestJoinGroup = function(ctx, groupId, callback) {
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
  */
-const getJoinGroupRequests = function(ctx, filter, callback) {
+const getJoinGroupRequests = function (ctx, filter, callback) {
   const { groupId } = filter;
-  _validateJoinGroupRequest(ctx, groupId, err => {
-    if (err) return callback(err);
+  _validateJoinGroupRequest(ctx, groupId, (error) => {
+    if (error) return callback(error);
 
-    PrincipalsDAO.getJoinGroupRequests(groupId, (err, requests) => {
-      if (err) return callback(err);
+    PrincipalsDAO.getJoinGroupRequests(groupId, (error, requests) => {
+      if (error) return callback(error);
 
       if (_.isEmpty(requests)) return callback();
 
       // Get only pending request
-      const users = _.filter(requests, hash => {
+      const users = _.filter(requests, (hash) => {
         return hash.status === PrincipalsConstants.requestStatus.PENDING;
       });
 
       // Return principals
-      const userIds = _.map(users, hash => {
+      const userIds = _.map(users, (hash) => {
         return hash.principalId;
       });
 
-      PrincipalsDAO.getPrincipals(userIds, null, (err, principals) => {
-        if (err) return callback(err);
+      PrincipalsDAO.getPrincipals(userIds, null, (error, principals) => {
+        if (error) return callback(error);
         return callback(null, principals);
       });
     });
@@ -1259,7 +1260,7 @@ const getJoinGroupRequests = function(ctx, filter, callback) {
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
  */
-const getJoinGroupRequest = function(ctx, groupId, callback) {
+const getJoinGroupRequest = function (ctx, groupId, callback) {
   try {
     unless(isGroupId, {
       code: 400,
@@ -1274,9 +1275,9 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
     return callback(error);
   }
 
-  PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (err, request) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getJoinGroupRequest(groupId, ctx.user().id, (error, request) => {
+    if (error) {
+      return callback(error);
     }
 
     /**
@@ -1293,7 +1294,7 @@ const getJoinGroupRequest = function(ctx, groupId, callback) {
   });
 };
 
-const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
+const _validateUpdateJoinGroupByRequest = function (ctx, joinRequest, callback) {
   const { groupId, principalId, role, status } = joinRequest;
   const roleIsValid = Boolean(role);
   try {
@@ -1336,31 +1337,31 @@ const _validateUpdateJoinGroupByRequest = function(ctx, joinRequest, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const updateJoinGroupByRequest = function(ctx, joinRequest, callback) {
+const updateJoinGroupByRequest = function (ctx, joinRequest, callback) {
   let { groupId, principalId, role, status } = joinRequest;
   principalId = principalId || ctx.user().id;
 
-  _validateUpdateJoinGroupByRequest(ctx, { groupId, principalId, role, status }, err => {
-    if (err) {
-      return callback(err);
+  _validateUpdateJoinGroupByRequest(ctx, { groupId, principalId, role, status }, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!ctx.user()) {
       return callback(null, false);
     }
 
-    PrincipalsDAO.updateJoinGroupByRequest(principalId, groupId, status, err => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.updateJoinGroupByRequest(principalId, groupId, status, (error) => {
+      if (error) {
+        return callback(error);
       }
 
       if (status === PrincipalsConstants.requestStatus.ACCEPT) {
         const changes = {};
         changes[principalId] = role;
 
-        setGroupMembers(ctx, groupId, changes, err => {
-          if (err) {
-            return callback(err);
+        setGroupMembers(ctx, groupId, changes, (error) => {
+          if (error) {
+            return callback(error);
           }
         });
       }
@@ -1370,20 +1371,20 @@ const updateJoinGroupByRequest = function(ctx, joinRequest, callback) {
   });
 };
 
-const notifyOfJoinRequestDecision = function(ctx, joinRequest, callback) {
+const notifyOfJoinRequestDecision = function (ctx, joinRequest, callback) {
   const { groupId, principalId, status } = joinRequest;
   const eventToEmit =
     status === PrincipalsConstants.requestStatus.ACCEPT
       ? PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_ACCEPTED
       : PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED;
-  PrincipalsDAO.getPrincipal(groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
-    PrincipalsDAO.getPrincipal(principalId, (err, requester) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(principalId, (error, requester) => {
+      if (error) {
+        return callback(error);
       }
 
       // Notify the requester of the decision of the request

@@ -19,7 +19,7 @@ import _ from 'underscore';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
 
-import { FoldersConstants } from '../constants';
+import { FoldersConstants } from '../constants.js';
 
 const log = logger('oae-folders-contentlibrary');
 
@@ -36,15 +36,15 @@ const log = logger('oae-folders-contentlibrary');
  * @param  {String[]}       callback.contentIds     The content ids in the specified library
  * @param  {String}         callback.nextToken      The token to use for the `start` parameter for the next invocation to get the next page of results. If `null`, indicates that there are no more items to list
  */
-const list = function(folder, visibility, opts, callback) {
+const list = function (folder, visibility, options, callback) {
   LibraryAPI.Index.list(
     FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME,
     folder.groupId,
     visibility,
-    { start: opts.start, limit: opts.limit },
-    (err, entries, nextToken) => {
-      if (err) {
-        return callback(err);
+    { start: options.start, limit: options.limit },
+    (error, entries, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       return callback(null, _.pluck(entries, 'resourceId'), nextToken);
@@ -60,14 +60,14 @@ const list = function(folder, visibility, opts, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const insert = function(folder, contentItems, callback) {
+const insert = function (folder, contentItems, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             contentIds: _.pluck(contentItems, 'id'),
             folderId: folder.id,
             folderGroupId: folder.groupId
@@ -88,14 +88,14 @@ const insert = function(folder, contentItems, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const remove = function(folder, contentItems, callback) {
+const remove = function (folder, contentItems, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             contentIds: _.pluck(contentItems, 'id'),
             folderId: folder.id,
             folderGroupId: folder.groupId
@@ -116,7 +116,7 @@ const remove = function(folder, contentItems, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const purge = function(folder, callback) {
+const purge = function (folder, callback) {
   LibraryAPI.Index.purge(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, folder.groupId, callback);
 };
 
@@ -130,13 +130,13 @@ const purge = function(folder, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _insert = function(folder, contentItems, callback) {
+const _insert = function (folder, contentItems, callback) {
   if (_.isEmpty(contentItems)) {
     // When there are no more items to insert, return to the caller
     return callback();
   }
 
-  const entries = _.map(contentItems, contentItem => {
+  const entries = _.map(contentItems, (contentItem) => {
     return {
       id: folder.groupId,
       rank: contentItem.lastModified,
@@ -158,13 +158,13 @@ const _insert = function(folder, contentItems, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _remove = function(folder, contentItems, callback) {
+const _remove = function (folder, contentItems, callback) {
   if (_.isEmpty(contentItems)) {
     // When there are no more items to remove, return to the caller
     return callback();
   }
 
-  const entries = _.map(contentItems, contentItem => {
+  const entries = _.map(contentItems, (contentItem) => {
     return {
       id: folder.groupId,
       rank: contentItem.lastModified,

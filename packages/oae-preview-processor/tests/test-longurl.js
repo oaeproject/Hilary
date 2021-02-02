@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests/lib/util';
@@ -21,7 +22,7 @@ import * as TestsUtil from 'oae-tests/lib/util';
 describe('Long url', () => {
   let anonymousCamRestContext = null;
 
-  before(callback => {
+  before((callback) => {
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     return callback();
   });
@@ -29,9 +30,9 @@ describe('Long url', () => {
   /**
    * Test that verifies that short URLs are expanded
    */
-  it('verify it expands short URLs', callback => {
-    RestAPI.Previews.expandUrl(anonymousCamRestContext, 'http://youtu.be/FYWLiGOBy1k', (err, data) => {
-      assert.notExists(err);
+  it('verify it expands short URLs', (callback) => {
+    RestAPI.Previews.expandUrl(anonymousCamRestContext, 'http://youtu.be/FYWLiGOBy1k', (error, data) => {
+      assert.notExists(error);
       assert.ok(data);
       assert.strictEqual(data['long-url'], 'https://youtu.be/FYWLiGOBy1k');
       return callback();

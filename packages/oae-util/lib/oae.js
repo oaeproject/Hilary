@@ -15,11 +15,11 @@
 
 /* eslint-disable import/no-mutable-exports */
 import { logger } from 'oae-logger';
-import * as Modules from './modules';
-import OaeEmitter from './emitter';
-import * as Server from './server';
+import * as Modules from './modules.js';
+import OaeEmitter from './emitter.js';
+import * as Server from './server.js';
 
-import * as Shutdown from './internal/shutdown';
+import * as Shutdown from './internal/shutdown.js';
 
 const log = logger();
 
@@ -36,9 +36,9 @@ let tenantServer = null;
 let tenantRouter = null;
 let globalAdminRouter = null;
 
-/// ////////////////////////
-// Setting up the server //
-/// ////////////////////////
+/**
+ * Setting up the server
+ */
 
 /**
  * This function will initialize OAE. First of all, the global  and run the global admin server, as well as execute the application lifecycle of all the
@@ -54,8 +54,8 @@ let globalAdminRouter = null;
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(config, callback) {
-  callback = callback || function() {};
+const init = function (config, callback) {
+  callback = callback || function () {};
 
   log().info('Starting OAE...');
 
@@ -63,10 +63,10 @@ const init = function(config, callback) {
   process.env.TZ = 'UTC';
 
   // Set up application-level error handler
-  process.on('uncaughtException', err => {
-    log().error({ err }, 'An uncaught exception was raised to the application');
+  process.on('uncaughtException', (error) => {
+    log().error({ err: error }, 'An uncaught exception was raised to the application');
     // log().error(err.stack);
-    log().error(err);
+    log().error(error);
   });
 
   // Handle the shutdown signal
@@ -81,10 +81,10 @@ const init = function(config, callback) {
   globalAdminRouter = Server.setupRouter(globalAdminServer);
 
   // Initialize the modules and their CFs, as well as registering the Rest endpoints
-  Modules.bootstrapModules(config, err => {
+  Modules.bootstrapModules(config, (error) => {
     log().info('All modules are bootstrapped, initializing servers');
-    if (err) {
-      return callback(err);
+    if (error) {
+      return callback(error);
     }
 
     Server.postInitializeServer(globalAdminServer, globalAdminRouter);
@@ -109,7 +109,7 @@ const init = function(config, callback) {
  * @param  {Function}   handler             The handler function that will be invoked when the system receives a shutdown signal
  * @param  {Function}   handler.callback    A callback function that the handler should invoke when the pre-shutdown work is finished
  */
-const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
+const registerPreShutdownHandler = function (name, maxTimeMillis, handler) {
   Shutdown.registerPreShutdownHandler(name, maxTimeMillis, handler);
 };
 

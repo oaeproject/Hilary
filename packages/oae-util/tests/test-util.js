@@ -14,12 +14,13 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 
 import { toArray, invokeIfNecessary, getNumberParam } from 'oae-util/lib/util';
 
 describe('OAE Util', () => {
   describe('#getNumberParam', () => {
-    it('verify a variety of inputs for getNumberParam', callback => {
+    it('verify a variety of inputs for getNumberParam', (callback) => {
       // Verify valid inputs are successful
       assert.strictEqual(getNumberParam(1), 1);
       assert.strictEqual(getNumberParam('1'), 1);
@@ -90,21 +91,21 @@ describe('OAE Util', () => {
      * Test that verifies the invokeIfNecessary method does not invoke the given method with a falsey
      * "isNecessary" parameter
      */
-    it('verify the method is not invoked with a falsy isNecessary parameter', callback => {
+    it('verify the method is not invoked with a falsy isNecessary parameter', (callback) => {
       // Ensure _toInvoke is not called with `false`
-      invokeIfNecessary(false, _toInvoke, 'invoked', toReturn => {
+      invokeIfNecessary(false, _toInvoke, 'invoked', (toReturn) => {
         assert.notExists(toReturn);
 
         // Ensure _toInvoke is not called with `null`
-        invokeIfNecessary(null, _toInvoke, 'invoked', toReturn => {
+        invokeIfNecessary(null, _toInvoke, 'invoked', (toReturn) => {
           assert.notExists(toReturn);
 
           // Ensure _toInvoke is not called with `undefined`
-          invokeIfNecessary(undefined, _toInvoke, 'invoked', toReturn => {
+          invokeIfNecessary(undefined, _toInvoke, 'invoked', (toReturn) => {
             assert.notExists(toReturn);
 
             // Ensure _toInvoke is not called with the empty string
-            invokeIfNecessary('', _toInvoke, 'invoked', toReturn => {
+            invokeIfNecessary('', _toInvoke, 'invoked', (toReturn) => {
               assert.notExists(toReturn);
 
               return callback();
@@ -118,21 +119,21 @@ describe('OAE Util', () => {
      * Test that verifies the invokeIfNecessary method invokes the given method with a truthy
      * "isNecessary" parameter
      */
-    it('verify the method is invoked with a truthy isNecessary parameter', callback => {
+    it('verify the method is invoked with a truthy isNecessary parameter', (callback) => {
       // Ensure _toInvoke is called with `true`
-      invokeIfNecessary(true, _toInvoke, 'invoked', toReturn => {
+      invokeIfNecessary(true, _toInvoke, 'invoked', (toReturn) => {
         assert.strictEqual(toReturn, 'invoked');
 
         // Ensure _toInvoke is called with a non-empty string
-        invokeIfNecessary('should invoke', _toInvoke, 'invoked', toReturn => {
+        invokeIfNecessary('should invoke', _toInvoke, 'invoked', (toReturn) => {
           assert.strictEqual(toReturn, 'invoked');
 
           // Ensure _toInvoke is called with 1
-          invokeIfNecessary(1, _toInvoke, 'invoked', toReturn => {
+          invokeIfNecessary(1, _toInvoke, 'invoked', (toReturn) => {
             assert.strictEqual(toReturn, 'invoked');
 
             // Ensure _toInvoke is called with an empty object
-            invokeIfNecessary({}, _toInvoke, 'invoked', toReturn => {
+            invokeIfNecessary({}, _toInvoke, 'invoked', (toReturn) => {
               assert.strictEqual(toReturn, 'invoked');
 
               return callback();
@@ -147,14 +148,14 @@ describe('OAE Util', () => {
     /**
      * Test that verifies that toArray validates incoming values properly and returns an Array
      */
-    it('verify the method validates incoming values properly and returns an Array', callback => {
-      const testObj = {
+    it('verify the method validates incoming values properly and returns an Array', (callback) => {
+      const testObject = {
         key1: 'value1',
         key2: 'value2'
       };
 
       // Verify that an Array is returned
-      assert.isArray(toArray(testObj));
+      assert.isArray(toArray(testObject));
       assert.isArray(toArray(null));
       assert.isArray(toArray([]));
       assert.isArray(toArray(''));
@@ -167,8 +168,8 @@ describe('OAE Util', () => {
       assert.lengthOf(toArray(), 0);
 
       // Verify that the Object is correctly transformed to an Array
-      assert.strictEqual(toArray(testObj)[0], 'value1');
-      assert.strictEqual(toArray(testObj)[1], 'value2');
+      assert.strictEqual(toArray(testObject)[0], 'value1');
+      assert.strictEqual(toArray(testObject)[1], 'value2');
 
       return callback();
     });

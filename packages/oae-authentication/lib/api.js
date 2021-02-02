@@ -14,7 +14,7 @@
  */
 
 import crypto from 'crypto';
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 import passport from 'passport';
 
@@ -62,17 +62,17 @@ let globalTenantAlias = null;
 const strategies = {};
 
 // When a tenant is created, configure the default authentication strategies
-TenantsAPI.emitter.on('created', tenant => {
+TenantsAPI.emitter.on('created', (tenant) => {
   refreshStrategies(tenant);
 });
 
 // When a tenant starts up, configure its authentication strategies
-TenantsAPI.emitter.on('start', tenant => {
+TenantsAPI.emitter.on('start', (tenant) => {
   refreshStrategies(tenant);
 });
 
 // When a tenant is refreshed, refresh its authentication strategies
-TenantsAPI.emitter.on('refresh', tenant => {
+TenantsAPI.emitter.on('refresh', (tenant) => {
   refreshStrategies(tenant);
 });
 
@@ -90,7 +90,7 @@ OaeEmitter.on('ready', () => {
  * @param  {String}     [tenantAlias]       The alias of the tenant for which to refresh the authentication strategies. If `null` or the global tenant alias is specified, all strategies will be refreshed
  * @api private
  */
-const _configUpdate = function(tenantAlias) {
+const _configUpdate = function (tenantAlias) {
   if (!tenantAlias || tenantAlias === globalTenantAlias) {
     // We updated the global tenant, which means we'll have to update all
     // tenant authentication strategies, as they may have changed transiently
@@ -128,7 +128,7 @@ const AuthenticationAPI = emitter;
  *
  * @param  {String} globalTenantAlias   The alias of the global tenant
  */
-const init = function(_globalTenantAlias) {
+const init = function (_globalTenantAlias) {
   globalTenantAlias = _globalTenantAlias;
 };
 
@@ -148,7 +148,7 @@ const init = function(_globalTenantAlias) {
  * @param  {Object}    callback.err       An error that occurred, if any
  * @param  {Boolean}   callback.exists    Whether or not the username exists on the current tenant
  */
-const localUsernameExists = function(ctx, tenantAlias, username, callback) {
+const localUsernameExists = function (ctx, tenantAlias, username, callback) {
   tenantAlias = tenantAlias || ctx.tenant().alias;
 
   // Create the loginid object first, so it can be passed into the validation
@@ -165,9 +165,9 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
     return callback(error);
   }
 
-  _getUserIdFromLoginId(loginId, (err, userId) => {
-    if (err && err.code !== 404) {
-      return callback(err);
+  _getUserIdFromLoginId(loginId, (error, userId) => {
+    if (error && error.code !== 404) {
+      return callback(error);
     }
 
     if (!userId) {
@@ -198,8 +198,15 @@ const localUsernameExists = function(ctx, tenantAlias, username, callback) {
  * @param  {String}     callback.loginId        The *flattened* loginId for this user
  * @param  {Boolean}    callback.created        `true` if a global administrator was created with the provided username, `false` otherwise
  */
-const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName, opts, callback) {
-  opts = opts || {};
+const getOrCreateGlobalAdminUser = function (
+  ctx,
+  username,
+  password,
+  displayName,
+  options,
+  callback
+) {
+  options = options || {};
 
   try {
     unless(isLoggedInUser, {
@@ -237,11 +244,11 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
   }
 
   // Global admin users always start out private
-  opts.visibility = AuthzConstants.visibility.PRIVATE;
+  options.visibility = AuthzConstants.visibility.PRIVATE;
 
   // Global admins can only be created by other global administrators,
   // who probably know the email address is accurate
-  opts.emailVerified = true;
+  options.emailVerified = true;
 
   const providerProperties = { password };
   getOrCreateUser(
@@ -250,10 +257,10 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
     username,
     providerProperties,
     displayName,
-    opts,
-    (err, user, loginId, created) => {
-      if (err) {
-        return callback(err);
+    options,
+    (error, user, loginId, created) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!created) {
@@ -262,9 +269,9 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
       }
 
       // The user was created, mark them as a global admin user
-      PrincipalsAPI.setGlobalAdmin(ctx, user.id, true, err => {
-        if (err) {
-          return callback(err);
+      PrincipalsAPI.setGlobalAdmin(ctx, user.id, true, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         if (created) {
@@ -272,9 +279,9 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
         }
 
         // Fetch the user again to get the updated version of the user
-        PrincipalsAPI.getUser(ctx, user.id, (err, user) => {
-          if (err) {
-            return callback(err);
+        PrincipalsAPI.getUser(ctx, user.id, (error, user) => {
+          if (error) {
+            return callback(error);
           }
 
           return callback(null, user, loginId, true);
@@ -304,13 +311,13 @@ const getOrCreateGlobalAdminUser = function(ctx, username, password, displayName
  * @param  {String}     callback.loginId        The *flattened* loginId for this user
  * @param  {Boolean}    callback.created        `true` if the user was created, `false` otherwise
  */
-const getOrCreateUser = function(
+const getOrCreateUser = function (
   ctx,
   authProvider,
   externalId,
   providerProperties,
   displayName,
-  opts,
+  options,
   callback
 ) {
   // Create the expected login id and ensure it is valid for potentially persisting into storage
@@ -331,7 +338,7 @@ const getOrCreateUser = function(
     return callback(error);
   }
 
-  return _getOrCreateUser(ctx, loginId, displayName, opts, callback);
+  return _getOrCreateUser(ctx, loginId, displayName, options, callback);
 };
 
 /**
@@ -350,19 +357,19 @@ const getOrCreateUser = function(
  * @param  {Boolean}    callback.created        `true` if the user was created, `false` otherwise
  * @api private
  */
-const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
-  opts = opts || {};
+const _getOrCreateUser = function (ctx, loginId, displayName, options, callback) {
+  options = options || {};
 
-  _getUserIdFromLoginId(loginId, (err, userId) => {
-    if (err && err.code !== 404) {
-      return callback(err);
+  _getUserIdFromLoginId(loginId, (error, userId) => {
+    if (error && error.code !== 404) {
+      return callback(error);
     }
 
     if (userId) {
       // The user existed, simply fetch their profile
-      PrincipalsDAO.getPrincipal(userId, (err, user) => {
-        if (err) {
-          return callback(err);
+      PrincipalsDAO.getPrincipal(userId, (error, user) => {
+        if (error) {
+          return callback(error);
         }
 
         if (user.deleted) {
@@ -378,7 +385,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
           authProvider: loginId.provider,
           externalId: loginId.externalId,
           displayName,
-          opts
+          opts: options
         },
         'Auto-creating a user on login'
       );
@@ -386,33 +393,33 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
       // Remove invalid email address if they come from authoritative sources. This happens
       // when a Shib or Cas IdP has been misconfigured
       try {
-        const isValidEmail = and(opts.authoritative, opts.email);
+        const isValidEmail = and(options.authoritative, options.email);
         unless(bothCheck(isValidEmail, isEmail), {
           code: 400,
           msg: 'Invalid email'
-        })(opts.email);
+        })(options.email);
       } catch {
-        delete opts.email;
+        delete options.email;
       }
 
       OaeUtil.invokeIfNecessary(
-        opts.invitationToken,
+        options.invitationToken,
         AuthzInvitationsDAO.getEmailByToken,
-        opts.invitationToken,
-        (err, email) => {
-          if (err) {
-            return callback(err);
+        options.invitationToken,
+        (error, email) => {
+          if (error) {
+            return callback(error);
           }
 
-          if (email && !opts.email) {
+          if (email && !options.email) {
             // If no email is provided by the auth provider, set the email associated to the
             // token as the verified email
-            opts.email = email;
-            opts.emailVerified = true;
-          } else if (email && email === opts.email) {
+            options.email = email;
+            options.emailVerified = true;
+          } else if (email && email === options.email) {
             // If an email is provided by the auth provider and it matches that of the
             // invitation token (if any), mark the email as verified
-            opts.emailVerified = true;
+            options.emailVerified = true;
           }
 
           const isAdmin = ctx.user() && ctx.user().isAdmin(ctx.tenant().alias);
@@ -421,13 +428,13 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
           // Google, Local authentication) by a user that is not an administrator we should
           // check whether the email address matches the tenant's configured email domain
           let shouldCheckEmail =
-            !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !opts.authoritative;
+            !_.isEmpty(ctx.tenant().emailDomains) && !isAdmin && !options.authoritative;
 
           // However, if a user followed a link from an invitation email we do not check whether
           // the email belongs to the configured tenant's email domain. This is to allow for the
           // situation where a tenant's email domain gets changed after a user gets invited
           // but before the user has accepted the invitation
-          if (opts.invitationToken && opts.emailVerified) {
+          if (options.invitationToken && options.emailVerified) {
             shouldCheckEmail = false;
           }
 
@@ -435,15 +442,15 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
             shouldCheckEmail,
             _validateEmailBelongsToTenant,
             ctx,
-            opts.email,
-            err => {
-              if (err) {
-                return callback(err);
+            options.email,
+            (error_) => {
+              if (error_) {
+                return callback(error_);
               }
 
-              createUser(ctx, loginId, displayName, opts, (err, user) => {
-                if (err) {
-                  return callback(err);
+              createUser(ctx, loginId, displayName, options, (error, user) => {
+                if (error) {
+                  return callback(error);
                 }
 
                 return callback(null, user, _flattenLoginId(loginId), true);
@@ -465,7 +472,7 @@ const _getOrCreateUser = function(ctx, loginId, displayName, opts, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _validateEmailBelongsToTenant = function(ctx, email, callback) {
+const _validateEmailBelongsToTenant = function (ctx, email, callback) {
   // Ensure an email address has been provided
   if (!email) {
     return callback({
@@ -503,8 +510,8 @@ const _validateEmailBelongsToTenant = function(ctx, email, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {User}       callback.user               The created tenant administrator
  */
-const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback) {
-  opts = opts || {};
+const createTenantAdminUser = function (ctx, loginId, displayName, options, callback) {
+  options = options || {};
 
   try {
     unless(isObject, {
@@ -546,22 +553,22 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
   }
 
   // Tenant administrators always start private
-  opts.visibility = AuthzConstants.visibility.PRIVATE;
+  options.visibility = AuthzConstants.visibility.PRIVATE;
 
   // Tenant administrators can only be created by other administrators,
   // who probably know the email address is accurate
-  opts.emailVerified = true;
+  options.emailVerified = true;
 
   // Create the user object with their login id
-  _createUser(ctx, loginId, displayName, opts, (err, user) => {
-    if (err) {
-      return callback(err);
+  _createUser(ctx, loginId, displayName, options, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     // Make the created user a tenant admin
-    PrincipalsAPI.setTenantAdmin(ctx, user.id, true, err => {
-      if (err) {
-        return callback(err);
+    PrincipalsAPI.setTenantAdmin(ctx, user.id, true, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, user);
@@ -586,7 +593,7 @@ const createTenantAdminUser = function(ctx, loginId, displayName, opts, callback
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {User}       callback.user               The created user
  */
-const createUser = function(ctx, loginId, displayName, opts, callback) {
+const createUser = function (ctx, loginId, displayName, options, callback) {
   try {
     unless(isNotEmpty, {
       code: 400,
@@ -627,7 +634,7 @@ const createUser = function(ctx, loginId, displayName, opts, callback) {
     });
   }
 
-  _createUser(ctx, loginId, displayName, opts, callback);
+  _createUser(ctx, loginId, displayName, options, callback);
 };
 
 /**
@@ -649,11 +656,11 @@ const createUser = function(ctx, loginId, displayName, opts, callback) {
  * @param  {User}       callback.user               The created user
  * @api private
  */
-const _createUser = function(ctx, loginId, displayName, opts, callback) {
+const _createUser = function (ctx, loginId, displayName, options, callback) {
   // Lock on externalId to make sure we're not already making an account for this user
   const lockKey = loginId.externalId;
-  Locking.acquire(lockKey, 15, (err, lock) => {
-    if (err) {
+  Locking.acquire(lockKey, 15, (error, lock) => {
+    if (error) {
       return callback({
         code: 400,
         msg:
@@ -662,9 +669,9 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
     }
 
     // Make sure the loginId is not already associated to a user
-    _getUserIdFromLoginId(loginId, (err, userId) => {
-      if (err && err.code !== 404) {
-        return callback(err);
+    _getUserIdFromLoginId(loginId, (error, userId) => {
+      if (error && error.code !== 404) {
+        return callback(error);
       }
 
       if (userId) {
@@ -680,21 +687,21 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
       }
 
       // Create the user and immediately associate the login id
-      PrincipalsAPI.createUser(ctx, loginId.tenantAlias, displayName, opts, (err, user) => {
-        if (err) {
+      PrincipalsAPI.createUser(ctx, loginId.tenantAlias, displayName, options, (error, user) => {
+        if (error) {
           Locking.release(lock, () => {
-            return callback(err);
+            return callback(error);
           });
           return;
         }
 
         loginId.userId = user.id;
-        _associateLoginId(loginId, user.id, err => {
+        _associateLoginId(loginId, user.id, (error_) => {
           // Immediately release the lock, regardless of whether or not
           // association worked
           Locking.release(lock, () => {
-            if (err) {
-              return callback(err);
+            if (error_) {
+              return callback(error_);
             }
 
             log(ctx).info(
@@ -727,7 +734,7 @@ const _createUser = function(ctx, loginId, displayName, opts, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const associateLoginId = function(ctx, loginId, userId, callback) {
+const associateLoginId = function (ctx, loginId, userId, callback) {
   try {
     _validateLoginIdForPersistence(validator, loginId, callback);
     unless(isLoggedInUser, {
@@ -752,9 +759,9 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
     });
   }
 
-  _getUserIdFromLoginId(loginId, (err, existingUserIdMapping) => {
-    if (err && err.code !== 404) {
-      return callback(err);
+  _getUserIdFromLoginId(loginId, (error, existingUserIdMapping) => {
+    if (error && error.code !== 404) {
+      return callback(error);
     }
 
     if (existingUserIdMapping && !isAdmin) {
@@ -763,9 +770,9 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
     }
 
     // Verify we don't assign 2 ids of the same provider to a user
-    _getUserLoginIds(userId, (err, loginIds) => {
-      if (err) {
-        return callback(err);
+    _getUserLoginIds(userId, (error, loginIds) => {
+      if (error) {
+        return callback(error);
       }
 
       if (loginIds[loginId.provider]) {
@@ -776,18 +783,18 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
       }
 
       // Ensure that the target user exists
-      PrincipalsAPI.getUser(ctx, userId, (err, user) => {
-        if (err) {
-          return callback(err);
+      PrincipalsAPI.getUser(ctx, userId, (error, user) => {
+        if (error) {
+          return callback(error);
         }
 
         if (user.deleted) {
-          return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
+          return callback({ code: 404, msg: format("Couldn't find principal: ", userId) });
         }
 
-        _associateLoginId(loginId, userId, err => {
-          if (err) {
-            return callback(err);
+        _associateLoginId(loginId, userId, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           log(ctx).info(
@@ -819,7 +826,7 @@ const associateLoginId = function(ctx, loginId, userId, callback) {
  * @param  {Function}   callback          Standard callback function
  * @param  {Object}     callback.err      An error that occurred, if any
  */
-const changePassword = function(ctx, userId, oldPassword, newPassword, callback) {
+const changePassword = function (ctx, userId, oldPassword, newPassword, callback) {
   // Parameter validation
   try {
     unless(isLoggedInUser, {
@@ -839,19 +846,19 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
   }
 
   // Ensure the user changing their password exists
-  PrincipalsAPI.getUser(ctx, userId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsAPI.getUser(ctx, userId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     if (user.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find principal: ", userId) });
+      return callback({ code: 404, msg: format("Couldn't find principal: ", userId) });
     }
 
     // Get the local login id for the user
-    _getUserLoginIds(userId, (err, loginIds) => {
-      if (err) {
-        return callback(err);
+    _getUserLoginIds(userId, (error, loginIds) => {
+      if (error) {
+        return callback(error);
       }
 
       // Can only change password on the local account type
@@ -879,11 +886,16 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
       }
 
       // If it's the current user, we need to verify the old password
-      checkPassword(localLoginId.tenantAlias, localLoginId.externalId, oldPassword, err => {
-        if (err) {
+      checkPassword(localLoginId.tenantAlias, localLoginId.externalId, oldPassword, (error_) => {
+        if (error_) {
           // Old password was probably incorrect
-          log().error({ err }, 'User %s failed to change password for %s', ctx.user().id, userId);
-          return callback(err);
+          log().error(
+            { err: error_ },
+            'User %s failed to change password for %s',
+            ctx.user().id,
+            userId
+          );
+          return callback(error_);
         }
 
         log().info('User %s is changing the password for user %s', ctx.user().id, userId);
@@ -903,7 +915,7 @@ const changePassword = function(ctx, userId, oldPassword, newPassword, callback)
  * @param  {Object}    callback.err     An error that occurred, if any
  * @param  {String}    callback.userId  The ID of the user if the passwords match
  */
-const checkPassword = function(tenantAlias, username, password, callback) {
+const checkPassword = function (tenantAlias, username, password, callback) {
   // We can only check password on local authentication
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
@@ -931,9 +943,9 @@ const checkPassword = function(tenantAlias, username, password, callback) {
   Cassandra.runQuery(
     'SELECT "userId", "password" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -967,7 +979,7 @@ const checkPassword = function(tenantAlias, username, password, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {String}    callback.userId The id of the user that was associated to the login id, if any
  */
-const getUserIdFromLoginId = function(tenantAlias, provider, externalId, callback) {
+const getUserIdFromLoginId = function (tenantAlias, provider, externalId, callback) {
   const loginId = new LoginId(tenantAlias, provider, externalId);
 
   try {
@@ -988,7 +1000,7 @@ const getUserIdFromLoginId = function(tenantAlias, provider, externalId, callbac
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Object}     callback.secret The secret token that will be returned
  */
-const getResetPasswordSecret = function(ctx, username, callback) {
+const getResetPasswordSecret = function (ctx, username, callback) {
   // Default to the current tenant's alias
   const tenantAlias = ctx.tenant().alias;
 
@@ -996,15 +1008,15 @@ const getResetPasswordSecret = function(ctx, username, callback) {
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
   // Check if we can get an existing userID using the userName the user provided
-  _getUserIdFromLoginId(loginId, (err, userId) => {
-    if (err) {
+  _getUserIdFromLoginId(loginId, (error, userId) => {
+    if (error) {
       return callback({ code: 404, msg: 'No user could be found with the provided username' });
     }
 
     // Get user's object as we will try to send the user an email with token
-    PrincipalsDAO.getPrincipal(userId, (err, user) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(userId, (error, user) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!user.email) {
@@ -1022,10 +1034,10 @@ const getResetPasswordSecret = function(ctx, username, callback) {
       Cassandra.runQuery(
         'UPDATE "AuthenticationLoginId" USING TTL 86400 SET "secret" = ? WHERE "loginId" = ?',
         [secret, _flattenLoginId(loginId)],
-        err => {
-          if (err) {
-            log().error({ err }, 'Error in creating a secret token');
-            return callback(err);
+        (error_) => {
+          if (error_) {
+            log().error({ err: error_ }, 'Error in creating a secret token');
+            return callback(error_);
           }
 
           // Generate the email content with secret token
@@ -1056,7 +1068,7 @@ const getResetPasswordSecret = function(ctx, username, callback) {
  * @param  {Function}   callback       Standard callback function
  * @param  {Object}     callback.err   An error that occurred, if any
  */
-const resetPassword = function(ctx, username, secret, newPassword, callback) {
+const resetPassword = function (ctx, username, secret, newPassword, callback) {
   // Parameter validation
   try {
     unless(isNotEmpty, {
@@ -1092,9 +1104,9 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
   Cassandra.runQuery(
     'SELECT "userId", "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -1127,15 +1139,15 @@ const resetPassword = function(ctx, username, secret, newPassword, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @api private
  */
-const _changePassword = function(loginId, newPassword, callback) {
+const _changePassword = function (loginId, newPassword, callback) {
   const hash = AuthenticationUtil.hashPassword(newPassword);
   Cassandra.runQuery(
     'UPDATE "AuthenticationLoginId" SET "password" = ? WHERE "loginId" = ?',
     [hash, _flattenLoginId(loginId)],
-    err => {
-      if (err) {
-        log().error({ err }, 'Error changing a user password');
-        return callback(err);
+    (error) => {
+      if (error) {
+        log().error({ err: error }, 'Error changing a user password');
+        return callback(error);
       }
 
       return callback();
@@ -1153,7 +1165,7 @@ const _changePassword = function(loginId, newPassword, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @api private
  */
-const _associateLoginId = function(loginId, userId, callback) {
+const _associateLoginId = function (loginId, userId, callback) {
   loginId.properties = loginId.properties || {};
   const flattenedLoginId = _flattenLoginId(loginId);
 
@@ -1197,7 +1209,7 @@ const _associateLoginId = function(loginId, userId, callback) {
  * @param  {Object}      callback.err        An error that occurred, if any
  * @param  {Object}      callback.loginIds   A hash whose keys are the authentication providers, and values are the LoginId objects that are mapped to the user
  */
-const getUserLoginIds = function(ctx, userId, callback) {
+const getUserLoginIds = function (ctx, userId, callback) {
   // Parameter validation
   try {
     unless(isLoggedInUser, {
@@ -1213,9 +1225,9 @@ const getUserLoginIds = function(ctx, userId, callback) {
   }
 
   // Request the user details
-  PrincipalsAPI.getUser(ctx, userId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsAPI.getUser(ctx, userId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!ctx.user().isAdmin(user.tenant.alias)) {
@@ -1226,9 +1238,9 @@ const getUserLoginIds = function(ctx, userId, callback) {
       });
     }
 
-    _getUserLoginIds(userId, (err, _loginIds) => {
-      if (err) {
-        return callback(err);
+    _getUserLoginIds(userId, (error, _loginIds) => {
+      if (error) {
+        return callback(error);
       }
 
       // Only return the strategies and their corresponding external id
@@ -1251,7 +1263,7 @@ const getUserLoginIds = function(ctx, userId, callback) {
  * @param  {Object}      callback.loginIds   A hash whose keys are the authentication providers, and values are the LoginId objects that are mapped to the user
  * @api private
  */
-const _getUserLoginIds = function(userId, callback) {
+const _getUserLoginIds = function (userId, callback) {
   if (!userId) {
     return callback(null, {});
   }
@@ -1259,13 +1271,13 @@ const _getUserLoginIds = function(userId, callback) {
   Cassandra.runQuery(
     'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
     [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       const loginIds = {};
-      _.each(rows, row => {
+      _.each(rows, (row) => {
         row = Cassandra.rowToHash(row);
         if (row.loginId) {
           const loginId = _expandLoginId(row.loginId);
@@ -1287,13 +1299,13 @@ const _getUserLoginIds = function(userId, callback) {
  * @param  {String}    callback.userId The id of the user that was associated to the login id, if any
  * @api private
  */
-const _getUserIdFromLoginId = function(loginId, callback) {
+const _getUserIdFromLoginId = function (loginId, callback) {
   Cassandra.runQuery(
     'SELECT "userId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -1315,7 +1327,7 @@ const _getUserIdFromLoginId = function(loginId, callback) {
  * @return {String}                The flattened string key representation of the login id
  * @api private
  */
-const _flattenLoginId = function(loginId) {
+const _flattenLoginId = function (loginId) {
   if (!loginId || !loginId.tenantAlias || !loginId.provider || !loginId.externalId) {
     return null;
   }
@@ -1330,12 +1342,12 @@ const _flattenLoginId = function(loginId) {
  * @return {LoginId}               The LoginId object that is represented by the flat string
  * @api private
  */
-const _expandLoginId = function(loginIdStr) {
-  if (!loginIdStr) {
+const _expandLoginId = function (loginIdString) {
+  if (!loginIdString) {
     return null;
   }
 
-  const loginIdSplit = loginIdStr.split(':');
+  const loginIdSplit = loginIdString.split(':');
   if (loginIdSplit.length < 3) {
     return null;
   }
@@ -1351,7 +1363,7 @@ const _expandLoginId = function(loginIdStr) {
  * @param  {LoginId}         loginId     The login id to validate
  * @api private
  */
-const _validateLoginIdForLookup = function(validator, loginId) {
+const _validateLoginIdForLookup = function (validator, loginId) {
   // Only validate these if loginId is a valid object
   const ifLoginIsValid = () => Boolean(loginId);
   const getAttribute = getNestedObject(loginId);
@@ -1384,7 +1396,7 @@ const _validateLoginIdForLookup = function(validator, loginId) {
  * @param  {LoginId}         loginId     The login id to validate
  * @api private
  */
-const _validateLoginIdForPersistence = function(validator, loginId, callback) {
+const _validateLoginIdForPersistence = function (validator, loginId, callback) {
   _validateLoginIdForLookup(validator, loginId, callback);
 
   // Only continue validating if the login id is valid so far
@@ -1415,7 +1427,7 @@ const _validateLoginIdForPersistence = function(validator, loginId, callback) {
  * @param  {Strategy}   strategy        The OAE strategy that needs to be registered
  * @throws {Error}                      An error is thrown if another strategy was already registered with the provided strategy name
  */
-const registerStrategy = function(strategyName, strategy) {
+const registerStrategy = function (strategyName, strategy) {
   if (strategies[strategyName]) {
     throw new Error('Attempted to register duplicate authentication strategy');
   }
@@ -1430,7 +1442,7 @@ const registerStrategy = function(strategyName, strategy) {
  *
  * @param  {Tenant} tenant  The tenant for which we want to refresh the authentication capabilities
  */
-const refreshStrategies = function(tenant) {
+const refreshStrategies = function (tenant) {
   _.each(strategies, (strategy, strategyName) => {
     // Get the name we used to register this strategy with passport. This is a combination of the tenant and strategy name
     const passportStrategyName = AuthenticationUtil.getStrategyId(tenant, strategyName);
@@ -1465,7 +1477,7 @@ const refreshStrategies = function(tenant) {
  *
  * @api private
  */
-const _refreshAllTenantStrategies = function() {
+const _refreshAllTenantStrategies = function () {
   const tenants = TenantsAPI.getTenants();
 
   // Refresh all the tenant auth strategies
@@ -1484,40 +1496,40 @@ const _refreshAllTenantStrategies = function() {
  * @param  {Request}    req     The ExpressJS request object
  * @param  {Response}   res     The ExpressJS response object
  */
-const logout = function(req, res) {
-  if (!req.ctx.user()) {
-    return res.status(400).send('You need to be logged in, in order to log out');
+const logout = function (request, response) {
+  if (!request.ctx.user()) {
+    return response.status(400).send('You need to be logged in, in order to log out');
   }
 
   // We need to grab the authentication info before we call `logOut()`
   // as the property would otherwise be removed
-  const authInfo = req.oaeAuthInfo;
+  const authInfo = request.oaeAuthInfo;
 
   // In all cases, we destroy the session within OAE
-  req.logout();
+  request.logout();
 
   // Emit an event that the user logged out
-  AuthenticationAPI.emit(AuthenticationConstants.events.USER_LOGGED_OUT, req.ctx);
+  AuthenticationAPI.emit(AuthenticationConstants.events.USER_LOGGED_OUT, request.ctx);
 
   // If the full unique strategy was not made available on the request, there is nothing we can do any further
   if (!authInfo || !authInfo.strategyId) {
-    return res.redirect('/');
+    return response.redirect('/');
   }
 
   // If no strategy name was set on the request we're done
   const passportStrategyName = AuthenticationUtil.parseStrategyId(authInfo.strategyId).strategyName;
   if (!passportStrategyName) {
-    return res.redirect('/');
+    return response.redirect('/');
   }
 
   // If the strategy didn't implement a logout function we're done
   const strategy = strategies[passportStrategyName];
   if (!strategy || !strategy.logout) {
-    return res.redirect('/');
+    return response.redirect('/');
   }
 
   // If the strategy implemented a logout function, they can take care of the further request cycle
-  return strategy.logout(req, res);
+  return strategy.logout(request, response);
 };
 
 export {

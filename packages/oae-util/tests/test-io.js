@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,22 +27,22 @@ describe('IO', () => {
     /**
      * Test that verifies that copyFiles creates a new file with the same contents as the original
      */
-    it('verify a new file is created with duplicate content', callback => {
+    it('verify a new file is created with duplicate content', (callback) => {
       const sourceFile = datadir + 'banditos.txt';
       const destFile = datadir + 'refreshments.txt';
 
       // Verify that the dest file doesn't already exist
-      fs.stat(destFile, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, 'ENOENT');
+      fs.stat(destFile, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, 'ENOENT');
 
-        IO.copyFile(sourceFile, destFile, err => {
-          assert.notExists(err);
+        IO.copyFile(sourceFile, destFile, (error) => {
+          assert.notExists(error);
           // Verify that the source and dest files contain the same data
-          fs.readFile(sourceFile, 'utf8', (err, sourceText) => {
-            assert.notExists(err);
-            fs.readFile(destFile, 'utf8', (err, destText) => {
-              assert.notExists(err);
+          fs.readFile(sourceFile, 'utf8', (error, sourceText) => {
+            assert.notExists(error);
+            fs.readFile(destFile, 'utf8', (error, destText) => {
+              assert.notExists(error);
               assert.strictEqual(sourceText, destText);
               callback();
             });
@@ -55,21 +56,21 @@ describe('IO', () => {
     /**
      * Test that verifies that moveFile renames a file
      */
-    it('verify a file is renamed', callback => {
+    it('verify a file is renamed', (callback) => {
       const sourceFile = datadir + 'refreshments.txt';
       const destFile = datadir + 'refreshments-banditos.txt';
-      IO.moveFile(sourceFile, destFile, err => {
-        assert.notExists(err);
+      IO.moveFile(sourceFile, destFile, (error) => {
+        assert.notExists(error);
 
         // Verify that the source file is removed
-        fs.stat(sourceFile, err => {
-          assert.strictEqual(err.code, 'ENOENT');
+        fs.stat(sourceFile, (error) => {
+          assert.strictEqual(error.code, 'ENOENT');
 
           // Verify that the source and dest files contain the same data
-          fs.readFile(datadir + 'banditos.txt', 'utf8', (err, sourceText) => {
-            assert.notExists(err);
-            fs.readFile(destFile, 'utf8', (err, destText) => {
-              assert.notExists(err);
+          fs.readFile(datadir + 'banditos.txt', 'utf8', (error, sourceText) => {
+            assert.notExists(error);
+            fs.readFile(destFile, 'utf8', (error, destText) => {
+              assert.notExists(error);
               assert.strictEqual(sourceText, destText);
               fs.unlink(destFile, callback);
             });
@@ -87,8 +88,8 @@ describe('IO', () => {
       const stream = fs.createReadStream('.');
 
       // Register our pre-destroy listener.
-      stream.on('error', err => {
-        assert.notExists(err);
+      stream.on('error', (error) => {
+        assert.notExists(error);
         assert.fail('This listener should have been removed.');
       });
       stream.on('close', () => {
@@ -109,17 +110,17 @@ describe('IO', () => {
     /**
      * Test that verifies that files and folders can be checked
      */
-    it('verify files and folder can be checked', callback => {
-      IO.exists(__filename, (err, exists) => {
-        assert.notExists(err);
+    it('verify files and folder can be checked', (callback) => {
+      IO.exists(__filename, (error, exists) => {
+        assert.notExists(error);
         assert.strictEqual(exists, true);
 
-        IO.exists(__dirname, (err, exists) => {
-          assert.notExists(err);
+        IO.exists(__dirname, (error, exists) => {
+          assert.notExists(error);
           assert.strictEqual(exists, true);
 
-          IO.exists(path.join(__dirname, 'non-existing-file'), (err, exists) => {
-            assert.notExists(err);
+          IO.exists(path.join(__dirname, 'non-existing-file'), (error, exists) => {
+            assert.notExists(error);
             assert.strictEqual(exists, false);
 
             return callback();

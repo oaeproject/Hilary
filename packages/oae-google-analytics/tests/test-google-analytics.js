@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, before, it } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -34,7 +35,7 @@ describe('Google Analytics', () => {
   /**
    * Function that initializes the REST contexts
    */
-  before(callback => {
+  before((callback) => {
     // Fill up the rest context for the anonymous user
     asCambridgeAnonymousUser = createTenantRestContext(global.oaeTests.tenants.cam.host);
 
@@ -47,15 +48,15 @@ describe('Google Analytics', () => {
   /**
    * Test that verifies that the Google Analytics config values are returned in the config feed
    */
-  it('verify the config feed contains Google Analytics config values', callback => {
+  it('verify the config feed contains Google Analytics config values', (callback) => {
     // Create a regular user
-    generateTestUsers(asCambridgeTenantAdmin, 1, (err, users) => {
-      assert.notExists(err);
+    generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
+      assert.notExists(error);
       const { 0: johnDoe } = users;
 
       // Check that the Google Analytics config values are available in the config feed for a regular user
-      getTenantConfig(johnDoe.restContext, null, (err, config) => {
-        assert.notExists(err);
+      getTenantConfig(johnDoe.restContext, null, (error, config) => {
+        assert.notExists(error);
         assert.exists(config);
 
         assert.isFalse(googleAnalyticsSettings(config).globalEnabled);
@@ -64,8 +65,8 @@ describe('Google Analytics', () => {
         assert.isEmpty(googleAnalyticsSettings(config).tenantTrackingId);
 
         // Check that the Google Analytics config values are available in the config feed for a tenant admin
-        getTenantConfig(asCambridgeTenantAdmin, null, (err, config) => {
-          assert.notExists(err);
+        getTenantConfig(asCambridgeTenantAdmin, null, (error, config) => {
+          assert.notExists(error);
           assert.exists(config);
 
           assert.isFalse(googleAnalyticsSettings(config).globalEnabled);
@@ -74,8 +75,8 @@ describe('Google Analytics', () => {
           assert.isEmpty(googleAnalyticsSettings(config).tenantTrackingId);
 
           // Check that the Google Analytics config values are available in the config feed for an anonymous user
-          getTenantConfig(asCambridgeAnonymousUser, null, (err, config) => {
-            assert.notExists(err);
+          getTenantConfig(asCambridgeAnonymousUser, null, (error, config) => {
+            assert.notExists(error);
             assert.exists(config);
 
             assert.isFalse(googleAnalyticsSettings(config).globalEnabled);

@@ -12,7 +12,7 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as OAE from 'oae-util/lib/oae';
@@ -35,13 +35,13 @@ const REGEX_SEARCH_ENDPOINT = /\/api\/search\/([^/]+)(\/.*)?/;
  * @HttpResponse                        200                 Reindexing task queued
  * @HttpResponse                        401                 Only global administrator can trigger a full reindex
  */
-OAE.globalAdminRouter.on('post', '/api/search/reindexAll', (req, res) => {
-  SearchAPI.postReindexAllTask(req.ctx, err => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+OAE.globalAdminRouter.on('post', '/api/search/reindexAll', (request, response) => {
+  SearchAPI.postReindexAllTask(request.ctx, (error) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).end();
+    return response.status(200).end();
   });
 });
 
@@ -59,13 +59,13 @@ OAE.globalAdminRouter.on('post', '/api/search/reindexAll', (req, res) => {
  * @Return      {SearchResponse}                            The retrieved search results
  * @HttpResponse                        200                 Search results available
  */
-const _handleSearchTenants = function(req, res) {
-  const { q } = req.query;
-  const opts = _.pick(req.query, 'start', 'limit', 'disabled');
+const _handleSearchTenants = function (request, response) {
+  const { q } = request.query;
+  const options = _.pick(request.query, 'start', 'limit', 'disabled');
 
-  opts.disabled = OaeUtil.castToBoolean(opts.disabled);
+  options.disabled = OaeUtil.castToBoolean(options.disabled);
 
-  res.status(200).send(TenantsAPI.searchTenants(q, opts));
+  response.status(200).send(TenantsAPI.searchTenants(q, options));
 };
 
 OAE.tenantRouter.on('get', '/api/search/tenants', _handleSearchTenants);
@@ -88,20 +88,20 @@ OAE.globalAdminRouter.on('get', '/api/search/tenants', _handleSearchTenants);
  * @HttpResponse                        200                 Search results available
  * @HttpResponse                        400                 An invalid or unknown search type was specified
  */
-const _handleSearchRequest = function(req, res) {
-  const searchType = req.params[0];
+const _handleSearchRequest = function (request, response) {
+  const searchType = request.params[0];
   if (searchType) {
-    req.telemetryUrl = util.format('/api/search/%s', searchType);
+    request.telemetryUrl = format('/api/search/%s', searchType);
   }
 
-  const pathParams = req.params[1] ? _.compact(req.params[1].split('/')) : [];
-  const opts = _.extend({}, req.query, SearchUtil.getSearchParams(req), { pathParams });
-  SearchAPI.search(req.ctx, searchType, opts, (err, result) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  const pathParameters = request.params[1] ? _.compact(request.params[1].split('/')) : [];
+  const options = _.extend({}, request.query, SearchUtil.getSearchParams(request), { pathParams: pathParameters });
+  SearchAPI.search(request.ctx, searchType, options, (error, result) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    res.status(200).send(result);
+    response.status(200).send(result);
   });
 };
 

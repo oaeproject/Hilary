@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import passport from 'passport';
 
 import { logger } from 'oae-logger';
@@ -21,7 +21,7 @@ import * as OAE from 'oae-util/lib/oae';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
-import * as ShibbolethAPI from './api';
+import * as ShibbolethAPI from './api.js';
 
 const log = logger('shibboleth');
 
@@ -35,19 +35,19 @@ const log = logger('shibboleth');
  * @Path        /auth/shibboleth
  * @Return      {void}
  */
-OAE.tenantRouter.on('post', '/api/auth/shibboleth', (req, res) => {
-  if (!ShibbolethAPI.isEnabled(req.tenant.alias)) {
-    return res.redirect('/?authentication=disabled');
+OAE.tenantRouter.on('post', '/api/auth/shibboleth', (request, response) => {
+  if (!ShibbolethAPI.isEnabled(request.tenant.alias)) {
+    return response.redirect('/?authentication=disabled');
   }
 
   // Get the URL to which the user should be redirected and store it in a cookie,
   // so we can retrieve it once the user returns from the identity provider
-  const redirectUrl = AuthenticationUtil.validateRedirectUrl(req.body.redirectUrl);
-  res.cookie('redirectUrl', redirectUrl);
+  const redirectUrl = AuthenticationUtil.validateRedirectUrl(request.body.redirectUrl);
+  response.cookie('redirectUrl', redirectUrl);
 
   // Redirect the user to our SP host
-  const serviceProviderUrl = ShibbolethAPI.getServiceProviderUrl(req.ctx);
-  res.redirect(serviceProviderUrl);
+  const serviceProviderUrl = ShibbolethAPI.getServiceProviderUrl(request.ctx);
+  response.redirect(serviceProviderUrl);
 });
 
 /**
@@ -64,21 +64,21 @@ OAE.tenantRouter.on('post', '/api/auth/shibboleth', (req, res) => {
  * @QueryParam  {number}                [expires]             The timestamp (millis since epoch) at which the signature expires
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (req, res, next) => {
-  if (ShibbolethAPI.getSPHost() !== req.hostname) {
-    return res.status(501).send('This endpoint is not enabled on a regular tenant');
+OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (request, response, next) => {
+  if (ShibbolethAPI.getSPHost() !== request.hostname) {
+    return response.status(501).send('This endpoint is not enabled on a regular tenant');
   }
 
-  const { tenantAlias, signature, expires } = req.query;
+  const { tenantAlias, signature, expires } = request.query;
 
   // Validate the parameters
-  ShibbolethAPI.validateInitiateParameters(tenantAlias, signature, expires, (err, tenant) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  ShibbolethAPI.validateInitiateParameters(tenantAlias, signature, expires, (error, tenant) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     // Keep track of the tenant from which the user originated
-    res.cookie('shibboleth', tenantAlias, { signed: true });
+    response.cookie('shibboleth', tenantAlias, { signed: true });
 
     // Get the ID under which this strategy was registered for this tenant
     const strategyId = AuthenticationUtil.getStrategyId(
@@ -87,7 +87,7 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (req, res, next) => {
     );
 
     // Perform the initial authentication step
-    AuthenticationUtil.handleExternalSetup(strategyId, null, req, res, next);
+    AuthenticationUtil.handleExternalSetup(strategyId, null, request, response, next);
   });
 });
 
@@ -108,25 +108,25 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp', (req, res, next) => {
  * @Path        /auth/shibboleth/sp/callback
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
-  if (ShibbolethAPI.getSPHost() !== req.hostname) {
-    return res.status(501).send('This endpoint is not enabled on a regular tenant');
+OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (request, response) => {
+  if (ShibbolethAPI.getSPHost() !== request.hostname) {
+    return response.status(501).send('This endpoint is not enabled on a regular tenant');
   }
 
   // Get the alias of the tenant this user originated from
-  const tenantAlias = req.signedCookies.shibboleth;
+  const tenantAlias = request.signedCookies.shibboleth;
 
   // Remove the cookie
-  res.clearCookie('shibboleth');
+  response.clearCookie('shibboleth');
 
   // Get the full tenant object to allow for the full URL to be constructed
-  ShibbolethAPI.getShibbolethEnabledTenant(tenantAlias, (err, tenant) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  ShibbolethAPI.getShibbolethEnabledTenant(tenantAlias, (error, tenant) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     // The base url for the tenant
-    const tenantUrl = util.format('https://%s', tenant.host);
+    const tenantUrl = format('https://%s', tenant.host);
 
     // Get the Shibboleth strategy
     const strategyId = AuthenticationUtil.getStrategyId(
@@ -135,10 +135,10 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
     );
 
     // Validate and authenticate the request
-    passport.authenticate(strategyId, {}, (err, user, challenges, status) => {
-      if (err) {
-        log().error({ err, tenantAlias }, 'Error during Shibboleth authentication');
-        return res.redirect(tenantUrl + '/?authentication=failed&reason=error');
+    passport.authenticate(strategyId, {}, (error, user, challenges, status) => {
+      if (error) {
+        log().error({ err: error, tenantAlias }, 'Error during Shibboleth authentication');
+        return response.redirect(tenantUrl + '/?authentication=failed&reason=error');
       }
 
       if (!user) {
@@ -150,15 +150,15 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
           { challenges, status },
           'Possible tampering of external callback request detected'
         );
-        return res.redirect(tenantUrl + '/?authentication=failed&reason=tampering');
+        return response.redirect(tenantUrl + '/?authentication=failed&reason=tampering');
       }
 
       // The user's authentication credentials are correct and the user was created
       // or retrieved from the database. Send the user back to their own tenant and pass
       // along their user id
       const redirectUrl = ShibbolethAPI.getAuthenticatedUserRedirectUrl(tenant, user);
-      res.redirect(redirectUrl);
-    })(req, res);
+      response.redirect(redirectUrl);
+    })(request, response);
   });
 });
 
@@ -176,24 +176,24 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (req, res) => {
  * @QueryParam  {number}                [expires]           The timestamp (millis since epoch) at which the signature expires
  * @Return      {void}
  */
-OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (req, res, next) => {
-  if (!ShibbolethAPI.isEnabled(req.tenant.alias)) {
-    return res.redirect('/?authentication=disabled');
+OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (request, response, next) => {
+  if (!ShibbolethAPI.isEnabled(request.tenant.alias)) {
+    return response.redirect('/?authentication=disabled');
   }
 
   // Get the user from the database
-  const { signature, expires, userId } = req.query;
-  ShibbolethAPI.getUser(req.tenant, userId, signature, expires, (err, user) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+  const { signature, expires, userId } = request.query;
+  ShibbolethAPI.getUser(request.tenant, userId, signature, expires, (error, user) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
     // Log the user in
     const strategyId = AuthenticationUtil.getStrategyId(
-      req.tenant,
+      request.tenant,
       AuthenticationConstants.providers.SHIBBOLETH
     );
-    return AuthenticationUtil.handleLogin(strategyId, user, req, res, next);
+    return AuthenticationUtil.handleLogin(strategyId, user, request, response, next);
   });
 });
 

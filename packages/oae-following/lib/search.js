@@ -20,15 +20,15 @@ import * as SearchUtil from 'oae-search/lib/util';
 import * as FollowingAPI from 'oae-following';
 import * as FollowingDAO from 'oae-following/lib/internal/dao';
 import { FollowingConstants } from 'oae-following/lib/constants';
-import * as resourceFollowersSchema from './search/schema/resourceFollowersSchema';
-import * as resourceFollowingSchema from './search/schema/resourceFollowingSchema';
+import * as resourceFollowersSchema from './search/schema/resourceFollowersSchema.js';
+import * as resourceFollowingSchema from './search/schema/resourceFollowingSchema.js';
 
-/// ///////////////////
-// SEARCH ENDPOINTS //
-/// ///////////////////
+/**
+ * Search endpoints
+ */
 
-import followers from './search/searches/followers';
-import following from './search/searches/following';
+import followers from './search/searches/followers.js';
+import following from './search/searches/following.js';
 
 /**
  * Initializes the child search documents for the Following module
@@ -36,7 +36,7 @@ import following from './search/searches/following';
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   const followersChildSearchDocumentOptions = {
     resourceTypes: ['user'],
     schema: resourceFollowersSchema,
@@ -57,9 +57,9 @@ const init = function(callback) {
   SearchAPI.registerChildSearchDocument(
     FollowingConstants.search.MAPPING_RESOURCE_FOLLOWERS,
     followersChildSearchDocumentOptions,
-    err => {
-      if (err) {
-        return callback(err);
+    (error) => {
+      if (error) {
+        return callback(error);
       }
 
       return SearchAPI.registerChildSearchDocument(
@@ -77,7 +77,7 @@ const init = function(callback) {
  * @see SearchAPI.registerChildSearchDocument
  * @api private
  */
-const _produceResourceFollowersDocuments = function(resources, callback, _documents, _errs) {
+const _produceResourceFollowersDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -85,9 +85,9 @@ const _produceResourceFollowersDocuments = function(resources, callback, _docume
 
   // Get all of the followers ids for the next resource in the list
   const resource = resources.pop();
-  _getAllIds(FollowingDAO.getFollowers, resource.id, null, 100, (err, followerUserIds) => {
-    if (err) {
-      _errs = _.union(_errs, [err]);
+  _getAllIds(FollowingDAO.getFollowers, resource.id, null, 100, (error, followerUserIds) => {
+    if (error) {
+      _errs = _.union(_errs, [error]);
       return _produceResourceFollowersDocuments(resources, callback, _documents, _errs);
     }
 
@@ -106,7 +106,7 @@ const _produceResourceFollowersDocuments = function(resources, callback, _docume
  * @see SearchAPI.registerChildSearchDocument
  * @api private
  */
-const _produceResourceFollowingDocuments = function(resources, callback, _documents, _errs) {
+const _produceResourceFollowingDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(_errs, _documents);
@@ -114,9 +114,9 @@ const _produceResourceFollowingDocuments = function(resources, callback, _docume
 
   // Get all of the followers ids for the next resource in the list
   const resource = resources.pop();
-  _getAllIds(FollowingDAO.getFollowing, resource.id, null, 100, (err, followingUserIds) => {
-    if (err) {
-      _errs = _.union(_errs, [err]);
+  _getAllIds(FollowingDAO.getFollowing, resource.id, null, 100, (error, followingUserIds) => {
+    if (error) {
+      _errs = _.union(_errs, [error]);
       return _produceResourceFollowingDocuments(resources, callback, _documents);
     }
 
@@ -142,11 +142,11 @@ const _produceResourceFollowingDocuments = function(resources, callback, _docume
  * @param  {String[]}   callback.ids    All ids that were fetched while paging the provided method
  * @api private
  */
-const _getAllIds = function(method, id, start, limit, callback, _ids) {
+const _getAllIds = function (method, id, start, limit, callback, _ids) {
   _ids = _ids || [];
-  method(id, start, limit, (err, ids, nextToken) => {
-    if (err) {
-      return callback(err);
+  method(id, start, limit, (error, ids, nextToken) => {
+    if (error) {
+      return callback(error);
     }
 
     // Gather all fetched ids into the internal _ids param
@@ -191,7 +191,7 @@ FollowingAPI.emitter.on(FollowingConstants.events.UNFOLLOW, (ctx, followingUser,
  * @param  {String}     followingUserId     The id of the user whose following index to update
  * @param  {String}     followedUserId      The id of the user whose followers index to update
  */
-const _handleIndexChange = function(ctx, followingUserId, followedUserId) {
+const _handleIndexChange = function (ctx, followingUserId, followedUserId) {
   SearchAPI.postIndexTask('user', [{ id: followingUserId }], {
     children: {
       // eslint-disable-next-line camelcase

@@ -51,8 +51,8 @@ import isIn from 'validator/lib/isIn';
 import isInt from 'validator/lib/isInt';
 
 import { equals, forEachObjIndexed } from 'ramda';
-import * as DiscussionsDAO from './internal/dao';
-import { DiscussionsConstants } from './constants';
+import * as DiscussionsDAO from './internal/dao.js';
+import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-api');
 
@@ -77,10 +77,10 @@ const DISCUSSION_UPDATE_FIELDS = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The discussion object that was created
  */
-const createDiscussion = function(ctx, displayName, description, visibility, roles, opts, callback) {
+const createDiscussion = function (ctx, displayName, description, visibility, roles, options, callback) {
   visibility = visibility || DiscussionsConfig.getValue(ctx.tenant().alias, 'visibility', 'discussion');
   roles = roles || {};
-  opts = opts || {};
+  options = options || {};
 
   const allVisibilities = _.values(AuthzConstants.visibility);
 
@@ -138,12 +138,12 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
     visibility,
     null
   );
-  ResourceActions.create(ctx, roles, createFn, (err, discussion, memberChangeInfo) => {
-    if (err) {
-      return callback(err);
+  ResourceActions.create(ctx, roles, createFn, (error, discussion, memberChangeInfo) => {
+    if (error) {
+      return callback(error);
     }
 
-    DiscussionsAPI.emit(DiscussionsConstants.events.CREATED_DISCUSSION, ctx, discussion, memberChangeInfo, errs => {
+    DiscussionsAPI.emit(DiscussionsConstants.events.CREATED_DISCUSSION, ctx, discussion, memberChangeInfo, (errs) => {
       if (errs) {
         return callback(_.first(errs));
       }
@@ -163,7 +163,7 @@ const createDiscussion = function(ctx, displayName, description, visibility, rol
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The updated discussion object
  */
-const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
+const updateDiscussion = function (ctx, discussionId, profileFields, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   try {
@@ -216,19 +216,19 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, discussion, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, discussion, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      DiscussionsDAO.updateDiscussion(discussion, profileFields, (err, updatedDiscussion) => {
-        if (err) {
-          return callback(err);
+      DiscussionsDAO.updateDiscussion(discussion, profileFields, (error, updatedDiscussion) => {
+        if (error) {
+          return callback(error);
         }
 
         // Fill in the full profile, the user has to have been a manager, so these are all true
@@ -241,7 +241,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
           ctx,
           updatedDiscussion,
           discussion,
-          errs => {
+          (errs) => {
             if (errs) {
               return callback(_.first(errs));
             }
@@ -262,7 +262,7 @@ const updateDiscussion = function(ctx, discussionId, profileFields, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteDiscussion = function(ctx, discussionId, callback) {
+const deleteDiscussion = function (ctx, discussionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -277,14 +277,14 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, discussion, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, discussion, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       /*
@@ -292,27 +292,27 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
        * deleting it from the database. This approach wouldn't require accessing and deleting
        * all authz member roles from the discussion
        */
-      AuthzAPI.getAllAuthzMembers(discussion.id, (err, memberIdRoles) => {
-        if (err) {
-          return callback(err);
+      AuthzAPI.getAllAuthzMembers(discussion.id, (error, memberIdRoles) => {
+        if (error) {
+          return callback(error);
         }
 
         const roleChanges = {};
         const removedMemberIds = _.pluck(memberIdRoles, 'id');
-        _.each(removedMemberIds, memberId => {
+        _.each(removedMemberIds, (memberId) => {
           roleChanges[memberId] = false;
         });
 
         // Update the authz associations
-        AuthzAPI.updateRoles(discussion.id, roleChanges, err => {
-          if (err) {
-            return callback(err);
+        AuthzAPI.updateRoles(discussion.id, roleChanges, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           // Remove the actual discussion profile
-          DiscussionsDAO.deleteDiscussion(discussion.id, err => {
-            if (err) {
-              return callback(err);
+          DiscussionsDAO.deleteDiscussion(discussion.id, (error_) => {
+            if (error_) {
+              return callback(error_);
             }
 
             DiscussionsAPI.emit(
@@ -320,7 +320,7 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
               ctx,
               discussion,
               removedMemberIds,
-              errs => {
+              (errs) => {
                 if (errs) {
                   return callback(_.first(errs));
                 }
@@ -348,7 +348,7 @@ const deleteDiscussion = function(ctx, discussionId, callback) {
  * @param  {Discussion[]}   callback.discussions    The array of discussions fetched
  * @param  {String}         [callback.nextToken]    The token that can be used as the `start` parameter to fetch the next set of tokens (exclusively). If not specified, indicates that the query fetched all remaining results.
  */
-const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback) {
+const getDiscussionsLibrary = function (ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -361,15 +361,15 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
   }
 
   // Get the principal
-  PrincipalsDAO.getPrincipal(principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine which library visibility the current user should receive
-    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (err, hasAccess, visibility) => {
-      if (err) {
-        return callback(err);
+    LibraryAPI.Authz.resolveTargetLibraryAccess(ctx, principal.id, principal, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!hasAccess) {
@@ -382,16 +382,16 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
         principalId,
         visibility,
         { start, limit },
-        (err, entries, nextToken) => {
-          if (err) {
-            return callback(err);
+        (error, entries, nextToken) => {
+          if (error) {
+            return callback(error);
           }
 
           // Get the discussion objects from the discussion ids
           const discussionIds = _.pluck(entries, 'resourceId');
-          DiscussionsDAO.getDiscussionsById(discussionIds, null, (err, discussions) => {
-            if (err) {
-              return callback(err);
+          DiscussionsDAO.getDiscussionsById(discussionIds, null, (error, discussions) => {
+            if (error) {
+              return callback(error);
             }
 
             // Emit an event indicating that the discussion library has been retrieved
@@ -422,7 +422,7 @@ const getDiscussionsLibrary = function(ctx, principalId, start, limit, callback)
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Discussion} callback.discussion The discussion object requested
  */
-const getDiscussion = function(ctx, discussionId, callback) {
+const getDiscussion = function (ctx, discussionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -432,14 +432,14 @@ const getDiscussion = function(ctx, discussionId, callback) {
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    AuthzPermissions.canView(ctx, discussion, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canView(ctx, discussion, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       return callback(null, discussion);
@@ -461,7 +461,7 @@ const getDiscussion = function(ctx, discussionId, callback) {
  * @param  {Boolean}    callback.discussion.canShare    Specifies if the current user in context is allowed to share the discussion
  * @param  {Boolean}    callback.discussion.canPost     Specifies if the current user in context is allowed to post messages to the discussion
  */
-const getFullDiscussionProfile = function(ctx, discussionId, callback) {
+const getFullDiscussionProfile = function (ctx, discussionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -472,15 +472,15 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
   }
 
   // Get the discussion object, throwing an error if it does not exist but does not do permission checks
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     // Resolve the full discussion access information for the current user
-    AuthzPermissions.resolveEffectivePermissions(ctx, discussion, (err, permissions) => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.resolveEffectivePermissions(ctx, discussion, (error, permissions) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!permissions.canView) {
@@ -499,11 +499,11 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
       }
 
       // Populate the creator of the discussion
-      PrincipalsUtil.getPrincipal(ctx, discussion.createdBy, (err, creator) => {
-        if (err) {
+      PrincipalsUtil.getPrincipal(ctx, discussion.createdBy, (error, creator) => {
+        if (error) {
           log().warn(
             {
-              err,
+              err: error,
               userId: discussion.createdBy,
               discussionId: discussion.id
             },
@@ -534,7 +534,7 @@ const getFullDiscussionProfile = function(ctx, discussionId, callback) {
  * @param  {User|Group}     callback.members[i].profile     The principal profile of the member at index `i`
  * @param  {String}         callback.nextToken              The value to provide in the `start` parameter to get the next set of results
  */
-const getDiscussionMembers = function(ctx, discussionId, start, limit, callback) {
+const getDiscussionMembers = function (ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -546,26 +546,26 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
     return callback(error);
   }
 
-  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
-    if (err) {
-      return callback(err);
+  getDiscussion(ctx, discussionId, (error /* , discussion */) => {
+    if (error) {
+      return callback(error);
     }
 
     // Get the discussion members
-    AuthzAPI.getAuthzMembers(discussionId, start, limit, (err, memberRoles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getAuthzMembers(discussionId, start, limit, (error, memberRoles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Get the basic profiles for all of these principals
       const memberIds = _.pluck(memberRoles, 'id');
-      PrincipalsUtil.getPrincipals(ctx, memberIds, (err, memberProfiles) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, memberIds, (error, memberProfiles) => {
+        if (error) {
+          return callback(error);
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, memberRole => {
+        const memberList = _.map(memberRoles, (memberRole) => {
           return {
             profile: memberProfiles[memberRole.id],
             role: memberRole.role
@@ -587,7 +587,7 @@ const getDiscussionMembers = function(ctx, discussionId, start, limit, callback)
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
-const getDiscussionInvitations = function(ctx, discussionId, callback) {
+const getDiscussionInvitations = function (ctx, discussionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -597,9 +597,9 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     return AuthzInvitations.getAllInvitations(ctx, discussion, callback);
@@ -615,7 +615,7 @@ const getDiscussionInvitations = function(ctx, discussionId, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const resendDiscussionInvitation = function(ctx, discussionId, email, callback) {
+const resendDiscussionInvitation = function (ctx, discussionId, email, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -625,9 +625,9 @@ const resendDiscussionInvitation = function(ctx, discussionId, email, callback) 
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     return ResourceActions.resendInvitation(ctx, discussion, email, callback);
@@ -645,7 +645,7 @@ const resendDiscussionInvitation = function(ctx, discussionId, email, callback) 
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
+const shareDiscussion = function (ctx, discussionId, principalIds, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -660,14 +660,14 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
     return callback(error);
   }
 
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    ResourceActions.share(ctx, discussion, principalIds, AuthzConstants.role.MEMBER, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.share(ctx, discussion, principalIds, AuthzConstants.role.MEMBER, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(memberChangeInfo.changes)) {
@@ -680,7 +680,7 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
         discussion,
         memberChangeInfo,
         {},
-        errs => {
+        (errs) => {
           if (errs) {
             return callback(_.first(errs));
           }
@@ -703,7 +703,7 @@ const shareDiscussion = function(ctx, discussionId, principalIds, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.permissions    An object describing the permissions of the discussion after the change is applied. The key is the principal id and the value is the role that the principal has on the discussion
  */
-const setDiscussionPermissions = function(ctx, discussionId, changes, callback) {
+const setDiscussionPermissions = function (ctx, discussionId, changes, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -737,14 +737,14 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
   }
 
   // Get the discussion object, throwing an error if it doesn't exist, but not applying permissions checks
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    ResourceActions.setRoles(ctx, discussion, changes, (err, memberChangeInfo) => {
-      if (err) {
-        return callback(err);
+    ResourceActions.setRoles(ctx, discussion, changes, (error, memberChangeInfo) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(memberChangeInfo.changes)) {
@@ -757,7 +757,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
         discussion,
         memberChangeInfo,
         {},
-        errs => {
+        (errs) => {
           if (errs) {
             return callback(_.first(errs));
           }
@@ -781,7 +781,7 @@ const setDiscussionPermissions = function(ctx, discussionId, changes, callback) 
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, callback) {
+const removeDiscussionFromLibrary = function (ctx, libraryOwnerId, discussionId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -802,25 +802,25 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
   }
 
   // Make sure the discussion exists
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
-    PrincipalsDAO.getPrincipal(libraryOwnerId, (err, principal) => {
-      if (err) {
-        return callback(err);
+    PrincipalsDAO.getPrincipal(libraryOwnerId, (error, principal) => {
+      if (error) {
+        return callback(error);
       }
 
-      AuthzPermissions.canRemoveRole(ctx, principal, discussion, (err, memberChangeInfo) => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canRemoveRole(ctx, principal, discussion, (error, memberChangeInfo) => {
+        if (error) {
+          return callback(error);
         }
 
         // All validation checks have passed, finally persist the role change and update the user library
-        AuthzAPI.updateRoles(discussionId, memberChangeInfo.changes, err => {
-          if (err) {
-            return callback(err);
+        AuthzAPI.updateRoles(discussionId, memberChangeInfo.changes, (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
           DiscussionsAPI.emit(
@@ -829,7 +829,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
             discussion,
             memberChangeInfo,
             {},
-            errs => {
+            (errs) => {
               if (errs) {
                 return callback(_.first(errs));
               }
@@ -855,7 +855,7 @@ const removeDiscussionFromLibrary = function(ctx, libraryOwnerId, discussionId, 
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Message}        callback.message            The created message
  */
-const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp, callback) {
+const createMessage = function (ctx, discussionId, body, replyToCreatedTimestamp, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -884,15 +884,15 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
   }
 
   // Get the discussion, throwing an error if it doesn't exist, avoiding permission checks for now
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determine if the current user can post discussion messages to this discussion
-    AuthzPermissions.canInteract(ctx, discussion, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canInteract(ctx, discussion, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
       // Create the message
@@ -901,15 +901,15 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
         ctx.user().id,
         body,
         { replyToCreated: replyToCreatedTimestamp },
-        (err, message) => {
-          if (err) {
-            return callback(err);
+        (error, message) => {
+          if (error) {
+            return callback(error);
           }
 
           // Get a UI-appropriate representation of the current user
-          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (err, createdBy) => {
-            if (err) {
-              return callback(err);
+          PrincipalsUtil.getPrincipal(ctx, ctx.user().id, (error, createdBy) => {
+            if (error) {
+              return callback(error);
             }
 
             message.createdBy = createdBy;
@@ -920,7 +920,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
               ctx,
               message,
               discussion,
-              errs => {
+              (errs) => {
                 if (errs) {
                   return callback(_.first(errs));
                 }
@@ -946,7 +946,7 @@ const createMessage = function(ctx, discussionId, body, replyToCreatedTimestamp,
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Comment}    [callback.softDeleted]  When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
-const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) {
+const deleteMessage = function (ctx, discussionId, messageCreatedDate, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -965,15 +965,15 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
   }
 
   // Get the discussion without permissions check
-  _getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+  _getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     // Ensure that the message exists. We also need it so we can make sure we have access to deleted it
-    MessageBoxAPI.getMessages(discussionId, [messageCreatedDate], { scrubDeleted: false }, (err, messages) => {
-      if (err) {
-        return callback(err);
+    MessageBoxAPI.getMessages(discussionId, [messageCreatedDate], { scrubDeleted: false }, (error, messages) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!messages[0]) {
@@ -983,9 +983,9 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
       const message = messages[0];
 
       // Determine if we have access to delete the discussion message
-      AuthzPermissions.canManageMessage(ctx, discussion, message, err => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canManageMessage(ctx, discussion, message, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Delete the message using the "leaf" method, which will SOFT delete if the message has replies, or HARD delete if it does not
@@ -993,9 +993,9 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
           discussionId,
           messageCreatedDate,
           { deleteType: MessageBoxConstants.deleteTypes.LEAF },
-          (err, deleteType, deletedMessage) => {
-            if (err) {
-              return callback(err);
+          (error, deleteType, deletedMessage) => {
+            if (error) {
+              return callback(error);
             }
 
             DiscussionsAPI.emit(
@@ -1031,7 +1031,7 @@ const deleteMessage = function(ctx, discussionId, messageCreatedDate, callback) 
  * @param  {Message[]}      callback.messages       The messages in the discussion. Of the type `MessageBoxModel#Message`
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getMessages = function(ctx, discussionId, start, limit, callback) {
+const getMessages = function (ctx, discussionId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1048,18 +1048,18 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
   }
 
   // Get the discussion, throwing an error if the user in context doesn't have view access or if it doesn't exist
-  getDiscussion(ctx, discussionId, (err /* , discussion */) => {
-    if (err) {
-      return callback(err);
+  getDiscussion(ctx, discussionId, (error /* , discussion */) => {
+    if (error) {
+      return callback(error);
     }
 
     // Fetch the messages from the message box
-    MessageBoxAPI.getMessagesFromMessageBox(discussionId, start, limit, null, (err, messages, nextToken) => {
-      if (err) {
-        return callback(err);
+    MessageBoxAPI.getMessagesFromMessageBox(discussionId, start, limit, null, (error, messages, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      let userIds = _.map(messages, message => {
+      let userIds = _.map(messages, (message) => {
         return message.createdBy;
       });
 
@@ -1067,19 +1067,19 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
       userIds = _.uniq(_.compact(userIds));
 
       // Get the basic principal profiles of the messagers to add to the messages as `createdBy`.
-      PrincipalsUtil.getPrincipals(ctx, userIds, (err, users) => {
-        if (err) {
-          return callback(err);
+      PrincipalsUtil.getPrincipals(ctx, userIds, (error, users) => {
+        if (error) {
+          return callback(error);
         }
 
         // Attach the user profiles to the message objects
-        _.each(messages, message => {
+        _.each(messages, (message) => {
           if (users[message.createdBy]) {
             message.createdBy = users[message.createdBy];
           }
         });
 
-        return callback(err, messages, nextToken);
+        return callback(error, messages, nextToken);
       });
     });
   });
@@ -1096,10 +1096,10 @@ const getMessages = function(ctx, discussionId, start, limit, callback) {
  * @param  {Discussion} callback.discussion The discussion object requested
  * @api private
  */
-const _getDiscussion = function(discussionId, callback) {
-  DiscussionsDAO.getDiscussion(discussionId, (err, discussion) => {
-    if (err) {
-      return callback(err);
+const _getDiscussion = function (discussionId, callback) {
+  DiscussionsDAO.getDiscussion(discussionId, (error, discussion) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!discussion) {

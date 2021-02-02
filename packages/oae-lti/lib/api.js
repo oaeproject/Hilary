@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import * as VersionAPI from 'oae-version';
 
 import oauth from 'oauth-sign';
@@ -26,8 +26,8 @@ import PrincipalsApi from 'oae-principals';
 import { Validator as validator } from 'oae-authz/lib/validator';
 const { isGroupId, unless, isNotEmpty } = validator;
 
-import * as LtiDAO from './internal/dao';
-import { LtiToolLaunchParams, LtiLaunchParams } from './model';
+import * as LtiDAO from './internal/dao.js';
+import { LtiToolLaunchParams, LtiLaunchParams } from './model.js';
 
 const log = logger('oae-lti');
 
@@ -41,23 +41,23 @@ const log = logger('oae-lti');
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {User[]}     callback.params     The parameters for an LTI tool launch
  */
-const getLtiTool = function(ctx, id, groupId, callback) {
-  PrincipalsApi.getFullGroupProfile(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+const getLtiTool = function (ctx, id, groupId, callback) {
+  PrincipalsApi.getFullGroupProfile(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (!group.isManager && !group.isMember) {
       return callback({ code: 401, msg: 'The current user does not have access to this LTI tool' });
     }
 
-    PrincipalsApi.getMe(ctx, (err, principal) => {
-      if (err) {
-        return callback(err);
+    PrincipalsApi.getMe(ctx, (error, principal) => {
+      if (error) {
+        return callback(error);
       }
 
-      VersionAPI.getVersionCB((err, gitRepoInformation) => {
-        if (err) {
+      VersionAPI.getVersionCB((error, gitRepoInformation) => {
+        if (error) {
           log().warn('Failed to fetch OAE version');
           version = '';
         }
@@ -65,20 +65,20 @@ const getLtiTool = function(ctx, id, groupId, callback) {
         const hilaryRepoInfo = gitRepoInformation.get('Hilary');
         let version = hilaryRepoInfo.latestTag;
 
-        LtiDAO.getLtiTool(id, groupId, (err, tool) => {
-          if (err) {
+        LtiDAO.getLtiTool(id, groupId, (error, tool) => {
+          if (error) {
             log().error(
               {
-                err
+                err: error
               },
               'Failed to fetch existing LTI tool'
             );
-            return callback(err);
+            return callback(error);
           }
 
           // Const {  secret,  launchUrl } = tool; // The URL under which the LTI tool reside and the LTI oauth secret
 
-          const launchParams = new LtiLaunchParams(
+          const launchParameters = new LtiLaunchParams(
             tool,
             version,
             group.tenant.alias,
@@ -89,7 +89,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
           );
 
           // eslint-disable-next-line camelcase
-          launchParams.oauth_signature = oauth.hmacsign('POST', tool.launchUrl, launchParams, tool.secret, '');
+          launchParameters.oauth_signature = oauth.hmacsign('POST', tool.launchUrl, launchParameters, tool.secret, '');
 
           // Scrub out OAUTH parameters from tool
           delete tool.secret;
@@ -98,7 +98,7 @@ const getLtiTool = function(ctx, id, groupId, callback) {
           // Add isManager and owner
           tool.isManager = principal.isGlobalAdmin || principal.isTenantAdmin;
           tool.owner = group;
-          return callback(null, new LtiToolLaunchParams(tool, launchParams));
+          return callback(null, new LtiToolLaunchParams(tool, launchParameters));
         });
       });
     });
@@ -120,20 +120,20 @@ const getLtiTool = function(ctx, id, groupId, callback) {
  * @param  {Object}     [callback.err]       An error that occurred, if any
  * @param  {Message}    [callback.tool]      The LTI tool model object that was persisted
  */
-const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, callback) {
+const addLtiTool = function (ctx, groupId, launchUrl, secret, consumerKey, options, callback) {
   // Ensure the target group exists and has not been deleted
-  PrincipalsApi.getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsApi.getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find group: %s", groupId) });
     }
 
-    PrincipalsApi.getMe(ctx, (err, me) => {
-      if (err) {
-        return callback(err);
+    PrincipalsApi.getMe(ctx, (error, me) => {
+      if (error) {
+        return callback(error);
       }
 
       if (!me.isTenantAdmin && !me.isGlobalAdmin) {
@@ -144,9 +144,9 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
       }
 
       // Check if we can add tools to this group
-      AuthzPermissions.canManage(ctx, group, err => {
-        if (err) {
-          return callback(err);
+      AuthzPermissions.canManage(ctx, group, (error_) => {
+        if (error_) {
+          return callback(error_);
         }
 
         // Parameter validation
@@ -182,19 +182,19 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
           launchUrl,
           secret,
           consumerKey,
-          opts.displayName,
-          opts.description,
-          (err, tool) => {
-            if (err) {
+          options.displayName,
+          options.description,
+          (error, tool) => {
+            if (error) {
               log().error(
                 {
-                  err,
+                  err: error,
                   groupId,
                   id
                 },
                 'Error creating LTI tool'
               );
-              return callback(err);
+              return callback(error);
             }
 
             return callback(null, tool);
@@ -214,26 +214,26 @@ const addLtiTool = function(ctx, groupId, launchUrl, secret, consumerKey, opts, 
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Message[]}  callback.tools      An array of LTI tools
  */
-const getLtiTools = function(ctx, groupId, callback) {
+const getLtiTools = function (ctx, groupId, callback) {
   // Ensure the target group exists and has not been deleted
-  PrincipalsApi.getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsApi.getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find group: %s", groupId) });
     }
 
-    LtiDAO.getLtiToolsByGroupId(groupId, (err, tools) => {
-      if (err) {
+    LtiDAO.getLtiToolsByGroupId(groupId, (error, tools) => {
+      if (error) {
         log().error(
           {
-            err
+            err: error
           },
           'Failed to fetch existing LTI tools'
         );
-        return callback(err);
+        return callback(error);
       }
 
       return callback(null, tools);
@@ -250,32 +250,32 @@ const getLtiTools = function(ctx, groupId, callback) {
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any
  */
-const deleteLtiTool = function(ctx, id, groupId, callback) {
+const deleteLtiTool = function (ctx, id, groupId, callback) {
   // Ensure the target group exists and has not been deleted
-  PrincipalsApi.getGroup(ctx, groupId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsApi.getGroup(ctx, groupId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     if (group.deleted) {
-      return callback({ code: 404, msg: util.format("Couldn't find group: %s", groupId) });
+      return callback({ code: 404, msg: format("Couldn't find group: %s", groupId) });
     }
 
     // Check if we can delete tools in this group
-    AuthzPermissions.canManage(ctx, group, err => {
-      if (err) {
-        return callback(err);
+    AuthzPermissions.canManage(ctx, group, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      LtiDAO.deleteLtiTool(id, groupId, err => {
-        if (err) {
+      LtiDAO.deleteLtiTool(id, groupId, (error_) => {
+        if (error_) {
           log().error(
             {
-              err
+              err: error_
             },
             'Could not delete new LTI tool'
           );
-          return callback(err);
+          return callback(error_);
         }
 
         return callback();

@@ -14,14 +14,14 @@
  */
 
 import Redlock from 'redlock';
-import * as Redis from './redis';
+import * as Redis from './redis.js';
 
 import { logger } from 'oae-logger';
 
 import { compose } from 'ramda';
 import isInt from 'validator/lib/isInt';
-import { Validator as validator } from './validator';
-import { config } from '../../../config';
+import { Validator as validator } from './validator.js';
+import { config } from '../../../config.js';
 
 const { unless, isDefined, isNotNull } = validator;
 const log = logger('oae-util-locking');
@@ -31,9 +31,9 @@ let locker;
 /**
  * Initialize the Redis based locking
  */
-const init = done => {
-  Redis.createClient(config.redis, (err, client) => {
-    if (err) return done(err);
+const init = (done) => {
+  Redis.createClient(config.redis, (error, client) => {
+    if (error) return done(error);
     locker = new Redlock([client], {
       /**
        *
@@ -68,7 +68,7 @@ const init = done => {
  * @param  {Object}    callback.lock   An object which is the actual Lock that was granted
  * @returns {Function}                 Returns a callback
  */
-const acquire = function(lockKey, expiresIn, callback) {
+const acquire = function (lockKey, expiresIn, callback) {
   try {
     unless(isDefined, {
       code: 400,
@@ -90,10 +90,10 @@ const acquire = function(lockKey, expiresIn, callback) {
 
   log().trace({ lockKey }, 'Trying to acquire lock.');
 
-  locker.lock(lockKey, expiresIn * 1000, (err, lock) => {
-    if (err) {
-      log().warn({ err }, 'Unable to lock for ' + lockKey);
-      return callback(err);
+  locker.lock(lockKey, expiresIn * 1000, (error, lock) => {
+    if (error) {
+      log().warn({ err: error }, 'Unable to lock for ' + lockKey);
+      return callback(error);
     }
 
     return callback(null, lock);
@@ -109,7 +109,7 @@ const acquire = function(lockKey, expiresIn, callback) {
  * @param   {Boolean}    callback.hadLock    Specifies whether or not we actually released a lock
  * @returns {Function}                      Returns a callback
  */
-const release = function(lock, callback) {
+const release = function (lock, callback) {
   try {
     unless(isNotNull, {
       code: 400,
@@ -122,10 +122,10 @@ const release = function(lock, callback) {
   /**
    * The first parameter is not necessary after the migration from redback to redlock
    */
-  locker.unlock(lock, err => {
-    if (err) {
-      log().error({ err }, 'Unable to release the lock ' + lock.value);
-      return callback(err);
+  locker.unlock(lock, (error) => {
+    if (error) {
+      log().error({ err: error }, 'Unable to release the lock ' + lock.value);
+      return callback(error);
     }
 
     return callback();

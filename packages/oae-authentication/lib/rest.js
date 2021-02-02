@@ -16,28 +16,28 @@ import * as OAE from 'oae-util/lib/oae';
 
 import * as AuthenticationAPI from 'oae-authentication';
 
-/// ///////////////////////////
-// AUTHENTICATION PROVIDERS //
-/// ///////////////////////////
+/**
+ * Authentication providers
+ */
 
 // eslint-disable-next-line no-unused-vars
-import cas from './strategies/cas/rest';
+import cas from './strategies/cas/rest.js';
 // eslint-disable-next-line no-unused-vars
-import facebook from './strategies/facebook/rest';
+import facebook from './strategies/facebook/rest.js';
 // eslint-disable-next-line no-unused-vars
-import google from './strategies/google/rest';
+import google from './strategies/google/rest.js';
 // eslint-disable-next-line no-unused-vars
-import ldap from './strategies/ldap/rest';
+import ldap from './strategies/ldap/rest.js';
 // eslint-disable-next-line no-unused-vars
-import local from './strategies/local/rest';
+import local from './strategies/local/rest.js';
 // eslint-disable-next-line no-unused-vars
-import oauth from './strategies/oauth/rest';
+import oauth from './strategies/oauth/rest.js';
 // eslint-disable-next-line no-unused-vars
-import shibb from './strategies/shibboleth/rest';
+import shibb from './strategies/shibboleth/rest.js';
 // eslint-disable-next-line no-unused-vars
-import signed from './strategies/signed/rest';
+import signed from './strategies/signed/rest.js';
 // eslint-disable-next-line no-unused-vars
-import twitter from './strategies/twitter/rest';
+import twitter from './strategies/twitter/rest.js';
 
 /**
  * @REST postAuthLogout
@@ -55,13 +55,13 @@ OAE.tenantRouter.on('post', '/api/auth/logout', AuthenticationAPI.logout);
 /**
  * Add two endpoints for REST control
  */
-const _getResetPasswordSecret = function(req, res) {
-  AuthenticationAPI.getResetPasswordSecret(req.ctx, req.params.username, (err, token) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _getResetPasswordSecret = function(request, response) {
+  AuthenticationAPI.getResetPasswordSecret(request.ctx, request.params.username, (error, token) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(token);
+    return response.status(200).send(token);
   });
 };
 
@@ -84,18 +84,18 @@ const _getResetPasswordSecret = function(req, res) {
  */
 OAE.tenantRouter.on('get', '/api/auth/local/reset/secret/:username', _getResetPasswordSecret);
 
-const _resetPassword = function(req, res) {
+const _resetPassword = function(request, response) {
   AuthenticationAPI.resetPassword(
-    req.ctx,
-    req.params.username,
-    req.body.secret,
-    req.body.newPassword,
-    err => {
-      if (err) {
-        return res.status(err.code).send(err.msg);
+    request.ctx,
+    request.params.username,
+    request.body.secret,
+    request.body.newPassword,
+    error => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
       }
 
-      return res.status(200).end();
+      return response.status(200).end();
     }
   );
 };
@@ -128,13 +128,13 @@ OAE.tenantRouter.on('post', '/api/auth/local/reset/password/:username', _resetPa
  * @param  {Response}   res     The express response
  * @api private
  */
-const _getUserLoginIds = function(req, res) {
-  AuthenticationAPI.getUserLoginIds(req.ctx, req.params.userId, (err, loginIds) => {
-    if (err) {
-      return res.status(err.code).send(err.msg);
+const _getUserLoginIds = function(request, response) {
+  AuthenticationAPI.getUserLoginIds(request.ctx, request.params.userId, (error, loginIds) => {
+    if (error) {
+      return response.status(error.code).send(error.msg);
     }
 
-    return res.status(200).send(loginIds);
+    return response.status(200).send(loginIds);
   });
 };
 

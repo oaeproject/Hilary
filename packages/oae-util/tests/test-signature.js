@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import { describe, it, afterEach } from 'mocha';
 
 import * as Signature from 'oae-util/lib/signature';
 
@@ -31,10 +32,10 @@ describe('Signature', () => {
     /**
      * Test that verifies that signatures produced with different data cannot be verified
      */
-    it('verify signature cannot be verified with different data', callback => {
-      const signature = Signature.sign({ '0': 'zero', '1': 'one' });
-      assert.isNotOk(Signature.verify({ '0': 'one', '1': 'zero' }, signature));
-      assert.ok(Signature.verify({ '0': 'zero', '1': 'one' }, signature));
+    it('verify signature cannot be verified with different data', (callback) => {
+      const signature = Signature.sign({ 0: 'zero', 1: 'one' });
+      assert.isNotOk(Signature.verify({ 0: 'one', 1: 'zero' }, signature));
+      assert.ok(Signature.verify({ 0: 'zero', 1: 'one' }, signature));
       return callback();
     });
 
@@ -42,10 +43,10 @@ describe('Signature', () => {
      * Test that verifies when the same data object with different key ordering is provided to
      * the `sign` method, the same signature is produced
      */
-    it('verify data signature is consistent regardless of key ordering', callback => {
-      const signature = Signature.sign({ '0': 'zero', '1': 'one' });
-      assert.ok(Signature.verify({ '1': 'one', '0': 'zero' }, signature));
-      assert.ok(Signature.verify({ '0': 'zero', '1': 'one' }, signature));
+    it('verify data signature is consistent regardless of key ordering', (callback) => {
+      const signature = Signature.sign({ 0: 'zero', 1: 'one' });
+      assert.ok(Signature.verify({ 1: 'one', 0: 'zero' }, signature));
+      assert.ok(Signature.verify({ 0: 'zero', 1: 'one' }, signature));
       return callback();
     });
 
@@ -53,7 +54,7 @@ describe('Signature', () => {
      * Test that verifies that the signature cannot be tampered by using different permutations of similar data
      * objects
      */
-    it('verify signing cannot be tampered with different permutations of similar data objects', callback => {
+    it('verify signing cannot be tampered with different permutations of similar data objects', (callback) => {
       assert.isNotOk(Signature.verify({ '': '', a: '' }, Signature.sign({ a: '' })));
       assert.isNotOk(Signature.verify({ abc: 'def' }, Signature.sign({ abcd: 'ef' })));
       assert.isNotOk(Signature.verify({ abc: 'def' }, Signature.sign({ '': 'abcdef' })));
@@ -73,20 +74,16 @@ describe('Signature', () => {
     /**
      * Test that verifies the expiring signature can be verified and cannot be tampered with
      */
-    it('verify expiring signature cannot be verified with different data or expires timestamp', callback => {
-      const signatureData = Signature.createExpiringSignature({ '0': 'zero', '1': 'one' });
+    it('verify expiring signature cannot be verified with different data or expires timestamp', (callback) => {
+      const signatureData = Signature.createExpiringSignature({ 0: 'zero', 1: 'one' });
       assert.isNotOk(
-        Signature.verifyExpiringSignature({ '0': 'one', '1': 'zero' }, signatureData.expires, signatureData.signature)
+        Signature.verifyExpiringSignature({ 0: 'one', 1: 'zero' }, signatureData.expires, signatureData.signature)
       );
       assert.isNotOk(
-        Signature.verifyExpiringSignature(
-          { '0': 'zero', '1': 'one' },
-          signatureData.expires + 1,
-          signatureData.signature
-        )
+        Signature.verifyExpiringSignature({ 0: 'zero', 1: 'one' }, signatureData.expires + 1, signatureData.signature)
       );
       assert.ok(
-        Signature.verifyExpiringSignature({ '0': 'zero', '1': 'one' }, signatureData.expires, signatureData.signature)
+        Signature.verifyExpiringSignature({ 0: 'zero', 1: 'one' }, signatureData.expires, signatureData.signature)
       );
       return callback();
     });
@@ -95,7 +92,7 @@ describe('Signature', () => {
      * Test that verifies the expiring signature is always valid for at least `offset` seconds, and is never valid after
      * `duration + offset` seconds
      */
-    it('verify expiring signature minimum and maximum duration guarantees', callback => {
+    it('verify expiring signature minimum and maximum duration guarantees', (callback) => {
       const now = Date.now();
       const data = { data: 'value' };
 
@@ -104,14 +101,14 @@ describe('Signature', () => {
       const signatureData = Signature.createExpiringSignature(data, 1, 10);
 
       // Ensure the signature is still valid 5 seconds from now
-      Date.now = function() {
+      Date.now = function () {
         return now + 5 * 1000;
       };
 
       assert.ok(Signature.verifyExpiringSignature(data, signatureData.expires, signatureData.signature));
 
       // Ensure the signature is never valid 12 seconds from now
-      Date.now = function() {
+      Date.now = function () {
         return now + 12 * 1000;
       };
 
@@ -123,18 +120,18 @@ describe('Signature', () => {
     /**
      * Test that verifies an expiring signature is consistent during a full duration window
      */
-    it('verify expiring signature remains the same when generated within the same rolling window', callback => {
+    it('verify expiring signature remains the same when generated within the same rolling window', (callback) => {
       const data = { data: 'value' };
 
       // Create a 15-30m signature on January 25th 2013 @ 11:39:46 GMT
-      Date.now = function() {
+      Date.now = function () {
         return Date.UTC(2013, 0, 25, 11, 39, 46);
       };
 
       const signatureDataFirst = Signature.createExpiringSignature(data, 15 * 60, 15 * 60);
 
       // Increase the time by 5min and create a new signature with the same data
-      Date.now = function() {
+      Date.now = function () {
         return Date.UTC(2013, 0, 25, 11, 44, 46);
       };
 
@@ -145,7 +142,7 @@ describe('Signature', () => {
       assert.strictEqual(signatureDataFirst.signature, signatureDataSecond.signature);
 
       // Increase the time by 16m and create a new signature with the same data
-      Date.now = function() {
+      Date.now = function () {
         return Date.UTC(2013, 0, 25, 11, 55, 46);
       };
 

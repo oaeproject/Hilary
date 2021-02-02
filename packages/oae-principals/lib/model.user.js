@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import util from 'util';
+import { format } from 'util';
 import _ from 'underscore';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
@@ -43,12 +43,12 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {Boolean}    [opts.isTenantAdmin]            Whether or not the user is a tenant admin
  * @param  {Boolean}    [opts.isUserArchive]            Whether or not the user is a user archive
  */
-export const User = function(tenantAlias, id, displayName, email, opts) {
-  opts = opts || {};
+export const User = function (tenantAlias, id, displayName, email, options) {
+  options = options || {};
 
   // Explicit checks on true for admin.
-  const _isGlobalAdmin = opts.isGlobalAdmin === true;
-  const _isTenantAdmin = opts.isTenantAdmin === true;
+  const _isGlobalAdmin = options.isGlobalAdmin === true;
+  const _isTenantAdmin = options.isTenantAdmin === true;
 
   const tenant = TenantsAPI.getTenant(tenantAlias);
   const { resourceId } = AuthzUtil.getResourceFromId(id);
@@ -58,33 +58,33 @@ export const User = function(tenantAlias, id, displayName, email, opts) {
   that.id = id;
   that.displayName = displayName;
   that.email = email;
-  that.visibility = opts.visibility;
-  that.deleted = opts.deleted;
-  that.locale = opts.locale;
-  that.publicAlias = opts.publicAlias;
-  that.profilePath = util.format('/user/%s/%s', tenantAlias, resourceId);
+  that.visibility = options.visibility;
+  that.deleted = options.deleted;
+  that.locale = options.locale;
+  that.publicAlias = options.publicAlias;
+  that.profilePath = format('/user/%s/%s', tenantAlias, resourceId);
   that.resourceType = 'user';
-  that.notificationsUnread = opts.notificationsUnread;
-  that.notificationsLastRead = opts.notificationsLastRead;
-  that.acceptedTC = opts.acceptedTC;
-  that.lastModified = opts.lastModified;
-  that.emailPreference = opts.emailPreference;
+  that.notificationsUnread = options.notificationsUnread;
+  that.notificationsLastRead = options.notificationsLastRead;
+  that.acceptedTC = options.acceptedTC;
+  that.lastModified = options.lastModified;
+  that.emailPreference = options.emailPreference;
   that.picture = _.oaeExtendDefined(
     {},
     {
-      smallUri: opts.smallPictureUri,
-      mediumUri: opts.mediumPictureUri,
-      largeUri: opts.largePictureUri
+      smallUri: options.smallPictureUri,
+      mediumUri: options.mediumPictureUri,
+      largeUri: options.largePictureUri
     }
   );
-  that.isUserArchive = opts.isUserArchive;
+  that.isUserArchive = options.isUserArchive;
 
   /**
    * Check if a user is a global admin
    *
    * @return {Boolean} Whether or not this user is a global admin.
    */
-  that.isGlobalAdmin = function() {
+  that.isGlobalAdmin = function () {
     return _isGlobalAdmin;
   };
 
@@ -94,7 +94,7 @@ export const User = function(tenantAlias, id, displayName, email, opts) {
    * @param  {String}  tenantAlias    The tenant this user is supposed to be an admin of.
    * @return {Boolean}                Whether or not the user is a tenant admin.
    */
-  that.isTenantAdmin = function(tenantAlias) {
+  that.isTenantAdmin = function (tenantAlias) {
     return _isTenantAdmin && tenantAlias === that.tenant.alias;
   };
 
@@ -104,7 +104,7 @@ export const User = function(tenantAlias, id, displayName, email, opts) {
    * @param  {Object}  tenantAlias    The tenant this user could a tenant admin of.
    * @return {Boolean}                Whether this user is a tenant or global admin.
    */
-  that.isAdmin = function(tenantAlias) {
+  that.isAdmin = function (tenantAlias) {
     return that.isTenantAdmin(tenantAlias) || that.isGlobalAdmin();
   };
 

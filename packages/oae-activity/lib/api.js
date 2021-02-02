@@ -44,15 +44,15 @@ import { setUpConfig } from 'oae-config';
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import { ActivityStream } from 'oae-activity/lib/model';
 import * as MQ from 'oae-util/lib/mq';
-import ActivityEmitter from './internal/emitter';
-import * as ActivityEmail from './internal/email';
-import * as ActivityNotifications from './internal/notifications';
-import * as ActivityRegistry from './internal/registry';
-import * as ActivityRouter from './internal/router';
-import * as ActivitySystemConfig from './internal/config';
-import * as ActivityTransformer from './internal/transformer';
-import * as ActivityDAO from './internal/dao';
-import * as ActivityAggregator from './internal/aggregator';
+import ActivityEmitter from './internal/emitter.js';
+import * as ActivityEmail from './internal/email.js';
+import * as ActivityNotifications from './internal/notifications.js';
+import * as ActivityRegistry from './internal/registry.js';
+import * as ActivityRouter from './internal/router.js';
+import * as ActivitySystemConfig from './internal/config.js';
+import * as ActivityTransformer from './internal/transformer.js';
+import * as ActivityDAO from './internal/dao.js';
+import * as ActivityAggregator from './internal/aggregator.js';
 
 const log = logger('oae-activity-api');
 const ActivityConfig = setUpConfig('oae-activity');
@@ -85,12 +85,12 @@ let mailPollingTimer = null;
  * @param  {Function}   [callback]      Invoked when the configuration has been refreshed
  * @param  {Object}     [callback.err]  An error that occurred, if any
  */
-const refreshConfiguration = function(config, callback) {
+const refreshConfiguration = function (config, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err }, 'Error refreshing activities configuration');
+    function (error) {
+      if (error) {
+        log().error({ err: error }, 'Error refreshing activities configuration');
       }
     };
 
@@ -144,7 +144,7 @@ const refreshConfiguration = function(config, callback) {
  * When the system starts shutting down, we want to stop the collecting polling timer so that no new collections
  * begin during the grace-time for active work to complete.
  */
-OAE.registerPreShutdownHandler('oae-activity', null, callback => {
+OAE.registerPreShutdownHandler('oae-activity', null, (callback) => {
   log().info('Clearing the activity collection poller');
   clearInterval(collectionPollingTimer);
   return callback();
@@ -168,7 +168,7 @@ OAE.registerPreShutdownHandler('oae-activity', null, callback => {
  * @param  {Object}     options.authorizationHandler.callback.err   An error object. If the user is not authorized to access this stream, a 401 error should be returned
  * @throws {Error}                                                  An error is thrown if an activity stream was already registered under this name
  */
-const registerActivityStreamType = function(activityStreamType, options) {
+const registerActivityStreamType = function (activityStreamType, options) {
   ActivityRegistry.registerActivityStreamType(activityStreamType, options);
 };
 
@@ -178,7 +178,7 @@ const registerActivityStreamType = function(activityStreamType, options) {
  * @param  {String}     activtyStreamType   The name of the stream for which to retrieve the options
  * @return {Object}                         The options for the stream
  */
-const getRegisteredActivityStreamType = function(activtyStreamType) {
+const getRegisteredActivityStreamType = function (activtyStreamType) {
   return ActivityRegistry.getRegisteredActivityStreamType(activtyStreamType);
 };
 
@@ -337,7 +337,7 @@ const getRegisteredActivityStreamType = function(activtyStreamType) {
  * @param  {String}         [options.streams[notification].email.emailTemplateId]       If sending an email, the id for the email template
  * @throws {Error}                                                                      If a set of options are already registered for the `activityType` or the options contain invalid data
  */
-const registerActivityType = function(activityType, options) {
+const registerActivityType = function (activityType, options) {
   ActivityRegistry.registerActivityType(activityType, options);
 };
 
@@ -494,7 +494,7 @@ const registerActivityType = function(activityType, options) {
  * @param  {Object}                 [options.propagation.callback.err]                          An error that occurred while determining the propagation rules, if any
  * @param  {Object[]}               [options.propagation.callback.propagation]                  The array of propagation rules to apply to the entity. For more information on the format of these objects, see the method summary
  */
-const registerActivityEntityType = function(activityEntityType, options) {
+const registerActivityEntityType = function (activityEntityType, options) {
   ActivityRegistry.registerActivityEntityType(activityEntityType, options);
 };
 
@@ -525,7 +525,7 @@ const registerActivityEntityType = function(activityEntityType, options) {
  * @param  {Object}                 associationFunction.callback.err            An error that occurred, if any
  * @param  {Array|Object}           associationFunction.callback.association    The result of the association. To be useful as a route, this should be an array of strings, however other data structures can be provided as well for ad-hoc operations using the associations context directly
  */
-const registerActivityEntityAssociation = function(
+const registerActivityEntityAssociation = function (
   activityEntityType,
   associationName,
   associationFunction
@@ -549,7 +549,7 @@ const registerActivityEntityAssociation = function(
  * @param  {Object}             callback.err            An error that occurred, if any
  * @param  {ActivityStream}     callback.activities     The activity stream containing the requested set of activities
  */
-const getActivityStream = function(ctx, principalId, start, limit, transformerType, callback) {
+const getActivityStream = function (ctx, principalId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
   try {
@@ -568,9 +568,9 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
 
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
-  PrincipalsUtil.getPrincipal(ctx, principalId, (err, principal) => {
-    if (err) {
-      return callback(err);
+  PrincipalsUtil.getPrincipal(ctx, principalId, (error, principal) => {
+    if (error) {
+      return callback(error);
     }
 
     // Determining which activity stream should be returned is exactly the same
@@ -580,9 +580,9 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
       ctx,
       principalId,
       principal,
-      (err, hasAccess, visibility) => {
-        if (err) {
-          return callback(err);
+      (error, hasAccess, visibility) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!hasAccess) {
@@ -620,7 +620,7 @@ const getActivityStream = function(ctx, principalId, start, limit, transformerTy
  * @param  {Object}             callback.err                An error that occurred, if any
  * @param  {ActivityStream}     callback.notifications      The requested set of notifications
  */
-const getNotificationStream = function(ctx, userId, start, limit, transformerType, callback) {
+const getNotificationStream = function (ctx, userId, start, limit, transformerType, callback) {
   transformerType = transformerType || ActivityConstants.transformerTypes.ACTIVITYSTREAMS;
 
   try {
@@ -661,7 +661,7 @@ const getNotificationStream = function(ctx, userId, start, limit, transformerTyp
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const markNotificationsRead = function(ctx, callback) {
+const markNotificationsRead = function (ctx, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -679,7 +679,7 @@ const markNotificationsRead = function(ctx, callback) {
  * @param  {Context}       ctx              Standard context object containing the current user and the current tenant
  * @return {Boolean|String|Number|Object}   cachedConfiguration     The requested config value e.g. `true`. This will be null if the config element cannot be found
  */
-const isActivityFeedDisabled = ctx => {
+const isActivityFeedDisabled = (ctx) => {
   return !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
 };
 
@@ -691,12 +691,12 @@ const isActivityFeedDisabled = ctx => {
  * @param  {Function}      callback            Standard callback function
  * @param  {Object}        callback.err        An error that occurred, if any
  */
-const postActivity = function(ctx, activitySeed, callback) {
+const postActivity = function (ctx, activitySeed, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
-        log().error({ err, activitySeed }, 'Error posting activity');
+    function (error) {
+      if (error) {
+        log().error({ err: error, activitySeed }, 'Error posting activity');
       }
     };
 
@@ -787,7 +787,7 @@ const postActivity = function(ctx, activitySeed, callback) {
  * @param j {ActivityStream}    callback.activityStream  The activity stream
  * @api private
  */
-const _getActivityStream = function(
+const _getActivityStream = function (
   ctx,
   activityStreamId,
   start,
@@ -795,11 +795,11 @@ const _getActivityStream = function(
   transformerType,
   callback
 ) {
-  ActivityDAO.getActivities(activityStreamId, start, limit, (err, activities, nextToken) => {
-    if (err) return callback(err);
+  ActivityDAO.getActivities(activityStreamId, start, limit, (error, activities, nextToken) => {
+    if (error) return callback(error);
 
-    ActivityTransformer.transformActivities(ctx, activities, transformerType, err => {
-      if (err) return callback(err);
+    ActivityTransformer.transformActivities(ctx, activities, transformerType, (error_) => {
+      if (error_) return callback(error_);
 
       // Emit an event indicating that the activity stream has been retrieved
       ActivityEmitter.emit(
@@ -825,8 +825,8 @@ const _getActivityStream = function(
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
  */
-const removeActivityStream = function(ctx, principalId, callback) {
-  callback = callback || function() {};
+const removeActivityStream = function (ctx, principalId, callback) {
+  callback = callback || function () {};
 
   if (ctx.user().isGlobalAdmin() || ctx.user().isAdmin() || ctx.user().isTenantAdmin()) {
     const activityTypes = [
@@ -840,23 +840,25 @@ const removeActivityStream = function(ctx, principalId, callback) {
 
     async.eachSeries(
       activityTypes,
-      function(activityType, done) {
+      function (activityType, done) {
         // Get all the activity streams corresponding to the deleted principal
-        ActivityDAO.getActivities(principalId + activityType, null, null, function(
-          err,
-          activities
-        ) {
-          if (err) return callback(err);
+        ActivityDAO.getActivities(
+          principalId + activityType,
+          null,
+          null,
+          function (error, activities) {
+            if (error) return callback(error);
 
-          // Delete all data in the ActivityStreams table corresponding to the deleted principal
-          ActivityDAO.deleteActivities(activities, function(err) {
-            if (err) return callback(err);
+            // Delete all data in the ActivityStreams table corresponding to the deleted principal
+            ActivityDAO.deleteActivities(activities, function (error) {
+              if (error) return callback(error);
 
-            return done();
-          });
-        });
+              return done();
+            });
+          }
+        );
       },
-      function() {
+      function () {
         return callback();
       }
     );

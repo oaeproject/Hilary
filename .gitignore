@@ -6,3 +6,8 @@ node_modules
 tmp
 .nyc_output
 coverage
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions

@@ -19,7 +19,7 @@ const bunyan = require('bunyan');
 
 const config = {};
 const LOCALHOST = 'localhost';
-module.exports.config = config;
+export { config };
 
 // UI related config information. By default, we assume that the UI repostory
 // can be found on the same level as the Hilary folder.

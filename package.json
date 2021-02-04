@@ -124,12 +124,11 @@
     "xo": "^0.37.1"
   },
   "scripts": {
-    "test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
-    "test-module": "func() { mocha -r esm packages/oae-tests/runner/before-tests.js packages/$1/tests/*.js; }; func",
-    "test-modules": "func() { mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' $*; }; func",
-    "test-module-with-coverage": "func() { nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'packages/oae-tests/runner/before-tests.js' $*; }; func",
-    "test-with-coverage": "npx nyc --reporter=lcov npm test && cat ./coverage/lcov.info | codacy-coverage",
-    "migrate": "func() { node -r esm 'migrate.js' '--keyspace' $1 ; }; func",
+    "test": "mocha -r esm packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
+    "test-module": "mocha -r esm packages/oae-tests/runner/before-tests.js \"$@\"",
+    "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov yarn test",
+    "test-update-coverage": "nyc --reporter=lcov yarn test && cat ./coverage/lcov.info | codacy-coverage",
+    "migrate": "node -r esm migrate.js",
     "prepare-etherpad": "./prepare-etherpad.sh",
     "prepare-ethercalc": "cd ethercalc && yarn",
     "prepare-3akai": "cd 3akai-ux && yarn install",
@@ -139,8 +138,8 @@
     "server": "dlx pm2 startOrReload process.json --only Hilary",
     "servers": "dlx pm2 startOrReload process.json",
     "logs": "dlx pm2 logs --raw | npx bunyan",
-    "lint": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "func() { node_modules/.bin/xo --prettier --quiet --fix packages/$1/**/*.js; }; func",
+    "lint": "xo --fix --prettier --quiet 'packages/**/*.js'",
+    "lint-module": "xo --prettier --quiet --fix \"$@\"",
     "snyk-protect": "snyk protect",
     "prepare": "npm run snyk-protect"
   },

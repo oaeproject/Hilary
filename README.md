@@ -269,7 +269,7 @@ We're looking forward to seeing your contributions to the OAE project!
 
 ### Running tests
 
-To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its path as follows: `yarn run test-module oae-principals`.
+To run tests just make sure you have installed all dependencies (`lerna bootstrap`) and run `yarn run test`. To run tests on a specific module, just append its path as follows: `yarn run test-modules packages/oae-principals/tests`.
 
 ## Get in touch
 

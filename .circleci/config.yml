@@ -60,7 +60,7 @@ aliases:
       name: Run tests sequentially and upload coverage
       command: |
         docker-compose run --rm oae-hilary "\
-          npm run migrate; \
+          yarn run migrate; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-with-coverage"
@@ -69,7 +69,7 @@ aliases:
       name: Run tests in parallel
       command: |
         docker-compose run --rm oae-hilary "\
-          npm run migrate; \
+          yarn run migrate; \
           yarn run etherpad; \
           yarn run ethercalc; \
           yarn run test-modules $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"

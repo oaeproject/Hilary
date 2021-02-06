@@ -61,8 +61,8 @@ aliases:
       command: |
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          yarn run etherpad; \
-          yarn run ethercalc; \
+          npx pm2 startOrReload process.json --only Etherpad; \
+          npx pm2 startOrReload process.json --only Ethercalc; \
           yarn run test-report-coverage"
   - &run_parallel_tests
     run:
@@ -70,8 +70,8 @@ aliases:
       command: |
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          yarn run etherpad; \
-          yarn run ethercalc; \
+          npx pm2 startOrReload process.json --only Etherpad; \
+          npx pm2 startOrReload process.json --only Ethercalc; \
           yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
   - &run_linting
     run:
@@ -82,11 +82,11 @@ aliases:
     run:
       name: Install dependencies
       command: |
+        docker-compose run --rm oae-hilary './prepare-etherpad.sh'
+        docker-compose run --rm oae-hilary 'cd 3akai-ux && yarn install'
+        docker-compose run --rm oae-hilary 'cd ethercalc && yarn install'
         docker-compose run --rm oae-hilary 'yarn set version berry'
         docker-compose run --rm oae-hilary 'yarn install'
-        docker-compose run --rm oae-hilary 'yarn run prepare-3akai'
-        docker-compose run --rm oae-hilary 'yarn run prepare-etherpad'
-        docker-compose run --rm oae-hilary 'yarn run prepare-ethercalc'
   - &copy_code
     run:
       name: Copy code
@@ -95,6 +95,7 @@ aliases:
         adduser -u 1000 -G node -s /bin/sh -D node
         cp ep-settings.json etherpad/settings.json
         cp ep-package.json etherpad/src/package.json
+        cp ec-package.json ethercalc/package.json
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
         mkdir -p reports/logs

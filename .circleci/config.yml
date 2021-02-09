@@ -1,7 +1,7 @@
 aliases:
   - &defaults
     docker:
-      - image: 'alpine:3.9'
+      - image: 'node:15.8.0-alpine3.10'
         auth:
           username: $DOCKER_USER # can specify string literal values
           password: $DOCKER_PASS # or project environment variable reference
@@ -78,24 +78,53 @@ aliases:
       name: Run linting test
       command: |
         docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
+  - &restore_cache_first
+    restore_cache:
+      key: deps-cache-{{ checksum "yarn.lock" }}
+      paths:
+        - ./node_modules
+        - ./3akai-ux/node_modules
+        - ./ethercalc/node_modules
+  - &save_cache_then
+    save_cache:
+      key: deps-cache-{{ checksum "yarn.lock" }}
+      paths:
+        - ./node_modules
+        - ./3akai-ux/node_modules
+        - ./ethercalc/node_modules
   - &install_dependencies
     run:
       name: Install dependencies
       command: |
         docker-compose run --rm oae-hilary './prepare-etherpad.sh'
-        docker-compose run --rm oae-hilary 'cd 3akai-ux && yarn install'
-        docker-compose run --rm oae-hilary 'cd ethercalc && yarn install'
-        docker-compose run --rm oae-hilary 'yarn set version berry'
-        docker-compose run --rm oae-hilary 'yarn install'
+        # docker-compose run --rm oae-hilary 'cd 3akai-ux && yarn install'
+        # docker-compose run --rm oae-hilary 'cd ethercalc && yarn install'
+  - &install_hilary
+    run:
+      name: Install Hilary dependencies
+      command: |
+        yarn --version
+        whoami
+        pwd
+        # yarn set version berry
+        yarn install
+  - &install_3akai
+    run:
+      name: Install 3akai-ux dependencies
+      command: |
+        cd 3akai-ux && yarn install
+  - &install_ethercalc
+    run:
+      name: Install ethercalc dependencies
+      command: |
+        cp ec-package.json ethercalc/package.json
+        cd ethercalc && yarn install
   - &copy_code
     run:
       name: Copy code
       command: |
-        addgroup -g 1000 node
-        adduser -u 1000 -G node -s /bin/sh -D node
         cp ep-settings.json etherpad/settings.json
         cp ep-package.json etherpad/src/package.json
-        cp ec-package.json ethercalc/package.json
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
         mkdir -p reports/logs
@@ -132,6 +161,11 @@ jobs:
       - *install_docker_compose
       - *create_containers
       - *launch_containers
+      - *restore_cache_first
+      - *install_hilary
+      - *install_3akai
+      - *install_ethercalc
+      - *save_cache_then
       - *copy_code
       - *install_dependencies
       - *run_linting
@@ -152,6 +186,11 @@ jobs:
       - *install_docker_compose
       - *create_containers
       - *launch_containers
+      - *restore_cache_first
+      - *install_hilary
+      - *install_3akai
+      - *install_ethercalc
+      - *save_cache_then
       - *copy_code
       - *install_dependencies
       - *run_linting

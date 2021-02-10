@@ -15,7 +15,6 @@
 
 import path from 'path';
 import { assert } from 'chai';
-import { describe, it, before, afterEach, beforeEach } from 'mocha';
 import fs from 'fs';
 import { format } from 'util';
 import _ from 'underscore';

@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, afterEach, before } from 'mocha';
 import { format } from 'util';
 import _ from 'underscore';
 
@@ -61,7 +60,7 @@ describe('Authentication', () => {
      * @param  {Boolean}    isLoggedIn          Whether or not the user should be logged in
      * @param  {Function}   callback            Standard callback function
      */
-    const _performSignedAuthenticationRequest = function(
+    const _performSignedAuthenticationRequest = function (
       requestInfoUrl,
       body,
       isLoggedIn,
@@ -71,7 +70,7 @@ describe('Authentication', () => {
       const restCtx = new RestContext('http://' + global.oaeTests.tenants.localhost.host, {
         hostHeader: parsedUrl.host
       });
-      RestAPI.Admin.doSignedAuthentication(restCtx, body, error => {
+      RestAPI.Admin.doSignedAuthentication(restCtx, body, (error) => {
         assert.notExists(error);
 
         RestAPI.User.getMe(restCtx, (error, me) => {
@@ -99,7 +98,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies only global administrators can request a signed tenant authentication
        */
-      it('verify only global administrators can request a signed tenant authentication', callback => {
+      it('verify only global administrators can request a signed tenant authentication', (callback) => {
         // Generate a regular user we'll use to try and get a signed tenant authentication request
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
@@ -158,7 +157,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies that no signatures are generated when a parameter is missing or invalid
        */
-      it('verify parameter validation', callback => {
+      it('verify parameter validation', (callback) => {
         // Ensure wen cannot get a signed request with no tenant alias
         RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
           globalAdminRestContext,
@@ -198,7 +197,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies users can only become users from tenants on which they are administrators
        */
-      it('verify users can only become users from tenants on which they are administrators', callback => {
+      it('verify users can only become users from tenants on which they are administrators', (callback) => {
         // Generate a regular user we'll impersonate, and one that will try and impersonate someone
         TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, users) => {
           assert.notExists(error);
@@ -245,7 +244,7 @@ describe('Authentication', () => {
                             camAdminRestContext,
                             nico.user.id,
                             true,
-                            error_ => {
+                            (error_) => {
                               assert.notExists(error_);
 
                               // Verify a tenant administrator cannot impersonate another tenant administrator
@@ -317,7 +316,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies that no signatures are generated when a parameter is missing or invalid
        */
-      it('verify parameter validation', callback => {
+      it('verify parameter validation', (callback) => {
         // Generate a test user to sanity check getting a become user authentication request
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
@@ -382,14 +381,14 @@ describe('Authentication', () => {
       /**
        * Test that verifies an impostering user cannot further get another become user signature
        */
-      it('verify imposter cannot get another signed become user request', callback => {
+      it('verify imposter cannot get another signed become user request', (callback) => {
         // Generate a test user to try and become
         TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, users) => {
           assert.notExists(error);
           const { 0: mrvisser, 1: simon } = users;
 
           // Make simon a tenant administrator so he can become mrvisser
-          RestAPI.User.setTenantAdmin(camAdminRestContext, simon.user.id, true, error_ => {
+          RestAPI.User.setTenantAdmin(camAdminRestContext, simon.user.id, true, (error_) => {
             assert.notExists(error_);
 
             // Sanity check that simon can get a signed request to become mrvisser
@@ -440,7 +439,7 @@ describe('Authentication', () => {
       /**
        * Verifies that you can actually log in to a tenant.
        */
-      it('verify login on tenant works', callback => {
+      it('verify login on tenant works', (callback) => {
         RestAPI.Admin.loginOnTenant(globalAdminRestContext, 'localhost', null, (error, restCtx) => {
           assert.notExists(error);
 
@@ -456,7 +455,7 @@ describe('Authentication', () => {
       /**
        * Verifies that the login request fails if there are invalid body parameters
        */
-      it('verify parameter validation', callback => {
+      it('verify parameter validation', (callback) => {
         RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
           globalAdminRestContext,
           'localhost',
@@ -518,7 +517,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies the signed authentication request expires after 5 minutes
        */
-      it('verify signed tenant login request expires', callback => {
+      it('verify signed tenant login request expires', (callback) => {
         RestAPI.Admin.getSignedTenantAuthenticationRequestInfo(
           globalAdminRestContext,
           'localhost',
@@ -527,7 +526,7 @@ describe('Authentication', () => {
 
             // Skip the time ahead by 5 minutes to ensure the token is no longer valid
             const now = Date.now();
-            Date.now = function() {
+            Date.now = function () {
               return now + 5 * 60 * 1000;
             };
 
@@ -546,7 +545,7 @@ describe('Authentication', () => {
       /**
        * Verify that loggin in as a user actually works
        */
-      it('verify login as user creates an impersonating request context', callback => {
+      it('verify login as user creates an impersonating request context', (callback) => {
         // Generate a test user to imposter
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
@@ -576,7 +575,7 @@ describe('Authentication', () => {
       /**
        * Verifies that the become user parameters are validated properly
        */
-      it('verify parameter validation', callback => {
+      it('verify parameter validation', (callback) => {
         // Generate a test user to try and imposter
         TestsUtil.generateTestUsers(camAdminRestContext, 2, (error, users) => {
           assert.notExists(error);
@@ -659,7 +658,7 @@ describe('Authentication', () => {
       /**
        * Test that verifies the signed authentication request expires after 5 minutes
        */
-      it('verify signed become user login request expires', callback => {
+      it('verify signed become user login request expires', (callback) => {
         TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
           const { 0: mrvisser } = users;
@@ -672,7 +671,7 @@ describe('Authentication', () => {
 
               // Skip the time ahead by 5 minutes to ensure the token is no longer valid
               const now = Date.now();
-              Date.now = function() {
+              Date.now = function () {
                 return now + 5 * 60 * 1000;
               };
 

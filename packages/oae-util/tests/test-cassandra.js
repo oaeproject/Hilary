@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as OaeUtil from 'oae-util/lib/util';

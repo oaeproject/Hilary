@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { describe, beforeEach, it } from 'mocha';
 import async from 'async';
 import { forEach, pipe, pluck } from 'ramda';
 

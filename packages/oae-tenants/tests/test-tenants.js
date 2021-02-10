@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import { format } from 'util';
 import { forEach, pipe, union, map, pluck, isNil, head, length, keys } from 'ramda';
 import _ from 'underscore';

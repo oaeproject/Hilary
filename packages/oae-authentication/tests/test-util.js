@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { keys } from 'ramda';
 import * as AuthenticationUtil from 'oae-authentication/lib/util';
 
@@ -23,7 +22,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies the basic functionality of the setProfileParameter function
      */
-    it('verify it sets a profile parameter with a dynamic template', callback => {
+    it('verify it sets a profile parameter with a dynamic template', (callback) => {
       const template = '{firstName} {lastName}';
       const data = { firstName: 'John', lastName: 'Doe' };
       const profileParameters = {
@@ -62,7 +61,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies you can provide a template without any variables
      */
-    it('verify a template without variables can be rendered', callback => {
+    it('verify a template without variables can be rendered', (callback) => {
       const result = AuthenticationUtil.renderTemplate('wicked template', { foo: 'bar' });
       assert.strictEqual(result, 'wicked template');
       return callback();
@@ -71,7 +70,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies an empty templates returns an empty string
      */
-    it('verify an empty template returns an empty string', callback => {
+    it('verify an empty template returns an empty string', (callback) => {
       // Verify an empty template returns null
       const result = AuthenticationUtil.renderTemplate('', { foo: 'bar' });
       assert.strictEqual(result, '');
@@ -81,7 +80,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies that multiple variables can be specified
      */
-    it('verify multiple variables can be specified', callback => {
+    it('verify multiple variables can be specified', (callback) => {
       const template = '{var1}{var2}{var3}';
       const data = {
         var1: 'foo',
@@ -96,7 +95,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies that a variable can be used more than once
      */
-    it('verify a variable can be used more than once', callback => {
+    it('verify a variable can be used more than once', (callback) => {
       const template = '{var1}{var1}{var1}';
       const data = {
         var1: 'foo',
@@ -111,7 +110,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies unmatched variables are replaced with an empty string
      */
-    it('verify unmatched variables are replaced with an empty string', callback => {
+    it('verify unmatched variables are replaced with an empty string', (callback) => {
       const template = '{var1}{var2}{var3}';
       const data = {};
       const result = AuthenticationUtil.renderTemplate(template, data);
@@ -122,7 +121,7 @@ describe('Authentication - util', () => {
     /**
      * Test that verifies the data object and template string remain the same
      */
-    it('verify the data object and template string remain the same', callback => {
+    it('verify the data object and template string remain the same', (callback) => {
       const data = { var1: 'foo' };
       const template = '{var1}';
       const result = AuthenticationUtil.renderTemplate(template, data);

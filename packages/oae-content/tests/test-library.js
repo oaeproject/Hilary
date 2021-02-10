@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { beforeEach, describe, it } from 'mocha';
 
 import * as Cassandra from 'oae-util/lib/cassandra';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';

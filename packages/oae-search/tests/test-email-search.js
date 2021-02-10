@@ -14,7 +14,6 @@
  */
 
 import assert from 'assert';
-import { beforeEach, describe, before, it } from 'mocha';
 import {
   values,
   mergeAll,

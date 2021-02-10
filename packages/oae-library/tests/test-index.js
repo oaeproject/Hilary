@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { not } from 'ramda';
 
 import * as TestsUtil from 'oae-tests/lib/util';

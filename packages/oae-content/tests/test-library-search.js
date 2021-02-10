@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before } from 'mocha';
 import { compose, prop, head, of, equals, find, propSatisfies } from 'ramda';
 
 import * as RestAPI from 'oae-rest';

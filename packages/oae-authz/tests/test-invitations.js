@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before, beforeEach } from 'mocha';
 import { format } from 'util';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';

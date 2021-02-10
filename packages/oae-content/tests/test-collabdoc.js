@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before } from 'mocha';
 import { format } from 'util';
 import ShortId from 'shortid';
 import { not, keys, equals } from 'ramda';

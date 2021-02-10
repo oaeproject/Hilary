@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { before, it, describe } from 'mocha';
 import _ from 'underscore';
 
 import { pipe, length, union } from 'ramda';
@@ -44,7 +43,7 @@ describe('Authentication', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Prepare the contexts with which we'll perform requests
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
@@ -64,7 +63,7 @@ describe('Authentication', () => {
      * @param  {Function}       callback                    Invoked when all authentications have successfully completed
      * @param  {Object}         callback.userAgentCookies   An object whose keys are the user agents, and values are an array of `request` Cookie's that were returned in the authentication response
      */
-    const _getCookiesForUserAgents = function(
+    const _getCookiesForUserAgents = function (
       restContext,
       username,
       password,
@@ -88,11 +87,11 @@ describe('Authentication', () => {
       restContext.additionalHeaders['user-agent'] = userAgent;
 
       // First logout the context to clear the cookie jar
-      RestAPI.Authentication.logout(restContext, error => {
+      RestAPI.Authentication.logout(restContext, (error) => {
         assert.notExists(error);
 
         // Authenticate the user agent
-        RestAPI.Authentication.login(restContext, username, password, error => {
+        RestAPI.Authentication.login(restContext, username, password, (error) => {
           assert.notExists(error);
 
           // Aggregate the cookies into the user agent map
@@ -117,7 +116,7 @@ describe('Authentication', () => {
      * Test that verifies that cookies have an appropriate expiration heuristic depending on the
      * client device and tenant
      */
-    it('verify cookie expiration for mobile and non-mobile browsers', callback => {
+    it('verify cookie expiration for mobile and non-mobile browsers', (callback) => {
       /*!
        * A collection of user agents for a variety of desktop / non-mobile clients
        */
@@ -210,16 +209,16 @@ describe('Authentication', () => {
           username,
           'password',
           allUserAgents,
-          userAgentCookies => {
+          (userAgentCookies) => {
             assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
 
             // Ensure each mobile user agent has a cookie with an explicit expiry time that
             // is more than 29 days into the future
-            _.each(mobileUserAgents, mobileUserAgent => {
+            _.each(mobileUserAgents, (mobileUserAgent) => {
               const cookies = userAgentCookies[mobileUserAgent];
 
               assert.strictEqual(cookies.length, 2);
-              _.each(cookies, cookie => {
+              _.each(cookies, (cookie) => {
                 // eslint-disable-next-line new-cap
                 assert.ok(_.isNumber(cookie.TTL()));
                 // eslint-disable-next-line new-cap
@@ -231,11 +230,11 @@ describe('Authentication', () => {
 
             // Ensure each non-mobile user agent has a cookie without an explicit expiry
             // (i.e., browser session cookie)
-            _.each(nonMobileUserAgents, nonMobileUserAgent => {
+            _.each(nonMobileUserAgents, (nonMobileUserAgent) => {
               const cookies = userAgentCookies[nonMobileUserAgent];
 
               assert.strictEqual(cookies.length, 2);
-              _.each(cookies, cookie => {
+              _.each(cookies, (cookie) => {
                 // eslint-disable-next-line new-cap
                 assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
               });
@@ -249,16 +248,16 @@ describe('Authentication', () => {
               'administrator',
               'administrator',
               allUserAgents,
-              userAgentCookies => {
+              (userAgentCookies) => {
                 assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
 
                 // Ensure all user agents have a cookie without an explicit expiry (i.e.,
                 // browser session cookie)
-                _.each(allUserAgents, userAgent => {
+                _.each(allUserAgents, (userAgent) => {
                   const cookies = userAgentCookies[userAgent];
 
                   assert.ok(!_.isEmpty(cookies));
-                  _.each(cookies, cookie => {
+                  _.each(cookies, (cookie) => {
                     // eslint-disable-next-line new-cap
                     assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
                   });

@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { pluck } from 'ramda';
 
 import AuthzGraph from 'oae-authz/lib/internal/graph';

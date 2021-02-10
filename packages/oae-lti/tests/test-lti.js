@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import { format } from 'util';
 
 import * as RestAPI from 'oae-rest';

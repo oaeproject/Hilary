@@ -16,7 +16,6 @@
 import { format } from 'util';
 
 import { assert } from 'chai';
-import { describe, before, after, it } from 'mocha';
 import { logger } from 'oae-logger';
 
 import * as RestAPI from 'oae-rest';

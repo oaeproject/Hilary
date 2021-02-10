@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { Locale } from 'locale';
 import { User } from 'oae-principals/lib/model';
 import { Context } from 'oae-context';

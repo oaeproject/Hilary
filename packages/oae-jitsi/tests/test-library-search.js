@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { before, it, describe } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';

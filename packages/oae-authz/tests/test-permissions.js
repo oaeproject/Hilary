@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util';
 

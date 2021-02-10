@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
 import { Content } from 'oae-content/lib/model';
 import { FilterGenerator } from 'oae-preview-processor/lib/filters';

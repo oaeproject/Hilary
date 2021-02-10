@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, beforeEach, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';

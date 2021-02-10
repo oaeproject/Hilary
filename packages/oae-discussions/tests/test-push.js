@@ -15,7 +15,6 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';

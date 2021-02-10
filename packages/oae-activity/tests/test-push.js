@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import { describe, before, it } from 'mocha';
 import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
@@ -190,9 +189,7 @@ describe('Activity push', () => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage('authentication', { userId: 'not-a-user-id', signature: {} }, (
-          error /* , data */
-        ) => {
+        client.sendMessage('authentication', { userId: 'not-a-user-id', signature: {} }, (error /* , data */) => {
           assert.strictEqual(error.code, 400);
           receivedResponse = true;
         });
@@ -212,9 +209,7 @@ describe('Activity push', () => {
         let receivedResponse = false;
 
         // Sending an invalid authentication frame should fail
-        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (
-          error /* , data */
-        ) => {
+        client.sendMessage('authentication', { userId: 'u:camtest:foobar' }, (error /* , data */) => {
           assert.strictEqual(error.code, 400);
           receivedResponse = true;
         });
@@ -244,9 +239,7 @@ describe('Activity push', () => {
              * The first message should always be the authentication message
              * If not, the backend should close the socket.
              */
-            client.authenticate(meData.id, meData.tenant.alias, meData.signature, (
-              error /* , data */
-            ) => {
+            client.authenticate(meData.id, meData.tenant.alias, meData.signature, (error /* , data */) => {
               assert.notExists(error);
 
               client.close(callback);
@@ -281,9 +274,7 @@ describe('Activity push', () => {
 
           getFullySetupPushClient(data, (client) => {
             // Registering on an unknown feed should result in an error
-            client.subscribe(johnDoe.user.id, 'unknown', { some: 'token' }, null, (
-              error /* , msg */
-            ) => {
+            client.subscribe(johnDoe.user.id, 'unknown', { some: 'token' }, null, (error /* , msg */) => {
               assert.strictEqual(error.code, 400);
 
               // Specifying an unknown format should result in a validation error
@@ -323,9 +314,7 @@ describe('Activity push', () => {
 
           getFullySetupPushClient(data, (client) => {
             // johnDoe cannot subscribe on jane's feed
-            client.subscribe(janeDoe.user.id, 'activity', johnDoeData.signature, null, (
-              error /* , msg */
-            ) => {
+            client.subscribe(janeDoe.user.id, 'activity', johnDoeData.signature, null, (error /* , msg */) => {
               assert.strictEqual(error.code, 401);
 
               // He can register for his own feed without a token since he's authenticated on the socket
@@ -333,30 +322,19 @@ describe('Activity push', () => {
                 assert.notExists(error);
 
                 // He can register on a group feed
-                createGroup(
-                  asJohnDoe,
-                  'Group title',
-                  'Group description',
-                  'public',
-                  'yes',
-                  [],
-                  [],
-                  (error, group) => {
+                createGroup(asJohnDoe, 'Group title', 'Group description', 'public', 'yes', [], [], (error, group) => {
+                  assert.notExists(error);
+
+                  getGroup(asJohnDoe, group.id, (error, group) => {
                     assert.notExists(error);
 
-                    getGroup(asJohnDoe, group.id, (error, group) => {
+                    client.subscribe(group.id, 'activity', group.signature, null, (error /* , msg */) => {
                       assert.notExists(error);
 
-                      client.subscribe(group.id, 'activity', group.signature, null, (
-                        error /* , msg */
-                      ) => {
-                        assert.notExists(error);
-
-                        client.close(callback);
-                      });
+                      client.close(callback);
                     });
-                  }
-                );
+                  });
+                });
               });
             });
           });
@@ -387,43 +365,28 @@ describe('Activity push', () => {
 
           getFullySetupPushClient(data, (client) => {
             // johnDoe cannot subscribe on Jane's feed
-            client.subscribe(janeDoe.user.id, 'notification', johnDoeData.signature, null, (
-              error /* , msg */
-            ) => {
+            client.subscribe(janeDoe.user.id, 'notification', johnDoeData.signature, null, (error /* , msg */) => {
               assert.strictEqual(error.code, 401);
 
               // Groups don't have notification feeds
-              createGroup(
-                asJohnDoe,
-                'Group title',
-                'Group description',
-                'public',
-                'yes',
-                [],
-                [],
-                (error, group) => {
+              createGroup(asJohnDoe, 'Group title', 'Group description', 'public', 'yes', [], [], (error, group) => {
+                assert.notExists(error);
+
+                getGroup(asJohnDoe, group.id, (error, group) => {
                   assert.notExists(error);
 
-                  getGroup(asJohnDoe, group.id, (error, group) => {
-                    assert.notExists(error);
+                  client.subscribe(group.id, 'notification', group.signature, null, (error /* , msg */) => {
+                    assert.strictEqual(error.code, 400);
 
-                    client.subscribe(group.id, 'notification', group.signature, null, (
-                      error /* , msg */
-                    ) => {
-                      assert.strictEqual(error.code, 400);
+                    // He can register for his own feed without a token since he's authenticated on the socket
+                    client.subscribe(johnDoe.user.id, 'notification', null, null, (error /* , msg */) => {
+                      assert.notExists(error);
 
-                      // He can register for his own feed without a token since he's authenticated on the socket
-                      client.subscribe(johnDoe.user.id, 'notification', null, null, (
-                        error /* , msg */
-                      ) => {
-                        assert.notExists(error);
-
-                        client.close(callback);
-                      });
+                      client.close(callback);
                     });
                   });
-                }
-              );
+                });
+              });
             });
           });
         });
@@ -509,21 +472,16 @@ describe('Activity push', () => {
                             });
 
                             // Trigger an update on the google item, we should not get an activity on the websocket for that content item
-                            updateContent(
-                              asJohnDoe,
-                              googleLink.id,
-                              { displayName: 'Google woo' },
-                              (error_) => {
+                            updateContent(asJohnDoe, googleLink.id, { displayName: 'Google woo' }, (error_) => {
+                              assert.notExists(error_);
+
+                              // Route and deliver activities
+                              collectAndGetActivityStream(asJohnDoe, null, null, (error_) => {
                                 assert.notExists(error_);
 
-                                // Route and deliver activities
-                                collectAndGetActivityStream(asJohnDoe, null, null, (error_) => {
-                                  assert.notExists(error_);
-
-                                  client.close(callback);
-                                });
-                              }
-                            );
+                                client.close(callback);
+                              });
+                            });
                           }, 1000);
                         });
                       });
@@ -697,209 +655,193 @@ describe('Activity push', () => {
              * this will trigger an activity that gets delivered on both streams
              * to ensure proper scrubbing of data, simon will have a private profile
              */
-            RestAPI.User.updateUser(
-              asMarge,
-              marge.user.id,
-              { visibility: 'private' },
-              (error, updatedUser) => {
-                assert.notExists(error);
-                marge.user = updatedUser;
-                let discussion = null;
+            RestAPI.User.updateUser(asMarge, marge.user.id, { visibility: 'private' }, (error, updatedUser) => {
+              assert.notExists(error);
+              marge.user = updatedUser;
+              let discussion = null;
 
-                RestAPI.Discussions.createDiscussion(
-                  asMarge,
-                  'Test discussion',
-                  'Test discussion description',
-                  'public',
-                  [],
-                  [homer.user.id],
-                  (error, _discussion) => {
-                    assert.notExists(error);
-                    discussion = _discussion;
+              RestAPI.Discussions.createDiscussion(
+                asMarge,
+                'Test discussion',
+                'Test discussion description',
+                'public',
+                [],
+                [homer.user.id],
+                (error, _discussion) => {
+                  assert.notExists(error);
+                  discussion = _discussion;
 
-                    // Force a collection cycle as notifications only get delivered upon aggregation
-                    ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, (error_) => {
-                      assert.notExists(error_);
-                    });
-                  }
-                );
+                  // Force a collection cycle as notifications only get delivered upon aggregation
+                  ActivityTestUtil.collectAndGetActivityStream(asHomer, null, null, (error_) => {
+                    assert.notExists(error_);
+                  });
+                }
+              );
 
-                let activitiesReceived = 0;
-                client.on('message', (message) => {
-                  activitiesReceived++;
+              let activitiesReceived = 0;
+              client.on('message', (message) => {
+                activitiesReceived++;
 
-                  assert.ok(message.activities);
-                  assert.lengthOf(message.activities, 1);
-                  const activity = message.activities[0];
-                  assert.ok(activity);
+                assert.ok(message.activities);
+                assert.lengthOf(message.activities, 1);
+                const activity = message.activities[0];
+                assert.ok(activity);
 
-                  let allowedActorProperties = null;
-                  let allowedObjectProperties = null;
+                let allowedActorProperties = null;
+                let allowedObjectProperties = null;
 
-                  if (message.streamType === 'notification') {
-                    // Assert that the activity entities are internally formatted
-                    assert.strictEqual(message.format, 'internal');
+                if (message.streamType === 'notification') {
+                  // Assert that the activity entities are internally formatted
+                  assert.strictEqual(message.format, 'internal');
 
-                    // Assert that the actor entity is a user object augmented with an oae:id and objectType
+                  // Assert that the actor entity is a user object augmented with an oae:id and objectType
+                  assert.ok(activity.actor);
+                  assert.strictEqual(activity.actor['oae:id'], marge.user.id);
+                  assert.strictEqual(activity.actor.id, marge.user.id);
+                  assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
+                  assert.strictEqual(activity.actor.lastModified, marge.user.lastModified);
+                  assert.strictEqual(activity.actor.visibility, 'private');
+                  assert.isObject(activity.actor.picture);
+                  assert.strictEqual(activity.actor.resourceType, 'user');
+                  assert.strictEqual(activity.actor.objectType, 'user');
+                  assert.isObject(activity.actor.tenant);
+
+                  // Ensure only these properties are present
+                  allowedActorProperties = [
+                    'oae:id',
+                    'id',
+                    'displayName',
+                    'visibility',
+                    'picture',
+                    'resourceType',
+                    'objectType',
+                    'tenant',
+                    'lastModified'
+                  ];
+                  forEach((key) => {
+                    assert.ok(
+                      contains(key, allowedActorProperties),
+                      key + ' is not allowed on an internally formatted activity entity'
+                    );
+                  }, activity.actor);
+
+                  // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                  assert.ok(activity.object);
+                  assert.strictEqual(activity.object['oae:id'], discussion.id);
+                  assert.strictEqual(activity.object.id, discussion.id);
+                  assert.strictEqual(activity.object.visibility, discussion.visibility);
+                  assert.strictEqual(activity.object.displayName, discussion.displayName);
+                  assert.strictEqual(activity.object.description, discussion.description);
+                  assert.strictEqual(activity.object.createdBy, discussion.createdBy);
+                  assert.strictEqual(activity.object.created, discussion.created);
+                  assert.strictEqual(activity.object.lastModified, discussion.lastModified);
+                  assert.strictEqual(activity.object.profilePath, discussion.profilePath);
+                  assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                  assert.strictEqual(activity.object.objectType, 'discussion');
+                  assert.isObject(activity.object.tenant);
+
+                  allowedObjectProperties = [
+                    'tenant',
+                    'id',
+                    'visibility',
+                    'displayName',
+                    'description',
+                    'resourceSubType',
+                    'createdBy',
+                    'created',
+                    'lastModified',
+                    'profilePath',
+                    'resourceType',
+                    'latestRevisionId',
+                    'previews',
+                    'signature',
+                    'objectType',
+                    'oae:id'
+                  ];
+                  forEach((key) => {
+                    assert.ok(
+                      contains(key, allowedObjectProperties),
+                      key + ' is not allowed on an internally formatted activity entity'
+                    );
+                  }, activity.object);
+                } else {
+                  setTimeout(() => {
+                    // Assert that the activity entities are activitystrea.ms formatted
+                    assert.strictEqual(message.format, 'activitystreams');
+
+                    // Assert that the actor entity is in the proper activitystreams format
                     assert.ok(activity.actor);
                     assert.strictEqual(activity.actor['oae:id'], marge.user.id);
-                    assert.strictEqual(activity.actor.id, marge.user.id);
+                    assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
                     assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
-                    assert.strictEqual(activity.actor.lastModified, marge.user.lastModified);
-                    assert.strictEqual(activity.actor.visibility, 'private');
-                    assert.isObject(activity.actor.picture);
-                    assert.strictEqual(activity.actor.resourceType, 'user');
                     assert.strictEqual(activity.actor.objectType, 'user');
-                    assert.isObject(activity.actor.tenant);
+                    assert.strictEqual(
+                      activity.actor.id,
+                      'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
+                    );
+                    assert.isObject(activity.actor['oae:tenant']);
 
-                    // Ensure only these properties are present
                     allowedActorProperties = [
                       'oae:id',
-                      'id',
+                      'oae:visibility',
                       'displayName',
-                      'visibility',
-                      'picture',
-                      'resourceType',
                       'objectType',
-                      'tenant',
-                      'lastModified'
+                      'id',
+                      'oae:tenant'
                     ];
+
                     forEach((key) => {
                       assert.ok(
                         contains(key, allowedActorProperties),
-                        key + ' is not allowed on an internally formatted activity entity'
+                        key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                       );
                     }, activity.actor);
 
-                    // Assert that the object entity is a discussion object augmented with an oae:id and objectType
+                    // Assert that the object entity is in the proper activitystreams format
                     assert.ok(activity.object);
                     assert.strictEqual(activity.object['oae:id'], discussion.id);
-                    assert.strictEqual(activity.object.id, discussion.id);
-                    assert.strictEqual(activity.object.visibility, discussion.visibility);
+                    assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
+                    assert.strictEqual(activity.object['oae:profilePath'], discussion.profilePath);
+                    assert.strictEqual(activity.object['oae:resourceSubType'], discussion.resourceSubType);
                     assert.strictEqual(activity.object.displayName, discussion.displayName);
-                    assert.strictEqual(activity.object.description, discussion.description);
-                    assert.strictEqual(activity.object.createdBy, discussion.createdBy);
-                    assert.strictEqual(activity.object.created, discussion.created);
-                    assert.strictEqual(activity.object.lastModified, discussion.lastModified);
-                    assert.strictEqual(activity.object.profilePath, discussion.profilePath);
-                    assert.strictEqual(activity.object.resourceType, discussion.resourceType);
+                    assert.strictEqual(
+                      activity.object.url,
+                      'http://' +
+                        global.oaeTests.tenants.cam.host +
+                        '/discussion/camtest/' +
+                        discussion.id.split(':')[2]
+                    );
                     assert.strictEqual(activity.object.objectType, 'discussion');
-                    assert.isObject(activity.object.tenant);
+                    assert.strictEqual(
+                      activity.object.id,
+                      'http://' + global.oaeTests.tenants.cam.host + '/api/discussion/' + discussion.id
+                    );
+                    assert.isObject(activity.object['oae:tenant']);
 
                     allowedObjectProperties = [
-                      'tenant',
-                      'id',
-                      'visibility',
+                      'oae:id',
+                      'oae:visibility',
+                      'oae:profilePath',
                       'displayName',
-                      'description',
-                      'resourceSubType',
-                      'createdBy',
-                      'created',
-                      'lastModified',
-                      'profilePath',
-                      'resourceType',
-                      'latestRevisionId',
-                      'previews',
-                      'signature',
+                      'url',
                       'objectType',
-                      'oae:id'
+                      'id',
+                      'oae:tenant'
                     ];
                     forEach((key) => {
                       assert.ok(
                         contains(key, allowedObjectProperties),
-                        key + ' is not allowed on an internally formatted activity entity'
+                        key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                       );
                     }, activity.object);
-                  } else {
-                    setTimeout(() => {
-                      // Assert that the activity entities are activitystrea.ms formatted
-                      assert.strictEqual(message.format, 'activitystreams');
+                  }, 1000);
+                }
 
-                      // Assert that the actor entity is in the proper activitystreams format
-                      assert.ok(activity.actor);
-                      assert.strictEqual(activity.actor['oae:id'], marge.user.id);
-                      assert.strictEqual(activity.actor['oae:visibility'], marge.user.visibility);
-                      assert.strictEqual(activity.actor.displayName, marge.user.publicAlias);
-                      assert.strictEqual(activity.actor.objectType, 'user');
-                      assert.strictEqual(
-                        activity.actor.id,
-                        'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + marge.user.id
-                      );
-                      assert.isObject(activity.actor['oae:tenant']);
-
-                      allowedActorProperties = [
-                        'oae:id',
-                        'oae:visibility',
-                        'displayName',
-                        'objectType',
-                        'id',
-                        'oae:tenant'
-                      ];
-
-                      forEach((key) => {
-                        assert.ok(
-                          contains(key, allowedActorProperties),
-                          key +
-                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                        );
-                      }, activity.actor);
-
-                      // Assert that the object entity is in the proper activitystreams format
-                      assert.ok(activity.object);
-                      assert.strictEqual(activity.object['oae:id'], discussion.id);
-                      assert.strictEqual(activity.object['oae:visibility'], discussion.visibility);
-                      assert.strictEqual(
-                        activity.object['oae:profilePath'],
-                        discussion.profilePath
-                      );
-                      assert.strictEqual(
-                        activity.object['oae:resourceSubType'],
-                        discussion.resourceSubType
-                      );
-                      assert.strictEqual(activity.object.displayName, discussion.displayName);
-                      assert.strictEqual(
-                        activity.object.url,
-                        'http://' +
-                          global.oaeTests.tenants.cam.host +
-                          '/discussion/camtest/' +
-                          discussion.id.split(':')[2]
-                      );
-                      assert.strictEqual(activity.object.objectType, 'discussion');
-                      assert.strictEqual(
-                        activity.object.id,
-                        'http://' +
-                          global.oaeTests.tenants.cam.host +
-                          '/api/discussion/' +
-                          discussion.id
-                      );
-                      assert.isObject(activity.object['oae:tenant']);
-
-                      allowedObjectProperties = [
-                        'oae:id',
-                        'oae:visibility',
-                        'oae:profilePath',
-                        'displayName',
-                        'url',
-                        'objectType',
-                        'id',
-                        'oae:tenant'
-                      ];
-                      forEach((key) => {
-                        assert.ok(
-                          contains(key, allowedObjectProperties),
-                          key +
-                            ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                        );
-                      }, activity.object);
-                    }, 1000);
-                  }
-
-                  if (activitiesReceived === 2) {
-                    return client.close(callback);
-                  }
-                });
-              }
-            );
+                if (activitiesReceived === 2) {
+                  return client.close(callback);
+                }
+              });
+            });
           });
         });
       });
@@ -1074,9 +1016,7 @@ describe('Activity push', () => {
                    * We need to force a collection cycle as the notification
                    * stream gets pushed out after the aggregation phase
                    */
-                  collectAndGetNotificationStream(asJohnDoe, null, (
-                    error /* , activityStream */
-                  ) => {
+                  collectAndGetNotificationStream(asJohnDoe, null, (error /* , activityStream */) => {
                     assert.notExists(error);
                   });
                 }
@@ -1112,9 +1052,7 @@ describe('Activity push', () => {
                         [johnDoe.user.id],
                         (error /* , discussion */) => {
                           assert.notExists(error);
-                          collectAndGetNotificationStream(asJohnDoe, null, (
-                            error /* , activityStream */
-                          ) => {
+                          collectAndGetNotificationStream(asJohnDoe, null, (error /* , activityStream */) => {
                             assert.notExists(error);
                           });
                         }
@@ -1150,9 +1088,7 @@ describe('Activity push', () => {
                                 },
                                 (error /* , discussion */) => {
                                   assert.notExists(error);
-                                  collectAndGetNotificationStream(asJohnDoe, null, (
-                                    error /* , activityStream */
-                                  ) => {
+                                  collectAndGetNotificationStream(asJohnDoe, null, (error /* , activityStream */) => {
                                     assert.notExists(error);
                                   });
                                 }

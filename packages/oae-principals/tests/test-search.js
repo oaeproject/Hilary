@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 import { assert } from 'chai';
-import { describe, beforeEach, it } from 'mocha';
 import _ from 'underscore';
 
 import { keys, find, propSatisfies, equals } from 'ramda';

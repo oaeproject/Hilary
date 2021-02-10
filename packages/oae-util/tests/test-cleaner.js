@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, after, beforeEach, afterEach } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';

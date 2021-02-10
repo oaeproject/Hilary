@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 
 import { head, find, equals, propSatisfies } from 'ramda';
 import * as Cassandra from 'oae-util/lib/cassandra';

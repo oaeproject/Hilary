@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 
 import { Context } from 'oae-context';
 import { SearchConstants } from 'oae-search/lib/constants';

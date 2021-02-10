@@ -23,7 +23,7 @@ import path from 'path';
 import { promisify } from 'util';
 import PrettyStream from 'bunyan-prettystream';
 import * as LogAPI from 'oae-logger';
-import { promise } from 'readdirp';
+
 const { eachSeries } = require('async');
 
 const _createLogger = function (config) {

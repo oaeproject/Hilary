@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import _ from 'underscore';
 import * as EmitterAPI from 'oae-emitter';
 

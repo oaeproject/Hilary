@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as TestsUtil from 'oae-tests';

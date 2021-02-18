@@ -75,7 +75,7 @@ aliases:
           yarn run migrate; \
           npx pm2 startOrReload process.json --only Etherpad; \
           npx pm2 startOrReload process.json --only Ethercalc; \
-          yarn run ci:test-module $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')"
+          yarn run test-module $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')"
   - &run_linting
     run:
       name: Run linting test

@@ -41,8 +41,7 @@ const refreshConfiguration = function (config, callback) {
   config = _.extend(
     {
       collectionPollingFrequency: -1,
-      numberOfProcessingBuckets: 1,
-      mail: { gracePeriod: 0 }
+      numberOfProcessingBuckets: 1
     },
     config
   );

@@ -96,7 +96,7 @@ describe('Activity', () => {
       { 'oae-activity/activity/enabled': true },
       (error) => {
         assert.notExists(error);
-        ActivityTestUtil.refreshConfiguration(null, (error) => {
+        ActivityTestUtil.refreshConfiguration({ mail: { gracePeriod: 0 } }, (error) => {
           assert.notExists(error);
           return callback();
         });

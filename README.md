@@ -278,3 +278,11 @@ The project website can be found at http://www.oaeproject.org. The [project blog
 The mailing list used for Apereo OAE is oae@apereo.org. You can subscribe to the mailing list at https://groups.google.com/a/apereo.org/d/forum/oae.
 
 Bugs and other issues can be reported in our [issue tracker](https://github.com/oaeproject/Hilary/issues) and we're always available to help in our [discord channel](https://discord.gg/CcNnbGk).
+
+## Stargazers
+
+[![Stargazers repo roster for @oaeproject/Hilary](https://reporoster.com/stars/oaeproject/Hilary)](https://github.com/oaeproject/Hilary/stargazers)
+
+## Forkers
+
+[![Forkers repo roster for @oaeproject/Hilary](https://reporoster.com/forks/oaeproject/Hilary)](https://github.com/oaeproject/Hilary/network/members)

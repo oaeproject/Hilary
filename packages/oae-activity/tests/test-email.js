@@ -133,7 +133,6 @@ describe('Activity Email', () => {
     };
 
     // Allow for other configuration
-    // config = _.extend(config, extraConfig);
     config = mergeRight(config, extraConfig);
 
     // Configure the daily/weekly values

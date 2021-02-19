@@ -70,7 +70,9 @@ const EDITOR = 'editor';
 const TYPE_COLLABDOC = 'collabdoc';
 const TYPE_COLLABSHEET = 'collabsheet';
 
-// Avoid the "Error: global leak detected: r", temporal solution
+import * as EmailTestUtil from 'oae-email/lib/test/util';
+
+// Avoid the "Error: global leak detected: r", temporary solution
 Object.defineProperty(global, 'r', {});
 
 describe('Delete and eliminate users', () => {
@@ -84,12 +86,13 @@ describe('Delete and eliminate users', () => {
     });
   };
 
-  /**
-   * Function that will fill up the anonymous and tenant admin REST context
-   */
   before((callback) => {
-    reset(() => {
-      return callback();
+    reset(callback);
+  });
+
+  after((callback) => {
+    EmailTestUtil.collectAndFetchAllEmails(() => {
+      callback();
     });
   });
 
@@ -97,9 +100,7 @@ describe('Delete and eliminate users', () => {
    * @return {Stream} A stream to jpg image
    * @api private
    */
-  const _getPictureStream = () => {
-    return fs.createReadStream(format('%s/data/restroom.jpg', __dirname));
-  };
+  const _getPictureStream = () => fs.createReadStream(format('%s/data/restroom.jpg', __dirname));
 
   describe('Delete user - Principals', () => {
     /**

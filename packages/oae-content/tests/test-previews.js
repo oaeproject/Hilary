@@ -15,7 +15,6 @@
 /* eslint-disable camelcase */
 
 import { assert } from 'chai';
-import { describe, it, before, beforeEach } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import { flush } from 'oae-util/lib/redis';

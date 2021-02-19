@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, beforeEach, it } from 'mocha';
 
 import { ContentConstants } from 'oae-content/lib/constants';
 import * as EmailTestsUtil from 'oae-email/lib/test/util';
@@ -88,27 +87,23 @@ describe('Notifications', () => {
             assert.notExists(error);
 
             // Sanity check that the content is in simong's notification stream
-            ActivityTestsUtil.collectAndGetNotificationStream(
-              simong.restContext,
-              null,
-              (error, notificationStream) => {
-                assert.notExists(error);
-                assert.strictEqual(notificationStream.items.length, 1);
-                assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
-                assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
+            ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (error, notificationStream) => {
+              assert.notExists(error);
+              assert.strictEqual(notificationStream.items.length, 1);
+              assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
+              assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
 
-                // Verify that no notification was routed to mrvisser, as they performed the action and this would be super annoying
-                ActivityTestsUtil.collectAndGetNotificationStream(
-                  mrvisser.restContext,
-                  null,
-                  (error, notificationStream) => {
-                    assert.notExists(error);
-                    assert.strictEqual(notificationStream.items.length, 0);
-                    return callback();
-                  }
-                );
-              }
-            );
+              // Verify that no notification was routed to mrvisser, as they performed the action and this would be super annoying
+              ActivityTestsUtil.collectAndGetNotificationStream(
+                mrvisser.restContext,
+                null,
+                (error, notificationStream) => {
+                  assert.notExists(error);
+                  assert.strictEqual(notificationStream.items.length, 0);
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -137,17 +132,13 @@ describe('Notifications', () => {
           (error, content) => {
             assert.notExists(error);
 
-            ActivityTestsUtil.collectAndGetNotificationStream(
-              simong.restContext,
-              null,
-              (error, notificationStream) => {
-                assert.notExists(error);
-                assert.strictEqual(notificationStream.items.length, 1);
-                assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
-                assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
-                return callback();
-              }
-            );
+            ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (error, notificationStream) => {
+              assert.notExists(error);
+              assert.strictEqual(notificationStream.items.length, 1);
+              assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
+              assert.strictEqual(notificationStream.items[0].object['oae:id'], content.id);
+              return callback();
+            });
           }
         );
       });
@@ -268,9 +259,7 @@ describe('Notifications', () => {
 
                                           // Sanity check that these items are a single aggregate activity
                                           assert.strictEqual(notificationStream.items.length, 2);
-                                          assert.isArray(
-                                            notificationStream.items[0].object['oae:collection']
-                                          );
+                                          assert.isArray(notificationStream.items[0].object['oae:collection']);
 
                                           const linkIdsInFeed = pluck(
                                             ActivityConstants.properties.OAE_ID,
@@ -356,10 +345,7 @@ describe('Notifications', () => {
                   assert.notExists(error);
                   assert.strictEqual(notificationStream.items.length, 1);
                   assert.strictEqual(notificationStream.items[0].actor['oae:id'], mrvisser.user.id);
-                  assert.strictEqual(
-                    notificationStream.items[0].object['oae:id'],
-                    firstContentObject.id
-                  );
+                  assert.strictEqual(notificationStream.items[0].object['oae:id'], firstContentObject.id);
 
                   // Verify the notificationsUnread status
                   RestAPI.User.getMe(simong.restContext, (error, me) => {
@@ -444,82 +430,70 @@ describe('Notifications', () => {
 
                                       // Generate 2 disjoint activities that do not aggregate but both generate a notification. The unread
                                       // count should increment by 2
-                                      ActivityTestsUtil.markNotificationsAsRead(
-                                        simong.restContext,
-                                        (/* result */) => {
-                                          RestAPI.Content.createLink(
-                                            mrvisser.restContext,
-                                            {
-                                              displayName: 'Google',
-                                              description: 'Google',
-                                              visibility: PRIVATE,
-                                              link: 'http://www.google.ca',
-                                              managers: [],
-                                              viewers: [simong.user.id],
-                                              folders: []
-                                            },
-                                            (error, fourthContentObject) => {
-                                              assert.notExists(error);
+                                      ActivityTestsUtil.markNotificationsAsRead(simong.restContext, (/* result */) => {
+                                        RestAPI.Content.createLink(
+                                          mrvisser.restContext,
+                                          {
+                                            displayName: 'Google',
+                                            description: 'Google',
+                                            visibility: PRIVATE,
+                                            link: 'http://www.google.ca',
+                                            managers: [],
+                                            viewers: [simong.user.id],
+                                            folders: []
+                                          },
+                                          (error, fourthContentObject) => {
+                                            assert.notExists(error);
 
-                                              RestAPI.Discussions.createDiscussion(
-                                                mrvisser.restContext,
-                                                'Google',
-                                                'Google',
-                                                'private',
-                                                [],
-                                                [simong.user.id],
-                                                (error, discussion) => {
-                                                  assert.notExists(error);
+                                            RestAPI.Discussions.createDiscussion(
+                                              mrvisser.restContext,
+                                              'Google',
+                                              'Google',
+                                              'private',
+                                              [],
+                                              [simong.user.id],
+                                              (error, discussion) => {
+                                                assert.notExists(error);
 
-                                                  // Ensure the notifications get delivered but don't aggregate with the older "marked as read" item
-                                                  ActivityTestsUtil.collectAndGetNotificationStream(
-                                                    simong.restContext,
-                                                    null,
-                                                    (error, notificationStream) => {
+                                                // Ensure the notifications get delivered but don't aggregate with the older "marked as read" item
+                                                ActivityTestsUtil.collectAndGetNotificationStream(
+                                                  simong.restContext,
+                                                  null,
+                                                  (error, notificationStream) => {
+                                                    assert.notExists(error);
+                                                    assert.strictEqual(notificationStream.items.length, 4);
+                                                    ActivityTestsUtil.assertActivity(
+                                                      notificationStream.items[0],
+                                                      'discussion-create',
+                                                      'create',
+                                                      mrvisser.user.id,
+                                                      discussion.id
+                                                    );
+                                                    ActivityTestsUtil.assertActivity(
+                                                      notificationStream.items[1],
+                                                      'content-create',
+                                                      'create',
+                                                      mrvisser.user.id,
+                                                      fourthContentObject.id,
+                                                      simong.user.id
+                                                    );
+
+                                                    // Verify the unread notifications has incremented
+                                                    RestAPI.User.getMe(simong.restContext, (error, me) => {
                                                       assert.notExists(error);
-                                                      assert.strictEqual(
-                                                        notificationStream.items.length,
-                                                        4
-                                                      );
-                                                      ActivityTestsUtil.assertActivity(
-                                                        notificationStream.items[0],
-                                                        'discussion-create',
-                                                        'create',
-                                                        mrvisser.user.id,
-                                                        discussion.id
-                                                      );
-                                                      ActivityTestsUtil.assertActivity(
-                                                        notificationStream.items[1],
-                                                        'content-create',
-                                                        'create',
-                                                        mrvisser.user.id,
-                                                        fourthContentObject.id,
-                                                        simong.user.id
-                                                      );
 
-                                                      // Verify the unread notifications has incremented
-                                                      RestAPI.User.getMe(
-                                                        simong.restContext,
-                                                        (error, me) => {
-                                                          assert.notExists(error);
+                                                      // We now have 2 unread notifications
+                                                      assert.strictEqual(me.notificationsUnread, 2);
 
-                                                          // We now have 2 unread notifications
-                                                          assert.strictEqual(
-                                                            me.notificationsUnread,
-                                                            2
-                                                          );
-
-                                                          return callback();
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
+                                                      return callback();
+                                                    });
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      });
                                     });
                                   }
                                 );
@@ -555,96 +529,66 @@ describe('Notifications', () => {
         const { 0: simong, 1: mrvisser, 2: nico } = createdUsers;
 
         // Give mrvisser and nico an email address
-        RestAPI.User.updateUser(
-          mrvisser.restContext,
-          mrvisser.user.id,
-          { emailPreference: 'immediate' },
-          (error_) => {
+        RestAPI.User.updateUser(mrvisser.restContext, mrvisser.user.id, { emailPreference: 'immediate' }, (error_) => {
+          assert.notExists(error_);
+          RestAPI.User.updateUser(nico.restContext, nico.user.id, { emailPreference: 'immediate' }, (error_) => {
             assert.notExists(error_);
-            RestAPI.User.updateUser(
-              nico.restContext,
-              nico.user.id,
-              { emailPreference: 'immediate' },
-              (error_) => {
-                assert.notExists(error_);
 
-                // Create a piece of content and make nico and mrvisser managers. They should each get an e-mail
-                RestAPI.Content.createLink(
-                  simong.restContext,
-                  {
-                    displayName: 'Yahoo!',
-                    description: 'Yahoo!',
-                    visibility: PUBLIC,
-                    link: 'http://www.yahoo.com',
-                    managers: [mrvisser.user.id, nico.user.id],
-                    viewers: [],
-                    folders: []
-                  },
-                  (error, link) => {
-                    assert.notExists(error);
+            // Create a piece of content and make nico and mrvisser managers. They should each get an e-mail
+            RestAPI.Content.createLink(
+              simong.restContext,
+              {
+                displayName: 'Yahoo!',
+                description: 'Yahoo!',
+                visibility: PUBLIC,
+                link: 'http://www.yahoo.com',
+                managers: [mrvisser.user.id, nico.user.id],
+                viewers: [],
+                folders: []
+              },
+              (error, link) => {
+                assert.notExists(error);
 
-                    // Assert that both nico and mrvisser received an e-mail, but noone else
-                    EmailTestsUtil.collectAndFetchAllEmails((messages) => {
-                      assert.strictEqual(messages.length, 2);
-                      assert.ok(
-                        contains(messages[0].to[0].address, [mrvisser.user.email, nico.user.email])
-                      );
-                      assert.ok(
-                        contains(messages[1].to[0].address, [mrvisser.user.email, nico.user.email])
-                      );
-                      assert.notStrictEqual(messages[0].to, messages[1].to);
+                // Assert that both nico and mrvisser received an e-mail, but noone else
+                EmailTestsUtil.collectAndFetchAllEmails((messages) => {
+                  assert.strictEqual(messages.length, 2);
+                  assert.ok(contains(messages[0].to[0].address, [mrvisser.user.email, nico.user.email]));
+                  assert.ok(contains(messages[1].to[0].address, [mrvisser.user.email, nico.user.email]));
+                  assert.notStrictEqual(messages[0].to, messages[1].to);
 
-                      // Simulate an unexpected loop and try to route the same activity seed multiple times
-                      const actorResource = new ActivityModel.ActivitySeedResource(
-                        'user',
-                        simong.user.id
-                      );
-                      const objectResource = new ActivityModel.ActivitySeedResource(
-                        'content',
-                        link.id
-                      );
-                      const seed = new ActivityModel.ActivitySeed(
-                        ContentConstants.activity.ACTIVITY_CONTENT_UPDATE,
-                        Date.now(),
-                        ActivityConstants.verbs.UPDATE,
-                        actorResource,
-                        objectResource
-                      );
+                  // Simulate an unexpected loop and try to route the same activity seed multiple times
+                  const actorResource = new ActivityModel.ActivitySeedResource('user', simong.user.id);
+                  const objectResource = new ActivityModel.ActivitySeedResource('content', link.id);
+                  const seed = new ActivityModel.ActivitySeed(
+                    ContentConstants.activity.ACTIVITY_CONTENT_UPDATE,
+                    Date.now(),
+                    ActivityConstants.verbs.UPDATE,
+                    actorResource,
+                    objectResource
+                  );
+                  ActivityRouter.routeActivity(seed, (error_) => {
+                    assert.notExists(error_);
+                    ActivityRouter.routeActivity(seed, (error_) => {
+                      assert.notExists(error_);
                       ActivityRouter.routeActivity(seed, (error_) => {
                         assert.notExists(error_);
-                        ActivityRouter.routeActivity(seed, (error_) => {
-                          assert.notExists(error_);
-                          ActivityRouter.routeActivity(seed, (error_) => {
-                            assert.notExists(error_);
 
-                            // Assert that only 1 mail got sent to both nico and mrvisser
-                            EmailTestsUtil.collectAndFetchAllEmails((messages) => {
-                              assert.strictEqual(messages.length, 2);
-                              assert.ok(
-                                contains(messages[0].to[0].address, [
-                                  mrvisser.user.email,
-                                  nico.user.email
-                                ])
-                              );
-                              assert.ok(
-                                contains(messages[1].to[0].address, [
-                                  mrvisser.user.email,
-                                  nico.user.email
-                                ])
-                              );
-                              assert.notStrictEqual(messages[0].to, messages[1].to[0].address);
-                              return callback();
-                            });
-                          });
+                        // Assert that only 1 mail got sent to both nico and mrvisser
+                        EmailTestsUtil.collectAndFetchAllEmails((messages) => {
+                          assert.strictEqual(messages.length, 2);
+                          assert.ok(contains(messages[0].to[0].address, [mrvisser.user.email, nico.user.email]));
+                          assert.ok(contains(messages[1].to[0].address, [mrvisser.user.email, nico.user.email]));
+                          assert.notStrictEqual(messages[0].to, messages[1].to[0].address);
+                          return callback();
                         });
                       });
                     });
-                  }
-                );
+                  });
+                });
               }
             );
-          }
-        );
+          });
+        });
       });
     });
   });

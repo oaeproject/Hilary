@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { beforeEach, describe, before, it } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';

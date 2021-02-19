@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before, afterEach } from 'mocha';
 import { forEach, nth, head, last, length } from 'ramda';
 
 import * as BackendsUtil from 'oae-content/lib/backends/util';

@@ -14,7 +14,6 @@
  */
 
 /* eslint-disable no-import-assign */
-import { afterEach, describe, before, it } from 'mocha';
 import { assert } from 'chai';
 import { format } from 'util';
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
@@ -78,9 +77,7 @@ describe('Activity', () => {
    */
   before((callback) => {
     ActivityTestUtil.refreshConfiguration({ processActivityJobs: true }, () => {
-      camAdminRestContext = TestsUtil.createTenantAdminRestContext(
-        global.oaeTests.tenants.cam.host
-      );
+      camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
       globalAdminRestContext = TestsUtil.createGlobalAdminRestContext();
       anonymousCamApiContext = new Context(global.oaeTests.tenants.cam);
 
@@ -88,7 +85,7 @@ describe('Activity', () => {
     });
   });
 
-  afterEach((callback) => {
+  after((callback) => {
     // Always restore the getAggregateStatus function
     ActivityDAO.getAggregateStatus = activityDaoGetAggregateStatusFn;
 
@@ -99,8 +96,7 @@ describe('Activity', () => {
       { 'oae-activity/activity/enabled': true },
       (error) => {
         assert.notExists(error);
-
-        ActivityTestUtil.refreshConfiguration(null, (error) => {
+        ActivityTestUtil.refreshConfiguration({ mail: { gracePeriod: 0 } }, (error) => {
           assert.notExists(error);
           return callback();
         });
@@ -146,35 +142,16 @@ describe('Activity', () => {
                 assert.notExists(error);
 
                 // Generate a share activity (as that has three entities)
-                RestAPI.Discussions.shareDiscussion(
-                  actorRestContext,
-                  publicDiscussion.id,
-                  [target],
-                  (error_) => {
+                RestAPI.Discussions.shareDiscussion(actorRestContext, publicDiscussion.id, [target], (error_) => {
+                  assert.notExists(error_);
+                  RestAPI.Discussions.shareDiscussion(actorRestContext, loggedinDiscussion.id, [target], (error_) => {
                     assert.notExists(error_);
-                    RestAPI.Discussions.shareDiscussion(
-                      actorRestContext,
-                      loggedinDiscussion.id,
-                      [target],
-                      (error_) => {
-                        assert.notExists(error_);
-                        RestAPI.Discussions.shareDiscussion(
-                          actorRestContext,
-                          privateDiscussion.id,
-                          [target],
-                          (error_) => {
-                            assert.notExists(error_);
-                            return callback(
-                              publicDiscussion,
-                              loggedinDiscussion,
-                              privateDiscussion
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
+                    RestAPI.Discussions.shareDiscussion(actorRestContext, privateDiscussion.id, [target], (error_) => {
+                      assert.notExists(error_);
+                      return callback(publicDiscussion, loggedinDiscussion, privateDiscussion);
+                    });
+                  });
+                });
               }
             );
           }
@@ -229,10 +206,7 @@ describe('Activity', () => {
     ActivityTestUtil.collectAndGetActivityStream(restContext, resourceId, null, (error, result) => {
       assert.notExists(error);
 
-      const shareActivities = filter(
-        propSatisfies(equals('discussion-share'), 'oae:activityType'),
-        result.items
-      );
+      const shareActivities = filter(propSatisfies(equals('discussion-share'), 'oae:activityType'), result.items);
       assert.strictEqual(shareActivities.length, nrOfShareActivities);
 
       // Get all the activity entities
@@ -484,92 +458,84 @@ describe('Activity', () => {
                 assert.notExists(error_);
 
                 // Verify no activity is generated, because we don't have any bound workers
-                ActivityTestUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (error, activityStream) => {
-                    assert.notExists(error);
-                    assert.ok(activityStream);
-                    assert.ok(activityStream.items);
-                    assert.strictEqual(activityStream.items.length, 0);
+                ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                  assert.notExists(error);
+                  assert.ok(activityStream);
+                  assert.ok(activityStream.items);
+                  assert.strictEqual(activityStream.items.length, 0);
 
-                    // Re-enable the worker
-                    ActivityTestUtil.refreshConfiguration(null, (error_) => {
-                      assert.notExists(error_);
+                  // Re-enable the worker
+                  ActivityTestUtil.refreshConfiguration(null, (error_) => {
+                    assert.notExists(error_);
 
-                      // Generate a 2nd activity for Jack's feed
-                      RestAPI.Content.createLink(
-                        jack.restContext,
-                        {
-                          displayName: 'Google',
-                          description: 'Google',
-                          visibility: PUBLIC,
-                          link: 'http://www.google.ca',
-                          managers: NO_MANAGERS,
-                          viewers: NO_VIEWERS,
-                          folders: NO_FOLDERS
-                        },
-                        (error_) => {
-                          assert.notExists(error_);
+                    // Generate a 2nd activity for Jack's feed
+                    RestAPI.Content.createLink(
+                      jack.restContext,
+                      {
+                        displayName: 'Google',
+                        description: 'Google',
+                        visibility: PUBLIC,
+                        link: 'http://www.google.ca',
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
+                      },
+                      (error_) => {
+                        assert.notExists(error_);
 
-                          // Verify that only the 2nd is collected into the stream, as the first just wasn't queued because the worker was disabled. And this is much simpler this way. The worker is supposed to be enabled all the time anyway.
-                          ActivityTestUtil.collectAndGetActivityStream(
-                            jack.restContext,
-                            null,
-                            null,
-                            (error, activityStream) => {
-                              assert.notExists(error);
-                              assert.ok(activityStream);
-                              assert.ok(activityStream.items);
-                              assert.strictEqual(activityStream.items.length, 1);
+                        // Verify that only the 2nd is collected into the stream, as the first just wasn't queued because the worker was disabled. And this is much simpler this way. The worker is supposed to be enabled all the time anyway.
+                        ActivityTestUtil.collectAndGetActivityStream(
+                          jack.restContext,
+                          null,
+                          null,
+                          (error, activityStream) => {
+                            assert.notExists(error);
+                            assert.ok(activityStream);
+                            assert.ok(activityStream.items);
+                            assert.strictEqual(activityStream.items.length, 1);
 
-                              // Re-enable the worker (again) and verify activities are still being routed
-                              ActivityTestUtil.refreshConfiguration(null, (error_) => {
-                                assert.notExists(error_);
+                            // Re-enable the worker (again) and verify activities are still being routed
+                            ActivityTestUtil.refreshConfiguration(null, (error_) => {
+                              assert.notExists(error_);
 
-                                // Create a 3rd activity to verify routing
-                                RestAPI.Content.createLink(
-                                  jack.restContext,
-                                  {
-                                    displayName: 'Google',
-                                    description: 'Google',
-                                    visibility: PUBLIC,
-                                    link: 'http://www.google.ca',
-                                    managers: NO_MANAGERS,
-                                    viewers: NO_VIEWERS,
-                                    folders: NO_FOLDERS
-                                  },
-                                  (error_) => {
-                                    assert.notExists(error_);
+                              // Create a 3rd activity to verify routing
+                              RestAPI.Content.createLink(
+                                jack.restContext,
+                                {
+                                  displayName: 'Google',
+                                  description: 'Google',
+                                  visibility: PUBLIC,
+                                  link: 'http://www.google.ca',
+                                  managers: NO_MANAGERS,
+                                  viewers: NO_VIEWERS,
+                                  folders: NO_FOLDERS
+                                },
+                                (error_) => {
+                                  assert.notExists(error_);
 
-                                    // Verify it was routed: now we should have 2 activities aggregated
-                                    ActivityTestUtil.collectAndGetActivityStream(
-                                      jack.restContext,
-                                      null,
-                                      null,
-                                      (error, activityStream) => {
-                                        assert.notExists(error);
-                                        assert.ok(activityStream);
-                                        assert.ok(activityStream.items);
-                                        assert.strictEqual(activityStream.items.length, 1);
-                                        assert.strictEqual(
-                                          activityStream.items[0].object['oae:collection'].length,
-                                          2
-                                        );
-                                        callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              });
-                            }
-                          );
-                        }
-                      );
-                    });
-                  }
-                );
+                                  // Verify it was routed: now we should have 2 activities aggregated
+                                  ActivityTestUtil.collectAndGetActivityStream(
+                                    jack.restContext,
+                                    null,
+                                    null,
+                                    (error, activityStream) => {
+                                      assert.notExists(error);
+                                      assert.ok(activityStream);
+                                      assert.ok(activityStream.items);
+                                      assert.strictEqual(activityStream.items.length, 1);
+                                      assert.strictEqual(activityStream.items[0].object['oae:collection'].length, 2);
+                                      callback();
+                                    }
+                                  );
+                                }
+                              );
+                            });
+                          }
+                        );
+                      }
+                    );
+                  });
+                });
               }
             );
           });
@@ -606,33 +572,28 @@ describe('Activity', () => {
                 assert.notExists(error_);
 
                 // Verify the activity is generated immediately
-                ActivityTestUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (error, activityStream) => {
-                    assert.notExists(error);
-                    assert.ok(activityStream);
-                    assert.ok(activityStream.items);
-                    assert.strictEqual(activityStream.items.length, 1);
+                ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                  assert.notExists(error);
+                  assert.ok(activityStream);
+                  assert.ok(activityStream.items);
+                  assert.strictEqual(activityStream.items.length, 1);
 
-                    // Now wait for the expiry and verify it has disappeared
-                    setTimeout(
-                      ActivityTestUtil.collectAndGetActivityStream,
-                      2100,
-                      jack.restContext,
-                      null,
-                      null,
-                      (error, activityStream) => {
-                        assert.notExists(error);
-                        assert.ok(activityStream);
-                        assert.ok(activityStream.items);
-                        assert.strictEqual(activityStream.items.length, 0);
-                        return callback();
-                      }
-                    );
-                  }
-                );
+                  // Now wait for the expiry and verify it has disappeared
+                  setTimeout(
+                    ActivityTestUtil.collectAndGetActivityStream,
+                    2100,
+                    jack.restContext,
+                    null,
+                    null,
+                    (error, activityStream) => {
+                      assert.notExists(error);
+                      assert.ok(activityStream);
+                      assert.ok(activityStream.items);
+                      assert.strictEqual(activityStream.items.length, 0);
+                      return callback();
+                    }
+                  );
+                });
               }
             );
           });
@@ -758,13 +719,7 @@ describe('Activity', () => {
           const objectResource = new ActivitySeedResource(testResourceType, testResourceId, {
             secret: 'My secret data!'
           });
-          const seed = new ActivitySeed(
-            testActivityType,
-            Date.now(),
-            'whistle',
-            actorResource,
-            objectResource
-          );
+          const seed = new ActivitySeed(testActivityType, Date.now(), 'whistle', actorResource, objectResource);
 
           // Register the activity such that the actor will receive it in their feed
           ActivityAPI.registerActivityType(testActivityType, {
@@ -1009,12 +964,7 @@ describe('Activity', () => {
               /*!
                * @return a valid activity seed that can be overlayed with invalid values for testing.
                */
-              const _createActivitySeed = function (
-                seedOverlay,
-                actorOverlay,
-                objectOverlay,
-                targetOverlay
-              ) {
+              const _createActivitySeed = function (seedOverlay, actorOverlay, objectOverlay, targetOverlay) {
                 if (!seedOverlay) {
                   return null;
                 }
@@ -1059,96 +1009,78 @@ describe('Activity', () => {
                     assert.strictEqual(error_.code, 400);
 
                     // Verify no verb
-                    ActivityAPI.postActivity(
-                      anonymousCamApiContext,
-                      _createActivitySeed({ verb: '' }),
-                      (error_) => {
-                        assert.ok(error_);
-                        assert.strictEqual(error_.code, 400);
+                    ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed({ verb: '' }), (error_) => {
+                      assert.ok(error_);
+                      assert.strictEqual(error_.code, 400);
 
-                        // Verify no publish date
-                        ActivityAPI.postActivity(
-                          anonymousCamApiContext,
-                          _createActivitySeed({ published: '' }),
-                          (error_) => {
+                      // Verify no publish date
+                      ActivityAPI.postActivity(
+                        anonymousCamApiContext,
+                        _createActivitySeed({ published: '' }),
+                        (error_) => {
+                          assert.ok(error_);
+                          assert.strictEqual(error_.code, 400);
+
+                          // Verify no actor
+                          ActivityAPI.postActivity(anonymousCamApiContext, _createActivitySeed({}), (error_) => {
                             assert.ok(error_);
                             assert.strictEqual(error_.code, 400);
 
-                            // Verify no actor
+                            // Verify no actor resource type
                             ActivityAPI.postActivity(
                               anonymousCamApiContext,
-                              _createActivitySeed({}),
+                              _createActivitySeed({}, { resourceType: '' }),
                               (error_) => {
                                 assert.ok(error_);
                                 assert.strictEqual(error_.code, 400);
 
-                                // Verify no actor resource type
+                                // Verify no actor resource id
                                 ActivityAPI.postActivity(
                                   anonymousCamApiContext,
-                                  _createActivitySeed({}, { resourceType: '' }),
+                                  _createActivitySeed({}, { resourceId: '' }),
                                   (error_) => {
                                     assert.ok(error_);
                                     assert.strictEqual(error_.code, 400);
 
-                                    // Verify no actor resource id
+                                    // Verify object with no resource type
                                     ActivityAPI.postActivity(
                                       anonymousCamApiContext,
-                                      _createActivitySeed({}, { resourceId: '' }),
+                                      _createActivitySeed({}, {}, { resourceType: '' }),
                                       (error_) => {
                                         assert.ok(error_);
                                         assert.strictEqual(error_.code, 400);
 
-                                        // Verify object with no resource type
+                                        // Verify object with no resource id
                                         ActivityAPI.postActivity(
                                           anonymousCamApiContext,
-                                          _createActivitySeed({}, {}, { resourceType: '' }),
+                                          _createActivitySeed({}, {}, { resourceId: '' }),
                                           (error_) => {
                                             assert.ok(error_);
                                             assert.strictEqual(error_.code, 400);
 
-                                            // Verify object with no resource id
+                                            // Verify target with no resource type
                                             ActivityAPI.postActivity(
                                               anonymousCamApiContext,
-                                              _createActivitySeed({}, {}, { resourceId: '' }),
+                                              _createActivitySeed({}, {}, {}, { resourceType: '' }),
                                               (error_) => {
                                                 assert.ok(error_);
                                                 assert.strictEqual(error_.code, 400);
 
-                                                // Verify target with no resource type
+                                                // Verify target with no resource id
                                                 ActivityAPI.postActivity(
                                                   anonymousCamApiContext,
-                                                  _createActivitySeed(
-                                                    {},
-                                                    {},
-                                                    {},
-                                                    { resourceType: '' }
-                                                  ),
+                                                  _createActivitySeed({}, {}, {}, { resourceId: '' }),
                                                   (error_) => {
                                                     assert.ok(error_);
                                                     assert.strictEqual(error_.code, 400);
 
-                                                    // Verify target with no resource id
+                                                    // Sanity check successfull post
                                                     ActivityAPI.postActivity(
                                                       anonymousCamApiContext,
-                                                      _createActivitySeed(
-                                                        {},
-                                                        {},
-                                                        {},
-                                                        { resourceId: '' }
-                                                      ),
+                                                      _createActivitySeed({}, {}, {}, {}),
                                                       (error_) => {
-                                                        assert.ok(error_);
-                                                        assert.strictEqual(error_.code, 400);
-
-                                                        // Sanity check successfull post
-                                                        ActivityAPI.postActivity(
-                                                          anonymousCamApiContext,
-                                                          _createActivitySeed({}, {}, {}, {}),
-                                                          (error_) => {
-                                                            assert.notExists(error_);
-                                                            return callback();
-                                                          }
-                                                        );
+                                                        assert.notExists(error_);
+                                                        return callback();
                                                       }
                                                     );
                                                   }
@@ -1163,10 +1095,10 @@ describe('Activity', () => {
                                 );
                               }
                             );
-                          }
-                        );
-                      }
-                    );
+                          });
+                        }
+                      );
+                    });
                   }
                 );
               });
@@ -1238,10 +1170,7 @@ describe('Activity', () => {
 
                               // Verify only one activity and it is not an aggregation
                               assert.strictEqual(activityStream.items.length, 1);
-                              assert.strictEqual(
-                                activityStream.items[0].object.objectType,
-                                'content'
-                              );
+                              assert.strictEqual(activityStream.items[0].object.objectType, 'content');
                               assert.strictEqual(activityStream.items[0].object['oae:id'], link.id);
                               callback();
                             }
@@ -1395,73 +1324,77 @@ describe('Activity', () => {
         }
       });
 
-      TestsUtil.setupMultiTenantPrivacyEntities(
-        (publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
-          // Make privateTenant1 public for now so we can get a follower going
-          ConfigTestsUtil.updateConfigAndWait(
-            TestsUtil.createGlobalAdminRestContext(),
-            privateTenant1.tenant.alias,
-            { 'oae-tenants/tenantprivacy/tenantprivate': false },
-            () => {
-              // Follow the publicTenant0.publicUser with the others
-              const followers = [
-                publicTenant0.loggedinUser,
-                publicTenant0.privateUser,
-                publicTenant1.publicUser,
-                publicTenant1.loggedinUser,
-                publicTenant1.privateUser,
-                privateTenant1.publicUser
-              ];
+      TestsUtil.setupMultiTenantPrivacyEntities((publicTenant0, publicTenant1, privateTenant0, privateTenant1) => {
+        // Make privateTenant1 public for now so we can get a follower going
+        ConfigTestsUtil.updateConfigAndWait(
+          TestsUtil.createGlobalAdminRestContext(),
+          privateTenant1.tenant.alias,
+          { 'oae-tenants/tenantprivacy/tenantprivate': false },
+          () => {
+            // Follow the publicTenant0.publicUser with the others
+            const followers = [
+              publicTenant0.loggedinUser,
+              publicTenant0.privateUser,
+              publicTenant1.publicUser,
+              publicTenant1.loggedinUser,
+              publicTenant1.privateUser,
+              privateTenant1.publicUser
+            ];
 
-              // Follow the public tenant0 user with all the users
-              FollowingTestsUtil.followByAll(
-                publicTenant0.publicUser.user.id,
-                followers,
+            // Follow the public tenant0 user with all the users
+            FollowingTestsUtil.followByAll(publicTenant0.publicUser.user.id, followers, (error) => {
+              assert.notExists(error);
+
+              // Make privateTenant1 private now that the association has been made. This sets up a tenant that is non-interactable which will
+              // let us verify the "interacting tenants" propagation later
+              ConfigTestsUtil.updateConfigAndWait(
+                TestsUtil.createGlobalAdminRestContext(),
+                privateTenant1.tenant.alias,
+                { 'oae-tenants/tenantprivacy/tenantprivate': true },
                 (error) => {
                   assert.notExists(error);
 
-                  // Make privateTenant1 private now that the association has been made. This sets up a tenant that is non-interactable which will
-                  // let us verify the "interacting tenants" propagation later
-                  ConfigTestsUtil.updateConfigAndWait(
-                    TestsUtil.createGlobalAdminRestContext(),
-                    privateTenant1.tenant.alias,
-                    { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                    (error) => {
+                  // This is an id for the mocked resource type we created at the start of this test. We will simply give it a resource id prefix
+                  // of "a", but it is really quite arbitrary
+                  const testId = format('a:%s:%s', publicTenant0.tenant.alias, TestsUtil.generateTestUserId());
+
+                  // Fabricate an activity with a resource that will invoke the "interacting_tenants" propagation. To do this, we will use a
+                  // content create activity with our mocked resource that is "joinable". The propagation on the `testEntityType` resource
+                  // will then indicate that only "interacting tenants" (and "member" association) can see it. Since we have setup the
+                  // followers of `publicTenant0.publicUser` to be some that do not belong to interacting tenants, we can ensure VIA the
+                  // followers routes that those users do not receive this activity
+                  const actorResource = new ActivitySeedResource('user', publicTenant0.publicUser.user.id);
+                  const objectResource = new ActivitySeedResource(testEntityType, testId, {
+                    visibility: 'private',
+                    joinable: 'yes'
+                  });
+                  const activitySeed = new ActivitySeed(
+                    'content-create',
+                    Date.now(),
+                    'create',
+                    actorResource,
+                    objectResource
+                  );
+                  ActivityAPI.postActivity(new Context(publicTenant0.tenant), activitySeed);
+
+                  // Ensure the user themself got it
+                  ActivityTestUtil.collectAndGetActivityStream(
+                    publicTenant0.publicUser.restContext,
+                    null,
+                    null,
+                    (error, response) => {
                       assert.notExists(error);
-
-                      // This is an id for the mocked resource type we created at the start of this test. We will simply give it a resource id prefix
-                      // of "a", but it is really quite arbitrary
-                      const testId = format(
-                        'a:%s:%s',
-                        publicTenant0.tenant.alias,
-                        TestsUtil.generateTestUserId()
-                      );
-
-                      // Fabricate an activity with a resource that will invoke the "interacting_tenants" propagation. To do this, we will use a
-                      // content create activity with our mocked resource that is "joinable". The propagation on the `testEntityType` resource
-                      // will then indicate that only "interacting tenants" (and "member" association) can see it. Since we have setup the
-                      // followers of `publicTenant0.publicUser` to be some that do not belong to interacting tenants, we can ensure VIA the
-                      // followers routes that those users do not receive this activity
-                      const actorResource = new ActivitySeedResource(
-                        'user',
-                        publicTenant0.publicUser.user.id
-                      );
-                      const objectResource = new ActivitySeedResource(testEntityType, testId, {
-                        visibility: 'private',
-                        joinable: 'yes'
-                      });
-                      const activitySeed = new ActivitySeed(
+                      ActivityTestUtil.assertActivity(
+                        response.items[0],
                         'content-create',
-                        Date.now(),
                         'create',
-                        actorResource,
-                        objectResource
+                        publicTenant0.publicUser.user.id,
+                        testId
                       );
-                      ActivityAPI.postActivity(new Context(publicTenant0.tenant), activitySeed);
 
-                      // Ensure the user themself got it
+                      // Ensure a user from the same tenant who isn't a member got it
                       ActivityTestUtil.collectAndGetActivityStream(
-                        publicTenant0.publicUser.restContext,
+                        publicTenant0.privateUser.restContext,
                         null,
                         null,
                         (error, response) => {
@@ -1474,24 +1407,26 @@ describe('Activity', () => {
                             testId
                           );
 
-                          // Ensure a user from the same tenant who isn't a member got it
+                          // Ensure a user from another public tenant did not get it since they don't have access to the private object
                           ActivityTestUtil.collectAndGetActivityStream(
-                            publicTenant0.privateUser.restContext,
+                            publicTenant1.privateUser.restContext,
                             null,
                             null,
                             (error, response) => {
                               assert.notExists(error);
+
+                              // The last activity in their feed should be the follow activity from when they followed the publicTenant0 public user
                               ActivityTestUtil.assertActivity(
                                 response.items[0],
-                                'content-create',
-                                'create',
-                                publicTenant0.publicUser.user.id,
-                                testId
+                                'following-follow',
+                                'follow',
+                                publicTenant1.privateUser.user.id,
+                                publicTenant0.publicUser.user.id
                               );
 
-                              // Ensure a user from another public tenant did not get it since they don't have access to the private object
+                              // Ensure the user from the private tenant did not get it either
                               ActivityTestUtil.collectAndGetActivityStream(
-                                publicTenant1.privateUser.restContext,
+                                privateTenant1.publicUser.restContext,
                                 null,
                                 null,
                                 (error, response) => {
@@ -1502,29 +1437,10 @@ describe('Activity', () => {
                                     response.items[0],
                                     'following-follow',
                                     'follow',
-                                    publicTenant1.privateUser.user.id,
+                                    privateTenant1.publicUser.user.id,
                                     publicTenant0.publicUser.user.id
                                   );
-
-                                  // Ensure the user from the private tenant did not get it either
-                                  ActivityTestUtil.collectAndGetActivityStream(
-                                    privateTenant1.publicUser.restContext,
-                                    null,
-                                    null,
-                                    (error, response) => {
-                                      assert.notExists(error);
-
-                                      // The last activity in their feed should be the follow activity from when they followed the publicTenant0 public user
-                                      ActivityTestUtil.assertActivity(
-                                        response.items[0],
-                                        'following-follow',
-                                        'follow',
-                                        privateTenant1.publicUser.user.id,
-                                        publicTenant0.publicUser.user.id
-                                      );
-                                      return callback();
-                                    }
-                                  );
+                                  return callback();
                                 }
                               );
                             }
@@ -1535,10 +1451,10 @@ describe('Activity', () => {
                   );
                 }
               );
-            }
-          );
-        }
-      );
+            });
+          }
+        );
+      });
     });
 
     /**
@@ -1565,24 +1481,14 @@ describe('Activity', () => {
         FollowingTestsUtil.followByAll(publicTenant0.publicUser.user.id, followers, (error) => {
           assert.notExists(error);
 
-          const testId = format(
-            'a:%s:%s',
-            publicTenant0.tenant.alias,
-            TestsUtil.generateTestUserId()
-          );
+          const testId = format('a:%s:%s', publicTenant0.tenant.alias, TestsUtil.generateTestUserId());
 
           // Fabricate an activity with a resource that will invoke the default "routes" propagation. To do this, we will use a content
           // create activity. The propagation on the `testEntityType` resource will indicate that only routes ('member' association) can
           // see it, whereas the routing for the actor will attempt to route to all followers
           const actorResource = new ActivitySeedResource('user', publicTenant0.publicUser.user.id);
           const objectResource = new ActivitySeedResource(testEntityType, testId);
-          const activitySeed = new ActivitySeed(
-            'content-create',
-            Date.now(),
-            'create',
-            actorResource,
-            objectResource
-          );
+          const activitySeed = new ActivitySeed('content-create', Date.now(), 'create', actorResource, objectResource);
           ActivityAPI.postActivity(new Context(publicTenant0.tenant), activitySeed);
 
           // Ensure that the publicTenant0 public user got it. The propagation of the test entity is the "routes", which we hard-coded to include
@@ -1594,10 +1500,7 @@ describe('Activity', () => {
             (error, response) => {
               assert.notExists(error);
 
-              const contentCreateActivity = find(
-                propEq('oae:activityType', 'content-create'),
-                response.items
-              );
+              const contentCreateActivity = find(propEq('oae:activityType', 'content-create'), response.items);
               assert.ok(contentCreateActivity);
               ActivityTestUtil.assertActivity(
                 contentCreateActivity,
@@ -1617,14 +1520,9 @@ describe('Activity', () => {
                 null,
                 (error, response) => {
                   assert.notExists(error);
-                  assert.isNotOk(
-                    find(propEq('oae:activityType', 'content-create'), response.items)
-                  );
+                  assert.isNotOk(find(propEq('oae:activityType', 'content-create'), response.items));
 
-                  const followActivity = find(
-                    propEq('oae:activityType', 'following-follow'),
-                    response.items
-                  );
+                  const followActivity = find(propEq('oae:activityType', 'following-follow'), response.items);
                   ActivityTestUtil.assertActivity(
                     followActivity,
                     'following-follow',
@@ -1652,13 +1550,9 @@ describe('Activity', () => {
 
         // Register a couple of associations for a fake entity type that produces simple routes
         const testEntityType = TestsUtil.generateTestUserId();
-        ActivityAPI.registerActivityEntityAssociation(
-          testEntityType,
-          'all',
-          (associationsCtx, entity, callback) => {
-            return callback(null, [nico.user.id, branden.user.id, simon.user.id]);
-          }
-        );
+        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'all', (associationsCtx, entity, callback) => {
+          return callback(null, [nico.user.id, branden.user.id, simon.user.id]);
+        });
         ActivityAPI.registerActivityEntityAssociation(
           testEntityType,
           'branden',
@@ -1666,13 +1560,9 @@ describe('Activity', () => {
             return callback(null, [branden.user.id]);
           }
         );
-        ActivityAPI.registerActivityEntityAssociation(
-          testEntityType,
-          'simon',
-          (associationsCtx, entity, callback) => {
-            return callback(null, [simon.user.id]);
-          }
-        );
+        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'simon', (associationsCtx, entity, callback) => {
+          return callback(null, [simon.user.id]);
+        });
 
         // Register a fake activity that should route to all users except for Branden
         // `^simon` has been added first in the set of associations to assert that exclusions are processed
@@ -1692,51 +1582,30 @@ describe('Activity', () => {
         const testId = TestsUtil.generateTestUserId();
         const actorResource = new ActivitySeedResource('user', nico.user.id);
         const objectResource = new ActivitySeedResource(testEntityType, testId);
-        const activitySeed = new ActivitySeed(
-          testActivityType,
-          Date.now(),
-          'create',
-          actorResource,
-          objectResource
-        );
+        const activitySeed = new ActivitySeed(testActivityType, Date.now(), 'create', actorResource, objectResource);
         ActivityAPI.postActivity(new Context(global.oaeTests.tenants.cam), activitySeed);
 
         // Assert Branden didn't get the activity
-        ActivityTestUtil.collectAndGetActivityStream(
-          branden.restContext,
-          null,
-          null,
-          (error, activityStream) => {
+        ActivityTestUtil.collectAndGetActivityStream(branden.restContext, null, null, (error, activityStream) => {
+          assert.notExists(error);
+          assert.strictEqual(activityStream.items.length, 0);
+
+          // Assert Nico got the activity
+          ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (error, activityStream) => {
             assert.notExists(error);
-            assert.strictEqual(activityStream.items.length, 0);
+            assert.strictEqual(activityStream.items.length, 1);
+            assert.strictEqual(activityStream.items[0].object['oae:id'], testId);
 
-            // Assert Nico got the activity
-            ActivityTestUtil.collectAndGetActivityStream(
-              nico.restContext,
-              null,
-              null,
-              (error, activityStream) => {
-                assert.notExists(error);
-                assert.strictEqual(activityStream.items.length, 1);
-                assert.strictEqual(activityStream.items[0].object['oae:id'], testId);
+            // Because Simon is excluded from the *empty set* (and NOT from the `all` set) he should have received an activity as well
+            ActivityTestUtil.collectAndGetActivityStream(simon.restContext, null, null, (error, activityStream) => {
+              assert.notExists(error);
+              assert.strictEqual(activityStream.items.length, 1);
+              assert.strictEqual(activityStream.items[0].object['oae:id'], testId);
 
-                // Because Simon is excluded from the *empty set* (and NOT from the `all` set) he should have received an activity as well
-                ActivityTestUtil.collectAndGetActivityStream(
-                  simon.restContext,
-                  null,
-                  null,
-                  (error, activityStream) => {
-                    assert.notExists(error);
-                    assert.strictEqual(activityStream.items.length, 1);
-                    assert.strictEqual(activityStream.items[0].object['oae:id'], testId);
-
-                    return callback();
-                  }
-                );
-              }
-            );
-          }
-        );
+              return callback();
+            });
+          });
+        });
       });
     });
   });
@@ -1754,33 +1623,22 @@ describe('Activity', () => {
         // Try empty id
         ActivityTestUtil.assertGetActivityStreamFails(jack.restContext, ' ', null, 400, () => {
           // Try invalid principal id
-          ActivityTestUtil.assertGetActivityStreamFails(
-            jack.restContext,
-            'c:cam:someContent',
-            null,
-            400,
-            () => {
-              // Try an invalid activity transformer
-              ActivityTestUtil.assertGetActivityStreamFails(
-                jack.restContext,
-                jack.user.id,
-                { format: 'non-existing' },
-                400,
-                () => {
-                  // Sanity-check valid query
-                  ActivityTestUtil.collectAndGetActivityStream(
-                    jack.restContext,
-                    jack.user.id,
-                    null,
-                    (error_) => {
-                      assert.notExists(error_);
-                      return callback();
-                    }
-                  );
-                }
-              );
-            }
-          );
+          ActivityTestUtil.assertGetActivityStreamFails(jack.restContext, 'c:cam:someContent', null, 400, () => {
+            // Try an invalid activity transformer
+            ActivityTestUtil.assertGetActivityStreamFails(
+              jack.restContext,
+              jack.user.id,
+              { format: 'non-existing' },
+              400,
+              () => {
+                // Sanity-check valid query
+                ActivityTestUtil.collectAndGetActivityStream(jack.restContext, jack.user.id, null, (error_) => {
+                  assert.notExists(error_);
+                  return callback();
+                });
+              }
+            );
+          });
         });
       });
     });
@@ -1849,10 +1707,7 @@ describe('Activity', () => {
                                     publicTenant0.discussions.public2Loggedin.public.id,
                                     publicTenant0.discussions.public2Loggedin.loggedin.id
                                   ],
-                                  [
-                                    publicTenant0.extraPublicUser.user.id,
-                                    publicTenant0.loggedinUser.user.id
-                                  ],
+                                  [publicTenant0.extraPublicUser.user.id, publicTenant0.loggedinUser.user.id],
                                   () => {
                                     _assertStream(
                                       publicTenant0.privateUser.restContext,
@@ -1864,10 +1719,7 @@ describe('Activity', () => {
                                         publicTenant0.discussions.public2Loggedin.public.id,
                                         publicTenant0.discussions.public2Loggedin.loggedin.id
                                       ],
-                                      [
-                                        publicTenant0.extraPublicUser.user.id,
-                                        publicTenant0.loggedinUser.user.id
-                                      ],
+                                      [publicTenant0.extraPublicUser.user.id, publicTenant0.loggedinUser.user.id],
                                       () => {
                                         // The user who owns the activity stream gets the "private"
                                         // activity stream which includes all the activities. This
@@ -1988,20 +1840,14 @@ describe('Activity', () => {
                                   publicTenant0.loggedinUser.user.id,
                                   2,
                                   objectEntities,
-                                  [
-                                    publicTenant0.extraPublicUser.user.id,
-                                    publicTenant0.publicUser.user.id
-                                  ],
+                                  [publicTenant0.extraPublicUser.user.id, publicTenant0.publicUser.user.id],
                                   () => {
                                     _assertStream(
                                       publicTenant0.privateUser.restContext,
                                       publicTenant0.loggedinUser.user.id,
                                       2,
                                       objectEntities,
-                                      [
-                                        publicTenant0.extraPublicUser.user.id,
-                                        publicTenant0.publicUser.user.id
-                                      ],
+                                      [publicTenant0.extraPublicUser.user.id, publicTenant0.publicUser.user.id],
                                       () => {
                                         // The user who owns the activity stream gets the "private"
                                         // activity stream which includes all the activities (including)
@@ -2357,10 +2203,8 @@ describe('Activity', () => {
                                           publicTenant0.loggedinJoinableGroup.id,
                                           1,
                                           [
-                                            publicTenant0.loggedinJoinableGroup.discussions.public
-                                              .id,
-                                            publicTenant0.loggedinJoinableGroup.discussions.loggedin
-                                              .id
+                                            publicTenant0.loggedinJoinableGroup.discussions.public.id,
+                                            publicTenant0.loggedinJoinableGroup.discussions.loggedin.id
                                           ],
                                           [publicTenant0.loggedinJoinableGroup.id],
                                           () => {
@@ -2369,10 +2213,8 @@ describe('Activity', () => {
                                               publicTenant0.loggedinNotJoinableGroup.id,
                                               1,
                                               [
-                                                publicTenant0.loggedinNotJoinableGroup.discussions
-                                                  .public.id,
-                                                publicTenant0.loggedinNotJoinableGroup.discussions
-                                                  .loggedin.id
+                                                publicTenant0.loggedinNotJoinableGroup.discussions.public.id,
+                                                publicTenant0.loggedinNotJoinableGroup.discussions.loggedin.id
                                               ],
                                               [publicTenant0.loggedinNotJoinableGroup.id],
                                               () => {
@@ -2381,10 +2223,8 @@ describe('Activity', () => {
                                                   publicTenant0.loggedinNotJoinableGroup.id,
                                                   1,
                                                   [
-                                                    publicTenant0.loggedinNotJoinableGroup
-                                                      .discussions.public.id,
-                                                    publicTenant0.loggedinNotJoinableGroup
-                                                      .discussions.loggedin.id
+                                                    publicTenant0.loggedinNotJoinableGroup.discussions.public.id,
+                                                    publicTenant0.loggedinNotJoinableGroup.discussions.loggedin.id
                                                   ],
                                                   [publicTenant0.loggedinNotJoinableGroup.id],
                                                   () => {
@@ -2393,10 +2233,8 @@ describe('Activity', () => {
                                                       publicTenant0.loggedinJoinableGroup.id,
                                                       1,
                                                       [
-                                                        publicTenant0.loggedinJoinableGroup
-                                                          .discussions.public.id,
-                                                        publicTenant0.loggedinJoinableGroup
-                                                          .discussions.loggedin.id
+                                                        publicTenant0.loggedinJoinableGroup.discussions.public.id,
+                                                        publicTenant0.loggedinJoinableGroup.discussions.loggedin.id
                                                       ],
                                                       [publicTenant0.loggedinJoinableGroup.id],
                                                       () => {
@@ -2407,78 +2245,56 @@ describe('Activity', () => {
                                                           publicTenant0.loggedinNotJoinableGroup.id,
                                                           1,
                                                           [
-                                                            publicTenant0.loggedinNotJoinableGroup
-                                                              .discussions.public.id,
-                                                            publicTenant0.loggedinNotJoinableGroup
-                                                              .discussions.loggedin.id,
-                                                            publicTenant0.loggedinNotJoinableGroup
-                                                              .discussions.private.id
-                                                          ],
-                                                          [
-                                                            publicTenant0.loggedinNotJoinableGroup
+                                                            publicTenant0.loggedinNotJoinableGroup.discussions.public
+                                                              .id,
+                                                            publicTenant0.loggedinNotJoinableGroup.discussions.loggedin
+                                                              .id,
+                                                            publicTenant0.loggedinNotJoinableGroup.discussions.private
                                                               .id
                                                           ],
+                                                          [publicTenant0.loggedinNotJoinableGroup.id],
                                                           () => {
                                                             _assertStream(
-                                                              publicTenant0.loggedinUser
-                                                                .restContext,
-                                                              publicTenant0.loggedinJoinableGroup
-                                                                .id,
+                                                              publicTenant0.loggedinUser.restContext,
+                                                              publicTenant0.loggedinJoinableGroup.id,
                                                               1,
                                                               [
-                                                                publicTenant0.loggedinJoinableGroup
-                                                                  .discussions.public.id,
-                                                                publicTenant0.loggedinJoinableGroup
-                                                                  .discussions.loggedin.id,
-                                                                publicTenant0.loggedinJoinableGroup
-                                                                  .discussions.private.id
-                                                              ],
-                                                              [
-                                                                publicTenant0.loggedinJoinableGroup
+                                                                publicTenant0.loggedinJoinableGroup.discussions.public
+                                                                  .id,
+                                                                publicTenant0.loggedinJoinableGroup.discussions.loggedin
+                                                                  .id,
+                                                                publicTenant0.loggedinJoinableGroup.discussions.private
                                                                   .id
                                                               ],
+                                                              [publicTenant0.loggedinJoinableGroup.id],
                                                               () => {
                                                                 _assertStream(
                                                                   publicTenant0.adminRestContext,
-                                                                  publicTenant0
-                                                                    .loggedinNotJoinableGroup.id,
+                                                                  publicTenant0.loggedinNotJoinableGroup.id,
                                                                   1,
                                                                   [
-                                                                    publicTenant0
-                                                                      .loggedinNotJoinableGroup
-                                                                      .discussions.public.id,
-                                                                    publicTenant0
-                                                                      .loggedinNotJoinableGroup
-                                                                      .discussions.loggedin.id,
-                                                                    publicTenant0
-                                                                      .loggedinNotJoinableGroup
-                                                                      .discussions.private.id
+                                                                    publicTenant0.loggedinNotJoinableGroup.discussions
+                                                                      .public.id,
+                                                                    publicTenant0.loggedinNotJoinableGroup.discussions
+                                                                      .loggedin.id,
+                                                                    publicTenant0.loggedinNotJoinableGroup.discussions
+                                                                      .private.id
                                                                   ],
-                                                                  [
-                                                                    publicTenant0
-                                                                      .loggedinNotJoinableGroup.id
-                                                                  ],
+                                                                  [publicTenant0.loggedinNotJoinableGroup.id],
                                                                   () => {
                                                                     _assertStream(
                                                                       publicTenant0.adminRestContext,
-                                                                      publicTenant0
-                                                                        .loggedinJoinableGroup.id,
+                                                                      publicTenant0.loggedinJoinableGroup.id,
                                                                       1,
                                                                       [
-                                                                        publicTenant0
-                                                                          .loggedinJoinableGroup
-                                                                          .discussions.public.id,
-                                                                        publicTenant0
-                                                                          .loggedinJoinableGroup
-                                                                          .discussions.loggedin.id,
-                                                                        publicTenant0
-                                                                          .loggedinJoinableGroup
-                                                                          .discussions.private.id
+                                                                        publicTenant0.loggedinJoinableGroup.discussions
+                                                                          .public.id,
+                                                                        publicTenant0.loggedinJoinableGroup.discussions
+                                                                          .loggedin.id,
+                                                                        publicTenant0.loggedinJoinableGroup.discussions
+                                                                          .private.id
                                                                       ],
-                                                                      [
-                                                                        publicTenant0
-                                                                          .loggedinJoinableGroup.id
-                                                                      ],
+                                                                      [publicTenant0.loggedinJoinableGroup.id],
                                                                       () => {
                                                                         return callback();
                                                                       }
@@ -2595,12 +2411,9 @@ describe('Activity', () => {
                                                   publicTenant0.privateJoinableGroup.id,
                                                   1,
                                                   [
-                                                    publicTenant0.privateJoinableGroup.discussions
-                                                      .public.id,
-                                                    publicTenant0.privateJoinableGroup.discussions
-                                                      .loggedin.id,
-                                                    publicTenant0.privateJoinableGroup.discussions
-                                                      .private.id
+                                                    publicTenant0.privateJoinableGroup.discussions.public.id,
+                                                    publicTenant0.privateJoinableGroup.discussions.loggedin.id,
+                                                    publicTenant0.privateJoinableGroup.discussions.private.id
                                                   ],
                                                   [publicTenant0.privateJoinableGroup.id],
                                                   () => {
@@ -2609,12 +2422,9 @@ describe('Activity', () => {
                                                       publicTenant0.privateJoinableGroup.id,
                                                       1,
                                                       [
-                                                        publicTenant0.privateJoinableGroup
-                                                          .discussions.public.id,
-                                                        publicTenant0.privateJoinableGroup
-                                                          .discussions.loggedin.id,
-                                                        publicTenant0.privateJoinableGroup
-                                                          .discussions.private.id
+                                                        publicTenant0.privateJoinableGroup.discussions.public.id,
+                                                        publicTenant0.privateJoinableGroup.discussions.loggedin.id,
+                                                        publicTenant0.privateJoinableGroup.discussions.private.id
                                                       ],
                                                       [publicTenant0.privateJoinableGroup.id],
                                                       () => {
@@ -2623,35 +2433,25 @@ describe('Activity', () => {
                                                           publicTenant0.privateJoinableGroup.id,
                                                           1,
                                                           [
-                                                            publicTenant0.privateJoinableGroup
-                                                              .discussions.public.id,
-                                                            publicTenant0.privateJoinableGroup
-                                                              .discussions.loggedin.id,
-                                                            publicTenant0.privateJoinableGroup
-                                                              .discussions.private.id
+                                                            publicTenant0.privateJoinableGroup.discussions.public.id,
+                                                            publicTenant0.privateJoinableGroup.discussions.loggedin.id,
+                                                            publicTenant0.privateJoinableGroup.discussions.private.id
                                                           ],
                                                           [publicTenant0.privateJoinableGroup.id],
                                                           () => {
                                                             _assertStream(
                                                               publicTenant0.adminRestContext,
-                                                              publicTenant0.privateNotJoinableGroup
-                                                                .id,
+                                                              publicTenant0.privateNotJoinableGroup.id,
                                                               1,
                                                               [
-                                                                publicTenant0
-                                                                  .privateNotJoinableGroup
-                                                                  .discussions.public.id,
-                                                                publicTenant0
-                                                                  .privateNotJoinableGroup
-                                                                  .discussions.loggedin.id,
-                                                                publicTenant0
-                                                                  .privateNotJoinableGroup
-                                                                  .discussions.private.id
+                                                                publicTenant0.privateNotJoinableGroup.discussions.public
+                                                                  .id,
+                                                                publicTenant0.privateNotJoinableGroup.discussions
+                                                                  .loggedin.id,
+                                                                publicTenant0.privateNotJoinableGroup.discussions
+                                                                  .private.id
                                                               ],
-                                                              [
-                                                                publicTenant0
-                                                                  .privateNotJoinableGroup.id
-                                                              ],
+                                                              [publicTenant0.privateNotJoinableGroup.id],
                                                               () => {
                                                                 return callback();
                                                               }
@@ -2713,42 +2513,31 @@ describe('Activity', () => {
             RestAPI.Content.shareContent(jack.restContext, link.id, [jane.user.id], (error_) => {
               assert.notExists(error_);
 
-              ActivityTestUtil.collectAndGetActivityStream(
-                jack.restContext,
-                null,
-                null,
-                (error, activityStream) => {
-                  assert.notExists(error);
-                  assert.ok(activityStream.items.length > 0);
+              ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                assert.notExists(error);
+                assert.ok(activityStream.items.length > 0);
 
-                  /**
-                   * Verifies that the oae:tenant object is present on the activity entity.
-                   *
-                   * @param  {ActivityEntity} entity The activity entity
-                   */
-                  const assertActivityEntity = function (entity) {
-                    assert.ok(entity['oae:tenant']);
-                    assert.strictEqual(
-                      entity['oae:tenant'].alias,
-                      global.oaeTests.tenants.cam.alias
-                    );
-                    assert.strictEqual(
-                      entity['oae:tenant'].displayName,
-                      global.oaeTests.tenants.cam.displayName
-                    );
-                  };
+                /**
+                 * Verifies that the oae:tenant object is present on the activity entity.
+                 *
+                 * @param  {ActivityEntity} entity The activity entity
+                 */
+                const assertActivityEntity = function (entity) {
+                  assert.ok(entity['oae:tenant']);
+                  assert.strictEqual(entity['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
+                  assert.strictEqual(entity['oae:tenant'].displayName, global.oaeTests.tenants.cam.displayName);
+                };
 
-                  // Make sure that both the actor, object and target (if one is available) have an oae:tenant object.
-                  forEach((activity) => {
-                    assertActivityEntity(activity.actor);
-                    assertActivityEntity(activity.object);
-                    if (activity['oae:activityType'] === 'content-share') {
-                      assertActivityEntity(activity.target);
-                    }
-                  }, activityStream.items);
-                  callback();
-                }
-              );
+                // Make sure that both the actor, object and target (if one is available) have an oae:tenant object.
+                forEach((activity) => {
+                  assertActivityEntity(activity.actor);
+                  assertActivityEntity(activity.object);
+                  if (activity['oae:activityType'] === 'content-share') {
+                    assertActivityEntity(activity.target);
+                  }
+                }, activityStream.items);
+                callback();
+              });
             });
           }
         );
@@ -2778,53 +2567,37 @@ describe('Activity', () => {
           },
           (error, link) => {
             assert.notExists(error);
-            RestAPI.Content.shareContent(
-              jack.restContext,
-              link.id,
-              [jane.user.id, jill.user.id],
-              (error_) => {
-                assert.notExists(error_);
+            RestAPI.Content.shareContent(jack.restContext, link.id, [jane.user.id, jill.user.id], (error_) => {
+              assert.notExists(error_);
 
-                ActivityTestUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (error, activityStream) => {
-                    assert.notExists(error);
-                    assert.ok(activityStream.items.length > 0);
+              ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                assert.notExists(error);
+                assert.ok(activityStream.items.length > 0);
 
-                    /**
-                     * Verifies that the oae:tenant object is present on the activity entity.
-                     *
-                     * @param  {ActivityEntity} entity The activity entity
-                     */
-                    const assertActivityEntity = function (entity) {
-                      assert.ok(entity['oae:tenant']);
-                      assert.strictEqual(
-                        entity['oae:tenant'].alias,
-                        global.oaeTests.tenants.cam.alias
-                      );
-                      assert.strictEqual(
-                        entity['oae:tenant'].displayName,
-                        global.oaeTests.tenants.cam.displayName
-                      );
-                    };
+                /**
+                 * Verifies that the oae:tenant object is present on the activity entity.
+                 *
+                 * @param  {ActivityEntity} entity The activity entity
+                 */
+                const assertActivityEntity = function (entity) {
+                  assert.ok(entity['oae:tenant']);
+                  assert.strictEqual(entity['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
+                  assert.strictEqual(entity['oae:tenant'].displayName, global.oaeTests.tenants.cam.displayName);
+                };
 
-                    // Make sure that both the actor, object and target (if one is available) have an oae:tenant object.
-                    forEach((activity) => {
-                      assertActivityEntity(activity.actor);
-                      assertActivityEntity(activity.object);
-                      if (activity['oae:activityType'] === 'content-share') {
-                        forEach((entity) => {
-                          assertActivityEntity(entity);
-                        }, activity.target['oae:collection']);
-                      }
-                    }, activityStream.items);
-                    callback();
+                // Make sure that both the actor, object and target (if one is available) have an oae:tenant object.
+                forEach((activity) => {
+                  assertActivityEntity(activity.actor);
+                  assertActivityEntity(activity.object);
+                  if (activity['oae:activityType'] === 'content-share') {
+                    forEach((entity) => {
+                      assertActivityEntity(entity);
+                    }, activity.target['oae:collection']);
                   }
-                );
-              }
-            );
+                }, activityStream.items);
+                callback();
+              });
+            });
           }
         );
       });
@@ -2858,45 +2631,40 @@ describe('Activity', () => {
               assert.notExists(error_);
 
               // Get the items, ensure there are 2
-              ActivityTestUtil.collectAndGetActivityStream(
-                jack.restContext,
-                null,
-                null,
-                (error, activityStream) => {
-                  assert.notExists(error);
-                  assert.strictEqual(activityStream.items.length, 2);
+              ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                assert.notExists(error);
+                assert.strictEqual(activityStream.items.length, 2);
 
-                  const firstId = activityStream.items[0]['oae:activityId'];
-                  const secondId = activityStream.items[1]['oae:activityId'];
+                const firstId = activityStream.items[0]['oae:activityId'];
+                const secondId = activityStream.items[1]['oae:activityId'];
 
-                  // Verify when you query with limit=1, you get the first and only the first activity
-                  ActivityTestUtil.collectAndGetActivityStream(
-                    jack.restContext,
-                    null,
-                    { limit: 1 },
-                    (error, activityStream) => {
-                      assert.notExists(error);
-                      assert.strictEqual(activityStream.items.length, 1);
-                      assert.strictEqual(activityStream.items[0]['oae:activityId'], firstId);
-                      assert.strictEqual(activityStream.nextToken, firstId);
+                // Verify when you query with limit=1, you get the first and only the first activity
+                ActivityTestUtil.collectAndGetActivityStream(
+                  jack.restContext,
+                  null,
+                  { limit: 1 },
+                  (error, activityStream) => {
+                    assert.notExists(error);
+                    assert.strictEqual(activityStream.items.length, 1);
+                    assert.strictEqual(activityStream.items[0]['oae:activityId'], firstId);
+                    assert.strictEqual(activityStream.nextToken, firstId);
 
-                      // Verify when you query with the firstId as the start point, you get just the second activity
-                      ActivityTestUtil.collectAndGetActivityStream(
-                        jack.restContext,
-                        null,
-                        { start: firstId },
-                        (error, activityStream) => {
-                          assert.notExists(error);
-                          assert.strictEqual(activityStream.items.length, 1);
-                          assert.strictEqual(activityStream.items[0]['oae:activityId'], secondId);
-                          assert.ok(!activityStream.nextToken);
-                          return callback();
-                        }
-                      );
-                    }
-                  );
-                }
-              );
+                    // Verify when you query with the firstId as the start point, you get just the second activity
+                    ActivityTestUtil.collectAndGetActivityStream(
+                      jack.restContext,
+                      null,
+                      { start: firstId },
+                      (error, activityStream) => {
+                        assert.notExists(error);
+                        assert.strictEqual(activityStream.items.length, 1);
+                        assert.strictEqual(activityStream.items[0]['oae:activityId'], secondId);
+                        assert.ok(!activityStream.nextToken);
+                        return callback();
+                      }
+                    );
+                  }
+                );
+              });
             });
           }
         );
@@ -2927,195 +2695,182 @@ describe('Activity', () => {
             assert.notExists(error);
 
             // Assert that it defaults to the activitystrea.ms spec
-            ActivityTestUtil.collectAndGetActivityStream(
-              jack.restContext,
-              null,
-              null,
-              (error, activityStream) => {
-                assert.notExists(error);
+            ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+              assert.notExists(error);
 
-                // The activity entities will have extra properties and will be formatted slightly differently
-                const { 0: activity } = activityStream.items;
-                assert.ok(activity);
+              // The activity entities will have extra properties and will be formatted slightly differently
+              const { 0: activity } = activityStream.items;
+              assert.ok(activity);
 
-                assert.ok(activity.actor);
-                assert.strictEqual(activity.actor['oae:id'], jack.user.id);
-                assert.strictEqual(activity.actor['oae:visibility'], jack.user.visibility);
-                assert.strictEqual(activity.actor['oae:profilePath'], jack.user.profilePath);
-                assert.strictEqual(activity.actor.displayName, jack.user.displayName);
-                assert.strictEqual(
-                  activity.actor.url,
-                  'http://' +
-                    global.oaeTests.tenants.cam.host +
-                    '/user/camtest/' +
-                    jack.user.id.split(':')[2]
+              assert.ok(activity.actor);
+              assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+              assert.strictEqual(activity.actor['oae:visibility'], jack.user.visibility);
+              assert.strictEqual(activity.actor['oae:profilePath'], jack.user.profilePath);
+              assert.strictEqual(activity.actor.displayName, jack.user.displayName);
+              assert.strictEqual(
+                activity.actor.url,
+                'http://' + global.oaeTests.tenants.cam.host + '/user/camtest/' + jack.user.id.split(':')[2]
+              );
+              assert.strictEqual(activity.actor.objectType, 'user');
+              assert.strictEqual(
+                activity.actor.id,
+                'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + jack.user.id
+              );
+              assert.isObject(activity.actor['oae:tenant']);
+
+              let allowedActorProperties = [
+                'oae:id',
+                'oae:visibility',
+                'oae:profilePath',
+                'displayName',
+                'url',
+                'objectType',
+                'id',
+                'oae:tenant'
+              ];
+              forEachObjIndexed((value, key) => {
+                assert.ok(
+                  contains(key, allowedActorProperties),
+                  key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                 );
-                assert.strictEqual(activity.actor.objectType, 'user');
-                assert.strictEqual(
-                  activity.actor.id,
-                  'http://' + global.oaeTests.tenants.cam.host + '/api/user/' + jack.user.id
+              }, activity.actor);
+
+              assert.ok(activity.object);
+              assert.strictEqual(activity.object['oae:id'], link.id);
+              assert.strictEqual(activity.object['oae:visibility'], link.visibility);
+              assert.strictEqual(activity.object['oae:profilePath'], link.profilePath);
+              assert.strictEqual(activity.object['oae:resourceSubType'], link.resourceSubType);
+              assert.strictEqual(activity.object['oae:revisionId'], link.latestRevisionId);
+              assert.strictEqual(activity.object.displayName, link.displayName);
+              assert.strictEqual(
+                activity.object.url,
+                'http://' + global.oaeTests.tenants.cam.host + '/content/camtest/' + link.id.split(':')[2]
+              );
+              assert.strictEqual(activity.object.objectType, 'content');
+              assert.strictEqual(
+                activity.object.id,
+                'http://' + global.oaeTests.tenants.cam.host + '/api/content/' + link.id
+              );
+              assert.isObject(activity.object['oae:tenant']);
+
+              let allowedObjectProperties = [
+                'oae:id',
+                'oae:visibility',
+                'oae:profilePath',
+                'oae:resourceSubType',
+                'oae:revisionId',
+                'displayName',
+                'url',
+                'objectType',
+                'id',
+                'oae:tenant'
+              ];
+              forEachObjIndexed((value, key) => {
+                assert.ok(
+                  contains(key, allowedObjectProperties),
+                  key + ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
                 );
-                assert.isObject(activity.actor['oae:tenant']);
+              }, activity.object);
 
-                let allowedActorProperties = [
-                  'oae:id',
-                  'oae:visibility',
-                  'oae:profilePath',
-                  'displayName',
-                  'url',
-                  'objectType',
-                  'id',
-                  'oae:tenant'
-                ];
-                forEachObjIndexed((value, key) => {
-                  assert.ok(
-                    contains(key, allowedActorProperties),
-                    key +
-                      ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                  );
-                }, activity.actor);
+              // Assert that the format can be specified
+              RestAPI.Activity.getActivityStream(
+                jack.restContext,
+                jack.user.id,
+                { format: 'internal' },
+                (error, activityStream) => {
+                  assert.notExists(error);
 
-                assert.ok(activity.object);
-                assert.strictEqual(activity.object['oae:id'], link.id);
-                assert.strictEqual(activity.object['oae:visibility'], link.visibility);
-                assert.strictEqual(activity.object['oae:profilePath'], link.profilePath);
-                assert.strictEqual(activity.object['oae:resourceSubType'], link.resourceSubType);
-                assert.strictEqual(activity.object['oae:revisionId'], link.latestRevisionId);
-                assert.strictEqual(activity.object.displayName, link.displayName);
-                assert.strictEqual(
-                  activity.object.url,
-                  'http://' +
-                    global.oaeTests.tenants.cam.host +
-                    '/content/camtest/' +
-                    link.id.split(':')[2]
-                );
-                assert.strictEqual(activity.object.objectType, 'content');
-                assert.strictEqual(
-                  activity.object.id,
-                  'http://' + global.oaeTests.tenants.cam.host + '/api/content/' + link.id
-                );
-                assert.isObject(activity.object['oae:tenant']);
+                  const { 0: activity } = activityStream.items;
+                  assert.ok(activity);
 
-                let allowedObjectProperties = [
-                  'oae:id',
-                  'oae:visibility',
-                  'oae:profilePath',
-                  'oae:resourceSubType',
-                  'oae:revisionId',
-                  'displayName',
-                  'url',
-                  'objectType',
-                  'id',
-                  'oae:tenant'
-                ];
-                forEachObjIndexed((value, key) => {
-                  assert.ok(
-                    contains(key, allowedObjectProperties),
-                    key +
-                      ' is not allowed on an ActivityStrea.ms compliant formatted activity entity'
-                  );
-                }, activity.object);
+                  // Assert that the actor entity is a user object augmented with an oae:id and objectType
+                  assert.ok(activity.actor);
+                  assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+                  assert.strictEqual(activity.actor.id, jack.user.id);
+                  assert.strictEqual(activity.actor.displayName, jack.user.displayName);
+                  assert.strictEqual(activity.actor.visibility, jack.user.visibility);
+                  assert.strictEqual(activity.actor.locale, 'en_GB');
+                  assert.strictEqual(activity.actor.publicAlias, jack.user.publicAlias);
+                  assert.isObject(activity.actor.picture);
+                  assert.strictEqual(activity.actor.profilePath, jack.user.profilePath);
+                  assert.strictEqual(activity.actor.resourceType, 'user');
+                  assert.strictEqual(activity.actor.acceptedTC, 0);
+                  assert.strictEqual(activity.actor.objectType, 'user');
+                  assert.isObject(activity.actor.tenant);
 
-                // Assert that the format can be specified
-                RestAPI.Activity.getActivityStream(
-                  jack.restContext,
-                  jack.user.id,
-                  { format: 'internal' },
-                  (error, activityStream) => {
-                    assert.notExists(error);
+                  // Ensure only these properties are present
+                  allowedActorProperties = [
+                    'oae:id',
+                    'id',
+                    'displayName',
+                    'visibility',
+                    'locale',
+                    'publicAlias',
+                    'picture',
+                    'profilePath',
+                    'resourceType',
+                    'acceptedTC',
+                    'objectType',
+                    'tenant',
+                    'email',
+                    'emailPreference'
+                  ];
+                  forEachObjIndexed((value, key) => {
+                    assert.ok(
+                      contains(key, allowedActorProperties),
+                      key + ' is not allowed on an internally formatted activity entity'
+                    );
+                  }, activity.actor);
 
-                    const { 0: activity } = activityStream.items;
-                    assert.ok(activity);
+                  // Assert that the object entity is a content object augmented with an oae:id and objectType
+                  assert.ok(activity.object);
+                  assert.strictEqual(activity.object['oae:id'], link.id);
+                  assert.strictEqual(activity.object.id, link.id);
+                  assert.strictEqual(activity.object.visibility, link.visibility);
+                  assert.strictEqual(activity.object.displayName, link.displayName);
+                  assert.strictEqual(activity.object.description, link.description);
+                  assert.strictEqual(activity.object.resourceSubType, link.resourceSubType);
+                  assert.strictEqual(activity.object.createdBy, link.createdBy);
+                  assert.strictEqual(activity.object.created, link.created);
+                  assert.strictEqual(activity.object.lastModified, link.lastModified);
+                  assert.strictEqual(activity.object.profilePath, link.profilePath);
+                  assert.strictEqual(activity.object.resourceType, link.resourceType);
+                  assert.strictEqual(activity.object.latestRevisionId, link.latestRevisionId);
+                  assert.isObject(activity.object.previews);
+                  assert.isObject(activity.object.signature);
+                  assert.strictEqual(activity.object.objectType, 'content');
+                  assert.isObject(activity.object.tenant);
 
-                    // Assert that the actor entity is a user object augmented with an oae:id and objectType
-                    assert.ok(activity.actor);
-                    assert.strictEqual(activity.actor['oae:id'], jack.user.id);
-                    assert.strictEqual(activity.actor.id, jack.user.id);
-                    assert.strictEqual(activity.actor.displayName, jack.user.displayName);
-                    assert.strictEqual(activity.actor.visibility, jack.user.visibility);
-                    assert.strictEqual(activity.actor.locale, 'en_GB');
-                    assert.strictEqual(activity.actor.publicAlias, jack.user.publicAlias);
-                    assert.isObject(activity.actor.picture);
-                    assert.strictEqual(activity.actor.profilePath, jack.user.profilePath);
-                    assert.strictEqual(activity.actor.resourceType, 'user');
-                    assert.strictEqual(activity.actor.acceptedTC, 0);
-                    assert.strictEqual(activity.actor.objectType, 'user');
-                    assert.isObject(activity.actor.tenant);
+                  // Ensure only these properties are present
+                  allowedObjectProperties = [
+                    'tenant',
+                    'id',
+                    'visibility',
+                    'displayName',
+                    'description',
+                    'resourceSubType',
+                    'createdBy',
+                    'created',
+                    'lastModified',
+                    'profilePath',
+                    'resourceType',
+                    'latestRevisionId',
+                    'previews',
+                    'signature',
+                    'objectType',
+                    'oae:id'
+                  ];
+                  forEachObjIndexed((value, key) => {
+                    assert.ok(
+                      contains(key, allowedObjectProperties),
+                      key + ' is not allowed on an internally formatted activity entity'
+                    );
+                  }, activity.object);
 
-                    // Ensure only these properties are present
-                    allowedActorProperties = [
-                      'oae:id',
-                      'id',
-                      'displayName',
-                      'visibility',
-                      'locale',
-                      'publicAlias',
-                      'picture',
-                      'profilePath',
-                      'resourceType',
-                      'acceptedTC',
-                      'objectType',
-                      'tenant',
-                      'email',
-                      'emailPreference'
-                    ];
-                    forEachObjIndexed((value, key) => {
-                      assert.ok(
-                        contains(key, allowedActorProperties),
-                        key + ' is not allowed on an internally formatted activity entity'
-                      );
-                    }, activity.actor);
-
-                    // Assert that the object entity is a content object augmented with an oae:id and objectType
-                    assert.ok(activity.object);
-                    assert.strictEqual(activity.object['oae:id'], link.id);
-                    assert.strictEqual(activity.object.id, link.id);
-                    assert.strictEqual(activity.object.visibility, link.visibility);
-                    assert.strictEqual(activity.object.displayName, link.displayName);
-                    assert.strictEqual(activity.object.description, link.description);
-                    assert.strictEqual(activity.object.resourceSubType, link.resourceSubType);
-                    assert.strictEqual(activity.object.createdBy, link.createdBy);
-                    assert.strictEqual(activity.object.created, link.created);
-                    assert.strictEqual(activity.object.lastModified, link.lastModified);
-                    assert.strictEqual(activity.object.profilePath, link.profilePath);
-                    assert.strictEqual(activity.object.resourceType, link.resourceType);
-                    assert.strictEqual(activity.object.latestRevisionId, link.latestRevisionId);
-                    assert.isObject(activity.object.previews);
-                    assert.isObject(activity.object.signature);
-                    assert.strictEqual(activity.object.objectType, 'content');
-                    assert.isObject(activity.object.tenant);
-
-                    // Ensure only these properties are present
-                    allowedObjectProperties = [
-                      'tenant',
-                      'id',
-                      'visibility',
-                      'displayName',
-                      'description',
-                      'resourceSubType',
-                      'createdBy',
-                      'created',
-                      'lastModified',
-                      'profilePath',
-                      'resourceType',
-                      'latestRevisionId',
-                      'previews',
-                      'signature',
-                      'objectType',
-                      'oae:id'
-                    ];
-                    forEachObjIndexed((value, key) => {
-                      assert.ok(
-                        contains(key, allowedObjectProperties),
-                        key + ' is not allowed on an internally formatted activity entity'
-                      );
-                    }, activity.object);
-
-                    return callback();
-                  }
-                );
-              }
-            );
+                  return callback();
+                }
+              );
+            });
           }
         );
       });
@@ -3174,44 +2929,33 @@ describe('Activity', () => {
             },
             (error, linkA) => {
               assert.notExists(error);
-              ActivityTestUtil.collectAndGetActivityStream(
-                jack.restContext,
-                null,
-                null,
-                (error, activityStream) => {
-                  assert.notExists(error);
-                  assert.strictEqual(activityStream.items.length, 0);
-                  assert.strictEqual(activityStream.nextToken, null);
+              ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error, activityStream) => {
+                assert.notExists(error);
+                assert.strictEqual(activityStream.items.length, 0);
+                assert.strictEqual(activityStream.nextToken, null);
 
-                  // Comment on the link, ensuring it can be delivered because it's not broken, and having one failed
-                  // routed activity should not permanently damage the queue
-                  RestAPI.Content.createComment(
+                // Comment on the link, ensuring it can be delivered because it's not broken, and having one failed
+                // routed activity should not permanently damage the queue
+                RestAPI.Content.createComment(jack.restContext, linkA.id, 'Comment Comment', null, (error_) => {
+                  assert.notExists(error_);
+                  ActivityTestUtil.collectAndGetActivityStream(
                     jack.restContext,
-                    linkA.id,
-                    'Comment Comment',
                     null,
-                    (error_) => {
-                      assert.notExists(error_);
-                      ActivityTestUtil.collectAndGetActivityStream(
-                        jack.restContext,
-                        null,
-                        null,
-                        (error, activityStream) => {
-                          assert.notExists(error);
-                          assert.strictEqual(activityStream.items.length, 1);
-                          assert.strictEqual(activityStream.nextToken, null);
+                    null,
+                    (error, activityStream) => {
+                      assert.notExists(error);
+                      assert.strictEqual(activityStream.items.length, 1);
+                      assert.strictEqual(activityStream.nextToken, null);
 
-                          const { 0: activity } = activityStream.items;
-                          assert.strictEqual(activity['oae:activityType'], 'content-comment');
-                          assert.strictEqual(activity.actor['oae:id'], jack.user.id);
-                          assert.strictEqual(activity.target['oae:id'], linkA.id);
-                          return callback();
-                        }
-                      );
+                      const { 0: activity } = activityStream.items;
+                      assert.strictEqual(activity['oae:activityType'], 'content-comment');
+                      assert.strictEqual(activity.actor['oae:id'], jack.user.id);
+                      assert.strictEqual(activity.target['oae:id'], linkA.id);
+                      return callback();
                     }
                   );
-                }
-              );
+                });
+              });
             }
           );
         });
@@ -3354,117 +3098,109 @@ describe('Activity', () => {
      */
     it('verify aggregation max expiry time', (callback) => {
       // Set the aggregate max time to 1s and the idle time higher to 5s, this is to rule out the possibility of idle expiry messing up this test
-      ActivityTestUtil.refreshConfiguration(
-        { aggregateIdleExpiry: 5, aggregateMaxExpiry: 1 },
-        (error) => {
+      ActivityTestUtil.refreshConfiguration({ aggregateIdleExpiry: 5, aggregateMaxExpiry: 1 }, (error) => {
+        assert.notExists(error);
+
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
 
-          TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
-            assert.notExists(error);
+          const { 0: jack } = users;
 
-            const { 0: jack } = users;
+          // This is when the createLink aggregate is born
+          RestAPI.Content.createLink(
+            jack.restContext,
+            {
+              displayName: 'A',
+              description: 'A',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
+            },
+            (error, linkA) => {
+              assert.notExists(error);
 
-            // This is when the createLink aggregate is born
-            RestAPI.Content.createLink(
-              jack.restContext,
-              {
-                displayName: 'A',
-                description: 'A',
-                visibility: PUBLIC,
-                link: 'http://www.google.ca',
-                managers: NO_MANAGERS,
-                viewers: NO_VIEWERS,
-                folders: NO_FOLDERS
-              },
-              (error, linkA) => {
-                assert.notExists(error);
+              // Drop an aggregate in. The when collected the aggregate is 600ms old
+              setTimeout(
+                RestAPI.Content.createLink,
+                600,
+                jack.restContext,
+                {
+                  displayName: 'B',
+                  description: 'B',
+                  visibility: PUBLIC,
+                  link: 'http://www.google.ca',
+                  managers: NO_MANAGERS,
+                  viewers: NO_VIEWERS,
+                  folders: NO_FOLDERS
+                },
+                (error, linkB) => {
+                  assert.notExists(error);
 
-                // Drop an aggregate in. The when collected the aggregate is 600ms old
-                setTimeout(
-                  RestAPI.Content.createLink,
-                  600,
-                  jack.restContext,
-                  {
-                    displayName: 'B',
-                    description: 'B',
-                    visibility: PUBLIC,
-                    link: 'http://www.google.ca',
-                    managers: NO_MANAGERS,
-                    viewers: NO_VIEWERS,
-                    folders: NO_FOLDERS
-                  },
-                  (error, linkB) => {
-                    assert.notExists(error);
+                  // Collect, then wait for expiry
+                  ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error_) => {
+                    assert.notExists(error_);
 
-                    // Collect, then wait for expiry
-                    ActivityTestUtil.collectAndGetActivityStream(
+                    // When this content item is created, it should have crossed max expiry, causing this content create activity to be delivered individually
+                    setTimeout(
+                      RestAPI.Content.createLink,
+                      1500,
                       jack.restContext,
-                      null,
-                      null,
-                      (error_) => {
-                        assert.notExists(error_);
+                      {
+                        displayName: 'C',
+                        description: 'C',
+                        visibility: PUBLIC,
+                        link: 'http://www.google.ca',
+                        managers: NO_MANAGERS,
+                        viewers: NO_VIEWERS,
+                        folders: NO_FOLDERS
+                      },
+                      (error, linkC) => {
+                        assert.notExists(error);
 
-                        // When this content item is created, it should have crossed max expiry, causing this content create activity to be delivered individually
-                        setTimeout(
-                          RestAPI.Content.createLink,
-                          1500,
+                        ActivityTestUtil.collectAndGetActivityStream(
                           jack.restContext,
-                          {
-                            displayName: 'C',
-                            description: 'C',
-                            visibility: PUBLIC,
-                            link: 'http://www.google.ca',
-                            managers: NO_MANAGERS,
-                            viewers: NO_VIEWERS,
-                            folders: NO_FOLDERS
-                          },
-                          (error, linkC) => {
+                          null,
+                          null,
+                          (error, activityStream) => {
                             assert.notExists(error);
 
-                            ActivityTestUtil.collectAndGetActivityStream(
-                              jack.restContext,
-                              null,
-                              null,
-                              (error, activityStream) => {
-                                assert.notExists(error);
+                            // Now validate the activity stream contents
+                            assert.strictEqual(activityStream.items.length, 2);
 
-                                // Now validate the activity stream contents
-                                assert.strictEqual(activityStream.items.length, 2);
+                            // The most recent is the individual content-create entity activity
+                            let entity = activityStream.items[0].object;
+                            assert.strictEqual(entity['oae:id'], linkC.id);
 
-                                // The most recent is the individual content-create entity activity
-                                let entity = activityStream.items[0].object;
-                                assert.strictEqual(entity['oae:id'], linkC.id);
-
-                                // The next oldest is the aggregated with a and b in it
-                                let hasA = false;
-                                let hasB = false;
-                                entity = activityStream.items[1].object;
-                                assert.ok(entity['oae:collection']);
-                                entity['oae:collection'].forEach((collectedEntity) => {
-                                  if (collectedEntity['oae:id'] === linkA.id) {
-                                    hasA = true;
-                                  } else if (collectedEntity['oae:id'] === linkB.id) {
-                                    hasB = true;
-                                  }
-                                });
-
-                                assert.ok(hasA);
-                                assert.ok(hasB);
-
-                                return callback();
+                            // The next oldest is the aggregated with a and b in it
+                            let hasA = false;
+                            let hasB = false;
+                            entity = activityStream.items[1].object;
+                            assert.ok(entity['oae:collection']);
+                            entity['oae:collection'].forEach((collectedEntity) => {
+                              if (collectedEntity['oae:id'] === linkA.id) {
+                                hasA = true;
+                              } else if (collectedEntity['oae:id'] === linkB.id) {
+                                hasB = true;
                               }
-                            );
+                            });
+
+                            assert.ok(hasA);
+                            assert.ok(hasB);
+
+                            return callback();
                           }
                         );
                       }
                     );
-                  }
-                );
-              }
-            );
-          });
-        }
-      );
+                  });
+                }
+              );
+            }
+          );
+        });
+      });
     });
 
     /**
@@ -3473,104 +3209,79 @@ describe('Activity', () => {
     it('verify aggregated data is automatically deleted after the idle expiry time', (callback) => {
       // Set the aggregate max time to 1s, if we add aggregate data then wait this period of time, queries to the DAO should show that this data has
       // been automatically cleaned out
-      ActivityTestUtil.refreshConfiguration(
-        { aggregateIdleExpiry: 1, aggregateMaxExpiry: 5 },
-        (error) => {
+      ActivityTestUtil.refreshConfiguration({ aggregateIdleExpiry: 1, aggregateMaxExpiry: 5 }, (error) => {
+        assert.notExists(error);
+
+        TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
           assert.notExists(error);
 
-          TestsUtil.generateTestUsers(camAdminRestContext, 1, (error, users) => {
-            assert.notExists(error);
+          const { 0: jack } = users;
 
-            const { 0: jack } = users;
+          // Create a link then collect, which creates the aggregates
+          RestAPI.Content.createLink(
+            jack.restContext,
+            {
+              displayName: 'A',
+              description: 'A',
+              visibility: PUBLIC,
+              link: 'http://www.google.ca',
+              managers: NO_MANAGERS,
+              viewers: NO_VIEWERS,
+              folders: NO_FOLDERS
+            },
+            (error, link) => {
+              assert.notExists(error);
 
-            // Create a link then collect, which creates the aggregates
-            RestAPI.Content.createLink(
-              jack.restContext,
-              {
-                displayName: 'A',
-                description: 'A',
-                visibility: PUBLIC,
-                link: 'http://www.google.ca',
-                managers: NO_MANAGERS,
-                viewers: NO_VIEWERS,
-                folders: NO_FOLDERS
-              },
-              (error, link) => {
-                assert.notExists(error);
+              // Drop an aggregate in. This is when the aggregate should be initially persisted, so should expire 1s from this time
+              const timePersisted = Date.now();
+              ActivityTestUtil.collectAndGetActivityStream(jack.restContext, null, null, (error_) => {
+                assert.notExists(error_);
 
-                // Drop an aggregate in. This is when the aggregate should be initially persisted, so should expire 1s from this time
-                const timePersisted = Date.now();
-                ActivityTestUtil.collectAndGetActivityStream(
-                  jack.restContext,
-                  null,
-                  null,
-                  (error_) => {
-                    assert.notExists(error_);
+                // Verify that the DAO reports the aggregate status is indeed there
+                const aggregateKey = format('content-create#%s#activity#user:%s##__null__', jack.user.id, jack.user.id);
 
-                    // Verify that the DAO reports the aggregate status is indeed there
-                    const aggregateKey = format(
-                      'content-create#%s#activity#user:%s##__null__',
-                      jack.user.id,
-                      jack.user.id
+                ActivityDAO.getAggregateStatus([aggregateKey], (error, aggregateStatus) => {
+                  assert.notExists(error);
+                  assert.ok(aggregateStatus[aggregateKey]);
+                  assert.ok(aggregateStatus[aggregateKey].lastActivity);
+
+                  // Verify that the DAO reports the aggregated entity is indeed there at this time
+                  ActivityDAO.getAggregatedEntities([aggregateKey], (error, aggregatedEntities) => {
+                    const timeSincePersisted = Date.now() - timePersisted;
+                    assert.notExists(error);
+                    assert.ok(
+                      aggregatedEntities[aggregateKey],
+                      format(
+                        'Expected to find aggregate entity with key: %s. Duration since persistence: %s',
+                        aggregateKey,
+                        timeSincePersisted
+                      )
                     );
+                    assert.ok(aggregatedEntities[aggregateKey].actors['user:' + jack.user.id]);
+                    assert.ok(aggregatedEntities[aggregateKey].objects['content:' + link.id]);
 
-                    ActivityDAO.getAggregateStatus([aggregateKey], (error, aggregateStatus) => {
+                    // Wait the max expiry (1s) to let them disappear and verify there is no status
+                    setTimeout(ActivityDAO.getAggregateStatus, 1100, [aggregateKey], (error, aggregateStatus) => {
                       assert.notExists(error);
-                      assert.ok(aggregateStatus[aggregateKey]);
-                      assert.ok(aggregateStatus[aggregateKey].lastActivity);
+                      assert.isEmpty(aggregateStatus);
 
-                      // Verify that the DAO reports the aggregated entity is indeed there at this time
-                      ActivityDAO.getAggregatedEntities(
-                        [aggregateKey],
-                        (error, aggregatedEntities) => {
-                          const timeSincePersisted = Date.now() - timePersisted;
-                          assert.notExists(error);
-                          assert.ok(
-                            aggregatedEntities[aggregateKey],
-                            format(
-                              'Expected to find aggregate entity with key: %s. Duration since persistence: %s',
-                              aggregateKey,
-                              timeSincePersisted
-                            )
-                          );
-                          assert.ok(
-                            aggregatedEntities[aggregateKey].actors['user:' + jack.user.id]
-                          );
-                          assert.ok(aggregatedEntities[aggregateKey].objects['content:' + link.id]);
+                      // Verify the entities disappeared
+                      ActivityDAO.getAggregatedEntities([aggregateKey], (error, aggregatedEntities) => {
+                        assert.notExists(error);
+                        assert.isUndefined(aggregatedEntities.actors);
+                        assert.isUndefined(aggregatedEntities.objects);
+                        assert.isUndefined(aggregatedEntities.targets);
 
-                          // Wait the max expiry (1s) to let them disappear and verify there is no status
-                          setTimeout(
-                            ActivityDAO.getAggregateStatus,
-                            1100,
-                            [aggregateKey],
-                            (error, aggregateStatus) => {
-                              assert.notExists(error);
-                              assert.isEmpty(aggregateStatus);
-
-                              // Verify the entities disappeared
-                              ActivityDAO.getAggregatedEntities(
-                                [aggregateKey],
-                                (error, aggregatedEntities) => {
-                                  assert.notExists(error);
-                                  assert.isUndefined(aggregatedEntities.actors);
-                                  assert.isUndefined(aggregatedEntities.objects);
-                                  assert.isUndefined(aggregatedEntities.targets);
-
-                                  return callback();
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
+                        return callback();
+                      });
                     });
-                  }
-                );
-              }
-            );
-          });
-        }
-      );
+                  });
+                });
+              });
+            }
+          );
+        });
+      });
     });
 
     /**
@@ -3596,176 +3307,161 @@ describe('Activity', () => {
           },
           (error, firstContentObject) => {
             assert.notExists(error);
-            ActivityTestUtil.collectAndGetActivityStream(
-              mrvisser.restContext,
-              null,
-              null,
-              (error, activityStream) => {
-                assert.notExists(error);
-                // Sanity check that the create content activity is in mrvisser's activity stream
-                ActivityTestUtil.assertActivity(
-                  activityStream.items[0],
-                  'content-create',
-                  'create',
-                  simong.user.id,
-                  firstContentObject.id,
-                  mrvisser.user.id
-                );
+            ActivityTestUtil.collectAndGetActivityStream(mrvisser.restContext, null, null, (error, activityStream) => {
+              assert.notExists(error);
+              // Sanity check that the create content activity is in mrvisser's activity stream
+              ActivityTestUtil.assertActivity(
+                activityStream.items[0],
+                'content-create',
+                'create',
+                simong.user.id,
+                firstContentObject.id,
+                mrvisser.user.id
+              );
 
-                // Reset the aggregator for mrvisser his activity stream
-                // The next content-create activity should *NOT* aggregate with the previous one
-                ActivityAggregator.resetAggregationForActivityStreams(
-                  [mrvisser.user.id + '#activity'],
-                  (error_) => {
-                    assert.notExists(error_);
-                    RestAPI.Content.createLink(
-                      simong.restContext,
-                      {
-                        displayName: 'Second item',
-                        description: 'A',
-                        visibility: PUBLIC,
-                        link: 'http://www.google.be',
-                        managers: NO_MANAGERS,
-                        viewers: [mrvisser.user.id],
-                        folders: NO_FOLDERS
-                      },
-                      (error, secondContentObject) => {
+              // Reset the aggregator for mrvisser his activity stream
+              // The next content-create activity should *NOT* aggregate with the previous one
+              ActivityAggregator.resetAggregationForActivityStreams([mrvisser.user.id + '#activity'], (error_) => {
+                assert.notExists(error_);
+                RestAPI.Content.createLink(
+                  simong.restContext,
+                  {
+                    displayName: 'Second item',
+                    description: 'A',
+                    visibility: PUBLIC,
+                    link: 'http://www.google.be',
+                    managers: NO_MANAGERS,
+                    viewers: [mrvisser.user.id],
+                    folders: NO_FOLDERS
+                  },
+                  (error, secondContentObject) => {
+                    assert.notExists(error);
+                    ActivityTestUtil.collectAndGetActivityStream(
+                      mrvisser.restContext,
+                      null,
+                      null,
+                      (error, activityStream) => {
                         assert.notExists(error);
-                        ActivityTestUtil.collectAndGetActivityStream(
-                          mrvisser.restContext,
-                          null,
-                          null,
-                          (error, activityStream) => {
+
+                        // As we have reset aggregation for mrvisser's activity stream, we should have 2 distinct activities for the same activity type
+                        assert.strictEqual(activityStream.items.length, 2);
+                        ActivityTestUtil.assertActivity(
+                          activityStream.items[0],
+                          'content-create',
+                          'create',
+                          simong.user.id,
+                          secondContentObject.id,
+                          mrvisser.user.id
+                        );
+                        ActivityTestUtil.assertActivity(
+                          activityStream.items[1],
+                          'content-create',
+                          'create',
+                          simong.user.id,
+                          firstContentObject.id,
+                          mrvisser.user.id
+                        );
+
+                        // Sanity check that creating another piece of content does aggregate with the latest activity
+                        RestAPI.Content.createLink(
+                          simong.restContext,
+                          {
+                            displayName: 'Third item',
+                            description: 'A',
+                            visibility: PUBLIC,
+                            link: 'http://www.google.be',
+                            managers: NO_MANAGERS,
+                            viewers: [mrvisser.user.id],
+                            folders: NO_FOLDERS
+                          },
+                          (error, thirdContentObject) => {
                             assert.notExists(error);
-
-                            // As we have reset aggregation for mrvisser's activity stream, we should have 2 distinct activities for the same activity type
-                            assert.strictEqual(activityStream.items.length, 2);
-                            ActivityTestUtil.assertActivity(
-                              activityStream.items[0],
-                              'content-create',
-                              'create',
-                              simong.user.id,
-                              secondContentObject.id,
-                              mrvisser.user.id
-                            );
-                            ActivityTestUtil.assertActivity(
-                              activityStream.items[1],
-                              'content-create',
-                              'create',
-                              simong.user.id,
-                              firstContentObject.id,
-                              mrvisser.user.id
-                            );
-
-                            // Sanity check that creating another piece of content does aggregate with the latest activity
-                            RestAPI.Content.createLink(
-                              simong.restContext,
-                              {
-                                displayName: 'Third item',
-                                description: 'A',
-                                visibility: PUBLIC,
-                                link: 'http://www.google.be',
-                                managers: NO_MANAGERS,
-                                viewers: [mrvisser.user.id],
-                                folders: NO_FOLDERS
-                              },
-                              (error, thirdContentObject) => {
+                            ActivityTestUtil.collectAndGetActivityStream(
+                              mrvisser.restContext,
+                              null,
+                              null,
+                              (error, activityStream) => {
                                 assert.notExists(error);
-                                ActivityTestUtil.collectAndGetActivityStream(
+                                assert.strictEqual(activityStream.items.length, 2);
+                                ActivityTestUtil.assertActivity(
+                                  activityStream.items[0],
+                                  'content-create',
+                                  'create',
+                                  simong.user.id,
+                                  [secondContentObject.id, thirdContentObject.id],
+                                  mrvisser.user.id
+                                );
+                                ActivityTestUtil.assertActivity(
+                                  activityStream.items[1],
+                                  'content-create',
+                                  'create',
+                                  simong.user.id,
+                                  firstContentObject.id,
+                                  mrvisser.user.id
+                                );
+
+                                // Assert that the notification stream was not impacted and that all three activities aggregated
+                                ActivityTestUtil.collectAndGetNotificationStream(
                                   mrvisser.restContext,
                                   null,
-                                  null,
-                                  (error, activityStream) => {
+                                  (error, notificationStream) => {
                                     assert.notExists(error);
-                                    assert.strictEqual(activityStream.items.length, 2);
+                                    assert.strictEqual(notificationStream.items.length, 1);
                                     ActivityTestUtil.assertActivity(
-                                      activityStream.items[0],
+                                      notificationStream.items[0],
                                       'content-create',
                                       'create',
                                       simong.user.id,
-                                      [secondContentObject.id, thirdContentObject.id],
-                                      mrvisser.user.id
-                                    );
-                                    ActivityTestUtil.assertActivity(
-                                      activityStream.items[1],
-                                      'content-create',
-                                      'create',
-                                      simong.user.id,
-                                      firstContentObject.id,
+                                      [firstContentObject.id, secondContentObject.id, thirdContentObject.id],
                                       mrvisser.user.id
                                     );
 
-                                    // Assert that the notification stream was not impacted and that all three activities aggregated
-                                    ActivityTestUtil.collectAndGetNotificationStream(
-                                      mrvisser.restContext,
-                                      null,
-                                      (error, notificationStream) => {
-                                        assert.notExists(error);
-                                        assert.strictEqual(notificationStream.items.length, 1);
-                                        ActivityTestUtil.assertActivity(
-                                          notificationStream.items[0],
-                                          'content-create',
-                                          'create',
-                                          simong.user.id,
-                                          [
-                                            firstContentObject.id,
-                                            secondContentObject.id,
-                                            thirdContentObject.id
-                                          ],
-                                          mrvisser.user.id
-                                        );
-
-                                        // Reset mrvisser's "notification" activity stream and generate another notification
-                                        // That way we can verify that resetting aggregation for a stream that contains previously aggregates activities works correctly
-                                        ActivityAggregator.resetAggregationForActivityStreams(
-                                          [mrvisser.user.id + '#notification'],
-                                          (error__) => {
-                                            assert.notExists(error__);
-                                            RestAPI.Content.createLink(
-                                              simong.restContext,
-                                              {
-                                                displayName: 'Fourth item',
-                                                description: 'A',
-                                                visibility: PUBLIC,
-                                                link: 'http://www.google.be',
-                                                managers: NO_MANAGERS,
-                                                viewers: [mrvisser.user.id],
-                                                folders: NO_FOLDERS
-                                              },
-                                              (error, fourthContentObject) => {
+                                    // Reset mrvisser's "notification" activity stream and generate another notification
+                                    // That way we can verify that resetting aggregation for a stream that contains previously aggregates activities works correctly
+                                    ActivityAggregator.resetAggregationForActivityStreams(
+                                      [mrvisser.user.id + '#notification'],
+                                      (error__) => {
+                                        assert.notExists(error__);
+                                        RestAPI.Content.createLink(
+                                          simong.restContext,
+                                          {
+                                            displayName: 'Fourth item',
+                                            description: 'A',
+                                            visibility: PUBLIC,
+                                            link: 'http://www.google.be',
+                                            managers: NO_MANAGERS,
+                                            viewers: [mrvisser.user.id],
+                                            folders: NO_FOLDERS
+                                          },
+                                          (error, fourthContentObject) => {
+                                            assert.notExists(error);
+                                            ActivityTestUtil.collectAndGetNotificationStream(
+                                              mrvisser.restContext,
+                                              null,
+                                              (error, notificationStream) => {
                                                 assert.notExists(error);
-                                                ActivityTestUtil.collectAndGetNotificationStream(
-                                                  mrvisser.restContext,
-                                                  null,
-                                                  (error, notificationStream) => {
-                                                    assert.notExists(error);
-                                                    assert.strictEqual(
-                                                      notificationStream.items.length,
-                                                      2
-                                                    );
-                                                    ActivityTestUtil.assertActivity(
-                                                      notificationStream.items[0],
-                                                      'content-create',
-                                                      'create',
-                                                      simong.user.id,
-                                                      fourthContentObject.id,
-                                                      mrvisser.user.id
-                                                    );
-                                                    ActivityTestUtil.assertActivity(
-                                                      notificationStream.items[1],
-                                                      'content-create',
-                                                      'create',
-                                                      simong.user.id,
-                                                      [
-                                                        firstContentObject.id,
-                                                        secondContentObject.id,
-                                                        thirdContentObject.id
-                                                      ],
-                                                      mrvisser.user.id
-                                                    );
-                                                    return callback();
-                                                  }
+                                                assert.strictEqual(notificationStream.items.length, 2);
+                                                ActivityTestUtil.assertActivity(
+                                                  notificationStream.items[0],
+                                                  'content-create',
+                                                  'create',
+                                                  simong.user.id,
+                                                  fourthContentObject.id,
+                                                  mrvisser.user.id
                                                 );
+                                                ActivityTestUtil.assertActivity(
+                                                  notificationStream.items[1],
+                                                  'content-create',
+                                                  'create',
+                                                  simong.user.id,
+                                                  [
+                                                    firstContentObject.id,
+                                                    secondContentObject.id,
+                                                    thirdContentObject.id
+                                                  ],
+                                                  mrvisser.user.id
+                                                );
+                                                return callback();
                                               }
                                             );
                                           }
@@ -3782,8 +3478,8 @@ describe('Activity', () => {
                     );
                   }
                 );
-              }
-            );
+              });
+            });
           }
         );
       });
@@ -3813,75 +3509,63 @@ describe('Activity', () => {
           },
           (error_) => {
             assert.notExists(error_);
-            ActivityTestUtil.collectAndGetActivityStream(
-              simong.restContext,
-              null,
-              null,
-              (error_) => {
-                assert.notExists(error_);
+            ActivityTestUtil.collectAndGetActivityStream(simong.restContext, null, null, (error_) => {
+              assert.notExists(error_);
 
-                // Since we've performed and collected activities, there should be a key in the set of active aggregate keys
-                ActivityDAO.getActiveAggregateKeysForActivityStreams(
-                  [simong.user.id + '#activity'],
-                  (error, activeAggregateKeysForActivityStream) => {
-                    assert.notExists(error);
-                    assert.strictEqual(activeAggregateKeysForActivityStream[0].length, 2);
-                    assert.isNotEmpty(activeAggregateKeysForActivityStream[0][1]);
+              // Since we've performed and collected activities, there should be a key in the set of active aggregate keys
+              ActivityDAO.getActiveAggregateKeysForActivityStreams(
+                [simong.user.id + '#activity'],
+                (error, activeAggregateKeysForActivityStream) => {
+                  assert.notExists(error);
+                  assert.strictEqual(activeAggregateKeysForActivityStream[0].length, 2);
+                  assert.isNotEmpty(activeAggregateKeysForActivityStream[0][1]);
 
-                    // Verify that the notification stream has a set of keys as well
-                    ActivityDAO.getActiveAggregateKeysForActivityStreams(
-                      [simong.user.id + '#notification'],
-                      (error, activeAggregateKeysForNotificationStream) => {
-                        assert.notExists(error);
-                        assert.strictEqual(activeAggregateKeysForNotificationStream[0].length, 2);
-                        assert.isNotEmpty(activeAggregateKeysForNotificationStream[0][1]);
+                  // Verify that the notification stream has a set of keys as well
+                  ActivityDAO.getActiveAggregateKeysForActivityStreams(
+                    [simong.user.id + '#notification'],
+                    (error, activeAggregateKeysForNotificationStream) => {
+                      assert.notExists(error);
+                      assert.strictEqual(activeAggregateKeysForNotificationStream[0].length, 2);
+                      assert.isNotEmpty(activeAggregateKeysForNotificationStream[0][1]);
 
-                        // Assert that the aggregate keys for a notification stream are different than those of an activity stream
-                        const allActivityKeys = flatten(activeAggregateKeysForActivityStream[0][1]);
-                        const allNotificationKeys = flatten(
-                          activeAggregateKeysForNotificationStream[0][1]
-                        );
-                        assert.isEmpty(intersection(allActivityKeys, allNotificationKeys));
+                      // Assert that the aggregate keys for a notification stream are different than those of an activity stream
+                      const allActivityKeys = flatten(activeAggregateKeysForActivityStream[0][1]);
+                      const allNotificationKeys = flatten(activeAggregateKeysForNotificationStream[0][1]);
+                      assert.isEmpty(intersection(allActivityKeys, allNotificationKeys));
 
-                        // Reset simon's "activity" activity stream
-                        ActivityAggregator.resetAggregationForActivityStreams(
-                          [simong.user.id + '#activity'],
-                          (error_) => {
-                            assert.notExists(error_);
+                      // Reset simon's "activity" activity stream
+                      ActivityAggregator.resetAggregationForActivityStreams(
+                        [simong.user.id + '#activity'],
+                        (error_) => {
+                          assert.notExists(error_);
 
-                            // Since we've reset the aggregation process for simon's stream, he should no longer have any active aggregate keys
-                            ActivityDAO.getActiveAggregateKeysForActivityStreams(
-                              [simong.user.id + '#activity'],
-                              (error, activeAggregateKeysForActivityStream) => {
-                                assert.notExists(error);
-                                assert.strictEqual(activeAggregateKeysForActivityStream.length, 1);
-                                assert.isEmpty(activeAggregateKeysForActivityStream[0][1]);
+                          // Since we've reset the aggregation process for simon's stream, he should no longer have any active aggregate keys
+                          ActivityDAO.getActiveAggregateKeysForActivityStreams(
+                            [simong.user.id + '#activity'],
+                            (error, activeAggregateKeysForActivityStream) => {
+                              assert.notExists(error);
+                              assert.strictEqual(activeAggregateKeysForActivityStream.length, 1);
+                              assert.isEmpty(activeAggregateKeysForActivityStream[0][1]);
 
-                                // Assert that we did not impact the "notification" activity stream
-                                ActivityDAO.getActiveAggregateKeysForActivityStreams(
-                                  [simong.user.id + '#notification'],
-                                  (error, activeAggregateKeysForNotificationStream) => {
-                                    assert.notExists(error);
-                                    assert.strictEqual(
-                                      activeAggregateKeysForNotificationStream[0].length,
-                                      2
-                                    );
-                                    assert.isNotEmpty(
-                                      activeAggregateKeysForNotificationStream[0][1]
-                                    );
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
+                              // Assert that we did not impact the "notification" activity stream
+                              ActivityDAO.getActiveAggregateKeysForActivityStreams(
+                                [simong.user.id + '#notification'],
+                                (error, activeAggregateKeysForNotificationStream) => {
+                                  assert.notExists(error);
+                                  assert.strictEqual(activeAggregateKeysForNotificationStream[0].length, 2);
+                                  assert.isNotEmpty(activeAggregateKeysForNotificationStream[0][1]);
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
           }
         );
       });
@@ -3937,16 +3621,11 @@ describe('Activity', () => {
                     );
 
                     // The `message` stream is transient and should NOT result in any persisted activities
-                    ActivityDAO.getActivities(
-                      contentObject.id + '#message',
-                      null,
-                      20,
-                      (error, activities) => {
-                        assert.notExists(error);
-                        assert.strictEqual(activities.length, 0);
-                        return callback();
-                      }
-                    );
+                    ActivityDAO.getActivities(contentObject.id + '#message', null, 20, (error, activities) => {
+                      assert.notExists(error);
+                      assert.strictEqual(activities.length, 0);
+                      return callback();
+                    });
                   }
                 );
               }

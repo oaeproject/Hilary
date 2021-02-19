@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { Validator as v } from 'oae-authz/lib/validator';
 
 describe('Authz-Validator', () => {

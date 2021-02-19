@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { describe, beforeEach, it } from 'mocha';
 import { forEach, filter, propSatisfies, equals } from 'ramda';
 
 import * as RestAPI from 'oae-rest';

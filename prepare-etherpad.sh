@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Include these steps if running locally
+# They have been included on CircleCI already
+# cp ep-settings.json etherpad/settings.json
+# cp ep-package.json etherpad/src/package.json
+
 BASE_DIR="$(pwd)"
 ETHERPAD="$(pwd)/etherpad"
 ETHERPAD_MODULES="${ETHERPAD}/node_modules"

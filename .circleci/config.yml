@@ -7,7 +7,6 @@ aliases:
           password: $DOCKER_PASS # or project environment variable reference
     environment:
       TMP: /root/tmp
-      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
       npm_config_yes: true
@@ -48,7 +47,11 @@ aliases:
     run:
       name: Copy logs to host
       command: |
+        docker cp oae-hilary:/usr/src/Hilary/reports .
         docker cp oae-hilary:/usr/src/Hilary/tests.log reports/logs
+        # Make absolute paths relative for split-by-timings to work
+        touch reports/mocha/test-results.xml
+        sed -i 's/\/usr\/src\/Hilary\///g' reports/mocha/test-results.xml
   - &store_results
     store_test_results:
       path: reports
@@ -61,42 +64,70 @@ aliases:
       command: |
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          yarn run etherpad; \
-          yarn run ethercalc; \
-          yarn run test-with-coverage"
+          npx pm2 startOrReload process.json --only Etherpad; \
+          npx pm2 startOrReload process.json --only Ethercalc; \
+          yarn run test-update-coverage"
   - &run_parallel_tests
     run:
       name: Run tests in parallel
       command: |
+        echo $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')
         docker-compose run --rm oae-hilary "\
           yarn run migrate; \
-          yarn run etherpad; \
-          yarn run ethercalc; \
-          yarn run test-modules $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
+          npx pm2 startOrReload process.json --only Etherpad; \
+          npx pm2 startOrReload process.json --only Ethercalc; \
+          yarn run ci:test-module $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')"
   - &run_linting
     run:
       name: Run linting test
       command: |
         docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
-  - &install_dependencies
+  - &then_save_cache # not being used
+    save_cache:
+      key: deps-cache-{{ checksum "yarn.lock" }}
+      paths:
+        - ./node_modules
+        - ./3akai-ux/node_modules
+        - ./ethercalc/node_modules
+  - &restore_cache_first # not being used
+    restore_cache:
+      key: deps-cache-{{ checksum "yarn.lock" }}
+      paths:
+        - ./node_modules
+        - ./3akai-ux/node_modules
+        - ./ethercalc/node_modules
+  - &install_hilary
     run:
-      name: Install dependencies
+      name: Install Hilary dependencies
       command: |
-        docker-compose run --rm oae-hilary 'yarn run prepare-3akai'
-        docker-compose run --rm oae-hilary 'yarn run prepare-etherpad'
-        docker-compose run --rm oae-hilary 'yarn run prepare-ethercalc'
-        docker-compose run --rm oae-hilary 'yarn global add lerna ; /home/node/.yarn/bin/lerna bootstrap'
+        docker-compose run --rm oae-hilary "yarn install"
+  - &install_3akai
+    run:
+      name: Install 3akai-ux dependencies
+      command: |
+        docker-compose run --rm oae-hilary "cd 3akai-ux && yarn install"
+  - &install_ethercalc
+    run:
+      name: Install ethercalc dependencies
+      command: |
+        docker-compose run --rm oae-hilary "cd ethercalc && yarn install"
+  - &install_etherpad
+    run:
+      name: Install etherpad dependencies
+      command: |
+        docker-compose run --rm oae-hilary "./prepare-etherpad.sh"
   - &copy_code
     run:
       name: Copy code
       command: |
         addgroup -g 1000 node
         adduser -u 1000 -G node -s /bin/sh -D node
+        cp ec-package.json ethercalc/package.json
         cp ep-settings.json etherpad/settings.json
         cp ep-package.json etherpad/src/package.json
+        mkdir -p reports/logs
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src
-        mkdir -p reports/logs
   - &create_containers
     run:
       name: Create the containers
@@ -114,6 +145,7 @@ aliases:
   - &setup_remote_docker
     setup_remote_docker:
       version: 19.03.13
+      docker_layer_caching: true
 
 version: 2.1
 jobs:
@@ -131,7 +163,10 @@ jobs:
       - *create_containers
       - *launch_containers
       - *copy_code
-      - *install_dependencies
+      - *install_ethercalc
+      - *install_etherpad
+      - *install_3akai
+      - *install_hilary
       - *run_linting
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
@@ -151,7 +186,10 @@ jobs:
       - *create_containers
       - *launch_containers
       - *copy_code
-      - *install_dependencies
+      - *install_ethercalc
+      - *install_etherpad
+      - *install_3akai
+      - *install_hilary
       - *run_linting
       - *run_sequential_tests # includes coverage
       - *copy_artifacts

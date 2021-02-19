@@ -14,7 +14,6 @@
  */
 
 import assert from 'assert';
-import { describe, it, beforeEach } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';

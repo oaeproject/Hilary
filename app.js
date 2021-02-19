@@ -15,14 +15,16 @@
  * permissions and limitations under the License.
  */
 
-const path = require('path');
-const repl = require('repl');
-const PrettyStream = require('bunyan-prettystream');
-const optimist = require('optimist');
-const _ = require('underscore');
+/* eslint-disable-file node/no-unsupported-features/es-syntax */
+import { promisify } from 'util';
+import path from 'path';
+import repl from 'repl';
+import PrettyStream from 'bunyan-prettystream';
+import optimist from 'optimist';
+import { map, prop, mergeAll } from 'ramda';
 
-const OAE = require('oae-util/lib/oae');
-const { logger } = require('oae-logger');
+import * as OAE from 'oae-util/lib/oae';
+import { logger } from 'oae-logger';
 
 const log = logger();
 
@@ -46,39 +48,46 @@ if (argv.help) {
 // If a relative path that starts with `./` has been provided,
 // we turn it into an absolute path based on the current working directory
 if (argv.config.match(/^\.\//)) {
-  argv.config = process.cwd() + argv.config.substring(1);
+  argv.config = process.cwd() + argv.config.slice(1);
   // If a different non-absolute path has been provided, we turn
   // it into an absolute path based on the current working directory
 } else if (!argv.config.match(/^\//)) {
   argv.config = process.cwd() + '/' + argv.config;
 }
 
-const configPath = argv.config;
-let { config } = require(configPath);
-const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
-const envConfig = require(envConfigPath).config;
-config = _.extend({}, config, envConfig);
+(async function () {
+  const fileConfig = await import(argv.config);
 
-// If the user asked for pretty output change the log stream
-if (argv.pretty || argv.interactive) {
-  const prettyStdOut = new PrettyStream();
-  prettyStdOut.pipe(process.stdout);
+  const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
+  const envConfig = await import(envConfigPath);
 
-  config.log.streams[0].stream = prettyStdOut;
-}
+  // Merge config read from file with the one set by NODE_ENV corresponding file
+  const config = mergeAll(map(prop('config'), [fileConfig, envConfig]));
 
-// Start the server and all of its tenants
-OAE.init(config, err => {
-  if (err) {
-    log().error({ err }, 'Error initializing server.');
+  // If the user asked for pretty output change the log stream
+  if (argv.pretty || argv.interactive) {
+    const prettyStdOut = new PrettyStream();
+    prettyStdOut.pipe(process.stdout);
+    config.log.streams[0].stream = prettyStdOut;
   }
 
-  // If the user asked for an interactive shell start the node REPL and pass in the OAE and log objects
-  if (argv.interactive) {
-    const replServer = repl.start({
-      prompt: 'oae > '
-    });
-    replServer.context.OAE = OAE;
-    replServer.context.log = log;
+  const startOAE = promisify(OAE.init);
+
+  try {
+    await startOAE(config);
+
+    /**
+     * If the user asked for an interactive shell start the node REPL and
+     * pass in the OAE and log objects
+     */
+    if (argv.interactive) {
+      const replServer = repl.start({
+        prompt: 'oae > '
+      });
+      replServer.context.OAE = OAE;
+      replServer.context.log = log;
+    }
+  } catch (error) {
+    log().error({ err: error }, 'Error initializing server.');
   }
-});
+})();

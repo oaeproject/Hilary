@@ -15,7 +15,6 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util';

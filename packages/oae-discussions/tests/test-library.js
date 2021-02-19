@@ -15,7 +15,6 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
-import { describe, beforeEach, it } from 'mocha';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';

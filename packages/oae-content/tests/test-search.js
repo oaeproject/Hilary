@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 import { assert } from 'chai';
-import { after, describe, it, before } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 

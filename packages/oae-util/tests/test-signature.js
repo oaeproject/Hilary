@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, afterEach } from 'mocha';
 
 import * as Signature from 'oae-util/lib/signature';
 

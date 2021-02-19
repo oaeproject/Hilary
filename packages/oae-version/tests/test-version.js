@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';

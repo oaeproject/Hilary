@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { beforeEach, it, describe } from 'mocha';
 import { toLower, compose, prop, length, head, find, slice, propEq } from 'ramda';
 
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';

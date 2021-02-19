@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { beforeEach, afterEach, after, before } from 'mocha';
+/* eslint-disable no-undef */
 
 import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
@@ -21,8 +21,6 @@ import nock from 'nock';
 import { flush } from 'oae-util/lib/redis';
 
 const log = logger('before-tests');
-
-const DEFAULT_TIMEOUT = 60000;
 
 // eslint-disable-next-line no-unused-vars
 const { argv } = require('optimist')
@@ -42,7 +40,7 @@ process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
 const dropKeyspaceBeforeTest = process.env.OAE_TEST_DROP_KEYSPACE_BEFORE !== 'false';
 
 // First set up the keyspace and all of the column families required for all of the different OAE modules
-before(function (callback) {
+before((callback) => {
   // Set an env var for running tests. This is being used in `redis.js`
   process.env.OAE_TESTS_RUNNING = 'true';
 
@@ -50,18 +48,15 @@ before(function (callback) {
     // Create the configuration for the test
     const config = TestsUtil.createInitialTestConfig();
 
-    this.timeout(config.test.timeout || DEFAULT_TIMEOUT);
-
-    TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, callback);
+    TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
+      return callback();
+    });
   });
 });
 
 beforeEach(function (callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-  flush((error) => {
-    if (error) return callback(error);
-    return callback();
-  });
+  callback();
 });
 
 afterEach(function (callback) {

@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
@@ -47,7 +46,7 @@ describe('Folders', () => {
    * Set up all the REST contexts for admin and anonymous users with which we
    * will invoke requests
    */
-  before(done => {
+  before((done) => {
     asCambridgeTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asCambridgeAnonymousUser = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     asGlobalAdmin = TestsUtil.createGlobalAdminRestContext();
@@ -75,7 +74,7 @@ describe('Folders', () => {
    * @param  {Object}             callback.user               A user as returned by `TestsUtil.generateTestUsers` who will create the folder
    * @throws {AssertionError}                                 Throws an error if anything unexpected happens when setting up the entities
    */
-  const _setup = function(visibility, callback) {
+  const _setup = function (visibility, callback) {
     FoldersTestUtil.setupMultiTenantPrivacyEntities((publicTenant1, publicTenant2, privateTenant, privateTenant1) => {
       // Create a test user who will generate a test folder
       TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (error, users) => {
@@ -83,7 +82,7 @@ describe('Folders', () => {
 
         const { 0: simong } = users;
 
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, visibility, folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, visibility, (folder) => {
           // Create 3 content items
           RestAPI.Content.createLink(
             simong.restContext,
@@ -161,7 +160,7 @@ describe('Folders', () => {
     /**
      * Test that verifies that folders can be searched through
      */
-    it('verify folders are searchable', callback => {
+    it('verify folders are searchable', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
         const { 0: simong } = users;
@@ -240,7 +239,7 @@ describe('Folders', () => {
     /**
      * Test that verifies that all users can search public folders
      */
-    it('verify public folder', callback => {
+    it('verify public folder', (callback) => {
       _setup('public', (
         simong,
         folder,
@@ -322,7 +321,7 @@ describe('Folders', () => {
     /**
      * Test that verifies anonymous and cross-tenant users cannot search loggedin folders
      */
-    it('verify loggedin folder', callback => {
+    it('verify loggedin folder', (callback) => {
       _setup('loggedin', (
         simong,
         folder,
@@ -386,7 +385,7 @@ describe('Folders', () => {
     /**
      * Test that verifies only admin and the user themselves can search private folders
      */
-    it('verify private folder', callback => {
+    it('verify private folder', (callback) => {
       _setup('private', (
         simong,
         folder,
@@ -446,7 +445,7 @@ describe('Folders', () => {
     /**
      * Test that verifies that folders can be searched
      */
-    it('verify folders can be searched for', callback => {
+    it('verify folders can be searched for', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
         const { 0: simong } = users;
@@ -476,7 +475,7 @@ describe('Folders', () => {
     /**
      * Test that verifies that folder search results can contain a thumbnail
      */
-    it('verify folder search results can contain a thumbnail', callback => {
+    it('verify folder search results can contain a thumbnail', (callback) => {
       _setup('public', (
         simong,
         folder /* ,
@@ -517,14 +516,14 @@ describe('Folders', () => {
     /**
      * Test that verifies that the visibility of folders is taken into account when searching for folders
      */
-    it('verify folder visibility is taken into account', callback => {
+    it('verify folder visibility is taken into account', (callback) => {
       _setup(
         'public',
         (simong, folder, publicContent, loggedinContent, privateContent, publicTenant1, publicTenant2) => {
           // Setup a public, loggedin and private folder
-          generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'public', publicFolder => {
-            generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'loggedin', loggedinFolder => {
-              generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'private', privateFolder => {
+          generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'public', (publicFolder) => {
+            generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'loggedin', (loggedinFolder) => {
+              generateTestFoldersWithVisibility(publicTenant1.publicUser.restContext, 1, 'private', (privateFolder) => {
                 // Anonymous users can only see the public folder
                 assertGeneralFolderSearchEquals(
                   publicTenant1.anonymousRestContext,
@@ -608,7 +607,7 @@ describe('Folders', () => {
      * Test that verifies folders are searchable by their messages. Also verifies that
      * messages that are deleted no longer cause the folders to be returned in search
      */
-    it('verify folders can be searched by messages', callback => {
+    it('verify folders can be searched by messages', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
         const { 0: simong } = users;
@@ -625,33 +624,39 @@ describe('Folders', () => {
             [folder1, folder2],
             () => {
               // Create a message on the first folder
-              FoldersTestUtil.assertCreateMessageSucceeds(simong.restContext, folder1.id, searchTerm, null, message => {
-                // Verify that the first folder returns in the search result but not the second folder
-                FoldersTestUtil.assertGeneralFolderSearchEquals(
-                  simong.restContext,
-                  searchTerm,
-                  [folder1],
-                  [folder2],
-                  () => {
-                    // Delete the message
-                    FoldersTestUtil.assertDeleteMessageSucceeds(
-                      simong.restContext,
-                      folder1.id,
-                      message.created,
-                      (/* message */) => {
-                        // Verify that none of the folders return in the search results
-                        FoldersTestUtil.assertGeneralFolderSearchEquals(
-                          simong.restContext,
-                          searchTerm,
-                          [],
-                          [folder1, folder2],
-                          callback
-                        );
-                      }
-                    );
-                  }
-                );
-              });
+              FoldersTestUtil.assertCreateMessageSucceeds(
+                simong.restContext,
+                folder1.id,
+                searchTerm,
+                null,
+                (message) => {
+                  // Verify that the first folder returns in the search result but not the second folder
+                  FoldersTestUtil.assertGeneralFolderSearchEquals(
+                    simong.restContext,
+                    searchTerm,
+                    [folder1],
+                    [folder2],
+                    () => {
+                      // Delete the message
+                      FoldersTestUtil.assertDeleteMessageSucceeds(
+                        simong.restContext,
+                        folder1.id,
+                        message.created,
+                        (/* message */) => {
+                          // Verify that none of the folders return in the search results
+                          FoldersTestUtil.assertGeneralFolderSearchEquals(
+                            simong.restContext,
+                            searchTerm,
+                            [],
+                            [folder1, folder2],
+                            callback
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
             }
           );
         });
@@ -663,7 +668,7 @@ describe('Folders', () => {
     /**
      * Test that verifies only valid principal ids return results
      */
-    it('verify the principal id gets validated', callback => {
+    it('verify the principal id gets validated', (callback) => {
       SearchTestsUtil.searchAll(asCambridgeTenantAdmin, 'folder-library', [''], null, (error, results) => {
         assert.strictEqual(error.code, 400);
         assert.ok(!results);
@@ -687,7 +692,7 @@ describe('Folders', () => {
      * Test that verifies that the visibility of folders is taken into account when searching for folders
      * in a principal's library
      */
-    it('verify folder visibility is taken into account', callback => {
+    it('verify folder visibility is taken into account', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: simong, 1: nico } = users;
@@ -697,9 +702,9 @@ describe('Folders', () => {
           const { 0: stuartf } = users;
 
           // Setup a public, loggedin and private folder
-          FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', publicFolder => {
-            FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'loggedin', loggedinFolder => {
-              FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', privateFolder => {
+          FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', (publicFolder) => {
+            FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'loggedin', (loggedinFolder) => {
+              FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', (privateFolder) => {
                 // Anonymous users can only see the public folder
                 FoldersTestUtil.assertFolderLibrarySearch(
                   asCambridgeAnonymousUser,
@@ -783,14 +788,14 @@ describe('Folders', () => {
     /**
      * Test that verifies that folders can be reindexed
      */
-    it('verify folders can be reindexed', callback => {
+    it('verify folders can be reindexed', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
 
         const { 0: simong } = users;
 
         // Setup a public folder with some content
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', (folder) => {
           RestAPI.Content.createLink(
             simong.restContext,
             {
@@ -851,13 +856,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that updating a folder triggers a reindex for that folder
      */
-    it('verify updating a folder triggers a reindex', callback => {
+    it('verify updating a folder triggers a reindex', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
         const { 0: simong } = users;
 
         // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', (folder) => {
           // Sanity-check that it can be found
           FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [folder], [], () => {
             // Update the folder's name and visibility
@@ -882,13 +887,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that updating a folder's visibility (and containing content) triggers updates in the search index
      */
-    it("verify updating a folder's visibility affects the content that can be searched on", callback => {
+    it("verify updating a folder's visibility affects the content that can be searched on", (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: simong, 1: nico } = users;
 
         // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', (folder) => {
           // Add some public content
           RestAPI.Content.createLink(
             simong.restContext,
@@ -951,13 +956,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that updating a folder's members updates the index
      */
-    it("verify updating a folder's members updates the index", callback => {
+    it("verify updating a folder's members updates the index", (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: simong, 1: nico } = users;
 
         // Setup a private folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', (folder) => {
           // Sanity-check that the folder cannot be found by Nico
           SearchTestsUtil.searchAll(
             nico.restContext,
@@ -1045,13 +1050,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that updating a folder's members updates those members their membership documents
      */
-    it("verify updating a folder's members updates those members their membership documents", callback => {
+    it("verify updating a folder's members updates those members their membership documents", (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: simong, 1: nico } = users;
 
         // Setup a private folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', (folder) => {
           // Create a private content item
           const uniqueString = TestsUtil.generateRandomText(5);
           RestAPI.Content.createLink(
@@ -1160,13 +1165,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that when a folder gets deleted it gets removed from the search index
      */
-    it('verify deleting a folder removes it from the index', callback => {
+    it('verify deleting a folder removes it from the index', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
         const { 0: simong } = users;
 
         // Setup a public folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'public', (folder) => {
           // Sanity-check that it can be found
           FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, 'disp', [folder], [], () => {
             // Delete the folder
@@ -1188,13 +1193,13 @@ describe('Folders', () => {
     /**
      * Test that verifies that users can find private content through search when its in a folder they are a member of
      */
-    it("verify adding private content to a folder makes it searchable for the folder's members", callback => {
+    it("verify adding private content to a folder makes it searchable for the folder's members", (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: simong, 1: nico } = users;
 
         // Setup a folder
-        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', folder => {
+        FoldersTestUtil.generateTestFoldersWithVisibility(simong.restContext, 1, 'private', (folder) => {
           // Add some private content to the folder. We add it in two different ways
           // to ensure that both mechanismes get properly indexed
           RestAPI.Content.createLink(

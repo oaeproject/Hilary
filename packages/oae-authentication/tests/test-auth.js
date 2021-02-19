@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before } from 'mocha';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -34,7 +33,7 @@ describe('Authentication', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest context
    */
-  before(callback => {
+  before((callback) => {
     // Prepare the contexts with which we'll perform requests
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     anonymousGlobalRestContext = TestsUtil.createGlobalRestContext();
@@ -48,7 +47,7 @@ describe('Authentication', () => {
   /**
    * Test that verifies that a user's login ids can be requested
    */
-  it("verify that only authorized admins can request a user's login ids", callback => {
+  it("verify that only authorized admins can request a user's login ids", (callback) => {
     // Generate a user id
     const username = TestsUtil.generateTestUserId();
     const email = TestsUtil.generateTestEmailAddress(
@@ -143,7 +142,7 @@ describe('Authentication', () => {
   /**
    * Verify that a user's login ids can be successfully returned
    */
-  it("verify that a user's login ids can be successfully returned", callback => {
+  it("verify that a user's login ids can be successfully returned", (callback) => {
     // Generate a user id
     const username = TestsUtil.generateTestUserId();
     const email = TestsUtil.generateTestEmailAddress(

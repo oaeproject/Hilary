@@ -15,7 +15,6 @@
 
 /* eslint-disable camelcase */
 import { assert } from 'chai';
-import { after, afterEach, beforeEach, describe, before, it } from 'mocha';
 import fs from 'fs';
 import path from 'path';
 import { format } from 'util';

@@ -46,7 +46,6 @@ RUN apk --no-cache add \
       make \
       python2 \
       ghostscript \
-      vips \
       libreoffice \
       vips \
       ca-certificates \

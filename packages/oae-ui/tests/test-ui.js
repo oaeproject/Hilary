@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, beforeEach, before, it } from 'mocha';
 import fs from 'fs';
 import { format } from 'util';
 import path from 'path';

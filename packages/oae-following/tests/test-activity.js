@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { beforeEach, describe, before, it } from 'mocha';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
 import { PrincipalsConstants } from 'oae-principals/lib/constants';

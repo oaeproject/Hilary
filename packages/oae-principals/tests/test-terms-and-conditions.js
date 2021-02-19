@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { afterEach, describe, before, it } from 'mocha';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';

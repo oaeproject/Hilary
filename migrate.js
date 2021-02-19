@@ -14,11 +14,12 @@
  * permissions and limitations under the License.
  */
 
-const optimist = require('optimist');
+import optimist from 'optimist';
+import { promiseToRunMigrations } from './etc/migration/migration-runner.js';
+import { config } from './config.js';
+import { not, compose, equals } from 'ramda';
 
-const { runMigrations } = require('./etc/migration/migration-runner');
-const { config } = require('./config');
-
+const isNotTrue = compose(not, equals(true));
 const dbConfig = config.cassandra;
 
 const { argv } = optimist
@@ -32,12 +33,12 @@ if (argv.help) {
   process.exit(0);
 }
 
-dbConfig.keyspace = argv.keyspace === true ? dbConfig.keyspace : argv.keyspace;
+// If `argv.keyspace` equals `true` then it is not defined, so default it is
+if (isNotTrue(argv.keyspace)) {
+  dbConfig.keyspace = argv.keyspace;
+}
 
-const execute = function() {
-  runMigrations(dbConfig, () => {
-    process.exit(0);
-  });
-};
-
-execute();
+(async function () {
+  await promiseToRunMigrations(dbConfig);
+  process.exit(0);
+})();

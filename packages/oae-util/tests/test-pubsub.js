@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 
 import * as Pubsub from 'oae-util/lib/pubsub';
 

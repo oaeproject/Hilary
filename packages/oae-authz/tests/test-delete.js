@@ -14,7 +14,6 @@
  */
 
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import { describe, it } from 'mocha';
 
 describe('Authz Delete', () => {
   /**

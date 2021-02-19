@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before, after } from 'mocha';
 import { format } from 'util';
 import _ from 'underscore';
 import csv from 'csv';
@@ -34,13 +33,13 @@ describe('Shibboleth Migration', () => {
   let gtAdminRestContext = null;
   let csvStream = null;
 
-  before(callback => {
+  before((callback) => {
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     // Set up the fake CSV file for errors
     const fakeStream = temp.createWriteStream();
-    fakeStream.on('error', error => {
+    fakeStream.on('error', (error) => {
       log().error({ err: error }, 'Error occurred when writing to the warnings file');
     });
     csvStream = csv.stringify({
@@ -53,7 +52,7 @@ describe('Shibboleth Migration', () => {
     return callback();
   });
 
-  after(callback => {
+  after((callback) => {
     // Make sure we close the CSV stream and remove the file
     csvStream.end(() => {
       return callback();
@@ -68,7 +67,7 @@ describe('Shibboleth Migration', () => {
    * @param  {Function}       callback            Invoked when assertions are complete
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
-  const _assertHaveShibbolethLoginIds = function(tenantAlias, users, callback) {
+  const _assertHaveShibbolethLoginIds = function (tenantAlias, users, callback) {
     if (isEmpty(users)) {
       return callback();
     }
@@ -97,7 +96,7 @@ describe('Shibboleth Migration', () => {
    * @param  {Function}       callback            Invoked when assertions are complete
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
-  const _assertHaveNoShibbolethLoginIds = function(tenantAlias, users, callback) {
+  const _assertHaveNoShibbolethLoginIds = function (tenantAlias, users, callback) {
     if (isEmpty(users)) {
       return callback();
     }
@@ -125,9 +124,9 @@ describe('Shibboleth Migration', () => {
    * @param  {Object[]}       users               The users we want to check login for
    * @return {Object[]}       queries             The Cassandra queries to create the records
    */
-  const _createGoogleLogins = function(tenantAlias, users) {
+  const _createGoogleLogins = function (tenantAlias, users) {
     // Create Google logins for users
-    const googleLoginIds = map(user => {
+    const googleLoginIds = map((user) => {
       return {
         userId: user.id,
         loginId: format('%s:google:%s', tenantAlias, user.email)
@@ -135,7 +134,7 @@ describe('Shibboleth Migration', () => {
     }, users);
 
     const queries = pipe(
-      map(googleLoginId => {
+      map((googleLoginId) => {
         return [
           {
             query:
@@ -157,7 +156,7 @@ describe('Shibboleth Migration', () => {
   /**
    * Test that verifies Shibboleth logins are created for a tenant
    */
-  it('verify new Shibboleth logins are created', callback => {
+  it('verify new Shibboleth logins are created', (callback) => {
     TestsUtil.generateTestUsers(camAdminRestContext, 20, (error, users) => {
       assert.notExists(error);
       users = pluck('user', users);
@@ -167,7 +166,7 @@ describe('Shibboleth Migration', () => {
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, users);
 
-        Cassandra.runBatchQuery(queries, error_ => {
+        Cassandra.runBatchQuery(queries, (error_) => {
           assert.notExists(error_);
 
           // Run the migration
@@ -186,7 +185,7 @@ describe('Shibboleth Migration', () => {
   /**
    * Test that verifies no logins are created for users without Google login IDs
    */
-  it('verify no Shibboleth logins are created for users without Google IDs', callback => {
+  it('verify no Shibboleth logins are created for users without Google IDs', (callback) => {
     TestsUtil.generateTestUsers(gtAdminRestContext, 20, (error, users) => {
       assert.notExists(error);
       users = pluck('user', users);
@@ -200,7 +199,7 @@ describe('Shibboleth Migration', () => {
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, googleUsers);
 
-        Cassandra.runBatchQuery(queries, error_ => {
+        Cassandra.runBatchQuery(queries, (error_) => {
           assert.notExists(error_);
 
           // Run the migration

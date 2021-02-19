@@ -15,7 +15,6 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 
 import * as AuthzUtil from 'oae-authz/lib/util';
 import * as RestAPI from 'oae-rest';

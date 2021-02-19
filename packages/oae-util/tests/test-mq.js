@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';

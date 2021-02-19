@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it, before } from 'mocha';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants';
@@ -35,7 +34,7 @@ describe('Folders - Push', () => {
   /**
    * Function that will fill up the tenant admin and anymous rest contexts
    */
-  before(done => {
+  before((done) => {
     asLocalhostTenantAdmin = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.localhost.host);
     done();
   });
@@ -44,7 +43,7 @@ describe('Folders - Push', () => {
     /**
      * Test that verifies registering for a feed goes through the proper authorization checks
      */
-    it('verify signatures must be valid', callback => {
+    it('verify signatures must be valid', (callback) => {
       TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
 
@@ -62,7 +61,7 @@ describe('Folders - Push', () => {
             feeds: []
           };
 
-          ActivityTestsUtil.getFullySetupPushClient(data, client => {
+          ActivityTestsUtil.getFullySetupPushClient(data, (client) => {
             // Create a folder and get its full profile so we have a signature that we can use to register for push notifications
             FoldersTestUtil.assertCreateFolderSucceeds(
               homer.restContext,
@@ -71,14 +70,14 @@ describe('Folders - Push', () => {
               PRIVATE,
               [marge],
               [],
-              folder => {
-                FoldersTestUtil.assertGetFolderSucceeds(homer.restContext, folder.id, folder => {
+              (folder) => {
+                FoldersTestUtil.assertGetFolderSucceeds(homer.restContext, folder.id, (folder) => {
                   // Ensure we get a 400 error with an invalid activity stream id
-                  client.subscribe(folder.id, null, folder.signature, null, error_ => {
+                  client.subscribe(folder.id, null, folder.signature, null, (error_) => {
                     assert.strictEqual(error_.code, 400);
 
                     // Ensure we get a 400 error with a missing resource id
-                    client.subscribe(null, 'activity', folder.signature, null, error_ => {
+                    client.subscribe(null, 'activity', folder.signature, null, (error_) => {
                       assert.strictEqual(error_.code, 400);
 
                       // Ensure we get a 400 error with an invalid token
@@ -87,14 +86,14 @@ describe('Folders - Push', () => {
                         'activity',
                         { signature: folder.signature.signature },
                         null,
-                        error_ => {
+                        (error_) => {
                           assert.strictEqual(error_.code, 401);
                           client.subscribe(
                             folder.id,
                             'activity',
                             { expires: folder.signature.expires },
                             null,
-                            error_ => {
+                            (error_) => {
                               assert.strictEqual(error_.code, 401);
 
                               // Ensure we get a 401 error with an incorrect signature
@@ -103,24 +102,24 @@ describe('Folders - Push', () => {
                                 'activity',
                                 { expires: Date.now() + 10000, signature: 'foo' },
                                 null,
-                                error_ => {
+                                (error_) => {
                                   assert.strictEqual(error_.code, 401);
 
                                   // Simon should not be able to use a signature that was generated for Branden
                                   FoldersTestUtil.assertGetFolderSucceeds(
                                     marge.restContext,
                                     folder.id,
-                                    folderForBranden => {
+                                    (folderForBranden) => {
                                       client.subscribe(
                                         folder.id,
                                         'activity',
                                         folderForBranden.signature,
                                         null,
-                                        error_ => {
+                                        (error_) => {
                                           assert.strictEqual(error_.code, 401);
 
                                           // Sanity check that a valid signature works
-                                          client.subscribe(folder.id, 'activity', folder.signature, null, error_ => {
+                                          client.subscribe(folder.id, 'activity', folder.signature, null, (error_) => {
                                             assert.notExists(error_);
                                             return callback();
                                           });
@@ -156,7 +155,7 @@ describe('Folders - Push', () => {
      * @param  {Client}         callback.client         A websocket client that is authenticated for the `Simon`-user and is registered for push notificates on the created folder
      * @throws {Error}                                  If anything goes wrong, an assertion error will be thrown
      */
-    const setupFixture = function(callback) {
+    const setupFixture = function (callback) {
       TestsUtil.generateTestUsers(asLocalhostTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
 
@@ -179,8 +178,8 @@ describe('Folders - Push', () => {
             PRIVATE,
             [branden],
             [],
-            folder => {
-              FoldersTestUtil.assertGetFolderSucceeds(simon.restContext, folder.id, folder => {
+            (folder) => {
+              FoldersTestUtil.assertGetFolderSucceeds(simon.restContext, folder.id, (folder) => {
                 // Route and deliver activities
                 ActivityTestsUtil.collectAndGetActivityStream(simon.restContext, null, null, () => {
                   // Register for some streams
@@ -204,7 +203,7 @@ describe('Folders - Push', () => {
                     ]
                   };
 
-                  ActivityTestsUtil.getFullySetupPushClient(data, client => {
+                  ActivityTestsUtil.getFullySetupPushClient(data, (client) => {
                     callback(contexts, folder, client);
                   });
                 });
@@ -215,14 +214,14 @@ describe('Folders - Push', () => {
       });
     };
 
-    const isMessageFromFolderCreation = message => {
+    const isMessageFromFolderCreation = (message) => {
       return _.last(message.activities).verb === 'create';
     };
 
     /**
      * Test that verifies an update gets pushed out
      */
-    it('verify updates trigger a push notification', callback => {
+    it('verify updates trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
         RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { displayName: 'Laaike whatevs' }, (
@@ -231,7 +230,7 @@ describe('Folders - Push', () => {
           assert.notExists(error);
         });
 
-        client.on('message', message => {
+        client.on('message', (message) => {
           ActivityTestsUtil.assertActivity(
             message.activities[0],
             FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE,
@@ -251,14 +250,14 @@ describe('Folders - Push', () => {
     /**
      * Test that verifies a visibility update gets pushed out
      */
-    it('verify visibility updates trigger a push notification', callback => {
+    it('verify visibility updates trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, error => {
+        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { visibility: 'loggedin' }, (error) => {
           assert.notExists(error);
         });
 
-        client.on('message', message => {
+        client.on('message', (message) => {
           if (isMessageFromFolderCreation(message)) {
             return;
           }
@@ -282,7 +281,7 @@ describe('Folders - Push', () => {
     /**
      * Test that verifies a comment gets pushed out
      */
-    it('verify comments trigger a push notification', callback => {
+    it('verify comments trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         let seenFirstComment = false;
         let initialComment = null;
@@ -294,12 +293,12 @@ describe('Folders - Push', () => {
           folder.id,
           'Message body',
           null,
-          _initialComment => {
+          (_initialComment) => {
             initialComment = _initialComment;
           }
         );
 
-        client.on('message', message => {
+        client.on('message', (message) => {
           if (isMessageFromFolderCreation(message)) {
             return;
           }
@@ -345,7 +344,7 @@ describe('Folders - Push', () => {
               folder.id,
               'Message body',
               initialComment.created,
-              _reply => {
+              (_reply) => {
                 reply = _reply;
               }
             );
@@ -357,7 +356,7 @@ describe('Folders - Push', () => {
     /**
      * Test that verifies add-to-folder activities do not get pushed out via push notifications
      */
-    it('verify add-to-folder activities do not trigger a push notification', callback => {
+    it('verify add-to-folder activities do not trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         // Add an item to a folder
         RestAPI.Content.createLink(
@@ -376,7 +375,7 @@ describe('Folders - Push', () => {
           }
         );
 
-        client.on('message', message => {
+        client.on('message', (message) => {
           assert.notStrictEqual(
             message.activities[0]['oae:activityType'],
             FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_FOLDER

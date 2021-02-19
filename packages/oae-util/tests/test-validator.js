@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, it } from 'mocha';
 
 import { Context } from 'oae-context';
 import { Tenant } from 'oae-tenants/lib/model';

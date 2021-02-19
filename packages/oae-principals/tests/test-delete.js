@@ -1,6 +1,6 @@
 /*
  * Copyright 2015 Apereo Foundation (AF) Licensed under the
- * Educational Community License, Version 2.0 (the "License"); you may
+ * Educational Community License, Version 3.0 (the "License"); you may
  * not use this file except in compliance with the License. You may
  * obtain a copy of the License at
  *
@@ -14,7 +14,6 @@
  */
 
 import { assert } from 'chai';
-import { describe, before, it } from 'mocha';
 import _ from 'underscore';
 
 import { isNil, reject, map, path, last } from 'ramda';

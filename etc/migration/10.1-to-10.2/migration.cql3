@@ -1,4 +1,0 @@
-ALTER TABLE "Principals" ADD "deleted" timestamp;
-
-TRUNCATE "AuthzMembershipsCache";
-TRUNCATE "AuthzMembershipsIndirectCache";

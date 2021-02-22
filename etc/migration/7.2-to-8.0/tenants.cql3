@@ -1,1 +1,0 @@
-ALTER TABLE "Tenant" DROP "deleted";

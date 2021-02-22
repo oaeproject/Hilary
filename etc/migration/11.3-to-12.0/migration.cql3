@@ -1,2 +1,0 @@
-ALTER TABLE "Tenant" ADD "emailDomain" text;
-ALTER TABLE "Tenant" ADD "countryCode" text;

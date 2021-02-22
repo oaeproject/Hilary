@@ -1,1 +1,0 @@
-UPDATE COLUMN FAMILY Revisions WITH column_metadata = [{column_name: contentId, validation_class: UTF8Type}];

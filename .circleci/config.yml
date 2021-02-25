@@ -50,8 +50,9 @@ aliases:
         docker cp oae-hilary:/usr/src/Hilary/reports .
         docker cp oae-hilary:/usr/src/Hilary/tests.log reports/logs
         # Make absolute paths relative for split-by-timings to work
-        touch reports/mocha/test-results.xml
-        sed -i 's/\/usr\/src\/Hilary\///g' reports/mocha/test-results.xml
+        # mkdir -p reports/mocha
+        # touch reports/mocha/test-results.xml
+        # sed -i 's/\/usr\/src\/Hilary\///g' reports/mocha/test-results.xml
   - &store_results
     store_test_results:
       path: reports
@@ -76,7 +77,7 @@ aliases:
           yarn run migrate; \
           npx pm2 startOrReload process.json --only Etherpad; \
           npx pm2 startOrReload process.json --only Ethercalc; \
-          yarn run ci:test-module $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')"
+          yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
   - &run_linting
     run:
       name: Run linting test

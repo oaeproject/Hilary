@@ -118,10 +118,6 @@ describe('File previews', () => {
     });
   });
 
-  beforeEach((done) => {
-    flush(done);
-  });
-
   /**
    * Utility method that returns a stream that points to an OAE animation thumbnail.
    *

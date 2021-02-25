@@ -19,6 +19,7 @@ import * as TestsUtil from 'oae-tests/lib/util';
 import { logger } from 'oae-logger';
 import nock from 'nock';
 import { flush } from 'oae-util/lib/redis';
+import * as MQ from 'oae-util/lib/mq';
 
 const log = logger('before-tests');
 
@@ -44,11 +45,15 @@ before((callback) => {
   // Set an env var for running tests. This is being used in `redis.js`
   process.env.OAE_TESTS_RUNNING = 'true';
 
-  flush(() => {
-    // Create the configuration for the test
-    const config = TestsUtil.createInitialTestConfig();
+  // Create the configuration for the test
+  const config = TestsUtil.createInitialTestConfig();
 
-    TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
+  TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
+    flush((error) => {
+      if (error) {
+        log().warn('Not able to flush redis');
+      }
+
       return callback();
     });
   });
@@ -56,7 +61,7 @@ before((callback) => {
 
 beforeEach(function (callback) {
   log().info('Beginning test "%s"', this.currentTest.title);
-  callback();
+  MQ.purgeAllBoundQueues(callback);
 });
 
 afterEach(function (callback) {

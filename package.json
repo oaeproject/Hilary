@@ -90,7 +90,7 @@
     "ramda": "^0.27.0",
     "readdirp": "^3.4.0",
     "recaptcha": "^1.2.1",
-    "redlock": "4.0.0",
+    "redlock": "4.2.0",
     "request": "2.88.2",
     "rimraf": "^3.0.2",
     "sharp": "^0.25.2",

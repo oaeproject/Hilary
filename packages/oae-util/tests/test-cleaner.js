@@ -17,7 +17,7 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';
-import { equals } from 'ramda';
+import { head, equals } from 'ramda';
 
 import * as Cleaner from 'oae-util/lib/cleaner';
 
@@ -34,12 +34,14 @@ describe('Content', () => {
      */
     beforeEach((callback) => {
       fs.mkdir(dir, { recursive: true }, (error) => {
-        assert.ok(!error);
+        assert.notExists(error);
 
         // Dump some files in there.
-        fs.writeFileSync(dir + '/a', 'a', 'utf8');
-        fs.writeFileSync(dir + '/b', 'b', 'utf8');
-        fs.writeFileSync(dir + '/c', 'c', 'utf8');
+        fs.writeFileSync(path.join(dir, 'a'), 'someFile', 'utf8');
+        fs.writeFileSync(path.join(dir, 'b'), 'anotherFile', 'utf8');
+        fs.writeFileSync(path.join(dir, 'c'), 'yetAnotherFile', 'utf8');
+
+        // Making sure every file is at least 1s old
         setTimeout(callback, 1000);
       });
     });
@@ -62,13 +64,13 @@ describe('Content', () => {
      * Verify that the files get removed.
      */
     it('verify files get removed', (callback) => {
-      Cleaner.start(dir, 1);
+      Cleaner.start(dir, 0);
       const onCleaned = (cleanedDir) => {
         if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
           fs.readdir(dir, (error, files) => {
-            assert.ok(!error);
-            assert.strictEqual(files.length, 0);
+            assert.notExists(error);
+            assert.lengthOf(files, 0);
             callback();
           });
         }
@@ -82,7 +84,7 @@ describe('Content', () => {
      */
     it('verify only old files get removed', (callback) => {
       // Create a brand new file.
-      fs.writeFileSync(dir + '/d', 'd', 'utf8');
+      fs.writeFileSync(path.join(dir, 'd'), 'lastFile', 'utf8');
 
       // Remove files that are older than a second (a, b and c)
       Cleaner.start(dir, 1);
@@ -94,9 +96,9 @@ describe('Content', () => {
         if (equals(cleanedDir, dir)) {
           Cleaner.emitter.removeListener('cleaned', onCleaned);
           fs.readdir(dir, (error, files) => {
-            assert.ok(!error);
-            assert.strictEqual(files.length, 1);
-            assert.strictEqual(files[0], 'd');
+            assert.notExists(error);
+            assert.lengthOf(files, 1);
+            assert.strictEqual(head(files), 'd');
             callback();
           });
         }

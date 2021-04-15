@@ -1,0 +1,122 @@
+FROM node:15.2.1-alpine3.11
+
+LABEL Name=OAE-Hilary
+LABEL Author=ApereoFoundation
+LABEL Email=oae@apereo.org
+
+# Avoid prompt when using npx
+ENV npm_config_yes true
+
+# Upgrade system libraries
+RUN apk update ; apk upgrade
+
+# Install system dependencies
+RUN apk --no-cache add \
+      curl \
+      git \
+      make \
+      python2 \
+      ghostscript \
+      libreoffice \
+      vips \
+      ca-certificates \
+      openjdk8-jre \
+          openssh-client \
+          docker \
+          py-pip \
+          python-dev \
+          libffi-dev \
+          openssl-dev \
+          gcc \
+          libc-dev
+
+# Installs latest Chromium
+RUN apk --no-cache add \
+      chromium \
+      nss \
+      freetype \
+      freetype-dev \
+      harfbuzz \
+      ca-certificates \
+      ttf-freefont
+
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+      PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Set the Hilary directory
+ENV CODE_DIR /usr/src
+ENV HILARY_DIR ${CODE_DIR}/Hilary
+RUN mkdir -p ${HILARY_DIR}
+WORKDIR ${CODE_DIR}
+
+RUN git clone https://github.com/oaeproject/Hilary.git
+
+WORKDIR ${HILARY_DIR}
+
+RUN git submodule sync && git submodule update --init
+
+# Set the right permissions for Hilary
+RUN chown -R node:node ${CODE_DIR} \
+      && chmod -R 755 ${CODE_DIR}
+
+# Create the temp directory for Hilary
+ENV TMP_DIR /tmp
+RUN mkdir -p ${TMP_DIR}
+RUN chown -R node:node ${TMP_DIR} \
+      && chmod -R 755 ${TMP_DIR} \
+      && export TMP=${TMP_DIR}
+
+RUN printf "\nconfig.ui.path = './3akai-ux';" >> config.js && \
+      printf "\nconfig.cassandra.hosts = ['localhost'];" >> config.js && \
+      printf "\nconfig.cassandra.timeout = 9000;" >> config.js && \
+      printf "\nconfig.redis.host = 'localhost';" >> config.js && \
+      printf "\nconfig.search.nodes = ['http://localhost:9200'];" >> config.js && \
+      printf "\nconfig.mq.host = 'localhost';" >> config.js && \
+      printf "\nconfig.previews.enabled = true;" >> config.js && \
+      printf "\nconfig.email.debug = false;" >> config.js && \
+      printf "\nconfig.email.transport = 'sendmail';" >> config.js && \
+      printf "\nconfig.previews.office.binary = '/usr/bin/soffice';" >> config.js && \
+      printf "\nconfig.previews.screenShotting.binary = '/usr/bin/chromium-browser';" >> config.js && \
+      printf "\nconfig.previews.screenShotting.sandbox = '--no-sandbox';" >> config.js
+
+RUN sed -i 's/\oae-cassandra/localhost/g' ep-settings.json
+RUN sed -i 's/\oae-redis/localhost/g' ep-settings.json
+RUN sed -i 's/\/opt\/current/./g' process.json
+
+RUN cp ec-package.json ethercalc/package.json
+RUN cp ep-settings.json etherpad/settings.json
+RUN cp ep-package.json etherpad/src/package.json
+RUN chown -R node:node .
+
+RUN cd ethercalc && yarn install
+RUN ./prepare-etherpad.sh
+RUN cd 3akai-ux && yarn install
+RUN yarn install
+
+# Change user from now on
+USER node
+
+# RUN yarn run migrate
+# RUN npx pm2 startOrReload process.json --only Etherpad
+# RUN npx pm2 startOrReload process.json --only Ethercalc
+# RUN npx pm2 startOrReload process.json --only Hilary
+
+# Expose ports for node server
+EXPOSE 2000
+EXPOSE 2001
+
+ENV TWITTER_KEY=vuMy7DqnfPkHPrHE3eqkWp3uG
+ENV TWITTER_SECRET=coPAXA5Vsngt4k9ehHbmvRiG7qX0VKLBG47U0oJja2PkEYyOET
+ENV FACEBOOK_APP_ID=194758077323671
+ENV FACEBOOK_APP_SECRET=663d14e7f9ad0baeb4e43390825a659f
+ENV GOOGLE_CLIENT_ID=822036948319.apps.googleusercontent.com
+ENV GOOGLE_CLIENT_SECRET=b5ccr5noy0j_gzj4kj42uuwm
+ENV ETHEREAL_USER=holly.effertz2@ethereal.email
+ENV ETHEREAL_PASS=AkCU3KyezN9u9VGXk9
+ENV RECAPTCHA_KEY=6LcFWdYSAAAAANrHjt2Y5VJXoICHa95PFDarVcGs
+
+# Run the app - you may override CMD via docker run command line instruction
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD "yarn run migrate ; npx pm2 startOrReload process.json"
+

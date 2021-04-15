@@ -54,7 +54,16 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 
 This guide will install OAE locally for a development setup. Node is required on the host machine whereas the remaining servers will run as docker containers.
 
-### Docker Quickstart Guide
+### Run a demo
+
+```bash
+# After cloning the repo, inside Hilary folder (tested on linux only):
+docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-nginx
+docker build --rm -t oae-demo:latest -f Dockerfile.demo .
+docker run --name=demo --net=host -it oae-demo:latest "yarn run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs"
+```
+
+### Docker Quickstart Guide for development
 
 The recommended way to install docker is to follow the official guide at https://docs.docker.com/engine/installation/. Make sure you have `docker` version `>= 17.x` and `docker-compose` version `>= 1.6.0` before you proceed to cloning the repos. Check your versions by running the following commands:
 

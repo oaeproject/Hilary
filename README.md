@@ -56,11 +56,21 @@ This guide will install OAE locally for a development setup. Node is required on
 
 ### Run a demo
 
+Tested on linux only:
+
 ```bash
-# After cloning the repo, inside Hilary folder (tested on linux only):
+# 1 Clone this repo and run all the following commands inside the Hilary folder
+git clone https://github.com/oaeproject/Hilary.git && cd Hilary
+# 2 Inside 3akai-ux/nginx make sure the nginx.docker.conf file has your machine's IP address (192.168.x.y) on these lines:
+cat 3akai-ux/nginx/nginx.docker.conf|grep "2000\|2001\|8000\|9001"
+# 3 Launch all docker containers except the http server
 docker-compose up -d oae-cassandra oae-redis oae-elasticsearch oae-nginx
+# 4 Build the OAE demo container
 docker build --rm -t oae-demo:latest -f Dockerfile.demo .
+# 5 Run the OAE demo container
 docker run --name=demo --net=host -it oae-demo:latest "yarn run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs"
+# 6 Check below the section on how to create the first tenant
+#   Example: add `127.0.0.1 admin.oae.com` to your `/etc/hosts` file and access http://admin.oae.com
 ```
 
 ### Docker Quickstart Guide for development

@@ -85,7 +85,7 @@
     "passport-twitter": "^1.0.4",
     "pdfjs-dist": "2.1.266",
     "properties-parser": "^0.3.1",
-    "puppeteer": "^3.0.2",
+    "puppeteer": "^9.0.0",
     "rails-timezone": "^1.0.0",
     "ramda": "^0.27.0",
     "readdirp": "^3.4.0",

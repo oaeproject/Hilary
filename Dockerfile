@@ -36,9 +36,6 @@ LABEL Email=oae@apereo.org
 # Avoid prompt when using npx
 ENV npm_config_yes true
 
-# Update NPM
-RUN npm install -g npm@7.20.2
-
 # Upgrade system libraries
 RUN apk update ; apk upgrade
 

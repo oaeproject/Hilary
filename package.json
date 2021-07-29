@@ -20,7 +20,8 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=12.16.0"
+    "node": ">=15.2.0",
+    "npm": ">=7.20.2"
   },
   "dependencies": {
     "@elastic/elasticsearch": "7.9.0",
@@ -129,13 +130,13 @@
     "test-module": "mocha -r esm packages/oae-tests/runner/before-tests.js \"$@\"",
     "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
     "ci:test-module": "nyc mocha -r esm --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js \"$@\"",
-    "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov yarn test",
-    "test-update-coverage": "nyc --reporter=lcov yarn test && cat ./coverage/lcov.info | codacy-coverage",
+    "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov npm run test",
+    "test-update-coverage": "nyc --reporter=lcov npm run test && cat ./coverage/lcov.info | codacy-coverage",
     "migrate": "node -r esm migrate.js",
     "start": "node -r esm app.js | npx bunyan",
-    "server": "yarn dlx pm2 startOrReload process.json --only Hilary",
-    "servers": "yarn dlx pm2 startOrReload process.json",
-    "logs": "yarn dlx pm2 logs --raw | npx bunyan",
+    "server": "npx pm2 startOrReload process.json --only Hilary",
+    "servers": "npx pm2 startOrReload process.json",
+    "logs": "npx pm2 logs --raw | npx bunyan",
     "lint": "xo --fix --prettier --quiet 'packages/**/*.js'",
     "lint-module": "xo --prettier --quiet --fix \"$@\"",
     "snyk-protect": "snyk protect",

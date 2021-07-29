@@ -64,35 +64,35 @@ aliases:
       name: Run tests sequentially and upload coverage
       command: |
         docker-compose run --rm oae-hilary "\
-          yarn run migrate; \
+          npm run migrate; \
           npx pm2 startOrReload process.json --only Etherpad; \
           npx pm2 startOrReload process.json --only Ethercalc; \
-          yarn run test-update-coverage"
+          npm run test-update-coverage"
   - &run_parallel_tests
     run:
       name: Run tests in parallel
       command: |
         echo $(circleci tests glob 'packages/oae-*/tests/test-*.js' | circleci tests split --split-by=timings | tr '\n' ' ')
         docker-compose run --rm oae-hilary "\
-          yarn run migrate; \
+          npm run migrate; \
           npx pm2 startOrReload process.json --only Etherpad; \
           npx pm2 startOrReload process.json --only Ethercalc; \
-          yarn run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
+          npm run test-module $(circleci tests glob 'packages/oae-*/tests' | circleci tests split | tr '\n' ' ')"
   - &run_linting
     run:
       name: Run linting test
       command: |
-        docker-compose run --rm oae-hilary "yarn run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
+        docker-compose run --rm oae-hilary "npm run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
   - &then_save_cache # not being used
     save_cache:
-      key: deps-cache-{{ checksum "yarn.lock" }}
+      key: deps-cache-{{ checksum "package-lock.json" }}
       paths:
         - ./node_modules
         - ./3akai-ux/node_modules
         - ./ethercalc/node_modules
   - &restore_cache_first # not being used
     restore_cache:
-      key: deps-cache-{{ checksum "yarn.lock" }}
+      key: deps-cache-{{ checksum "package-lock.json" }}
       paths:
         - ./node_modules
         - ./3akai-ux/node_modules
@@ -101,17 +101,17 @@ aliases:
     run:
       name: Install Hilary dependencies
       command: |
-        docker-compose run --rm oae-hilary "yarn install"
+        docker-compose run --rm oae-hilary "npm install"
   - &install_3akai
     run:
       name: Install 3akai-ux dependencies
       command: |
-        docker-compose run --rm oae-hilary "cd 3akai-ux && yarn install"
+        docker-compose run --rm oae-hilary "cd 3akai-ux && npm install"
   - &install_ethercalc
     run:
       name: Install ethercalc dependencies
       command: |
-        docker-compose run --rm oae-hilary "cd ethercalc && yarn install"
+        docker-compose run --rm oae-hilary "cd ethercalc && npm install"
   - &install_etherpad
     run:
       name: Install etherpad dependencies

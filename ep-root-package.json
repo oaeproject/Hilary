@@ -1,0 +1,32 @@
+{
+  "name": "etherpad",
+  "description": "A Etherpad based on node.js",
+  "homepage": "http://etherpad.org",
+  "keywords": ["etherpad", "realtime", "collaborative", "editor"],
+  "author": "Etherpad Foundation",
+  "contributors": [
+    {
+      "name": "John McLear"
+    },
+    {
+      "name": "Hans Pinckaers"
+    },
+    {
+      "name": "Robin Buse"
+    },
+    {
+      "name": "Marcel Klehr"
+    },
+    {
+      "name": "Peter Martischka"
+    }
+  ],
+  "workspaces": ["src"],
+  "dependencies": {},
+  "engines": {
+    "node": ">=0.10.0",
+    "npm": ">=7.20.2"
+  },
+  "version": "1.6.5",
+  "license": "Apache-2.0"
+}

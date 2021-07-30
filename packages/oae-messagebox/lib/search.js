@@ -29,10 +29,10 @@ import * as MessageBoxAPI from 'oae-messagebox';
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const registerMessageSearchDocument = function(name, resourceTypes, producer, callback) {
+const registerMessageSearchDocument = function (name, resourceTypes, producer, callback) {
   const messagesChildSearchDocumentOptions = {
     resourceTypes,
-    schema: require('./search/schema/resourceMessagesSchema'),
+    schema: require('./search/schema/resourceMessagesSchema.js'),
     producer
   };
 
@@ -49,10 +49,10 @@ const registerMessageSearchDocument = function(name, resourceTypes, producer, ca
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object[]}   callback.documents  The message search documents based on the messages in the messagebox
  */
-const createAllMessageSearchDocuments = function(name, resourceId, messageBoxId, callback) {
-  _getAllMessages(messageBoxId, null, 100, (err, messages) => {
-    if (err) {
-      return callback(err);
+const createAllMessageSearchDocuments = function (name, resourceId, messageBoxId, callback) {
+  _getAllMessages(messageBoxId, null, 100, (error, messages) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, createMessageSearchDocuments(name, resourceId, messages));
@@ -67,13 +67,13 @@ const createAllMessageSearchDocuments = function(name, resourceId, messageBoxId,
  * @param  {Messages[]} messages        The messages from which to produce search documents
  * @return {Object[]}                   The message search documents based on the provided messages
  */
-const createMessageSearchDocuments = function(name, resourceId, messages) {
+const createMessageSearchDocuments = function (name, resourceId, messages) {
   return _.chain(messages)
-    .filter(message => {
+    .filter((message) => {
       // Do not convert deleted messages into search documents
       return !message.deleted;
     })
-    .map(message => {
+    .map((message) => {
       // Here we'll be looking for `discussion_message_body` because that's the default export in `resourceMessagesSchema.js`
       return SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
@@ -89,7 +89,7 @@ const createMessageSearchDocuments = function(name, resourceId, messages) {
  * @param  {String}     name            The name of the message search document schema, as registered by `#registerMessageSearchDocument`
  * @param  {Message}    message         The message object that represents the message document to delete
  */
-const deleteMessageSearchDocument = function(name, resourceId, message) {
+const deleteMessageSearchDocument = function (name, resourceId, message) {
   const children = {};
   children[name] = [SearchUtil.getChildSearchDocumentId(name, resourceId, message.id)];
   return SearchAPI.postDeleteTask(null, children);
@@ -106,11 +106,11 @@ const deleteMessageSearchDocument = function(name, resourceId, message) {
  * @param  {Message[]}  callback.messages       The messages in the message box
  * @api private
  */
-const _getAllMessages = function(messageBoxId, start, chunkSize, callback, _messages) {
+const _getAllMessages = function (messageBoxId, start, chunkSize, callback, _messages) {
   _messages = _messages || [];
-  MessageBoxAPI.getMessagesFromMessageBox(messageBoxId, start, chunkSize, null, (err, messages, nextToken) => {
-    if (err) {
-      return callback(err);
+  MessageBoxAPI.getMessagesFromMessageBox(messageBoxId, start, chunkSize, null, (error, messages, nextToken) => {
+    if (error) {
+      return callback(error);
     }
 
     _messages = _.union(_messages, messages);

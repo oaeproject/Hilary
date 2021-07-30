@@ -43,6 +43,7 @@ RUN apk update ; apk upgrade
 RUN apk --no-cache add \
       curl \
       git \
+      build-base \
       make \
       python2 \
       ghostscript \

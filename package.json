@@ -172,7 +172,8 @@
       "no-use-before-define": "off",
       "no-warning-comments": "off",
       "prefer-named-capture-group": "off",
-      "import/no-unresolved": "off"
+      "import/no-unresolved": "off",
+      "import/extensions": "off"
     },
     "env": [
       "mocha"

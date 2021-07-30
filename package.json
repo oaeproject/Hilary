@@ -137,8 +137,8 @@
     "server": "npx pm2 startOrReload process.json --only Hilary",
     "servers": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
-    "lint": "xo --fix --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "xo --prettier --quiet --fix \"$@\"",
+    "lint": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
+    "lint-module": "node_modules/.bin/xo --prettier --quiet --fix \"$@\"",
     "snyk-protect": "snyk protect",
     "prepare": "npm run snyk-protect"
   },

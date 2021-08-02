@@ -97,7 +97,6 @@
     "sharp": "^0.25.2",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "snyk": "^1.298.0",
     "sockjs": "^0.3.20",
     "sockjs-client": "^1.4.0",
     "strftime": "^0.10.0",
@@ -139,9 +138,7 @@
     "servers": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
     "lint": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "node_modules/.bin/xo --prettier --quiet --fix \"$@\"",
-    "snyk-protect": "snyk protect",
-    "prepare": "npm run snyk-protect"
+    "lint-module": "node_modules/.bin/xo --prettier --quiet --fix \"$@\""
   },
   "nyc": {
     "include": "packages/**/*",
@@ -188,6 +185,5 @@
         }
       }
     ]
-  },
-  "snyk": true
+  }
 }

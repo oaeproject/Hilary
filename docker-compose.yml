@@ -91,6 +91,8 @@ services:
     networks:
       my_network:
         ipv4_address: 172.20.0.9 # this is needed because of multi-tenancy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     tty: false
     volumes:
       - ./3akai-ux:/usr/src/Hilary/3akai-ux

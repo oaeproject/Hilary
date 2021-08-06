@@ -14,6 +14,9 @@
  */
 
 import { Bool, Text } from 'oae-config/lib/fields';
+import { defaultTo } from 'ramda';
+
+const yadaYadaOtherwise = defaultTo('yadayada');
 
 export const title = 'OAE Authentication Module';
 export const local = {
@@ -37,13 +40,18 @@ export const google = {
       'Allow Google authentication for tenant',
       false
     ),
-    key: new Text('Google client ID', 'Google client ID', process.env.GOOGLE_CLIENT_ID, {
-      suppress: true
-    }),
+    key: new Text(
+      'Google client ID',
+      'Google client ID',
+      yadaYadaOtherwise(process.env.GOOGLE_CLIENT_ID),
+      {
+        suppress: true
+      }
+    ),
     secret: new Text(
       'Google client secret',
       'Google client secret',
-      process.env.GOOGLE_CLIENT_SECRET,
+      yadaYadaOtherwise(process.env.GOOGLE_CLIENT_SECRET),
       {
         suppress: true
       }
@@ -64,13 +72,18 @@ export const twitter = {
       'Allow Twitter authentication for tenant',
       true
     ),
-    key: new Text('Twitter consumer key', 'Twitter consumer key', process.env.TWITTER_KEY, {
-      suppress: true
-    }),
+    key: new Text(
+      'Twitter consumer key',
+      'Twitter consumer key',
+      yadaYadaOtherwise(process.env.TWITTER_KEY),
+      {
+        suppress: true
+      }
+    ),
     secret: new Text(
       'Twitter consumer secret',
       'Twitter consumer secret',
-      process.env.TWITTER_SECRET,
+      yadaYadaOtherwise(process.env.TWITTER_SECRET),
       {
         suppress: true
       }
@@ -86,10 +99,15 @@ export const facebook = {
       'Allow Facebook authentication for tenant',
       false
     ),
-    appid: new Text('Facebook App ID', 'Facebook App ID', process.env.FACEBOOK_APP_ID, {
-      suppress: true
-    }),
-    secret: new Text('Secret', 'Secret', process.env.FACEBOOK_APP_SECRET, {
+    appid: new Text(
+      'Facebook App ID',
+      'Facebook App ID',
+      yadaYadaOtherwise(process.env.FACEBOOK_APP_ID),
+      {
+        suppress: true
+      }
+    ),
+    secret: new Text('Secret', 'Secret', yadaYadaOtherwise(process.env.FACEBOOK_APP_SECRET), {
       suppress: true
     })
   }

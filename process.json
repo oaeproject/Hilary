@@ -3,7 +3,6 @@
     {
       "name": "Hilary",
       "script": "app.js",
-      "cwd": "/opt/current",
       "watch": ["packages", "config.js", "app.js"],
       "node_args": "-r esm",
       "instances": 1,

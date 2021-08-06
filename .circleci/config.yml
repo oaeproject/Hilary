@@ -126,6 +126,7 @@ aliases:
         cp ec-package.json ethercalc/package.json
         cp ep-settings.json etherpad/settings.json
         cp ep-package.json etherpad/src/package.json
+        cp ep-root-package.json etherpad/package.json
         mkdir -p reports/logs
         chown -R node:node .
         docker cp /root/Hilary oae-hilary:/usr/src

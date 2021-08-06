@@ -42,9 +42,11 @@ node -v # make sure you have v16+
 npm -v # make sure you have 7.0.8+
 
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
-# TODO: run script to adapt config to local env
 docker-compose up -d oae-cassandra oae-elasticsearch oae-redis oae-nginx
 cd ethercalc && npm install && cd ..
+cp ep-settings.json etherpad/settings.json
+cp ep-package.json etherpad/src/package.json
+cp ep-root-package.json etherpad/package.json
 ./prepare-etherpad.sh
 cd 3akai-ux && npm install
 npm run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs

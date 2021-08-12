@@ -14,7 +14,7 @@
  */
 
 import * as EmitterAPI from 'oae-emitter';
-import * as Meetings from './api.meetings';
+import * as Meetings from './api.meetings.js';
 
 const meetingsAPI = new EmitterAPI.EventEmitter();
 

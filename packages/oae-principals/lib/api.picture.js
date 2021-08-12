@@ -20,10 +20,10 @@ import mime from 'mime';
 
 import { logger } from 'oae-logger';
 
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as ImageUtil from 'oae-util/lib/image';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as ImageUtil from 'oae-util/lib/image.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   validateInCase: bothCheck,
   unless,
@@ -35,7 +35,7 @@ const {
   isInt
 } = validator;
 import { compose, curry, __, pipe } from 'ramda';
-import * as GroupAPI from './api.group';
+import * as GroupAPI from './api.group.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import PrincipalsEmitter from './internal/emitter.js';
 import * as PrincipalsUtil from './util.js';

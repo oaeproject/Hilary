@@ -1,6 +1,7 @@
 {
   "main": "./lib/api.js",
   "name": "oae-telemetry",
+  "type": "module",
   "oae": {
     "priority": 2
   },

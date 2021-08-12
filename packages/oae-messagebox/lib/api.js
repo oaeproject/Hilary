@@ -14,16 +14,17 @@
  */
 
 import { format } from 'util';
+import { indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as Locking from 'oae-util/lib/locking';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as Locking from 'oae-util/lib/locking.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   validateInCase: bothCheck,
   isANumber,
@@ -35,13 +36,14 @@ const {
   toInt
 } = validator;
 import { isPast } from 'date-fns';
-import { compose, not, head } from 'ramda';
-import isInt from 'validator/lib/isInt';
-import isIn from 'validator/lib/isIn';
+import isInt from 'validator/lib/isInt.js';
+import isIn from 'validator/lib/isIn.js';
 import * as MessageBoxModel from './model.js';
 import { MessageBoxConstants } from './constants.js';
 
 const log = logger('oae-messagebox-api');
+
+const isZero = equals(0);
 
 // A contribution will be considered "recent" for 30 days after it occurs
 const DURATION_RECENT_CONTRIBUTIONS_SECONDS = 30 * 24 * 60 * 60;
@@ -714,38 +716,35 @@ const _getMessageThreadKey = function (messageId, callback) {
  * @api private
  */
 const _leafDelete = function (message, callback) {
-  const threadKeyWithoutPipe = message.threadKey.split('|')[0];
+  const PIPE = '|';
+  const threadKeyWithoutPipe = pipe(prop('threadKey'), split(PIPE), head)(message);
 
   // Check to see if this message has a reply. If so, we will soft delete, if not we hard delete
   _getThreadKeysFromMessageBox(message.messageBoxId, message.threadKey, 1, (error, threadKeys) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     let hasReply = false;
-    const replyKey = threadKeys[0];
+    const replyKey = head(threadKeys);
     if (replyKey) {
       // If the next message's threadKey is a descendant of the message being deleted, it is a reply.
-      hasReply = replyKey.indexOf(threadKeyWithoutPipe) === 0;
+      hasReply = compose(isZero, indexOf(threadKeyWithoutPipe))(replyKey);
     }
+
+    const softDeleteCallback = (error, message) => {
+      if (error) return callback(error);
+      return callback(null, MessageBoxConstants.deleteTypes.SOFT, message);
+    };
+
+    const hardDeleteCallback = (error_) => {
+      if (error_) return callback(error_);
+      return callback(null, MessageBoxConstants.deleteTypes.HARD);
+    };
 
     // Perform the appropriate delete operation based on whether or not there is a reply
     if (hasReply) {
-      _softDelete(message, (error, message) => {
-        if (error) {
-          return callback(error);
-        }
-
-        return callback(null, MessageBoxConstants.deleteTypes.SOFT, message);
-      });
+      _softDelete(message, softDeleteCallback);
     } else {
-      _hardDelete(message, (error_) => {
-        if (error_) {
-          return callback(error_);
-        }
-
-        return callback(null, MessageBoxConstants.deleteTypes.HARD);
-      });
+      _hardDelete(message, hardDeleteCallback);
     }
   });
 };

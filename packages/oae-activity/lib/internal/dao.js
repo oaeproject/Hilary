@@ -14,16 +14,17 @@
  */
 
 import crypto from 'crypto';
+import { equals, and } from 'ramda';
 import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivitySystemConfig from './config.js';
 
 const log = logger('oae-activity');
@@ -31,12 +32,14 @@ const log = logger('oae-activity');
 // The redis client that will be used for storing / fetch aggregate entities
 let redisClient = null;
 
+const TRUE = 'true';
+
 /**
  * Initialize the activity DAO.
  *
  * @param  {RedisClient}    redisClient     The redis client to use for aggregation
  */
-const init = function(_redisClient) {
+const init = function (_redisClient) {
   redisClient = _redisClient;
 };
 
@@ -51,7 +54,7 @@ const init = function(_redisClient) {
  * @param  {Activity[]}     callback.activities     The list of activities
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getActivities = function(activityStreamId, start, limit, callback) {
+const getActivities = function (activityStreamId, start, limit, callback) {
   start = start || '';
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
@@ -85,7 +88,7 @@ const getActivities = function(activityStreamId, start, limit, callback) {
  * @param  {Object}     callback.err                    An error that occurred, if any
  * @param  {Object}     callback.activitiesPerStream    The list of activities keyed by their activity stream id
  */
-const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
+const getActivitiesFromStreams = function (activityStreamIds, start, callback) {
   let query = 'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" IN ?';
   const parameters = [activityStreamIds];
   if (start) {
@@ -99,7 +102,7 @@ const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
     }
 
     const activitiesPerStream = {};
-    _.each(rows, row => {
+    _.each(rows, (row) => {
       const activityStreamId = row.get('activityStreamId');
       const activityId = row.get('activityId');
       let activityString = row.get('activity');
@@ -109,10 +112,7 @@ const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
         activitiesPerStream[activityStreamId].push(activity);
       } catch (error) {
         activityString = activityString.slice(0, 300);
-        log().warn(
-          { err: error, activityId, value: activityString },
-          'Error parsing activity from Cassandra'
-        );
+        log().warn({ err: error, activityId, value: activityString }, 'Error parsing activity from Cassandra');
       }
     });
 
@@ -141,10 +141,10 @@ const getActivitiesFromStreams = function(activityStreamIds, start, callback) {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const deliverActivities = function(routedActivities, callback) {
+const deliverActivities = function (routedActivities, callback) {
   callback =
     callback ||
-    function(error) {
+    function (error) {
       if (error) {
         log().error({ err: error }, 'Error delivering routed activities.');
       }
@@ -173,7 +173,7 @@ const deliverActivities = function(routedActivities, callback) {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const deleteActivities = function(routeActivityIds, callback) {
+const deleteActivities = function (routeActivityIds, callback) {
   if (_.isEmpty(routeActivityIds)) {
     return callback();
   }
@@ -184,7 +184,7 @@ const deleteActivities = function(routeActivityIds, callback) {
       return;
     }
 
-    _.each(activityIds, activityId => {
+    _.each(activityIds, (activityId) => {
       queries.push({
         query: 'DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ? AND "activityId" = ?',
         parameters: [route, activityId]
@@ -202,12 +202,8 @@ const deleteActivities = function(routeActivityIds, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const clearActivityStream = function(activityStreamId, callback) {
-  Cassandra.runQuery(
-    'DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?',
-    [activityStreamId],
-    callback
-  );
+const clearActivityStream = function (activityStreamId, callback) {
+  Cassandra.runQuery('DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?', [activityStreamId], callback);
 };
 
 /**
@@ -220,7 +216,7 @@ const clearActivityStream = function(activityStreamId, callback) {
  * @param  {Function}      callback            Standard callback function
  * @param  {Object}        callback.err        An error that occurred, if any
  */
-const saveQueuedActivities = function(activityBuckets, callback) {
+const saveQueuedActivities = function (activityBuckets, callback) {
   if (_.isEmpty(activityBuckets)) {
     return callback();
   }
@@ -243,7 +239,7 @@ const saveQueuedActivities = function(activityBuckets, callback) {
     // The bucket cache-key as the first argument
     const key = _createBucketCacheKey(bucketNumber);
     const zaddArgs = [];
-    _.each(activityBucket, routedActivity => {
+    _.each(activityBucket, (routedActivity) => {
       // Append the ordered pair of <rank>, <value> for this routed activity
       zaddArgs.push(routedActivity.activity.published);
       zaddArgs.push(JSON.stringify(routedActivity));
@@ -267,7 +263,7 @@ const saveQueuedActivities = function(activityBuckets, callback) {
  * @param  {Object}     callback.routedActivities   The routed activities that were queued in the bucket. The key is the internally created id of the entry (which can be used to later delete the entry), and value is a routed activity, as documented in #saveQueuedActivities
  * @param  {Number}     callback.numToDelete        The number of queued activities that were fetched from storage, and therefore the number of items that should be deleted when the batch of fetched activities have been processed
  */
-const getQueuedActivities = function(bucketNumber, limit, callback) {
+const getQueuedActivities = function (bucketNumber, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, ActivitySystemConfig.getConfig().collectionBatchSize);
 
   // Get the first `limit` routed activities from the bucket. Since they are stored in a sorted list in Redis, we use the
@@ -282,7 +278,7 @@ const getQueuedActivities = function(bucketNumber, limit, callback) {
     // The Redis result is each value on a new line, in order of "rank" in
     // the sorted-list. Iterate over those and parse the values in order
     const queuedActivities = {};
-    _.each(routedActivities, routedActivity => {
+    _.each(routedActivities, (routedActivity) => {
       try {
         // Routed activities are stored as stringified JSON, so we parse them back to objects
         routedActivity = JSON.parse(routedActivity);
@@ -314,7 +310,7 @@ const getQueuedActivities = function(bucketNumber, limit, callback) {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const deleteQueuedActivities = function(bucketNumber, numberToDelete, callback) {
+const deleteQueuedActivities = function (bucketNumber, numberToDelete, callback) {
   if (!numberToDelete) {
     return callback();
   }
@@ -343,14 +339,25 @@ const deleteQueuedActivities = function(bucketNumber, numberToDelete, callback) 
  * @param  {Object}    callbcak.err                An error that occurred, if any
  * @param  {Object}    callback.aggregateStatus    An object, keyed by the aggregate key, whose value is the status of the aggregate
  */
-const getAggregateStatus = function(aggregateKeys, callback) {
+const getAggregateStatus = function (aggregateKeys, callback) {
+  const testsAreRunning = equals(TRUE, process.env.OAE_TESTS_RUNNING);
+  const testingAlternativeAggregation = equals(TRUE, process.env.TEST_ALTERNATE_AGGREGATION);
+
+  /**
+   * This aint pretty, but we previously had module overloading
+   * and apparently we can't have that no more
+   */
+  if (and(testsAreRunning, testingAlternativeAggregation)) {
+    return global.alternateAggregateStatus(aggregateKeys, callback);
+  }
+
   if (_.isEmpty(aggregateKeys)) {
     return callback(null, {});
   }
 
   // Fetch each aggregate status by key. This uses a Redis multi-get ("mget"), whose arguments must be an array of all the keys to fetch
   const mgetArgs = [];
-  _.each(aggregateKeys, aggregateKey => {
+  _.each(aggregateKeys, (aggregateKey) => {
     mgetArgs.push(_createAggregateStatusCacheKey(aggregateKey));
   });
 
@@ -393,7 +400,7 @@ const getAggregateStatus = function(aggregateKeys, callback) {
  * @param  {Function}  callback                             Standard callback function
  * @param  {Object}    callback.err                         An error that occurred, if any
  */
-const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
+const indexAggregateData = function (statusUpdatesByActivityStreamId, callback) {
   const activityStreamIds = _.keys(statusUpdatesByActivityStreamId);
   if (_.isEmpty(activityStreamIds)) {
     return callback();
@@ -420,17 +427,12 @@ const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
       keysToExpire.push(statusKey);
 
       // Keep track of which aggregates are active for an activity stream, so we can reset aggregation per stream
-      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
-        activityStreamId
-      );
+      const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStreamId);
       multi.zadd(activeAggregatesForActivityStreamKey, Date.now(), aggregateKey);
 
       // An aggregate will expire after `aggregateMaxExpiry` seconds
       // There is no point in keeping this set around for any longer than that
-      multi.expire(
-        activeAggregatesForActivityStreamKey,
-        ActivitySystemConfig.getConfig().aggregateMaxExpiry
-      );
+      multi.expire(activeAggregatesForActivityStreamKey, ActivitySystemConfig.getConfig().aggregateMaxExpiry);
 
       // Although we expire the set, it might contain expired items
       // Every time we add something in the set, we remove anything that has expired
@@ -442,7 +444,7 @@ const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
   multi.mset(msetArgs);
 
   // For each key to expire, append the Redis 'expire' command to the multi-command
-  _.each(keysToExpire, key => {
+  _.each(keysToExpire, (key) => {
     multi.expire(key, ActivitySystemConfig.getConfig().aggregateIdleExpiry);
   });
 
@@ -457,7 +459,7 @@ const indexAggregateData = function(statusUpdatesByActivityStreamId, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const deleteAggregateData = function(aggregateKeys, callback) {
+const deleteAggregateData = function (aggregateKeys, callback) {
   if (_.isEmpty(aggregateKeys)) {
     return callback();
   }
@@ -479,62 +481,52 @@ const deleteAggregateData = function(aggregateKeys, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const resetAggregationForActivityStreams = function(activityStreamIds, callback) {
+const resetAggregationForActivityStreams = function (activityStreamIds, callback) {
   // 1. Get all the active aggregates for these activity streams
-  getActiveAggregateKeysForActivityStreams(
-    activityStreamIds,
-    (error, activeAggregateKeysForActivityStreams) => {
-      if (error) {
-        log().error(
-          { err: error, activityStreamIds },
-          'Failed to get the active aggregate keys for a set of activity streams'
-        );
-        return callback(error);
-      }
-
-      // 2. Remove the active aggregates
-      const multi = redisClient.multi();
-      let allActiveAggregateKeys = [];
-      _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
-        const activityStream = activityStreamIds[index];
-        if (!_.isEmpty(activeAggregateKeys[1])) {
-          // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
-          const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(
-            activityStream
-          );
-          multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys[1]);
-
-          // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
-          // This allows us to delete them in one big `del` command
-          allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
-        }
-      });
-
-      // Delete all the active aggregate keys if there are any
-      const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(
-        allActiveAggregateKeys
+  getActiveAggregateKeysForActivityStreams(activityStreamIds, (error, activeAggregateKeysForActivityStreams) => {
+    if (error) {
+      log().error(
+        { err: error, activityStreamIds },
+        'Failed to get the active aggregate keys for a set of activity streams'
       );
-      if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
-        return callback();
+      return callback(error);
+    }
+
+    // 2. Remove the active aggregates
+    const multi = redisClient.multi();
+    let allActiveAggregateKeys = [];
+    _.each(activeAggregateKeysForActivityStreams, (activeAggregateKeys, index) => {
+      const activityStream = activityStreamIds[index];
+      if (!_.isEmpty(activeAggregateKeys[1])) {
+        // As we will be removing these aggregate keys, they will no longer be active for this stream so we can remove them from the "current active aggregate keys" set
+        const activeAggregatesForActivityStreamKey = _createActiveAggregatesForActivityStreamKey(activityStream);
+        multi.zrem(activeAggregatesForActivityStreamKey, activeAggregateKeys[1]);
+
+        // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
+        // This allows us to delete them in one big `del` command
+        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
+      }
+    });
+
+    // Delete all the active aggregate keys if there are any
+    const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(allActiveAggregateKeys);
+    if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
+      return callback();
+    }
+
+    multi.del(activeAggregateCacheKeysToDelete);
+    multi.exec((error_) => {
+      if (error_) {
+        log().error({ err: error_, activityStreamIds }, 'Failed to reset aggregation for a set of activity streams');
+        return callback({
+          code: 500,
+          msg: 'Failed to reset aggregation for a set of activity streams'
+        });
       }
 
-      multi.del(activeAggregateCacheKeysToDelete);
-      multi.exec(error_ => {
-        if (error_) {
-          log().error(
-            { err: error_, activityStreamIds },
-            'Failed to reset aggregation for a set of activity streams'
-          );
-          return callback({
-            code: 500,
-            msg: 'Failed to reset aggregation for a set of activity streams'
-          });
-        }
-
-        return callback();
-      });
-    }
-  );
+      return callback();
+    });
+  });
 };
 
 /**
@@ -545,10 +537,10 @@ const resetAggregationForActivityStreams = function(activityStreamIds, callback)
  * @param  {Object}                     callback.err                                        An error that occurred, if any
  * @param  {Array.<Array.<String>>}     callback.activeAggregateKeysForActivityStreams      An array of array of active aggregate keys. Each inner array holds the currently active aggregate keys for an activity stream. The array is in the same order as the passed in `activityStreams` array
  */
-const getActiveAggregateKeysForActivityStreams = function(activityStreams, callback) {
+const getActiveAggregateKeysForActivityStreams = function (activityStreams, callback) {
   const multi = redisClient.multi();
   const maxExpiryAgo = Date.now() - ActivitySystemConfig.getConfig().aggregateMaxExpiry * 1000;
-  _.each(activityStreams, activityStream => {
+  _.each(activityStreams, (activityStream) => {
     const activeAggregatesKey = _createActiveAggregatesForActivityStreamKey(activityStream);
     multi.zrangebyscore(activeAggregatesKey, maxExpiryAgo, '+inf');
   });
@@ -597,7 +589,7 @@ const getActiveAggregateKeysForActivityStreams = function(activityStreams, callb
  * @param  {Object}    callback.err                An error that occurred, if any
  * @param  {Object}    callback.aggregatedEntities An object holding the entities that have been aggregated for the entities. See summary for more information
  */
-const getAggregatedEntities = function(aggregateKeys, callback) {
+const getAggregatedEntities = function (aggregateKeys, callback) {
   if (_.isEmpty(aggregateKeys)) {
     return callback(null, {});
   }
@@ -655,7 +647,7 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
 
   // Collect all the hgetall commands for the actor, object and targets of each aggregate key and execute it
   const multiGetAggregateEntities = redisClient.multi();
-  _.each(aggregateKeys, aggregateKey => {
+  _.each(aggregateKeys, (aggregateKey) => {
     multiGetAggregateEntities.hgetall(_createAggregateEntityCacheKey(aggregateKey, 'actors'));
     multiGetAggregateEntities.hgetall(_createAggregateEntityCacheKey(aggregateKey, 'objects'));
     multiGetAggregateEntities.hgetall(_createAggregateEntityCacheKey(aggregateKey, 'targets'));
@@ -671,7 +663,7 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
 
     // According to https://github.com/luin/ioredis/wiki/Migrating-from-node_redis
     // the hgetall operation now returns {} instead of null, so let's convert that
-    results = results.map(eachResult => {
+    results = results.map((eachResult) => {
       if (_.isEmpty(eachResult[1])) eachResult[1] = null;
       return eachResult;
     });
@@ -679,9 +671,9 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
     // Collect all the actual identities that are stored in this result. We will use those to fetch the
     // actual entity contents
     const entityIdentities = {};
-    _.each(results, result => {
+    _.each(results, (result) => {
       if (result && !_.isEmpty(result[1])) {
-        _.each(result[1], entityIdentity => {
+        _.each(result[1], (entityIdentity) => {
           if (entityIdentity) {
             entityIdentities[entityIdentity] = true;
           }
@@ -721,10 +713,7 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
             targets: {}
           };
 
-          log().trace(
-            { aggregate: result[1] },
-            'Iterating aggregated entity identities to map to full entities'
-          );
+          log().trace({ aggregate: result[1] }, 'Iterating aggregated entity identities to map to full entities');
 
           _.each(result[1], (identity, entityKey) => {
             // Grab the entity from the identity map that was fetched
@@ -748,7 +737,7 @@ const getAggregatedEntities = function(aggregateKeys, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
+const _fetchEntitiesByIdentities = function (entityIdentities, callback) {
   if (_.isEmpty(entityIdentities)) {
     return callback(null, {});
   }
@@ -756,7 +745,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
   const entitiesByIdentity = {};
 
   // Convert the entity identities into their associated cache keys
-  const entityIdentityCacheKeys = _.map(entityIdentities, entityIdentity => {
+  const entityIdentityCacheKeys = _.map(entityIdentities, (entityIdentity) => {
     return _createEntityIdentityCacheKey(entityIdentity);
   });
 
@@ -771,10 +760,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
         try {
           entitiesByIdentity[entityIdentities[i]] = JSON.parse(entityString);
         } catch {
-          log().warn(
-            { entityStr: entityString },
-            'Failed to parse aggregated activity entity from redis. Skipping.'
-          );
+          log().warn({ entityStr: entityString }, 'Failed to parse aggregated activity entity from redis. Skipping.');
         }
       }
     });
@@ -798,7 +784,7 @@ const _fetchEntitiesByIdentities = function(entityIdentities, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const saveAggregatedEntities = function(aggregates, callback) {
+const saveAggregatedEntities = function (aggregates, callback) {
   if (_.isEmpty(aggregates)) {
     return callback();
   }
@@ -883,7 +869,7 @@ const saveAggregatedEntities = function(aggregates, callback) {
     // live as long as any aggregate referencing it needs it for aggregation. This *cannot* be the aggregateIdleExpiry
     // because an aggregate can be updated with a *different* entity, in which case this entity may expire before the
     // aggregate expires, and that would be bad.
-    _.each(toExpire, identityCacheKey => {
+    _.each(toExpire, (identityCacheKey) => {
       multi.expire(identityCacheKey, ActivitySystemConfig.getConfig().aggregateMaxExpiry);
     });
   });
@@ -898,7 +884,7 @@ const saveAggregatedEntities = function(aggregates, callback) {
  * @param  {Number}    published   The time (millis since the epoch) that the activity was published.
  * @return {String}                A unique identifier for the activity.
  */
-const createActivityId = function(published) {
+const createActivityId = function (published) {
   // An example activity id is: 123456789:PTewoief
   return format('%s:%s', published, ShortId.generate());
 };
@@ -915,14 +901,14 @@ const createActivityId = function(published) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const saveQueuedUserIdsForEmail = function(emailBuckets, callback) {
+const saveQueuedUserIdsForEmail = function (emailBuckets, callback) {
   if (_.isEmpty(emailBuckets)) {
     return callback();
   }
 
   const queries = [];
   _.each(emailBuckets, (userIds, bucketId) => {
-    _.each(userIds, userId => {
+    _.each(userIds, (userId) => {
       queries.push({
         query: 'INSERT INTO "EmailBuckets" ("bucketId", "userId") VALUES (?, ?)',
         parameters: [bucketId, userId]
@@ -944,7 +930,7 @@ const saveQueuedUserIdsForEmail = function(emailBuckets, callback) {
  * @param  {String[]}   callback.userIds        The IDs of the users that were in this bucket
  * @param  {String}     callback.nextToken      The value that can be used as the `opts.start` parameter for the next query to get the next page of item
  */
-const getQueuedUserIdsForEmail = function(bucketId, start, limit, callback) {
+const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
   Cassandra.runPagedQuery(
     'EmailBuckets',
     'bucketId',
@@ -958,7 +944,7 @@ const getQueuedUserIdsForEmail = function(bucketId, start, limit, callback) {
         return callback(error);
       }
 
-      const userIds = _.map(rows, row => {
+      const userIds = _.map(rows, (row) => {
         return row.get('userId');
       });
 
@@ -975,12 +961,12 @@ const getQueuedUserIdsForEmail = function(bucketId, start, limit, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const unqueueUsersForEmail = function(bucketId, userIds, callback) {
+const unqueueUsersForEmail = function (bucketId, userIds, callback) {
   if (_.isEmpty(userIds)) {
     return callback();
   }
 
-  const queries = _.map(userIds, userId => {
+  const queries = _.map(userIds, (userId) => {
     return {
       query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
       parameters: [bucketId, userId]
@@ -1001,7 +987,7 @@ const unqueueUsersForEmail = function(bucketId, userIds, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const clearNotificationsUnreadCount = function(userId, callback) {
+const clearNotificationsUnreadCount = function (userId, callback) {
   const cacheKey = _createNotificationCountCacheKey(userId);
   redisClient.del(cacheKey, callback);
 };
@@ -1014,11 +1000,11 @@ const clearNotificationsUnreadCount = function(userId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.newCounts  An object whose key is the userId, and the value is the new count value for each user
  */
-const incrementNotificationsUnreadCounts = function(userIdsIncrBy, callback) {
+const incrementNotificationsUnreadCounts = function (userIdsIncrBy, callback) {
   // Filter out those users whose notification count should be "incremented" by 0
   const userIds = _.chain(userIdsIncrBy)
     .keys()
-    .filter(userId => {
+    .filter((userId) => {
       return userIdsIncrBy[userId] !== 0;
     })
     .value();
@@ -1030,7 +1016,7 @@ const incrementNotificationsUnreadCounts = function(userIdsIncrBy, callback) {
 
   // We use a batch of Redis incrby commands to update each count
   const multi = redisClient.multi();
-  _.each(userIds, userId => {
+  _.each(userIds, (userId) => {
     const cacheKey = _createNotificationCountCacheKey(userId);
     multi.incrby(cacheKey, userIdsIncrBy[userId]);
   });
@@ -1065,19 +1051,16 @@ const incrementNotificationsUnreadCounts = function(userIdsIncrBy, callback) {
  * @return {Object}                 The activities that were extracted from the rows
  * @api private
  */
-const _rowsToActivities = function(rows) {
+const _rowsToActivities = function (rows) {
   const activities = [];
-  _.each(rows, row => {
+  _.each(rows, (row) => {
     const activityId = row.get('activityId');
     let activityString = row.get('activity');
     try {
       activities.push(JSON.parse(activityString));
     } catch (error) {
       activityString = activityString.slice(0, 300);
-      log().warn(
-        { err: error, activityId, value: activityString },
-        'Error parsing activity from Cassandra'
-      );
+      log().warn({ err: error, activityId, value: activityString }, 'Error parsing activity from Cassandra');
     }
   });
   return activities;
@@ -1089,7 +1072,7 @@ const _rowsToActivities = function(rows) {
  * @param  {Object}     The persistent entity for which to create an identity
  * @param  {String}     The key of the entity forwhich to create an identity
  */
-const _createEntityIdentity = function(entity, entityKey) {
+const _createEntityIdentity = function (entity, entityKey) {
   const md5sum = crypto.createHash('md5');
 
   // We're simply using `JSON.stringify`, but is not perfect as object properties could technically be in a different
@@ -1105,7 +1088,7 @@ const _createEntityIdentity = function(entity, entityKey) {
  * @param  {Number}     bucketNumber    The number of the bucket whose id to create
  * @api private
  */
-const _createBucketCacheKey = function(bucketNumber) {
+const _createBucketCacheKey = function (bucketNumber) {
   // Looks like: oae-activity:bucket:0
   return format('oae-activity:bucket:%s', bucketNumber);
 };
@@ -1117,7 +1100,7 @@ const _createBucketCacheKey = function(bucketNumber) {
  * @return {String}                     The storage key for the aggregate's status entity
  * @api private
  */
-const _createAggregateStatusCacheKey = function(aggregateKey) {
+const _createAggregateStatusCacheKey = function (aggregateKey) {
   // Looks like oae-activity:aggregate:<aggregateKey>:status
   return format('oae-activity:aggregate:%s:status', aggregateKey);
 };
@@ -1129,9 +1112,9 @@ const _createAggregateStatusCacheKey = function(aggregateKey) {
  * @return {String[]}                           The storage keys for the aggregates their status and cached entities
  * @api private
  */
-const _getAggregateCacheKeysForAggregateKeys = function(aggregateKeys) {
+const _getAggregateCacheKeysForAggregateKeys = function (aggregateKeys) {
   const aggregateCacheKeys = [];
-  _.each(aggregateKeys, aggregateKey => {
+  _.each(aggregateKeys, (aggregateKey) => {
     aggregateCacheKeys.push(_createAggregateStatusCacheKey(aggregateKey));
     aggregateCacheKeys.push(_createAggregateEntityCacheKey(aggregateKey, 'actors'));
     aggregateCacheKeys.push(_createAggregateEntityCacheKey(aggregateKey, 'objects'));
@@ -1148,7 +1131,7 @@ const _getAggregateCacheKeysForAggregateKeys = function(aggregateKeys) {
  * @return {String}                     The storage key for the aggregate's aggregated entities
  * @api private
  */
-const _createAggregateEntityCacheKey = function(aggregateKey, entityType) {
+const _createAggregateEntityCacheKey = function (aggregateKey, entityType) {
   // Looks like oae-activity:aggregate:<aggregateKey>:actor:entities
   return format('oae-activity:aggregate:%s:%s:entities', aggregateKey, entityType);
 };
@@ -1160,7 +1143,7 @@ const _createAggregateEntityCacheKey = function(aggregateKey, entityType) {
  * @return {String}                 The storage key for the entity with the given identity
  * @api private
  */
-const _createEntityIdentityCacheKey = function(identity) {
+const _createEntityIdentityCacheKey = function (identity) {
   return format('oae-activity:entity:%s', identity);
 };
 
@@ -1171,13 +1154,9 @@ const _createEntityIdentityCacheKey = function(identity) {
  * @return {String}                     The routed activity key
  * @api private
  */
-const _createRoutedActivityKey = function(routedActivity) {
+const _createRoutedActivityKey = function (routedActivity) {
   // Looks like <activityId>:u:cam:dfjDFOij
-  return format(
-    '%s:%s',
-    routedActivity.activity[ActivityConstants.properties.OAE_ACTIVITY_ID],
-    routedActivity.route
-  );
+  return format('%s:%s', routedActivity.activity[ActivityConstants.properties.OAE_ACTIVITY_ID], routedActivity.route);
 };
 
 /**
@@ -1187,7 +1166,7 @@ const _createRoutedActivityKey = function(routedActivity) {
  * @return {String}             The cache key for the counts of the user
  * @api private
  */
-const _createNotificationCountCacheKey = function(userId) {
+const _createNotificationCountCacheKey = function (userId) {
   return format('oae-activity:notification-count:%s', userId);
 };
 
@@ -1198,7 +1177,7 @@ const _createNotificationCountCacheKey = function(userId) {
  * @return {String}                The key that holds the set of active aggregate keys for the activity stream
  * @api private
  */
-const _createActiveAggregatesForActivityStreamKey = function(activityStream) {
+const _createActiveAggregatesForActivityStreamKey = function (activityStream) {
   return format('oae-activity:active-aggregates:%s', activityStream);
 };
 

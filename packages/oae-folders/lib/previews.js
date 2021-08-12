@@ -15,18 +15,18 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as ContentAPI from 'oae-content';
-import Counter from 'oae-util/lib/counter';
-import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import Counter from 'oae-util/lib/counter.js';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util.js';
 import * as PreviewProcessorAPI from 'oae-preview-processor';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 
 import * as FoldersAPI from 'oae-folders';
-import * as FoldersAuthz from 'oae-folders/lib/authz';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
+import * as FoldersAuthz from 'oae-folders/lib/authz.js';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-folders-previews');
@@ -42,7 +42,7 @@ const previewCounter = new Counter();
  *
  * @param  {Function}   callback    Invoked when all previews have completed
  */
-const whenPreviewsComplete = function(callback) {
+const whenPreviewsComplete = function (callback) {
   previewCounter.whenZero(() => {
     MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, () => {
       return MQTestUtil.whenTasksEmpty(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, () => {
@@ -62,9 +62,9 @@ const whenPreviewsComplete = function(callback) {
  * @param  {Content[]}  contentItems    The set of content items that were added or removed
  * @api private
  */
-const _handleContentChange = function(ctx, folder, contentItems) {
+const _handleContentChange = function (ctx, folder, contentItems) {
   // Filter out those content items who have no preview items
-  const contentItemsWithPreviews = _.filter(contentItems, contentItem => {
+  const contentItemsWithPreviews = _.filter(contentItems, (contentItem) => {
     return contentItem.previews && contentItem.previews.status === 'done';
   });
 
@@ -98,7 +98,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, newFolder, o
 /*!
  * If a content item's preview images are updated we need to generate previews for the folder
  */
-ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, content => {
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, (content) => {
   _reprocessFoldersThatContainContent(content.id);
 });
 
@@ -119,7 +119,7 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj,
     }
 
     // Submit each folder for processing
-    _.each(folders, folder => {
+    _.each(folders, (folder) => {
       PreviewProcessorAPI.submitFolderForProcessing(folder.id);
     });
 
@@ -142,7 +142,7 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentO
  * @param  {String}     contentId   The ID of the content item for which the folders should be reprocessed
  * @api private
  */
-const _reprocessFoldersThatContainContent = function(contentId) {
+const _reprocessFoldersThatContainContent = function (contentId) {
   previewCounter.incr();
 
   // Get all the folders this content item was part of
@@ -154,7 +154,7 @@ const _reprocessFoldersThatContainContent = function(contentId) {
     }
 
     // Submit each folder for processing
-    _.each(folders, folder => {
+    _.each(folders, (folder) => {
       PreviewProcessorAPI.submitFolderForProcessing(folder.id);
     });
 

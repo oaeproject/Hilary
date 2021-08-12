@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import * as Pubsub from 'oae-util/lib/pubsub';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
 
 describe('Pubsub', () => {
   describe('#publish()', () => {

@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 /**
  * @borrows Interface.test as Images.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObj, callback) {
   const imageTypeIsValid = PreviewConstants.TYPES.IMAGE.includes(ctx.revision.mime);
   callback(null, PreviewUtil.test(contentObj, imageTypeIsValid));
 };
@@ -27,7 +27,7 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as Images.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObj, callback) {
   // Download the file
   ctx.download((err, path) => {
     if (err) {

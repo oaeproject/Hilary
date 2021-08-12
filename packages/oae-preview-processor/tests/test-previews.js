@@ -21,34 +21,40 @@ import { format } from 'util';
 import sharp from 'sharp';
 import { keys, equals, find, toUpper, not, compose, head, values, prop } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import request from 'request';
 import nock from 'nock';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
-import * as FoldersPreviews from 'oae-folders/lib/previews';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import * as MQ from 'oae-util/lib/mq';
-import * as MQTestUtil from 'oae-util/lib/test/mq-util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
+import * as FoldersPreviews from 'oae-folders/lib/previews.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import * as MQ from 'oae-util/lib/mq.js';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as Tempfile from 'oae-util/lib/tempfile';
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as PreviewAPI from 'oae-preview-processor/lib/api';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PreviewDefaultLinks from 'oae-preview-processor/lib/processors/link/default';
-import * as PreviewFlickr from 'oae-preview-processor/lib/processors/link/flickr';
-import * as PreviewOffice from 'oae-preview-processor/lib/processors/file/office';
-import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf';
-import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare';
-import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
-import { downloadRemoteFile } from 'oae-preview-processor/lib/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as Tempfile from 'oae-util/lib/tempfile.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as PreviewAPI from 'oae-preview-processor/lib/api.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PreviewDefaultLinks from 'oae-preview-processor/lib/processors/link/default.js';
+import * as PreviewFlickr from 'oae-preview-processor/lib/processors/link/flickr.js';
+import * as PreviewOffice from 'oae-preview-processor/lib/processors/file/office.js';
+import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf.js';
+import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare.js';
+import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util.js';
+import { downloadRemoteFile } from 'oae-preview-processor/lib/util.js';
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';

@@ -39,7 +39,7 @@ import {
   assocPath
 } from 'ramda';
 
-const { Client } = require('@elastic/elasticsearch');
+import { Client } from '@elastic/elasticsearch';
 
 const log = logger('elasticsearch');
 const Telemetry = telemetry('search');
@@ -75,7 +75,7 @@ const DELETE_BY_QUERY = 'deleteByQuery';
  * @param  {String}    index       The index to use
  * @param  {Object}    serverNodes  The server opts with which to configure the client
  */
-const refreshSearchConfiguration = function(_index, serverNodes) {
+const refreshSearchConfiguration = function (_index, serverNodes) {
   index = _index;
 
   client = new Client({ nodes: serverNodes.nodes });
@@ -98,7 +98,7 @@ const refreshSearchConfiguration = function(_index, serverNodes) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const createIndex = function(index, settings, callback) {
+const createIndex = function (index, settings, callback) {
   indexExists(index, (err, indexExists) => {
     if (err) return callback(err);
     if (indexExists) return callback(null, true);
@@ -140,7 +140,7 @@ const createIndex = function(index, settings, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const deleteIndex = function(index, callback) {
+const deleteIndex = function (index, callback) {
   indexExists(index, (err, indexExists) => {
     if (err) return callback(err);
 
@@ -176,7 +176,7 @@ const deleteIndex = function(index, callback) {
  * @param  {Object}      callback.err    An error that occurred, if any
  * @param  {Boolean}     callback.exists Whether or not the index exists
  */
-const indexExists = function(index, callback) {
+const indexExists = function (index, callback) {
   Telemetry.incr('exec.' + INDEX_STATUS + '.count');
   const start = Date.now();
   return client.indices.exists(
@@ -201,7 +201,7 @@ const indexExists = function(index, callback) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const refresh = callback => {
+const refresh = (callback) => {
   Telemetry.incr('exec.' + REFRESH + '.count');
   const start = Date.now();
   return client.indices.refresh(
@@ -249,7 +249,7 @@ const refresh = callback => {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const putMapping = function(properties, opts, callback) {
+const putMapping = function (properties, opts, callback) {
   opts = opts || {};
 
   indexExists(index, (err, exists) => {
@@ -270,10 +270,10 @@ const putMapping = function(properties, opts, callback) {
      * - Resource following
      * - Meeting jitsi message
      */
+    properties = mergeAll([properties, {}]);
     properties.type = { type: 'keyword' };
 
     // This must be done because this is Module Object, whatever that is
-    properties = mergeAll([properties, {}]);
     const body = {
       properties
     };
@@ -308,7 +308,7 @@ const putMapping = function(properties, opts, callback) {
  * @param  {type} childrenName children resource type
  * @param  {type} callback     Standard callback function
  */
-const mapChildrenToParent = function(parentName, childrenName, callback) {
+const mapChildrenToParent = function (parentName, childrenName, callback) {
   if (isEmpty(childrenName)) return callback();
 
   const relations = assoc(parentName, childrenName, {});
@@ -337,7 +337,7 @@ const mapChildrenToParent = function(parentName, childrenName, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const mappingExists = function(property, callback) {
+const mappingExists = function (property, callback) {
   Telemetry.incr('exec.' + GET_MAPPING + '.count');
   const start = Date.now();
   client.indices.getMapping(
@@ -367,7 +367,7 @@ const mappingExists = function(property, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {Object}    callback.data   The response of the query
  */
-const search = function(body, options, callback) {
+const search = function (body, options, callback) {
   log().trace({ query: body }, 'Querying elastic search');
 
   const { storedFields, from, size } = options;
@@ -404,7 +404,7 @@ const search = function(body, options, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const runIndex = function(typeName, id, body, options, callback) {
+const runIndex = function (typeName, id, body, options, callback) {
   log().trace({ id, document: body, options }, 'Indexing a document');
 
   const { routing } = options;
@@ -432,7 +432,7 @@ const runIndex = function(typeName, id, body, options, callback) {
 const bulk = (operationsToRun, callback) => {
   let numberOfOperations = 0;
 
-  const transformOperations = eachOperation => {
+  const transformOperations = (eachOperation) => {
     const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
     const justOneOperation = compose(isOne, length, keys)(eachOperation);
 
@@ -510,7 +510,7 @@ const bulk = (operationsToRun, callback) => {
  * @function insertRoutingIntoActionPairs
  * @param  {Array} operationsToRun Array with action/data pairs that go into the ES bulk operation
  */
-const insertRoutingIntoActionPairs = operationsToRun => {
+const insertRoutingIntoActionPairs = (operationsToRun) => {
   const parentIdPath = ['_parent', 'parent'];
   const getParentPath = path(parentIdPath);
 
@@ -520,7 +520,7 @@ const insertRoutingIntoActionPairs = operationsToRun => {
   const extractParentIds = compose(map(getParentPath), cherryPickActionPairs);
   const parentIds = extractParentIds(operationsToRun);
 
-  forEach(eachOperation => {
+  forEach((eachOperation) => {
     const routingId = parentIds.shift();
     eachOperation.index.routing = routingId;
   }, cherryPickDataPairs(operationsToRun));
@@ -536,7 +536,7 @@ const insertRoutingIntoActionPairs = operationsToRun => {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const del = function(typeName, id, callback) {
+const del = function (typeName, id, callback) {
   log().trace({ typeName, documentId: id }, 'Deleting an index document.');
 
   Telemetry.incr('exec.' + DELETE + '.count');
@@ -567,7 +567,7 @@ const del = function(typeName, id, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteByQuery = function(type, query, options, callback) {
+const deleteByQuery = function (type, query, options, callback) {
   log().trace({ typeName: type, query, options }, 'Deleting search documents by query');
 
   Telemetry.incr('exec.' + DELETE_BY_QUERY + '.count');
@@ -597,7 +597,7 @@ const deleteByQuery = function(type, query, options, callback) {
  * @param  {Object} err      The error to log.
  * @api private
  */
-const _logError = function(fn, err) {
+const _logError = function (fn, err) {
   Telemetry.incr('exec.' + fn + '.error.count');
   log().error({ err }, 'Error executing %s query.', fn);
 };

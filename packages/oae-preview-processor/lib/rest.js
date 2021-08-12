@@ -16,7 +16,7 @@
 import request from 'request';
 import { compose, nth, split, defaultTo, startsWith, forEachObjIndexed } from 'ramda';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
 import * as PreviewProcessorAPI from 'oae-preview-processor';
 
@@ -26,7 +26,7 @@ const HTTP_GET = 'get';
 // Auxiliary functions
 const isContentFilter = startsWith('content_');
 const isRevisionFilter = startsWith('revision_');
-const defaultToEmptyObject = x => defaultTo({}, x);
+const defaultToEmptyObject = (x) => defaultTo({}, x);
 const first = nth(1);
 
 /**
@@ -67,7 +67,7 @@ OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpReque
     }
   }, httpRequest.body);
 
-  PreviewProcessorAPI.reprocessPreviews(httpRequest.ctx, filters, err => {
+  PreviewProcessorAPI.reprocessPreviews(httpRequest.ctx, filters, (err) => {
     if (err) return httpResponse.status(err.code).send(err.msg);
 
     httpResponse.status(200).end();
@@ -81,12 +81,12 @@ OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpReque
  * @param  {Response}   The express response
  * @api private
  */
-const _handleReprocessPreview = function(httpRequest, httpResponse) {
+const _handleReprocessPreview = function (httpRequest, httpResponse) {
   PreviewProcessorAPI.reprocessPreview(
     httpRequest.ctx,
     httpRequest.params.contentId,
     httpRequest.params.revisionId,
-    err => {
+    (err) => {
       if (err) return httpResponse.status(err.code).send(err.msg);
 
       httpResponse.status(200).end();

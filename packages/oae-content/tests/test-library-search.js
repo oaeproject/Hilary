@@ -17,7 +17,7 @@ import { assert } from 'chai';
 import { compose, prop, head, of, equals, find, propSatisfies } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 const { createGroup } = RestAPI.Group;

@@ -15,9 +15,9 @@
 
 import { assert } from 'chai';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 import { logger } from 'oae-logger';
 
@@ -192,12 +192,14 @@ describe('Utilities', () => {
                       assert.lengthOf(rows, 1);
                       assert.strictEqual(rows[0].get('keyId'), 'key1');
                       // Try to run an invalid select
-                      Cassandra.runQuery(`SELECT * FROM "testQuery" WHERE "keyId" = ?`, [null], (
-                        error /* , rows */
-                      ) => {
-                        assert.ok(error);
-                        callback();
-                      });
+                      Cassandra.runQuery(
+                        `SELECT * FROM "testQuery" WHERE "keyId" = ?`,
+                        [null],
+                        (error /* , rows */) => {
+                          assert.ok(error);
+                          callback();
+                        }
+                      );
                     });
                   }
                 );

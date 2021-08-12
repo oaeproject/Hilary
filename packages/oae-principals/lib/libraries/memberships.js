@@ -14,22 +14,22 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as SearchUtil from 'oae-search/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { SearchConstants } from 'oae-search/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 import { logger } from 'oae-logger';
 

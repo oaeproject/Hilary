@@ -23,26 +23,28 @@ import dateFormat from 'dateformat';
 import jszip from 'jszip';
 import ShortId from 'shortid';
 
-import { getJSON } from 'oae-content/lib/internal/ethercalc';
+import * as AuthenticationAPI from 'oae-authentication';
+
+import { getJSON } from 'oae-content/lib/internal/ethercalc.js';
 import { getTenantSkinVariables } from 'oae-ui';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import {
   getContentLibraryItems,
   getComments as getCommentsForContent,
   getRevision as getContentRevision
 } from 'oae-content';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as DiscussionsAPI from 'oae-discussions';
 import * as EmailAPI from 'oae-email';
 import { logger } from 'oae-logger';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import * as Signature from 'oae-util/lib/signature';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   unless,
   isShortString,
@@ -57,11 +59,27 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
-import isIn from 'validator/lib/isIn';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
+import {
+  add,
+  defaultTo,
+  equals,
+  path,
+  __,
+  slice,
+  join,
+  last,
+  split,
+  curry,
+  forEach,
+  ifElse,
+  compose,
+  not,
+  isNil
+} from 'ramda';
+import isIn from 'validator/lib/isIn.js';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import PrincipalsEmitter from './internal/emitter.js';
 import * as PrincipalsTermsAndConditionsAPI from './api.termsAndConditions.js';
@@ -186,9 +204,13 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
   }
 
   // Const isAdmin = ctx.user() && ctx.user().isAdmin(tenantAlias);
+  // TODO I did this but I shouldn't have to... check this further
+  // options.visibility = defaultTo('private', PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility'));
   options.visibility = options.visibility || PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility');
   options.publicAlias = options.publicAlias || displayName;
   options.acceptedTC = options.acceptedTC || false;
+  // TODO I did this but I shouldn't have to... check this further
+  // options.emailPreference = defaultTo('weekly', PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference'));
   options.emailPreference =
     options.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   options.isUserArchive = options.isUserArchive || null;
@@ -487,7 +509,7 @@ const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy,
           // If the user already exists but has a different displayName from the one
           // in the CSV file, we update it
           // TODO: Fix cross-dependency between the Authentication API and the Principals API
-          require('oae-authentication').getOrCreateUser(
+          AuthenticationAPI.getOrCreateUser(
             adminCtx,
             authenticationStrategy,
             externalId,

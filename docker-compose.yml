@@ -41,7 +41,7 @@ services:
     # command: nodemon -L app.js | npx bunyan # default
     # command: npm test # for running tests
     extra_hosts:
-      - "admin.oae.com:172.20.0.9"
+      - 'admin.oae.com:172.20.0.9'
     #   - "tenant1.oae.com:172.20.0.9"
     # - "any.other.host.oae.com:172.20.0.9"
     image: hilary:latest
@@ -96,7 +96,7 @@ services:
     tty: false
     volumes:
       - ./3akai-ux:/usr/src/Hilary/3akai-ux
-      - ../files:/usr/share/files
+      - ./tmp/files:/usr/share/files
       - ./3akai-ux/nginx/nginx.docker.conf:/etc/nginx/nginx.conf
       - ./3akai-ux/nginx/mime.conf:/etc/nginx/mime.conf
       - ./3akai-ux/nginx/nginx-selfsigned.crt:/etc/nginx/nginx-selfsigned.crt
@@ -109,7 +109,7 @@ services:
       - 443:443
   oae-cassandra:
     container_name: oae-cassandra
-    image: cassandra:2.1.21
+    image: oaeproject/oae-cassandra-docker
     networks:
       - my_network
     ports:

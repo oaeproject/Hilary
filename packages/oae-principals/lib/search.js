@@ -38,20 +38,20 @@ import {
 } from 'ramda';
 import { logger } from 'oae-logger';
 
-import * as AuthzSearch from 'oae-authz/lib/search';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as AuthzSearch from 'oae-authz/lib/search.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 
 import { emitter } from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import { User } from 'oae-principals/lib/model';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+import { User } from 'oae-principals/lib/model.js';
 
 const { getTenant } = TenantsAPI;
 const getTenantAlias = prop('tenantAlias');

@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import * as Content from './dao.content';
-import * as Etherpad from './dao.etherpad';
-import * as Ethercalc from './dao.ethercalc';
-import * as Previews from './dao.previews';
-import * as Revisions from './dao.revisions';
+import * as Content from './dao.content.js';
+import * as Etherpad from './dao.etherpad.js';
+import * as Ethercalc from './dao.ethercalc.js';
+import * as Previews from './dao.previews.js';
+import * as Revisions from './dao.revisions.js';
 
 export { Content, Etherpad, Ethercalc, Previews, Revisions };

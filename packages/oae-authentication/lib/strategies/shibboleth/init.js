@@ -15,14 +15,14 @@
 
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import { logger } from 'oae-logger';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 import * as ShibbolethAPI from './api.js';
 import ShibbolethStrategy from './strategy.js';

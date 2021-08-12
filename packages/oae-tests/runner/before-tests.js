@@ -15,23 +15,33 @@
 
 /* eslint-disable no-undef */
 
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import { logger } from 'oae-logger';
 import nock from 'nock';
-import { flush } from 'oae-util/lib/redis';
-import * as MQ from 'oae-util/lib/mq';
+import { flush } from 'oae-util/lib/redis.js';
+import * as MQ from 'oae-util/lib/mq.js';
 
 const log = logger('before-tests');
 
-// eslint-disable-next-line no-unused-vars
-const { argv } = require('optimist')
-  .usage('Run the Hilary tests.\nUsage: $0')
-  .alias('m', 'module')
-  .describe('m', 'Only run a specific module. Just specify the module name.');
+let argv;
+(async function () {
+  const Optimist = await import('optimist');
+  argv = Optimist.default
+    .usage('Run the Hilary tests.\nUsage: $0')
+    .alias('m', 'module')
+    .describe('m', 'Only run a specific module. Just specify the module name.').argv;
+})();
 
 // Set our bootstrapping log level before loading other modules that will use logging
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
+
+// TODO experimental !!!!!!!!!!!!!!!!!!!!!
+// Enabling ES6 support and defining global variables
+(function (globals) {
+  'use strict';
+  globals.oaeTests = {};
+})((1, eval)('this'));
 
 /**
  * Determine whether or not we should drop the keyspace before the test. In cases
@@ -46,17 +56,20 @@ before((callback) => {
   process.env.OAE_TESTS_RUNNING = 'true';
 
   // Create the configuration for the test
-  const config = TestsUtil.createInitialTestConfig();
+  let config;
+  (async () => {
+    config = await TestsUtil.createInitialTestConfig();
 
-  TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
-    flush((error) => {
-      if (error) {
-        log().warn('Not able to flush redis');
-      }
+    TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
+      flush((error) => {
+        if (error) {
+          log().warn('Not able to flush redis');
+        }
 
-      return callback();
+        return callback();
+      });
     });
-  });
+  })();
 });
 
 beforeEach(function (callback) {

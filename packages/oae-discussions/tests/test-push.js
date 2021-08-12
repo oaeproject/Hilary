@@ -15,12 +15,12 @@
 
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
 
 describe('Discussion Push', () => {
   // Rest contexts that can be used performing rest requests
@@ -305,12 +305,16 @@ describe('Discussion Push', () => {
         };
 
         // Create a message
-        RestAPI.Discussions.createMessage(contexts.branden.restContext, discussion.id, 'Cup a Soup', null, (
-          error /* , _discussionMessage */
-        ) => {
-          assert.notExists(error);
-          return _assertAndCallback();
-        });
+        RestAPI.Discussions.createMessage(
+          contexts.branden.restContext,
+          discussion.id,
+          'Cup a Soup',
+          null,
+          (error /* , _discussionMessage */) => {
+            assert.notExists(error);
+            return _assertAndCallback();
+          }
+        );
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -355,12 +359,16 @@ describe('Discussion Push', () => {
             };
 
             // Create a message
-            RestAPI.Discussions.createMessage(contexts.branden.restContext, discussion.id, 'Cup a Soup', null, (
-              error /* , _discussionMessage */
-            ) => {
-              assert.notExists(error);
-              return _assertAndCallback();
-            });
+            RestAPI.Discussions.createMessage(
+              contexts.branden.restContext,
+              discussion.id,
+              'Cup a Soup',
+              null,
+              (error /* , _discussionMessage */) => {
+                assert.notExists(error);
+                return _assertAndCallback();
+              }
+            );
 
             ActivityTestsUtil.waitForPushActivity(
               client,

@@ -20,7 +20,7 @@ import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 
 const LDAPStrategy = passport.Strategy;
 const log = logger('oae-authentication');

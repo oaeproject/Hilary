@@ -15,17 +15,17 @@
 
 import { assert } from 'chai';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Context } from 'oae-context';
 import PrincipalsAPI from 'oae-principals';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
-import { LoginId } from 'oae-authentication/lib/model';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
+import { LoginId } from 'oae-authentication/lib/model.js';
 
 describe('Authentication', () => {
   // Rest context that can be used for anonymous requests on the cambridge tenant
@@ -171,18 +171,30 @@ describe('Authentication', () => {
         null,
         global.oaeTests.tenants.cam.emailDomains[0]
       );
-      RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', 'Test User', email1, {}, (
-        error /* , createdUser */
-      ) => {
-        error1 = error;
-        checkComplete();
-      });
-      RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', 'Test User', email2, {}, (
-        error /* , createdUser */
-      ) => {
-        error2 = error;
-        checkComplete();
-      });
+      RestAPI.User.createUser(
+        asCambridgeTenantAdmin,
+        userId,
+        'password',
+        'Test User',
+        email1,
+        {},
+        (error /* , createdUser */) => {
+          error1 = error;
+          checkComplete();
+        }
+      );
+      RestAPI.User.createUser(
+        asCambridgeTenantAdmin,
+        userId,
+        'password',
+        'Test User',
+        email2,
+        {},
+        (error /* , createdUser */) => {
+          error2 = error;
+          checkComplete();
+        }
+      );
     });
 
     /**
@@ -880,13 +892,17 @@ describe('Authentication', () => {
         null,
         global.oaeTests.tenants.cam.emailDomains[0]
       );
-      AuthenticationAPI.createUser(ctx, undefined, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        undefined,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -902,13 +918,17 @@ describe('Authentication', () => {
       const loginId = new LoginId(undefined, AuthenticationConstants.providers.LOCAL, username, {
         password: 'password'
       });
-      AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -924,13 +944,17 @@ describe('Authentication', () => {
       const loginId = new LoginId(ctx.tenant().alias, undefined, username, {
         password: 'password'
       });
-      AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -950,13 +974,17 @@ describe('Authentication', () => {
           password: 'password'
         }
       );
-      AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -1014,13 +1042,17 @@ describe('Authentication', () => {
       );
 
       // Test with an invalid email address
-      AuthenticationAPI.createUser(ctx, loginId, 'Test', { email: 'not an email address' }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Test',
+        { email: 'not an email address' },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -1038,13 +1070,17 @@ describe('Authentication', () => {
         AuthenticationConstants.providers.LOCAL,
         username
       );
-      AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -1065,13 +1101,17 @@ describe('Authentication', () => {
           password: '12345'
         }
       );
-      AuthenticationAPI.createUser(ctx, loginId, 'Branden Visser', { email }, (
-        error /* , userObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        return callback();
-      });
+      AuthenticationAPI.createUser(
+        ctx,
+        loginId,
+        'Branden Visser',
+        { email },
+        (error /* , userObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -1944,29 +1984,35 @@ describe('Authentication', () => {
       const email = TestsUtil.generateTestEmailAddress();
 
       // Create a global admin user
-      RestAPI.User.createGlobalAdminUser(asGlobalAdmin, userId, userId, userId, email, {}, (
-        error /* , user */
-      ) => {
-        assert.notExists(error);
+      RestAPI.User.createGlobalAdminUser(
+        asGlobalAdmin,
+        userId,
+        userId,
+        userId,
+        email,
+        {},
+        (error /* , user */) => {
+          assert.notExists(error);
 
-        // Log them in
-        const createdGlobalAdminRestContext = TestsUtil.createGlobalRestContext();
-        RestAPI.Authentication.login(createdGlobalAdminRestContext, userId, userId, (error_) => {
-          assert.notExists(error_);
+          // Log them in
+          const createdGlobalAdminRestContext = TestsUtil.createGlobalRestContext();
+          RestAPI.Authentication.login(createdGlobalAdminRestContext, userId, userId, (error_) => {
+            assert.notExists(error_);
 
-          // Ensure the `isGlobalAdmin` flag on the user is true
-          RestAPI.User.getMe(createdGlobalAdminRestContext, (error, me) => {
-            assert.notExists(error);
-            assert.strictEqual(me.isGlobalAdmin, true);
-            assert.ok(!me.isTenantAdmin);
+            // Ensure the `isGlobalAdmin` flag on the user is true
+            RestAPI.User.getMe(createdGlobalAdminRestContext, (error, me) => {
+              assert.notExists(error);
+              assert.strictEqual(me.isGlobalAdmin, true);
+              assert.ok(!me.isTenantAdmin);
 
-            // The global admin user should be created as private
-            assert.strictEqual(me.visibility, 'private');
+              // The global admin user should be created as private
+              assert.strictEqual(me.visibility, 'private');
 
-            return callback();
+              return callback();
+            });
           });
-        });
-      });
+        }
+      );
     });
   });
 
@@ -2612,72 +2658,74 @@ describe('Authentication', () => {
           assert.strictEqual(response.statusCode, 302);
           assert.strictEqual(response.headers.location, '/');
           // Check that a password secret can be retrieved
-          RestAPI.Authentication.getResetPasswordSecret(asCambridgeAnonymousUser, username, (
-            error /* , body, response */
-          ) => {
-            assert.notExists(error);
-            const loginId = new LoginId(global.oaeTests.tenants.cam.alias, 'local', username);
-            // Ensure secret is saved correctly in db
-            Cassandra.runQuery(
-              'SELECT "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
-              [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId],
-              (error, rows) => {
-                assert.notExists(error);
-                const secret = rows[0].get('secret');
-                // Check that an empty password can't be set
-                let newPassword = '';
-                RestAPI.Authentication.resetPassword(
-                  asCambridgeAnonymousUser,
-                  username,
-                  secret,
-                  newPassword,
-                  (error_) => {
-                    assert.ok(error_);
-                    assert.strictEqual(error_.code, 400);
-                    // Check that a password under 6 char long can't be set
-                    newPassword = 'inval';
-                    RestAPI.Authentication.resetPassword(
-                      asCambridgeAnonymousUser,
-                      username,
-                      secret,
-                      newPassword,
-                      (error_) => {
-                        assert.ok(error_);
-                        assert.strictEqual(error_.code, 400);
-                        // Check that a valid new password can be set
-                        newPassword = 'newPassword';
-                        RestAPI.Authentication.resetPassword(
-                          asCambridgeAnonymousUser,
-                          username,
-                          secret,
-                          newPassword,
-                          (error_) => {
-                            assert.notExists(error_);
-                            // Check user can login with new password
-                            RestAPI.Authentication.login(
-                              asCambridgeAnonymousUser,
-                              username,
-                              newPassword,
-                              (error_) => {
-                                assert.notExists(error_);
-                                // Verify that we are actually logged in
-                                RestAPI.User.getMe(user.restContext, (error, meObject) => {
-                                  assert.notExists(error);
-                                  assert.ok(meObject);
-                                  assert.strictEqual(meObject.id, user.id);
-                                  callback();
-                                });
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+          RestAPI.Authentication.getResetPasswordSecret(
+            asCambridgeAnonymousUser,
+            username,
+            (error /* , body, response */) => {
+              assert.notExists(error);
+              const loginId = new LoginId(global.oaeTests.tenants.cam.alias, 'local', username);
+              // Ensure secret is saved correctly in db
+              Cassandra.runQuery(
+                'SELECT "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
+                [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId],
+                (error, rows) => {
+                  assert.notExists(error);
+                  const secret = rows[0].get('secret');
+                  // Check that an empty password can't be set
+                  let newPassword = '';
+                  RestAPI.Authentication.resetPassword(
+                    asCambridgeAnonymousUser,
+                    username,
+                    secret,
+                    newPassword,
+                    (error_) => {
+                      assert.ok(error_);
+                      assert.strictEqual(error_.code, 400);
+                      // Check that a password under 6 char long can't be set
+                      newPassword = 'inval';
+                      RestAPI.Authentication.resetPassword(
+                        asCambridgeAnonymousUser,
+                        username,
+                        secret,
+                        newPassword,
+                        (error_) => {
+                          assert.ok(error_);
+                          assert.strictEqual(error_.code, 400);
+                          // Check that a valid new password can be set
+                          newPassword = 'newPassword';
+                          RestAPI.Authentication.resetPassword(
+                            asCambridgeAnonymousUser,
+                            username,
+                            secret,
+                            newPassword,
+                            (error_) => {
+                              assert.notExists(error_);
+                              // Check user can login with new password
+                              RestAPI.Authentication.login(
+                                asCambridgeAnonymousUser,
+                                username,
+                                newPassword,
+                                (error_) => {
+                                  assert.notExists(error_);
+                                  // Verify that we are actually logged in
+                                  RestAPI.User.getMe(user.restContext, (error, meObject) => {
+                                    assert.notExists(error);
+                                    assert.ok(meObject);
+                                    assert.strictEqual(meObject.id, user.id);
+                                    callback();
+                                  });
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });

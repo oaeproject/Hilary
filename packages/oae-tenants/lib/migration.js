@@ -1,4 +1,4 @@
-import { createColumnFamilies } from 'oae-util/lib/cassandra';
+import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the tenant schema is created. If the tenant schema has not been created, or the default tenant has not been seeded,
@@ -7,7 +7,7 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra';
  * @param  {Function}  callback     Standard callback function
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   createColumnFamilies(
     {
       Tenant:

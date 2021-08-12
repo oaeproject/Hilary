@@ -14,10 +14,10 @@
  */
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 /**
  * Determine which visibility level of library the user in context should receive from the target library owner. The following
@@ -49,7 +49,7 @@ import { AuthzConstants } from 'oae-authz/lib/constants';
  * @param  {Boolean}    callback.hasAccess          A boolean flag that expresses whether the current user has access to the library
  * @param  {String}     callback.visibility         The best visibility (as enumerated in `AuthzConstants.visibility`) of library the user in context can see from the target library owner. If the user has no access, this value will be falsey
  */
-const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callback) {
+const resolveTargetLibraryAccess = function (ctx, libraryId, libraryOwner, callback) {
   const roleHigh = 'manager';
   const roleLow = 'member';
   const rolesPriority = [roleLow, roleHigh];
@@ -71,7 +71,7 @@ const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callba
     // duplicating logic among them. This consolidated set of business logic should cover all
     // cases
     const needsExplicitCheck = !AuthzUtil.isUserId(libraryId) && ctx.user();
-    const innerCallback = function(err, hasAnyRole) {
+    const innerCallback = function (err, hasAnyRole) {
       if (err) {
         return callback(err);
       }
@@ -129,7 +129,7 @@ const resolveTargetLibraryAccess = function(ctx, libraryId, libraryOwner, callba
  * @param  {String}     resource.visibility     The visibility of the resource that will be inserted into the library
  * @return {String}                             The target visibility bucket in which the resource should be placed
  */
-const resolveLibraryBucketVisibility = function(libraryId, resource) {
+const resolveLibraryBucketVisibility = function (libraryId, resource) {
   let effectiveVisibility = resource.visibility;
   if (effectiveVisibility === AuthzConstants.visibility.LOGGEDIN) {
     // If the visibility is loggedin, it only goes into the owner's 'loggedin' library if it is

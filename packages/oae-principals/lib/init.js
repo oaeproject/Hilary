@@ -13,33 +13,21 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import { format } from 'util';
 
 import * as AuthenticationAPI from 'oae-authentication';
 import * as TenantsAPI from 'oae-tenants';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Context } from 'oae-context';
-import { User } from 'oae-principals/lib/model';
+import { User } from 'oae-principals/lib/model.js';
 
-// Initialize activity capabilities
-import * as activity from 'oae-principals/lib/activity';
-
-// Initialize search capabilities
-import * as search from 'oae-principals/lib/search';
-
-// Initialize invitations capabilities
-import * as invitations from 'oae-principals/lib/invitations';
-
-// Initialize members and memberships library capabilities
-import * as members from 'oae-principals/lib/libraries/members';
-
-import * as memberships from 'oae-principals/lib/libraries/memberships';
-
-// Initialize principals delete capabilities
-import * as deleted from 'oae-principals/lib/delete';
+import * as activity from 'oae-principals/lib/activity.js';
+import * as search from 'oae-principals/lib/search.js';
+import * as invitations from 'oae-principals/lib/invitations.js';
+import * as members from 'oae-principals/lib/libraries/members.js';
+import * as memberships from 'oae-principals/lib/libraries/memberships.js';
+import * as deleted from 'oae-principals/lib/delete.js';
 import * as Cron from './cron.js';
 
 let globalContext = {};

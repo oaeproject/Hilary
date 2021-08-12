@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
 import * as PreviewProcessorAPI from 'oae-preview-processor';
 
 import { Context } from 'oae-context';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import PreviewConstants from './constants.js';
 
 PreviewProcessorAPI.emitter.on(PreviewConstants.EVENTS.PREVIEWS_FINISHED, (content, revision, status) => {

@@ -18,7 +18,7 @@ import _ from 'underscore';
 import { types } from 'cassandra-driver';
 
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
 
 import { FoldersConstants } from '../constants.js';

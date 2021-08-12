@@ -23,13 +23,13 @@ import async from 'async';
 import { setUpConfig, eventEmitter } from 'oae-config';
 // We have to require the UI api inline, as this would otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
-import * as UserAPI from 'oae-principals/lib/api.user';
-import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra';
+import * as UserAPI from 'oae-principals/lib/api.user.js';
+import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as OAE from 'oae-util/lib/oae';
-import { getNumberParam, castToBoolean } from 'oae-util/lib/util';
-import * as Pubsub from 'oae-util/lib/pubsub';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as OAE from 'oae-util/lib/oae.js';
+import { getNumberParam, castToBoolean } from 'oae-util/lib/util.js';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   unless,
   isString,
@@ -84,10 +84,10 @@ import {
   reject,
   when
 } from 'ramda';
-import isIn from 'validator/lib/isIn';
+import isIn from 'validator/lib/isIn.js';
 import TenantEmailDomainIndex from './internal/emailDomainIndex.js';
 import TenantIndex from './internal/tenantIndex.js';
-import * as TenantNetworksDAO from './internal/dao.networks';
+import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsUtil from './util.js';
 const { isPrivate } = TenantsUtil;
 import { Tenant } from './model.js';

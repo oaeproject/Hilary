@@ -4,7 +4,7 @@ import { forEach, pipe, pluck } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao.js';
 
 describe('Meeting Jitsi', () => {
   let camAnonymousRestCtx = null;
@@ -1509,13 +1509,17 @@ describe('Meeting Jitsi', () => {
               assert.notExists(error);
 
               // Add a response to the previous comment
-              RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, 'Hello riri', comment.created, (
-                error /* , comment */
-              ) => {
-                assert.notExists(error);
+              RestAPI.MeetingsJitsi.createComment(
+                fifi.restContext,
+                meeting.id,
+                'Hello riri',
+                comment.created,
+                (error /* , comment */) => {
+                  assert.notExists(error);
 
-                return callback();
-              });
+                  return callback();
+                }
+              );
             });
           }
         );
@@ -1550,14 +1554,18 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, 'not-a-valid-meeting-id', body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.MeetingsJitsi.createComment(
+              riri.restContext,
+              'not-a-valid-meeting-id',
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1591,14 +1599,18 @@ describe('Meeting Jitsi', () => {
             const body = '';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.MeetingsJitsi.createComment(
+              riri.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1632,14 +1644,18 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello World';
             const replyTo = 'not-an-existing-reply-to-timestamp';
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.MeetingsJitsi.createComment(
+              riri.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1673,14 +1689,18 @@ describe('Meeting Jitsi', () => {
             const body = TestsUtil.generateRandomText(10000);
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.MeetingsJitsi.createComment(
+              riri.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1714,14 +1734,18 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(camAnonymousRestCtx, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 401);
+            RestAPI.MeetingsJitsi.createComment(
+              camAnonymousRestCtx,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 401);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1756,14 +1780,18 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 401);
+            RestAPI.MeetingsJitsi.createComment(
+              fifi.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 401);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1798,13 +1826,17 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.notExists(error);
+            RestAPI.MeetingsJitsi.createComment(
+              fifi.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.notExists(error);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1839,13 +1871,17 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(fifi.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.notExists(error);
+            RestAPI.MeetingsJitsi.createComment(
+              fifi.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.notExists(error);
 
-              return callback();
-            });
+                return callback();
+              }
+            );
           }
         );
       });
@@ -1885,13 +1921,16 @@ describe('Meeting Jitsi', () => {
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (error, comment) => {
               assert.notExists(error);
 
-              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, comment.created, (
-                error /* , softDeleted */
-              ) => {
-                assert.notExists(error);
+              RestAPI.MeetingsJitsi.deleteComment(
+                riri.restContext,
+                meeting.id,
+                comment.created,
+                (error /* , softDeleted */) => {
+                  assert.notExists(error);
 
-                return callback();
-              });
+                  return callback();
+                }
+              );
             });
           }
         );
@@ -1930,24 +1969,28 @@ describe('Meeting Jitsi', () => {
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (error, comment1) => {
               assert.notExists(error);
 
-              RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, 'Hello Riri', comment1.created, (
-                error /* , comment2 */
-              ) => {
-                assert.notExists(error);
+              RestAPI.MeetingsJitsi.createComment(
+                riri.restContext,
+                meeting.id,
+                'Hello Riri',
+                comment1.created,
+                (error /* , comment2 */) => {
+                  assert.notExists(error);
 
-                RestAPI.MeetingsJitsi.deleteComment(
-                  riri.restContext,
-                  meeting.id,
-                  comment1.created,
-                  (error, softDeleted) => {
-                    assert.notExists(error);
-                    assert.ok(softDeleted.deleted);
-                    assert.ok(!softDeleted.body);
+                  RestAPI.MeetingsJitsi.deleteComment(
+                    riri.restContext,
+                    meeting.id,
+                    comment1.created,
+                    (error, softDeleted) => {
+                      assert.notExists(error);
+                      assert.ok(softDeleted.deleted);
+                      assert.ok(!softDeleted.body);
 
-                    return callback();
-                  }
-                );
-              });
+                      return callback();
+                    }
+                  );
+                }
+              );
             });
           }
         );
@@ -1986,14 +2029,17 @@ describe('Meeting Jitsi', () => {
             RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (error, comment) => {
               assert.notExists(error);
 
-              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, 'not-a-valid-meeting-id', comment.created, (
-                error /* , softDeleted */
-              ) => {
-                assert.ok(error);
-                assert.strictEqual(error.code, 400);
+              RestAPI.MeetingsJitsi.deleteComment(
+                riri.restContext,
+                'not-a-valid-meeting-id',
+                comment.created,
+                (error /* , softDeleted */) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 400);
 
-                return callback();
-              });
+                  return callback();
+                }
+              );
             });
           }
         );
@@ -2029,20 +2075,27 @@ describe('Meeting Jitsi', () => {
             const body = 'Hello world';
             const replyTo = null;
 
-            RestAPI.MeetingsJitsi.createComment(riri.restContext, meeting.id, body, replyTo, (
-              error /* , comment */
-            ) => {
-              assert.notExists(error);
+            RestAPI.MeetingsJitsi.createComment(
+              riri.restContext,
+              meeting.id,
+              body,
+              replyTo,
+              (error /* , comment */) => {
+                assert.notExists(error);
 
-              RestAPI.MeetingsJitsi.deleteComment(riri.restContext, meeting.id, 'not-a-valid-comment-timestamp', (
-                error /* , softDeleted */
-              ) => {
-                assert.ok(error);
-                assert.strictEqual(error.code, 400);
+                RestAPI.MeetingsJitsi.deleteComment(
+                  riri.restContext,
+                  meeting.id,
+                  'not-a-valid-comment-timestamp',
+                  (error /* , softDeleted */) => {
+                    assert.ok(error);
+                    assert.strictEqual(error.code, 400);
 
-                return callback();
-              });
-            });
+                    return callback();
+                  }
+                );
+              }
+            );
           }
         );
       });

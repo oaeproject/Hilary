@@ -17,14 +17,20 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { compose, not, values, filter, equals, pluck, contains, forEach, pathSatisfies } from 'ramda';
 
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
 import * as LibraryAPI from 'oae-library';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
-import * as DiscussionsTestsUtil from 'oae-discussions/lib/test/util';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
+import * as DiscussionsTestsUtil from 'oae-discussions/lib/test/util.js';
 
 describe('Discussions', () => {
   let asCambridgeAnonymousUser = null;
@@ -138,119 +144,131 @@ describe('Discussions', () => {
             assert.strictEqual(error.code, 401);
 
             // Verify cannot create discussion with null displayName
-            RestAPI.Discussions.createDiscussion(user.restContext, null, description, visibility, null, null, (
-              error /* , discussion */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.Discussions.createDiscussion(
+              user.restContext,
+              null,
+              description,
+              visibility,
+              null,
+              null,
+              (error /* , discussion */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              // Verify with a displayName that is longer than the maximum allowed size
-              const longDisplayName = TestsUtil.generateRandomText(100);
-              RestAPI.Discussions.createDiscussion(
-                user.restContext,
-                longDisplayName,
-                description,
-                visibility,
-                null,
-                null,
-                (error /* , discussion */) => {
-                  assert.ok(error);
-                  assert.strictEqual(error.code, 400);
-                  assert.ok(error.msg.indexOf('1000') > 0);
+                // Verify with a displayName that is longer than the maximum allowed size
+                const longDisplayName = TestsUtil.generateRandomText(100);
+                RestAPI.Discussions.createDiscussion(
+                  user.restContext,
+                  longDisplayName,
+                  description,
+                  visibility,
+                  null,
+                  null,
+                  (error /* , discussion */) => {
+                    assert.ok(error);
+                    assert.strictEqual(error.code, 400);
+                    assert.ok(error.msg.indexOf('1000') > 0);
 
-                  // Verify with a description that is longer than the maximum allowed size
-                  const longDescription = TestsUtil.generateRandomText(1000);
-                  RestAPI.Discussions.createDiscussion(
-                    user.restContext,
-                    displayName,
-                    longDescription,
-                    visibility,
-                    null,
-                    null,
-                    (error /* , discussion */) => {
-                      assert.ok(error);
-                      assert.strictEqual(error.code, 400);
-                      assert.ok(error.msg.indexOf('10000') > 0);
-
-                      // Verify cannot create discussion with an empty description
-                      RestAPI.Discussions.createDiscussion(user.restContext, displayName, '', visibility, null, null, (
-                        error /* , discussion */
-                      ) => {
+                    // Verify with a description that is longer than the maximum allowed size
+                    const longDescription = TestsUtil.generateRandomText(1000);
+                    RestAPI.Discussions.createDiscussion(
+                      user.restContext,
+                      displayName,
+                      longDescription,
+                      visibility,
+                      null,
+                      null,
+                      (error /* , discussion */) => {
                         assert.ok(error);
                         assert.strictEqual(error.code, 400);
+                        assert.ok(error.msg.indexOf('10000') > 0);
 
-                        // Verify cannot create discussion with invalid visibility
+                        // Verify cannot create discussion with an empty description
                         RestAPI.Discussions.createDiscussion(
                           user.restContext,
                           displayName,
-                          description,
-                          'not-a-visibility',
+                          '',
+                          visibility,
                           null,
                           null,
                           (error /* , discussion */) => {
                             assert.ok(error);
                             assert.strictEqual(error.code, 400);
 
-                            // Verify cannot create discussion with an invalid manager id
+                            // Verify cannot create discussion with invalid visibility
                             RestAPI.Discussions.createDiscussion(
                               user.restContext,
                               displayName,
                               description,
-                              visibility,
-                              ['not-an-id'],
+                              'not-a-visibility',
+                              null,
                               null,
                               (error /* , discussion */) => {
                                 assert.ok(error);
                                 assert.strictEqual(error.code, 400);
 
-                                // Verify cannot create discussion with multiple invalid manager ids
+                                // Verify cannot create discussion with an invalid manager id
                                 RestAPI.Discussions.createDiscussion(
                                   user.restContext,
                                   displayName,
                                   description,
                                   visibility,
-                                  ['not-an-id', 'another-one'],
+                                  ['not-an-id'],
                                   null,
                                   (error /* , discussion */) => {
                                     assert.ok(error);
                                     assert.strictEqual(error.code, 400);
 
-                                    // Verify cannot create discussion with an invalid member id
+                                    // Verify cannot create discussion with multiple invalid manager ids
                                     RestAPI.Discussions.createDiscussion(
                                       user.restContext,
                                       displayName,
                                       description,
                                       visibility,
+                                      ['not-an-id', 'another-one'],
                                       null,
-                                      ['not-an-id'],
                                       (error /* , discussion */) => {
                                         assert.ok(error);
                                         assert.strictEqual(error.code, 400);
 
-                                        // Verify cannot create discussion with multiple invalid member ids
+                                        // Verify cannot create discussion with an invalid member id
                                         RestAPI.Discussions.createDiscussion(
                                           user.restContext,
                                           displayName,
                                           description,
                                           visibility,
                                           null,
-                                          ['not-an-id', 'another-one'],
+                                          ['not-an-id'],
                                           (error /* , discussion */) => {
                                             assert.ok(error);
                                             assert.strictEqual(error.code, 400);
 
-                                            // Verify that a valid discussion can be created
+                                            // Verify cannot create discussion with multiple invalid member ids
                                             RestAPI.Discussions.createDiscussion(
                                               user.restContext,
                                               displayName,
                                               description,
                                               visibility,
                                               null,
-                                              null,
-                                              (error, discussion) => {
-                                                assert.notExists(error);
-                                                assert.ok(discussion);
-                                                return callback();
+                                              ['not-an-id', 'another-one'],
+                                              (error /* , discussion */) => {
+                                                assert.ok(error);
+                                                assert.strictEqual(error.code, 400);
+
+                                                // Verify that a valid discussion can be created
+                                                RestAPI.Discussions.createDiscussion(
+                                                  user.restContext,
+                                                  displayName,
+                                                  description,
+                                                  visibility,
+                                                  null,
+                                                  null,
+                                                  (error, discussion) => {
+                                                    assert.notExists(error);
+                                                    assert.ok(discussion);
+                                                    return callback();
+                                                  }
+                                                );
                                               }
                                             );
                                           }
@@ -263,12 +281,12 @@ describe('Discussions', () => {
                             );
                           }
                         );
-                      });
-                    }
-                  );
-                }
-              );
-            });
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -1254,55 +1272,59 @@ describe('Discussions', () => {
      * visibility restrictions.
      */
     it('verify discussion full profile createdBy model and privacy', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        const displayName = 'test-createdBy-displayName';
-        const description = 'test-createdBy-description';
-        const visibility = 'public';
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          const displayName = 'test-createdBy-displayName';
+          const description = 'test-createdBy-description';
+          const visibility = 'public';
 
-        // Create the discussion whose createdBy model to verify
-        RestAPI.Discussions.createDiscussion(
-          publicTenant.loggedinUser.restContext,
-          displayName,
-          description,
-          visibility,
-          null,
-          null,
-          (error, discussion) => {
-            assert.notExists(error);
-
-            // Verify anonymous user gets a scrubbed createdBy object
-            RestAPI.Discussions.getDiscussion(publicTenant.anonymousRestContext, discussion.id, (error, discussion) => {
+          // Create the discussion whose createdBy model to verify
+          RestAPI.Discussions.createDiscussion(
+            publicTenant.loggedinUser.restContext,
+            displayName,
+            description,
+            visibility,
+            null,
+            null,
+            (error, discussion) => {
               assert.notExists(error);
 
-              // Display name should have been swapped out for the publicAlias
-              assert.ok(discussion.createdBy);
-              assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
-              assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.publicAlias);
-
-              // Verify authenticated user gets a full createdBy object
+              // Verify anonymous user gets a scrubbed createdBy object
               RestAPI.Discussions.getDiscussion(
-                publicTenant.publicUser.restContext,
+                publicTenant.anonymousRestContext,
                 discussion.id,
                 (error, discussion) => {
                   assert.notExists(error);
 
+                  // Display name should have been swapped out for the publicAlias
                   assert.ok(discussion.createdBy);
                   assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
-                  assert.strictEqual(discussion.createdBy.tenant.alias, publicTenant.tenant.alias);
-                  assert.strictEqual(discussion.createdBy.tenant.displayName, publicTenant.tenant.displayName);
-                  assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.displayName);
-                  assert.ok(!discussion.createdBy.publicAlias);
-                  assert.strictEqual(discussion.createdBy.visibility, publicTenant.loggedinUser.user.visibility);
-                  assert.strictEqual(discussion.createdBy.resourceType, 'user');
-                  return callback();
+                  assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.publicAlias);
+
+                  // Verify authenticated user gets a full createdBy object
+                  RestAPI.Discussions.getDiscussion(
+                    publicTenant.publicUser.restContext,
+                    discussion.id,
+                    (error, discussion) => {
+                      assert.notExists(error);
+
+                      assert.ok(discussion.createdBy);
+                      assert.strictEqual(discussion.createdBy.id, publicTenant.loggedinUser.user.id);
+                      assert.strictEqual(discussion.createdBy.tenant.alias, publicTenant.tenant.alias);
+                      assert.strictEqual(discussion.createdBy.tenant.displayName, publicTenant.tenant.displayName);
+                      assert.strictEqual(discussion.createdBy.displayName, publicTenant.loggedinUser.user.displayName);
+                      assert.ok(!discussion.createdBy.publicAlias);
+                      assert.strictEqual(discussion.createdBy.visibility, publicTenant.loggedinUser.user.visibility);
+                      assert.strictEqual(discussion.createdBy.resourceType, 'user');
+                      return callback();
+                    }
+                  );
                 }
               );
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     });
   });
 
@@ -1312,64 +1334,30 @@ describe('Discussions', () => {
      * data associated to users and groups inside of it.
      */
     it('verify discussion members list model, privacy and validation', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Share public discussion with loggedin and private user
-        const members = [publicTenant.loggedinUser.user.id, publicTenant.privateUser.user.id];
-        RestAPI.Discussions.shareDiscussion(
-          publicTenant.adminRestContext,
-          publicTenant.publicDiscussion.id,
-          members,
-          (error) => {
-            assert.notExists(error);
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Share public discussion with loggedin and private user
+          const members = [publicTenant.loggedinUser.user.id, publicTenant.privateUser.user.id];
+          RestAPI.Discussions.shareDiscussion(
+            publicTenant.adminRestContext,
+            publicTenant.publicDiscussion.id,
+            members,
+            (error) => {
+              assert.notExists(error);
 
-            // Verify validation getting discussion members
-            RestAPI.Discussions.getDiscussionMembers(publicTenant.anonymousRestContext, 'not-a-valid-id', null, null, (
-              error /* , members */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
-
-              // Verify anonymous user gets a scrubbed member for loggedin and private member
+              // Verify validation getting discussion members
               RestAPI.Discussions.getDiscussionMembers(
                 publicTenant.anonymousRestContext,
-                publicTenant.publicDiscussion.id,
+                'not-a-valid-id',
                 null,
                 null,
-                (error, members) => {
-                  assert.notExists(error);
-                  assert.strictEqual(members.results.length, 3);
+                (error /* , members */) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 400);
 
-                  // Verify the members model
-                  forEach((member) => {
-                    if (member.profile.id === publicTenant.loggedinUser.user.id) {
-                      assert.strictEqual(member.role, 'member');
-                      assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
-                      assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
-                      assert.strictEqual(member.profile.displayName, publicTenant.loggedinUser.user.publicAlias);
-                      assert.strictEqual(member.profile.visibility, publicTenant.loggedinUser.user.visibility);
-                      assert.ok(!member.profile.profilePath);
-                      assert.ok(!member.profile.publicAlias);
-                      assert.strictEqual(member.profile.resourceType, 'user');
-                    } else if (member.profile.id === publicTenant.privateUser.user.id) {
-                      assert.strictEqual(member.role, 'member');
-                      assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
-                      assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
-                      assert.strictEqual(member.profile.displayName, publicTenant.privateUser.user.publicAlias);
-                      assert.strictEqual(member.profile.visibility, publicTenant.privateUser.user.visibility);
-                      assert.ok(!member.profile.profilePath);
-                      assert.ok(!member.profile.publicAlias);
-                      assert.strictEqual(member.profile.resourceType, 'user');
-                    } else {
-                      // Admin user
-                      assert.strictEqual(member.role, 'manager');
-                    }
-                  }, members.results);
-
-                  // Verify authenticated user gets a scrubbed member for private member, but full loggedin user profile
+                  // Verify anonymous user gets a scrubbed member for loggedin and private member
                   RestAPI.Discussions.getDiscussionMembers(
-                    publicTenant.publicUser.restContext,
+                    publicTenant.anonymousRestContext,
                     publicTenant.publicDiscussion.id,
                     null,
                     null,
@@ -1383,9 +1371,9 @@ describe('Discussions', () => {
                           assert.strictEqual(member.role, 'member');
                           assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
                           assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
-                          assert.strictEqual(member.profile.displayName, publicTenant.loggedinUser.user.displayName);
+                          assert.strictEqual(member.profile.displayName, publicTenant.loggedinUser.user.publicAlias);
                           assert.strictEqual(member.profile.visibility, publicTenant.loggedinUser.user.visibility);
-                          assert.ok(member.profile.profilePath);
+                          assert.ok(!member.profile.profilePath);
                           assert.ok(!member.profile.publicAlias);
                           assert.strictEqual(member.profile.resourceType, 'user');
                         } else if (member.profile.id === publicTenant.privateUser.user.id) {
@@ -1403,15 +1391,56 @@ describe('Discussions', () => {
                         }
                       }, members.results);
 
-                      return callback();
+                      // Verify authenticated user gets a scrubbed member for private member, but full loggedin user profile
+                      RestAPI.Discussions.getDiscussionMembers(
+                        publicTenant.publicUser.restContext,
+                        publicTenant.publicDiscussion.id,
+                        null,
+                        null,
+                        (error, members) => {
+                          assert.notExists(error);
+                          assert.strictEqual(members.results.length, 3);
+
+                          // Verify the members model
+                          forEach((member) => {
+                            if (member.profile.id === publicTenant.loggedinUser.user.id) {
+                              assert.strictEqual(member.role, 'member');
+                              assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                              assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
+                              assert.strictEqual(
+                                member.profile.displayName,
+                                publicTenant.loggedinUser.user.displayName
+                              );
+                              assert.strictEqual(member.profile.visibility, publicTenant.loggedinUser.user.visibility);
+                              assert.ok(member.profile.profilePath);
+                              assert.ok(!member.profile.publicAlias);
+                              assert.strictEqual(member.profile.resourceType, 'user');
+                            } else if (member.profile.id === publicTenant.privateUser.user.id) {
+                              assert.strictEqual(member.role, 'member');
+                              assert.strictEqual(member.profile.tenant.alias, publicTenant.tenant.alias);
+                              assert.strictEqual(member.profile.tenant.displayName, publicTenant.tenant.displayName);
+                              assert.strictEqual(member.profile.displayName, publicTenant.privateUser.user.publicAlias);
+                              assert.strictEqual(member.profile.visibility, publicTenant.privateUser.user.visibility);
+                              assert.ok(!member.profile.profilePath);
+                              assert.ok(!member.profile.publicAlias);
+                              assert.strictEqual(member.profile.resourceType, 'user');
+                            } else {
+                              // Admin user
+                              assert.strictEqual(member.role, 'manager');
+                            }
+                          }, members.results);
+
+                          return callback();
+                        }
+                      );
                     }
                   );
                 }
               );
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -1636,58 +1665,22 @@ describe('Discussions', () => {
         assert.notExists(error);
         const { 0: user } = users;
 
-        RestAPI.Discussions.getDiscussionsLibrary(user.restContext, 'not-a-valid-id', null, null, (
-          error /* , items */
-        ) => {
-          assert.ok(error);
-          assert.strictEqual(error.code, 400);
+        RestAPI.Discussions.getDiscussionsLibrary(
+          user.restContext,
+          'not-a-valid-id',
+          null,
+          null,
+          (error /* , items */) => {
+            assert.ok(error);
+            assert.strictEqual(error.code, 400);
 
-          RestAPI.Discussions.getDiscussionsLibrary(user.restContext, user.user.id, null, null, (
-            error /* , items */
-          ) => {
-            assert.notExists(error);
-            return callback();
-          });
-        });
-      });
-    });
-
-    /**
-     * Verify the model of discussions that appear in the discussion libraries
-     */
-    it('verify discussion library model', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Share an item with the public user
-        RestAPI.Discussions.shareDiscussion(
-          publicTenant.adminRestContext,
-          publicTenant.publicDiscussion.id,
-          [publicTenant.publicUser.user.id],
-          (error) => {
-            assert.notExists(error);
-
-            // Get and verify the model in the public user's library
             RestAPI.Discussions.getDiscussionsLibrary(
-              publicTenant.publicUser.restContext,
-              publicTenant.publicUser.user.id,
+              user.restContext,
+              user.user.id,
               null,
               null,
-              (error, items) => {
+              (error /* , items */) => {
                 assert.notExists(error);
-                assert.strictEqual(items.results.length, 1);
-                assert.ok(!items.nextToken);
-
-                const discussion = items.results[0];
-                assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
-                assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
-                assert.strictEqual(discussion.id, publicTenant.publicDiscussion.id);
-                assert.strictEqual(discussion.createdBy, publicTenant.publicDiscussion.createdBy);
-                assert.strictEqual(discussion.displayName, publicTenant.publicDiscussion.displayName);
-                assert.strictEqual(discussion.description, publicTenant.publicDiscussion.description);
-                assert.strictEqual(discussion.visibility, publicTenant.publicDiscussion.visibility);
-                assert.strictEqual(discussion.created, publicTenant.publicDiscussion.created);
-                assert.ok(discussion.lastModified);
                 return callback();
               }
             );
@@ -1697,301 +1690,348 @@ describe('Discussions', () => {
     });
 
     /**
+     * Verify the model of discussions that appear in the discussion libraries
+     */
+    it('verify discussion library model', (callback) => {
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Share an item with the public user
+          RestAPI.Discussions.shareDiscussion(
+            publicTenant.adminRestContext,
+            publicTenant.publicDiscussion.id,
+            [publicTenant.publicUser.user.id],
+            (error) => {
+              assert.notExists(error);
+
+              // Get and verify the model in the public user's library
+              RestAPI.Discussions.getDiscussionsLibrary(
+                publicTenant.publicUser.restContext,
+                publicTenant.publicUser.user.id,
+                null,
+                null,
+                (error, items) => {
+                  assert.notExists(error);
+                  assert.strictEqual(items.results.length, 1);
+                  assert.ok(!items.nextToken);
+
+                  const discussion = items.results[0];
+                  assert.strictEqual(discussion.tenant.alias, publicTenant.tenant.alias);
+                  assert.strictEqual(discussion.tenant.displayName, publicTenant.tenant.displayName);
+                  assert.strictEqual(discussion.id, publicTenant.publicDiscussion.id);
+                  assert.strictEqual(discussion.createdBy, publicTenant.publicDiscussion.createdBy);
+                  assert.strictEqual(discussion.displayName, publicTenant.publicDiscussion.displayName);
+                  assert.strictEqual(discussion.description, publicTenant.publicDiscussion.description);
+                  assert.strictEqual(discussion.visibility, publicTenant.publicDiscussion.visibility);
+                  assert.strictEqual(discussion.created, publicTenant.publicDiscussion.created);
+                  assert.ok(discussion.lastModified);
+                  return callback();
+                }
+              );
+            }
+          );
+        }
+      );
+    });
+
+    /**
      * Verify the access privacy of discussions inside a discussion user library. Ensures discussions in libraries do not leak to users viewing
      * other user libraries.
      */
     it('verify discussion user library privacy', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1 /* , privateTenant, privateTenant1 */
-      ) => {
-        // Make public user manager of the public discussion so it goes in their library
-        const updatePermissions = {};
-        updatePermissions[publicTenant.publicUser.user.id] = 'manager';
-        DiscussionsTestsUtil.assertUpdateDiscussionMembersSucceeds(
-          publicTenant.adminRestContext,
-          publicTenant.adminRestContext,
-          publicTenant.publicDiscussion.id,
-          updatePermissions,
-          () => {
-            /// ///////////////////////////////////////////////////
-            // VERIFY PUBLIC DISCUSSION VISIBILITY IN LIBRARIES //
-            /// ///////////////////////////////////////////////////
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1 /* , privateTenant, privateTenant1 */) => {
+          // Make public user manager of the public discussion so it goes in their library
+          const updatePermissions = {};
+          updatePermissions[publicTenant.publicUser.user.id] = 'manager';
+          DiscussionsTestsUtil.assertUpdateDiscussionMembersSucceeds(
+            publicTenant.adminRestContext,
+            publicTenant.adminRestContext,
+            publicTenant.publicDiscussion.id,
+            updatePermissions,
+            () => {
+              /// ///////////////////////////////////////////////////
+              // VERIFY PUBLIC DISCUSSION VISIBILITY IN LIBRARIES //
+              /// ///////////////////////////////////////////////////
 
-            // Verify anonymous user can see it
-            RestAPI.Discussions.getDiscussionsLibrary(
-              publicTenant.anonymousRestContext,
-              publicTenant.publicUser.user.id,
-              null,
-              null,
-              (error, items) => {
-                assert.notExists(error);
-                _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+              // Verify anonymous user can see it
+              RestAPI.Discussions.getDiscussionsLibrary(
+                publicTenant.anonymousRestContext,
+                publicTenant.publicUser.user.id,
+                null,
+                null,
+                (error, items) => {
+                  assert.notExists(error);
+                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                // Verify authenticated user can see it
-                RestAPI.Discussions.getDiscussionsLibrary(
-                  publicTenant.loggedinUser.restContext,
-                  publicTenant.publicUser.user.id,
-                  null,
-                  null,
-                  (error, items) => {
-                    assert.notExists(error);
-                    _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                  // Verify authenticated user can see it
+                  RestAPI.Discussions.getDiscussionsLibrary(
+                    publicTenant.loggedinUser.restContext,
+                    publicTenant.publicUser.user.id,
+                    null,
+                    null,
+                    (error, items) => {
+                      assert.notExists(error);
+                      _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                    // Verify own user can see it
-                    RestAPI.Discussions.getDiscussionsLibrary(
-                      publicTenant.publicUser.restContext,
-                      publicTenant.publicUser.user.id,
-                      null,
-                      null,
-                      (error, items) => {
-                        assert.notExists(error);
-                        _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                      // Verify own user can see it
+                      RestAPI.Discussions.getDiscussionsLibrary(
+                        publicTenant.publicUser.restContext,
+                        publicTenant.publicUser.user.id,
+                        null,
+                        null,
+                        (error, items) => {
+                          assert.notExists(error);
+                          _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                        // Verify cross-tenant user can see it
-                        RestAPI.Discussions.getDiscussionsLibrary(
-                          publicTenant1.publicUser.restContext,
-                          publicTenant.publicUser.user.id,
-                          null,
-                          null,
-                          (error, items) => {
-                            assert.notExists(error);
-                            _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                          // Verify cross-tenant user can see it
+                          RestAPI.Discussions.getDiscussionsLibrary(
+                            publicTenant1.publicUser.restContext,
+                            publicTenant.publicUser.user.id,
+                            null,
+                            null,
+                            (error, items) => {
+                              assert.notExists(error);
+                              _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                            // Verify cross-tenant anonymous can see it
-                            RestAPI.Discussions.getDiscussionsLibrary(
-                              publicTenant1.anonymousRestContext,
-                              publicTenant.publicUser.user.id,
-                              null,
-                              null,
-                              (error, items) => {
-                                assert.notExists(error);
-                                _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                              // Verify cross-tenant anonymous can see it
+                              RestAPI.Discussions.getDiscussionsLibrary(
+                                publicTenant1.anonymousRestContext,
+                                publicTenant.publicUser.user.id,
+                                null,
+                                null,
+                                (error, items) => {
+                                  assert.notExists(error);
+                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                                // Verify cross-tenant admin can see it
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  publicTenant1.adminRestContext,
-                                  publicTenant.publicUser.user.id,
-                                  null,
-                                  null,
-                                  (error, items) => {
-                                    assert.notExists(error);
-                                    _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                  // Verify cross-tenant admin can see it
+                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                    publicTenant1.adminRestContext,
+                                    publicTenant.publicUser.user.id,
+                                    null,
+                                    null,
+                                    (error, items) => {
+                                      assert.notExists(error);
+                                      _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                                    /// /////////////////////////////////////////////////////
-                                    // VERIFY LOGGEDIN DISCUSSION VISIBILITY IN LIBRARIES //
-                                    /// /////////////////////////////////////////////////////
+                                      /// /////////////////////////////////////////////////////
+                                      // VERIFY LOGGEDIN DISCUSSION VISIBILITY IN LIBRARIES //
+                                      /// /////////////////////////////////////////////////////
 
-                                    DiscussionsTestsUtil.assertUpdateDiscussionSucceeds(
-                                      publicTenant.publicUser.restContext,
-                                      publicTenant.publicDiscussion.id,
-                                      { visibility: 'loggedin' },
-                                      () => {
-                                        // Verify anonymous user cannot see it
-                                        RestAPI.Discussions.getDiscussionsLibrary(
-                                          publicTenant.anonymousRestContext,
-                                          publicTenant.publicUser.user.id,
-                                          null,
-                                          null,
-                                          (error, items) => {
-                                            assert.notExists(error);
-                                            _assertDoesNotContainItem(items.results, publicTenant.publicDiscussion.id);
+                                      DiscussionsTestsUtil.assertUpdateDiscussionSucceeds(
+                                        publicTenant.publicUser.restContext,
+                                        publicTenant.publicDiscussion.id,
+                                        { visibility: 'loggedin' },
+                                        () => {
+                                          // Verify anonymous user cannot see it
+                                          RestAPI.Discussions.getDiscussionsLibrary(
+                                            publicTenant.anonymousRestContext,
+                                            publicTenant.publicUser.user.id,
+                                            null,
+                                            null,
+                                            (error, items) => {
+                                              assert.notExists(error);
+                                              _assertDoesNotContainItem(
+                                                items.results,
+                                                publicTenant.publicDiscussion.id
+                                              );
 
-                                            // Verify authenticated user can see it
-                                            RestAPI.Discussions.getDiscussionsLibrary(
-                                              publicTenant.loggedinUser.restContext,
-                                              publicTenant.publicUser.user.id,
-                                              null,
-                                              null,
-                                              (error, items) => {
-                                                assert.notExists(error);
-                                                _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                              // Verify authenticated user can see it
+                                              RestAPI.Discussions.getDiscussionsLibrary(
+                                                publicTenant.loggedinUser.restContext,
+                                                publicTenant.publicUser.user.id,
+                                                null,
+                                                null,
+                                                (error, items) => {
+                                                  assert.notExists(error);
+                                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                                                // Verify own user can see it
-                                                RestAPI.Discussions.getDiscussionsLibrary(
-                                                  publicTenant.publicUser.restContext,
-                                                  publicTenant.publicUser.user.id,
-                                                  null,
-                                                  null,
-                                                  (error, items) => {
-                                                    assert.notExists(error);
-                                                    _assertContainsItem(
-                                                      items.results,
-                                                      publicTenant.publicDiscussion.id
-                                                    );
+                                                  // Verify own user can see it
+                                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                                    publicTenant.publicUser.restContext,
+                                                    publicTenant.publicUser.user.id,
+                                                    null,
+                                                    null,
+                                                    (error, items) => {
+                                                      assert.notExists(error);
+                                                      _assertContainsItem(
+                                                        items.results,
+                                                        publicTenant.publicDiscussion.id
+                                                      );
 
-                                                    // Verify cross-tenant user cannot see it
-                                                    RestAPI.Discussions.getDiscussionsLibrary(
-                                                      publicTenant1.publicUser.restContext,
-                                                      publicTenant.publicUser.user.id,
-                                                      null,
-                                                      null,
-                                                      (error, items) => {
-                                                        assert.notExists(error);
-                                                        _assertDoesNotContainItem(
-                                                          items.results,
-                                                          publicTenant.publicDiscussion.id
-                                                        );
+                                                      // Verify cross-tenant user cannot see it
+                                                      RestAPI.Discussions.getDiscussionsLibrary(
+                                                        publicTenant1.publicUser.restContext,
+                                                        publicTenant.publicUser.user.id,
+                                                        null,
+                                                        null,
+                                                        (error, items) => {
+                                                          assert.notExists(error);
+                                                          _assertDoesNotContainItem(
+                                                            items.results,
+                                                            publicTenant.publicDiscussion.id
+                                                          );
 
-                                                        // Verify cross-tenant anonymous cannot see it
-                                                        RestAPI.Discussions.getDiscussionsLibrary(
-                                                          publicTenant1.anonymousRestContext,
-                                                          publicTenant.publicUser.user.id,
-                                                          null,
-                                                          null,
-                                                          (error, items) => {
-                                                            assert.notExists(error);
-                                                            _assertDoesNotContainItem(
-                                                              items.results,
-                                                              publicTenant.publicDiscussion.id
-                                                            );
+                                                          // Verify cross-tenant anonymous cannot see it
+                                                          RestAPI.Discussions.getDiscussionsLibrary(
+                                                            publicTenant1.anonymousRestContext,
+                                                            publicTenant.publicUser.user.id,
+                                                            null,
+                                                            null,
+                                                            (error, items) => {
+                                                              assert.notExists(error);
+                                                              _assertDoesNotContainItem(
+                                                                items.results,
+                                                                publicTenant.publicDiscussion.id
+                                                              );
 
-                                                            // Verify cross-tenant admin cannot see it
-                                                            RestAPI.Discussions.getDiscussionsLibrary(
-                                                              publicTenant1.adminRestContext,
-                                                              publicTenant.publicUser.user.id,
-                                                              null,
-                                                              null,
-                                                              (error, items) => {
-                                                                assert.notExists(error);
-                                                                _assertDoesNotContainItem(
-                                                                  items.results,
-                                                                  publicTenant.publicDiscussion.id
-                                                                );
+                                                              // Verify cross-tenant admin cannot see it
+                                                              RestAPI.Discussions.getDiscussionsLibrary(
+                                                                publicTenant1.adminRestContext,
+                                                                publicTenant.publicUser.user.id,
+                                                                null,
+                                                                null,
+                                                                (error, items) => {
+                                                                  assert.notExists(error);
+                                                                  _assertDoesNotContainItem(
+                                                                    items.results,
+                                                                    publicTenant.publicDiscussion.id
+                                                                  );
 
-                                                                /// ////////////////////////////////////////////////////
-                                                                // VERIFY PRIVATE DISCUSSION VISIBILITY IN LIBRARIES //
-                                                                /// ////////////////////////////////////////////////////
+                                                                  /// ////////////////////////////////////////////////////
+                                                                  // VERIFY PRIVATE DISCUSSION VISIBILITY IN LIBRARIES //
+                                                                  /// ////////////////////////////////////////////////////
 
-                                                                DiscussionsTestsUtil.assertUpdateDiscussionSucceeds(
-                                                                  publicTenant.publicUser.restContext,
-                                                                  publicTenant.publicDiscussion.id,
-                                                                  { visibility: 'private' },
-                                                                  () => {
-                                                                    assert.notExists(error);
+                                                                  DiscussionsTestsUtil.assertUpdateDiscussionSucceeds(
+                                                                    publicTenant.publicUser.restContext,
+                                                                    publicTenant.publicDiscussion.id,
+                                                                    { visibility: 'private' },
+                                                                    () => {
+                                                                      assert.notExists(error);
 
-                                                                    // Verify anonymous user cannot see it
-                                                                    RestAPI.Discussions.getDiscussionsLibrary(
-                                                                      publicTenant.anonymousRestContext,
-                                                                      publicTenant.publicUser.user.id,
-                                                                      null,
-                                                                      null,
-                                                                      (error, items) => {
-                                                                        assert.notExists(error);
-                                                                        _assertDoesNotContainItem(
-                                                                          items.results,
-                                                                          publicTenant.publicDiscussion.id
-                                                                        );
-                                                                        // Verify authenticated user cannot see it
-                                                                        RestAPI.Discussions.getDiscussionsLibrary(
-                                                                          publicTenant.loggedinUser.restContext,
-                                                                          publicTenant.publicUser.user.id,
-                                                                          null,
-                                                                          null,
-                                                                          (error, items) => {
-                                                                            assert.notExists(error);
-                                                                            _assertDoesNotContainItem(
-                                                                              items.results,
-                                                                              publicTenant.publicDiscussion.id
-                                                                            );
+                                                                      // Verify anonymous user cannot see it
+                                                                      RestAPI.Discussions.getDiscussionsLibrary(
+                                                                        publicTenant.anonymousRestContext,
+                                                                        publicTenant.publicUser.user.id,
+                                                                        null,
+                                                                        null,
+                                                                        (error, items) => {
+                                                                          assert.notExists(error);
+                                                                          _assertDoesNotContainItem(
+                                                                            items.results,
+                                                                            publicTenant.publicDiscussion.id
+                                                                          );
+                                                                          // Verify authenticated user cannot see it
+                                                                          RestAPI.Discussions.getDiscussionsLibrary(
+                                                                            publicTenant.loggedinUser.restContext,
+                                                                            publicTenant.publicUser.user.id,
+                                                                            null,
+                                                                            null,
+                                                                            (error, items) => {
+                                                                              assert.notExists(error);
+                                                                              _assertDoesNotContainItem(
+                                                                                items.results,
+                                                                                publicTenant.publicDiscussion.id
+                                                                              );
 
-                                                                            // Verify own user can see it
-                                                                            RestAPI.Discussions.getDiscussionsLibrary(
-                                                                              publicTenant.publicUser.restContext,
-                                                                              publicTenant.publicUser.user.id,
-                                                                              null,
-                                                                              null,
-                                                                              (error, items) => {
-                                                                                assert.notExists(error);
-                                                                                _assertContainsItem(
-                                                                                  items.results,
-                                                                                  publicTenant.publicDiscussion.id
-                                                                                );
-                                                                                // Verify cross-tenant user cannot see it
-                                                                                RestAPI.Discussions.getDiscussionsLibrary(
-                                                                                  publicTenant1.publicUser.restContext,
-                                                                                  publicTenant.publicUser.user.id,
-                                                                                  null,
-                                                                                  null,
-                                                                                  (error, items) => {
-                                                                                    assert.notExists(error);
-                                                                                    _assertDoesNotContainItem(
-                                                                                      items.results,
-                                                                                      publicTenant.publicDiscussion.id
-                                                                                    );
+                                                                              // Verify own user can see it
+                                                                              RestAPI.Discussions.getDiscussionsLibrary(
+                                                                                publicTenant.publicUser.restContext,
+                                                                                publicTenant.publicUser.user.id,
+                                                                                null,
+                                                                                null,
+                                                                                (error, items) => {
+                                                                                  assert.notExists(error);
+                                                                                  _assertContainsItem(
+                                                                                    items.results,
+                                                                                    publicTenant.publicDiscussion.id
+                                                                                  );
+                                                                                  // Verify cross-tenant user cannot see it
+                                                                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                                                                    publicTenant1.publicUser
+                                                                                      .restContext,
+                                                                                    publicTenant.publicUser.user.id,
+                                                                                    null,
+                                                                                    null,
+                                                                                    (error, items) => {
+                                                                                      assert.notExists(error);
+                                                                                      _assertDoesNotContainItem(
+                                                                                        items.results,
+                                                                                        publicTenant.publicDiscussion.id
+                                                                                      );
 
-                                                                                    // Verify cross-tenant anonymous cannot see it
-                                                                                    RestAPI.Discussions.getDiscussionsLibrary(
-                                                                                      publicTenant1.anonymousRestContext,
-                                                                                      publicTenant.publicUser.user.id,
-                                                                                      null,
-                                                                                      null,
-                                                                                      (error, items) => {
-                                                                                        assert.notExists(error);
-                                                                                        _assertDoesNotContainItem(
-                                                                                          items.results,
-                                                                                          publicTenant.publicDiscussion
-                                                                                            .id
-                                                                                        );
+                                                                                      // Verify cross-tenant anonymous cannot see it
+                                                                                      RestAPI.Discussions.getDiscussionsLibrary(
+                                                                                        publicTenant1.anonymousRestContext,
+                                                                                        publicTenant.publicUser.user.id,
+                                                                                        null,
+                                                                                        null,
+                                                                                        (error, items) => {
+                                                                                          assert.notExists(error);
+                                                                                          _assertDoesNotContainItem(
+                                                                                            items.results,
+                                                                                            publicTenant
+                                                                                              .publicDiscussion.id
+                                                                                          );
 
-                                                                                        // Verify cross-tenant admin cannot see it
-                                                                                        RestAPI.Discussions.getDiscussionsLibrary(
-                                                                                          publicTenant1.adminRestContext,
-                                                                                          publicTenant.publicUser.user
-                                                                                            .id,
-                                                                                          null,
-                                                                                          null,
-                                                                                          (error, items) => {
-                                                                                            assert.notExists(error);
-                                                                                            _assertDoesNotContainItem(
-                                                                                              items.results,
-                                                                                              publicTenant
-                                                                                                .publicDiscussion.id
-                                                                                            );
-                                                                                            return callback();
-                                                                                          }
-                                                                                        );
-                                                                                      }
-                                                                                    );
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                                                          // Verify cross-tenant admin cannot see it
+                                                                                          RestAPI.Discussions.getDiscussionsLibrary(
+                                                                                            publicTenant1.adminRestContext,
+                                                                                            publicTenant.publicUser.user
+                                                                                              .id,
+                                                                                            null,
+                                                                                            null,
+                                                                                            (error, items) => {
+                                                                                              assert.notExists(error);
+                                                                                              _assertDoesNotContainItem(
+                                                                                                items.results,
+                                                                                                publicTenant
+                                                                                                  .publicDiscussion.id
+                                                                                              );
+                                                                                              return callback();
+                                                                                            }
+                                                                                          );
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -1999,123 +2039,123 @@ describe('Discussions', () => {
      * other user libraries.
      */
     it('verify discussion group library privacy', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        const randomId = TestsUtil.generateTestGroupId();
-        RestAPI.Group.createGroup(
-          publicTenant.loggedinUser.restContext,
-          randomId,
-          randomId,
-          'public',
-          'no',
-          [],
-          [publicTenant.publicUser.user.id],
-          (error, group) => {
-            assert.notExists(error);
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          const randomId = TestsUtil.generateTestGroupId();
+          RestAPI.Group.createGroup(
+            publicTenant.loggedinUser.restContext,
+            randomId,
+            randomId,
+            'public',
+            'no',
+            [],
+            [publicTenant.publicUser.user.id],
+            (error, group) => {
+              assert.notExists(error);
 
-            // Share private, loggedin and public discussion with the group
-            RestAPI.Discussions.shareDiscussion(
-              publicTenant.adminRestContext,
-              publicTenant.publicDiscussion.id,
-              [group.id],
-              (error_) => {
-                assert.notExists(error_);
+              // Share private, loggedin and public discussion with the group
+              RestAPI.Discussions.shareDiscussion(
+                publicTenant.adminRestContext,
+                publicTenant.publicDiscussion.id,
+                [group.id],
+                (error_) => {
+                  assert.notExists(error_);
 
-                RestAPI.Discussions.shareDiscussion(
-                  publicTenant.adminRestContext,
-                  publicTenant.loggedinDiscussion.id,
-                  [group.id],
-                  (error_) => {
-                    assert.notExists(error_);
+                  RestAPI.Discussions.shareDiscussion(
+                    publicTenant.adminRestContext,
+                    publicTenant.loggedinDiscussion.id,
+                    [group.id],
+                    (error_) => {
+                      assert.notExists(error_);
 
-                    RestAPI.Discussions.shareDiscussion(
-                      publicTenant.adminRestContext,
-                      publicTenant.privateDiscussion.id,
-                      [group.id],
-                      (error_) => {
-                        assert.notExists(error_);
+                      RestAPI.Discussions.shareDiscussion(
+                        publicTenant.adminRestContext,
+                        publicTenant.privateDiscussion.id,
+                        [group.id],
+                        (error_) => {
+                          assert.notExists(error_);
 
-                        // Verify anonymous gets public library
-                        RestAPI.Discussions.getDiscussionsLibrary(
-                          publicTenant.anonymousRestContext,
-                          group.id,
-                          null,
-                          null,
-                          (error, items) => {
-                            assert.notExists(error);
-                            assert.strictEqual(items.results.length, 1);
-                            _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                          // Verify anonymous gets public library
+                          RestAPI.Discussions.getDiscussionsLibrary(
+                            publicTenant.anonymousRestContext,
+                            group.id,
+                            null,
+                            null,
+                            (error, items) => {
+                              assert.notExists(error);
+                              assert.strictEqual(items.results.length, 1);
+                              _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                            // Verify authenticated same-tenant user gets loggedin library
-                            RestAPI.Discussions.getDiscussionsLibrary(
-                              publicTenant.privateUser.restContext,
-                              group.id,
-                              null,
-                              null,
-                              (error, items) => {
-                                assert.notExists(error);
-                                assert.strictEqual(items.results.length, 2);
-                                _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
-                                _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                              // Verify authenticated same-tenant user gets loggedin library
+                              RestAPI.Discussions.getDiscussionsLibrary(
+                                publicTenant.privateUser.restContext,
+                                group.id,
+                                null,
+                                null,
+                                (error, items) => {
+                                  assert.notExists(error);
+                                  assert.strictEqual(items.results.length, 2);
+                                  _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                  _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
 
-                                // Verify member gets private library
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  publicTenant.publicUser.restContext,
-                                  group.id,
-                                  null,
-                                  null,
-                                  (error, items) => {
-                                    assert.notExists(error);
-                                    assert.strictEqual(items.results.length, 3);
-                                    _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
-                                    _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
-                                    _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
+                                  // Verify member gets private library
+                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                    publicTenant.publicUser.restContext,
+                                    group.id,
+                                    null,
+                                    null,
+                                    (error, items) => {
+                                      assert.notExists(error);
+                                      assert.strictEqual(items.results.length, 3);
+                                      _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                      _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                                      _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
 
-                                    // Verify authenticated cross-tenant user gets public library
-                                    RestAPI.Discussions.getDiscussionsLibrary(
-                                      publicTenant.anonymousRestContext,
-                                      group.id,
-                                      null,
-                                      null,
-                                      (error, items) => {
-                                        assert.notExists(error);
-                                        assert.strictEqual(items.results.length, 1);
-                                        _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                      // Verify authenticated cross-tenant user gets public library
+                                      RestAPI.Discussions.getDiscussionsLibrary(
+                                        publicTenant.anonymousRestContext,
+                                        group.id,
+                                        null,
+                                        null,
+                                        (error, items) => {
+                                          assert.notExists(error);
+                                          assert.strictEqual(items.results.length, 1);
+                                          _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
 
-                                        // Verify admin gets private library
-                                        RestAPI.Discussions.getDiscussionsLibrary(
-                                          publicTenant.adminRestContext,
-                                          group.id,
-                                          null,
-                                          null,
-                                          (error, items) => {
-                                            assert.notExists(error);
-                                            assert.strictEqual(items.results.length, 3);
-                                            _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
-                                            _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
-                                            _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
+                                          // Verify admin gets private library
+                                          RestAPI.Discussions.getDiscussionsLibrary(
+                                            publicTenant.adminRestContext,
+                                            group.id,
+                                            null,
+                                            null,
+                                            (error, items) => {
+                                              assert.notExists(error);
+                                              assert.strictEqual(items.results.length, 3);
+                                              _assertContainsItem(items.results, publicTenant.publicDiscussion.id);
+                                              _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                                              _assertContainsItem(items.results, publicTenant.privateDiscussion.id);
 
-                                            return callback();
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                              return callback();
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -2537,345 +2577,345 @@ describe('Discussions', () => {
      * Test that verifies permission rules for updating discussion permissions
      */
     it('verify discussion update members and permissions', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1,
-        privateTenant /* , privateTenant1 */
-      ) => {
-        const setLoggedinUserMember = {};
-        setLoggedinUserMember[publicTenant.loggedinUser.user.id] = 'member';
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1, privateTenant /* , privateTenant1 */) => {
+          const setLoggedinUserMember = {};
+          setLoggedinUserMember[publicTenant.loggedinUser.user.id] = 'member';
 
-        const setPublicUserMember = {};
-        setPublicUserMember[publicTenant.publicUser.user.id] = 'member';
+          const setPublicUserMember = {};
+          setPublicUserMember[publicTenant.publicUser.user.id] = 'member';
 
-        const setPublicUserManager = {};
-        setPublicUserManager[publicTenant.publicUser.user.id] = 'manager';
+          const setPublicUserManager = {};
+          setPublicUserManager[publicTenant.publicUser.user.id] = 'manager';
 
-        // 1. Verify anonymous user cannot update members
-        RestAPI.Discussions.updateDiscussionMembers(
-          publicTenant.anonymousRestContext,
-          publicTenant.publicDiscussion.id,
-          setLoggedinUserMember,
-          (error) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 401);
+          // 1. Verify anonymous user cannot update members
+          RestAPI.Discussions.updateDiscussionMembers(
+            publicTenant.anonymousRestContext,
+            publicTenant.publicDiscussion.id,
+            setLoggedinUserMember,
+            (error) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
 
-            // 2. Verify loggedin non-member user cannot update members
-            RestAPI.Discussions.updateDiscussionMembers(
-              publicTenant.publicUser.restContext,
-              publicTenant.publicDiscussion.id,
-              setLoggedinUserMember,
-              (error) => {
-                assert.ok(error);
-                assert.strictEqual(error.code, 401);
+              // 2. Verify loggedin non-member user cannot update members
+              RestAPI.Discussions.updateDiscussionMembers(
+                publicTenant.publicUser.restContext,
+                publicTenant.publicDiscussion.id,
+                setLoggedinUserMember,
+                (error) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 401);
 
-                // 3. Verify member user cannot update members
-                RestAPI.Discussions.updateDiscussionMembers(
-                  publicTenant.adminRestContext,
-                  publicTenant.publicDiscussion.id,
-                  setPublicUserMember,
-                  (error) => {
-                    assert.notExists(error);
+                  // 3. Verify member user cannot update members
+                  RestAPI.Discussions.updateDiscussionMembers(
+                    publicTenant.adminRestContext,
+                    publicTenant.publicDiscussion.id,
+                    setPublicUserMember,
+                    (error) => {
+                      assert.notExists(error);
 
-                    RestAPI.Discussions.updateDiscussionMembers(
-                      publicTenant.publicUser.restContext,
-                      publicTenant.publicDiscussion.id,
-                      setLoggedinUserMember,
-                      (error) => {
-                        assert.ok(error);
-                        assert.strictEqual(error.code, 401);
+                      RestAPI.Discussions.updateDiscussionMembers(
+                        publicTenant.publicUser.restContext,
+                        publicTenant.publicDiscussion.id,
+                        setLoggedinUserMember,
+                        (error) => {
+                          assert.ok(error);
+                          assert.strictEqual(error.code, 401);
 
-                        // 4. Verify cannot set access across to private tenant
-                        const setExternalPrivateUserMember = {};
-                        setExternalPrivateUserMember[privateTenant.publicUser.id] = 'member';
-                        RestAPI.Discussions.updateDiscussionMembers(
-                          publicTenant.adminRestContext,
-                          publicTenant.publicDiscussion.id,
-                          setExternalPrivateUserMember,
-                          (error) => {
-                            assert.ok(error);
-                            assert.strictEqual(error.code, 400);
+                          // 4. Verify cannot set access across to private tenant
+                          const setExternalPrivateUserMember = {};
+                          setExternalPrivateUserMember[privateTenant.publicUser.id] = 'member';
+                          RestAPI.Discussions.updateDiscussionMembers(
+                            publicTenant.adminRestContext,
+                            publicTenant.publicDiscussion.id,
+                            setExternalPrivateUserMember,
+                            (error) => {
+                              assert.ok(error);
+                              assert.strictEqual(error.code, 400);
 
-                            // 5. Ensure the access hasn't changed
-                            RestAPI.Discussions.getDiscussionMembers(
-                              publicTenant.adminRestContext,
-                              publicTenant.publicDiscussion.id,
-                              null,
-                              null,
-                              (error, items) => {
-                                assert.notExists(error);
-                                assert.strictEqual(items.results.length, 2);
+                              // 5. Ensure the access hasn't changed
+                              RestAPI.Discussions.getDiscussionMembers(
+                                publicTenant.adminRestContext,
+                                publicTenant.publicDiscussion.id,
+                                null,
+                                null,
+                                (error, items) => {
+                                  assert.notExists(error);
+                                  assert.strictEqual(items.results.length, 2);
 
-                                let hadPublicUser = false;
-                                forEach((result) => {
-                                  if (result.profile.id === publicTenant.publicUser.user.id) {
-                                    // Ensure the public user is a member
-                                    hadPublicUser = true;
-                                    assert.strictEqual(result.role, 'member');
-                                  }
-                                }, items.results);
+                                  let hadPublicUser = false;
+                                  forEach((result) => {
+                                    if (result.profile.id === publicTenant.publicUser.user.id) {
+                                      // Ensure the public user is a member
+                                      hadPublicUser = true;
+                                      assert.strictEqual(result.role, 'member');
+                                    }
+                                  }, items.results);
 
-                                assert.ok(hadPublicUser);
+                                  assert.ok(hadPublicUser);
 
-                                // 6. Verify manager user can update members
-                                RestAPI.Discussions.updateDiscussionMembers(
-                                  publicTenant.adminRestContext,
-                                  publicTenant.publicDiscussion.id,
-                                  setPublicUserManager,
-                                  (error_) => {
-                                    assert.notExists(error_);
+                                  // 6. Verify manager user can update members
+                                  RestAPI.Discussions.updateDiscussionMembers(
+                                    publicTenant.adminRestContext,
+                                    publicTenant.publicDiscussion.id,
+                                    setPublicUserManager,
+                                    (error_) => {
+                                      assert.notExists(error_);
 
-                                    RestAPI.Discussions.updateDiscussionMembers(
-                                      publicTenant.publicUser.restContext,
-                                      publicTenant.publicDiscussion.id,
-                                      setLoggedinUserMember,
-                                      (error_) => {
-                                        assert.notExists(error_);
+                                      RestAPI.Discussions.updateDiscussionMembers(
+                                        publicTenant.publicUser.restContext,
+                                        publicTenant.publicDiscussion.id,
+                                        setLoggedinUserMember,
+                                        (error_) => {
+                                          assert.notExists(error_);
 
-                                        // 7. Ensure the access has now changed
-                                        RestAPI.Discussions.getDiscussionMembers(
-                                          publicTenant.adminRestContext,
-                                          publicTenant.publicDiscussion.id,
-                                          null,
-                                          null,
-                                          (error, items) => {
-                                            assert.notExists(error);
-                                            // Tenant admin and public user are the only ones
-                                            assert.strictEqual(items.results.length, 3);
+                                          // 7. Ensure the access has now changed
+                                          RestAPI.Discussions.getDiscussionMembers(
+                                            publicTenant.adminRestContext,
+                                            publicTenant.publicDiscussion.id,
+                                            null,
+                                            null,
+                                            (error, items) => {
+                                              assert.notExists(error);
+                                              // Tenant admin and public user are the only ones
+                                              assert.strictEqual(items.results.length, 3);
 
-                                            let hadPublicUser = false;
-                                            let hadLoggedinUser = false;
-                                            forEach((result) => {
-                                              if (result.profile.id === publicTenant.publicUser.user.id) {
-                                                // Ensure the public user is now a manager
-                                                hadPublicUser = true;
-                                                assert.strictEqual(result.role, 'manager');
-                                              } else if (result.profile.id === publicTenant.loggedinUser.user.id) {
-                                                // Ensure the loggedin user is just a member
-                                                hadLoggedinUser = true;
-                                                assert.strictEqual(result.role, 'member');
-                                              }
-                                            }, items.results);
+                                              let hadPublicUser = false;
+                                              let hadLoggedinUser = false;
+                                              forEach((result) => {
+                                                if (result.profile.id === publicTenant.publicUser.user.id) {
+                                                  // Ensure the public user is now a manager
+                                                  hadPublicUser = true;
+                                                  assert.strictEqual(result.role, 'manager');
+                                                } else if (result.profile.id === publicTenant.loggedinUser.user.id) {
+                                                  // Ensure the loggedin user is just a member
+                                                  hadLoggedinUser = true;
+                                                  assert.strictEqual(result.role, 'member');
+                                                }
+                                              }, items.results);
 
-                                            assert.ok(hadPublicUser);
-                                            assert.ok(hadLoggedinUser);
-                                            return callback();
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                              assert.ok(hadPublicUser);
+                                              assert.ok(hadLoggedinUser);
+                                              return callback();
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
      * Test that verifies logic of removing discussions from libraries, and the awkward permissions cases for the operation
      */
     it('verify discussion remove from library and permissions', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1 /* , privateTenant, privateTenant1 */
-      ) => {
-        // 1. Verify member can remove private discussion from their library
-        RestAPI.Discussions.shareDiscussion(
-          publicTenant.publicUser.restContext,
-          publicTenant.loggedinDiscussion.id,
-          [publicTenant.loggedinUser.user.id],
-          (error) => {
-            assert.notExists(error);
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1 /* , privateTenant, privateTenant1 */) => {
+          // 1. Verify member can remove private discussion from their library
+          RestAPI.Discussions.shareDiscussion(
+            publicTenant.publicUser.restContext,
+            publicTenant.loggedinDiscussion.id,
+            [publicTenant.loggedinUser.user.id],
+            (error) => {
+              assert.notExists(error);
 
-            // 1.1 Remove it
-            RestAPI.Discussions.removeDiscussionFromLibrary(
-              publicTenant.loggedinUser.restContext,
-              publicTenant.loggedinUser.user.id,
-              publicTenant.loggedinDiscussion.id,
-              (error) => {
-                assert.notExists(error);
+              // 1.1 Remove it
+              RestAPI.Discussions.removeDiscussionFromLibrary(
+                publicTenant.loggedinUser.restContext,
+                publicTenant.loggedinUser.user.id,
+                publicTenant.loggedinDiscussion.id,
+                (error) => {
+                  assert.notExists(error);
 
-                // 1.2 Make sure it isn't there
-                RestAPI.Discussions.getDiscussionsLibrary(
-                  publicTenant.loggedinUser.restContext,
-                  publicTenant.loggedinUser.user.id,
-                  null,
-                  null,
-                  (error, items) => {
-                    assert.notExists(error);
-                    assert.strictEqual(items.results.length, 0);
+                  // 1.2 Make sure it isn't there
+                  RestAPI.Discussions.getDiscussionsLibrary(
+                    publicTenant.loggedinUser.restContext,
+                    publicTenant.loggedinUser.user.id,
+                    null,
+                    null,
+                    (error, items) => {
+                      assert.notExists(error);
+                      assert.strictEqual(items.results.length, 0);
 
-                    // 2. Verify user can remove item from their library across tenant boundaries
+                      // 2. Verify user can remove item from their library across tenant boundaries
 
-                    // 2.1 Share an item from an external public tenant
-                    RestAPI.Discussions.shareDiscussion(
-                      publicTenant.publicUser.restContext,
-                      publicTenant1.publicDiscussion.id,
-                      [publicTenant.loggedinUser.user.id],
-                      (error_) => {
-                        assert.notExists(error_);
+                      // 2.1 Share an item from an external public tenant
+                      RestAPI.Discussions.shareDiscussion(
+                        publicTenant.publicUser.restContext,
+                        publicTenant1.publicDiscussion.id,
+                        [publicTenant.loggedinUser.user.id],
+                        (error_) => {
+                          assert.notExists(error_);
 
-                        // 2.1 Make that tenant private
-                        ConfigTestsUtil.updateConfigAndWait(
-                          TestsUtil.createGlobalAdminRestContext(),
-                          publicTenant1.tenant.alias,
-                          { 'oae-tenants/tenantprivacy/tenantprivate': true },
-                          (error_) => {
-                            assert.notExists(error_);
+                          // 2.1 Make that tenant private
+                          ConfigTestsUtil.updateConfigAndWait(
+                            TestsUtil.createGlobalAdminRestContext(),
+                            publicTenant1.tenant.alias,
+                            { 'oae-tenants/tenantprivacy/tenantprivate': true },
+                            (error_) => {
+                              assert.notExists(error_);
 
-                            // 2.2 Removes it from the library, should be able to even though the discussion's tenant has become private
-                            RestAPI.Discussions.removeDiscussionFromLibrary(
-                              publicTenant.loggedinUser.restContext,
-                              publicTenant.loggedinUser.user.id,
-                              publicTenant1.publicDiscussion.id,
-                              (error_) => {
-                                assert.notExists(error_);
+                              // 2.2 Removes it from the library, should be able to even though the discussion's tenant has become private
+                              RestAPI.Discussions.removeDiscussionFromLibrary(
+                                publicTenant.loggedinUser.restContext,
+                                publicTenant.loggedinUser.user.id,
+                                publicTenant1.publicDiscussion.id,
+                                (error_) => {
+                                  assert.notExists(error_);
 
-                                // 2.3 Make sure it isn't there
-                                RestAPI.Discussions.getDiscussionsLibrary(
-                                  publicTenant.loggedinUser.restContext,
-                                  publicTenant.loggedinUser.user.id,
-                                  null,
-                                  null,
-                                  (error, items) => {
-                                    assert.notExists(error);
-                                    assert.strictEqual(items.results.length, 0);
+                                  // 2.3 Make sure it isn't there
+                                  RestAPI.Discussions.getDiscussionsLibrary(
+                                    publicTenant.loggedinUser.restContext,
+                                    publicTenant.loggedinUser.user.id,
+                                    null,
+                                    null,
+                                    (error, items) => {
+                                      assert.notExists(error);
+                                      assert.strictEqual(items.results.length, 0);
 
-                                    // 3. Verify user cannot remove a discussion from another user's library
-                                    RestAPI.Discussions.shareDiscussion(
-                                      publicTenant.publicUser.restContext,
-                                      publicTenant.loggedinDiscussion.id,
-                                      [publicTenant.loggedinUser.user.id],
-                                      (error_) => {
-                                        assert.notExists(error_);
+                                      // 3. Verify user cannot remove a discussion from another user's library
+                                      RestAPI.Discussions.shareDiscussion(
+                                        publicTenant.publicUser.restContext,
+                                        publicTenant.loggedinDiscussion.id,
+                                        [publicTenant.loggedinUser.user.id],
+                                        (error_) => {
+                                          assert.notExists(error_);
 
-                                        // 3.1 Try and remove it with another user
-                                        RestAPI.Discussions.removeDiscussionFromLibrary(
-                                          publicTenant.publicUser.restContext,
-                                          publicTenant.loggedinUser.user.id,
-                                          publicTenant.loggedinDiscussion.id,
-                                          (error_) => {
-                                            assert.ok(error_);
-                                            assert.strictEqual(error_.code, 401, JSON.stringify(error_));
+                                          // 3.1 Try and remove it with another user
+                                          RestAPI.Discussions.removeDiscussionFromLibrary(
+                                            publicTenant.publicUser.restContext,
+                                            publicTenant.loggedinUser.user.id,
+                                            publicTenant.loggedinDiscussion.id,
+                                            (error_) => {
+                                              assert.ok(error_);
+                                              assert.strictEqual(error_.code, 401, JSON.stringify(error_));
 
-                                            // 3.2 Make sure it is still there
-                                            RestAPI.Discussions.getDiscussionsLibrary(
-                                              publicTenant.loggedinUser.restContext,
-                                              publicTenant.loggedinUser.user.id,
-                                              null,
-                                              null,
-                                              (error, items) => {
-                                                assert.notExists(error);
-                                                assert.strictEqual(items.results.length, 1);
-                                                _assertContainsItem(items.results, publicTenant.loggedinDiscussion.id);
+                                              // 3.2 Make sure it is still there
+                                              RestAPI.Discussions.getDiscussionsLibrary(
+                                                publicTenant.loggedinUser.restContext,
+                                                publicTenant.loggedinUser.user.id,
+                                                null,
+                                                null,
+                                                (error, items) => {
+                                                  assert.notExists(error);
+                                                  assert.strictEqual(items.results.length, 1);
+                                                  _assertContainsItem(
+                                                    items.results,
+                                                    publicTenant.loggedinDiscussion.id
+                                                  );
 
-                                                const randomId = TestsUtil.generateTestGroupId();
-                                                RestAPI.Group.createGroup(
-                                                  publicTenant.loggedinUser.restContext,
-                                                  randomId,
-                                                  randomId,
-                                                  'public',
-                                                  'no',
-                                                  [],
-                                                  [publicTenant.publicUser.user.id],
-                                                  (error, group) => {
-                                                    assert.notExists(error);
+                                                  const randomId = TestsUtil.generateTestGroupId();
+                                                  RestAPI.Group.createGroup(
+                                                    publicTenant.loggedinUser.restContext,
+                                                    randomId,
+                                                    randomId,
+                                                    'public',
+                                                    'no',
+                                                    [],
+                                                    [publicTenant.publicUser.user.id],
+                                                    (error, group) => {
+                                                      assert.notExists(error);
 
-                                                    // Share an item with the group
-                                                    RestAPI.Discussions.shareDiscussion(
-                                                      publicTenant.publicUser.restContext,
-                                                      publicTenant.loggedinDiscussion.id,
-                                                      [group.id],
-                                                      (error_) => {
-                                                        assert.notExists(error_);
+                                                      // Share an item with the group
+                                                      RestAPI.Discussions.shareDiscussion(
+                                                        publicTenant.publicUser.restContext,
+                                                        publicTenant.loggedinDiscussion.id,
+                                                        [group.id],
+                                                        (error_) => {
+                                                          assert.notExists(error_);
 
-                                                        // Try and remove it with a member user, should fail because only managers can remove from library
-                                                        RestAPI.Discussions.removeDiscussionFromLibrary(
-                                                          publicTenant.publicUser.restContext,
-                                                          group.id,
-                                                          publicTenant.loggedinDiscussion.id,
-                                                          (error_) => {
-                                                            assert.ok(error_);
-                                                            assert.strictEqual(error_.code, 401);
+                                                          // Try and remove it with a member user, should fail because only managers can remove from library
+                                                          RestAPI.Discussions.removeDiscussionFromLibrary(
+                                                            publicTenant.publicUser.restContext,
+                                                            group.id,
+                                                            publicTenant.loggedinDiscussion.id,
+                                                            (error_) => {
+                                                              assert.ok(error_);
+                                                              assert.strictEqual(error_.code, 401);
 
-                                                            // Try and remove it with a manager user. Should succeed
-                                                            RestAPI.Discussions.removeDiscussionFromLibrary(
-                                                              publicTenant.loggedinUser.restContext,
-                                                              group.id,
-                                                              publicTenant.loggedinDiscussion.id,
-                                                              (error_) => {
-                                                                assert.notExists(error_);
+                                                              // Try and remove it with a manager user. Should succeed
+                                                              RestAPI.Discussions.removeDiscussionFromLibrary(
+                                                                publicTenant.loggedinUser.restContext,
+                                                                group.id,
+                                                                publicTenant.loggedinDiscussion.id,
+                                                                (error_) => {
+                                                                  assert.notExists(error_);
 
-                                                                // Share an item with the group again
-                                                                RestAPI.Discussions.shareDiscussion(
-                                                                  publicTenant.publicUser.restContext,
-                                                                  publicTenant.loggedinDiscussion.id,
-                                                                  [group.id],
-                                                                  (error_) => {
-                                                                    assert.notExists(error_);
+                                                                  // Share an item with the group again
+                                                                  RestAPI.Discussions.shareDiscussion(
+                                                                    publicTenant.publicUser.restContext,
+                                                                    publicTenant.loggedinDiscussion.id,
+                                                                    [group.id],
+                                                                    (error_) => {
+                                                                      assert.notExists(error_);
 
-                                                                    // Try and remove it with a tenant admin. Should succeed again
-                                                                    RestAPI.Discussions.removeDiscussionFromLibrary(
-                                                                      publicTenant.adminRestContext,
-                                                                      group.id,
-                                                                      publicTenant.loggedinDiscussion.id,
-                                                                      (error_) => {
-                                                                        assert.notExists(error_);
+                                                                      // Try and remove it with a tenant admin. Should succeed again
+                                                                      RestAPI.Discussions.removeDiscussionFromLibrary(
+                                                                        publicTenant.adminRestContext,
+                                                                        group.id,
+                                                                        publicTenant.loggedinDiscussion.id,
+                                                                        (error_) => {
+                                                                          assert.notExists(error_);
 
-                                                                        // Verify it complains when a user tries to remove a discussion from their library that isn't in it
-                                                                        RestAPI.Discussions.removeDiscussionFromLibrary(
-                                                                          publicTenant.adminRestContext,
-                                                                          group.id,
-                                                                          publicTenant.loggedinDiscussion.id,
-                                                                          (error_) => {
-                                                                            assert.ok(error_);
-                                                                            assert.ok(error_.code, 400);
-                                                                            return callback();
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                                          // Verify it complains when a user tries to remove a discussion from their library that isn't in it
+                                                                          RestAPI.Discussions.removeDiscussionFromLibrary(
+                                                                            publicTenant.adminRestContext,
+                                                                            group.id,
+                                                                            publicTenant.loggedinDiscussion.id,
+                                                                            (error_) => {
+                                                                              assert.ok(error_);
+                                                                              assert.ok(error_.code, 400);
+                                                                              return callback();
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -3043,100 +3083,106 @@ describe('Discussions', () => {
                         assert.notExists(error);
 
                         // Post a message to force it to update the lastModified. This will cause a duplicate because we tampered with the lastModified
-                        RestAPI.Discussions.createMessage(user.restContext, discussion2.id, 'My message', null, (
-                          error /* , message */
-                        ) => {
-                          assert.notExists(error);
-                          LibraryAPI.Index.whenUpdatesComplete(() => {
-                            /**
-                             * At this point we will have 3 items in our library index. 2 for discussion2 and one for discussion1.
-                             * Now we page to observe the auto-repair.
-                             * Since the library update happens asynchronously to the message,
-                             * we need to try several times to jam it through.
-                             */
+                        RestAPI.Discussions.createMessage(
+                          user.restContext,
+                          discussion2.id,
+                          'My message',
+                          null,
+                          (error /* , message */) => {
+                            assert.notExists(error);
+                            LibraryAPI.Index.whenUpdatesComplete(() => {
+                              /**
+                               * At this point we will have 3 items in our library index. 2 for discussion2 and one for discussion1.
+                               * Now we page to observe the auto-repair.
+                               * Since the library update happens asynchronously to the message,
+                               * we need to try several times to jam it through.
+                               */
 
-                            /*!
-                             * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
-                             * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
-                             * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
-                             *
-                             * If this fails, it means the feed has not become inconsistent. What gives?
-                             *
-                             * @param  {Number}     triesLeft   The number of tries to perform
-                             */
-                            const _checkDuplicatedFeed = function (triesLeft) {
-                              if (triesLeft === 0) {
-                                // Fail if we have run out of tries
-                                assert.fail('The library did not incur a duplicate within a certain amount of tries');
-                              }
-
-                              // The first time, we set a limit 2, we should end up with only 1. Because the one duplicate was filtered out
-                              RestAPI.Discussions.getDiscussionsLibrary(
-                                user.restContext,
-                                user.user.id,
-                                null,
-                                2,
-                                (error, items) => {
-                                  assert.notExists(error);
-
-                                  try {
-                                    assert.strictEqual(items.results.length, 1);
-                                    _assertContainsItem(items.results, discussion2.id);
-
-                                    // NextToken should be there because there was still 1 item to page through (discussion1)
-                                    assert.ok(items.nextToken);
-
-                                    // We fetch an inconsistent feed, this is good. This fetch, since it was inconsistent should have
-                                    // triggered a repair. Now check the feed until it has been repaired
-                                    return _checkRepairedFeed(10);
-                                  } catch {
-                                    return setTimeout(_checkDuplicatedFeed, 50, triesLeft - 1);
-                                  }
+                              /*!
+                               * Continue checking the library feed until the tries run out. When the feed reaches a state where it is inconsistent
+                               * (i.e., a fetch of 2 items only returns 1, and there are more to fetch), then we proceed to fetch the feed until it
+                               * has become consistent again (i.e., the fetch of 2 items once again returns exactly 2 items)
+                               *
+                               * If this fails, it means the feed has not become inconsistent. What gives?
+                               *
+                               * @param  {Number}     triesLeft   The number of tries to perform
+                               */
+                              const _checkDuplicatedFeed = function (triesLeft) {
+                                if (triesLeft === 0) {
+                                  // Fail if we have run out of tries
+                                  assert.fail('The library did not incur a duplicate within a certain amount of tries');
                                 }
-                              );
-                            };
 
-                            /*!
-                             * Continue checking the library feed until it comes consistent.
-                             *
-                             * If this fails, it means the feed never returned to be consistent. What gives?
-                             *
-                             * @param  {Number}     triesLeft   The number of tries to perform
-                             */
-                            const _checkRepairedFeed = function (triesLeft) {
-                              if (triesLeft === 0) {
-                                assert.fail('The library feed was not auto-repaired within a certain amount of tries.');
-                              }
+                                // The first time, we set a limit 2, we should end up with only 1. Because the one duplicate was filtered out
+                                RestAPI.Discussions.getDiscussionsLibrary(
+                                  user.restContext,
+                                  user.user.id,
+                                  null,
+                                  2,
+                                  (error, items) => {
+                                    assert.notExists(error);
 
-                              triesLeft--;
+                                    try {
+                                      assert.strictEqual(items.results.length, 1);
+                                      _assertContainsItem(items.results, discussion2.id);
 
-                              RestAPI.Discussions.getDiscussionsLibrary(
-                                user.restContext,
-                                user.user.id,
-                                null,
-                                2,
-                                (error, items) => {
-                                  assert.notExists(error);
+                                      // NextToken should be there because there was still 1 item to page through (discussion1)
+                                      assert.ok(items.nextToken);
 
-                                  try {
-                                    assert.strictEqual(items.results.length, 2);
-                                    _assertContainsItem(items.results, discussion2.id);
-                                    _assertContainsItem(items.results, discussion1.id);
-
-                                    // Everything checked out, continue on with the tests!
-                                    return callback();
-                                  } catch {
-                                    // Not in the right state yet. Try again
-                                    return _checkRepairedFeed(triesLeft);
+                                      // We fetch an inconsistent feed, this is good. This fetch, since it was inconsistent should have
+                                      // triggered a repair. Now check the feed until it has been repaired
+                                      return _checkRepairedFeed(10);
+                                    } catch {
+                                      return setTimeout(_checkDuplicatedFeed, 50, triesLeft - 1);
+                                    }
                                   }
-                                }
-                              );
-                            };
+                                );
+                              };
 
-                            // Start the check for an inconsistent feed
-                            _checkDuplicatedFeed(100);
-                          });
-                        });
+                              /*!
+                               * Continue checking the library feed until it comes consistent.
+                               *
+                               * If this fails, it means the feed never returned to be consistent. What gives?
+                               *
+                               * @param  {Number}     triesLeft   The number of tries to perform
+                               */
+                              const _checkRepairedFeed = function (triesLeft) {
+                                if (triesLeft === 0) {
+                                  assert.fail(
+                                    'The library feed was not auto-repaired within a certain amount of tries.'
+                                  );
+                                }
+
+                                triesLeft--;
+
+                                RestAPI.Discussions.getDiscussionsLibrary(
+                                  user.restContext,
+                                  user.user.id,
+                                  null,
+                                  2,
+                                  (error, items) => {
+                                    assert.notExists(error);
+
+                                    try {
+                                      assert.strictEqual(items.results.length, 2);
+                                      _assertContainsItem(items.results, discussion2.id);
+                                      _assertContainsItem(items.results, discussion1.id);
+
+                                      // Everything checked out, continue on with the tests!
+                                      return callback();
+                                    } catch {
+                                      // Not in the right state yet. Try again
+                                      return _checkRepairedFeed(triesLeft);
+                                    }
+                                  }
+                                );
+                              };
+
+                              // Start the check for an inconsistent feed
+                              _checkDuplicatedFeed(100);
+                            });
+                          }
+                        );
                       }
                     );
                   }
@@ -3254,168 +3300,169 @@ describe('Discussions', () => {
      * Test that verifies the model of created messages, and permissions of creating messages on different types of discussions
      */
     it('verify creating a message, model and permissions', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1,
-        privateTenant /* , privateTenant1 */
-      ) => {
-        // Cannot post message as anonymous user
-        RestAPI.Discussions.createMessage(
-          publicTenant.anonymousRestContext,
-          publicTenant.publicDiscussion.id,
-          'This should result in a 401',
-          null,
-          (error, message) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 401);
-            assert.ok(!message);
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1, privateTenant /* , privateTenant1 */) => {
+          // Cannot post message as anonymous user
+          RestAPI.Discussions.createMessage(
+            publicTenant.anonymousRestContext,
+            publicTenant.publicDiscussion.id,
+            'This should result in a 401',
+            null,
+            (error, message) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 401);
+              assert.ok(!message);
 
-            // Cannot post to private discussion as non-member
-            RestAPI.Discussions.createMessage(
-              publicTenant.privateUser.restContext,
-              publicTenant.privateDiscussion.id,
-              'This should result in a 401',
-              null,
-              (error, message) => {
-                assert.ok(error);
-                assert.strictEqual(error.code, 401);
-                assert.ok(!message);
+              // Cannot post to private discussion as non-member
+              RestAPI.Discussions.createMessage(
+                publicTenant.privateUser.restContext,
+                publicTenant.privateDiscussion.id,
+                'This should result in a 401',
+                null,
+                (error, message) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 401);
+                  assert.ok(!message);
 
-                // Can post as an authenticated user from the same tenant, verify the model
-                RestAPI.Discussions.createMessage(
-                  publicTenant.publicUser.restContext,
-                  publicTenant.publicDiscussion.id,
-                  'Top-level message',
-                  null,
-                  (error, message) => {
-                    assert.notExists(error);
-                    assert.ok(message);
+                  // Can post as an authenticated user from the same tenant, verify the model
+                  RestAPI.Discussions.createMessage(
+                    publicTenant.publicUser.restContext,
+                    publicTenant.publicDiscussion.id,
+                    'Top-level message',
+                    null,
+                    (error, message) => {
+                      assert.notExists(error);
+                      assert.ok(message);
 
-                    // This is the expected messagebox id of the discussion
-                    const messageBoxId = publicTenant.publicDiscussion.id;
+                      // This is the expected messagebox id of the discussion
+                      const messageBoxId = publicTenant.publicDiscussion.id;
 
-                    assert.strictEqual(message.id, messageBoxId + '#' + message.created);
-                    assert.strictEqual(message.messageBoxId, messageBoxId);
-                    assert.strictEqual(message.threadKey, message.created + '|');
-                    assert.strictEqual(message.body, 'Top-level message');
-                    assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
-                    assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
-                    assert.strictEqual(message.level, 0);
-                    assert.ok(!message.replyTo);
+                      assert.strictEqual(message.id, messageBoxId + '#' + message.created);
+                      assert.strictEqual(message.messageBoxId, messageBoxId);
+                      assert.strictEqual(message.threadKey, message.created + '|');
+                      assert.strictEqual(message.body, 'Top-level message');
+                      assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
+                      assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
+                      assert.strictEqual(message.level, 0);
+                      assert.ok(!message.replyTo);
 
-                    // Reply to that message and verify the model
-                    RestAPI.Discussions.createMessage(
-                      publicTenant.loggedinUser.restContext,
-                      publicTenant.publicDiscussion.id,
-                      'Reply message',
-                      message.created,
-                      (error, replyMessage) => {
-                        assert.notExists(error);
-                        assert.ok(replyMessage);
+                      // Reply to that message and verify the model
+                      RestAPI.Discussions.createMessage(
+                        publicTenant.loggedinUser.restContext,
+                        publicTenant.publicDiscussion.id,
+                        'Reply message',
+                        message.created,
+                        (error, replyMessage) => {
+                          assert.notExists(error);
+                          assert.ok(replyMessage);
 
-                        // This is the expected replyMessagebox id of the discussion
-                        assert.strictEqual(replyMessage.id, messageBoxId + '#' + replyMessage.created);
-                        assert.strictEqual(replyMessage.messageBoxId, messageBoxId);
-                        assert.strictEqual(replyMessage.threadKey, message.created + '#' + replyMessage.created + '|');
-                        assert.strictEqual(replyMessage.body, 'Reply message');
-                        assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
-                        assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
-                        assert.strictEqual(replyMessage.level, 1);
-                        assert.ok(replyMessage.replyTo, message.created);
+                          // This is the expected replyMessagebox id of the discussion
+                          assert.strictEqual(replyMessage.id, messageBoxId + '#' + replyMessage.created);
+                          assert.strictEqual(replyMessage.messageBoxId, messageBoxId);
+                          assert.strictEqual(
+                            replyMessage.threadKey,
+                            message.created + '#' + replyMessage.created + '|'
+                          );
+                          assert.strictEqual(replyMessage.body, 'Reply message');
+                          assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
+                          assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
+                          assert.strictEqual(replyMessage.level, 1);
+                          assert.ok(replyMessage.replyTo, message.created);
 
-                        // Cross-tenant user from public tenant can post to a public discussion
-                        RestAPI.Discussions.createMessage(
-                          publicTenant1.publicUser.restContext,
-                          publicTenant.publicDiscussion.id,
-                          'Message from external user',
-                          null,
-                          (error, message) => {
-                            assert.notExists(error);
-                            assert.ok(message);
+                          // Cross-tenant user from public tenant can post to a public discussion
+                          RestAPI.Discussions.createMessage(
+                            publicTenant1.publicUser.restContext,
+                            publicTenant.publicDiscussion.id,
+                            'Message from external user',
+                            null,
+                            (error, message) => {
+                              assert.notExists(error);
+                              assert.ok(message);
 
-                            // Cross-tenant user from public tenant cannot post to a loggedin discussion
-                            RestAPI.Discussions.createMessage(
-                              publicTenant1.publicUser.restContext,
-                              publicTenant.loggedinDiscussion.id,
-                              'Message from external user',
-                              null,
-                              (error, message) => {
-                                assert.ok(error);
-                                assert.ok(error.code, 401);
-                                assert.ok(!message);
+                              // Cross-tenant user from public tenant cannot post to a loggedin discussion
+                              RestAPI.Discussions.createMessage(
+                                publicTenant1.publicUser.restContext,
+                                publicTenant.loggedinDiscussion.id,
+                                'Message from external user',
+                                null,
+                                (error, message) => {
+                                  assert.ok(error);
+                                  assert.ok(error.code, 401);
+                                  assert.ok(!message);
 
-                                // Cross-tenant user from private tenant cannot post to a public discussion
-                                RestAPI.Discussions.createMessage(
-                                  privateTenant.publicUser.restContext,
-                                  publicTenant.publicDiscussion.id,
-                                  'Message from external user',
-                                  null,
-                                  (error, message) => {
-                                    assert.ok(error);
-                                    assert.ok(error.code, 401);
-                                    assert.ok(!message);
+                                  // Cross-tenant user from private tenant cannot post to a public discussion
+                                  RestAPI.Discussions.createMessage(
+                                    privateTenant.publicUser.restContext,
+                                    publicTenant.publicDiscussion.id,
+                                    'Message from external user',
+                                    null,
+                                    (error, message) => {
+                                      assert.ok(error);
+                                      assert.ok(error.code, 401);
+                                      assert.ok(!message);
 
-                                    // Cross-tenant admin cannot post to a loggedin discussion
-                                    RestAPI.Discussions.createMessage(
-                                      publicTenant1.adminRestContext,
-                                      publicTenant.loggedinDiscussion.id,
-                                      'Message from external user',
-                                      null,
-                                      (error, message) => {
-                                        assert.ok(error);
-                                        assert.ok(error.code, 401);
-                                        assert.ok(!message);
+                                      // Cross-tenant admin cannot post to a loggedin discussion
+                                      RestAPI.Discussions.createMessage(
+                                        publicTenant1.adminRestContext,
+                                        publicTenant.loggedinDiscussion.id,
+                                        'Message from external user',
+                                        null,
+                                        (error, message) => {
+                                          assert.ok(error);
+                                          assert.ok(error.code, 401);
+                                          assert.ok(!message);
 
-                                        // Can post to private discussion as a member. Share it, then test creating a message
-                                        RestAPI.Discussions.shareDiscussion(
-                                          publicTenant.adminRestContext,
-                                          publicTenant.privateDiscussion.id,
-                                          [publicTenant.privateUser.user.id],
-                                          (error_) => {
-                                            assert.notExists(error_);
+                                          // Can post to private discussion as a member. Share it, then test creating a message
+                                          RestAPI.Discussions.shareDiscussion(
+                                            publicTenant.adminRestContext,
+                                            publicTenant.privateDiscussion.id,
+                                            [publicTenant.privateUser.user.id],
+                                            (error_) => {
+                                              assert.notExists(error_);
 
-                                            RestAPI.Discussions.createMessage(
-                                              publicTenant.privateUser.restContext,
-                                              publicTenant.privateDiscussion.id,
-                                              'Message from member',
-                                              null,
-                                              (error, message) => {
-                                                assert.notExists(error);
-                                                assert.ok(message);
+                                              RestAPI.Discussions.createMessage(
+                                                publicTenant.privateUser.restContext,
+                                                publicTenant.privateDiscussion.id,
+                                                'Message from member',
+                                                null,
+                                                (error, message) => {
+                                                  assert.notExists(error);
+                                                  assert.ok(message);
 
-                                                // Can post to discussion as admin
-                                                RestAPI.Discussions.createMessage(
-                                                  publicTenant.adminRestContext,
-                                                  publicTenant.privateDiscussion.id,
-                                                  'Message from admin',
-                                                  null,
-                                                  (error, message) => {
-                                                    assert.notExists(error);
-                                                    assert.ok(message);
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                  // Can post to discussion as admin
+                                                  RestAPI.Discussions.createMessage(
+                                                    publicTenant.adminRestContext,
+                                                    publicTenant.privateDiscussion.id,
+                                                    'Message from admin',
+                                                    null,
+                                                    (error, message) => {
+                                                      assert.notExists(error);
+                                                      assert.ok(message);
+                                                      return callback();
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -3587,60 +3634,70 @@ describe('Discussions', () => {
             const lastModified1 = discussion.lastModified;
 
             // Create a discussion to test with
-            RestAPI.Discussions.createMessage(user.restContext, discussion.id, 'My message', null, (
-              error /* , message */
-            ) => {
-              assert.notExists(error);
-
-              // Ensure lastModified didn't change because it is within the one hour threshold (hopefully)
-              RestAPI.Discussions.getDiscussion(user.restContext, discussion.id, (error, discussion) => {
+            RestAPI.Discussions.createMessage(
+              user.restContext,
+              discussion.id,
+              'My message',
+              null,
+              (error /* , message */) => {
                 assert.notExists(error);
-                assert.strictEqual(discussion.lastModified, lastModified1);
 
-                // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
-                const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
-                DiscussionsDAO.updateDiscussion(discussion, { lastModified: lastModified0 }, (error, discussion) => {
+                // Ensure lastModified didn't change because it is within the one hour threshold (hopefully)
+                RestAPI.Discussions.getDiscussion(user.restContext, discussion.id, (error, discussion) => {
                   assert.notExists(error);
-                  assert.strictEqual(discussion.lastModified, lastModified0);
+                  assert.strictEqual(discussion.lastModified, lastModified1);
 
-                  // Message again, this time the lastModified should update
-                  RestAPI.Discussions.createMessage(user.restContext, discussion.id, 'My message', null, (
-                    error /* , message */
-                  ) => {
+                  // Force a naughty update through the DAO of the lastModified to more than an hour ago (threshold duration)
+                  const lastModified0 = lastModified1 - 1 * 60 * 61 * 1000;
+                  DiscussionsDAO.updateDiscussion(discussion, { lastModified: lastModified0 }, (error, discussion) => {
                     assert.notExists(error);
+                    assert.strictEqual(discussion.lastModified, lastModified0);
 
-                    // Ensure the new lastModified is greater than the original creation one
-                    setTimeout(
-                      RestAPI.Discussions.getDiscussion,
-                      200,
+                    // Message again, this time the lastModified should update
+                    RestAPI.Discussions.createMessage(
                       user.restContext,
                       discussion.id,
-                      (error, discussion) => {
+                      'My message',
+                      null,
+                      (error /* , message */) => {
                         assert.notExists(error);
-                        assert.ok(Number.parseInt(discussion.lastModified, 10) > Number.parseInt(lastModified1, 10));
 
-                        // Note at this time, since the lastModified of the discussion updated under the hood without
-                        // a library update, the library of user should 2 versions of this discussion. Lets see if it
-                        // auto-repairs
-
-                        // Make sure the library does not have a duplicate
-                        RestAPI.Discussions.getDiscussionsLibrary(
+                        // Ensure the new lastModified is greater than the original creation one
+                        setTimeout(
+                          RestAPI.Discussions.getDiscussion,
+                          200,
                           user.restContext,
-                          user.user.id,
-                          null,
-                          null,
-                          (error, items) => {
+                          discussion.id,
+                          (error, discussion) => {
                             assert.notExists(error);
-                            assert.strictEqual(items.results.length, 1);
-                            return callback();
+                            assert.ok(
+                              Number.parseInt(discussion.lastModified, 10) > Number.parseInt(lastModified1, 10)
+                            );
+
+                            // Note at this time, since the lastModified of the discussion updated under the hood without
+                            // a library update, the library of user should 2 versions of this discussion. Lets see if it
+                            // auto-repairs
+
+                            // Make sure the library does not have a duplicate
+                            RestAPI.Discussions.getDiscussionsLibrary(
+                              user.restContext,
+                              user.user.id,
+                              null,
+                              null,
+                              (error, items) => {
+                                assert.notExists(error);
+                                assert.strictEqual(items.results.length, 1);
+                                return callback();
+                              }
+                            );
                           }
                         );
                       }
                     );
                   });
                 });
-              });
-            });
+              }
+            );
           }
         );
       });
@@ -3671,32 +3728,36 @@ describe('Discussions', () => {
             assert.notExists(error);
 
             // Validate invalid discussion id
-            RestAPI.Discussions.getMessages(user.restContext, 'not-a-valid-id', null, null, (
-              error /* , messages */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            RestAPI.Discussions.getMessages(
+              user.restContext,
+              'not-a-valid-id',
+              null,
+              null,
+              (error /* , messages */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              // Validate invalid limit
-              // It should default to 10 messages
-              RestAPI.Discussions.getMessages(
-                user.restContext,
-                discussion.id,
-                null,
-                'not-a-valid-limit',
-                (error, messages) => {
-                  assert.notExists(error);
-                  assert.ok(messages);
-
-                  // Sanity check
-                  RestAPI.Discussions.getMessages(user.restContext, discussion.id, null, null, (error, messages) => {
+                // Validate invalid limit
+                // It should default to 10 messages
+                RestAPI.Discussions.getMessages(
+                  user.restContext,
+                  discussion.id,
+                  null,
+                  'not-a-valid-limit',
+                  (error, messages) => {
                     assert.notExists(error);
                     assert.ok(messages);
-                    return callback();
-                  });
-                }
-              );
-            });
+
+                    // Sanity check
+                    RestAPI.Discussions.getMessages(user.restContext, discussion.id, null, null, (error, messages) => {
+                      assert.notExists(error);
+                      assert.ok(messages);
+                      return callback();
+                    });
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -3740,241 +3801,241 @@ describe('Discussions', () => {
       };
 
       // Set up the tenants for tenant privacy rule checking
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Create message structure on the public discussion
-        RestAPI.Discussions.createMessage(
-          publicTenant.loggedinUser.restContext,
-          publicTenant.publicDiscussion.id,
-          'Message1 parent on public',
-          null,
-          (error, publicMessage1) => {
-            assert.notExists(error);
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Create message structure on the public discussion
+          RestAPI.Discussions.createMessage(
+            publicTenant.loggedinUser.restContext,
+            publicTenant.publicDiscussion.id,
+            'Message1 parent on public',
+            null,
+            (error, publicMessage1) => {
+              assert.notExists(error);
 
-            RestAPI.Discussions.createMessage(
-              publicTenant.loggedinUser.restContext,
-              publicTenant.publicDiscussion.id,
-              'Message1 reply on public',
-              publicMessage1.created,
-              (error, replyPublicMessage1) => {
-                assert.notExists(error);
+              RestAPI.Discussions.createMessage(
+                publicTenant.loggedinUser.restContext,
+                publicTenant.publicDiscussion.id,
+                'Message1 reply on public',
+                publicMessage1.created,
+                (error, replyPublicMessage1) => {
+                  assert.notExists(error);
 
-                RestAPI.Discussions.createMessage(
-                  publicTenant.loggedinUser.restContext,
-                  publicTenant.publicDiscussion.id,
-                  'Message2 parent on public',
-                  null,
-                  (error, publicMessage2) => {
-                    assert.notExists(error);
+                  RestAPI.Discussions.createMessage(
+                    publicTenant.loggedinUser.restContext,
+                    publicTenant.publicDiscussion.id,
+                    'Message2 parent on public',
+                    null,
+                    (error, publicMessage2) => {
+                      assert.notExists(error);
 
-                    // Create message on the loggedin discussion
-                    RestAPI.Discussions.createMessage(
-                      publicTenant.loggedinUser.restContext,
-                      publicTenant.loggedinDiscussion.id,
-                      'Message on loggedin',
-                      null,
-                      (error, loggedinMessage) => {
-                        assert.notExists(error);
+                      // Create message on the loggedin discussion
+                      RestAPI.Discussions.createMessage(
+                        publicTenant.loggedinUser.restContext,
+                        publicTenant.loggedinDiscussion.id,
+                        'Message on loggedin',
+                        null,
+                        (error, loggedinMessage) => {
+                          assert.notExists(error);
 
-                        // Share and post message on the private discussion
-                        RestAPI.Discussions.shareDiscussion(
-                          publicTenant.adminRestContext,
-                          publicTenant.privateDiscussion.id,
-                          [publicTenant.privateUser.user.id],
-                          (error_) => {
-                            assert.notExists(error_);
+                          // Share and post message on the private discussion
+                          RestAPI.Discussions.shareDiscussion(
+                            publicTenant.adminRestContext,
+                            publicTenant.privateDiscussion.id,
+                            [publicTenant.privateUser.user.id],
+                            (error_) => {
+                              assert.notExists(error_);
 
-                            RestAPI.Discussions.createMessage(
-                              publicTenant.privateUser.restContext,
-                              publicTenant.privateDiscussion.id,
-                              'Message on private',
-                              null,
-                              (error, privateMessage) => {
-                                assert.notExists(error);
+                              RestAPI.Discussions.createMessage(
+                                publicTenant.privateUser.restContext,
+                                publicTenant.privateDiscussion.id,
+                                'Message on private',
+                                null,
+                                (error, privateMessage) => {
+                                  assert.notExists(error);
 
-                                // Anonymous can read on public, but not loggedin or private
-                                RestAPI.Discussions.getMessages(
-                                  publicTenant.anonymousRestContext,
-                                  publicTenant.publicDiscussion.id,
-                                  null,
-                                  null,
-                                  (error, messages) => {
-                                    assert.notExists(error);
-                                    assert.ok(messages);
-                                    assert.strictEqual(messages.results.length, 3);
+                                  // Anonymous can read on public, but not loggedin or private
+                                  RestAPI.Discussions.getMessages(
+                                    publicTenant.anonymousRestContext,
+                                    publicTenant.publicDiscussion.id,
+                                    null,
+                                    null,
+                                    (error, messages) => {
+                                      assert.notExists(error);
+                                      assert.ok(messages);
+                                      assert.strictEqual(messages.results.length, 3);
 
-                                    // Verify the model of all 3 messages
-                                    _assertMessageModel(
-                                      messages.results[0],
-                                      publicMessage2,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
-                                    _assertMessageModel(
-                                      messages.results[1],
-                                      publicMessage1,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
-                                    _assertMessageModel(
-                                      messages.results[2],
-                                      replyPublicMessage1,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
+                                      // Verify the model of all 3 messages
+                                      _assertMessageModel(
+                                        messages.results[0],
+                                        publicMessage2,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
+                                      _assertMessageModel(
+                                        messages.results[1],
+                                        publicMessage1,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
+                                      _assertMessageModel(
+                                        messages.results[2],
+                                        replyPublicMessage1,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
 
-                                    RestAPI.Discussions.getMessages(
-                                      publicTenant.anonymousRestContext,
-                                      publicTenant.loggedinDiscussion.id,
-                                      null,
-                                      null,
-                                      (error, messages) => {
-                                        assert.ok(error);
-                                        assert.ok(error.code, 401);
-                                        assert.ok(!messages);
+                                      RestAPI.Discussions.getMessages(
+                                        publicTenant.anonymousRestContext,
+                                        publicTenant.loggedinDiscussion.id,
+                                        null,
+                                        null,
+                                        (error, messages) => {
+                                          assert.ok(error);
+                                          assert.ok(error.code, 401);
+                                          assert.ok(!messages);
 
-                                        RestAPI.Discussions.getMessages(
-                                          publicTenant.anonymousRestContext,
-                                          publicTenant.privateDiscussion.id,
-                                          null,
-                                          null,
-                                          (error, messages) => {
-                                            assert.ok(error);
-                                            assert.ok(error.code, 401);
-                                            assert.ok(!messages);
+                                          RestAPI.Discussions.getMessages(
+                                            publicTenant.anonymousRestContext,
+                                            publicTenant.privateDiscussion.id,
+                                            null,
+                                            null,
+                                            (error, messages) => {
+                                              assert.ok(error);
+                                              assert.ok(error.code, 401);
+                                              assert.ok(!messages);
 
-                                            // Authenticated user can read loggedin
-                                            RestAPI.Discussions.getMessages(
-                                              publicTenant.publicUser.restContext,
-                                              publicTenant.loggedinDiscussion.id,
-                                              null,
-                                              null,
-                                              (error, messages) => {
-                                                assert.notExists(error);
-                                                assert.ok(messages);
-                                                assert.strictEqual(messages.results.length, 1);
+                                              // Authenticated user can read loggedin
+                                              RestAPI.Discussions.getMessages(
+                                                publicTenant.publicUser.restContext,
+                                                publicTenant.loggedinDiscussion.id,
+                                                null,
+                                                null,
+                                                (error, messages) => {
+                                                  assert.notExists(error);
+                                                  assert.ok(messages);
+                                                  assert.strictEqual(messages.results.length, 1);
 
-                                                // Verify the model of the message, the loggedin user should not be scrubbed
-                                                _assertMessageModel(
-                                                  messages.results[0],
-                                                  loggedinMessage,
-                                                  publicTenant.loggedinUser.user,
-                                                  false
-                                                );
+                                                  // Verify the model of the message, the loggedin user should not be scrubbed
+                                                  _assertMessageModel(
+                                                    messages.results[0],
+                                                    loggedinMessage,
+                                                    publicTenant.loggedinUser.user,
+                                                    false
+                                                  );
 
-                                                // Authenticated user cannot read private
-                                                RestAPI.Discussions.getMessages(
-                                                  publicTenant.publicUser.restContext,
-                                                  publicTenant.privateDiscussion.id,
-                                                  null,
-                                                  null,
-                                                  (error, messages) => {
-                                                    assert.ok(error);
-                                                    assert.ok(error.code, 401);
-                                                    assert.ok(!messages);
+                                                  // Authenticated user cannot read private
+                                                  RestAPI.Discussions.getMessages(
+                                                    publicTenant.publicUser.restContext,
+                                                    publicTenant.privateDiscussion.id,
+                                                    null,
+                                                    null,
+                                                    (error, messages) => {
+                                                      assert.ok(error);
+                                                      assert.ok(error.code, 401);
+                                                      assert.ok(!messages);
 
-                                                    // Member user can read private
-                                                    RestAPI.Discussions.getMessages(
-                                                      publicTenant.privateUser.restContext,
-                                                      publicTenant.privateDiscussion.id,
-                                                      null,
-                                                      null,
-                                                      (error, messages) => {
-                                                        assert.notExists(error);
-                                                        assert.ok(messages);
-                                                        assert.strictEqual(messages.results.length, 1);
+                                                      // Member user can read private
+                                                      RestAPI.Discussions.getMessages(
+                                                        publicTenant.privateUser.restContext,
+                                                        publicTenant.privateDiscussion.id,
+                                                        null,
+                                                        null,
+                                                        (error, messages) => {
+                                                          assert.notExists(error);
+                                                          assert.ok(messages);
+                                                          assert.strictEqual(messages.results.length, 1);
 
-                                                        // Verify the model of the message, the loggedin user should not be scrubbed
-                                                        _assertMessageModel(
-                                                          messages.results[0],
-                                                          privateMessage,
-                                                          publicTenant.privateUser.user,
-                                                          false
-                                                        );
+                                                          // Verify the model of the message, the loggedin user should not be scrubbed
+                                                          _assertMessageModel(
+                                                            messages.results[0],
+                                                            privateMessage,
+                                                            publicTenant.privateUser.user,
+                                                            false
+                                                          );
 
-                                                        // Ensure paging of the messages
+                                                          // Ensure paging of the messages
 
-                                                        // Get the first two only
-                                                        RestAPI.Discussions.getMessages(
-                                                          publicTenant.anonymousRestContext,
-                                                          publicTenant.publicDiscussion.id,
-                                                          null,
-                                                          2,
-                                                          (error, messages) => {
-                                                            assert.notExists(error);
-                                                            assert.ok(messages);
-                                                            assert.strictEqual(
-                                                              messages.nextToken,
-                                                              messages.results[1].threadKey
-                                                            );
+                                                          // Get the first two only
+                                                          RestAPI.Discussions.getMessages(
+                                                            publicTenant.anonymousRestContext,
+                                                            publicTenant.publicDiscussion.id,
+                                                            null,
+                                                            2,
+                                                            (error, messages) => {
+                                                              assert.notExists(error);
+                                                              assert.ok(messages);
+                                                              assert.strictEqual(
+                                                                messages.nextToken,
+                                                                messages.results[1].threadKey
+                                                              );
 
-                                                            assert.strictEqual(messages.results.length, 2);
+                                                              assert.strictEqual(messages.results.length, 2);
 
-                                                            // Verify the model and ordering of the messages
-                                                            _assertMessageModel(
-                                                              messages.results[0],
-                                                              publicMessage2,
-                                                              publicTenant.loggedinUser.user,
-                                                              true
-                                                            );
-                                                            _assertMessageModel(
-                                                              messages.results[1],
-                                                              publicMessage1,
-                                                              publicTenant.loggedinUser.user,
-                                                              true
-                                                            );
+                                                              // Verify the model and ordering of the messages
+                                                              _assertMessageModel(
+                                                                messages.results[0],
+                                                                publicMessage2,
+                                                                publicTenant.loggedinUser.user,
+                                                                true
+                                                              );
+                                                              _assertMessageModel(
+                                                                messages.results[1],
+                                                                publicMessage1,
+                                                                publicTenant.loggedinUser.user,
+                                                                true
+                                                              );
 
-                                                            // Try and get 2 more. Should only get 1 and it should be the 3rd message
-                                                            RestAPI.Discussions.getMessages(
-                                                              publicTenant.anonymousRestContext,
-                                                              publicTenant.publicDiscussion.id,
-                                                              publicMessage1.threadKey,
-                                                              2,
-                                                              (error, messages) => {
-                                                                assert.notExists(error);
-                                                                assert.ok(messages);
-                                                                assert.strictEqual(messages.results.length, 1);
-                                                                assert.ok(!messages.nextToken);
+                                                              // Try and get 2 more. Should only get 1 and it should be the 3rd message
+                                                              RestAPI.Discussions.getMessages(
+                                                                publicTenant.anonymousRestContext,
+                                                                publicTenant.publicDiscussion.id,
+                                                                publicMessage1.threadKey,
+                                                                2,
+                                                                (error, messages) => {
+                                                                  assert.notExists(error);
+                                                                  assert.ok(messages);
+                                                                  assert.strictEqual(messages.results.length, 1);
+                                                                  assert.ok(!messages.nextToken);
 
-                                                                // Verify the model and ordering of the messages
-                                                                _assertMessageModel(
-                                                                  messages.results[0],
-                                                                  replyPublicMessage1,
-                                                                  publicTenant.loggedinUser.user,
-                                                                  true
-                                                                );
+                                                                  // Verify the model and ordering of the messages
+                                                                  _assertMessageModel(
+                                                                    messages.results[0],
+                                                                    replyPublicMessage1,
+                                                                    publicTenant.loggedinUser.user,
+                                                                    true
+                                                                  );
 
-                                                                return callback();
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                                  return callback();
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -4211,39 +4272,39 @@ describe('Discussions', () => {
      * Test that verifies the logic of deleting messages, and the model and permissions for the operation
      */
     it('verify deleting discussion messages, model and permissions', (callback) => {
-      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Ensure permissions for deleting a message of a public discussion
-        _assertDeleteMessagePermissions(
-          publicTenant,
-          publicTenant.privateUser,
-          publicTenant.loggedinUser,
-          publicTenant.publicUser,
-          publicTenant.publicDiscussion,
-          () => {
-            // Ensure permissions for deleting a message of a loggedin discussion
-            _assertDeleteMessagePermissions(
-              publicTenant,
-              publicTenant.privateUser,
-              publicTenant.loggedinUser,
-              publicTenant.publicUser,
-              publicTenant.loggedinDiscussion,
-              () => {
-                // Ensure permissions for deleting a message of a private discussion
-                return _assertDeleteMessagePermissions(
-                  publicTenant,
-                  publicTenant.privateUser,
-                  publicTenant.loggedinUser,
-                  publicTenant.publicUser,
-                  publicTenant.privateDiscussion,
-                  callback
-                );
-              }
-            );
-          }
-        );
-      });
+      DiscussionsTestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Ensure permissions for deleting a message of a public discussion
+          _assertDeleteMessagePermissions(
+            publicTenant,
+            publicTenant.privateUser,
+            publicTenant.loggedinUser,
+            publicTenant.publicUser,
+            publicTenant.publicDiscussion,
+            () => {
+              // Ensure permissions for deleting a message of a loggedin discussion
+              _assertDeleteMessagePermissions(
+                publicTenant,
+                publicTenant.privateUser,
+                publicTenant.loggedinUser,
+                publicTenant.publicUser,
+                publicTenant.loggedinDiscussion,
+                () => {
+                  // Ensure permissions for deleting a message of a private discussion
+                  return _assertDeleteMessagePermissions(
+                    publicTenant,
+                    publicTenant.privateUser,
+                    publicTenant.loggedinUser,
+                    publicTenant.publicUser,
+                    publicTenant.privateDiscussion,
+                    callback
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 });

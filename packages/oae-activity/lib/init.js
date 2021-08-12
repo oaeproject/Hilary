@@ -13,9 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
-import * as ActivityAPI from 'oae-activity';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityPush from './internal/push.js';
 
 // Register some of the default streams

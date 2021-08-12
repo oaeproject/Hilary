@@ -21,20 +21,20 @@ import { format } from 'util';
 import _ from 'underscore';
 import shortid from 'shortid';
 
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as LibraryTestUtil from 'oae-library/lib/test/util';
-import * as MQTestUtil from 'oae-util/lib/test/mq-util';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import * as LibraryTestUtil from 'oae-library/lib/test/util.js';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import PrincipalsAPI from 'oae-principals';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
-import * as FoldersLibrary from 'oae-folders/lib/library';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
+import * as FoldersLibrary from 'oae-folders/lib/library.js';
 
 import { Context } from 'oae-context';
-import { User } from 'oae-principals/lib/model';
+import { User } from 'oae-principals/lib/model.js';
 import * as FoldersDAO from '../internal/dao.js';
 import { FoldersConstants } from '../constants.js';
 

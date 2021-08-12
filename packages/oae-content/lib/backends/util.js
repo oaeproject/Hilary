@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 import ShortId from 'shortid';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 const VALID_CHARACTERS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
 const COLLABDOC = 'collabdoc';

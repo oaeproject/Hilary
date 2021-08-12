@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as MQ from 'oae-util/lib/mq';
+import * as MQ from 'oae-util/lib/mq.js';
 
 /**
  * Fetches the length of a queue (which is a redis list)
@@ -40,7 +40,7 @@ const getQueueLength = (queueName, callback) => {
  * @param  {Function}   handler     The handler to invoke when the task queue is empty
  * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
-const whenTasksEmpty = function(queueName, done) {
+const whenTasksEmpty = function (queueName, done) {
   isQueueEmpty(queueName, (err, isEmpty) => {
     if (err) return done(err);
     if (isEmpty) return done();

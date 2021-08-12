@@ -18,6 +18,12 @@ import fs from 'fs';
 import path from 'path';
 import dateFormat from 'dateformat';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { map, head, reverse, compose, split, join } from 'ramda';
 
 import {
@@ -27,12 +33,12 @@ import {
   assertCreateLinkSucceeds,
   createCollabsheet,
   editAndPublishCollabSheet
-} from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
+} from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
-import { getDefaultSnapshot } from 'oae-content/lib/internal/ethercalc';
+import { getDefaultSnapshot } from 'oae-content/lib/internal/ethercalc.js';
 
 const TO_STRING = 'string';
 const SOME_NAME = 'name';

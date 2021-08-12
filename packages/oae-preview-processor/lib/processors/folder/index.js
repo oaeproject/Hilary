@@ -12,11 +12,16 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import fs from 'fs';
 import Path from 'path';
 import { format } from 'util';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import { logger } from 'oae-logger';
 import sharp from 'sharp';
 import {
@@ -40,16 +45,16 @@ import {
   not
 } from 'ramda';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Context } from 'oae-context';
-import { FoldersConstants } from 'oae-folders/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 import * as FoldersAPI from 'oae-folders';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 const { getStorageBackend } = ContentUtil;
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 import * as LibraryAPI from 'oae-library';
-import * as TempFile from 'oae-util/lib/tempfile';
+import * as TempFile from 'oae-util/lib/tempfile.js';
 
 const log = logger('folders-previews');
 

@@ -19,11 +19,13 @@ import passport from 'passport';
 import * as ConfigAPI from 'oae-config';
 import { Context } from 'oae-context';
 import PrincipalsAPI from 'oae-principals';
-import { User } from 'oae-principals/lib/model';
+import { User } from 'oae-principals/lib/model.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
+
+import { equals } from 'ramda';
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -42,12 +44,9 @@ function initLocalAuth(config) {
    */
   strategy.shouldBeEnabled = function (tenantAlias) {
     // The global tenant should always have local login enabled.
-    if (tenantAlias === globalTenantAlias) {
-      return true;
+    if (equals(tenantAlias, globalTenantAlias)) return true;
 
-      // Otherwise we need to check the configuration.
-    }
-
+    // Otherwise we need to check the configuration.
     return AuthenticationConfig.getValue(
       tenantAlias,
       AuthenticationConstants.providers.LOCAL,
@@ -119,4 +118,4 @@ function initLocalAuth(config) {
   passport.use(adminLocalPassportStrategyName, strategy.getPassportStrategy(globalTenant));
 }
 
-export default initLocalAuth;
+export { initLocalAuth };

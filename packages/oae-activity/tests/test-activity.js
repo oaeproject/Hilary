@@ -15,20 +15,20 @@
 
 /* eslint-disable no-import-assign */
 import { assert } from 'chai';
-import { format } from 'util';
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
-import { Context } from 'oae-context/lib/api';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import { callbackify, format } from 'util';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
+import { Context } from 'oae-context/lib/api.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityDAO from 'oae-activity/lib/internal/dao';
-import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
-import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao.js';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
+import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model.js';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import {
   mergeRight,
   isEmpty,
@@ -87,7 +87,7 @@ describe('Activity', () => {
 
   after((callback) => {
     // Always restore the getAggregateStatus function
-    ActivityDAO.getAggregateStatus = activityDaoGetAggregateStatusFn;
+    process.env.TEST_ALTERNATE_AGGREGATION = 'false';
 
     // Ensure activities are set back to enabled in case of test failures
     ConfigTestsUtil.updateConfigAndWait(
@@ -2894,17 +2894,13 @@ describe('Activity', () => {
           const { 0: jack } = users;
 
           // Mock an error each time a content-create activity is attempted to be delivered for jack's feed
-          ActivityDAO.getAggregateStatus = function (allAggregateKeys, callback) {
+          process.env.TEST_ALTERNATE_AGGREGATION = 'true';
+          global.alternateAggregateStatus = function (allAggregateKeys, callback) {
             const brokenAggregateKeyPrefix = format('content-create#%s#activity', jack.user.id);
-            const brokenAggregateKeys = filter(
-              compose(equals(0), indexOf(brokenAggregateKeyPrefix)),
-              /**
-            aggregateKey => {
-              return aggregateKey.indexOf(brokenAggregateKeyPrefix) === 0;
-            }
-            */
-              allAggregateKeys
-            );
+            const brokenAggregateKeys = filter(compose(equals(0), indexOf(brokenAggregateKeyPrefix)), allAggregateKeys);
+
+            // Let's avoid the infinite loop by resetting the env variable
+            process.env.TEST_ALTERNATE_AGGREGATION = 'false';
 
             if (isEmpty(brokenAggregateKeys)) {
               // If there is no broken aggregate key in this set, simply pass up to the regular function

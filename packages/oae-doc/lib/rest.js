@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
-import * as Swagger from 'oae-util/lib/swagger';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as Swagger from 'oae-util/lib/swagger.js';
 import { getModuleDocumentation, getModules } from './api.js';
 
 /**
@@ -39,7 +39,6 @@ const _getDocModulesByType = function (request, response) {
     response.status(200).send(modules);
   });
 };
-
 OAE.tenantRouter.on('get', '/api/doc/:type', _getDocModulesByType);
 OAE.globalAdminRouter.on('get', '/api/doc/:type', _getDocModulesByType);
 

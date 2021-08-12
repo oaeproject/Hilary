@@ -18,8 +18,8 @@ import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as MQ from 'oae-util/lib/mq';
-import { whenTasksEmpty as waitUntilProcessed, getQueueLength } from 'oae-util/lib/test/mq-util';
+import * as MQ from 'oae-util/lib/mq.js';
+import { whenTasksEmpty as waitUntilProcessed, getQueueLength } from 'oae-util/lib/test/mq-util.js';
 import { config } from '../../../config.js';
 
 describe('MQ', () => {

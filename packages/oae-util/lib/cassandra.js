@@ -17,14 +17,14 @@ import { format } from 'util';
 
 import * as cassandra from 'cassandra-driver';
 // eslint-disable-next-line no-unused-vars
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 const { Row, dataTypes } = cassandra.types;
-const _ = require('underscore');
+import _ from 'underscore';
 
 let log = null;
 let Telemetry = null;

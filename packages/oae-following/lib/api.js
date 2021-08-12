@@ -15,16 +15,16 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as FollowingAuthz from 'oae-following/lib/authz';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as FollowingAuthz from 'oae-following/lib/authz.js';
 
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const { unless, isUserId, isLoggedInUser } = validator;
-import { FollowingConstants } from 'oae-following/lib/constants';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
 import * as FollowingDAO from './internal/dao.js';
 
 /**

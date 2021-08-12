@@ -15,8 +15,8 @@
 
 import { assert } from 'chai';
 import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
-import { Content } from 'oae-content/lib/model';
-import { FilterGenerator } from 'oae-preview-processor/lib/filters';
+import { Content } from 'oae-content/lib/model.js';
+import { FilterGenerator } from 'oae-preview-processor/lib/filters.js';
 
 const isNotEmpty = compose(not, isEmpty);
 const isFalse = (x) => equals(false, x);

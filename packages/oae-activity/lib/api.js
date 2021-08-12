@@ -16,14 +16,14 @@
 import _ from 'underscore';
 import * as async from 'async';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as LibraryAuthz from 'oae-library/lib/api.authz';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as LibraryAuthz from 'oae-library/lib/api.authz.js';
 import { logger } from 'oae-logger';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as Redis from 'oae-util/lib/redis';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as Redis from 'oae-util/lib/redis.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 
 const {
   getNestedObject,
@@ -38,12 +38,12 @@ const {
 } = validator;
 
 import { both } from 'ramda';
-import isIn from 'validator/lib/isIn';
+import isIn from 'validator/lib/isIn.js';
 
 import { setUpConfig } from 'oae-config';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { ActivityStream } from 'oae-activity/lib/model';
-import * as MQ from 'oae-util/lib/mq';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { ActivityStream } from 'oae-activity/lib/model.js';
+import * as MQ from 'oae-util/lib/mq.js';
 import ActivityEmitter from './internal/emitter.js';
 import * as ActivityEmail from './internal/email.js';
 import * as ActivityNotifications from './internal/notifications.js';
@@ -111,10 +111,7 @@ const refreshConfiguration = function (config, callback) {
   if (config.processActivityJobs && config.collectionPollingFrequency > 0) {
     const collectionPollingFrequencyInMs = config.collectionPollingFrequency * 1000;
     // Delegate to the aggregator to collect/aggregate all buckets
-    collectionPollingTimer = setInterval(
-      ActivityAggregator.collectAllBuckets,
-      collectionPollingFrequencyInMs
-    );
+    collectionPollingTimer = setInterval(ActivityAggregator.collectAllBuckets, collectionPollingFrequencyInMs);
   }
 
   // Reset the mail polling interval
@@ -525,16 +522,8 @@ const registerActivityEntityType = function (activityEntityType, options) {
  * @param  {Object}                 associationFunction.callback.err            An error that occurred, if any
  * @param  {Array|Object}           associationFunction.callback.association    The result of the association. To be useful as a route, this should be an array of strings, however other data structures can be provided as well for ad-hoc operations using the associations context directly
  */
-const registerActivityEntityAssociation = function (
-  activityEntityType,
-  associationName,
-  associationFunction
-) {
-  ActivityRegistry.registerActivityEntityAssociation(
-    activityEntityType,
-    associationName,
-    associationFunction
-  );
+const registerActivityEntityAssociation = function (activityEntityType, associationName, associationFunction) {
+  ActivityRegistry.registerActivityEntityAssociation(activityEntityType, associationName, associationFunction);
 };
 
 /**
@@ -576,35 +565,23 @@ const getActivityStream = function (ctx, principalId, start, limit, transformerT
     // Determining which activity stream should be returned is exactly the same
     // as resolving which library should be returned to a user. We can simply
     // re-use the library-authz logic
-    LibraryAuthz.resolveTargetLibraryAccess(
-      ctx,
-      principalId,
-      principal,
-      (error, hasAccess, visibility) => {
-        if (error) {
-          return callback(error);
-        }
-
-        if (!hasAccess) {
-          return callback({ code: 401, msg: 'You cannot access this activity stream' });
-        }
-
-        let activityStreamType = 'activity';
-        if (visibility === 'public' || visibility === 'loggedin') {
-          activityStreamType += '#' + visibility;
-        }
-
-        // Return the activities
-        return _getActivityStream(
-          ctx,
-          principalId + '#' + activityStreamType,
-          start,
-          limit,
-          transformerType,
-          callback
-        );
+    LibraryAuthz.resolveTargetLibraryAccess(ctx, principalId, principal, (error, hasAccess, visibility) => {
+      if (error) {
+        return callback(error);
       }
-    );
+
+      if (!hasAccess) {
+        return callback({ code: 401, msg: 'You cannot access this activity stream' });
+      }
+
+      let activityStreamType = 'activity';
+      if (visibility === 'public' || visibility === 'loggedin') {
+        activityStreamType += '#' + visibility;
+      }
+
+      // Return the activities
+      return _getActivityStream(ctx, principalId + '#' + activityStreamType, start, limit, transformerType, callback);
+    });
   });
 };
 
@@ -787,14 +764,7 @@ const postActivity = function (ctx, activitySeed, callback) {
  * @param j {ActivityStream}    callback.activityStream  The activity stream
  * @api private
  */
-const _getActivityStream = function (
-  ctx,
-  activityStreamId,
-  start,
-  limit,
-  transformerType,
-  callback
-) {
+const _getActivityStream = function (ctx, activityStreamId, start, limit, transformerType, callback) {
   ActivityDAO.getActivities(activityStreamId, start, limit, (error, activities, nextToken) => {
     if (error) return callback(error);
 
@@ -842,21 +812,16 @@ const removeActivityStream = function (ctx, principalId, callback) {
       activityTypes,
       function (activityType, done) {
         // Get all the activity streams corresponding to the deleted principal
-        ActivityDAO.getActivities(
-          principalId + activityType,
-          null,
-          null,
-          function (error, activities) {
+        ActivityDAO.getActivities(principalId + activityType, null, null, function (error, activities) {
+          if (error) return callback(error);
+
+          // Delete all data in the ActivityStreams table corresponding to the deleted principal
+          ActivityDAO.deleteActivities(activities, function (error) {
             if (error) return callback(error);
 
-            // Delete all data in the ActivityStreams table corresponding to the deleted principal
-            ActivityDAO.deleteActivities(activities, function (error) {
-              if (error) return callback(error);
-
-              return done();
-            });
-          }
-        );
+            return done();
+          });
+        });
       },
       function () {
         return callback();

@@ -18,7 +18,13 @@ import fs from 'fs';
 import path from 'path';
 import { equals, keys, forEach } from 'ramda';
 
-import * as ContentDAO from 'oae-content/lib/internal/dao';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 

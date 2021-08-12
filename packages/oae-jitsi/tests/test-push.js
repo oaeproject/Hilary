@@ -1,11 +1,11 @@
 import { assert } from 'chai';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 describe('Meeting Push', () => {
   let localAdminRestContext = null;
@@ -269,11 +269,15 @@ describe('Meeting Push', () => {
     it('verify a new message triggers a push notification', (callback) => {
       setupFixture((contexts, meeting, client) => {
         // Create a message
-        RestAPI.MeetingsJitsi.createComment(contexts.branden.restContext, meeting.id, 'Hello world !', null, (
-          error /* , _meetingMessage */
-        ) => {
-          assert.notExists(error);
-        });
+        RestAPI.MeetingsJitsi.createComment(
+          contexts.branden.restContext,
+          meeting.id,
+          'Hello world !',
+          null,
+          (error /* , _meetingMessage */) => {
+            assert.notExists(error);
+          }
+        );
 
         ActivityTestsUtil.waitForPushActivity(
           client,
@@ -305,11 +309,15 @@ describe('Meeting Push', () => {
             assert.notExists(error);
 
             // Create a message
-            RestAPI.MeetingsJitsi.createComment(contexts.branden.restContext, meeting.id, 'Hello world !', null, (
-              error /* , _meetingMessage */
-            ) => {
-              assert.notExists(error);
-            });
+            RestAPI.MeetingsJitsi.createComment(
+              contexts.branden.restContext,
+              meeting.id,
+              'Hello world !',
+              null,
+              (error /* , _meetingMessage */) => {
+                assert.notExists(error);
+              }
+            );
 
             ActivityTestsUtil.waitForPushActivity(
               client,

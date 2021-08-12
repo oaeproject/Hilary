@@ -16,12 +16,12 @@
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import Counter from 'oae-util/lib/counter';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import Counter from 'oae-util/lib/counter.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as LibraryAuthz from './api.authz';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as LibraryAuthz from './api.authz.js';
 import * as LibraryRegistry from './internal/registry.js';
 
 const log = logger('library-index');

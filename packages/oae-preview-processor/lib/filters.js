@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { toArray } from 'oae-util/lib/util';
+import { toArray } from 'oae-util/lib/util.js';
 import {
   equals,
   not,
@@ -39,10 +39,10 @@ import {
 const isDefined = Boolean;
 const isNotDefined = compose(not, isDefined);
 const greaterThanZero = curry(gt)(__, 0);
-const returnItself = x => x;
-const contentIsNotDefined = filters => compose(not, isDefined, path(['content']))(filters);
-const revisionIsNotDefined = filters => compose(not, isDefined, path(['revision']))(filters);
-const statusIsDefined = previews => path(['status'], previews);
+const returnItself = (x) => x;
+const contentIsNotDefined = (filters) => compose(not, isDefined, path(['content']))(filters);
+const revisionIsNotDefined = (filters) => compose(not, isDefined, path(['revision']))(filters);
+const statusIsDefined = (previews) => path(['status'], previews);
 
 const RESOURCE_SUBTYPE = 'resourceSubType';
 const resourceSubType = {
@@ -86,7 +86,7 @@ const tenantFilter = {
  * @param  {String[]}       [filters.revision.previewsStatus]   Filter the revisions based on their previews status
  * @return {Object}                                             Returns an object that contains the necessary methods to do validation and filtering
  */
-const FilterGenerator = function(filters) {
+const FilterGenerator = function (filters) {
   const errors = [];
   let needsRevisions = false;
   const contentCheckers = [];
@@ -106,9 +106,9 @@ const FilterGenerator = function(filters) {
    * At the same we construct all the functions that are
    * required to do in-app filtering
    */
-  const getFilter = filterValue => curry(contains)(__, toArray(filterValue));
-  const getStatusFilter = filter => {
-    return revision => {
+  const getFilter = (filterValue) => curry(contains)(__, toArray(filterValue));
+  const getStatusFilter = (filter) => {
+    return (revision) => {
       if (both(isDefined, statusIsDefined)(revision.previews)) {
         return filter(revision.previews.status);
       }
@@ -125,7 +125,7 @@ const FilterGenerator = function(filters) {
       columnNames.push(resourceSubType.columnName);
 
       // Construct the filter function
-      contentCheckers.push(content => filterContains(content.resourceSubType));
+      contentCheckers.push((content) => filterContains(content.resourceSubType));
     } else if (equals(filterKey, previewStatusFilter.key)) {
       // We'll need the previews column if we want to run this filter
       columnNames.push(previewStatusFilter.columnName);
@@ -133,12 +133,12 @@ const FilterGenerator = function(filters) {
       // Construct the filter function
       contentCheckers.push(getStatusFilter(filterContains));
     } else if (equals(filterKey, createdByFilter.key)) {
-      contentCheckers.push(content => filterContains(content.createdBy));
+      contentCheckers.push((content) => filterContains(content.createdBy));
     } else if (equals(filterKey, tenantFilter.key)) {
       columnNames.push(tenantFilter.columnName);
-      contentCheckers.push(content => filterContains(content.tenantAlias));
+      contentCheckers.push((content) => filterContains(content.tenantAlias));
     } else if (equals(filterKey, contentIdFilter.key)) {
-      contentCheckers.push(content => equals(content.contentId, filterValue));
+      contentCheckers.push((content) => equals(content.contentId, filterValue));
     } else {
       errors.push({ code: 400, msg: 'Unknown content filter' });
     }
@@ -149,7 +149,7 @@ const FilterGenerator = function(filters) {
     const filterContains = getFilter(filterValue);
     if (equals(filterKey, 'mime')) {
       needsRevisions = true;
-      revisionCheckers.push(revision => {
+      revisionCheckers.push((revision) => {
         if (isNotDefined(revision.mime)) return false;
 
         // Check if the mime type is in the desired set of mimetypes
@@ -160,15 +160,15 @@ const FilterGenerator = function(filters) {
       revisionCheckers.push(getStatusFilter(filterContains));
     } else if (equals(filterKey, createdByFilter.key)) {
       needsRevisions = true;
-      revisionCheckers.push(revision => filterContains(revision.createdBy));
+      revisionCheckers.push((revision) => filterContains(revision.createdBy));
     } else if (equals(filterKey, createdAfterFilter.key)) {
       needsRevisions = true;
       const createdAfter = curry(gt)(__, Number.parseInt(filterValue, 10));
-      revisionCheckers.push(revision => createdAfter(revision.created));
+      revisionCheckers.push((revision) => createdAfter(revision.created));
     } else if (equals(filterKey, createdBeforeFilter.key)) {
       needsRevisions = true;
       const createdBefore = curry(lt)(__, Number.parseInt(filterValue, 10));
-      revisionCheckers.push(revision => createdBefore(revision.created));
+      revisionCheckers.push((revision) => createdBefore(revision.created));
     } else {
       errors.push({ code: 400, msg: 'Unknown revision filter' });
     }
@@ -218,13 +218,13 @@ const FilterGenerator = function(filters) {
    * @param  {Content[]}  content     The array of content items to filter
    * @return {Content[]}              The filtered array of content items
    */
-  that.filterContent = content => {
-    const allFilters = map(each => filter(each), contentCheckers);
+  that.filterContent = (content) => {
+    const allFilters = map((each) => filter(each), contentCheckers);
 
     return ifElse(
       () => isEmpty(allFilters),
       returnItself,
-      content => pipe(...allFilters)(content)
+      (content) => pipe(...allFilters)(content)
     )(content);
   };
 
@@ -235,23 +235,23 @@ const FilterGenerator = function(filters) {
    * @param  {Content[]}  content     An array of content items for which to filter the revisions. It's assumed that the revisions are available at `content[i].revisions`
    * @return {Content[]}              A filtered array of content items
    */
-  that.filterRevisions = content => {
+  that.filterRevisions = (content) => {
     let allFilters = [];
-    forEach(eachContentItem => {
+    forEach((eachContentItem) => {
       allFilters = [];
-      forEach(eachRevisionChecker => {
+      forEach((eachRevisionChecker) => {
         allFilters.push(filter(eachRevisionChecker));
       }, revisionCheckers);
 
       eachContentItem.revisions = ifElse(
         () => isEmpty(allFilters),
         returnItself,
-        revisions => pipe(...allFilters)(revisions)
+        (revisions) => pipe(...allFilters)(revisions)
       )(eachContentItem.revisions);
     }, content);
 
     // Remove all those content items who no longer have a matching revision
-    content = filter(contentItem => greaterThanZero(contentItem.revisions.length), content);
+    content = filter((contentItem) => greaterThanZero(contentItem.revisions.length), content);
     return content;
   };
 

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as tz from 'oae-util/lib/tz';
+import * as tz from 'oae-util/lib/tz.js';
 import {
   defaultTo,
   trim,
@@ -175,7 +175,10 @@ const unless = (validation, error) => {
  * @param  {Array} ...args        Extra arguments for validation
  * @return {Boolean}              Result of validation if condition is true, otherwise return true (no error thrown)
  */
-const validateInCase = (condition, validation) => (value, ...args) => (condition ? validation(value, ...args) : true);
+const validateInCase =
+  (condition, validation) =>
+  (value, ...args) =>
+    condition ? validation(value, ...args) : true;
 
 /**
  * @function getNestedObject

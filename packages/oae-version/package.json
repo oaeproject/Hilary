@@ -1,6 +1,7 @@
 {
     "main": "./lib/api.js",
     "name": "oae-version",
+    "type": "module",
     "repository": {
         "type": "git",
         "url": "git://github.com/oaeproject/Hilary.git"

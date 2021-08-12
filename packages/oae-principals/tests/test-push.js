@@ -14,12 +14,12 @@
  */
 
 import { assert } from 'chai';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 describe('Group Push', () => {
   // Rest contexts that can be used performing rest requests

@@ -16,8 +16,8 @@
 import { assert } from 'chai';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as Ethercalc from 'oae-content/lib/internal/ethercalc';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as Ethercalc from 'oae-content/lib/internal/ethercalc.js';
 
 const { generateTestUserId, generateTestUsers } = TestsUtil;
 const { updateContent, getContent, joinCollabDoc, createLink, createCollabsheet, updateMembers } = RestAPI.Content;

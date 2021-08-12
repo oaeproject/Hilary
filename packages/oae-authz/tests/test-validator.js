@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import { Validator as v } from 'oae-authz/lib/validator';
+import { Validator as v } from 'oae-authz/lib/validator.js';
 
 describe('Authz-Validator', () => {
   describe('#isResourceId()', () => {

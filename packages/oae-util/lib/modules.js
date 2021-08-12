@@ -13,48 +13,25 @@
  * permissions and limitations under the License.
  */
 
+import { stat } from 'fs';
+
+import { promisify, callbackify } from 'util';
+import { readFile } from 'fs/promises';
+import Path from 'path';
 import fs from 'fs';
-import async from 'async';
-import _ from 'underscore';
+import _, { reject } from 'underscore';
 
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as IO from './io.js';
-import * as Swagger from './swagger.js';
+import { compose, map, prop, sortBy } from 'ramda';
+
+import ora from 'ora';
 
 const log = logger('oae-modules');
 
 // Variable that will be used to cache the available modules
 let cachedAvailableModules = [];
-
-// The ES6 modules so far
-const ES6Modules = [
-  'oae-version',
-  'oae-doc',
-  'oae-logger',
-  'oae-config',
-  'oae-ui',
-  'oae-lti',
-  'oae-emitter',
-  'oae-telemetry',
-  'oae-activity',
-  'oae-authentication',
-  'oae-authz',
-  'oae-content',
-  'oae-discussions',
-  'oae-email',
-  'oae-folders',
-  'oae-following',
-  'oae-jitsi',
-  'oae-library',
-  'oae-messagebox',
-  'oae-tincanapi',
-  'oae-preview-processor',
-  'oae-search',
-  'oae-tenants',
-  'oae-util',
-  'oae-principals'
-];
 
 /**
  * Module bootstrapping
@@ -70,7 +47,7 @@ const ES6Modules = [
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const bootstrapModules = function (config, callback) {
-  initAvailableModules((error, modules) => {
+  callbackify(initAvailableModules)((error, modules) => {
     if (error) return callback(error);
 
     if (_.isEmpty(modules)) {
@@ -80,17 +57,33 @@ const bootstrapModules = function (config, callback) {
     log().info('Starting modules: %s', modules.join(', '));
 
     // Initialize all modules
-    bootstrapModulesInit(modules, config, (error_) => {
+    callbackify(bootstrapModulesInit)(modules, config, (error_) => {
       if (error_) return callback(error_);
 
       // Register all endpoints
-      return bootstrapModulesRest(modules, callback);
+      return callbackify(bootstrapModulesRest)(modules, callback);
     });
   });
 };
 
+/*
+ * Executes Promises sequentially.
+ * @param {funcs} An array of funcs that return promises.
+ * @example
+ * const urls = ['/url1', '/url2', '/url3']
+ * serial(urls.map(url => () => $.ajax(url)))
+ *     .then(console.log.bind(console))
+ */
+const serial = (funcs) =>
+  funcs.reduce(
+    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+    Promise.resolve([])
+  );
+
 /**
- * Initialize all of the modules. This will take care of CF creation, etc. This needs to happen asynchronously as column family creation and
+ * Initialize all of the modules.
+ * This will take care of CF creation, etc. This needs to happen asynchronously
+ * as column family creation and
  * refreshing the schema needs to happen asynchronously.
  *
  * @param  {String[]}   modules         An array of modules that should be bootstrapped. These need to be located in the ./node_modules directory
@@ -99,43 +92,56 @@ const bootstrapModules = function (config, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const bootstrapModulesInit = function (modules, config, callback) {
+const bootstrapModulesInit = function (modules, config) {
   const MODULE_INIT_FILE = '/lib/init.js';
-  async.mapSeries(
-    modules,
-    (moduleName, done) => {
-      const _onceDone = (error) => {
-        if (error) {
-          log().error(error.stack);
-          log().error({ err: error }, 'Error initializing module %s', moduleName);
-          return callback(error);
-        }
+  let spinner;
 
-        log().info('Initialized module %s', moduleName);
-        done();
+  return serial(
+    modules.map((moduleName) => {
+      const moduleInitPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_INIT_FILE);
+
+      return () => {
+        return new Promise((resolve, reject) => {
+          spinner = ora({
+            text: `Loading ${moduleName}...`
+          }).start();
+
+          promisify(stat)(moduleInitPath)
+            .then((stat) => {
+              if (stat.isFile()) {
+                // ES6 modules cannot have an export default as a function, so init it exported instead
+                import(process.cwd() + '/node_modules/' + moduleName + MODULE_INIT_FILE)
+                  .then((pkg) => {
+                    return promisify(pkg.init)(config);
+                  })
+                  .then(() => {
+                    spinner.succeed(`Loaded module ${moduleName}`);
+                    resolve();
+                  })
+                  .catch((e) => {
+                    spinner.fail(`Failed to load module ${moduleName}`);
+                    reject(e);
+                  });
+              }
+            })
+            .catch((e) => {
+              // There's no init method, skipping
+              spinner.succeed(`Loaded module ${moduleName}`);
+              resolve();
+            })
+            .finally(() => {});
+        });
       };
-
-      const moduleInitPath = OaeUtil.getNodeModulesDir() + moduleName + MODULE_INIT_FILE;
-
-      if (fs.existsSync(moduleInitPath)) {
-        // ES6 modules cannot have an export default as a function, so init it exported instead
-        if (_.contains(ES6Modules, moduleName)) {
-          require(moduleName + MODULE_INIT_FILE).init(config, _onceDone);
-        } else {
-          require(moduleName + MODULE_INIT_FILE)(config, _onceDone);
-        }
-      } else {
-        done();
-      }
-    },
-    (error) => {
-      if (error) {
-        callback(error);
-      }
-
-      callback(null);
-    }
-  );
+    })
+  )
+    .catch((e) => {
+      // TODO I guess this does nothing
+      reject(e);
+    })
+    .finally(() => {
+      spinner.stop();
+      return;
+    });
 };
 
 /**
@@ -146,18 +152,54 @@ const bootstrapModulesInit = function (modules, config, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const bootstrapModulesRest = function (modules, callback) {
-  const complete = _.after(modules.length, callback);
-  _.each(modules, (module) => {
-    const path = OaeUtil.getNodeModulesDir() + module + '/lib/rest.js';
-    if (fs.existsSync(path)) {
-      log().info('REST services for %s have been registered', module);
-      require(module + '/lib/rest');
-    }
+const bootstrapModulesRest = function (modules) {
+  const MODULE_REST_FILE = '/lib/rest.js';
+  let spinner;
 
-    // Swagger document all modules
-    return Swagger.documentModule(module, complete);
-  });
+  return serial(
+    modules.map((moduleName) => {
+      const moduleRestPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_REST_FILE);
+
+      return () => {
+        return new Promise((resolve, reject) => {
+          spinner = ora({
+            text: `Loading routes for ${moduleName}...`
+          }).start();
+          promisify(fs.stat)(moduleRestPath)
+            .then((stat) => {
+              if (stat.isFile()) {
+                log().info('REST services for %s have been registered', moduleName);
+                import(process.cwd() + '/node_modules/' + moduleName + MODULE_REST_FILE)
+                  .then((pkg) => {
+                    spinner.succeed(`Loaded routes for module ${moduleName}`);
+                    resolve();
+                  })
+                  .catch((e) => {
+                    spinner.fail(`Failed to load routes for module ${moduleName}`);
+                    reject(e);
+                  });
+              }
+            })
+            .catch((e) => {
+              // There's no rest module, skipping
+              spinner.succeed(`Loaded routes for module ${moduleName}`);
+              resolve();
+            })
+            .finally(() => {});
+        });
+      };
+    })
+  )
+    .catch((e) => {
+      reject(e);
+    })
+    .finally(() => {
+      spinner.stop();
+      return;
+    });
+  // TODO: Eventually we'll cleanup all swagger stuff in OAE
+  // Swagger document all modules
+  // return Swagger.documentModule(module, complete);
 };
 
 /**
@@ -170,40 +212,67 @@ const bootstrapModulesRest = function (modules, callback) {
  * @param  {Function}   callback                Standard callback function
  * @param  {String[]}   callback.finalModules   Array of strings representing the names of the available modules
  */
-const initAvailableModules = function (callback) {
-  IO.getFileListForFolder(OaeUtil.getNodeModulesDir(), (error, modules) => {
-    if (error) return callback(error);
+const initAvailableModules = function () {
+  return promisify(IO.getFileListForFolder)(OaeUtil.getNodeModulesDir())
+    .then((modules) => {
+      return modules.filter((each) => each.startsWith('oae-'));
+    })
+    .then((modules) => {
+      return Promise.all(
+        modules.map((each) => {
+          return new Promise((resolve, reject) => {
+            readFile(Path.join(process.cwd(), 'node_modules', each, 'package.json'), 'utf8')
+              .then((data) => {
+                return JSON.parse(data);
+              })
+              .then((pkg) => {
+                if (pkg.oae && pkg.oae.priority) {
+                  // Found a priority in package.json at oae.priority
+                  resolve({ module: pkg.name, priority: pkg.oae.priority });
+                } else {
+                  // No priority found, it goes in last
+                  resolve({ module: pkg.name, priority: Number.MAX_VALUE });
+                }
+              })
+              .catch((e) => {
+                reject(e);
+              });
+          });
+        })
+      );
+    })
+    .then((result) => {
+      // Order by the startup priority
+      const sortByPriority = sortBy(prop('priority'));
+      const getModuleName = map(prop('module'));
+      const finalModules = compose(getModuleName, sortByPriority)(result);
 
-    const finalModules = [];
-    const modulePriority = {};
+      // Cache the available modules
+      cachedAvailableModules = finalModules;
 
+      return finalModules;
+    });
+};
+/*
     // Aggregate the oae- modules
     for (const module of modules) {
       if (module.slice(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';
-        const pkg = require(filename);
-        if (pkg.oae && pkg.oae.priority) {
-          // Found a priority in package.json at oae.priority
-          modulePriority[module] = pkg.oae.priority;
-        } else {
-          // No priority found, it goes in last
-          modulePriority[module] = Number.MAX_VALUE;
-        }
-
-        finalModules.push(module);
+        // const pkg = require(filename);
+        import(filename).then((pkg) => {
+          if (pkg.oae && pkg.oae.priority) {
+            // Found a priority in package.json at oae.priority
+            modulePriority[module] = pkg.oae.priority;
+          } else {
+            // No priority found, it goes in last
+            modulePriority[module] = Number.MAX_VALUE;
+          }
+          finalModules.push(module);
+        });
       }
     }
-
-    // Order by the startup priority
-    finalModules.sort((a, b) => modulePriority[a] - modulePriority[b]);
-
-    // Cache the available modules
-    cachedAvailableModules = finalModules;
-
-    callback(null, finalModules);
-  });
-};
+    */
 
 /**
  * Returns the available modules from cache

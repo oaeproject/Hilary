@@ -15,10 +15,10 @@
 
 import sockjs from 'sockjs';
 
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import * as ActivityAPI from 'oae-activity';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityPush from './internal/push.js';
 
 /**

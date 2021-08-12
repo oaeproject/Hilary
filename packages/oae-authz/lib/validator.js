@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import { Validator } from 'oae-util/lib/validator';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { Validator } from 'oae-util/lib/validator.js';
 import { compose, either, not, equals } from 'ramda';
 
 /**
@@ -25,7 +25,7 @@ import { compose, either, not, equals } from 'ramda';
  * validator.isPrincipalId(principalId);
  * ```
  */
-Validator.isPrincipalId = string => AuthzUtil.isPrincipalId(string);
+Validator.isPrincipalId = (string) => AuthzUtil.isPrincipalId(string);
 
 /**
  * Checks whether or not the string in context is a valid group principal id
@@ -35,7 +35,7 @@ Validator.isPrincipalId = string => AuthzUtil.isPrincipalId(string);
  * validator.isGroupId(groupId);
  * ```
  */
-Validator.isGroupId = string => AuthzUtil.isGroupId(string);
+Validator.isGroupId = (string) => AuthzUtil.isGroupId(string);
 
 /**
  * Checks whether or not the string in context is a valid user principal id
@@ -45,7 +45,7 @@ Validator.isGroupId = string => AuthzUtil.isGroupId(string);
  * validator.isUserId(userId);
  * ```
  */
-Validator.isUserId = string => AuthzUtil.isUserId(string);
+Validator.isUserId = (string) => AuthzUtil.isUserId(string);
 
 /**
  * Checks whether or not the string in context is a resource id that is not a user id
@@ -55,9 +55,9 @@ Validator.isUserId = string => AuthzUtil.isUserId(string);
  * validator.isNonUserResourceId(resourceId);
  * ```
  */
-Validator.isNonUserResourceId = string => {
-  const isItNotResourceId = string => compose(not, AuthzUtil.isResourceId)(string);
-  const isItUserId = string => AuthzUtil.isUserId(string);
+Validator.isNonUserResourceId = (string) => {
+  const isItNotResourceId = (string) => compose(not, AuthzUtil.isResourceId)(string);
+  const isItUserId = (string) => AuthzUtil.isUserId(string);
   return compose(not, either(isItNotResourceId, isItUserId))(string);
 };
 
@@ -69,7 +69,7 @@ Validator.isNonUserResourceId = string => {
  * validator.isResourceId(resourceId);
  * ```
  */
-Validator.isResourceId = string => AuthzUtil.isResourceId(string);
+Validator.isResourceId = (string) => AuthzUtil.isResourceId(string);
 
 /**
  * Checks whether or not the specified object is a valid resource object
@@ -79,7 +79,7 @@ Validator.isResourceId = string => AuthzUtil.isResourceId(string);
  * validator.isResource(resource);
  * ```
  */
-Validator.isResource = resource => AuthzUtil.isResource(resource);
+Validator.isResource = (resource) => AuthzUtil.isResource(resource);
 
 /**
  * Checks whether or not the string in context is a valid role name
@@ -89,7 +89,7 @@ Validator.isResource = resource => AuthzUtil.isResource(resource);
  * validator.isValidRole(role);
  * ```
  */
-Validator.isValidRole = string => AuthzUtil.isRole(string);
+Validator.isValidRole = (string) => AuthzUtil.isRole(string);
 
 /**
  * Checks whether or not a set of principals and their new role is formatted correctly.
@@ -101,8 +101,8 @@ Validator.isValidRole = string => AuthzUtil.isRole(string);
  * validator.isValidRoleChange(newRole);
  * ```
  */
-Validator.isValidRoleChange = string => {
-  const isStringFalse = string => equals(string, false);
+Validator.isValidRoleChange = (string) => {
+  const isStringFalse = (string) => equals(string, false);
   return either(isStringFalse, AuthzUtil.isRole)(string);
 };
 
@@ -116,6 +116,6 @@ Validator.isValidRoleChange = string => {
  *
  * @see AuthzUtil#parseShareTarget for specification
  */
-Validator.isValidShareTarget = string => AuthzUtil.parseShareTarget(string);
+Validator.isValidShareTarget = (string) => AuthzUtil.parseShareTarget(string);
 
 export { Validator };

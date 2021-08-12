@@ -15,8 +15,8 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';

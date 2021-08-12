@@ -14,9 +14,9 @@
  */
 
 import * as ConfigAPI from 'oae-config';
-import * as OAE from 'oae-util/lib/oae';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import * as OAE from 'oae-util/lib/oae.js';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 const AuthenticationConfig = ConfigAPI.setUpConfig('oae-authentication');
 

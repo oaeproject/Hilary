@@ -22,10 +22,10 @@ import PrincipalsAPI from 'oae-principals';
 
 import path from 'path';
 import util from 'util';
-import {logger} from 'oae-logger'
+import { logger } from 'oae-logger';
 
-import { User } from 'oae-principals/lib/model';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { User } from 'oae-principals/lib/model.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Context } from 'oae-context';
 
 import * as TenantsAPI from 'oae-tenants';
@@ -39,7 +39,7 @@ const log = logger('oae-script-main');
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */
-const doMigration = function(ctx, tenantAlias, disabled, callback) {
+const doMigration = function (ctx, tenantAlias, disabled, callback) {
   ctx = ctx || _createNewContext();
 
   PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, (err, users) => {
@@ -72,6 +72,4 @@ const doMigration = function(ctx, tenantAlias, disabled, callback) {
   }
 };
 
-export {
-  doMigration
-};
+export { doMigration };

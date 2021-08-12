@@ -18,7 +18,7 @@ import { assert } from 'chai';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
 
 import { and, contains, forEach } from 'ramda';
 
@@ -28,12 +28,8 @@ const { getContent, updateContent } = RestAPI.Content;
 const { createDiscussion } = RestAPI.Discussions;
 const { markNotificationsRead } = RestAPI.Activity;
 
-const {
-  collectAndGetNotificationStream,
-  collectAndGetActivityStream,
-  getPushClient,
-  getFullySetupPushClient
-} = ActivityTestUtil;
+const { collectAndGetNotificationStream, collectAndGetActivityStream, getPushClient, getFullySetupPushClient } =
+  ActivityTestUtil;
 const { getMe } = RestAPI.User;
 const { createTenantAdminRestContext, generateTestUsers } = TestsUtil;
 
@@ -278,13 +274,17 @@ describe('Activity push', () => {
               assert.strictEqual(error.code, 400);
 
               // Specifying an unknown format should result in a validation error
-              client.subscribe(johnDoe.user.id, 'activity', { some: 'token' }, 'unknown format', (
-                error /* , msg */
-              ) => {
-                assert.strictEqual(error.code, 400);
+              client.subscribe(
+                johnDoe.user.id,
+                'activity',
+                { some: 'token' },
+                'unknown format',
+                (error /* , msg */) => {
+                  assert.strictEqual(error.code, 400);
 
-                client.close(callback);
-              });
+                  client.close(callback);
+                }
+              );
             });
           });
         });

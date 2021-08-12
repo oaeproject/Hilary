@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import crypto from 'crypto';
 import fs from 'fs';
-import { format } from 'util';
+import { callbackify, format } from 'util';
 import path from 'path';
 import juice from 'juice';
 import _ from 'underscore';
@@ -24,20 +26,25 @@ import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 import { telemetry } from 'oae-telemetry';
 
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as IO from 'oae-util/lib/io';
-import * as Locking from 'oae-util/lib/locking';
-import * as OaeModules from 'oae-util/lib/modules';
-import * as Redis from 'oae-util/lib/redis';
+import * as IO from 'oae-util/lib/io.js';
+import * as Locking from 'oae-util/lib/locking.js';
+import * as OaeModules from 'oae-util/lib/modules.js';
+import * as Redis from 'oae-util/lib/redis.js';
 
 import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
 import { compose } from 'ramda';
-import { isEmail } from 'oae-authz/lib/util';
+import { isEmail } from 'oae-authz/lib/util.js';
+
+import * as RateLimiter from 'ioredis-ratelimit';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');
@@ -140,7 +147,7 @@ const init = function (emailSystemConfig, callback) {
   const numberDaysUntilExpire = 30;
   const bucketInterval = Math.ceil(throttleConfig.timespan / 2) * 1000;
 
-  rateLimit = require('ioredis-ratelimit')({
+  rateLimit = RateLimiter.default({
     client: Redis.getClient(),
     key(emailTo) {
       return `oae-email:throttle:${String(emailTo)}`;
@@ -773,24 +780,46 @@ const _getTemplatesForTemplateIds = function (basedir, module, templateIds, call
           return callback(error);
         }
 
+        const templateSharedPath = _templatesPath(basedir, module, templateId + '.shared.js');
         let sharedLogic = {};
-        try {
-          const templateSharedPath = _templatesPath(basedir, module, templateId + '.shared');
-          sharedLogic = require(templateSharedPath);
-        } catch {}
+        // sharedLogic = require(templateSharedPath);
+        callbackify(importTemplate)(templateSharedPath, (error, shared) => {
+          if (error) {
+            // TODO log here
+          }
 
-        // Attach the templates to the given object of templates
-        _templates[templateId] = {
-          'meta.json': metaTemplate,
-          html: htmlTemplate,
-          txt: txtTemplate,
-          shared: sharedLogic
-        };
+          if (shared) sharedLogic = shared;
 
-        return _getTemplatesForTemplateIds(basedir, module, templateIds, callback, _templates);
+          // Attach the templates to the given object of templates
+          _templates[templateId] = {
+            'meta.json': metaTemplate,
+            html: htmlTemplate,
+            txt: txtTemplate,
+            shared: sharedLogic
+          };
+
+          return _getTemplatesForTemplateIds(basedir, module, templateIds, callback, _templates);
+        });
       });
     });
   });
+};
+
+/**
+ * TODO jsdoc
+ * @function importTemplate
+ * @param  {type} templatePath {description}
+ * @return {type} {description}
+ */
+const importTemplate = (templatePath) => {
+  return import(templatePath)
+    .then((pkg) => {
+      return pkg;
+    })
+    .catch((e) => {
+      // TODO log here
+      throw e;
+    });
 };
 
 /**

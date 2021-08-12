@@ -17,12 +17,12 @@
 
 import { reject, isNil, pluck, path, mergeAll } from 'ramda';
 
-import * as OaeUtil from 'oae-util/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
 const { filterByResource, filterByInteractingTenants, buildQueryForEmail } = SearchUtil;
-import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { isEmail, isLoggedInUser, unless } = validator;
 
 const MUST = 'must';
@@ -46,7 +46,7 @@ const collectMustNotConditions = pluck(MUST_NOT);
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {SearchResult}   callback.results    An object that represents the results of the query
  */
-const queryBuilder = function(ctx, opts, callback) {
+const queryBuilder = function (ctx, opts, callback) {
   // Sanitize custom search options
   opts = opts || {};
   opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
@@ -79,7 +79,7 @@ const queryBuilder = function(ctx, opts, callback) {
   /**
    *  aux functions
    */
-  const getTenantAlias = ctx => path(['tenant', 'alias'], ctx.user());
+  const getTenantAlias = (ctx) => path(['tenant', 'alias'], ctx.user());
 
   const musts = {
     must: outWithFalsy(
@@ -114,7 +114,7 @@ const queryBuilder = function(ctx, opts, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.results    An object that represents the results of the query
  */
-const postProcessor = function(ctx, opts, results, callback) {
+const postProcessor = function (ctx, opts, results, callback) {
   results.tenant = TenantsAPI.getTenantByEmail(opts.q);
   return callback(null, results);
 };

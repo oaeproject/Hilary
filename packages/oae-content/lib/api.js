@@ -16,32 +16,33 @@
 import fs from 'fs';
 import Path from 'path';
 import { format } from 'util';
-import * as ContentUtils from 'oae-content/lib/backends/util';
+import * as ContentUtils from 'oae-content/lib/backends/util.js';
 import mime from 'mime';
 import ShortId from 'shortid';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { setUpConfig } from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
+import * as FoldersAPI from 'oae-folders/lib/api.js';
 
-import { getFoldersByIds } from 'oae-folders/lib/internal/dao';
+import { getFoldersByIds } from 'oae-folders/lib/internal/dao.js';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as Signature from 'oae-util/lib/signature';
-import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as Signature from 'oae-util/lib/signature.js';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
 import { Context } from 'oae-context';
-import isUrl from 'validator/lib/isURL';
-import isInt from 'validator/lib/isInt';
-import isIn from 'validator/lib/isIn';
-import { Validator as validator } from 'oae-util/lib/validator';
+import isUrl from 'validator/lib/isURL.js';
+import isInt from 'validator/lib/isInt.js';
+import isIn from 'validator/lib/isIn.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   validateInCase: bothCheck,
   unless,
@@ -87,7 +88,7 @@ import {
   uniq,
   isEmpty
 } from 'ramda';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { ContentConstants } from './constants.js';
 import * as ContentDAO from './internal/dao.js';
 import * as ContentMembersLibrary from './internal/membersLibrary.js';
@@ -903,7 +904,7 @@ const _addContentItemToFolders = function (ctx, content, folders, callback) {
   // We have to require the FoldersAPI inline
   // as we'd get a dependency cycle otherwise
   const folder = folders.pop();
-  require('oae-folders')._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], (error) => {
+  FoldersAPI._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], (error) => {
     if (error) return callback(error);
 
     _addContentItemToFolders(ctx, content, folders, callback);

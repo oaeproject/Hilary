@@ -13,13 +13,11 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import fs from 'fs';
 
-import * as Cleaner from 'oae-util/lib/cleaner';
+import * as Cleaner from 'oae-util/lib/cleaner.js';
 import { logger } from 'oae-logger';
-import * as MQ from 'oae-util/lib/mq';
+import * as MQ from 'oae-util/lib/mq.js';
 
 import * as Etherpad from './internal/etherpad.js';
 import * as Ethercalc from './internal/ethercalc.js';
@@ -28,16 +26,9 @@ import * as ContentAPI from './api.js';
 import { ContentConstants } from './constants.js';
 import * as ContentSearch from './search.js';
 
-// Initialize the content library capabilities
 import * as library from './library.js';
-
-// Initialize activity capabilities
 import * as activity from './activity.js';
-
-// Ensure that the preview listeners get registered
 import * as previews from './previews.js';
-
-// Initialize invitations listeners
 import * as invitations from './invitations.js';
 
 const log = logger('oae-content');
@@ -72,8 +63,11 @@ export function init(config, callback) {
           return callback(error);
         }
 
-        // Handle "publish" messages that are sent from Etherpad via Redis. These messages
-        // indicate that a user made edits and has closed the document
+        /**
+         * Handle "publish" messages that are sent from Etherpad
+         * via Redis. These messages indicate that a user made
+         * edits and has closed the document
+         */
         MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, (error) => {
           if (error) {
             return callback(error);

@@ -4,6 +4,7 @@
   "description": "An OAE backend module for a visio conference system using Jitsi.",
   "author": "Jimmy Kasprzak",
   "homepage": "https://github.com/Orodan/oae-jitsi",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/Orodan/oae-jitsi.git"

@@ -15,8 +15,9 @@
 
 import _ from 'underscore';
 
+import * as discussionMessageBody from './search/schema/resourceMessagesSchema.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
 
 /**
@@ -29,10 +30,16 @@ import * as MessageBoxAPI from 'oae-messagebox';
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
+
 const registerMessageSearchDocument = function (name, resourceTypes, producer, callback) {
   const messagesChildSearchDocumentOptions = {
     resourceTypes,
-    schema: require('./search/schema/resourceMessagesSchema.js'),
+    schema: {
+      type: discussionMessageBody.type,
+      store: discussionMessageBody.store,
+      index: discussionMessageBody.index,
+      analyzer: discussionMessageBody.analizer
+    },
     producer
   };
 

@@ -15,17 +15,13 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityModel from 'oae-activity/lib/model';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 import * as TenantsAPI from 'oae-tenants';
-
-/// ///////////////
-// EMAIL ENTITY //
-/// ///////////////
 
 /*!
  * Register an activity entity type of "email", which represents an external email rather than a
@@ -37,7 +33,7 @@ ActivityAPI.registerActivityEntityType('email', {
       const currentUserId = ctx.user() && ctx.user().id;
       // eslint-disable-next-line no-unused-vars
       const transformedEntities = _.mapObject(activityEntities, (entities, activityId) => {
-        return _.mapObject(entities, entity => {
+        return _.mapObject(entities, (entity) => {
           const { token, email } = entity.email;
 
           const tenant = TenantsAPI.getTenantByEmail(email);
@@ -65,7 +61,7 @@ ActivityAPI.registerActivityEntityType('email', {
       const currentUserId = ctx.user() && ctx.user().id;
       // eslint-disable-next-line no-unused-vars
       const transformedEntities = _.mapObject(activityEntities, (entities, activityId) => {
-        return _.mapObject(entities, entity => {
+        return _.mapObject(entities, (entity) => {
           const email = entity[ActivityConstants.properties.OAE_ID];
 
           const transformedEntity = {};
@@ -153,7 +149,7 @@ ResourceActions.emitter.on(ResourceConstants.events.INVITED, (ctx, invitations, 
     user: ctx.user()
   });
   _.chain(invitations)
-    .map(invitation => {
+    .map((invitation) => {
       const { email } = invitation;
       const objectResource = new ActivityModel.ActivitySeedResource('email', invitation.email, {
         email: {
@@ -171,7 +167,7 @@ ResourceActions.emitter.on(ResourceConstants.events.INVITED, (ctx, invitations, 
         targetResource
       );
     })
-    .each(activitySeed => {
+    .each((activitySeed) => {
       ActivityAPI.postActivity(ctx, activitySeed);
     })
     .value();

@@ -1,6 +1,7 @@
 {
   "main": "./lib/actions.js",
   "name": "oae-resource",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"

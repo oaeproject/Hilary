@@ -17,12 +17,12 @@ import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import * as FoldersAPI from 'oae-folders';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import { FoldersConstants } from 'oae-folders/lib/constants';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 const { assertGeneralFolderSearchEquals, generateTestFoldersWithVisibility } = FoldersTestUtil;
 
@@ -240,110 +240,177 @@ describe('Folders', () => {
      * Test that verifies that all users can search public folders
      */
     it('verify public folder', (callback) => {
-      _setup('public', (
-        simong,
-        folder,
-        publicContent,
-        loggedinContent,
-        privateContent,
-        publicTenant1,
-        publicTenant2 /* ,
+      _setup(
+        'public',
+        (
+          simong,
+          folder,
+          publicContent,
+          loggedinContent,
+          privateContent,
+          publicTenant1,
+          publicTenant2 /* ,
           privateTenant,
           privateTenant1 */
-      ) => {
-        // Anonymous users only see the public content
-        FoldersTestUtil.assertFolderSearchEquals(
-          publicTenant1.anonymousRestContext,
-          folder.id,
-          null,
-          [publicContent],
-          () => {
-            // A user from another tenant only sees the public content
-            FoldersTestUtil.assertFolderSearchEquals(
-              publicTenant2.publicUser.restContext,
-              folder.id,
-              null,
-              [publicContent],
-              () => {
-                // A user from the same tenant sees both public and loggedin content
-                FoldersTestUtil.assertFolderSearchEquals(
-                  publicTenant1.publicUser.restContext,
-                  folder.id,
-                  null,
-                  [publicContent, loggedinContent],
-                  () => {
-                    // A tenant admin sees everything
-                    FoldersTestUtil.assertFolderSearchEquals(
-                      publicTenant1.adminRestContext,
-                      folder.id,
-                      null,
-                      [publicContent, loggedinContent, privateContent],
-                      () => {
-                        // A tenant admin from another tenant only sees the public content
-                        FoldersTestUtil.assertFolderSearchEquals(
-                          publicTenant2.adminRestContext,
-                          folder.id,
-                          null,
-                          [publicContent],
-                          () => {
-                            // A manager sees everything
-                            FoldersTestUtil.assertFolderSearchEquals(
-                              simong.restContext,
-                              folder.id,
-                              null,
-                              [publicContent, loggedinContent, privateContent],
-                              () => {
-                                // A global admin sees everything
-                                FoldersTestUtil.assertFolderSearchEquals(
-                                  asGlobalAdmin,
-                                  folder.id,
-                                  null,
-                                  [publicContent, loggedinContent, privateContent],
-                                  () => {
-                                    return callback();
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+        ) => {
+          // Anonymous users only see the public content
+          FoldersTestUtil.assertFolderSearchEquals(
+            publicTenant1.anonymousRestContext,
+            folder.id,
+            null,
+            [publicContent],
+            () => {
+              // A user from another tenant only sees the public content
+              FoldersTestUtil.assertFolderSearchEquals(
+                publicTenant2.publicUser.restContext,
+                folder.id,
+                null,
+                [publicContent],
+                () => {
+                  // A user from the same tenant sees both public and loggedin content
+                  FoldersTestUtil.assertFolderSearchEquals(
+                    publicTenant1.publicUser.restContext,
+                    folder.id,
+                    null,
+                    [publicContent, loggedinContent],
+                    () => {
+                      // A tenant admin sees everything
+                      FoldersTestUtil.assertFolderSearchEquals(
+                        publicTenant1.adminRestContext,
+                        folder.id,
+                        null,
+                        [publicContent, loggedinContent, privateContent],
+                        () => {
+                          // A tenant admin from another tenant only sees the public content
+                          FoldersTestUtil.assertFolderSearchEquals(
+                            publicTenant2.adminRestContext,
+                            folder.id,
+                            null,
+                            [publicContent],
+                            () => {
+                              // A manager sees everything
+                              FoldersTestUtil.assertFolderSearchEquals(
+                                simong.restContext,
+                                folder.id,
+                                null,
+                                [publicContent, loggedinContent, privateContent],
+                                () => {
+                                  // A global admin sees everything
+                                  FoldersTestUtil.assertFolderSearchEquals(
+                                    asGlobalAdmin,
+                                    folder.id,
+                                    null,
+                                    [publicContent, loggedinContent, privateContent],
+                                    () => {
+                                      return callback();
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
      * Test that verifies anonymous and cross-tenant users cannot search loggedin folders
      */
     it('verify loggedin folder', (callback) => {
-      _setup('loggedin', (
-        simong,
-        folder,
-        publicContent,
-        loggedinContent,
-        privateContent,
-        publicTenant1,
-        publicTenant2 /* ,
+      _setup(
+        'loggedin',
+        (
+          simong,
+          folder,
+          publicContent,
+          loggedinContent,
+          privateContent,
+          publicTenant1,
+          publicTenant2 /* ,
           privateTenant,
           privateTenant1 */
-      ) => {
-        // Anonymous users cannot search this folder
-        FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
-          // A user from another tenant cannot search this folder
-          FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
-            // A user from the same tenant sees both public and loggedin content
-            FoldersTestUtil.assertFolderSearchEquals(
-              publicTenant1.publicUser.restContext,
-              folder.id,
-              null,
-              [publicContent, loggedinContent],
-              () => {
+        ) => {
+          // Anonymous users cannot search this folder
+          FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
+            // A user from another tenant cannot search this folder
+            FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
+              // A user from the same tenant sees both public and loggedin content
+              FoldersTestUtil.assertFolderSearchEquals(
+                publicTenant1.publicUser.restContext,
+                folder.id,
+                null,
+                [publicContent, loggedinContent],
+                () => {
+                  // A tenant admin sees everything
+                  FoldersTestUtil.assertFolderSearchEquals(
+                    publicTenant1.adminRestContext,
+                    folder.id,
+                    null,
+                    [publicContent, loggedinContent, privateContent],
+                    () => {
+                      // A tenant admin from another tenant cannot search in this folder
+                      FoldersTestUtil.assertFolderSearchFails(publicTenant2.adminRestContext, folder.id, 401, () => {
+                        // A manager sees everything
+                        FoldersTestUtil.assertFolderSearchEquals(
+                          simong.restContext,
+                          folder.id,
+                          null,
+                          [publicContent, loggedinContent, privateContent],
+                          () => {
+                            // A global admin sees everything
+                            FoldersTestUtil.assertFolderSearchEquals(
+                              asGlobalAdmin,
+                              folder.id,
+                              null,
+                              [publicContent, loggedinContent, privateContent],
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      });
+                    }
+                  );
+                }
+              );
+            });
+          });
+        }
+      );
+    });
+
+    /**
+     * Test that verifies only admin and the user themselves can search private folders
+     */
+    it('verify private folder', (callback) => {
+      _setup(
+        'private',
+        (
+          simong,
+          folder,
+          publicContent,
+          loggedinContent,
+          privateContent,
+          publicTenant1,
+          publicTenant2 /* ,
+          privateTenant,
+          privateTenant1 */
+        ) => {
+          // Anonymous users cannot search this folder
+          FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
+            // A user from another tenant cannot search this folder
+            FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
+              // A user from the same tenant cannot search this folder
+              FoldersTestUtil.assertFolderSearchFails(publicTenant1.publicUser.restContext, folder.id, 401, () => {
                 // A tenant admin sees everything
                 FoldersTestUtil.assertFolderSearchEquals(
                   publicTenant1.adminRestContext,
@@ -375,69 +442,11 @@ describe('Folders', () => {
                     });
                   }
                 );
-              }
-            );
-          });
-        });
-      });
-    });
-
-    /**
-     * Test that verifies only admin and the user themselves can search private folders
-     */
-    it('verify private folder', (callback) => {
-      _setup('private', (
-        simong,
-        folder,
-        publicContent,
-        loggedinContent,
-        privateContent,
-        publicTenant1,
-        publicTenant2 /* ,
-          privateTenant,
-          privateTenant1 */
-      ) => {
-        // Anonymous users cannot search this folder
-        FoldersTestUtil.assertFolderSearchFails(publicTenant1.anonymousRestContext, folder.id, 401, () => {
-          // A user from another tenant cannot search this folder
-          FoldersTestUtil.assertFolderSearchFails(publicTenant2.publicUser.restContext, folder.id, 401, () => {
-            // A user from the same tenant cannot search this folder
-            FoldersTestUtil.assertFolderSearchFails(publicTenant1.publicUser.restContext, folder.id, 401, () => {
-              // A tenant admin sees everything
-              FoldersTestUtil.assertFolderSearchEquals(
-                publicTenant1.adminRestContext,
-                folder.id,
-                null,
-                [publicContent, loggedinContent, privateContent],
-                () => {
-                  // A tenant admin from another tenant cannot search in this folder
-                  FoldersTestUtil.assertFolderSearchFails(publicTenant2.adminRestContext, folder.id, 401, () => {
-                    // A manager sees everything
-                    FoldersTestUtil.assertFolderSearchEquals(
-                      simong.restContext,
-                      folder.id,
-                      null,
-                      [publicContent, loggedinContent, privateContent],
-                      () => {
-                        // A global admin sees everything
-                        FoldersTestUtil.assertFolderSearchEquals(
-                          asGlobalAdmin,
-                          folder.id,
-                          null,
-                          [publicContent, loggedinContent, privateContent],
-                          () => {
-                            return callback();
-                          }
-                        );
-                      }
-                    );
-                  });
-                }
-              );
+              });
             });
           });
-        });
-      });
+        }
+      );
     });
   });
 
@@ -476,9 +485,11 @@ describe('Folders', () => {
      * Test that verifies that folder search results can contain a thumbnail
      */
     it('verify folder search results can contain a thumbnail', (callback) => {
-      _setup('public', (
-        simong,
-        folder /* ,
+      _setup(
+        'public',
+        (
+          simong,
+          folder /* ,
           publicContent,
           loggedinContent,
           privateContent,
@@ -486,31 +497,32 @@ describe('Folders', () => {
           publicTenant2,
           privateTenant,
           privateTenant1 */
-      ) => {
-        // Mock some previews on the folder
-        FoldersDAO.setPreviews(
-          folder,
-          { thumbnailUri: 'local:f/cam/bla/thumbnail.png', wideUri: 'local:f/cam/bla/wideUri' },
-          (error, folder) => {
-            assert.notExists(error);
+        ) => {
+          // Mock some previews on the folder
+          FoldersDAO.setPreviews(
+            folder,
+            { thumbnailUri: 'local:f/cam/bla/thumbnail.png', wideUri: 'local:f/cam/bla/wideUri' },
+            (error, folder) => {
+              assert.notExists(error);
 
-            FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
+              FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
 
-            // When we search for the folder it should contain our thumbnail
-            FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], () => {
-              // When we remove the thumbnail, it should be removed from the search result
-              FoldersDAO.setPreviews(folder, {}, (error, folder) => {
-                assert.notExists(error);
+              // When we search for the folder it should contain our thumbnail
+              FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], () => {
+                // When we remove the thumbnail, it should be removed from the search result
+                FoldersDAO.setPreviews(folder, {}, (error, folder) => {
+                  assert.notExists(error);
 
-                FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
+                  FoldersAPI.emitter.emit(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder);
 
-                // When we search for the folder it should contain our thumbnail
-                FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], callback);
+                  // When we search for the folder it should contain our thumbnail
+                  FoldersTestUtil.assertGeneralFolderSearchEquals(simong.restContext, null, [folder], [], callback);
+                });
               });
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -924,25 +936,28 @@ describe('Folders', () => {
                     const updates = { visibility: 'private' };
                     RestAPI.Folders.updateFolder(simong.restContext, folder.id, updates, (error /* , data */) => {
                       assert.notExists(error);
-                      RestAPI.Folders.updateFolderContentVisibility(simong.restContext, folder.id, 'private', (
-                        error /* , data */
-                      ) => {
-                        assert.notExists(error);
+                      RestAPI.Folders.updateFolderContentVisibility(
+                        simong.restContext,
+                        folder.id,
+                        'private',
+                        (error /* , data */) => {
+                          assert.notExists(error);
 
-                        // Nico should no longer be able to see the content item
-                        SearchTestsUtil.searchAll(
-                          nico.restContext,
-                          GENERAL,
-                          null,
-                          { resourceTypes: 'content', q: 'displayName' },
-                          (error, results) => {
-                            assert.notExists(error);
-                            assert.ok(!_.findWhere(results.results, { id: link.id }));
+                          // Nico should no longer be able to see the content item
+                          SearchTestsUtil.searchAll(
+                            nico.restContext,
+                            GENERAL,
+                            null,
+                            { resourceTypes: 'content', q: 'displayName' },
+                            (error, results) => {
+                              assert.notExists(error);
+                              assert.ok(!_.findWhere(results.results, { id: link.id }));
 
-                            return callback();
-                          }
-                        );
-                      });
+                              return callback();
+                            }
+                          );
+                        }
+                      );
                     });
                   }
                 );

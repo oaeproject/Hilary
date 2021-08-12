@@ -16,9 +16,9 @@
 import { format } from 'util';
 import _ from 'underscore';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
-import * as TenantNetworksDAO from './internal/dao.networks';
+import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsAPI from './api.js';
 
 /**

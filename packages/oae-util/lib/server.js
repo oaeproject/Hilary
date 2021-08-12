@@ -77,8 +77,9 @@ const setupServer = function (port, _config) {
    *  * application/json
    *  * multipart (file uploads)
    *
-   * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests. This limit only
-   * applies to the *incoming request data*. If the client needs to send more than 250kb, it should consider
+   * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests.
+   * This limit only applies to the *incoming request data*.
+   * If the client needs to send more than 250kb, it should consider
    * using a proper multipart form request.
    */
   app.use(bodyParser.urlencoded({ limit: '250kb', extended: true }));

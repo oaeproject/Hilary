@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import { compose, pluck, equals, find, flatten, pathSatisfies } from 'ramda';
 
 describe('Members Library', () => {
@@ -84,523 +84,264 @@ describe('Members Library', () => {
        * Test that verifies the authorization of the public group members library feed
        */
       it('verify authorization of public group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.publicGroup.id,
-            null,
-            null,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.publicGroup.id,
-                null,
-                null,
-                () => {
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.publicGroup.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.publicGroup.id,
-                        null,
-                        null,
-                        () => {
-                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.publicGroup.id,
-                            null,
-                            null,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.publicGroup.id,
+              null,
+              null,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.publicGroup.id,
+                  null,
+                  null,
+                  () => {
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.publicGroup.id,
+                      null,
+                      null,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.publicGroup.id,
+                          null,
+                          null,
+                          () => {
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.publicGroup.id,
+                              null,
+                              null,
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
 
       /**
        * Test that verifies the authorization of the loggedin group members library feed
        */
       it('verify authorization of loggedin joinable group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.loggedinJoinableGroup.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.loggedinJoinableGroup.id,
-                null,
-                null,
-                () => {
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.loggedinJoinableGroup.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.loggedinJoinableGroup.id,
-                        null,
-                        null,
-                        () => {
-                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.loggedinJoinableGroup.id,
-                            null,
-                            null,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.loggedinJoinableGroup.id,
+              null,
+              null,
+              401,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.loggedinJoinableGroup.id,
+                  null,
+                  null,
+                  () => {
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.loggedinJoinableGroup.id,
+                      null,
+                      null,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.loggedinJoinableGroup.id,
+                          null,
+                          null,
+                          () => {
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.loggedinJoinableGroup.id,
+                              null,
+                              null,
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
 
       it('verify authorization of loggedin non joinable group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.loggedinNotJoinableGroup.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.loggedinNotJoinableGroup.id,
-                null,
-                null,
-                () => {
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.loggedinNotJoinableGroup.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibraryFails(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.loggedinNotJoinableGroup.id,
-                        null,
-                        null,
-                        401,
-                        () => {
-                          PrincipalsTestUtil.assertGetMembersLibraryFails(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.loggedinNotJoinableGroup.id,
-                            null,
-                            null,
-                            401,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.loggedinNotJoinableGroup.id,
+              null,
+              null,
+              401,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.loggedinNotJoinableGroup.id,
+                  null,
+                  null,
+                  () => {
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.loggedinNotJoinableGroup.id,
+                      null,
+                      null,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibraryFails(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.loggedinNotJoinableGroup.id,
+                          null,
+                          null,
+                          401,
+                          () => {
+                            PrincipalsTestUtil.assertGetMembersLibraryFails(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.loggedinNotJoinableGroup.id,
+                              null,
+                              null,
+                              401,
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
 
       it('verify authorization of loggedin joinable group (by request) members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.loggedinJoinableGroupByRequest.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.loggedinJoinableGroupByRequest.id,
-                null,
-                null,
-                () => {
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.loggedinJoinableGroupByRequest.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.loggedinJoinableGroupByRequest.id,
-                        null,
-                        null,
-                        () => {
-                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.loggedinJoinableGroupByRequest.id,
-                            null,
-                            null,
-                            () => {
-                              return callback();
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.loggedinJoinableGroupByRequest.id,
+              null,
+              null,
+              401,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.loggedinJoinableGroupByRequest.id,
+                  null,
+                  null,
+                  () => {
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.loggedinJoinableGroupByRequest.id,
+                      null,
+                      null,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.loggedinJoinableGroupByRequest.id,
+                          null,
+                          null,
+                          () => {
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.loggedinJoinableGroupByRequest.id,
+                              null,
+                              null,
+                              () => {
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
 
       /**
        * Test that verifies the authorization of the private group members library feed
        */
       it('verify authorization of private joinable group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.privateJoinableGroup.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.privateJoinableGroup.id,
-                null,
-                null,
-                () => {
-                  // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.privateJoinableGroup.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.privateJoinableGroup.id,
-                        null,
-                        null,
-                        () => {
-                          // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
-                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.privateJoinableGroup.id,
-                            null,
-                            null,
-                            () => {
-                              // Give the group a member and verify it succeeds
-                              const change = {};
-                              change[publicTenant1.publicUser.user.id] = 'member';
-                              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                                publicTenant1.adminRestContext,
-                                publicTenant1.adminRestContext,
-                                publicTenant1.privateJoinableGroup.id,
-                                change,
-                                () => {
-                                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                                    publicTenant1.publicUser.restContext,
-                                    publicTenant1.privateJoinableGroup.id,
-                                    null,
-                                    null,
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-      });
-
-      it('verify authorization of private not joinable group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.privateNotJoinableGroup.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.privateNotJoinableGroup.id,
-                null,
-                null,
-                () => {
-                  PrincipalsTestUtil.assertGetMembersLibraryFails(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.privateNotJoinableGroup.id,
-                    null,
-                    null,
-                    401,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibraryFails(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.privateNotJoinableGroup.id,
-                        null,
-                        null,
-                        401,
-                        () => {
-                          PrincipalsTestUtil.assertGetMembersLibraryFails(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.privateNotJoinableGroup.id,
-                            null,
-                            null,
-                            401,
-                            () => {
-                              // Give the group a member and verify it succeeds
-                              const change = {};
-                              change[publicTenant1.publicUser.user.id] = 'member';
-                              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                                publicTenant1.adminRestContext,
-                                publicTenant1.adminRestContext,
-                                publicTenant1.privateNotJoinableGroup.id,
-                                change,
-                                () => {
-                                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                                    publicTenant1.publicUser.restContext,
-                                    publicTenant1.privateNotJoinableGroup.id,
-                                    null,
-                                    null,
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-      });
-
-      it('verify authorization of private joinable group (by request) members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          // Ensure all users can see a public group's members library
-          PrincipalsTestUtil.assertGetMembersLibraryFails(
-            publicTenant1.anonymousRestContext,
-            publicTenant1.privateJoinableGroupByRequest.id,
-            null,
-            null,
-            401,
-            () => {
-              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                publicTenant1.adminRestContext,
-                publicTenant1.privateJoinableGroupByRequest.id,
-                null,
-                null,
-                () => {
-                  // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
-                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.privateJoinableGroupByRequest.id,
-                    null,
-                    null,
-                    () => {
-                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                        publicTenant2.publicUser.restContext,
-                        publicTenant1.privateJoinableGroupByRequest.id,
-                        null,
-                        null,
-                        () => {
-                          // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
-                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                            publicTenant2.adminRestContext,
-                            publicTenant1.privateJoinableGroupByRequest.id,
-                            null,
-                            null,
-                            () => {
-                              // Give the group a member and verify it succeeds
-                              const change = {};
-                              change[publicTenant1.publicUser.user.id] = 'member';
-                              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-                                publicTenant1.adminRestContext,
-                                publicTenant1.adminRestContext,
-                                publicTenant1.privateJoinableGroupByRequest.id,
-                                change,
-                                () => {
-                                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                                    publicTenant1.publicUser.restContext,
-                                    publicTenant1.privateJoinableGroupByRequest.id,
-                                    null,
-                                    null,
-                                    () => {
-                                      return callback();
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-      });
-
-      /**
-       * Test that verifies that the group members library feed offers only public, loggedin
-       * and private items when appropriate
-       */
-      it('verify only the appropriate members are seen from the group members library feed', (callback) => {
-        TestsUtil.setupMultiTenantPrivacyEntities((
-          publicTenant1,
-          publicTenant2 /* , privateTenant1, privateTenant2 */
-        ) => {
-          TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (error, users) => {
-            assert.notExists(error);
-            const { 0: publicTenant1ExtraUser } = users;
-
-            // These are the expected public, loggedin, private library contents
-            const publicItems = [publicTenant1.publicUser.user.id];
-            const loggedinItems = publicItems.concat(publicTenant1.loggedinUser.user.id);
-            const privateItems = loggedinItems.concat(publicTenant1.privateUser.user.id);
-
-            // Add users to the public group
-            const change = {};
-            change[publicTenant1.adminUser.user.id] = false;
-            change[publicTenant1.publicUser.user.id] = 'member';
-            change[publicTenant1.loggedinUser.user.id] = 'member';
-            change[publicTenant1.privateUser.user.id] = 'manager';
-            PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-              publicTenant1.adminRestContext,
-              publicTenant1.adminRestContext,
-              publicTenant1.publicGroup.id,
-              change,
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.privateJoinableGroup.id,
+              null,
+              null,
+              401,
               () => {
-                // Ensure public members library is given for non-authenticated users
-                PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                  publicTenant1.anonymousRestContext,
-                  publicTenant1.publicGroup.id,
-                  publicItems,
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.privateJoinableGroup.id,
+                  null,
+                  null,
                   () => {
-                    PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                      publicTenant2.publicUser.restContext,
-                      publicTenant1.publicGroup.id,
-                      publicItems,
+                    // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.privateJoinableGroup.id,
+                      null,
+                      null,
                       () => {
-                        PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                          publicTenant2.adminRestContext,
-                          publicTenant1.publicGroup.id,
-                          publicItems,
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.privateJoinableGroup.id,
+                          null,
+                          null,
                           () => {
-                            // Ensure loggedin members library is given for authenticated users
-                            PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                              publicTenant1ExtraUser.restContext,
-                              publicTenant1.publicGroup.id,
-                              loggedinItems,
+                            // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.privateJoinableGroup.id,
+                              null,
+                              null,
                               () => {
-                                // Ensure private members library is given for a member user
-                                PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                                  publicTenant1.publicUser.restContext,
-                                  publicTenant1.publicGroup.id,
-                                  privateItems,
-                                  (members) => {
-                                    // Ensure the private user is obfuscated for the public user
-                                    const privateUserResult = find(
-                                      pathSatisfies(equals('private'), ['profile', 'visibility']),
-                                      members
-                                    );
-
-                                    assert.ok(privateUserResult);
-                                    assert.ok(!privateUserResult.profile.profilePath);
-                                    assert.ok(!privateUserResult.profile.publicAlias);
-
-                                    // Ensure private members library is given for an admin user
-                                    PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
-                                      publicTenant1.adminRestContext,
-                                      publicTenant1.publicGroup.id,
-                                      privateItems,
-                                      (members) => {
-                                        // Ensure the private user is obfuscated
-                                        const privateUserResult = find(
-                                          pathSatisfies(equals('private'), ['profile', 'visibility']),
-                                          members
-                                        );
-
-                                        assert.ok(privateUserResult);
-                                        assert.strictEqual(
-                                          privateUserResult.profile.profilePath,
-                                          publicTenant1.privateUser.user.profilePath
-                                        );
-                                        assert.strictEqual(
-                                          privateUserResult.profile.publicAlias,
-                                          publicTenant1.privateUser.user.publicAlias
-                                        );
-
+                                // Give the group a member and verify it succeeds
+                                const change = {};
+                                change[publicTenant1.publicUser.user.id] = 'member';
+                                PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.privateJoinableGroup.id,
+                                  change,
+                                  () => {
+                                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                      publicTenant1.publicUser.restContext,
+                                      publicTenant1.privateJoinableGroup.id,
+                                      null,
+                                      null,
+                                      () => {
                                         return callback();
                                       }
                                     );
@@ -616,8 +357,259 @@ describe('Members Library', () => {
                 );
               }
             );
-          });
-        });
+          }
+        );
+      });
+
+      it('verify authorization of private not joinable group members library feed', (callback) => {
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.privateNotJoinableGroup.id,
+              null,
+              null,
+              401,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.privateNotJoinableGroup.id,
+                  null,
+                  null,
+                  () => {
+                    PrincipalsTestUtil.assertGetMembersLibraryFails(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.privateNotJoinableGroup.id,
+                      null,
+                      null,
+                      401,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibraryFails(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.privateNotJoinableGroup.id,
+                          null,
+                          null,
+                          401,
+                          () => {
+                            PrincipalsTestUtil.assertGetMembersLibraryFails(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.privateNotJoinableGroup.id,
+                              null,
+                              null,
+                              401,
+                              () => {
+                                // Give the group a member and verify it succeeds
+                                const change = {};
+                                change[publicTenant1.publicUser.user.id] = 'member';
+                                PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.privateNotJoinableGroup.id,
+                                  change,
+                                  () => {
+                                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                      publicTenant1.publicUser.restContext,
+                                      publicTenant1.privateNotJoinableGroup.id,
+                                      null,
+                                      null,
+                                      () => {
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+
+      it('verify authorization of private joinable group (by request) members library feed', (callback) => {
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            // Ensure all users can see a public group's members library
+            PrincipalsTestUtil.assertGetMembersLibraryFails(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.privateJoinableGroupByRequest.id,
+              null,
+              null,
+              401,
+              () => {
+                PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                  publicTenant1.adminRestContext,
+                  publicTenant1.privateJoinableGroupByRequest.id,
+                  null,
+                  null,
+                  () => {
+                    // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
+                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                      publicTenant1.publicUser.restContext,
+                      publicTenant1.privateJoinableGroupByRequest.id,
+                      null,
+                      null,
+                      () => {
+                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                          publicTenant2.publicUser.restContext,
+                          publicTenant1.privateJoinableGroupByRequest.id,
+                          null,
+                          null,
+                          () => {
+                            // Issue1402: since the group is joinable, a user is able to access its public items, including the member list
+                            PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              publicTenant2.adminRestContext,
+                              publicTenant1.privateJoinableGroupByRequest.id,
+                              null,
+                              null,
+                              () => {
+                                // Give the group a member and verify it succeeds
+                                const change = {};
+                                change[publicTenant1.publicUser.user.id] = 'member';
+                                PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.privateJoinableGroupByRequest.id,
+                                  change,
+                                  () => {
+                                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                      publicTenant1.publicUser.restContext,
+                                      publicTenant1.privateJoinableGroupByRequest.id,
+                                      null,
+                                      null,
+                                      () => {
+                                        return callback();
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
+      });
+
+      /**
+       * Test that verifies that the group members library feed offers only public, loggedin
+       * and private items when appropriate
+       */
+      it('verify only the appropriate members are seen from the group members library feed', (callback) => {
+        TestsUtil.setupMultiTenantPrivacyEntities(
+          (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+            TestsUtil.generateTestUsers(publicTenant1.adminRestContext, 1, (error, users) => {
+              assert.notExists(error);
+              const { 0: publicTenant1ExtraUser } = users;
+
+              // These are the expected public, loggedin, private library contents
+              const publicItems = [publicTenant1.publicUser.user.id];
+              const loggedinItems = publicItems.concat(publicTenant1.loggedinUser.user.id);
+              const privateItems = loggedinItems.concat(publicTenant1.privateUser.user.id);
+
+              // Add users to the public group
+              const change = {};
+              change[publicTenant1.adminUser.user.id] = false;
+              change[publicTenant1.publicUser.user.id] = 'member';
+              change[publicTenant1.loggedinUser.user.id] = 'member';
+              change[publicTenant1.privateUser.user.id] = 'manager';
+              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                publicTenant1.adminRestContext,
+                publicTenant1.adminRestContext,
+                publicTenant1.publicGroup.id,
+                change,
+                () => {
+                  // Ensure public members library is given for non-authenticated users
+                  PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                    publicTenant1.anonymousRestContext,
+                    publicTenant1.publicGroup.id,
+                    publicItems,
+                    () => {
+                      PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                        publicTenant2.publicUser.restContext,
+                        publicTenant1.publicGroup.id,
+                        publicItems,
+                        () => {
+                          PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                            publicTenant2.adminRestContext,
+                            publicTenant1.publicGroup.id,
+                            publicItems,
+                            () => {
+                              // Ensure loggedin members library is given for authenticated users
+                              PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                                publicTenant1ExtraUser.restContext,
+                                publicTenant1.publicGroup.id,
+                                loggedinItems,
+                                () => {
+                                  // Ensure private members library is given for a member user
+                                  PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                                    publicTenant1.publicUser.restContext,
+                                    publicTenant1.publicGroup.id,
+                                    privateItems,
+                                    (members) => {
+                                      // Ensure the private user is obfuscated for the public user
+                                      const privateUserResult = find(
+                                        pathSatisfies(equals('private'), ['profile', 'visibility']),
+                                        members
+                                      );
+
+                                      assert.ok(privateUserResult);
+                                      assert.ok(!privateUserResult.profile.profilePath);
+                                      assert.ok(!privateUserResult.profile.publicAlias);
+
+                                      // Ensure private members library is given for an admin user
+                                      PrincipalsTestUtil.assertGetAllMembersLibraryEquals(
+                                        publicTenant1.adminRestContext,
+                                        publicTenant1.publicGroup.id,
+                                        privateItems,
+                                        (members) => {
+                                          // Ensure the private user is obfuscated
+                                          const privateUserResult = find(
+                                            pathSatisfies(equals('private'), ['profile', 'visibility']),
+                                            members
+                                          );
+
+                                          assert.ok(privateUserResult);
+                                          assert.strictEqual(
+                                            privateUserResult.profile.profilePath,
+                                            publicTenant1.privateUser.user.profilePath
+                                          );
+                                          assert.strictEqual(
+                                            privateUserResult.profile.publicAlias,
+                                            publicTenant1.privateUser.user.publicAlias
+                                          );
+
+                                          return callback();
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
+          }
+        );
       });
     });
 

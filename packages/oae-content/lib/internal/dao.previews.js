@@ -15,8 +15,8 @@
 
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { unless, isResourceId } = validator;
 
 /// ////////////
@@ -31,13 +31,13 @@ const { unless, isResourceId } = validator;
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object[]}   callback.previews   The preview objects.
  */
-const getContentPreviews = function(revisionId, callback) {
+const getContentPreviews = function (revisionId, callback) {
   Cassandra.runQuery('SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?', [revisionId], (err, rows) => {
     if (err) {
       return callback(err);
     }
 
-    const previews = _.map(rows, row => {
+    const previews = _.map(rows, (row) => {
       row = Cassandra.rowToHash(row);
       row.value = row.value.split('#');
       return {
@@ -60,7 +60,7 @@ const getContentPreviews = function(revisionId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.preview    The preview object.
  */
-const getContentPreview = function(revisionId, previewItem, callback) {
+const getContentPreview = function (revisionId, previewItem, callback) {
   Cassandra.runQuery(
     'SELECT "value" FROM "PreviewItems" WHERE "revisionId" = ? AND "name" = ?',
     [revisionId, previewItem],
@@ -93,7 +93,7 @@ const getContentPreview = function(revisionId, previewItem, callback) {
  * @param  {Object}   callback.err          An error that occurred, if any
  * @param  {Object}   callback.previews     Object where each key is a revision id and the value is another object with the thumbnailUri and wideUri.
  */
-const getPreviewUris = function(revisionIds, callback) {
+const getPreviewUris = function (revisionIds, callback) {
   revisionIds = _.uniq(revisionIds);
   if (_.isEmpty(revisionIds)) {
     return callback(null, {});
@@ -108,7 +108,7 @@ const getPreviewUris = function(revisionIds, callback) {
       }
 
       const previews = {};
-      rows.forEach(row => {
+      rows.forEach((row) => {
         const revisionId = row.get('revisionId');
         previews[revisionId] = {};
 
@@ -149,7 +149,7 @@ const getPreviewUris = function(revisionIds, callback) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const storeMetadata = function(
+const storeMetadata = function (
   contentObj,
   revisionId,
   status,
@@ -217,7 +217,7 @@ const storeMetadata = function(
   queries.push(Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, revisionUpdate));
 
   // First delete the existing previews
-  _runQueryIfSpecified(deleteQuery, err => {
+  _runQueryIfSpecified(deleteQuery, (err) => {
     if (err) {
       return callback(err);
     }
@@ -236,7 +236,7 @@ const storeMetadata = function(
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
+const copyPreviewItems = function (fromRevisionId, toRevisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -262,7 +262,7 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
     }
 
     // Copy the content over to the target revision id
-    const queries = _.map(rows, row => {
+    const queries = _.map(rows, (row) => {
       row = Cassandra.rowToHash(row);
       return {
         query: 'INSERT INTO "PreviewItems" ("revisionId", "name", "value") VALUES (?, ?, ?)',
@@ -282,7 +282,7 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _runQueryIfSpecified = function(query, callback) {
+const _runQueryIfSpecified = function (query, callback) {
   if (!query) {
     return callback();
   }
@@ -300,7 +300,7 @@ const _runQueryIfSpecified = function(query, callback) {
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _getUriInFileData = function(fileData, size) {
+const _getUriInFileData = function (fileData, size) {
   // eslint-disable-next-line no-unused-vars
   const file = _.find(fileData, (val, filename) => {
     return val.indexOf(size + '#') === 0;
@@ -310,10 +310,7 @@ const _getUriInFileData = function(fileData, size) {
     // file data is of the form '<size>#<uri>'.
     // Rather than doing file.split('#')[1], slice of the name and return the rest of string
     // to prevent not getting the full URI if it would ever contain a '#'.
-    return file
-      .split('#')
-      .slice(1)
-      .join('#');
+    return file.split('#').slice(1).join('#');
   }
 
   return null;

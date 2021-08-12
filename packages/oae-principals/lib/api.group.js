@@ -22,15 +22,15 @@ import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as Signature from 'oae-util/lib/signature';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as Signature from 'oae-util/lib/signature.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   isShortString,
   isMediumString,
@@ -43,8 +43,8 @@ const {
   isPrincipalId,
   isArrayNotEmpty
 } = validator;
-import isIn from 'validator/lib/isIn';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import isIn from 'validator/lib/isIn.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 import * as PrincipalsDAO from './internal/dao.js';
 import * as PrincipalsMembersLibrary from './libraries/members.js';

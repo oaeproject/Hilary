@@ -16,6 +16,7 @@
 import { realpathSync } from 'fs';
 import { logger } from 'oae-logger';
 import * as UIAPI from './api.js';
+import { callbackify } from 'util';
 
 const log = logger('oae-ui-init');
 
@@ -24,19 +25,31 @@ export const init = function (config, callback) {
   // The hashes.json file can be found in the root folder of the optimized build folder
   const hashesPath = uiDirectory + '/hashes.json';
 
-  let hashes = null;
-  try {
-    hashes = require(hashesPath);
-    log().trace({ hashes }, 'Initializing with hash mappings');
-  } catch (error) {
-    hashes = null;
-    if (process.env.NODE_ENV === 'production') {
-      // Only care about warning for this in production
-      log().warn({ err: error }, 'No valid hashes file could be found. Ignoring.');
-    } else {
-      log().trace({ err: error }, 'No valid hashes file could be found. Ignoring.');
+  // let hashes = null;
+  // hashes = require(hashesPath);
+  callbackify(_importHashes)(hashesPath, (error, hashes) => {
+    if (error) {
+      hashes = null;
+      if (process.env.NODE_ENV === 'production') {
+        // Only care about warning for this in production
+        log().warn({ err: error }, 'No valid hashes file could be found. Ignoring.');
+      } else {
+        log().trace({ err: error }, 'No valid hashes file could be found. Ignoring.');
+      }
     }
-  }
 
-  UIAPI.init(uiDirectory, hashes, callback);
+    log().trace({ hashes }, 'Initializing with hash mappings');
+    UIAPI.init(uiDirectory, hashes, callback);
+  });
+};
+
+const _importHashes = (path) => {
+  return import(path)
+    .then((hashes) => {
+      return hashes;
+    })
+    .catch((e) => {
+      // TODO log here
+      throw e;
+    });
 };

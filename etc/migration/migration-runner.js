@@ -17,14 +17,15 @@
 
 import { createKeyspace } from 'oae-util/lib/cassandra.js';
 import { config } from '../../config.js';
+import ora from 'ora';
 
 import fs from 'fs';
 import path from 'path';
-import { promisify } from 'util';
+import { callbackify, promisify } from 'util';
 import PrettyStream from 'bunyan-prettystream';
 import * as LogAPI from 'oae-logger';
 
-const { eachSeries } = require('async');
+import { eachSeries } from 'async';
 
 const _createLogger = function (config) {
   const prettyLog = new PrettyStream();
@@ -57,7 +58,7 @@ const lookForMigrations = async function (allModules) {
           migrationsToRun.push({ name: eachModule, file: migrationFilePath });
         }
       } catch {
-        log().warn('Skipping ' + eachModule);
+        // log().warn('Skipping ' + eachModule);
       }
     }
   }
@@ -83,63 +84,102 @@ const sequentiallyRunMigrations = (migrations, callback) => {
   );
 };
 
-// Just.. just look the other way. Please.
-const runMigrations = async function (dbConfig, callback) {
-  await promiseToRunMigrations(dbConfig);
-  callback();
+const runMigrations = function (dbConfig, callback) {
+  // await promiseToRunMigrations(dbConfig);
+  callbackify(promiseToRunMigrations)(dbConfig, (error, result) => {
+    if (error) return callback(error);
+
+    return callback(result);
+  });
 };
 
-const promiseToRunMigrations = async function (dbConfig) {
+const promiseToRunMigrations = function (dbConfig) {
   log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
   const data = {};
 
-  try {
-    await readFolderContents(PACKAGES_FOLDER)
-      .then((allModules) => {
-        data.allModules = allModules;
-        return lookForMigrations(allModules);
-      })
-      .then((allMigrationsToRun) => {
-        data.allMigrationsToRun = allMigrationsToRun;
-      })
-      .then(() => {
-        return import(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js'));
-      })
-      .then((cassandraModule) => {
-        const initCassandra = promisify(cassandraModule.init);
-        return initCassandra(dbConfig);
-      })
-      .then(() => {
-        const allImports = data.allMigrationsToRun.map((eachMigration) => {
-          const func = (callback) => {
-            import(eachMigration.file).then((eachModule) => {
-              eachModule.ensureSchema(callback);
-            });
-          };
-          return { func, name: eachMigration.name };
-        });
+  return readFolderContents(PACKAGES_FOLDER)
+    .then((allModules) => {
+      data.allModules = allModules;
+      return lookForMigrations(allModules);
+    })
+    .then((allMigrationsToRun) => {
+      data.allMigrationsToRun = allMigrationsToRun;
+    })
+    .then(() => {
+      return import(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js'));
+    })
+    .then((cassandraModule) => {
+      const initCassandra = promisify(cassandraModule.init);
+      return initCassandra(dbConfig);
+    })
+    .then(() => {
+      return bootstrapMigrations(data.allMigrationsToRun);
+    })
+    .then(() => {
+      log().info('Migrations completed. Creating etherpad keyspace next.');
 
-        return allImports;
-      })
-      .then((allImports) => {
-        const promiseToRunMigrations = promisify(sequentiallyRunMigrations);
-        return promiseToRunMigrations(allImports);
-      })
-      .then(() => {
-        log().info('Migrations completed. Creating etherpad keyspace next.');
+      const createEtherpadKeyspace = promisify(createKeyspace);
+      return createEtherpadKeyspace('etherpad');
+    })
+    .then(() => {
+      log().info('Etherpad keyspace created.');
+    })
+    .catch((e) => {
+      // TODO log something here
+      console.log(e);
+    })
+    .finally(() => {
+      log().info('All set. Exiting...');
+    });
+};
 
-        const createEtherpadKeyspace = promisify(createKeyspace);
-        return createEtherpadKeyspace('etherpad');
-      })
-      .then(() => {
-        log().info('Etherpad keyspace created.');
-      })
-      .finally(() => {
-        log().info('All set. Exiting...');
-      });
-  } catch (error) {
-    log().error({ err: error }, 'Error running migration.');
+const bootstrapMigrations = (migrations) => {
+  let spinner;
+
+  function serial(funcs) {
+    return funcs.reduce(
+      (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+      Promise.resolve([])
+    );
   }
+
+  return serial(
+    migrations.map((eachMigration) => {
+      return () => {
+        return new Promise((resolve, reject) => {
+          spinner = ora({
+            text: `Running migrations for module ${eachMigration.name}...`
+          }).start();
+
+          promisify(fs.stat)(eachMigration.file).then((stat) => {
+            if (stat.isFile()) {
+              import(eachMigration.file)
+                .then((eachModule) => {
+                  return promisify(eachModule.ensureSchema)();
+                })
+                .then((x) => {
+                  spinner.succeed(`Schema updated for module ${eachMigration.name}`);
+                  resolve(x);
+                })
+                .catch((e) => {
+                  spinner.fail(`Failed to update schema for module ${eachMigration.name}`);
+                  reject(e);
+                });
+            }
+          });
+        })
+          .catch((e) => {
+            // there's no migration method, skipping
+            spinner.succeed(`No schema found for module ${eachModule}`);
+            resolve();
+          })
+          .finally(() => {
+            spinner.stop();
+            return;
+          });
+      };
+    })
+  );
 };
 
 export { promiseToRunMigrations, runMigrations };

@@ -19,13 +19,13 @@ import {
   isResourceACollabSheet,
   isResourceAFile,
   isResourceALink
-} from 'oae-content/lib/backends/util';
+} from 'oae-content/lib/backends/util.js';
 
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 import * as ContentAPI from './api.js';
 import { ContentConstants } from './constants.js';

@@ -17,14 +17,20 @@
 import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import { flush } from 'oae-util/lib/redis';
+import { flush } from 'oae-util/lib/redis.js';
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import { find, filter, equals, propSatisfies, pathSatisfies } from 'ramda';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 const { searchAll } = SearchTestsUtil;
@@ -823,19 +829,28 @@ describe('File previews', () => {
                   _verifySignedDownloadUrl(asLisa, contentObjectOnCamTenant.previews.thumbnailUrl, () => {
                     // Verify the thumbnailUrl in search results
                     const randomText = generateRandomText(5);
-                    updateContent(asHomer, contentObject.id, { displayName: randomText }, (
-                      error /* , updatedContentObj */
-                    ) => {
-                      assert.notExists(error);
-
-                      searchAll(asLisa, GENERAL, null, { resourceTypes: CONTENT, q: randomText }, (error, results) => {
+                    updateContent(
+                      asHomer,
+                      contentObject.id,
+                      { displayName: randomText },
+                      (error /* , updatedContentObj */) => {
                         assert.notExists(error);
-                        const doc = find(propSatisfies(equals(contentObject.id), 'id'), results.results);
-                        assert.ok(doc);
 
-                        return _verifySignedDownloadUrl(asLisa, doc.thumbnailUrl, callback);
-                      });
-                    });
+                        searchAll(
+                          asLisa,
+                          GENERAL,
+                          null,
+                          { resourceTypes: CONTENT, q: randomText },
+                          (error, results) => {
+                            assert.notExists(error);
+                            const doc = find(propSatisfies(equals(contentObject.id), 'id'), results.results);
+                            assert.ok(doc);
+
+                            return _verifySignedDownloadUrl(asLisa, doc.thumbnailUrl, callback);
+                          }
+                        );
+                      }
+                    );
                   });
                 });
               });
@@ -937,28 +952,31 @@ describe('File previews', () => {
                 // Get the revisions so we can restore the first one
                 getRevisions(asHomer, contentObject_.id, null, null, (error, revisions) => {
                   assert.notExists(error);
-                  restoreRevision(asHomer, contentObject_.id, revisions.results[1].revisionId, (
-                    error /* , revisionObj */
-                  ) => {
-                    assert.notExists(error);
+                  restoreRevision(
+                    asHomer,
+                    contentObject_.id,
+                    revisions.results[1].revisionId,
+                    (error /* , revisionObj */) => {
+                      assert.notExists(error);
 
-                    // Do a search and assert that a different thumbnail URL is returend
-                    searchAll(
-                      asHomer,
-                      GENERAL,
-                      null,
-                      { resourceTypes: CONTENT, q: contentObject_.description },
-                      (error, results) => {
-                        assert.notExists(error);
-                        const contentDocB = find(propSatisfies(equals(contentObject_.id), 'id'), results.results);
-                        assert.ok(contentDocB);
-                        assert.ok(contentDocB.thumbnailUrl);
-                        assert.notStrictEqual(contentDocA.thumbnailUrl, contentDocB.thumbnailUrl);
+                      // Do a search and assert that a different thumbnail URL is returend
+                      searchAll(
+                        asHomer,
+                        GENERAL,
+                        null,
+                        { resourceTypes: CONTENT, q: contentObject_.description },
+                        (error, results) => {
+                          assert.notExists(error);
+                          const contentDocB = find(propSatisfies(equals(contentObject_.id), 'id'), results.results);
+                          assert.ok(contentDocB);
+                          assert.ok(contentDocB.thumbnailUrl);
+                          assert.notStrictEqual(contentDocA.thumbnailUrl, contentDocB.thumbnailUrl);
 
-                        return callback();
-                      }
-                    );
-                  });
+                          return callback();
+                        }
+                      );
+                    }
+                  );
                 });
               }
             );

@@ -15,28 +15,28 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as MQ from 'oae-util/lib/mq';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as MQ from 'oae-util/lib/mq.js';
 
 import { telemetry } from 'oae-telemetry';
 
 // OAE Processors
-import * as ImagesProcessor from 'oae-preview-processor/lib/processors/file/images';
-import * as OfficeProcessor from 'oae-preview-processor/lib/processors/file/office';
-import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf';
-import * as DefaultLinkProcessor from 'oae-preview-processor/lib/processors/link/default';
-import * as FlickrLinkProcessor from 'oae-preview-processor/lib/processors/link/flickr';
-import * as SlideShareLinkProcessor from 'oae-preview-processor/lib/processors/link/slideshare';
-import * as VimeoLinkProcessor from 'oae-preview-processor/lib/processors/link/vimeo';
-import * as YoutubeLinkProcessor from 'oae-preview-processor/lib/processors/link/youtube';
-import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collabdoc/collabdoc';
-import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
+import * as ImagesProcessor from 'oae-preview-processor/lib/processors/file/images.js';
+import * as OfficeProcessor from 'oae-preview-processor/lib/processors/file/office.js';
+import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf.js';
+import * as DefaultLinkProcessor from 'oae-preview-processor/lib/processors/link/default.js';
+import * as FlickrLinkProcessor from 'oae-preview-processor/lib/processors/link/flickr.js';
+import * as SlideShareLinkProcessor from 'oae-preview-processor/lib/processors/link/slideshare.js';
+import * as VimeoLinkProcessor from 'oae-preview-processor/lib/processors/link/vimeo.js';
+import * as YoutubeLinkProcessor from 'oae-preview-processor/lib/processors/link/youtube.js';
+import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collabdoc/collabdoc.js';
+import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder/index.js';
 
 import { logger } from 'oae-logger';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   unless,
   isNotEmpty,

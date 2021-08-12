@@ -16,16 +16,16 @@
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityUtil from 'oae-activity/lib/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as MessageBoxUtil from 'oae-messagebox/lib/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as MeetingsDAO from './internal/dao.js';
 import * as MeetingsAPI from './api.js';
 
@@ -494,9 +494,8 @@ const _meetingMessageInternalTransformer = function (ctx, activityEntities, call
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
     _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
+      transformedActivityEntities[activityId][entityId] =
+        MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
     });
   });
   return callback(null, transformedActivityEntities);

@@ -15,14 +15,14 @@
 
 import assert from 'assert';
 
-import { generateTestElasticSearchName } from 'oae-tests/lib/util';
+import { generateTestElasticSearchName } from 'oae-tests/lib/util.js';
 import {
   putMapping,
   mappingExists,
   indexExists,
   createIndex,
   deleteIndex
-} from 'oae-search/lib/internal/elasticsearch';
+} from 'oae-search/lib/internal/elasticsearch.js';
 
 import { not, assoc } from 'ramda';
 

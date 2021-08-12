@@ -1,4 +1,4 @@
-import { createColumnFamilies } from 'oae-util/lib/cassandra';
+import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the all of the authentication-related schemas are created. If they already exist, this method will not do anything.
@@ -7,7 +7,7 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra';
  * @param  {Object}      callback.err   An error that occurred, if any
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   createColumnFamilies(
     {
       AuthenticationLoginId:

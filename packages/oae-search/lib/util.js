@@ -18,15 +18,15 @@ import { format } from 'util';
 
 import { logger } from 'oae-logger';
 import * as AuthzAPI from 'oae-authz';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 const { invokeIfNecessary } = OaeUtil;
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import * as SearchModel from 'oae-search/lib/model';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import * as SearchModel from 'oae-search/lib/model.js';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import {
   mergeDeepWith,
   mergeDeepRight,

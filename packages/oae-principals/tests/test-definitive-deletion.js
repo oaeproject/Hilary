@@ -17,20 +17,26 @@ import { assert } from 'chai';
 import fs from 'fs';
 import { format } from 'util';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { pipe, forEach, filter, equals, contains, pluck, propSatisfies } from 'ramda';
 
 import { addMonths } from 'date-fns';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzDeleteAPI from 'oae-authz/lib/delete';
+import * as AuthzDeleteAPI from 'oae-authz/lib/delete.js';
 import { setUpConfig } from 'oae-config';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
-import * as MeetingAPI from 'oae-jitsi/lib/api.meetings';
-import { deleteUser as removeUser } from 'oae-principals/lib/api.user';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
+import * as MeetingAPI from 'oae-jitsi/lib/api.meetings.js';
+import { deleteUser as removeUser } from 'oae-principals/lib/api.user.js';
 import * as RestAPI from 'oae-rest';
 import { clearAllData, createTenantAdminRestContext, generateTestUsers } from 'oae-tests';
-import { eliminateUser } from 'oae-principals/lib/definitive-deletion';
+import { eliminateUser } from 'oae-principals/lib/definitive-deletion.js';
 import {
   assertDefinitiveDeletionUsersSucceeds as assertDataIsTransferredToArchiveUser,
   assertDeleteUserFails,
@@ -49,13 +55,13 @@ import {
   generateRightFolder,
   assertDoesNotFollow,
   assertJoinGroupSucceeds
-} from 'oae-principals/lib/test/util';
+} from 'oae-principals/lib/test/util.js';
 import {
   getExpiredUser as fetchAllExpiredUsersToDate,
   updateUserArchiveFlag,
   getPrincipalSkipCache,
   getDataFromArchive
-} from 'oae-principals/lib/internal/dao';
+} from 'oae-principals/lib/internal/dao.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');
 
@@ -70,7 +76,7 @@ const EDITOR = 'editor';
 const TYPE_COLLABDOC = 'collabdoc';
 const TYPE_COLLABSHEET = 'collabsheet';
 
-import * as EmailTestUtil from 'oae-email/lib/test/util';
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
 
 // Avoid the "Error: global leak detected: r", temporary solution
 Object.defineProperty(global, 'r', {});
@@ -91,7 +97,7 @@ describe('Delete and eliminate users', () => {
   });
 
   after((callback) => {
-    EmailTestUtil.collectAndFetchAllEmails(() => {
+    EmailTestUtil.collectAndFetchAllEmails((error) => {
       callback();
     });
   });
@@ -1636,14 +1642,17 @@ describe('Delete and eliminate users', () => {
               assert.ok(userArchive);
 
               // Folder is in library
-              FoldersTestUtil.assertGetAllFoldersLibrarySucceeds(asCambridgeTenantAdmin, userArchive.archiveId, null, (
-                library /* , responses */
-              ) => {
-                assert.strictEqual(library.length, folder.length);
-                assert.strictEqual(library[0].id, folder[0].id);
+              FoldersTestUtil.assertGetAllFoldersLibrarySucceeds(
+                asCambridgeTenantAdmin,
+                userArchive.archiveId,
+                null,
+                (library /* , responses */) => {
+                  assert.strictEqual(library.length, folder.length);
+                  assert.strictEqual(library[0].id, folder[0].id);
 
-                return callback();
-              });
+                  return callback();
+                }
+              );
             }
           );
         });
@@ -2099,49 +2108,53 @@ describe('Delete and eliminate users', () => {
                                             AuthzAPI.hasAnyRole(user.user.id, link[0].id, (error, hasRole) => {
                                               assert.notExists(error);
                                               assert.strictEqual(hasRole, true);
-                                              AuthzAPI.hasAnyRole(userToDelete.user.id, collabdoc[0].id, (
-                                                error /* , hasRole */
-                                              ) => {
-                                                assert.notExists(error);
-                                                AuthzAPI.hasAnyRole(
-                                                  userToDelete.user.id,
-                                                  collabsheet[0].id,
-                                                  (error, hasRole) => {
-                                                    assert.notExists(error);
-                                                    assert.strictEqual(hasRole, false);
-                                                    AuthzAPI.hasAnyRole(userArchive.archiveId, collabdoc[0].id, (
-                                                      error /* , hasRole */
-                                                    ) => {
+                                              AuthzAPI.hasAnyRole(
+                                                userToDelete.user.id,
+                                                collabdoc[0].id,
+                                                (error /* , hasRole */) => {
+                                                  assert.notExists(error);
+                                                  AuthzAPI.hasAnyRole(
+                                                    userToDelete.user.id,
+                                                    collabsheet[0].id,
+                                                    (error, hasRole) => {
                                                       assert.notExists(error);
+                                                      assert.strictEqual(hasRole, false);
                                                       AuthzAPI.hasAnyRole(
                                                         userArchive.archiveId,
-                                                        collabsheet[0].id,
-                                                        (error, hasRole) => {
+                                                        collabdoc[0].id,
+                                                        (error /* , hasRole */) => {
                                                           assert.notExists(error);
-                                                          assert.strictEqual(hasRole, false);
                                                           AuthzAPI.hasAnyRole(
-                                                            user.user.id,
-                                                            collabdoc[0].id,
+                                                            userArchive.archiveId,
+                                                            collabsheet[0].id,
                                                             (error, hasRole) => {
                                                               assert.notExists(error);
-                                                              assert.strictEqual(hasRole, true);
+                                                              assert.strictEqual(hasRole, false);
                                                               AuthzAPI.hasAnyRole(
                                                                 user.user.id,
-                                                                collabsheet[0].id,
+                                                                collabdoc[0].id,
                                                                 (error, hasRole) => {
                                                                   assert.notExists(error);
                                                                   assert.strictEqual(hasRole, true);
-                                                                  return callback();
+                                                                  AuthzAPI.hasAnyRole(
+                                                                    user.user.id,
+                                                                    collabsheet[0].id,
+                                                                    (error, hasRole) => {
+                                                                      assert.notExists(error);
+                                                                      assert.strictEqual(hasRole, true);
+                                                                      return callback();
+                                                                    }
+                                                                  );
                                                                 }
                                                               );
                                                             }
                                                           );
                                                         }
                                                       );
-                                                    });
-                                                  }
-                                                );
-                                              });
+                                                    }
+                                                  );
+                                                }
+                                              );
                                             });
                                           });
                                         });

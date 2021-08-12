@@ -19,15 +19,21 @@ import path from 'path';
 import sharp from 'sharp';
 import { filter, map, prop, last, equals, not, compose, head } from 'ramda';
 
-import * as LocalStorage from 'oae-content/lib/backends/local';
-import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import * as LocalStorage from 'oae-content/lib/backends/local.js';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';
@@ -430,25 +436,34 @@ describe('Profile pictures', () => {
                       assert.strictEqual(response.statusCode, 204);
 
                       // Now try downloading it with some invalid parameters
-                      RestAPI.User.downloadPicture(contexts.simon.restContext, 'invalid-user-id', 'small', (
-                        error /* , body, response */
-                      ) => {
-                        assert.strictEqual(error.code, 400);
-                        RestAPI.User.downloadPicture(contexts.simon.restContext, contexts.simon.user.id, null, (
-                          error /* , body, response */
-                        ) => {
+                      RestAPI.User.downloadPicture(
+                        contexts.simon.restContext,
+                        'invalid-user-id',
+                        'small',
+                        (error /* , body, response */) => {
                           assert.strictEqual(error.code, 400);
+                          RestAPI.User.downloadPicture(
+                            contexts.simon.restContext,
+                            contexts.simon.user.id,
+                            null,
+                            (error /* , body, response */) => {
+                              assert.strictEqual(error.code, 400);
 
-                          // Nicolaas has no picture, this should result in a 404
-                          RestAPI.User.downloadPicture(contexts.simon.restContext, contexts.nicolaas.user.id, 'small', (
-                            error /* , body, response */
-                          ) => {
-                            assert.strictEqual(error.code, 404);
+                              // Nicolaas has no picture, this should result in a 404
+                              RestAPI.User.downloadPicture(
+                                contexts.simon.restContext,
+                                contexts.nicolaas.user.id,
+                                'small',
+                                (error /* , body, response */) => {
+                                  assert.strictEqual(error.code, 404);
 
-                            return callback();
-                          });
-                        });
-                      });
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
                     }
                   );
                 }

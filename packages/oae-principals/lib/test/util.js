@@ -21,30 +21,36 @@ import { format } from 'util';
 import path from 'path';
 import _ from 'underscore';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthzAPI from 'oae-authz';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
 import * as EmailAPI from 'oae-email';
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
-import * as FolderTestUtil from 'oae-folders/lib/test/util';
-import * as FollowingDAO from 'oae-following/lib/internal/dao';
-import * as GroupAPI from 'oae-principals/lib/api.group';
-import * as MeetingAPI from 'oae-jitsi/lib/api.meetings';
-import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util.js';
+import * as FolderTestUtil from 'oae-folders/lib/test/util.js';
+import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
+import * as GroupAPI from 'oae-principals/lib/api.group.js';
+import * as MeetingAPI from 'oae-jitsi/lib/api.meetings.js';
+import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion.js';
 
 import { emitter } from 'oae-principals';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 
 /**
  * Import a batch of users from a CSV file. This function is a test utility function that wraps the REST API call and listens

@@ -18,9 +18,9 @@ import { format } from 'util';
 import _ from 'underscore';
 import Chance from 'chance';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   unless,
   validateInCase: bothCheck,

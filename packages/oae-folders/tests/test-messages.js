@@ -18,10 +18,16 @@ import fs from 'fs';
 import path from 'path';
 import _ from 'underscore';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 
 const PUBLIC = 'public';
 
@@ -102,147 +108,148 @@ describe('Folders', () => {
      * Test that verifies the model of created messages, and permissions of creating messages on different types of folders
      */
     it('verify creating a message, model and permissions', (callback) => {
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1,
-        privateTenant /* , privateTenant1 */
-      ) => {
-        // Cannot post message as anonymous user
-        FoldersTestUtil.assertCreateMessageFails(
-          publicTenant.anonymousRestContext,
-          publicTenant.publicFolder.id,
-          'a body',
-          null,
-          401,
-          () => {
-            // Cannot post to private folder as non-member
-            FoldersTestUtil.assertCreateMessageFails(
-              publicTenant.privateUser.restContext,
-              publicTenant.privateFolder.id,
-              'a body',
-              null,
-              401,
-              () => {
-                // Can post as an authenticated user from the same tenant, verify the model
-                FoldersTestUtil.assertCreateMessageSucceeds(
-                  publicTenant.publicUser.restContext,
-                  publicTenant.publicFolder.id,
-                  'Top-level message',
-                  null,
-                  (message) => {
-                    assert.ok(message);
+      FoldersTestUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1, privateTenant /* , privateTenant1 */) => {
+          // Cannot post message as anonymous user
+          FoldersTestUtil.assertCreateMessageFails(
+            publicTenant.anonymousRestContext,
+            publicTenant.publicFolder.id,
+            'a body',
+            null,
+            401,
+            () => {
+              // Cannot post to private folder as non-member
+              FoldersTestUtil.assertCreateMessageFails(
+                publicTenant.privateUser.restContext,
+                publicTenant.privateFolder.id,
+                'a body',
+                null,
+                401,
+                () => {
+                  // Can post as an authenticated user from the same tenant, verify the model
+                  FoldersTestUtil.assertCreateMessageSucceeds(
+                    publicTenant.publicUser.restContext,
+                    publicTenant.publicFolder.id,
+                    'Top-level message',
+                    null,
+                    (message) => {
+                      assert.ok(message);
 
-                    // This is the expected messagebox id of the folder
-                    const messageBoxId = publicTenant.publicFolder.id;
+                      // This is the expected messagebox id of the folder
+                      const messageBoxId = publicTenant.publicFolder.id;
 
-                    assert.strictEqual(message.id, messageBoxId + '#' + message.created);
-                    assert.strictEqual(message.messageBoxId, messageBoxId);
-                    assert.strictEqual(message.threadKey, message.created + '|');
-                    assert.strictEqual(message.body, 'Top-level message');
-                    assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
-                    assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
-                    assert.strictEqual(message.level, 0);
-                    assert.ok(!message.replyTo);
+                      assert.strictEqual(message.id, messageBoxId + '#' + message.created);
+                      assert.strictEqual(message.messageBoxId, messageBoxId);
+                      assert.strictEqual(message.threadKey, message.created + '|');
+                      assert.strictEqual(message.body, 'Top-level message');
+                      assert.strictEqual(message.createdBy.id, publicTenant.publicUser.user.id);
+                      assert.notStrictEqual(Number.parseInt(message.created, 10), Number.NaN);
+                      assert.strictEqual(message.level, 0);
+                      assert.ok(!message.replyTo);
 
-                    // Reply to that message and verify the model
-                    FoldersTestUtil.assertCreateMessageSucceeds(
-                      publicTenant.loggedinUser.restContext,
-                      publicTenant.publicFolder.id,
-                      'Reply message',
-                      message.created,
-                      (replyMessage) => {
-                        assert.ok(replyMessage);
+                      // Reply to that message and verify the model
+                      FoldersTestUtil.assertCreateMessageSucceeds(
+                        publicTenant.loggedinUser.restContext,
+                        publicTenant.publicFolder.id,
+                        'Reply message',
+                        message.created,
+                        (replyMessage) => {
+                          assert.ok(replyMessage);
 
-                        // This is the expected replyMessagebox id of the folder
-                        assert.strictEqual(replyMessage.id, messageBoxId + '#' + replyMessage.created);
-                        assert.strictEqual(replyMessage.messageBoxId, messageBoxId);
-                        assert.strictEqual(replyMessage.threadKey, message.created + '#' + replyMessage.created + '|');
-                        assert.strictEqual(replyMessage.body, 'Reply message');
-                        assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
-                        assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
-                        assert.strictEqual(replyMessage.level, 1);
-                        assert.ok(replyMessage.replyTo, message.created);
+                          // This is the expected replyMessagebox id of the folder
+                          assert.strictEqual(replyMessage.id, messageBoxId + '#' + replyMessage.created);
+                          assert.strictEqual(replyMessage.messageBoxId, messageBoxId);
+                          assert.strictEqual(
+                            replyMessage.threadKey,
+                            message.created + '#' + replyMessage.created + '|'
+                          );
+                          assert.strictEqual(replyMessage.body, 'Reply message');
+                          assert.strictEqual(replyMessage.createdBy.id, publicTenant.loggedinUser.user.id);
+                          assert.notStrictEqual(Number.parseInt(replyMessage.created, 10), Number.NaN);
+                          assert.strictEqual(replyMessage.level, 1);
+                          assert.ok(replyMessage.replyTo, message.created);
 
-                        // Cross-tenant user from public tenant can post to a public folder
-                        FoldersTestUtil.assertCreateMessageSucceeds(
-                          publicTenant1.loggedinUser.restContext,
-                          publicTenant.publicFolder.id,
-                          'Message from external user',
-                          null,
-                          (message) => {
-                            assert.ok(message);
+                          // Cross-tenant user from public tenant can post to a public folder
+                          FoldersTestUtil.assertCreateMessageSucceeds(
+                            publicTenant1.loggedinUser.restContext,
+                            publicTenant.publicFolder.id,
+                            'Message from external user',
+                            null,
+                            (message) => {
+                              assert.ok(message);
 
-                            // Cross-tenant user from public tenant cannot post to a loggedin folder
-                            FoldersTestUtil.assertCreateMessageFails(
-                              publicTenant1.publicUser.restContext,
-                              publicTenant.loggedinFolder.id,
-                              'Message from external user',
-                              null,
-                              401,
-                              () => {
-                                // Cross-tenant user from private tenant cannot post to a public folder
-                                FoldersTestUtil.assertCreateMessageFails(
-                                  privateTenant.publicUser.restContext,
-                                  publicTenant.publicFolder.id,
-                                  'Message from external user',
-                                  null,
-                                  401,
-                                  () => {
-                                    // Cross-tenant admin cannot post to a loggedin folder
-                                    FoldersTestUtil.assertCreateMessageFails(
-                                      publicTenant1.adminRestContext,
-                                      publicTenant.loggedinFolder.id,
-                                      'Message from external user',
-                                      null,
-                                      401,
-                                      () => {
-                                        // Can post to private folder as a member. Share it, then test creating a message
-                                        FoldersTestUtil.assertShareFolderSucceeds(
-                                          publicTenant.adminRestContext,
-                                          publicTenant.adminRestContext,
-                                          publicTenant.privateFolder.id,
-                                          [publicTenant.privateUser],
-                                          () => {
-                                            FoldersTestUtil.assertCreateMessageSucceeds(
-                                              publicTenant.privateUser.restContext,
-                                              publicTenant.privateFolder.id,
-                                              'Message from external user',
-                                              null,
-                                              (message) => {
-                                                assert.ok(message);
+                              // Cross-tenant user from public tenant cannot post to a loggedin folder
+                              FoldersTestUtil.assertCreateMessageFails(
+                                publicTenant1.publicUser.restContext,
+                                publicTenant.loggedinFolder.id,
+                                'Message from external user',
+                                null,
+                                401,
+                                () => {
+                                  // Cross-tenant user from private tenant cannot post to a public folder
+                                  FoldersTestUtil.assertCreateMessageFails(
+                                    privateTenant.publicUser.restContext,
+                                    publicTenant.publicFolder.id,
+                                    'Message from external user',
+                                    null,
+                                    401,
+                                    () => {
+                                      // Cross-tenant admin cannot post to a loggedin folder
+                                      FoldersTestUtil.assertCreateMessageFails(
+                                        publicTenant1.adminRestContext,
+                                        publicTenant.loggedinFolder.id,
+                                        'Message from external user',
+                                        null,
+                                        401,
+                                        () => {
+                                          // Can post to private folder as a member. Share it, then test creating a message
+                                          FoldersTestUtil.assertShareFolderSucceeds(
+                                            publicTenant.adminRestContext,
+                                            publicTenant.adminRestContext,
+                                            publicTenant.privateFolder.id,
+                                            [publicTenant.privateUser],
+                                            () => {
+                                              FoldersTestUtil.assertCreateMessageSucceeds(
+                                                publicTenant.privateUser.restContext,
+                                                publicTenant.privateFolder.id,
+                                                'Message from external user',
+                                                null,
+                                                (message) => {
+                                                  assert.ok(message);
 
-                                                // Can post to folder as admin
-                                                FoldersTestUtil.assertCreateMessageSucceeds(
-                                                  publicTenant.adminRestContext,
-                                                  publicTenant.privateFolder.id,
-                                                  'Message from tenant admin user',
-                                                  null,
-                                                  (message) => {
-                                                    assert.ok(message);
-                                                    return callback();
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                  // Can post to folder as admin
+                                                  FoldersTestUtil.assertCreateMessageSucceeds(
+                                                    publicTenant.adminRestContext,
+                                                    publicTenant.privateFolder.id,
+                                                    'Message from tenant admin user',
+                                                    null,
+                                                    (message) => {
+                                                      assert.ok(message);
+                                                      return callback();
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -533,214 +540,214 @@ describe('Folders', () => {
       };
 
       // Set up the tenants for tenant privacy rule checking
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Create message structure on the public folder
-        FoldersTestUtil.assertCreateMessageSucceeds(
-          publicTenant.loggedinUser.restContext,
-          publicTenant.publicFolder.id,
-          'Message1 parent on public',
-          null,
-          (publicMessage1) => {
-            FoldersTestUtil.assertCreateMessageSucceeds(
-              publicTenant.loggedinUser.restContext,
-              publicTenant.publicFolder.id,
-              'Message1 reply on public',
-              publicMessage1.created,
-              (replyPublicMessage1) => {
-                FoldersTestUtil.assertCreateMessageSucceeds(
-                  publicTenant.loggedinUser.restContext,
-                  publicTenant.publicFolder.id,
-                  'Message2 parent on public',
-                  null,
-                  (publicMessage2) => {
-                    // Create message on the loggedin folder
-                    FoldersTestUtil.assertCreateMessageSucceeds(
-                      publicTenant.loggedinUser.restContext,
-                      publicTenant.loggedinFolder.id,
-                      'Message on loggedin',
-                      null,
-                      (loggedinMessage) => {
-                        // Share and post message on the private folder
-                        FoldersTestUtil.assertShareFolderSucceeds(
-                          publicTenant.adminRestContext,
-                          publicTenant.adminRestContext,
-                          publicTenant.privateFolder.id,
-                          [publicTenant.privateUser],
-                          () => {
-                            FoldersTestUtil.assertCreateMessageSucceeds(
-                              publicTenant.privateUser.restContext,
-                              publicTenant.privateFolder.id,
-                              'Message on private',
-                              null,
-                              (privateMessage) => {
-                                // Anonymous can read on public, but not loggedin or private
-                                FoldersTestUtil.assertGetMessagesSucceeds(
-                                  publicTenant.anonymousRestContext,
-                                  publicTenant.publicFolder.id,
-                                  null,
-                                  null,
-                                  (messages) => {
-                                    assert.ok(messages);
-                                    assert.strictEqual(messages.results.length, 3);
+      FoldersTestUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Create message structure on the public folder
+          FoldersTestUtil.assertCreateMessageSucceeds(
+            publicTenant.loggedinUser.restContext,
+            publicTenant.publicFolder.id,
+            'Message1 parent on public',
+            null,
+            (publicMessage1) => {
+              FoldersTestUtil.assertCreateMessageSucceeds(
+                publicTenant.loggedinUser.restContext,
+                publicTenant.publicFolder.id,
+                'Message1 reply on public',
+                publicMessage1.created,
+                (replyPublicMessage1) => {
+                  FoldersTestUtil.assertCreateMessageSucceeds(
+                    publicTenant.loggedinUser.restContext,
+                    publicTenant.publicFolder.id,
+                    'Message2 parent on public',
+                    null,
+                    (publicMessage2) => {
+                      // Create message on the loggedin folder
+                      FoldersTestUtil.assertCreateMessageSucceeds(
+                        publicTenant.loggedinUser.restContext,
+                        publicTenant.loggedinFolder.id,
+                        'Message on loggedin',
+                        null,
+                        (loggedinMessage) => {
+                          // Share and post message on the private folder
+                          FoldersTestUtil.assertShareFolderSucceeds(
+                            publicTenant.adminRestContext,
+                            publicTenant.adminRestContext,
+                            publicTenant.privateFolder.id,
+                            [publicTenant.privateUser],
+                            () => {
+                              FoldersTestUtil.assertCreateMessageSucceeds(
+                                publicTenant.privateUser.restContext,
+                                publicTenant.privateFolder.id,
+                                'Message on private',
+                                null,
+                                (privateMessage) => {
+                                  // Anonymous can read on public, but not loggedin or private
+                                  FoldersTestUtil.assertGetMessagesSucceeds(
+                                    publicTenant.anonymousRestContext,
+                                    publicTenant.publicFolder.id,
+                                    null,
+                                    null,
+                                    (messages) => {
+                                      assert.ok(messages);
+                                      assert.strictEqual(messages.results.length, 3);
 
-                                    // Verify the model of all 3 messages
-                                    _assertMessageModel(
-                                      messages.results[0],
-                                      publicMessage2,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
-                                    _assertMessageModel(
-                                      messages.results[1],
-                                      publicMessage1,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
-                                    _assertMessageModel(
-                                      messages.results[2],
-                                      replyPublicMessage1,
-                                      publicTenant.loggedinUser.user,
-                                      true
-                                    );
+                                      // Verify the model of all 3 messages
+                                      _assertMessageModel(
+                                        messages.results[0],
+                                        publicMessage2,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
+                                      _assertMessageModel(
+                                        messages.results[1],
+                                        publicMessage1,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
+                                      _assertMessageModel(
+                                        messages.results[2],
+                                        replyPublicMessage1,
+                                        publicTenant.loggedinUser.user,
+                                        true
+                                      );
 
-                                    FoldersTestUtil.assertGetMessagesFails(
-                                      publicTenant.anonymousRestContext,
-                                      publicTenant.loggedinFolder.id,
-                                      null,
-                                      null,
-                                      401,
-                                      (/* messages */) => {
-                                        FoldersTestUtil.assertGetMessagesFails(
-                                          publicTenant.anonymousRestContext,
-                                          publicTenant.privateFolder.id,
-                                          null,
-                                          null,
-                                          401,
-                                          (/* messages */) => {
-                                            // Authenticated user can read loggedin
-                                            FoldersTestUtil.assertGetMessagesSucceeds(
-                                              publicTenant.publicUser.restContext,
-                                              publicTenant.loggedinFolder.id,
-                                              null,
-                                              null,
-                                              (messages) => {
-                                                assert.ok(messages);
-                                                assert.strictEqual(messages.results.length, 1);
+                                      FoldersTestUtil.assertGetMessagesFails(
+                                        publicTenant.anonymousRestContext,
+                                        publicTenant.loggedinFolder.id,
+                                        null,
+                                        null,
+                                        401,
+                                        (/* messages */) => {
+                                          FoldersTestUtil.assertGetMessagesFails(
+                                            publicTenant.anonymousRestContext,
+                                            publicTenant.privateFolder.id,
+                                            null,
+                                            null,
+                                            401,
+                                            (/* messages */) => {
+                                              // Authenticated user can read loggedin
+                                              FoldersTestUtil.assertGetMessagesSucceeds(
+                                                publicTenant.publicUser.restContext,
+                                                publicTenant.loggedinFolder.id,
+                                                null,
+                                                null,
+                                                (messages) => {
+                                                  assert.ok(messages);
+                                                  assert.strictEqual(messages.results.length, 1);
 
-                                                // Verify the model of the message, the loggedin user should not be scrubbed
-                                                _assertMessageModel(
-                                                  messages.results[0],
-                                                  loggedinMessage,
-                                                  publicTenant.loggedinUser.user,
-                                                  false
-                                                );
+                                                  // Verify the model of the message, the loggedin user should not be scrubbed
+                                                  _assertMessageModel(
+                                                    messages.results[0],
+                                                    loggedinMessage,
+                                                    publicTenant.loggedinUser.user,
+                                                    false
+                                                  );
 
-                                                // Authenticated user cannot read private
-                                                FoldersTestUtil.assertGetMessagesFails(
-                                                  publicTenant.publicUser.restContext,
-                                                  publicTenant.privateFolder.id,
-                                                  null,
-                                                  null,
-                                                  401,
-                                                  (/* messages */) => {
-                                                    // Member user can read private
-                                                    FoldersTestUtil.assertGetMessagesSucceeds(
-                                                      publicTenant.privateUser.restContext,
-                                                      publicTenant.privateFolder.id,
-                                                      null,
-                                                      null,
-                                                      (messages) => {
-                                                        assert.ok(messages);
-                                                        assert.strictEqual(messages.results.length, 1);
+                                                  // Authenticated user cannot read private
+                                                  FoldersTestUtil.assertGetMessagesFails(
+                                                    publicTenant.publicUser.restContext,
+                                                    publicTenant.privateFolder.id,
+                                                    null,
+                                                    null,
+                                                    401,
+                                                    (/* messages */) => {
+                                                      // Member user can read private
+                                                      FoldersTestUtil.assertGetMessagesSucceeds(
+                                                        publicTenant.privateUser.restContext,
+                                                        publicTenant.privateFolder.id,
+                                                        null,
+                                                        null,
+                                                        (messages) => {
+                                                          assert.ok(messages);
+                                                          assert.strictEqual(messages.results.length, 1);
 
-                                                        // Verify the model of the message, the loggedin user should not be scrubbed
-                                                        _assertMessageModel(
-                                                          messages.results[0],
-                                                          privateMessage,
-                                                          publicTenant.privateUser.user,
-                                                          false
-                                                        );
+                                                          // Verify the model of the message, the loggedin user should not be scrubbed
+                                                          _assertMessageModel(
+                                                            messages.results[0],
+                                                            privateMessage,
+                                                            publicTenant.privateUser.user,
+                                                            false
+                                                          );
 
-                                                        // Ensure paging of the messages
-                                                        FoldersTestUtil.assertGetMessagesSucceeds(
-                                                          publicTenant.anonymousRestContext,
-                                                          publicTenant.publicFolder.id,
-                                                          null,
-                                                          2,
-                                                          (messages) => {
-                                                            assert.ok(messages);
-                                                            assert.strictEqual(
-                                                              messages.nextToken,
-                                                              messages.results[1].threadKey
-                                                            );
+                                                          // Ensure paging of the messages
+                                                          FoldersTestUtil.assertGetMessagesSucceeds(
+                                                            publicTenant.anonymousRestContext,
+                                                            publicTenant.publicFolder.id,
+                                                            null,
+                                                            2,
+                                                            (messages) => {
+                                                              assert.ok(messages);
+                                                              assert.strictEqual(
+                                                                messages.nextToken,
+                                                                messages.results[1].threadKey
+                                                              );
 
-                                                            assert.strictEqual(messages.results.length, 2);
+                                                              assert.strictEqual(messages.results.length, 2);
 
-                                                            // Verify the model and ordering of the messages
-                                                            _assertMessageModel(
-                                                              messages.results[0],
-                                                              publicMessage2,
-                                                              publicTenant.loggedinUser.user,
-                                                              true
-                                                            );
-                                                            _assertMessageModel(
-                                                              messages.results[1],
-                                                              publicMessage1,
-                                                              publicTenant.loggedinUser.user,
-                                                              true
-                                                            );
+                                                              // Verify the model and ordering of the messages
+                                                              _assertMessageModel(
+                                                                messages.results[0],
+                                                                publicMessage2,
+                                                                publicTenant.loggedinUser.user,
+                                                                true
+                                                              );
+                                                              _assertMessageModel(
+                                                                messages.results[1],
+                                                                publicMessage1,
+                                                                publicTenant.loggedinUser.user,
+                                                                true
+                                                              );
 
-                                                            // Try and get 2 more. Should only get 1 and it should be the 3rd message
-                                                            FoldersTestUtil.assertGetMessagesSucceeds(
-                                                              publicTenant.anonymousRestContext,
-                                                              publicTenant.publicFolder.id,
-                                                              publicMessage1.threadKey,
-                                                              2,
-                                                              (messages) => {
-                                                                assert.ok(messages);
-                                                                assert.strictEqual(messages.results.length, 1);
-                                                                assert.ok(!messages.nextToken);
+                                                              // Try and get 2 more. Should only get 1 and it should be the 3rd message
+                                                              FoldersTestUtil.assertGetMessagesSucceeds(
+                                                                publicTenant.anonymousRestContext,
+                                                                publicTenant.publicFolder.id,
+                                                                publicMessage1.threadKey,
+                                                                2,
+                                                                (messages) => {
+                                                                  assert.ok(messages);
+                                                                  assert.strictEqual(messages.results.length, 1);
+                                                                  assert.ok(!messages.nextToken);
 
-                                                                // Verify the model and ordering of the messages
-                                                                _assertMessageModel(
-                                                                  messages.results[0],
-                                                                  replyPublicMessage1,
-                                                                  publicTenant.loggedinUser.user,
-                                                                  true
-                                                                );
+                                                                  // Verify the model and ordering of the messages
+                                                                  _assertMessageModel(
+                                                                    messages.results[0],
+                                                                    replyPublicMessage1,
+                                                                    publicTenant.loggedinUser.user,
+                                                                    true
+                                                                  );
 
-                                                                return callback();
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                                  return callback();
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 
@@ -815,153 +822,153 @@ describe('Folders', () => {
      * Test that verifies the logic of deleting messages, and the model and permissions for the operation
      */
     it('verify deleting messages, model and permissions', (callback) => {
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((
-        publicTenant /* , publicTenant1, privateTenant, privateTenant1 */
-      ) => {
-        // Add a manager to the folder
-        const updates = {};
-        updates[publicTenant.privateUser.user.id] = 'manager';
-        updates[publicTenant.loggedinUser.user.id] = 'viewer';
-        FoldersTestUtil.assertUpdateFolderMembersSucceeds(
-          publicTenant.adminRestContext,
-          publicTenant.adminRestContext,
-          publicTenant.privateFolder.id,
-          updates,
-          () => {
-            // Create message structure on the public folder
-            FoldersTestUtil.assertCreateMessageSucceeds(
-              publicTenant.loggedinUser.restContext,
-              publicTenant.privateFolder.id,
-              'Message1 parent on public',
-              null,
-              (publicMessage1) => {
-                FoldersTestUtil.assertCreateMessageSucceeds(
-                  publicTenant.loggedinUser.restContext,
-                  publicTenant.privateFolder.id,
-                  'Message1 reply on public',
-                  publicMessage1.created,
-                  (replyPublicMessage1) => {
-                    FoldersTestUtil.assertCreateMessageSucceeds(
-                      publicTenant.loggedinUser.restContext,
-                      publicTenant.privateFolder.id,
-                      'Message2 parent on public',
-                      null,
-                      (publicMessage2) => {
-                        // Verify anonymous cannot delete a message
-                        FoldersTestUtil.assertDeleteMessageFails(
-                          publicTenant.anonymousRestContext,
-                          publicTenant.privateFolder.id,
-                          publicMessage1.created,
-                          401,
-                          () => {
-                            // Verify non-manager, non-creator user can't delete a message
-                            FoldersTestUtil.assertDeleteMessageFails(
-                              publicTenant.publicUser.restContext,
-                              publicTenant.privateFolder.id,
-                              publicMessage1.created,
-                              401,
-                              () => {
-                                // Verify manager can delete, also verify the parent message is soft-deleted and its model
-                                FoldersTestUtil.assertDeleteMessageSucceeds(
-                                  publicTenant.privateUser.restContext,
-                                  publicTenant.privateFolder.id,
-                                  publicMessage1.created,
-                                  (message) => {
-                                    // Ensure the deleted message model
-                                    assert.strictEqual(message.id, publicMessage1.id);
-                                    assert.strictEqual(message.messageBoxId, publicMessage1.messageBoxId);
-                                    assert.strictEqual(message.threadKey, publicMessage1.threadKey);
-                                    assert.strictEqual(message.created, publicMessage1.created);
-                                    assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                    assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
-                                    assert.ok(
-                                      Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
-                                    );
-                                    assert.strictEqual(message.level, publicMessage1.level);
-                                    assert.ok(!message.body);
-                                    assert.ok(!message.createdBy);
+      FoldersTestUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant /* , publicTenant1, privateTenant, privateTenant1 */) => {
+          // Add a manager to the folder
+          const updates = {};
+          updates[publicTenant.privateUser.user.id] = 'manager';
+          updates[publicTenant.loggedinUser.user.id] = 'viewer';
+          FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+            publicTenant.adminRestContext,
+            publicTenant.adminRestContext,
+            publicTenant.privateFolder.id,
+            updates,
+            () => {
+              // Create message structure on the public folder
+              FoldersTestUtil.assertCreateMessageSucceeds(
+                publicTenant.loggedinUser.restContext,
+                publicTenant.privateFolder.id,
+                'Message1 parent on public',
+                null,
+                (publicMessage1) => {
+                  FoldersTestUtil.assertCreateMessageSucceeds(
+                    publicTenant.loggedinUser.restContext,
+                    publicTenant.privateFolder.id,
+                    'Message1 reply on public',
+                    publicMessage1.created,
+                    (replyPublicMessage1) => {
+                      FoldersTestUtil.assertCreateMessageSucceeds(
+                        publicTenant.loggedinUser.restContext,
+                        publicTenant.privateFolder.id,
+                        'Message2 parent on public',
+                        null,
+                        (publicMessage2) => {
+                          // Verify anonymous cannot delete a message
+                          FoldersTestUtil.assertDeleteMessageFails(
+                            publicTenant.anonymousRestContext,
+                            publicTenant.privateFolder.id,
+                            publicMessage1.created,
+                            401,
+                            () => {
+                              // Verify non-manager, non-creator user can't delete a message
+                              FoldersTestUtil.assertDeleteMessageFails(
+                                publicTenant.publicUser.restContext,
+                                publicTenant.privateFolder.id,
+                                publicMessage1.created,
+                                401,
+                                () => {
+                                  // Verify manager can delete, also verify the parent message is soft-deleted and its model
+                                  FoldersTestUtil.assertDeleteMessageSucceeds(
+                                    publicTenant.privateUser.restContext,
+                                    publicTenant.privateFolder.id,
+                                    publicMessage1.created,
+                                    (message) => {
+                                      // Ensure the deleted message model
+                                      assert.strictEqual(message.id, publicMessage1.id);
+                                      assert.strictEqual(message.messageBoxId, publicMessage1.messageBoxId);
+                                      assert.strictEqual(message.threadKey, publicMessage1.threadKey);
+                                      assert.strictEqual(message.created, publicMessage1.created);
+                                      assert.strictEqual(message.replyTo, publicMessage1.replyTo);
+                                      assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                      assert.ok(
+                                        Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                      );
+                                      assert.strictEqual(message.level, publicMessage1.level);
+                                      assert.ok(!message.body);
+                                      assert.ok(!message.createdBy);
 
-                                    // Ensure the deleted message is still in the list of messages, but marked as deleted
-                                    FoldersTestUtil.assertGetMessagesSucceeds(
-                                      publicTenant.privateUser.restContext,
-                                      publicTenant.privateFolder.id,
-                                      null,
-                                      null,
-                                      (items) => {
-                                        assert.lengthOf(items.results, 3);
+                                      // Ensure the deleted message is still in the list of messages, but marked as deleted
+                                      FoldersTestUtil.assertGetMessagesSucceeds(
+                                        publicTenant.privateUser.restContext,
+                                        publicTenant.privateFolder.id,
+                                        null,
+                                        null,
+                                        (items) => {
+                                          assert.lengthOf(items.results, 3);
 
-                                        const message = items.results[1];
-                                        assert.strictEqual(message.id, publicMessage1.id);
-                                        assert.strictEqual(message.messageBoxId, publicMessage1.messageBoxId);
-                                        assert.strictEqual(message.threadKey, publicMessage1.threadKey);
-                                        assert.strictEqual(message.created, publicMessage1.created);
-                                        assert.strictEqual(message.replyTo, publicMessage1.replyTo);
-                                        assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
-                                        assert.ok(
-                                          Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
-                                        );
-                                        assert.strictEqual(message.level, publicMessage1.level);
-                                        assert.isNotOk(message.body);
-                                        assert.isNotOk(message.createdBy);
+                                          const message = items.results[1];
+                                          assert.strictEqual(message.id, publicMessage1.id);
+                                          assert.strictEqual(message.messageBoxId, publicMessage1.messageBoxId);
+                                          assert.strictEqual(message.threadKey, publicMessage1.threadKey);
+                                          assert.strictEqual(message.created, publicMessage1.created);
+                                          assert.strictEqual(message.replyTo, publicMessage1.replyTo);
+                                          assert.notStrictEqual(Number.parseInt(message.deleted, 10), Number.NaN);
+                                          assert.ok(
+                                            Number.parseInt(message.deleted, 10) > Number.parseInt(message.created, 10)
+                                          );
+                                          assert.strictEqual(message.level, publicMessage1.level);
+                                          assert.isNotOk(message.body);
+                                          assert.isNotOk(message.createdBy);
 
-                                        // Delete the rest of the messages to test hard-deletes. This also tests owner can delete
-                                        FoldersTestUtil.assertDeleteMessageSucceeds(
-                                          publicTenant.loggedinUser.restContext,
-                                          publicTenant.privateFolder.id,
-                                          replyPublicMessage1.created,
-                                          (message) => {
-                                            assert.isNotOk(message);
+                                          // Delete the rest of the messages to test hard-deletes. This also tests owner can delete
+                                          FoldersTestUtil.assertDeleteMessageSucceeds(
+                                            publicTenant.loggedinUser.restContext,
+                                            publicTenant.privateFolder.id,
+                                            replyPublicMessage1.created,
+                                            (message) => {
+                                              assert.isNotOk(message);
 
-                                            // We re-delete this one, but it should actually do a hard delete this time as there are no children
-                                            FoldersTestUtil.assertDeleteMessageSucceeds(
-                                              publicTenant.loggedinUser.restContext,
-                                              publicTenant.privateFolder.id,
-                                              publicMessage1.created,
-                                              (message) => {
-                                                assert.isNotOk(message);
+                                              // We re-delete this one, but it should actually do a hard delete this time as there are no children
+                                              FoldersTestUtil.assertDeleteMessageSucceeds(
+                                                publicTenant.loggedinUser.restContext,
+                                                publicTenant.privateFolder.id,
+                                                publicMessage1.created,
+                                                (message) => {
+                                                  assert.isNotOk(message);
 
-                                                // Perform a hard-delete on this leaf message. This also tests admin can delete
-                                                FoldersTestUtil.assertDeleteMessageSucceeds(
-                                                  publicTenant.adminRestContext,
-                                                  publicTenant.privateFolder.id,
-                                                  publicMessage2.created,
-                                                  (message) => {
-                                                    assert.isNotOk(message);
+                                                  // Perform a hard-delete on this leaf message. This also tests admin can delete
+                                                  FoldersTestUtil.assertDeleteMessageSucceeds(
+                                                    publicTenant.adminRestContext,
+                                                    publicTenant.privateFolder.id,
+                                                    publicMessage2.created,
+                                                    (message) => {
+                                                      assert.isNotOk(message);
 
-                                                    // Should be no more messages in the folder as they should have all been de-indexed by hard deletes
-                                                    FoldersTestUtil.assertGetMessagesSucceeds(
-                                                      publicTenant.privateUser.restContext,
-                                                      publicTenant.privateFolder.id,
-                                                      null,
-                                                      null,
-                                                      (items) => {
-                                                        assert.lengthOf(items.results, 0);
-                                                        return callback();
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                      // Should be no more messages in the folder as they should have all been de-indexed by hard deletes
+                                                      FoldersTestUtil.assertGetMessagesSucceeds(
+                                                        publicTenant.privateUser.restContext,
+                                                        publicTenant.privateFolder.id,
+                                                        null,
+                                                        null,
+                                                        (items) => {
+                                                          assert.lengthOf(items.results, 0);
+                                                          return callback();
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 });

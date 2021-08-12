@@ -17,13 +17,19 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 import { equals } from 'ramda';
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 
 const PRIVATE = 'private';
 const ACTIVITY = 'activity';
@@ -35,15 +41,8 @@ const NO_FOLDERS = [];
 const { waitForPushActivity, collectAndGetActivityStream, getFullySetupPushClient } = ActivityTestsUtil;
 const { createTenantAdminRestContext, generateTestUsers } = TestsUtil;
 const { updateUser, getMe } = RestAPI.User;
-const {
-  createComment,
-  restoreRevision,
-  updateFileBody,
-  createLink,
-  createFile,
-  updateContent,
-  getContent
-} = RestAPI.Content;
+const { createComment, restoreRevision, updateFileBody, createLink, createFile, updateContent, getContent } =
+  RestAPI.Content;
 
 describe('Content Push', () => {
   // Rest contexts that can be used performing rest requests

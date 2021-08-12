@@ -16,10 +16,10 @@
 import _ from 'underscore';
 
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
-import * as FollowingAPI from 'oae-following';
-import * as FollowingDAO from 'oae-following/lib/internal/dao';
-import { FollowingConstants } from 'oae-following/lib/constants';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as FollowingAPI from 'oae-following/lib/api.js';
+import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
 import * as resourceFollowersSchema from './search/schema/resourceFollowersSchema.js';
 import * as resourceFollowingSchema from './search/schema/resourceFollowingSchema.js';
 

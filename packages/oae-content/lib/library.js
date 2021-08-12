@@ -16,12 +16,12 @@
 import _ from 'underscore';
 import * as AuthzAPI from 'oae-authz';
 import * as LibraryAPI from 'oae-library';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as ContentAPI from 'oae-content';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as ContentMembersLibrary from 'oae-content/lib/internal/membersLibrary';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as ContentMembersLibrary from 'oae-content/lib/internal/membersLibrary.js';
 
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-content-library');
@@ -52,7 +52,7 @@ LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.CONTENT_LIBRARY_I
           // Map the content items to light-weight resources with just the properties needed to populate the library index
           const resources = _.chain(contentItems)
             .compact()
-            .map(content => {
+            .map((content) => {
               return { rank: content.lastModified, resource: content };
             })
             .value();
@@ -80,7 +80,7 @@ LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.MEMBERS_LIBRARY_I
           return callback(err);
         }
 
-        const resources = _.map(memberProfiles, memberProfile => {
+        const resources = _.map(memberProfiles, (memberProfile) => {
           return { resource: memberProfile };
         });
 
@@ -102,7 +102,7 @@ ContentAPI.emitter.when(
   ContentConstants.events.CREATED_CONTENT,
   (ctx, content, revision, memberChangeInfo, folders, callback) => {
     // Add this content item to all member content libraries
-    ContentDAO.Content.updateContentLibraries(content, [], err => {
+    ContentDAO.Content.updateContentLibraries(content, [], (err) => {
       if (err) {
         // If there was an error updating libraries here, the permissions were still changed, so
         // we should not return an error. Just log it
@@ -160,12 +160,12 @@ ContentAPI.emitter.when(
  * @param  {Function}   callback            Invoked when the libraries are updated. Errors are logged and swallowed at this point since library updates are secondary updates to the roles that have already been successfully updated
  * @api private
  */
-const _updateContentMembersLibrary = function(content, memberChangeInfo, callback) {
+const _updateContentMembersLibrary = function (content, memberChangeInfo, callback) {
   const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
 
   // If setting the content permissions results in any new members, we should insert them into
   // the content members library
-  ContentMembersLibrary.insert(content, memberChangeInfo.members.added, err => {
+  ContentMembersLibrary.insert(content, memberChangeInfo.members.added, (err) => {
     if (err) {
       log().warn(
         {
@@ -179,7 +179,7 @@ const _updateContentMembersLibrary = function(content, memberChangeInfo, callbac
 
     // If setting the content permissions results in removing members from the content item,
     // we should remove them from the content members library
-    ContentMembersLibrary.remove(content, removedMemberIds, err => {
+    ContentMembersLibrary.remove(content, removedMemberIds, (err) => {
       if (err) {
         log().warn(
           {

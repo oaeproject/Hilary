@@ -19,10 +19,10 @@ import ShortId from 'shortid';
 import { not, keys, equals } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 
 const { searchAll } = SearchTestsUtil;
 const {

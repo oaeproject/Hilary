@@ -17,13 +17,13 @@
 import _ from 'underscore';
 import { includes, isEmpty } from 'ramda';
 
-import { ContentConstants } from 'oae-content/lib/constants';
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import { SearchConstants } from 'oae-search/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 
-import * as OaeUtil from 'oae-util/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
 const {
   filterCreatedBy,
   createHasChildQuery,

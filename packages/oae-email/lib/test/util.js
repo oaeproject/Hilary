@@ -17,14 +17,14 @@ import assert from 'assert';
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
-import * as ActivityEmail from 'oae-activity/lib/internal/email';
-import * as ActivityNotifications from 'oae-activity/lib/internal/notifications';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
+import * as ActivityEmail from 'oae-activity/lib/internal/email.js';
+import * as ActivityNotifications from 'oae-activity/lib/internal/notifications.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util.js';
 import * as EmailAPI from 'oae-email';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Send and return a single email message. This helper utility will ensure that the activity / notifications queue
@@ -165,9 +165,9 @@ const collectAndFetchAllEmails = function (callback) {
                     _assertEmailTemplateFieldValid(message, 'text');
                     _.each(message.html.split('\n'), (line) => {
                       assert.ok(
-                        line.length <= 500,
+                        line.length <= 550,
                         format(
-                          'Expected no email line to be more than 500 characters, but found: (%s) %s',
+                          'Expected no email line to be more than 50 characters, but found: (%s) %s',
                           line.length,
                           line
                         )

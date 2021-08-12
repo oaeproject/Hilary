@@ -20,10 +20,10 @@ import { pipe, sort, map, join, values } from 'ramda';
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
 
-import { Activity, ActivityEntity } from 'oae-activity/lib/model';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { Activity, ActivityEntity } from 'oae-activity/lib/model.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import * as ActivityRegistry from './registry.js';
 import * as ActivitySystemConfig from './config.js';
 import ActivityEmitter from './emitter.js';
@@ -49,10 +49,7 @@ const resetAggregationForActivityStreams = function (activityStreamIds, callback
   callback = callback || function () {};
   ActivityDAO.resetAggregationForActivityStreams(activityStreamIds, (error) => {
     if (error) {
-      log().error(
-        { err: error, activityStreamIds },
-        'Failed to reset aggregation for activity streams'
-      );
+      log().error({ err: error, activityStreamIds }, 'Failed to reset aggregation for activity streams');
       return callback(error);
     }
 
@@ -154,421 +151,389 @@ const _collectBucket = function (bucketNumber, callback) {
   log().trace('Collecting batch of %s entries from bucket number %s.', limit, bucketNumber);
 
   // Step #1: Get the next batch of queued activities to process
-  ActivityDAO.getQueuedActivities(
-    bucketNumber,
-    limit,
-    (error, routedActivities, numberToDelete) => {
-      if (error) {
-        return callback(error);
+  ActivityDAO.getQueuedActivities(bucketNumber, limit, (error, routedActivities, numberToDelete) => {
+    if (error) {
+      return callback(error);
+    }
+
+    if (numberToDelete === 0) {
+      // No more to process, so stop and report that we're empty
+      return callback(null, true);
+    }
+
+    // Step #2: Delete the queued activities that we're processing. We do
+    // this right away because if there is any bad data, we want to make
+    // sure that the existence of that data does not permanently inhibit
+    // future collection rounds, so we need to ensure we pull that data out
+    // regardless if aggregation is successful
+    ActivityDAO.deleteQueuedActivities(bucketNumber, numberToDelete, (error_) => {
+      if (error_) {
+        return callback(error_);
       }
 
-      if (numberToDelete === 0) {
-        // No more to process, so stop and report that we're empty
-        return callback(null, true);
-      }
+      // Step #3: Explode the routed activities into their potential aggregates, according to their configured pivot points
+      const allAggregates = createAggregates(_.values(routedActivities));
+      const allAggregateKeys = _.keys(allAggregates);
 
-      // Step #2: Delete the queued activities that we're processing. We do
-      // this right away because if there is any bad data, we want to make
-      // sure that the existence of that data does not permanently inhibit
-      // future collection rounds, so we need to ensure we pull that data out
-      // regardless if aggregation is successful
-      ActivityDAO.deleteQueuedActivities(bucketNumber, numberToDelete, (error_) => {
-        if (error_) {
-          return callback(error_);
+      // Step #4: Get all aggregate statuses to determine which ones are expired and which are active. Expired aggregates
+      // should be deleted, while active aggregates should be merged and redelivered
+      ActivityDAO.getAggregateStatus(allAggregateKeys, (error, statusByAggregateKey) => {
+        if (error) {
+          return callback(error);
         }
 
-        // Step #3: Explode the routed activities into their potential aggregates, according to their configured pivot points
-        const allAggregates = createAggregates(_.values(routedActivities));
-        const allAggregateKeys = _.keys(allAggregates);
+        // Figure out which aggregates are "active" (have an activity in its aggregate) and "expired" (no new activities in the aggregate before expiry time)
+        const activeAggregates = {};
+        const expiredAggregates = {};
+        _.each(allAggregateKeys, (aggregateKey) => {
+          const status = statusByAggregateKey[aggregateKey];
+          if (status && _isExpired(status, allAggregates[aggregateKey].published)) {
+            expiredAggregates[aggregateKey] = true;
+          } else if (status) {
+            activeAggregates[aggregateKey] = true;
+          }
+        });
 
-        // Step #4: Get all aggregate statuses to determine which ones are expired and which are active. Expired aggregates
-        // should be deleted, while active aggregates should be merged and redelivered
-        ActivityDAO.getAggregateStatus(allAggregateKeys, (error, statusByAggregateKey) => {
-          if (error) {
-            return callback(error);
+        // Note: We need to delete aggregated entities and save them here within the collection chain to avoid nuking undelivered
+        // entities. If we saved aggregated entities during the routing phase and only deleted them here, it would save us a write
+        // as we wouldn't have to write them to the queue, but it exposes a race condition where entities that are saved between
+        // getAggregateStatus (above) and deleteAggregateData (below) will be deleted before delivery.
+
+        // Step #5: Delete all the expired aggregates before aggregating new stuff
+        ActivityDAO.deleteAggregateData(_.keys(expiredAggregates), (error_) => {
+          if (error_) {
+            return callback(error_);
           }
 
-          // Figure out which aggregates are "active" (have an activity in its aggregate) and "expired" (no new activities in the aggregate before expiry time)
-          const activeAggregates = {};
-          const expiredAggregates = {};
-          _.each(allAggregateKeys, (aggregateKey) => {
-            const status = statusByAggregateKey[aggregateKey];
-            if (status && _isExpired(status, allAggregates[aggregateKey].published)) {
-              expiredAggregates[aggregateKey] = true;
-            } else if (status) {
-              activeAggregates[aggregateKey] = true;
-            }
-          });
-
-          // Note: We need to delete aggregated entities and save them here within the collection chain to avoid nuking undelivered
-          // entities. If we saved aggregated entities during the routing phase and only deleted them here, it would save us a write
-          // as we wouldn't have to write them to the queue, but it exposes a race condition where entities that are saved between
-          // getAggregateStatus (above) and deleteAggregateData (below) will be deleted before delivery.
-
-          // Step #5: Delete all the expired aggregates before aggregating new stuff
-          ActivityDAO.deleteAggregateData(_.keys(expiredAggregates), (error_) => {
-            if (error_) {
-              return callback(error_);
+          // Step #6: Retrieve all entities that are aggregated within the active aggregates so they can be collected into redelivered activities
+          ActivityDAO.getAggregatedEntities(_.keys(activeAggregates), (error, fetchedEntities) => {
+            if (error) {
+              return callback(error);
             }
 
-            // Step #6: Retrieve all entities that are aggregated within the active aggregates so they can be collected into redelivered activities
-            ActivityDAO.getAggregatedEntities(
-              _.keys(activeAggregates),
-              (error, fetchedEntities) => {
-                if (error) {
-                  return callback(error);
+            /*!
+             * Step #7:
+             *
+             * Here we choose which aggregates need to be wrapped up into an activity and delivered to the activity stream. This is
+             * rather difficult to get right. These are the rules implemented below:
+             *
+             *  For a given activity:
+             *
+             *  1.  If a matching multi-aggregate exists for an activity, it will "claim" the activity for that stream and redeliver
+             *      the updated aggregate, while deleting the old version of the activity. If more than one multi-aggregate matches
+             *      the activity, all matching multi-aggregates are redelivered. This is to support the situation where:
+             *
+             *          Aggregate #1: "Branden followed Simon and Bert"
+             *          Aggregate #2: "Nicolaas and Stuart followed Stephen"
+             *
+             *      Now, when Branden follows Stephen, both of those "multi-aggregates" will claim this activity, as such:
+             *
+             *          Aggregate #1': "Branden followed Simon, Bert and Stephen"
+             *          Aggregate #2': "Nicolaas, Stuart and Branden followed Stephen"
+             *
+             * 2.   For all activities that haven't been claimed, if a single-aggregate exists for an activity, it will "claim" the
+             *      activity for that stream and redeliver the updated aggregate, while deleting the old version of the activity. If
+             *      more than one single-aggregate matches the activity, all matching single-aggregates are redelivered. This is to
+             *      support the situation where:
+             *
+             *          Aggregate #1: "Branden followed Simon"
+             *          Aggregate #2: "Nicolaas followed Stephen"
+             *
+             *      Now, when Branden followed Stephen, both of those "single-aggregates" will claim this activity and become "multi-
+             *      aggregates", as such:
+             *
+             *          Aggregate #1: "Branden followed Simon and Stephen"
+             *          Aggregate #2: "Nicolaas and Branden followed Stephen"
+             *
+             * 3.   An activity is only delivered for an inactive aggregate if the activity was not "claimed" for the route by an
+             *      active single- or multi-aggregate. This would make sure that we don't redeliver an active aggregate, AND deliver
+             *      a new single-aggregate (e.g., "Branden shared Syllabus with OAE Team") for the same route.
+             *
+             * 4.   If no active aggregates claim an activity, and there are multiple inactive aggregates (e.g., the activity type has
+             *      multiple "pivot points"), then one single activity is delivered for all of them. This is necessary to ensure that
+             *      the "lastActivityId" is recorded properly for both aggregates, so if either of those inactive aggregates become
+             *      active later (i.e., another activity comes along and matches it), the previous activity can be properly deleted by
+             *      either of the aggregates.
+             *
+             *  FIXMEMAYBE: https://github.com/oaeproject/Hilary/pull/650#issuecomment-23865585
+             *
+             */
+
+            // Keeps track of all aggregate keys that should actually be delivered. Not all potential aggregates get delivered
+            // because other aggregates may take priority or they may be duplicates of existing activities
+            const aggregatesToDeliver = {};
+
+            // When a new activity is delivered that aggregates with an existing activity, the existing activity gets deleted
+            // and replaced with a newer aggregate that represents them both. This hash keeps track of each activity that
+            // should be deleted for replacement
+            const activitiesToDelete = {};
+
+            // Keeps track of which activities have already been "claimed" by an aggregate so that an activity doesn't get
+            // delivered twice
+            const claimedRouteActivities = {};
+
+            // Keeps track of how many *new* activities have been delivered to a route. Multple activities that aggregate into
+            // the same activity are considered "new" activities in a route
+            const numberNewActivitiesByRoute = {};
+
+            // First, give an opportunity for all active "multi-aggregates" to claim the routed activity. That is to say
+            // aggregates who actually have aggregated two or more activities. This indicates they would have clobbered any
+            // "single-aggregates" that are their predecessors
+            _.each(allAggregateKeys, (aggregateKey) => {
+              const aggregate = allAggregates[aggregateKey];
+              const isMultiAggregateInQueue = aggregate.activityIds.length > 1;
+              const isMultiAggregateInFeed =
+                fetchedEntities[aggregateKey] && !_isSingleAggregate(fetchedEntities[aggregateKey]);
+
+              // If the activity is already a multi-aggregate in the routed activity queue, or it is a multi-aggregate living in
+              // the aggregates cache, we will claim them here with top priority
+              if (isMultiAggregateInQueue || isMultiAggregateInFeed) {
+                const status = statusByAggregateKey[aggregateKey];
+
+                // Mark this to be delivered and assign it an activity id
+                aggregatesToDeliver[aggregateKey] = true;
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
+                  aggregate.published
+                );
+
+                // Mark these activities for this route as being claimed by an active aggregate
+                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
+                _.each(aggregate.activityIds, (activityId) => {
+                  claimedRouteActivities[aggregate.route][activityId] = true;
+                });
+
+                if (status && status.lastActivity) {
+                  // If this was previously delivered, delete the previous activity
+                  activitiesToDelete[aggregate.route] = activitiesToDelete[aggregate.route] || {};
+                  activitiesToDelete[aggregate.route][status.lastActivity] = true;
+                } else if (isMultiAggregateInQueue && !isMultiAggregateInFeed) {
+                  // If this aggregate is aggregating with an activity in the queue (=in-memory aggregation)
+                  // but NOT with activities already delivered to the feed, it means multiple activities
+                  // were launched in quick successesion (content-create for example) that could be aggregated
+                  // into one single activity. This increments the number of new activities for this route by 1
+                  numberNewActivitiesByRoute[aggregate.route] = numberNewActivitiesByRoute[aggregate.route] || 0;
+                  numberNewActivitiesByRoute[aggregate.route]++;
+                }
+              }
+            });
+
+            // Second, give an opportunity for all active "single-aggregates" to claim the routed activity. That is to say
+            // aggregates who are actually just a single activity that has happened, and no other activities have "joined"
+            // them yet
+            _.each(allAggregateKeys, (aggregateKey) => {
+              const aggregate = allAggregates[aggregateKey];
+
+              // We know this activity only has 1 activity id now, because all aggregates with multiple activity ids would
+              // have already been claimed as multi-aggregates
+              const activityId = aggregate.activityIds[0];
+              const isClaimed =
+                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
+              if (!isClaimed && activeAggregates[aggregateKey]) {
+                const status = statusByAggregateKey[aggregateKey];
+
+                // Mark this to be delivered and assign it an activity id
+                aggregatesToDeliver[aggregateKey] = true;
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = ActivityDAO.createActivityId(
+                  aggregate.published
+                );
+
+                // Mark these activities for this route as being claimed by an active aggregate
+                claimedRouteActivities[aggregate.route] = claimedRouteActivities[aggregate.route] || {};
+                _.each(aggregate.activityIds, (activityId) => {
+                  claimedRouteActivities[aggregate.route][activityId] = true;
+                });
+
+                if (status && status.lastActivity) {
+                  // If this was previously delivered, delete the previous activity
+                  activitiesToDelete[aggregate.route] = activitiesToDelete[aggregate.route] || {};
+                  activitiesToDelete[aggregate.route][status.lastActivity] = true;
+                }
+              }
+            });
+
+            // Lastly, for aggregates that are not even active (i.e., they are brand new aggregates, no match on
+            // any recent activities), determine if they can be delivered
+            const incrementedForActivities = {};
+            _.each(allAggregateKeys, (aggregateKey) => {
+              const aggregate = allAggregates[aggregateKey];
+
+              // We know this activity only has 1 activity id now, because all aggregates with multiple activity ids would
+              // have already been claimed as multi-aggregates
+              const activityId = aggregate.activityIds[0];
+
+              const isClaimed =
+                claimedRouteActivities[aggregate.route] && claimedRouteActivities[aggregate.route][activityId];
+              if (!isClaimed) {
+                // If this route has not received an aggregate, then we deliver the non-active one(s). In the event that
+                // there are multiple non-active aggregates, a duplicate activity will not be fired because we flatten and
+                // maintain a set while generating activities later.
+                aggregatesToDeliver[aggregateKey] = true;
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = activityId;
+
+                // When delivering single non-active aggregates, it's possible that we might deliver 2 aggregates to the
+                // same route. To ensure that we do not increment the count more than once for an activity, we flatten
+                // the aggregate into a unique string that identifies the activity it represents. This way we can keep
+                // track of whether an activity already incremented the notification count
+                const flattenedActivity = _flattenActivity(aggregate);
+                if (!incrementedForActivities[flattenedActivity]) {
+                  numberNewActivitiesByRoute[aggregate.route] = numberNewActivitiesByRoute[aggregate.route] || 0;
+                  numberNewActivitiesByRoute[aggregate.route]++;
+                  incrementedForActivities[flattenedActivity] = true;
+                }
+              }
+            });
+
+            // Step #8: Save the aggregated entities stored in the current batch of aggregates
+            ActivityDAO.saveAggregatedEntities(allAggregates, (error__) => {
+              if (error__) {
+                return callback(error__);
+              }
+
+              // Step #9: Create the actual activities to route
+              let numberDelivered = 0;
+              const visitedActivities = {};
+              const activityStreamUpdates = {};
+              _.each(aggregatesToDeliver, (aggregateToDeliver, aggregateKey) => {
+                const aggregate = allAggregates[aggregateKey];
+
+                // Construct the activities to deliver
+                const activityType = aggregate[ActivityConstants.properties.OAE_ACTIVITY_TYPE];
+                const { published, verb } = aggregate;
+
+                // Refresh the entities with the freshly fetched set, which has all the entities, not those just in this collection
+                // We need to make sure we override with the queued entities and not the freshly fetched ones since they may have been
+                // updated since original aggregation.
+                if (fetchedEntities[aggregateKey]) {
+                  aggregate.addActors(fetchedEntities[aggregateKey].actors);
+                  aggregate.addObjects(fetchedEntities[aggregateKey].objects);
+                  aggregate.addTargets(fetchedEntities[aggregateKey].targets);
                 }
 
-                /*!
-                 * Step #7:
-                 *
-                 * Here we choose which aggregates need to be wrapped up into an activity and delivered to the activity stream. This is
-                 * rather difficult to get right. These are the rules implemented below:
-                 *
-                 *  For a given activity:
-                 *
-                 *  1.  If a matching multi-aggregate exists for an activity, it will "claim" the activity for that stream and redeliver
-                 *      the updated aggregate, while deleting the old version of the activity. If more than one multi-aggregate matches
-                 *      the activity, all matching multi-aggregates are redelivered. This is to support the situation where:
-                 *
-                 *          Aggregate #1: "Branden followed Simon and Bert"
-                 *          Aggregate #2: "Nicolaas and Stuart followed Stephen"
-                 *
-                 *      Now, when Branden follows Stephen, both of those "multi-aggregates" will claim this activity, as such:
-                 *
-                 *          Aggregate #1': "Branden followed Simon, Bert and Stephen"
-                 *          Aggregate #2': "Nicolaas, Stuart and Branden followed Stephen"
-                 *
-                 * 2.   For all activities that haven't been claimed, if a single-aggregate exists for an activity, it will "claim" the
-                 *      activity for that stream and redeliver the updated aggregate, while deleting the old version of the activity. If
-                 *      more than one single-aggregate matches the activity, all matching single-aggregates are redelivered. This is to
-                 *      support the situation where:
-                 *
-                 *          Aggregate #1: "Branden followed Simon"
-                 *          Aggregate #2: "Nicolaas followed Stephen"
-                 *
-                 *      Now, when Branden followed Stephen, both of those "single-aggregates" will claim this activity and become "multi-
-                 *      aggregates", as such:
-                 *
-                 *          Aggregate #1: "Branden followed Simon and Stephen"
-                 *          Aggregate #2: "Nicolaas and Branden followed Stephen"
-                 *
-                 * 3.   An activity is only delivered for an inactive aggregate if the activity was not "claimed" for the route by an
-                 *      active single- or multi-aggregate. This would make sure that we don't redeliver an active aggregate, AND deliver
-                 *      a new single-aggregate (e.g., "Branden shared Syllabus with OAE Team") for the same route.
-                 *
-                 * 4.   If no active aggregates claim an activity, and there are multiple inactive aggregates (e.g., the activity type has
-                 *      multiple "pivot points"), then one single activity is delivered for all of them. This is necessary to ensure that
-                 *      the "lastActivityId" is recorded properly for both aggregates, so if either of those inactive aggregates become
-                 *      active later (i.e., another activity comes along and matches it), the previous activity can be properly deleted by
-                 *      either of the aggregates.
-                 *
-                 *  FIXMEMAYBE: https://github.com/oaeproject/Hilary/pull/650#issuecomment-23865585
-                 *
-                 */
+                // Make sure that we don't deliver an identical activity to the same stream twice. This can potentially
+                // happen when an activity type has multiple pivots that were inactive prior to this activity (e.g., content-share)
+                let activityId = null;
+                const flattenedActivity = _flattenActivity(aggregate);
+                if (visitedActivities[flattenedActivity]) {
+                  // We assign the previous activity id to the aggregate so that we can update the aggregate status to know that
+                  // any new activities for this aggregate should replace its existing activity
+                  aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = visitedActivities[flattenedActivity];
+                  return;
+                }
 
-                // Keeps track of all aggregate keys that should actually be delivered. Not all potential aggregates get delivered
-                // because other aggregates may take priority or they may be duplicates of existing activities
-                const aggregatesToDeliver = {};
+                // This activity is not a duplicate, assign and record a new activityId
+                activityId = ActivityDAO.createActivityId(aggregate.published);
+                aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = activityId;
+                visitedActivities[flattenedActivity] = activityId;
 
-                // When a new activity is delivered that aggregates with an existing activity, the existing activity gets deleted
-                // and replaced with a newer aggregate that represents them both. This hash keeps track of each activity that
-                // should be deleted for replacement
-                const activitiesToDelete = {};
+                // Create the entities for the delivered activity
+                const actor = createActivityEntity(_.values(aggregate.actors));
+                const object = createActivityEntity(_.values(aggregate.objects));
+                const target = createActivityEntity(_.values(aggregate.targets));
 
-                // Keeps track of which activities have already been "claimed" by an aggregate so that an activity doesn't get
-                // delivered twice
-                const claimedRouteActivities = {};
+                activityStreamUpdates[aggregate.route] = activityStreamUpdates[aggregate.route] || {};
+                activityStreamUpdates[aggregate.route][activityId] = new Activity(
+                  activityType,
+                  activityId,
+                  verb,
+                  published,
+                  actor,
+                  object,
+                  target
+                );
+                numberDelivered++;
+              });
 
-                // Keeps track of how many *new* activities have been delivered to a route. Multple activities that aggregate into
-                // the same activity are considered "new" activities in a route
-                const numberNewActivitiesByRoute = {};
+              // Step #10: Deliver the new activities to the streams
+              ActivityDAO.deliverActivities(activityStreamUpdates, (error___) => {
+                if (error___) {
+                  return callback(error___);
+                }
 
-                // First, give an opportunity for all active "multi-aggregates" to claim the routed activity. That is to say
-                // aggregates who actually have aggregated two or more activities. This indicates they would have clobbered any
-                // "single-aggregates" that are their predecessors
-                _.each(allAggregateKeys, (aggregateKey) => {
-                  const aggregate = allAggregates[aggregateKey];
-                  const isMultiAggregateInQueue = aggregate.activityIds.length > 1;
-                  const isMultiAggregateInFeed =
-                    fetchedEntities[aggregateKey] &&
-                    !_isSingleAggregate(fetchedEntities[aggregateKey]);
+                // Collection date is marked as the date/time that the aggregate gets delivered
+                const collectionDate = Date.now();
 
-                  // If the activity is already a multi-aggregate in the routed activity queue, or it is a multi-aggregate living in
-                  // the aggregates cache, we will claim them here with top priority
-                  if (isMultiAggregateInQueue || isMultiAggregateInFeed) {
-                    const status = statusByAggregateKey[aggregateKey];
-
-                    // Mark this to be delivered and assign it an activity id
-                    aggregatesToDeliver[aggregateKey] = true;
-                    aggregate[
-                      ActivityConstants.properties.OAE_ACTIVITY_ID
-                    ] = ActivityDAO.createActivityId(aggregate.published);
-
-                    // Mark these activities for this route as being claimed by an active aggregate
-                    claimedRouteActivities[aggregate.route] =
-                      claimedRouteActivities[aggregate.route] || {};
-                    _.each(aggregate.activityIds, (activityId) => {
-                      claimedRouteActivities[aggregate.route][activityId] = true;
-                    });
-
-                    if (status && status.lastActivity) {
-                      // If this was previously delivered, delete the previous activity
-                      activitiesToDelete[aggregate.route] =
-                        activitiesToDelete[aggregate.route] || {};
-                      activitiesToDelete[aggregate.route][status.lastActivity] = true;
-                    } else if (isMultiAggregateInQueue && !isMultiAggregateInFeed) {
-                      // If this aggregate is aggregating with an activity in the queue (=in-memory aggregation)
-                      // but NOT with activities already delivered to the feed, it means multiple activities
-                      // were launched in quick successesion (content-create for example) that could be aggregated
-                      // into one single activity. This increments the number of new activities for this route by 1
-                      numberNewActivitiesByRoute[aggregate.route] =
-                        numberNewActivitiesByRoute[aggregate.route] || 0;
-                      numberNewActivitiesByRoute[aggregate.route]++;
-                    }
-                  }
+                // Record how long it took for these to be delivered
+                _.each(activityStreamUpdates, (routedActivities) => {
+                  _.each(routedActivities, (activity) => {
+                    Telemetry.appendDuration('delivery.time', activity.published);
+                  });
                 });
 
-                // Second, give an opportunity for all active "single-aggregates" to claim the routed activity. That is to say
-                // aggregates who are actually just a single activity that has happened, and no other activities have "joined"
-                // them yet
-                _.each(allAggregateKeys, (aggregateKey) => {
-                  const aggregate = allAggregates[aggregateKey];
-
-                  // We know this activity only has 1 activity id now, because all aggregates with multiple activity ids would
-                  // have already been claimed as multi-aggregates
-                  const activityId = aggregate.activityIds[0];
-                  const isClaimed =
-                    claimedRouteActivities[aggregate.route] &&
-                    claimedRouteActivities[aggregate.route][activityId];
-                  if (!isClaimed && activeAggregates[aggregateKey]) {
-                    const status = statusByAggregateKey[aggregateKey];
-
-                    // Mark this to be delivered and assign it an activity id
-                    aggregatesToDeliver[aggregateKey] = true;
-                    aggregate[
-                      ActivityConstants.properties.OAE_ACTIVITY_ID
-                    ] = ActivityDAO.createActivityId(aggregate.published);
-
-                    // Mark these activities for this route as being claimed by an active aggregate
-                    claimedRouteActivities[aggregate.route] =
-                      claimedRouteActivities[aggregate.route] || {};
-                    _.each(aggregate.activityIds, (activityId) => {
-                      claimedRouteActivities[aggregate.route][activityId] = true;
-                    });
-
-                    if (status && status.lastActivity) {
-                      // If this was previously delivered, delete the previous activity
-                      activitiesToDelete[aggregate.route] =
-                        activitiesToDelete[aggregate.route] || {};
-                      activitiesToDelete[aggregate.route][status.lastActivity] = true;
-                    }
-                  }
+                // The activitiesToDelete hash values should actually be arrays of unique activity ids, not "<activity id>: true" pairs.
+                _.each(activitiesToDelete, (activityToDelete, route) => {
+                  activitiesToDelete[route] = _.keys(activitiesToDelete[route]);
                 });
 
-                // Lastly, for aggregates that are not even active (i.e., they are brand new aggregates, no match on
-                // any recent activities), determine if they can be delivered
-                const incrementedForActivities = {};
-                _.each(allAggregateKeys, (aggregateKey) => {
-                  const aggregate = allAggregates[aggregateKey];
-
-                  // We know this activity only has 1 activity id now, because all aggregates with multiple activity ids would
-                  // have already been claimed as multi-aggregates
-                  const activityId = aggregate.activityIds[0];
-
-                  const isClaimed =
-                    claimedRouteActivities[aggregate.route] &&
-                    claimedRouteActivities[aggregate.route][activityId];
-                  if (!isClaimed) {
-                    // If this route has not received an aggregate, then we deliver the non-active one(s). In the event that
-                    // there are multiple non-active aggregates, a duplicate activity will not be fired because we flatten and
-                    // maintain a set while generating activities later.
-                    aggregatesToDeliver[aggregateKey] = true;
-                    aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = activityId;
-
-                    // When delivering single non-active aggregates, it's possible that we might deliver 2 aggregates to the
-                    // same route. To ensure that we do not increment the count more than once for an activity, we flatten
-                    // the aggregate into a unique string that identifies the activity it represents. This way we can keep
-                    // track of whether an activity already incremented the notification count
-                    const flattenedActivity = _flattenActivity(aggregate);
-                    if (!incrementedForActivities[flattenedActivity]) {
-                      numberNewActivitiesByRoute[aggregate.route] =
-                        numberNewActivitiesByRoute[aggregate.route] || 0;
-                      numberNewActivitiesByRoute[aggregate.route]++;
-                      incrementedForActivities[flattenedActivity] = true;
-                    }
-                  }
-                });
-
-                // Step #8: Save the aggregated entities stored in the current batch of aggregates
-                ActivityDAO.saveAggregatedEntities(allAggregates, (error__) => {
-                  if (error__) {
-                    return callback(error__);
+                // Step #11: Delete the old activities that were replaced by aggregates
+                ActivityDAO.deleteActivities(activitiesToDelete, (error___) => {
+                  if (error___) {
+                    return callback(error___);
                   }
 
-                  // Step #9: Create the actual activities to route
-                  let numberDelivered = 0;
-                  const visitedActivities = {};
-                  const activityStreamUpdates = {};
-                  _.each(aggregatesToDeliver, (aggregateToDeliver, aggregateKey) => {
+                  // Determine how to update all the aggregate statuses
+                  const statusUpdatesByActivityStreamId = {};
+                  _.each(allAggregateKeys, (aggregateKey) => {
                     const aggregate = allAggregates[aggregateKey];
+                    statusUpdatesByActivityStreamId[aggregate.route] =
+                      statusUpdatesByActivityStreamId[aggregate.route] || {};
+                    statusUpdatesByActivityStreamId[aggregate.route][aggregateKey] = {
+                      lastUpdated: aggregate.published,
+                      lastCollected: collectionDate
+                    };
 
-                    // Construct the activities to deliver
-                    const activityType = aggregate[ActivityConstants.properties.OAE_ACTIVITY_TYPE];
-                    const { published, verb } = aggregate;
-
-                    // Refresh the entities with the freshly fetched set, which has all the entities, not those just in this collection
-                    // We need to make sure we override with the queued entities and not the freshly fetched ones since they may have been
-                    // updated since original aggregation.
-                    if (fetchedEntities[aggregateKey]) {
-                      aggregate.addActors(fetchedEntities[aggregateKey].actors);
-                      aggregate.addObjects(fetchedEntities[aggregateKey].objects);
-                      aggregate.addTargets(fetchedEntities[aggregateKey].targets);
+                    if (!activeAggregates[aggregateKey]) {
+                      // This aggregate was not previously active, so mark its creation date at the beginning of the first activity
+                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created = aggregate.published;
                     }
 
-                    // Make sure that we don't deliver an identical activity to the same stream twice. This can potentially
-                    // happen when an activity type has multiple pivots that were inactive prior to this activity (e.g., content-share)
-                    let activityId = null;
-                    const flattenedActivity = _flattenActivity(aggregate);
-                    if (visitedActivities[flattenedActivity]) {
-                      // We assign the previous activity id to the aggregate so that we can update the aggregate status to know that
-                      // any new activities for this aggregate should replace its existing activity
-                      aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] =
-                        visitedActivities[flattenedActivity];
-                      return;
+                    // Mark the last activity for each aggregate. This ensures that when a new activity gets added to the aggregate, we can
+                    // delete the previous one.
+                    if (aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID]) {
+                      statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].lastActivity =
+                        aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID];
                     }
-
-                    // This activity is not a duplicate, assign and record a new activityId
-                    activityId = ActivityDAO.createActivityId(aggregate.published);
-                    aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID] = activityId;
-                    visitedActivities[flattenedActivity] = activityId;
-
-                    // Create the entities for the delivered activity
-                    const actor = createActivityEntity(_.values(aggregate.actors));
-                    const object = createActivityEntity(_.values(aggregate.objects));
-                    const target = createActivityEntity(_.values(aggregate.targets));
-
-                    activityStreamUpdates[aggregate.route] =
-                      activityStreamUpdates[aggregate.route] || {};
-                    activityStreamUpdates[aggregate.route][activityId] = new Activity(
-                      activityType,
-                      activityId,
-                      verb,
-                      published,
-                      actor,
-                      object,
-                      target
-                    );
-                    numberDelivered++;
                   });
 
-                  // Step #10: Deliver the new activities to the streams
-                  ActivityDAO.deliverActivities(activityStreamUpdates, (error___) => {
+                  // Step #12: Update the activity statuses, indicating they have just been updated and collected, where applicable
+                  ActivityDAO.indexAggregateData(statusUpdatesByActivityStreamId, (error___) => {
                     if (error___) {
                       return callback(error___);
                     }
 
-                    // Collection date is marked as the date/time that the aggregate gets delivered
-                    const collectionDate = Date.now();
+                    // Fire an event that we have successfully delivered these individual activities
+                    const deliveredActivityInfos = {};
+                    _.each(routedActivities, (routedActivity) => {
+                      const activityStream = ActivityUtil.parseActivityStreamId(routedActivity.route);
+                      const { streamType, resourceId } = activityStream;
+                      deliveredActivityInfos[resourceId] = deliveredActivityInfos[resourceId] || {};
+                      deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[resourceId][
+                        streamType
+                      ] || {
+                        numNewActivities: numberNewActivitiesByRoute[routedActivity.route] || 0,
+                        activities: []
+                      };
 
-                    // Record how long it took for these to be delivered
-                    _.each(activityStreamUpdates, (routedActivities) => {
-                      _.each(routedActivities, (activity) => {
-                        Telemetry.appendDuration('delivery.time', activity.published);
-                      });
+                      deliveredActivityInfos[resourceId][streamType].activities.push(routedActivity.activity);
                     });
 
-                    // The activitiesToDelete hash values should actually be arrays of unique activity ids, not "<activity id>: true" pairs.
-                    _.each(activitiesToDelete, (activityToDelete, route) => {
-                      activitiesToDelete[route] = _.keys(activitiesToDelete[route]);
-                    });
+                    if (!_.isEmpty(deliveredActivityInfos)) {
+                      ActivityEmitter.emit(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivityInfos);
+                    }
 
-                    // Step #11: Delete the old activities that were replaced by aggregates
-                    ActivityDAO.deleteActivities(activitiesToDelete, (error___) => {
-                      if (error___) {
-                        return callback(error___);
-                      }
+                    Telemetry.appendDuration('collection.time', collectionStart);
+                    Telemetry.incr('collected.count', _.size(routedActivities));
+                    Telemetry.incr('delivered.count', numberDelivered);
 
-                      // Determine how to update all the aggregate statuses
-                      const statusUpdatesByActivityStreamId = {};
-                      _.each(allAggregateKeys, (aggregateKey) => {
-                        const aggregate = allAggregates[aggregateKey];
-                        statusUpdatesByActivityStreamId[aggregate.route] =
-                          statusUpdatesByActivityStreamId[aggregate.route] || {};
-                        statusUpdatesByActivityStreamId[aggregate.route][aggregateKey] = {
-                          lastUpdated: aggregate.published,
-                          lastCollected: collectionDate
-                        };
-
-                        if (!activeAggregates[aggregateKey]) {
-                          // This aggregate was not previously active, so mark its creation date at the beginning of the first activity
-                          statusUpdatesByActivityStreamId[aggregate.route][aggregateKey].created =
-                            aggregate.published;
-                        }
-
-                        // Mark the last activity for each aggregate. This ensures that when a new activity gets added to the aggregate, we can
-                        // delete the previous one.
-                        if (aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID]) {
-                          statusUpdatesByActivityStreamId[aggregate.route][
-                            aggregateKey
-                          ].lastActivity = aggregate[ActivityConstants.properties.OAE_ACTIVITY_ID];
-                        }
-                      });
-
-                      // Step #12: Update the activity statuses, indicating they have just been updated and collected, where applicable
-                      ActivityDAO.indexAggregateData(
-                        statusUpdatesByActivityStreamId,
-                        (error___) => {
-                          if (error___) {
-                            return callback(error___);
-                          }
-
-                          // Fire an event that we have successfully delivered these individual activities
-                          const deliveredActivityInfos = {};
-                          _.each(routedActivities, (routedActivity) => {
-                            const activityStream = ActivityUtil.parseActivityStreamId(
-                              routedActivity.route
-                            );
-                            const { streamType, resourceId } = activityStream;
-                            deliveredActivityInfos[resourceId] =
-                              deliveredActivityInfos[resourceId] || {};
-                            deliveredActivityInfos[resourceId][streamType] = deliveredActivityInfos[
-                              resourceId
-                            ][streamType] || {
-                              numNewActivities:
-                                numberNewActivitiesByRoute[routedActivity.route] || 0,
-                              activities: []
-                            };
-
-                            deliveredActivityInfos[resourceId][streamType].activities.push(
-                              routedActivity.activity
-                            );
-                          });
-
-                          if (!_.isEmpty(deliveredActivityInfos)) {
-                            ActivityEmitter.emit(
-                              ActivityConstants.events.DELIVERED_ACTIVITIES,
-                              deliveredActivityInfos
-                            );
-                          }
-
-                          Telemetry.appendDuration('collection.time', collectionStart);
-                          Telemetry.incr('collected.count', _.size(routedActivities));
-                          Telemetry.incr('delivered.count', numberDelivered);
-
-                          return callback();
-                        }
-                      );
-                    });
+                    return callback();
                   });
                 });
-              }
-            );
+              });
+            });
           });
         });
       });
-    }
-  );
+    });
+  });
 };
 
 /**
@@ -655,26 +620,14 @@ const createAggregates = function (routedActivities) {
       const pivotTargetKey = _createPivotKey(activity.target, pivot.target);
 
       // The aggregate key is of the following format: "content-create#u:oae:mrvisser#user:u:oae:mrvisser##
-      const aggregateKey = format(
-        '%s#%s#%s#%s#%s',
-        activityType,
-        route,
-        pivotActorKey,
-        pivotObjectKey,
-        pivotTargetKey
-      );
+      const aggregateKey = format('%s#%s#%s#%s#%s', activityType, route, pivotActorKey, pivotObjectKey, pivotTargetKey);
 
       // This process of collecting actors, objects, targets and activities is in some respect "in-memory aggregation". It
       // helps to use this to determine ahead of time if there are a few activities within this batch of routed activities
       // that already match. It helps us deliver an aggregate right away to the route, rather than accidentally delivering
       // individual activities from within a batch
       if (!aggregates[aggregateKey]) {
-        aggregates[aggregateKey] = new ActivityAggregate(
-          activityType,
-          route,
-          activity.verb,
-          activity.published
-        );
+        aggregates[aggregateKey] = new ActivityAggregate(activityType, route, activity.verb, activity.published);
       }
 
       const aggregate = aggregates[aggregateKey];
@@ -766,9 +719,7 @@ const _createPivotKey = function (entity, pivotSpec) {
  * @api private
  */
 const _contributesNewEntity = function (aggregate, actorKey, objectKey, targetKey) {
-  return (
-    !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey]
-  );
+  return !aggregate.actors[actorKey] || !aggregate.objects[objectKey] || !aggregate.targets[targetKey];
 };
 
 /**
@@ -852,9 +803,7 @@ const _flattenActivity = function (aggregate) {
  * @return {String}                     A unique string representation of the entity.
  */
 const _createEntityKey = function (entity) {
-  return entity
-    ? format('%s:%s', entity.objectType, entity[ActivityConstants.properties.OAE_ID])
-    : ENTITY_KEY_EMPTY;
+  return entity ? format('%s:%s', entity.objectType, entity[ActivityConstants.properties.OAE_ID]) : ENTITY_KEY_EMPTY;
 };
 
 /**
@@ -977,9 +926,4 @@ const ActivityAggregate = function (activityType, route, verb, published) {
   return that;
 };
 
-export {
-  resetAggregationForActivityStreams,
-  collectAllBuckets,
-  createAggregates,
-  createActivityEntity
-};
+export { resetAggregationForActivityStreams, collectAllBuckets, createAggregates, createActivityEntity };

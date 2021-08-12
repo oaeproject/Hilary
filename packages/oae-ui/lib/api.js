@@ -15,25 +15,25 @@
 
 import fs from 'fs';
 import path from 'path';
-import { format } from 'util';
+import { callbackify, format } from 'util';
 import _ from 'underscore';
 import $ from 'cheerio';
 
 import Globalize from 'globalize';
 import less from 'less';
 import marked from 'marked';
-import pipe from 'ramda/src/pipe';
+import pipe from 'ramda/src/pipe.js';
 import PropertiesParser from 'properties-parser';
 import readdirp from 'readdirp';
 import watch from 'watch';
 
 import * as ConfigAPI from 'oae-config';
 
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as Sanitization from 'oae-util/lib/sanitization';
-import * as TZ from 'oae-util/lib/tz';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
+import * as TZ from 'oae-util/lib/tz.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';
@@ -56,13 +56,16 @@ let uiDirectory = null;
 // A mapping object that maps pre-optimized paths to post-optimized paths in the UI
 let hashes = null;
 
-// A dictionary that will hold the content for each file. This will be lazy filled. The first
-// time a particular file is requested, it will be cached. After that, the cached version will
-// be used
+/**
+ * A dictionary that will hold the content for each file. This will be lazy filled. The first
+ * time a particular file is requested, it will be cached. After that, the cached version will
+ * be used
+ */
 const staticFileCache = {};
 
-// A dictionary that will hold the widget manifests for all widgets. This will be filled upon
-// initialization.
+/**
+ * A dictionary that will hold the widget manifests for all widgets. This will be filled upon initialization.
+ */
 let widgetManifestCache = {};
 
 // A dictionary that will hold all the i18n keys keyed by their locale
@@ -98,32 +101,31 @@ const init = function (_uiDirectory, _hashes, callback) {
   hashes = _hashes;
 
   // Load all the globalize cultures
-  // eslint-disable-next-line no-unused-vars
-  const globalize = require('globalize/lib/cultures/globalize.cultures');
-
-  // Cache all of the widget manifest files
-  cacheWidgetManifests(() => {
-    // Monitor the UI repository for changes and refresh the cache.
-    // This will only be done in development mode
-    if (process.env.NODE_ENV !== 'production') {
-      watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, (monitor) => {
-        monitor.on('created', updateFileCaches);
-        monitor.on('changed', updateFileCaches);
-        monitor.on('removed', updateFileCaches);
-      });
-    }
-
-    // Cache the base skin file
-    _cacheSkinVariables((error) => {
-      if (error) {
-        return callback(error);
+  import('globalize/lib/cultures/globalize.cultures.js').then((globalize) => {
+    // Cache all of the widget manifest files
+    cacheWidgetManifests(() => {
+      // Monitor the UI repository for changes and refresh the cache.
+      // This will only be done in development mode
+      if (process.env.NODE_ENV !== 'production') {
+        watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, (monitor) => {
+          monitor.on('created', updateFileCaches);
+          monitor.on('changed', updateFileCaches);
+          monitor.on('removed', updateFileCaches);
+        });
       }
 
-      // Ensure the skins are not cached, as they may be invalid now
-      cachedSkins = {};
+      // Cache the base skin file
+      _cacheSkinVariables((error) => {
+        if (error) {
+          return callback(error);
+        }
 
-      // Cache the i18n bundles
-      return _cacheI18nKeys(callback);
+        // Ensure the skins are not cached, as they may be invalid now
+        cachedSkins = {};
+
+        // Cache the i18n bundles
+        return _cacheI18nKeys(callback);
+      });
     });
   });
 };
@@ -1156,8 +1158,10 @@ const renderTemplate = function (template, data, locale = 'en_US') {
        * @return {String}                         Human readable mimetype description for the provided resource subtype and mime type
        */
       getMimetypeDescription(resourceSubType, mimeType) {
-        const descriptor = _getMimeTypeDescriptor();
-        return descriptor.getDescription(resourceSubType, mimeType);
+        // const descriptor = await _getMimeTypeDescriptor();
+        return _getMimeTypeDescriptor().then((descriptor) => {
+          return descriptor.getDescription(resourceSubType, mimeType);
+        });
       }
     },
 
@@ -1363,8 +1367,12 @@ const compileTemplate = function (template) {
  *
  * @return {Object}    The activity adapter
  */
-const getActivityAdapter = function () {
-  return _uiRequire('/shared/oae/js/activityadapter.js');
+const getActivityAdapter = function (callback) {
+  callbackify(_uiRequire)('/shared/oae/js/activityadapter.js', (error, pkg) => {
+    if (error) return callback(error);
+
+    return callback(null, pkg);
+  });
 };
 
 /// ////////////
@@ -1395,8 +1403,12 @@ const getHashedPath = function (path) {
  * @return {String}     result.countries[i].name    The english name of the country
  * @return {String}     [result.countries[i].icon]  The absolute path to an icon, if available
  */
-const getIso3166CountryInfo = function () {
-  return _uiRequire('/shared/oae/js/iso3166.js');
+const getIso3166CountryInfo = function (callback) {
+  callbackify(_uiRequire)('/shared/oae/js/iso3166.js', (error, pkg) => {
+    if (error) return callback(error);
+
+    return callback(null, pkg);
+  });
 };
 
 /**
@@ -1405,20 +1417,34 @@ const getIso3166CountryInfo = function () {
  * @return {Object}     The mimetype descriptor
  * @api private
  */
-const _getMimeTypeDescriptor = function () {
-  return _uiRequire('/shared/oae/js/mimetypes.js');
+const _getMimeTypeDescriptor = async function () {
+  await _uiRequire('/shared/oae/js/mimetypes.js')
+    .then((file) => {
+      return file;
+    })
+    .catch((e) => {
+      // TODO log here
+    });
 };
 
 /**
  * Require a file from the UI repository
  *
  * @param  {String}     path    The path to the file that should be required. This should start with a `/`
- * @return {Object}             The module as returned by Node.JS's `require` method
+ * @return {Object}             The module as returned by Node.JS's `import` method
  * @api private
  */
 const _uiRequire = function (path) {
-  path = getHashedPath(path);
-  return require(uiDirectory + path);
+  path = uiDirectory + getHashedPath(path);
+
+  return import(path)
+    .then((pkg) => {
+      return pkg;
+    })
+    .catch((e) => {
+      // TODO log here
+      throw e;
+    });
 };
 
 export {

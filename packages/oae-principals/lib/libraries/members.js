@@ -14,18 +14,18 @@
  */
 
 import { format } from 'util';
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 import { logger } from 'oae-logger';
 

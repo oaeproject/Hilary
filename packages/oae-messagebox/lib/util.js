@@ -16,10 +16,10 @@
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as MessageBoxAPI from './api.js';
 
 import { MessageBoxConstants } from './constants.js';

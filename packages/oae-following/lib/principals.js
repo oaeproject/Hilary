@@ -14,8 +14,8 @@
  */
 
 import PrincipalsAPI from 'oae-principals';
-import * as FollowingAuthz from 'oae-following/lib/authz';
-import * as FollowingDAO from 'oae-following/lib/internal/dao';
+import * as FollowingAuthz from 'oae-following/lib/authz.js';
+import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
 
 /*!
  * Register a full user profile decorator that will indicate if the user in context
@@ -44,7 +44,7 @@ PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback
 
     // If we aren't following, see if we're allowed to follow them
     let canFollow = true;
-    FollowingAuthz.canFollow(ctx, user, err => {
+    FollowingAuthz.canFollow(ctx, user, (err) => {
       if (err && err.code !== 401) {
         return callback(err);
       }
@@ -67,7 +67,7 @@ PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback
  * @return {Object}                     The decoration object to attach to the user profile
  * @api private
  */
-const _createFullUserProfileDecoration = function(canFollow, isFollowing) {
+const _createFullUserProfileDecoration = function (canFollow, isFollowing) {
   return {
     canFollow: canFollow === true,
     isFollowing: isFollowing === true

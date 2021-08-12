@@ -15,16 +15,16 @@
 
 import { assert } from 'chai';
 
-import { ContentConstants } from 'oae-content/lib/constants';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
-import * as OaeUtil from 'oae-util/lib/util';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityRouter from 'oae-activity/lib/internal/router';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityRouter from 'oae-activity/lib/internal/router.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 
 import { contains, pluck } from 'ramda';
 
@@ -171,73 +171,62 @@ describe('Notifications', () => {
             },
             (error /* , link0 */) => {
               assert.notExists(error);
-              ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (
-                error /* , notificationStream */
-              ) => {
-                assert.notExists(error);
-
-                // Ensure simong's notifications unread count is now 1
-                RestAPI.User.getMe(simong.restContext, (error, me) => {
+              ActivityTestsUtil.collectAndGetNotificationStream(
+                simong.restContext,
+                null,
+                (error /* , notificationStream */) => {
                   assert.notExists(error);
-                  assert.strictEqual(me.notificationsUnread, 1);
 
-                  // Mrvisser shares another item with simong
-                  RestAPI.Content.createLink(
-                    mrvisser.restContext,
-                    {
-                      displayName: 'Google',
-                      description: 'Google',
-                      visibility: PRIVATE,
-                      link: 'http://www.google.ca',
-                      managers: [],
-                      viewers: [simong.user.id],
-                      folders: []
-                    },
-                    (error /* , link1 */) => {
-                      assert.notExists(error);
-                      ActivityTestsUtil.collectAndGetNotificationStream(simong.restContext, null, (
-                        error /* , notificationStream */
-                      ) => {
+                  // Ensure simong's notifications unread count is now 1
+                  RestAPI.User.getMe(simong.restContext, (error, me) => {
+                    assert.notExists(error);
+                    assert.strictEqual(me.notificationsUnread, 1);
+
+                    // Mrvisser shares another item with simong
+                    RestAPI.Content.createLink(
+                      mrvisser.restContext,
+                      {
+                        displayName: 'Google',
+                        description: 'Google',
+                        visibility: PRIVATE,
+                        link: 'http://www.google.ca',
+                        managers: [],
+                        viewers: [simong.user.id],
+                        folders: []
+                      },
+                      (error /* , link1 */) => {
                         assert.notExists(error);
+                        ActivityTestsUtil.collectAndGetNotificationStream(
+                          simong.restContext,
+                          null,
+                          (error /* , notificationStream */) => {
+                            assert.notExists(error);
 
-                        // Since it aggregates with the previous, simong's notifications count should still be 1
-                        RestAPI.User.getMe(simong.restContext, (error, me) => {
-                          assert.notExists(error);
-                          assert.strictEqual(me.notificationsUnread, 1);
-
-                          // Simon resets his notifications by reading them. This resets both the count and aggregation
-                          RestAPI.Activity.markNotificationsRead(simong.restContext, (error_) => {
-                            assert.notExists(error_);
-                            // Ensure the notification count resets to 0
+                            // Since it aggregates with the previous, simong's notifications count should still be 1
                             RestAPI.User.getMe(simong.restContext, (error, me) => {
                               assert.notExists(error);
-                              assert.strictEqual(me.notificationsUnread, 0);
+                              assert.strictEqual(me.notificationsUnread, 1);
 
-                              /*!
-                               * Share two things at once before aggregating. This verifies the case where 2
-                               * items are aggregated together in memory, not in the feed.
-                               *
-                               * Note that just because 2 aggregating items are aggregating in the same cycle
-                               * doesn't mean they're aggregated together in-memory, that only happens if they
-                               * are dropped in the same routed activity bucket. If the config value
-                               * `numberOfProcessingBuckets` is `1`, then it will happen all the time. If it
-                               * is larger than `1` and this functionality regresses, then this will be an
-                               * intermittent test failure.
-                               */
-
-                              RestAPI.Content.createLink(
-                                mrvisser.restContext,
-                                {
-                                  displayName: 'Google',
-                                  description: 'Google',
-                                  visibility: PRIVATE,
-                                  link: 'http://www.google.ca',
-                                  managers: [],
-                                  viewers: [simong.user.id],
-                                  folders: []
-                                },
-                                (error, link2) => {
+                              // Simon resets his notifications by reading them. This resets both the count and aggregation
+                              RestAPI.Activity.markNotificationsRead(simong.restContext, (error_) => {
+                                assert.notExists(error_);
+                                // Ensure the notification count resets to 0
+                                RestAPI.User.getMe(simong.restContext, (error, me) => {
                                   assert.notExists(error);
+                                  assert.strictEqual(me.notificationsUnread, 0);
+
+                                  /*!
+                                   * Share two things at once before aggregating. This verifies the case where 2
+                                   * items are aggregated together in memory, not in the feed.
+                                   *
+                                   * Note that just because 2 aggregating items are aggregating in the same cycle
+                                   * doesn't mean they're aggregated together in-memory, that only happens if they
+                                   * are dropped in the same routed activity bucket. If the config value
+                                   * `numberOfProcessingBuckets` is `1`, then it will happen all the time. If it
+                                   * is larger than `1` and this functionality regresses, then this will be an
+                                   * intermittent test failure.
+                                   */
+
                                   RestAPI.Content.createLink(
                                     mrvisser.restContext,
                                     {
@@ -249,47 +238,62 @@ describe('Notifications', () => {
                                       viewers: [simong.user.id],
                                       folders: []
                                     },
-                                    (error, link3) => {
+                                    (error, link2) => {
                                       assert.notExists(error);
-                                      ActivityTestsUtil.collectAndGetNotificationStream(
-                                        simong.restContext,
-                                        null,
-                                        (error, notificationStream) => {
+                                      RestAPI.Content.createLink(
+                                        mrvisser.restContext,
+                                        {
+                                          displayName: 'Google',
+                                          description: 'Google',
+                                          visibility: PRIVATE,
+                                          link: 'http://www.google.ca',
+                                          managers: [],
+                                          viewers: [simong.user.id],
+                                          folders: []
+                                        },
+                                        (error, link3) => {
                                           assert.notExists(error);
+                                          ActivityTestsUtil.collectAndGetNotificationStream(
+                                            simong.restContext,
+                                            null,
+                                            (error, notificationStream) => {
+                                              assert.notExists(error);
 
-                                          // Sanity check that these items are a single aggregate activity
-                                          assert.strictEqual(notificationStream.items.length, 2);
-                                          assert.isArray(notificationStream.items[0].object['oae:collection']);
+                                              // Sanity check that these items are a single aggregate activity
+                                              assert.strictEqual(notificationStream.items.length, 2);
+                                              assert.isArray(notificationStream.items[0].object['oae:collection']);
 
-                                          const linkIdsInFeed = pluck(
-                                            ActivityConstants.properties.OAE_ID,
-                                            notificationStream.items[0].object['oae:collection']
+                                              const linkIdsInFeed = pluck(
+                                                ActivityConstants.properties.OAE_ID,
+                                                notificationStream.items[0].object['oae:collection']
+                                              );
+                                              assert.lengthOf(linkIdsInFeed, 2);
+                                              assert.ok(contains(link2.id, linkIdsInFeed));
+                                              assert.ok(contains(link3.id, linkIdsInFeed));
+
+                                              // Ensure that simon's notification count increments by only 1
+                                              RestAPI.User.getMe(simong.restContext, (error, me) => {
+                                                assert.notExists(error);
+                                                assert.strictEqual(me.notificationsUnread, 1);
+
+                                                return callback();
+                                              });
+                                            }
                                           );
-                                          assert.lengthOf(linkIdsInFeed, 2);
-                                          assert.ok(contains(link2.id, linkIdsInFeed));
-                                          assert.ok(contains(link3.id, linkIdsInFeed));
-
-                                          // Ensure that simon's notification count increments by only 1
-                                          RestAPI.User.getMe(simong.restContext, (error, me) => {
-                                            assert.notExists(error);
-                                            assert.strictEqual(me.notificationsUnread, 1);
-
-                                            return callback();
-                                          });
                                         }
                                       );
                                     }
                                   );
-                                }
-                              );
+                                });
+                              });
                             });
-                          });
-                        });
-                      });
-                    }
-                  );
-                });
-              });
+                          }
+                        );
+                      }
+                    );
+                  });
+                }
+              );
             }
           );
         });

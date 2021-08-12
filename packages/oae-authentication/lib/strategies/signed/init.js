@@ -14,8 +14,8 @@
  */
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import SignedStrategy from 'oae-authentication/lib/strategies/signed/strategy';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import SignedStrategy from 'oae-authentication/lib/strategies/signed/strategy.js';
 
 function initSignedAuth() {
   const strategy = {};

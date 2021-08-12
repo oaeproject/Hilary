@@ -13,22 +13,20 @@
  * permissions and limitations under the License.
  */
 
-import * as Fields from 'oae-config/lib/fields';
+import * as Fields from 'oae-config/lib/fields.js';
 
-module.exports = {
-  title: 'OAE Google Analytics Module',
-  'google-analytics': {
-    name: 'Google Analytics configuration',
-    description: 'Google Analytics configuration',
-    elements: {
-      globalEnabled: new Fields.Bool('Global GA enabled', 'Global Google Analytics enabled', false, {
-        tenantOverride: false
-      }),
-      globalTrackingId: new Fields.Text('Global GA tracking-ID', 'The Global Google Analytics tracking-ID', '', {
-        tenantOverride: false
-      }),
-      tenantEnabled: new Fields.Bool('Tenant GA enabled', 'Google Analytics enabled for tenant', false),
-      tenantTrackingId: new Fields.Text('Tenant GA tracking-ID', 'The Google Analytics tenant tracking-ID', '')
-    }
+export const title = 'OAE Google Analytics Module';
+export const googleAnalytics = {
+  name: 'Google Analytics configuration',
+  description: 'Google Analytics configuration',
+  elements: {
+    globalEnabled: new Fields.Bool('Global GA enabled', 'Global Google Analytics enabled', false, {
+      tenantOverride: false
+    }),
+    globalTrackingId: new Fields.Text('Global GA tracking-ID', 'The Global Google Analytics tracking-ID', '', {
+      tenantOverride: false
+    }),
+    tenantEnabled: new Fields.Bool('Tenant GA enabled', 'Google Analytics enabled for tenant', false),
+    tenantTrackingId: new Fields.Text('Tenant GA tracking-ID', 'The Google Analytics tenant tracking-ID', '')
   }
 };

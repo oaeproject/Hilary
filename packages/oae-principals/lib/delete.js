@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 import _ from 'underscore';
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 
 import * as AuthzAPI from 'oae-authz';
 
@@ -215,7 +215,6 @@ const _invokeHandlers = function (...args) {
 /// /////////
 // EVENTS //
 /// /////////
-
 /*!
  * When a group is deleted, we must invoke the handlers that were registered to be triggered when
  * a group is deleted

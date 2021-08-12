@@ -17,7 +17,8 @@ import { assert } from 'chai';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as redis from 'oae-util/lib/redis';
+
+import * as redis from 'oae-util/lib/redis.js';
 
 const { getVersion } = RestAPI.Version;
 

@@ -20,13 +20,13 @@ import ShortId from 'shortid';
 import SockJS from 'sockjs-client';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as RestAPI from 'oae-rest';
 
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
-import * as ActivityAPI from 'oae-activity';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Refresh the activity module's configuration, keeping in mind default test configuration. This is
@@ -41,7 +41,8 @@ const refreshConfiguration = function (config, callback) {
   config = _.extend(
     {
       collectionPollingFrequency: -1,
-      numberOfProcessingBuckets: 1
+      numberOfProcessingBuckets: 1,
+      maxConcurrentCollections: 1
     },
     config
   );

@@ -18,11 +18,11 @@ import _ from 'underscore';
 import { assoc, propEq, none } from 'ramda';
 import shortid from 'shortid';
 
-import AuthzGraph from 'oae-authz/lib/internal/graph';
-import * as TestsUtil from 'oae-tests/lib/util';
+import AuthzGraph from 'oae-authz/lib/internal/graph.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 describe('Authz Groups', () => {
   /**
@@ -1589,16 +1589,18 @@ describe('Authz Groups', () => {
                   assert.strictEqual(groupIds[2], groupId3);
 
                   // Ensure subsequent request gets the next 2
-                  AuthzAPI.getPrincipalMemberships(userId, nextToken, 3, (
-                    error,
-                    groupIds /* , nextToken */
-                  ) => {
-                    assert.notExists(error);
-                    assert.lengthOf(groupIds, 2);
-                    assert.strictEqual(groupIds[0], groupId4);
-                    assert.strictEqual(groupIds[1], groupId5);
-                    return callback();
-                  });
+                  AuthzAPI.getPrincipalMemberships(
+                    userId,
+                    nextToken,
+                    3,
+                    (error, groupIds /* , nextToken */) => {
+                      assert.notExists(error);
+                      assert.lengthOf(groupIds, 2);
+                      assert.strictEqual(groupIds[0], groupId4);
+                      assert.strictEqual(groupIds[1], groupId5);
+                      return callback();
+                    }
+                  );
                 });
               });
             });

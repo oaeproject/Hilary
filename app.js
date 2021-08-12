@@ -23,8 +23,14 @@ import PrettyStream from 'bunyan-prettystream';
 import optimist from 'optimist';
 import { map, prop, mergeAll } from 'ramda';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 import { logger } from 'oae-logger';
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const log = logger();
 
@@ -58,7 +64,7 @@ if (argv.config.match(/^\.\//)) {
 (async function () {
   const fileConfig = await import(argv.config);
 
-  const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
+  const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local.js'}`;
   const envConfig = await import(envConfigPath);
 
   // Merge config read from file with the one set by NODE_ENV corresponding file

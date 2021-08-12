@@ -25,38 +25,57 @@ import bodyParser from 'body-parser';
 import clone from 'clone';
 import express from 'express';
 import ShortId from 'shortid';
-import { dropLast, last, toLower, not, prop, head, compose, defaultTo, dec as decrement, equals } from 'ramda';
+import {
+  __,
+  concat,
+  dropLast,
+  last,
+  toLower,
+  not,
+  prop,
+  head,
+  compose,
+  defaultTo,
+  dec as decrement,
+  equals
+} from 'ramda';
 
+import { testingContext } from './context.js';
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Context } from 'oae-context';
 import * as LibraryAPI from 'oae-library';
 
-import { LoginId } from 'oae-authentication/lib/model';
-import multipart from 'oae-util/lib/middleware/multipart';
-import * as MQ from 'oae-util/lib/mq';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PreviewAPI from 'oae-preview-processor/lib/api';
+import { LoginId } from 'oae-authentication/lib/model.js';
+import multipart from 'oae-util/lib/middleware/multipart.js';
+import * as MQ from 'oae-util/lib/mq.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PreviewAPI from 'oae-preview-processor/lib/api.js';
 import PrincipalsAPI from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as Redis from 'oae-util/lib/redis';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as Redis from 'oae-util/lib/redis.js';
 import * as RestAPI from 'oae-rest';
-import { RestContext } from 'oae-rest/lib/model';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
-import { Tenant } from 'oae-tenants/lib/model';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
-import { User } from 'oae-principals/lib/model';
+import { RestContext } from 'oae-rest/lib/model.js';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
+import { Tenant } from 'oae-tenants/lib/model.js';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
+import { User } from 'oae-principals/lib/model.js';
 
 import { logger } from 'oae-logger';
 import { config } from '../../../config.js';
 
-const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
+let migrationRunner;
+(async function () {
+  migrationRunner = await import(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
+})();
+// const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
 const log = logger('before-tests');
+const requestLog = logger('request-log');
 
 const { setGroupMembers } = RestAPI.Group;
 const { whenIndexingComplete } = SearchTestUtil;
@@ -188,14 +207,16 @@ const clearAllData = function (callback) {
 };
 
 /**
- * Create 3 default tenants that can be used for testing the REST endpoints. These
- * tenants will be exposed on a global `oaeTests` object.
+ * Create 3 default tenants that can be used for testing the REST endpoints
+ * These tenants will be exposed on a global `oaeTests` object.
  *
  * @param  {Function}       callback    Standard callback function
  * @throws {Error}                      An assertion error is thrown when an unexpected error occurs
  */
 const setUpTenants = function (callback) {
   global.oaeTests = { tenants: {} };
+
+  testingContext.oaeTests = { coco: 'xixi ' };
 
   // Create the Global Tenant admin context to authenticate with
   global.oaeTests.tenants.global = new Tenant('admin', 'Global tenant', 'localhost:2000', {
@@ -1158,82 +1179,97 @@ const _ensureAuthenticated = function (restCtx, callback) {
  *
  * @return {Object}    config    JSON object containing configuration values for Cassandra, Redis, logging and telemetry
  */
-const createInitialTestConfig = function () {
-  // Require the configuration file, from here on the configuration should be
-  // passed around instead of required
-  const envConfig = require('../../../' + (process.env.NODE_ENV || 'local')).config;
-  let mergedConfig = _.extend({}, config, envConfig);
-
-  // Streams can't be deep copied so we stash them in a variable, delete them from the config
-  // and add them to the final config
-  const logConfig = mergedConfig.log;
-  delete mergedConfig.log;
-  mergedConfig = clone(mergedConfig);
-  mergedConfig.log = logConfig;
-
-  // The Cassandra connection config that should be used for unit tests, using
-  // a custom keyspace for just the tests
-  mergedConfig.cassandra.keyspace = 'oaeTest';
-
-  // We'll stick all our redis data in a separate DB index.
-  mergedConfig.redis.dbIndex = 1;
-
-  // Log everything (except mocha output) to tests.log
-  mergedConfig.log.streams = [
-    {
-      level: mergedConfig.test.level || 'info',
-      path: mergedConfig.test.path || './tests.log'
-    }
-  ];
-
-  // Unit test will purge the rabbit mq queues when they're connected
-  mergedConfig.mq.purgeQueuesOnStartup = true;
-
-  // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
-  mergedConfig.previews.office.timeout = 30000;
-  mergedConfig.previews.screenShotting.timeout = 30000;
-
-  mergedConfig.search.index.name = 'oaetest';
-  // eslint-disable-next-line camelcase
-  mergedConfig.search.index.settings.number_of_shards = 1;
-  // eslint-disable-next-line camelcase
-  mergedConfig.search.index.settings.number_of_replicas = 0;
-
+const createInitialTestConfig = async function () {
   /**
-   * This is a low-level setting. Some store implementations have poor concurrency
-   * or disable optimizations for heap memory usage. We recommend sticking to the defaults.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/7.x/index-modules-store.html
-   *
-   * mergedConfig.search.index.settings.store = { type: 'memory' };
+   * Require the configuration file, from here on the configuration should be
+   * passed around instead of required
    */
 
-  mergedConfig.search.index.destroyOnStartup = true;
+  const defaultToLocal = defaultTo('local');
+  const preffixPath = concat(`${process.cwd()}/`);
+  const suffixExtension = concat(__, '.js');
 
-  // Disable the poller so it only collects manually
-  mergedConfig.activity.collectionPollingFrequency = -1;
-  mergedConfig.activity.mail.pollingFrequency = 3600;
-  mergedConfig.activity.numberOfProcessingBuckets = 1;
+  const environment = compose(suffixExtension, preffixPath, defaultToLocal)(process.env.NODE_ENV);
 
-  mergedConfig.servers.serverInternalAddress = null;
-  mergedConfig.servers.globalAdminAlias = 'admin';
-  mergedConfig.servers.globalAdminHost = 'localhost:2000';
-  mergedConfig.servers.guestTenantAlias = 'guest';
-  mergedConfig.servers.guestTenantHost = 'guest.oae.com';
-  mergedConfig.servers.useHttps = false;
+  // let envConfig;
+  async function loadConfig() {
+    let envConfig = await import(environment);
+    envConfig = envConfig.config;
+    let mergedConfig = _.extend({}, config, envConfig);
 
-  // Force emails into debug mode
-  mergedConfig.email.debug = true;
+    // Streams can't be deep copied so we stash them in a variable, delete them from the config
+    // and add them to the final config
+    const logConfig = mergedConfig.log;
+    delete mergedConfig.log;
+    mergedConfig = clone(mergedConfig);
+    mergedConfig.log = logConfig;
 
-  // Set mail grace period to 0 so emails are sent immediately
-  mergedConfig.activity.mail.gracePeriod = 0;
+    // The Cassandra connection config that should be used for unit tests, using
+    // a custom keyspace for just the tests
+    mergedConfig.cassandra.keyspace = 'oaeTest';
 
-  // Disable mixpanel tracking
-  mergedConfig.mixpanel.enabled = false;
+    // We'll stick all our redis data in a separate DB index.
+    mergedConfig.redis.dbIndex = 1;
 
-  // Explicitly use a different cookie
-  mergedConfig.cookie.name = CONFIG_COOKIE_NAME;
+    // Log everything (except mocha output) to tests.log
+    mergedConfig.log.streams = [
+      {
+        level: mergedConfig.test.level || 'info',
+        path: mergedConfig.test.path || './tests.log'
+      }
+    ];
 
-  return mergedConfig;
+    // Unit test will purge the rabbit mq queues when they're connected
+    mergedConfig.mq.purgeQueuesOnStartup = true;
+
+    // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
+    mergedConfig.previews.office.timeout = 30000;
+    mergedConfig.previews.screenShotting.timeout = 30000;
+
+    mergedConfig.search.index.name = 'oaetest';
+    // eslint-disable-next-line camelcase
+    mergedConfig.search.index.settings.number_of_shards = 1;
+    // eslint-disable-next-line camelcase
+    mergedConfig.search.index.settings.number_of_replicas = 0;
+
+    /**
+     * This is a low-level setting. Some store implementations have poor concurrency
+     * or disable optimizations for heap memory usage. We recommend sticking to the defaults.
+     * https://www.elastic.co/guide/en/elasticsearch/reference/7.x/index-modules-store.html
+     *
+     * mergedConfig.search.index.settings.store = { type: 'memory' };
+     */
+
+    mergedConfig.search.index.destroyOnStartup = true;
+
+    // Disable the poller so it only collects manually
+    mergedConfig.activity.collectionPollingFrequency = -1;
+    mergedConfig.activity.mail.pollingFrequency = 3600;
+    mergedConfig.activity.numberOfProcessingBuckets = 1;
+
+    mergedConfig.servers.serverInternalAddress = null;
+    mergedConfig.servers.globalAdminAlias = 'admin';
+    mergedConfig.servers.globalAdminHost = 'localhost:2000';
+    mergedConfig.servers.guestTenantAlias = 'guest';
+    mergedConfig.servers.guestTenantHost = 'guest.oae.com';
+    mergedConfig.servers.useHttps = false;
+
+    // Force emails into debug mode
+    mergedConfig.email.debug = true;
+
+    // Set mail grace period to 0 so emails are sent immediately
+    mergedConfig.activity.mail.gracePeriod = 0;
+
+    // Disable mixpanel tracking
+    mergedConfig.mixpanel.enabled = false;
+
+    // Explicitly use a different cookie
+    mergedConfig.cookie.name = CONFIG_COOKIE_NAME;
+
+    return mergedConfig;
+  }
+
+  return await loadConfig();
 };
 
 /**
@@ -1242,8 +1278,7 @@ const createInitialTestConfig = function () {
  * @api private
  */
 const _bindRequestLogger = function () {
-  const requestLog = require('oae-logger').logger('request-log');
-
+  // const requestLog = require('oae-logger').logger('request-log');
   RestUtil.emitter.on('request', (restCtx, url, method, data) => {
     requestLog().trace(
       {

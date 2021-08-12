@@ -17,14 +17,14 @@ import { format } from 'util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao.js';
 
-import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 const log = logger('meeting-jitsi-search');
 

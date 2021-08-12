@@ -17,7 +17,13 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
-import * as IO from 'oae-util/lib/io';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import * as IO from 'oae-util/lib/io.js';
 
 const datadir = path.join(__dirname, '/data/');
 

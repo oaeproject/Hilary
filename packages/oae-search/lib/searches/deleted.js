@@ -14,10 +14,10 @@
  */
 
 import { isEmpty } from 'ramda';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import * as SearchUtil from 'oae-search/lib/util';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
 const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterScopeAndAccess } = SearchUtil;
 
 /**

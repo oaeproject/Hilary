@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { Bool, Text } from 'oae-config/lib/fields';
+import { Bool, Text } from 'oae-config/lib/fields.js';
 import { defaultTo } from 'ramda';
 
 const yadaYadaOtherwise = defaultTo('yadayada');

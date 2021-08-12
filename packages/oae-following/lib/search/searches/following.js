@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as SearchUtil from 'oae-search/lib/util';
-import * as FollowingAuthz from 'oae-following/lib/authz';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as FollowingAuthz from 'oae-following/lib/authz.js';
 
-import { Validator as validator } from 'oae-authz/lib/validator';
-import { FollowingConstants } from 'oae-following/lib/constants';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
 
 const { isUserId, unless } = validator;
 

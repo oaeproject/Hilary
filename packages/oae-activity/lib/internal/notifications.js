@@ -15,13 +15,13 @@
 
 import _ from 'underscore';
 
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import { logger } from 'oae-logger';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import ActivityEmitter from './emitter.js';
 
 import * as ActivityDAO from './dao.js';
@@ -55,10 +55,7 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActi
   // All users receiving notifications will have their "notifications unread" counter incremented
   incrementNotificationsUnread(userIdsIncrBy, (error) => {
     if (error) {
-      log().error(
-        { err: new Error(error.msg), userIdsIncrBy },
-        'Could not mark notifications as unread'
-      );
+      log().error({ err: new Error(error.msg), userIdsIncrBy }, 'Could not mark notifications as unread');
     }
 
     // Our async operation is over, decrement the counter
@@ -101,10 +98,7 @@ const markNotificationsRead = function (user, callback) {
 
       // Reset the aggregator for this user his notification stream. New notifications will not aggregate
       // with older notifications which will make it clearer to the user which activity is the new one
-      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(
-        user.id,
-        'notification'
-      );
+      const notificationActivityStreamId = ActivityUtil.createActivityStreamId(user.id, 'notification');
       ActivityAggregator.resetAggregationForActivityStreams([notificationActivityStreamId]);
 
       // By clearing a user's email activity stream when he marks his notifications as read,
@@ -173,11 +167,7 @@ const incrementNotificationsUnread = function (userIdIncrs, callback) {
 
     // Update all principal profiles with the new count
     _.each(newValues, (newValue, userId) => {
-      PrincipalsDAO.updatePrincipal(
-        userId,
-        { notificationsUnread: newValue.toString() },
-        _monitorUpdatePrincipal
-      );
+      PrincipalsDAO.updatePrincipal(userId, { notificationsUnread: newValue.toString() }, _monitorUpdatePrincipal);
     });
   });
 };

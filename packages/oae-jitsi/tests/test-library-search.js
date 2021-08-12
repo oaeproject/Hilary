@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import { head, last } from 'ramda';
@@ -35,29 +35,37 @@ describe('Meeting Library Search', () => {
         createMeeting(asHomer, randomTextA, randomTextA, false, false, PUBLIC, null, null, (error, meetingA) => {
           assert.notExists(error);
 
-          createMeeting(asHomer, randomTextB, randomTextB, false, false, PUBLIC, null, null, (
-            error /* , meetingB */
-          ) => {
-            assert.notExists(error);
-
-            // Ensure that the randomTextA meeting returns and scores better than randomTextB
-            searchAll(asHomer, 'meeting-jitsi-library', [homer.user.id], { q: randomTextA }, (error, results) => {
+          createMeeting(
+            asHomer,
+            randomTextB,
+            randomTextB,
+            false,
+            false,
+            PUBLIC,
+            null,
+            null,
+            (error /* , meetingB */) => {
               assert.notExists(error);
-              assert.ok(results.results);
 
-              const firstResult = head(results.results);
-              const lastResult = last(results.results);
+              // Ensure that the randomTextA meeting returns and scores better than randomTextB
+              searchAll(asHomer, 'meeting-jitsi-library', [homer.user.id], { q: randomTextA }, (error, results) => {
+                assert.notExists(error);
+                assert.ok(results.results);
 
-              assert.ok(firstResult);
-              assert.ok(lastResult);
+                const firstResult = head(results.results);
+                const lastResult = last(results.results);
 
-              assert.strictEqual(firstResult.id, meetingA.id);
-              assert.strictEqual(firstResult.displayName, randomTextA);
-              assert.strictEqual(firstResult.description, randomTextA);
+                assert.ok(firstResult);
+                assert.ok(lastResult);
 
-              return callback();
-            });
-          });
+                assert.strictEqual(firstResult.id, meetingA.id);
+                assert.strictEqual(firstResult.displayName, randomTextA);
+                assert.strictEqual(firstResult.description, randomTextA);
+
+                return callback();
+              });
+            }
+          );
         });
       });
     });

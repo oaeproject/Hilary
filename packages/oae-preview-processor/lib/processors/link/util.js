@@ -16,7 +16,7 @@
 import ent from 'ent';
 import { logger } from 'oae-logger';
 
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const log = logger('oae-preview-processor');
 
@@ -32,9 +32,9 @@ const log = logger('oae-preview-processor');
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const generatePreviewsFromImage = function(ctx, path, opts, callback) {
+const generatePreviewsFromImage = function (ctx, path, opts, callback) {
   // Crop the screenshot.
-  PreviewUtil.generatePreviewsFromImage(ctx, path, {}, err => {
+  PreviewUtil.generatePreviewsFromImage(ctx, path, {}, (err) => {
     if (err) {
       return callback(err);
     }

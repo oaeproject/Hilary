@@ -15,11 +15,11 @@
 
 import { assert } from 'chai';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 
 import { and, forEachObjIndexed } from 'ramda';
 

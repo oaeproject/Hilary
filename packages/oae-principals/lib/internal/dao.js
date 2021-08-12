@@ -19,18 +19,18 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as Redis from 'oae-util/lib/redis';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as Redis from 'oae-util/lib/redis.js';
 
-import { Group, User } from 'oae-principals/lib/model';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Group, User } from 'oae-principals/lib/model.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const { unless, toBoolean, isPrincipalId, isArrayEmpty } = validator;
 
-import { LoginId } from 'oae-authentication/lib/model';
+import { LoginId } from 'oae-authentication/lib/model.js';
 import { PrincipalsConstants } from '../constants.js';
 
 const log = logger('principals-dao');

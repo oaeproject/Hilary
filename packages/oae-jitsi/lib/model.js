@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 const Meeting = function (
   tenant,

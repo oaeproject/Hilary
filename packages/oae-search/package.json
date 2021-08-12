@@ -1,6 +1,7 @@
 {
   "main": "./lib/api.js",
   "name": "oae-search",
+  "type": "module",
   "oae": {
     "priority": 5
   },

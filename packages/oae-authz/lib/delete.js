@@ -16,7 +16,7 @@
 import { defaultTo, isEmpty, forEach, pipe, map, filter, pluck } from 'ramda';
 
 import { logger } from 'oae-logger';
-import { rowToHash, runQuery } from 'oae-util/lib/cassandra';
+import { rowToHash, runQuery } from 'oae-util/lib/cassandra.js';
 
 const log = logger('authz-delete');
 

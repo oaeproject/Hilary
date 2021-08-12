@@ -17,7 +17,7 @@
 import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 const { createTenantAdminRestContext } = TestsUtil;
@@ -56,30 +56,36 @@ describe('Discussion Library Search', () => {
           (error, discussionA) => {
             assert.notExists(error);
 
-            RestAPI.Discussions.createDiscussion(simong.restContext, randomTextB, randomTextB, 'public', null, null, (
-              error /* , discussionB */
-            ) => {
-              assert.notExists(error);
+            RestAPI.Discussions.createDiscussion(
+              simong.restContext,
+              randomTextB,
+              randomTextB,
+              'public',
+              null,
+              null,
+              (error /* , discussionB */) => {
+                assert.notExists(error);
 
-              // Ensure that the randomTextA discussion returns and scores better than randomTextB
-              SearchTestsUtil.searchAll(
-                simong.restContext,
-                'discussion-library',
-                [simong.user.id],
-                { q: randomTextA },
-                (error, results) => {
-                  assert.notExists(error);
-                  assert.ok(results.results);
+                // Ensure that the randomTextA discussion returns and scores better than randomTextB
+                SearchTestsUtil.searchAll(
+                  simong.restContext,
+                  'discussion-library',
+                  [simong.user.id],
+                  { q: randomTextA },
+                  (error, results) => {
+                    assert.notExists(error);
+                    assert.ok(results.results);
 
-                  const doc = results.results[0];
-                  assert.ok(doc);
-                  assert.strictEqual(doc.id, discussionA.id);
-                  assert.strictEqual(doc.displayName, randomTextA);
-                  assert.strictEqual(doc.description, randomTextA);
-                  callback();
-                }
-              );
-            });
+                    const doc = results.results[0];
+                    assert.ok(doc);
+                    assert.strictEqual(doc.id, discussionA.id);
+                    assert.strictEqual(doc.displayName, randomTextA);
+                    assert.strictEqual(doc.description, randomTextA);
+                    callback();
+                  }
+                );
+              }
+            );
           }
         );
       });

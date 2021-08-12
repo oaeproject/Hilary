@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 /**
  * A model object that represents a folder
@@ -31,7 +31,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
  * @param  {Number}     lastModified    The timestamp (millis since epoch) that the folder was last modified
  * @param  {Object}     previews        The previews object for this folder
  */
-const Folder = function(
+const Folder = function (
   tenant,
   id,
   groupId,

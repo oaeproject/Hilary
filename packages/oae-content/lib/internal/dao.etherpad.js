@@ -17,7 +17,7 @@ import { format } from 'util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
-import * as Redis from 'oae-util/lib/redis';
+import * as Redis from 'oae-util/lib/redis.js';
 
 const log = logger('content-dao-etherpad');
 

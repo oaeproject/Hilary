@@ -16,19 +16,14 @@
 import { assert } from 'chai';
 import { toLower, compose, prop, length, head, find, slice, propEq } from 'ramda';
 
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 
 const { generateRandomText, createTenantRestContext, createGlobalAdminRestContext } = TestsUtil;
 const { assertSearchSucceeds } = SearchTestsUtil;
-const {
-  generateTestTenantAlias,
-  generateTestTenantHost,
-  createTenantAndWait,
-  stopTenantAndWait,
-  generateTestTenants
-} = TenantsTestUtil;
+const { generateTestTenantAlias, generateTestTenantHost, createTenantAndWait, stopTenantAndWait, generateTestTenants } =
+  TenantsTestUtil;
 
 const NO_PARAMS = null;
 const TENANTS = 'tenants';

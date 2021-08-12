@@ -19,20 +19,26 @@ import { format } from 'util';
 import _ from 'underscore';
 import { keys, reject, isNil, forEach, map, path, last } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import * as LibraryTestUtil from 'oae-library/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import * as LibraryTestUtil from 'oae-library/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';
@@ -241,14 +247,21 @@ describe('Groups', () => {
      */
     it('verify that long displayNames are not accepted', (callback) => {
       const displayName = TestsUtil.generateRandomText(100);
-      RestAPI.Group.createGroup(johnRestContext, displayName, 'description', PUBLIC, undefined, [], [], (
-        error /* , groupObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        assert.ok(error.msg.indexOf('1000') > 0);
-        return callback();
-      });
+      RestAPI.Group.createGroup(
+        johnRestContext,
+        displayName,
+        'description',
+        PUBLIC,
+        undefined,
+        [],
+        [],
+        (error /* , groupObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          assert.ok(error.msg.indexOf('1000') > 0);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -256,14 +269,21 @@ describe('Groups', () => {
      */
     it('verify that long descriptions are not accepted', (callback) => {
       const description = TestsUtil.generateRandomText(1000);
-      RestAPI.Group.createGroup(johnRestContext, 'Group title', description, PUBLIC, undefined, [], [], (
-        error /* , groupObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-        assert.ok(error.msg.indexOf('10000') > 0);
-        return callback();
-      });
+      RestAPI.Group.createGroup(
+        johnRestContext,
+        'Group title',
+        description,
+        PUBLIC,
+        undefined,
+        [],
+        [],
+        (error /* , groupObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 400);
+          assert.ok(error.msg.indexOf('10000') > 0);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -350,13 +370,20 @@ describe('Groups', () => {
      * Test that verifies that anonymous users cannot create groups
      */
     it('verify anonymous group creation', (callback) => {
-      RestAPI.Group.createGroup(anonymousRestContext, 'Group title', 'Group description', PUBLIC, 'yes', [], [], (
-        error /* , groupObj */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 401);
-        return callback();
-      });
+      RestAPI.Group.createGroup(
+        anonymousRestContext,
+        'Group title',
+        'Group description',
+        PUBLIC,
+        'yes',
+        [],
+        [],
+        (error /* , groupObj */) => {
+          assert.ok(error);
+          assert.strictEqual(error.code, 401);
+          return callback();
+        }
+      );
     });
 
     /**
@@ -602,152 +629,169 @@ describe('Groups', () => {
             // 1. Public group
 
             // Ensure anonymous can see it
-            RestAPI.Group.getGroup(publicTenant1.anonymousRestContext, publicTenant1.publicGroup.id, (
-              error /* , group */
-            ) => {
-              assert.notExists(error);
-
-              // Ensure user from another tenant can see it
-              RestAPI.Group.getGroup(publicTenant2.publicUser.restContext, publicTenant1.publicGroup.id, (
-                error /* , groupObj */
-              ) => {
+            RestAPI.Group.getGroup(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.publicGroup.id,
+              (error /* , group */) => {
                 assert.notExists(error);
 
-                // Ensure user from same tenant can see it
-                RestAPI.Group.getGroup(publicTenant1.privateUser.restContext, publicTenant1.publicGroup.id, (
-                  error /* , groupObj */
-                ) => {
-                  assert.notExists(error);
-
-                  // Ensure member user can see it
-                  RestAPI.Group.getGroup(publicTenant1.publicUser.restContext, publicTenant1.publicGroup.id, (
-                    error /* , groupObj */
-                  ) => {
+                // Ensure user from another tenant can see it
+                RestAPI.Group.getGroup(
+                  publicTenant2.publicUser.restContext,
+                  publicTenant1.publicGroup.id,
+                  (error /* , groupObj */) => {
                     assert.notExists(error);
 
-                    // Ensure tenant admin can see it
-                    RestAPI.Group.getGroup(publicTenant1.adminRestContext, publicTenant1.publicGroup.id, (
-                      error /* , groupObj */
-                    ) => {
-                      assert.notExists(error);
-
-                      // Ensure global admin can see it
-                      RestAPI.Group.getGroup(globalAdminOnTenantRestContext, publicTenant1.publicGroup.id, (
-                        error /* , groupObj */
-                      ) => {
+                    // Ensure user from same tenant can see it
+                    RestAPI.Group.getGroup(
+                      publicTenant1.privateUser.restContext,
+                      publicTenant1.publicGroup.id,
+                      (error /* , groupObj */) => {
                         assert.notExists(error);
 
-                        // 2. Loggedin group
-
-                        // Ensure anonymous cannot see it
+                        // Ensure member user can see it
                         RestAPI.Group.getGroup(
-                          publicTenant1.anonymousRestContext,
-                          publicTenant1.loggedinJoinableGroup.id,
+                          publicTenant1.publicUser.restContext,
+                          publicTenant1.publicGroup.id,
                           (error /* , groupObj */) => {
-                            assert.ok(error);
-                            assert.strictEqual(error.code, 401);
+                            assert.notExists(error);
 
-                            // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
+                            // Ensure tenant admin can see it
                             RestAPI.Group.getGroup(
-                              publicTenant2.publicUser.restContext,
-                              publicTenant1.loggedinJoinableGroup.id,
+                              publicTenant1.adminRestContext,
+                              publicTenant1.publicGroup.id,
                               (error /* , groupObj */) => {
                                 assert.notExists(error);
 
-                                // Ensure user from another private tenant cannot see it
+                                // Ensure global admin can see it
                                 RestAPI.Group.getGroup(
-                                  privateTenant1.publicUser.restContext,
-                                  publicTenant1.loggedinJoinableGroup.id,
+                                  globalAdminOnTenantRestContext,
+                                  publicTenant1.publicGroup.id,
                                   (error /* , groupObj */) => {
-                                    assert.ok(error);
-                                    assert.strictEqual(error.code, 401);
+                                    assert.notExists(error);
 
-                                    // Ensure user from same tenant can see it
+                                    // 2. Loggedin group
+
+                                    // Ensure anonymous cannot see it
                                     RestAPI.Group.getGroup(
-                                      publicTenant1.privateUser.restContext,
+                                      publicTenant1.anonymousRestContext,
                                       publicTenant1.loggedinJoinableGroup.id,
                                       (error /* , groupObj */) => {
-                                        assert.notExists(error);
+                                        assert.ok(error);
+                                        assert.strictEqual(error.code, 401);
 
-                                        // Ensure member user from another tenant can see it
+                                        // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
                                         RestAPI.Group.getGroup(
-                                          publicTenant1.publicUser.restContext,
-                                          publicTenant2.loggedinJoinableGroup.id,
+                                          publicTenant2.publicUser.restContext,
+                                          publicTenant1.loggedinJoinableGroup.id,
                                           (error /* , groupObj */) => {
                                             assert.notExists(error);
 
-                                            // Ensure tenant admin can see it
+                                            // Ensure user from another private tenant cannot see it
                                             RestAPI.Group.getGroup(
-                                              publicTenant1.adminRestContext,
+                                              privateTenant1.publicUser.restContext,
                                               publicTenant1.loggedinJoinableGroup.id,
                                               (error /* , groupObj */) => {
-                                                assert.notExists(error);
+                                                assert.ok(error);
+                                                assert.strictEqual(error.code, 401);
 
-                                                // Ensure global admin can see it
+                                                // Ensure user from same tenant can see it
                                                 RestAPI.Group.getGroup(
-                                                  globalAdminOnTenantRestContext,
+                                                  publicTenant1.privateUser.restContext,
                                                   publicTenant1.loggedinJoinableGroup.id,
                                                   (error /* , groupObj */) => {
                                                     assert.notExists(error);
 
-                                                    // 3. Private group
-
-                                                    // Ensure anonymous cannot see it
+                                                    // Ensure member user from another tenant can see it
                                                     RestAPI.Group.getGroup(
-                                                      publicTenant1.anonymousRestContext,
-                                                      publicTenant1.privateJoinableGroup.id,
+                                                      publicTenant1.publicUser.restContext,
+                                                      publicTenant2.loggedinJoinableGroup.id,
                                                       (error /* , groupObj */) => {
-                                                        assert.ok(error);
-                                                        assert.strictEqual(error.code, 401);
+                                                        assert.notExists(error);
 
-                                                        // Ensure user from another public tenant cannot see it
+                                                        // Ensure tenant admin can see it
                                                         RestAPI.Group.getGroup(
-                                                          publicTenant2.publicUser.restContext,
-                                                          publicTenant1.privateJoinableGroup.id,
+                                                          publicTenant1.adminRestContext,
+                                                          publicTenant1.loggedinJoinableGroup.id,
                                                           (error /* , groupObj */) => {
                                                             assert.notExists(error);
 
-                                                            // Ensure user from another private tenant cannot see it
+                                                            // Ensure global admin can see it
                                                             RestAPI.Group.getGroup(
-                                                              privateTenant1.publicUser.restContext,
-                                                              publicTenant1.privateJoinableGroup.id,
+                                                              globalAdminOnTenantRestContext,
+                                                              publicTenant1.loggedinJoinableGroup.id,
                                                               (error /* , groupObj */) => {
-                                                                assert.ok(error);
-                                                                assert.strictEqual(error.code, 401);
+                                                                assert.notExists(error);
 
-                                                                // Ensure user from same tenant can see it (since they would be able to join it)
+                                                                // 3. Private group
+
+                                                                // Ensure anonymous cannot see it
                                                                 RestAPI.Group.getGroup(
-                                                                  publicTenant1.privateUser.restContext,
+                                                                  publicTenant1.anonymousRestContext,
                                                                   publicTenant1.privateJoinableGroup.id,
                                                                   (error /* , groupObj */) => {
-                                                                    assert.notExists(error);
-                                                                    // Ensure member user from another tenant can see it
+                                                                    assert.ok(error);
+                                                                    assert.strictEqual(error.code, 401);
+
+                                                                    // Ensure user from another public tenant cannot see it
                                                                     RestAPI.Group.getGroup(
-                                                                      publicTenant1.publicUser.restContext,
-                                                                      publicTenant2.privateJoinableGroup.id,
+                                                                      publicTenant2.publicUser.restContext,
+                                                                      publicTenant1.privateJoinableGroup.id,
                                                                       (error /* , groupObj */) => {
                                                                         assert.notExists(error);
 
-                                                                        // Ensure tenant admin can see it
+                                                                        // Ensure user from another private tenant cannot see it
                                                                         RestAPI.Group.getGroup(
-                                                                          publicTenant1.adminRestContext,
+                                                                          privateTenant1.publicUser.restContext,
                                                                           publicTenant1.privateJoinableGroup.id,
                                                                           (error /* , groupObj */) => {
-                                                                            assert.notExists(error);
+                                                                            assert.ok(error);
+                                                                            assert.strictEqual(error.code, 401);
 
-                                                                            // Ensure global admin can see it
+                                                                            // Ensure user from same tenant can see it (since they would be able to join it)
                                                                             RestAPI.Group.getGroup(
-                                                                              globalAdminOnTenantRestContext,
+                                                                              publicTenant1.privateUser.restContext,
                                                                               publicTenant1.privateJoinableGroup.id,
                                                                               (error /* , groupObj */) => {
                                                                                 assert.notExists(error);
+                                                                                // Ensure member user from another tenant can see it
                                                                                 RestAPI.Group.getGroup(
-                                                                                  globalAdminOnTenantRestContext,
-                                                                                  publicTenant1
-                                                                                    .privateJoinableGroupByRequest.id,
+                                                                                  publicTenant1.publicUser.restContext,
+                                                                                  publicTenant2.privateJoinableGroup.id,
                                                                                   (error /* , groupObj */) => {
                                                                                     assert.notExists(error);
-                                                                                    return callback();
+
+                                                                                    // Ensure tenant admin can see it
+                                                                                    RestAPI.Group.getGroup(
+                                                                                      publicTenant1.adminRestContext,
+                                                                                      publicTenant1.privateJoinableGroup
+                                                                                        .id,
+                                                                                      (error /* , groupObj */) => {
+                                                                                        assert.notExists(error);
+
+                                                                                        // Ensure global admin can see it
+                                                                                        RestAPI.Group.getGroup(
+                                                                                          globalAdminOnTenantRestContext,
+                                                                                          publicTenant1
+                                                                                            .privateJoinableGroup.id,
+                                                                                          (error /* , groupObj */) => {
+                                                                                            assert.notExists(error);
+                                                                                            RestAPI.Group.getGroup(
+                                                                                              globalAdminOnTenantRestContext,
+                                                                                              publicTenant1
+                                                                                                .privateJoinableGroupByRequest
+                                                                                                .id,
+                                                                                              (
+                                                                                                error /* , groupObj */
+                                                                                              ) => {
+                                                                                                assert.notExists(error);
+                                                                                                return callback();
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
                                                                                   }
                                                                                 );
                                                                               }
@@ -778,12 +822,12 @@ describe('Groups', () => {
                             );
                           }
                         );
-                      });
-                    });
-                  });
-                });
-              });
-            });
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -800,123 +844,125 @@ describe('Groups', () => {
             // 1. Public group
 
             // Ensure anonymous can see it
-            RestAPI.Group.getGroup(publicTenant1.anonymousRestContext, publicTenant1.publicGroup.id, (
-              error /* , groupObj */
-            ) => {
-              assert.notExists(error);
+            RestAPI.Group.getGroup(
+              publicTenant1.anonymousRestContext,
+              publicTenant1.publicGroup.id,
+              (error /* , groupObj */) => {
+                assert.notExists(error);
 
-              // 2. Loggedin group
+                // 2. Loggedin group
 
-              // Ensure anonymous cannot see it
-              // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
-              RestAPI.Group.getGroup(
-                publicTenant2.publicUser.restContext,
-                publicTenant1.loggedinJoinableGroupByRequest.id,
-                (error /* , groupObj */) => {
-                  assert.notExists(error);
+                // Ensure anonymous cannot see it
+                // Issue1402: If a group is joinable, whether directly or by request, then the user does not get a 401 otherwise he would not be able to join it
+                RestAPI.Group.getGroup(
+                  publicTenant2.publicUser.restContext,
+                  publicTenant1.loggedinJoinableGroupByRequest.id,
+                  (error /* , groupObj */) => {
+                    assert.notExists(error);
 
-                  // Ensure user from another private tenant cannot see it
+                    // Ensure user from another private tenant cannot see it
 
-                  RestAPI.Group.getGroup(
-                    publicTenant1.privateUser.restContext,
-                    publicTenant1.loggedinJoinableGroupByRequest.id,
-                    (error /* , groupObj */) => {
-                      assert.notExists(error);
+                    RestAPI.Group.getGroup(
+                      publicTenant1.privateUser.restContext,
+                      publicTenant1.loggedinJoinableGroupByRequest.id,
+                      (error /* , groupObj */) => {
+                        assert.notExists(error);
 
-                      RestAPI.Group.getGroup(
-                        publicTenant1.publicUser.restContext,
-                        publicTenant2.loggedinJoinableGroupByRequest.id,
-                        (error /* , groupObj */) => {
-                          assert.notExists(error);
+                        RestAPI.Group.getGroup(
+                          publicTenant1.publicUser.restContext,
+                          publicTenant2.loggedinJoinableGroupByRequest.id,
+                          (error /* , groupObj */) => {
+                            assert.notExists(error);
 
-                          // Ensure tenant admin can see it
-                          RestAPI.Group.getGroup(
-                            publicTenant1.adminRestContext,
-                            publicTenant1.loggedinJoinableGroupByRequest.id,
-                            (error /* , groupObj */) => {
-                              assert.notExists(error);
+                            // Ensure tenant admin can see it
+                            RestAPI.Group.getGroup(
+                              publicTenant1.adminRestContext,
+                              publicTenant1.loggedinJoinableGroupByRequest.id,
+                              (error /* , groupObj */) => {
+                                assert.notExists(error);
 
-                              // Ensure global admin can see it
-                              RestAPI.Group.getGroup(
-                                globalAdminOnTenantRestContext,
-                                publicTenant1.loggedinJoinableGroupByRequest.id,
-                                (error /* , groupObj */) => {
-                                  assert.notExists(error);
+                                // Ensure global admin can see it
+                                RestAPI.Group.getGroup(
+                                  globalAdminOnTenantRestContext,
+                                  publicTenant1.loggedinJoinableGroupByRequest.id,
+                                  (error /* , groupObj */) => {
+                                    assert.notExists(error);
 
-                                  // 3. Private group
+                                    // 3. Private group
 
-                                  // Ensure anonymous cannot see it
-                                  RestAPI.Group.getGroup(
-                                    publicTenant1.anonymousRestContext,
-                                    publicTenant1.privateJoinableGroupByRequest.id,
-                                    (error /* , groupObj */) => {
-                                      assert.ok(error);
-                                      assert.strictEqual(error.code, 401);
+                                    // Ensure anonymous cannot see it
+                                    RestAPI.Group.getGroup(
+                                      publicTenant1.anonymousRestContext,
+                                      publicTenant1.privateJoinableGroupByRequest.id,
+                                      (error /* , groupObj */) => {
+                                        assert.ok(error);
+                                        assert.strictEqual(error.code, 401);
 
-                                      // Ensure user from another public tenant cannot see it
-                                      RestAPI.Group.getGroup(
-                                        publicTenant2.publicUser.restContext,
-                                        publicTenant1.privateJoinableGroupByRequest.id,
-                                        (error /* , groupObj */) => {
-                                          assert.notExists(error);
+                                        // Ensure user from another public tenant cannot see it
+                                        RestAPI.Group.getGroup(
+                                          publicTenant2.publicUser.restContext,
+                                          publicTenant1.privateJoinableGroupByRequest.id,
+                                          (error /* , groupObj */) => {
+                                            assert.notExists(error);
 
-                                          // Ensure user from another private tenant cannot see it
-                                          RestAPI.Group.getGroup(
-                                            privateTenant1.publicUser.restContext,
-                                            publicTenant1.privateJoinableGroupByRequest.id,
-                                            (error /* , groupObj */) => {
-                                              assert.ok(error);
-                                              assert.strictEqual(error.code, 401);
+                                            // Ensure user from another private tenant cannot see it
+                                            RestAPI.Group.getGroup(
+                                              privateTenant1.publicUser.restContext,
+                                              publicTenant1.privateJoinableGroupByRequest.id,
+                                              (error /* , groupObj */) => {
+                                                assert.ok(error);
+                                                assert.strictEqual(error.code, 401);
 
-                                              RestAPI.Group.getGroup(
-                                                publicTenant1.privateUser.restContext,
-                                                publicTenant1.privateJoinableGroupByRequest.id,
-                                                (error /* , groupObj */) => {
-                                                  assert.notExists(error);
+                                                RestAPI.Group.getGroup(
+                                                  publicTenant1.privateUser.restContext,
+                                                  publicTenant1.privateJoinableGroupByRequest.id,
+                                                  (error /* , groupObj */) => {
+                                                    assert.notExists(error);
 
-                                                  RestAPI.Group.getGroup(
-                                                    publicTenant1.publicUser.restContext,
-                                                    publicTenant2.privateJoinableGroupByRequest.id,
-                                                    (error /* , groupObj */) => {
-                                                      assert.notExists(error);
+                                                    RestAPI.Group.getGroup(
+                                                      publicTenant1.publicUser.restContext,
+                                                      publicTenant2.privateJoinableGroupByRequest.id,
+                                                      (error /* , groupObj */) => {
+                                                        assert.notExists(error);
 
-                                                      RestAPI.Group.getGroup(
-                                                        publicTenant1.adminRestContext,
-                                                        publicTenant1.privateJoinableGroupByRequest.id,
-                                                        (error /* , groupObj */) => {
-                                                          assert.notExists(error);
+                                                        RestAPI.Group.getGroup(
+                                                          publicTenant1.adminRestContext,
+                                                          publicTenant1.privateJoinableGroupByRequest.id,
+                                                          (error /* , groupObj */) => {
+                                                            assert.notExists(error);
 
-                                                          RestAPI.Group.getGroup(
-                                                            globalAdminOnTenantRestContext,
-                                                            publicTenant1.privateJoinableGroupByRequest.id,
-                                                            (error /* , groupObj */) => {
-                                                              assert.notExists(error);
-                                                              return callback();
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
+                                                            RestAPI.Group.getGroup(
+                                                              globalAdminOnTenantRestContext,
+                                                              publicTenant1.privateJoinableGroupByRequest.id,
+                                                              (error /* , groupObj */) => {
+                                                                assert.notExists(error);
+                                                                return callback();
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -944,150 +990,170 @@ describe('Groups', () => {
                 // 1. Public group
 
                 // Ensure anonymous can see it
-                RestAPI.Group.getGroup(publicTenant1.anonymousRestContext, publicTenant1.publicGroup.id, (
-                  error /* , groupObj */
-                ) => {
-                  assert.notExists(error);
-
-                  // Ensure user from another tenant can see it
-                  RestAPI.Group.getGroup(publicTenant2.publicUser.restContext, publicTenant1.publicGroup.id, (
-                    error /* , groupObj */
-                  ) => {
+                RestAPI.Group.getGroup(
+                  publicTenant1.anonymousRestContext,
+                  publicTenant1.publicGroup.id,
+                  (error /* , groupObj */) => {
                     assert.notExists(error);
 
-                    // Ensure user from same tenant can see it
-                    RestAPI.Group.getGroup(publicTenant1.privateUser.restContext, publicTenant1.publicGroup.id, (
-                      error /* , groupObj */
-                    ) => {
-                      assert.notExists(error);
-
-                      // Ensure member user can see it
-                      RestAPI.Group.getGroup(publicTenant1.publicUser.restContext, publicTenant1.publicGroup.id, (
-                        error /* , groupObj */
-                      ) => {
+                    // Ensure user from another tenant can see it
+                    RestAPI.Group.getGroup(
+                      publicTenant2.publicUser.restContext,
+                      publicTenant1.publicGroup.id,
+                      (error /* , groupObj */) => {
                         assert.notExists(error);
 
-                        // Ensure tenant admin can see it
-                        RestAPI.Group.getGroup(publicTenant1.adminRestContext, publicTenant1.publicGroup.id, (
-                          error /* , groupObj */
-                        ) => {
-                          assert.notExists(error);
-
-                          // Ensure global admin can see it
-                          RestAPI.Group.getGroup(globalAdminOnTenantRestContext, publicTenant1.publicGroup.id, (
-                            error /* , groupObj */
-                          ) => {
+                        // Ensure user from same tenant can see it
+                        RestAPI.Group.getGroup(
+                          publicTenant1.privateUser.restContext,
+                          publicTenant1.publicGroup.id,
+                          (error /* , groupObj */) => {
                             assert.notExists(error);
 
-                            // 2. Loggedin group
-
-                            // Ensure anonymous cannot see it
+                            // Ensure member user can see it
                             RestAPI.Group.getGroup(
-                              publicTenant1.anonymousRestContext,
-                              publicTenant1.loggedinNotJoinableGroup.id,
+                              publicTenant1.publicUser.restContext,
+                              publicTenant1.publicGroup.id,
                               (error /* , groupObj */) => {
-                                assert.ok(error);
-                                assert.strictEqual(error.code, 401);
+                                assert.notExists(error);
 
-                                // Ensure user from another public tenant cannot see it (since they would not be able to join it as it is not joinable)
+                                // Ensure tenant admin can see it
                                 RestAPI.Group.getGroup(
-                                  publicTenant2.publicUser.restContext,
-                                  publicTenant1.loggedinNotJoinableGroup.id,
+                                  publicTenant1.adminRestContext,
+                                  publicTenant1.publicGroup.id,
                                   (error /* , groupObj */) => {
-                                    assert.ok(error);
-                                    assert.strictEqual(error.code, 401);
+                                    assert.notExists(error);
 
-                                    // Ensure user from another private tenant cannot see it (since they would not be able to join it)
+                                    // Ensure global admin can see it
                                     RestAPI.Group.getGroup(
-                                      privateTenant1.publicUser.restContext,
-                                      publicTenant1.loggedinNotJoinableGroup.id,
+                                      globalAdminOnTenantRestContext,
+                                      publicTenant1.publicGroup.id,
                                       (error /* , groupObj */) => {
-                                        assert.ok(error);
-                                        assert.strictEqual(error.code, 401);
+                                        assert.notExists(error);
 
-                                        // Ensure user from same tenant can see it
+                                        // 2. Loggedin group
+
+                                        // Ensure anonymous cannot see it
                                         RestAPI.Group.getGroup(
-                                          publicTenant1.privateUser.restContext,
+                                          publicTenant1.anonymousRestContext,
                                           publicTenant1.loggedinNotJoinableGroup.id,
                                           (error /* , groupObj */) => {
-                                            assert.notExists(error);
+                                            assert.ok(error);
+                                            assert.strictEqual(error.code, 401);
 
-                                            // Ensure member user from another tenant can see it
+                                            // Ensure user from another public tenant cannot see it (since they would not be able to join it as it is not joinable)
                                             RestAPI.Group.getGroup(
-                                              publicTenant1.publicUser.restContext,
-                                              publicTenant2.loggedinNotJoinableGroup.id,
+                                              publicTenant2.publicUser.restContext,
+                                              publicTenant1.loggedinNotJoinableGroup.id,
                                               (error /* , groupObj */) => {
-                                                assert.notExists(error);
+                                                assert.ok(error);
+                                                assert.strictEqual(error.code, 401);
 
-                                                // Ensure tenant admin can see it
+                                                // Ensure user from another private tenant cannot see it (since they would not be able to join it)
                                                 RestAPI.Group.getGroup(
-                                                  publicTenant1.adminRestContext,
+                                                  privateTenant1.publicUser.restContext,
                                                   publicTenant1.loggedinNotJoinableGroup.id,
                                                   (error /* , groupObj */) => {
-                                                    assert.notExists(error);
+                                                    assert.ok(error);
+                                                    assert.strictEqual(error.code, 401);
 
-                                                    // Ensure global admin can see it
+                                                    // Ensure user from same tenant can see it
                                                     RestAPI.Group.getGroup(
-                                                      globalAdminOnTenantRestContext,
+                                                      publicTenant1.privateUser.restContext,
                                                       publicTenant1.loggedinNotJoinableGroup.id,
                                                       (error /* , groupObj */) => {
                                                         assert.notExists(error);
 
-                                                        // 3. Private group
-
-                                                        // Ensure anonymous cannot see it
+                                                        // Ensure member user from another tenant can see it
                                                         RestAPI.Group.getGroup(
-                                                          publicTenant1.anonymousRestContext,
-                                                          publicTenant1.loggedinNotJoinableGroup.id,
+                                                          publicTenant1.publicUser.restContext,
+                                                          publicTenant2.loggedinNotJoinableGroup.id,
                                                           (error /* , groupObj */) => {
-                                                            assert.ok(error);
-                                                            assert.strictEqual(error.code, 401);
+                                                            assert.notExists(error);
 
-                                                            // Ensure user from another public tenant cannot see it (since they would not be able to join it as it's unjoinable)
+                                                            // Ensure tenant admin can see it
                                                             RestAPI.Group.getGroup(
-                                                              publicTenant2.publicUser.restContext,
+                                                              publicTenant1.adminRestContext,
                                                               publicTenant1.loggedinNotJoinableGroup.id,
                                                               (error /* , groupObj */) => {
-                                                                assert.ok(error);
-                                                                assert.strictEqual(error.code, 401);
+                                                                assert.notExists(error);
 
-                                                                // Ensure user from another private tenant cannot see it (since they would not be able to join it)
+                                                                // Ensure global admin can see it
                                                                 RestAPI.Group.getGroup(
-                                                                  privateTenant1.publicUser.restContext,
+                                                                  globalAdminOnTenantRestContext,
                                                                   publicTenant1.loggedinNotJoinableGroup.id,
                                                                   (error /* , groupObj */) => {
-                                                                    assert.ok(error);
-                                                                    assert.strictEqual(error.code, 401);
+                                                                    assert.notExists(error);
 
-                                                                    // Ensure user from same tenant can see it (since they would be able to join it)
+                                                                    // 3. Private group
+
+                                                                    // Ensure anonymous cannot see it
                                                                     RestAPI.Group.getGroup(
-                                                                      publicTenant1.privateUser.restContext,
+                                                                      publicTenant1.anonymousRestContext,
                                                                       publicTenant1.loggedinNotJoinableGroup.id,
                                                                       (error /* , groupObj */) => {
-                                                                        assert.notExists(error);
+                                                                        assert.ok(error);
+                                                                        assert.strictEqual(error.code, 401);
 
-                                                                        // Ensure member user from another tenant can see it
+                                                                        // Ensure user from another public tenant cannot see it (since they would not be able to join it as it's unjoinable)
                                                                         RestAPI.Group.getGroup(
-                                                                          publicTenant1.publicUser.restContext,
-                                                                          publicTenant2.privateNotJoinableGroup.id,
+                                                                          publicTenant2.publicUser.restContext,
+                                                                          publicTenant1.loggedinNotJoinableGroup.id,
                                                                           (error /* , groupObj */) => {
-                                                                            assert.notExists(error);
+                                                                            assert.ok(error);
+                                                                            assert.strictEqual(error.code, 401);
 
-                                                                            // Ensure tenant admin can see it
+                                                                            // Ensure user from another private tenant cannot see it (since they would not be able to join it)
                                                                             RestAPI.Group.getGroup(
-                                                                              publicTenant1.adminRestContext,
+                                                                              privateTenant1.publicUser.restContext,
                                                                               publicTenant1.loggedinNotJoinableGroup.id,
                                                                               (error /* , groupObj */) => {
-                                                                                assert.notExists(error);
+                                                                                assert.ok(error);
+                                                                                assert.strictEqual(error.code, 401);
 
-                                                                                // Ensure global admin can see it
+                                                                                // Ensure user from same tenant can see it (since they would be able to join it)
                                                                                 RestAPI.Group.getGroup(
-                                                                                  globalAdminOnTenantRestContext,
+                                                                                  publicTenant1.privateUser.restContext,
                                                                                   publicTenant1.loggedinNotJoinableGroup
                                                                                     .id,
                                                                                   (error /* , groupObj */) => {
                                                                                     assert.notExists(error);
-                                                                                    return callback();
+
+                                                                                    // Ensure member user from another tenant can see it
+                                                                                    RestAPI.Group.getGroup(
+                                                                                      publicTenant1.publicUser
+                                                                                        .restContext,
+                                                                                      publicTenant2
+                                                                                        .privateNotJoinableGroup.id,
+                                                                                      (error /* , groupObj */) => {
+                                                                                        assert.notExists(error);
+
+                                                                                        // Ensure tenant admin can see it
+                                                                                        RestAPI.Group.getGroup(
+                                                                                          publicTenant1.adminRestContext,
+                                                                                          publicTenant1
+                                                                                            .loggedinNotJoinableGroup
+                                                                                            .id,
+                                                                                          (error /* , groupObj */) => {
+                                                                                            assert.notExists(error);
+
+                                                                                            // Ensure global admin can see it
+                                                                                            RestAPI.Group.getGroup(
+                                                                                              globalAdminOnTenantRestContext,
+                                                                                              publicTenant1
+                                                                                                .loggedinNotJoinableGroup
+                                                                                                .id,
+                                                                                              (
+                                                                                                error /* , groupObj */
+                                                                                              ) => {
+                                                                                                assert.notExists(error);
+                                                                                                return callback();
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
                                                                                   }
                                                                                 );
                                                                               }
@@ -1116,12 +1182,12 @@ describe('Groups', () => {
                                 );
                               }
                             );
-                          });
-                        });
-                      });
-                    });
-                  });
-                });
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
               }
             );
           }
@@ -1408,12 +1474,15 @@ describe('Groups', () => {
             assert.ok(!updatedGroup);
 
             // Verify that an empty description is acceptable
-            RestAPI.Group.updateGroup(johnRestContext, newGroup.id, { description: '' }, (
-              error /* , updatedGroup */
-            ) => {
-              assert.notExists(error);
-              return callback();
-            });
+            RestAPI.Group.updateGroup(
+              johnRestContext,
+              newGroup.id,
+              { description: '' },
+              (error /* , updatedGroup */) => {
+                assert.notExists(error);
+                return callback();
+              }
+            );
           });
         }
       );

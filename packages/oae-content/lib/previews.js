@@ -15,7 +15,7 @@
 
 import * as PreviewProcessorAPI from 'oae-preview-processor';
 
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 import * as ContentAPI from './api.js';
 
 ContentAPI.emitter.on(ContentConstants.events.CREATED_CONTENT, (ctx, content, revision) => {

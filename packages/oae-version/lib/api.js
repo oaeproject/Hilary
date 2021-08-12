@@ -20,6 +20,12 @@ import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
 import { nth, reduce, gt as greaterThan, head, last } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
 

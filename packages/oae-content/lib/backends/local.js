@@ -17,9 +17,9 @@ import fs from 'fs';
 import Path from 'path';
 import { format } from 'util';
 
-import * as IO from 'oae-util/lib/io';
+import * as IO from 'oae-util/lib/io.js';
 import { logger } from 'oae-logger';
-import * as TempFile from 'oae-util/lib/tempfile';
+import * as TempFile from 'oae-util/lib/tempfile.js';
 
 import { ContentConstants } from '../constants.js';
 import { DownloadStrategy } from '../model.js';
@@ -60,9 +60,7 @@ const init = function (rootDir, callback) {
  *
  * @return {String}     The root directory where files will be stored
  */
-const getRootDirectory = function () {
-  return _rootDir;
-};
+const getRootDirectory = () => _rootDir;
 
 /// //////////////////
 // Storage methods //

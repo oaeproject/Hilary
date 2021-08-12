@@ -16,12 +16,12 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util.js';
 import * as RestAPI from 'oae-rest';
 
 import * as SearchAPI from 'oae-search';
-import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
-import { SearchConstants } from 'oae-search/lib/constants';
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 import { prop, isEmpty } from 'ramda';
 
 const { buildIndex } = SearchAPI;
@@ -32,10 +32,10 @@ const { buildIndex } = SearchAPI;
  * @param  {Function}           callback    Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs
  */
-const deleteAll = callback => {
+const deleteAll = (callback) => {
   whenIndexingComplete(() => {
     // Destroy and rebuild the search schema, as well as all documents inside it
-    buildIndex(true, err => {
+    buildIndex(true, (err) => {
       assert.notExists(err);
       return callback();
     });
@@ -50,7 +50,7 @@ const deleteAll = callback => {
  * @throws {AssertionError}                         Thrown if an error occurrs
  */
 const reindexAll = (globalAdminRestCtx, callback) => {
-  RestAPI.Search.reindexAll(globalAdminRestCtx, err => {
+  RestAPI.Search.reindexAll(globalAdminRestCtx, (err) => {
     assert.notExists(err);
 
     /**
@@ -66,7 +66,7 @@ const reindexAll = (globalAdminRestCtx, callback) => {
  *
  * @see RestAPI.Search#search for the meaning of the method parameters.
  */
-const assertSearchSucceeds = function(restCtx, searchType, params, opts, callback) {
+const assertSearchSucceeds = function (restCtx, searchType, params, opts, callback) {
   whenIndexingComplete(() => {
     RestAPI.Search.search(restCtx, searchType, params, opts, (err, response) => {
       assert.notExists(err);
@@ -87,15 +87,11 @@ const assertSearchSucceeds = function(restCtx, searchType, params, opts, callbac
  * @param  {Object}         callback.response   All search documents that were found with the search
  * @throws {AssertionError}                     Thrown if the search fails or not all ids are found in the results
  */
-const assertSearchContains = function(restCtx, searchType, params, opts, containIds, callback) {
+const assertSearchContains = function (restCtx, searchType, params, opts, containIds, callback) {
   setTimeout(searchAll, 200, restCtx, searchType, params, opts, (err, response) => {
     assert.notExists(err);
     assert.deepStrictEqual(
-      _.chain(response.results)
-        .pluck('id')
-        .intersection(containIds)
-        .value()
-        .sort(),
+      _.chain(response.results).pluck('id').intersection(containIds).value().sort(),
       containIds.slice().sort()
     );
     return callback(response);
@@ -114,16 +110,10 @@ const assertSearchContains = function(restCtx, searchType, params, opts, contain
  * @param  {Object}         callback.response   All search documents that were found with the search
  * @throws {AssertionError}                     Thrown if the search fails or any ids are found in the results
  */
-const assertSearchNotContains = function(restCtx, searchType, params, opts, notContainIds, callback) {
+const assertSearchNotContains = function (restCtx, searchType, params, opts, notContainIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
     assert.notExists(err);
-    assert.ok(
-      _.chain(response.results)
-        .pluck('id')
-        .intersection(notContainIds)
-        .isEmpty()
-        .value()
-    );
+    assert.ok(_.chain(response.results).pluck('id').intersection(notContainIds).isEmpty().value());
     return callback(response);
   });
 };
@@ -141,7 +131,7 @@ const assertSearchNotContains = function(restCtx, searchType, params, opts, notC
  * @param  {Object}         callback.response   All search documents that were found with the search
  * @throws {AssertionError}                     Thrown if the search fails or if the results do not match the expected ids
  */
-const assertSearchEquals = function(restCtx, searchType, params, opts, expectedIds, callback) {
+const assertSearchEquals = function (restCtx, searchType, params, opts, expectedIds, callback) {
   searchAll(restCtx, searchType, params, opts, (err, response) => {
     assert.notExists(err);
     assert.deepStrictEqual(_.pluck(response.results, 'id').sort(), expectedIds.slice().sort());
@@ -160,7 +150,7 @@ const assertSearchEquals = function(restCtx, searchType, params, opts, expectedI
  * @param  {Function}       callback    Invoked when the search fails with the expected http code
  * @throws {AssertionError}             Thrown if the search succeeds, or fails in a manner that was not expected
  */
-const assertSearchFails = function(restCtx, searchType, params, opts, httpCode, callback) {
+const assertSearchFails = function (restCtx, searchType, params, opts, httpCode, callback) {
   whenIndexingComplete(() => {
     RestAPI.Search.search(restCtx, searchType, params, opts, (err, data) => {
       assert.ok(err);
@@ -179,7 +169,7 @@ const assertSearchFails = function(restCtx, searchType, params, opts, httpCode, 
  *
  * @see RestAPI.Search#search for the meaning of the method parameters.
  */
-const searchAll = function(restCtx, searchType, params, opts, callback) {
+const searchAll = function (restCtx, searchType, params, opts, callback) {
   opts = _.extend({}, opts);
 
   whenIndexingComplete(() => {
@@ -199,7 +189,7 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
       const allData = { total: totalResults, results: [] };
 
       // There are more results, search for everything. Don't refresh this time since we already did for the previous query (if specified)
-      const getMoreResults = function() {
+      const getMoreResults = function () {
         opts.from = allData.results.length;
         opts.size = 25;
 
@@ -229,14 +219,14 @@ const searchAll = function(restCtx, searchType, params, opts, callback) {
  *
  * @param  {Function}   callback    Invoked when all search indexing tasks are complete
  */
-const whenIndexingComplete = function(callback) {
+const whenIndexingComplete = function (callback) {
   MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_REINDEX_ALL, () => {
     MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_REINDEX_ALL_PROCESSING, () => {
       MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
         MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
           MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
             MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT_PROCESSING, () => {
-              ElasticSearch.refresh(err => {
+              ElasticSearch.refresh((err) => {
                 assert.notExists(err);
                 return callback();
               });
@@ -254,7 +244,7 @@ const whenIndexingComplete = function(callback) {
  *
  * @see RestAPI.Search#search for the meaning of the method parameters.
  */
-const searchRefreshed = function(restCtx, searchType, params, opts, callback) {
+const searchRefreshed = function (restCtx, searchType, params, opts, callback) {
   whenIndexingComplete(() => {
     RestAPI.Search.search(restCtx, searchType, params, opts, callback);
   });

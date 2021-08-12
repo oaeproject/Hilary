@@ -14,7 +14,7 @@
  */
 
 import _ from 'underscore';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as UIAPI from 'oae-ui';
 
 /**
@@ -27,7 +27,7 @@ import * as UIAPI from 'oae-ui';
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.response   The response from the Config REST API.
  */
-const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
+const updateSkinAndWait = function (restCtx, tenantAlias, skinConfig, callback) {
   let calledBack = false;
   let requestReturned = false;
   let skinFileParsed = false;
@@ -41,7 +41,7 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
    *
    * @param  {Object}     err     An error that occured in either request
    */
-  const _callback = function(err) {
+  const _callback = function (err) {
     if (calledBack) {
       // Already called back, do nothing
     } else if (err) {
@@ -77,7 +77,7 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
    *
    * @see UIAPI events for parameter description
    */
-  const _updateListener = function() {
+  const _updateListener = function () {
     skinFileParsed = true;
     return _callback();
   };

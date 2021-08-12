@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 
 describe('Authz Delete', () => {
   /**

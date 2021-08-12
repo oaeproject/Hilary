@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import ActivityEmitter from 'oae-activity/lib/internal/emitter';
+import ActivityEmitter from 'oae-activity/lib/internal/emitter.js';
 
 import _ from 'underscore';
 import request from 'request';
 import { logger } from 'oae-logger';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import { setUpConfig } from 'oae-config';
 import { TinCanAPIConstants } from './constants.js';
 

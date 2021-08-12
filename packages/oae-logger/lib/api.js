@@ -20,6 +20,8 @@ import bunyan from 'bunyan';
 // The logger to use when no logger is specified
 const SYSTEM_LOGGER_NAME = 'system';
 
+import * as T from 'oae-telemetry/lib/api.js';
+
 // Logger state variables to record active loggers and current configuration
 let config = null;
 const loggers = {};
@@ -127,7 +129,7 @@ const _wrapErrorFunction = function (loggerName, errorFunction) {
    * Keep track of the error count with the telemetry API before handing control back to Bunyan
    */
   const wrapperErrorFunction = function (...args) {
-    const Telemetry = require('oae-telemetry').telemetry('logger');
+    const Telemetry = T.telemetry('logger');
 
     // Increase the general error count that keeps track of the number of errors throughout the application
     Telemetry.incr('error.count');
@@ -137,6 +139,7 @@ const _wrapErrorFunction = function (loggerName, errorFunction) {
 
     // Pass control back to bunyan who can log the message
     return errorFunction.apply(this, args);
+    // });
   };
 
   return wrapperErrorFunction;

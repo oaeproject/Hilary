@@ -18,13 +18,13 @@ import * as AuthzAPI from 'oae-authz';
 import { pluck, filter, forEach, pipe, isEmpty, map, union, propEq } from 'ramda';
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzInvitationsUtil from 'oae-authz/lib/invitations/util';
-import * as AuthzModel from 'oae-authz/lib/model';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzInvitationsUtil from 'oae-authz/lib/invitations/util.js';
+import * as AuthzModel from 'oae-authz/lib/model.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
 /**
  * Determine which of all potential permissions a user has
@@ -345,8 +345,7 @@ const canShare = function (ctx, resource, targets, role, callback) {
           if (!_.isEmpty(invalidPrincipals)) {
             return callback({
               code: 401,
-              msg:
-                'The current user does not have access to share this resource with the specified principals',
+              msg: 'The current user does not have access to share this resource with the specified principals',
               invalidPrincipals
             });
           }
@@ -366,8 +365,7 @@ const canShare = function (ctx, resource, targets, role, callback) {
               } else if (!canInteract) {
                 invalidPrincipals[addedPrincipal.id || addedPrincipal.email] = {
                   code: 401,
-                  msg:
-                    'The current user does not have access to share this resource with the specified principals'
+                  msg: 'The current user does not have access to share this resource with the specified principals'
                 };
               }
 

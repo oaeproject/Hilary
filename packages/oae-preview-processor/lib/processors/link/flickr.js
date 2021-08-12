@@ -19,8 +19,8 @@ import request from 'request';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');

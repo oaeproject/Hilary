@@ -20,18 +20,24 @@ import { format } from 'util';
 import _ from 'underscore';
 import request from 'request';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Cookie } from 'tough-cookie';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
-import { setUpConfig } from 'oae-config/lib/api';
-import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
+import { setUpConfig } from 'oae-config/lib/api.js';
+import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api.js';
 
 const DUMMY_BASE = 'http://localhost';
 const Config = setUpConfig('oae-authentication');
@@ -1527,17 +1533,19 @@ describe('Authentication', () => {
             });
             spRestContext.cookieJar.setCookie(fakeCookie.toString(), 'http://localhost:2000/');
             const attributes = {};
-            RestAPI.Authentication.shibbolethSPCallback(spRestContext, attributes, (
-              error /* , body, response */
-            ) => {
-              assert.strictEqual(error.code, 400);
+            RestAPI.Authentication.shibbolethSPCallback(
+              spRestContext,
+              attributes,
+              (error /* , body, response */) => {
+                assert.strictEqual(error.code, 400);
 
-              // The SP callback endpoint should not be exposed on regular tenants
-              RestAPI.Authentication.shibbolethSPCallback(tenantRestContext, {}, (error_) => {
-                assert.strictEqual(error_.code, 501);
-                return done();
-              });
-            });
+                // The SP callback endpoint should not be exposed on regular tenants
+                RestAPI.Authentication.shibbolethSPCallback(tenantRestContext, {}, (error_) => {
+                  assert.strictEqual(error_.code, 501);
+                  return done();
+                });
+              }
+            );
           });
         },
         callback

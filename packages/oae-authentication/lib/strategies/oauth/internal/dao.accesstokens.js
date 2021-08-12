@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 import { AccessToken } from '../model.js';
 

@@ -18,19 +18,19 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzModel from 'oae-authz/lib/model';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzModel from 'oae-authz/lib/model.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as ResourceActivity from 'oae-resource/lib/activity';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as ResourceActivity from 'oae-resource/lib/activity.js';
 
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   unless,
   isLoggedInUser,
@@ -43,7 +43,7 @@ const {
   isNotEmpty,
   isValidRoleChange
 } = validator;
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 import { __, curry, forEachObjIndexed } from 'ramda';
 
 const log = logger('oae-resource-actions');
@@ -81,8 +81,7 @@ const create = function (ctx, roles, createFn, callback) {
     memberIds.forEach((memberId) => {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(memberId);
     });
 
@@ -191,8 +190,7 @@ const share = function (ctx, resource, targetIds, role, callback) {
     targetIds.forEach((targetId) => {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(targetId);
 
       const targetIsNotItself = curry(isDifferent)(String(targetId), __);
@@ -281,8 +279,7 @@ const setRoles = function (ctx, resource, roles, callback) {
     forEachObjIndexed((role, memberId) => {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(memberId);
 
       const memberIsNotItself = curry(isDifferent)(String(memberId), __);

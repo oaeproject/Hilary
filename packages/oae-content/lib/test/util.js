@@ -21,16 +21,16 @@ import async from 'async';
 
 import { map, path } from 'ramda';
 
-import { setSheetContents, getJSON } from 'oae-content/lib/internal/ethercalc';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as MqTestUtil from 'oae-util/lib/test/mq-util';
-import * as LibraryTestUtil from 'oae-library/lib/test/util';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import { setSheetContents, getJSON } from 'oae-content/lib/internal/ethercalc.js';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as MqTestUtil from 'oae-util/lib/test/mq-util.js';
+import * as LibraryTestUtil from 'oae-library/lib/test/util.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as MQ from 'oae-util/lib/mq';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as MQ from 'oae-util/lib/mq.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 
 const PUBLIC = 'public';
 

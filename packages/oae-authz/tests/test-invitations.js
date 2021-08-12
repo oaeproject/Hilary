@@ -16,26 +16,26 @@
 import { assert } from 'chai';
 import { format } from 'util';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
-import * as EmailTestUtil from 'oae-email/lib/test/util';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
-import * as Sanitization from 'oae-util/lib/sanitization';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util.js';
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import * as UIAPI from 'oae-ui';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import clone from 'clone';
 
-const _ = require('underscore');
+import _ from 'underscore';
 
 import { find, equals } from 'ramda';
 
@@ -792,9 +792,8 @@ describe('Invitations', () => {
               );
 
               // Grab the invitation link from the messages
-              const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(
-                cambridgeMessage
-              );
+              const cambridgeInvitationUrl =
+                AuthzTestUtil.parseInvitationUrlFromMessage(cambridgeMessage);
               const guestInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(guestMessage);
 
               // Ensure the links are to the proper tenancy
@@ -3237,26 +3236,36 @@ describe('Invitations', () => {
         assert.notExists(error);
 
         const activity = _.first(result.items);
-        inviterUserInfo = _withAdaptedInfo(inviterUserInfo, activity);
-        invitedUserInfo = _withAdaptedInfo(invitedUserInfo, activity);
-        otherUserInfo = _withAdaptedInfo(otherUserInfo, activity, {
-          contextId: _.first(resources).id
+        _withAdaptedInfo(inviterUserInfo, activity, {}, (error, inviterUserInfo) => {
+          assert.notExists(error);
+          _withAdaptedInfo(invitedUserInfo, activity, {}, (error, invitedUserInfo) => {
+            assert.notExists(error);
+            _withAdaptedInfo(
+              otherUserInfo,
+              activity,
+              {
+                contextId: _.first(resources).id
+              },
+              (error, otherUserInfo) => {
+                assert.notExists(error);
+                _assertStandardInvitationAcceptSummaries(
+                  inviterUserInfo,
+                  invitedUserInfo,
+                  otherUserInfo,
+                  resources
+                );
+
+                // Check the resource-specific summary match against this number of resources
+                const match = assertions.matches[resources.length - 1];
+                _assertContains(inviterUserInfo.summary, match);
+                _assertContains(invitedUserInfo.summary, match);
+                _assertContains(otherUserInfo.summary, match);
+
+                return callback();
+              }
+            );
+          });
         });
-
-        _assertStandardInvitationAcceptSummaries(
-          inviterUserInfo,
-          invitedUserInfo,
-          otherUserInfo,
-          resources
-        );
-
-        // Check the resource-specific summary match against this number of resources
-        const match = assertions.matches[resources.length - 1];
-        _assertContains(inviterUserInfo.summary, match);
-        _assertContains(invitedUserInfo.summary, match);
-        _assertContains(otherUserInfo.summary, match);
-
-        return callback();
       }
     );
   };
@@ -3608,22 +3617,26 @@ describe('Invitations', () => {
    * @param  {String}     [opts.contextId]    The context id for the adapted activity. Defaults to the user id of the user info
    * @return {Object}                         The user info with the adapted activity preview items and summary applied
    */
-  const _withAdaptedInfo = function (userInfo, activity, options) {
+  const _withAdaptedInfo = function (userInfo, activity, options, callback) {
     options = options || {};
     options.contextId = options.contextId || userInfo.user.id;
 
-    const adapter = UIAPI.getActivityAdapter();
-    const adapted = adapter.adapt(
-      options.contextId,
-      userInfo.user,
-      [clone(activity)],
-      Sanitization
-    );
-    const { summary } = adapted[0];
-    const previewItems = adapted[0].activityItems;
-    return _.extend({}, userInfo, {
-      previewItems,
-      summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
+    UIAPI.getActivityAdapter((error, adapter) => {
+      assert.notExists(error);
+      const adapted = adapter.adapt(
+        options.contextId,
+        userInfo.user,
+        [clone(activity)],
+        Sanitization
+      );
+      const { summary } = adapted[0];
+      const previewItems = adapted[0].activityItems;
+      const result = _.extend({}, userInfo, {
+        previewItems,
+        summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
+      });
+
+      return callback(null, result);
     });
   };
 

@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import { toArray, invokeIfNecessary, getNumberParam } from 'oae-util/lib/util';
+import { toArray, invokeIfNecessary, getNumberParam } from 'oae-util/lib/util.js';
 
 describe('OAE Util', () => {
   describe('#getNumberParam', () => {

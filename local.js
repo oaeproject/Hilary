@@ -32,4 +32,4 @@ config.test = {
   path: './tests.log'
 };
 
-module.exports = { config };
+export { config };

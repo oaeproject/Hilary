@@ -17,14 +17,14 @@ import { format } from 'util';
 import _ from 'underscore';
 import { map, pipe, filter, pluck, union } from 'ramda';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import AuthzGraph from 'oae-authz/lib/internal/graph';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import AuthzGraph from 'oae-authz/lib/internal/graph.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   unless,
   isArrayNotEmpty,

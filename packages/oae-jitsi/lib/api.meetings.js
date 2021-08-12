@@ -1,21 +1,21 @@
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 import * as LibraryAPI from 'oae-library';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as Signature from 'oae-util/lib/signature';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 import * as MeetingsAPI from 'oae-jitsi';
 import { logger } from 'oae-logger';
 
-import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   validateInCase: bothCheck,
   isDefined,
@@ -35,9 +35,9 @@ const {
   isOneOrGreater
 } = validator;
 import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
-import isIn from 'validator/lib/isIn';
-import isInt from 'validator/lib/isInt';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import isIn from 'validator/lib/isIn.js';
+import isInt from 'validator/lib/isInt.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 import { MeetingsConstants } from './constants.js';
 import * as MeetingsDAO from './internal/dao.js';

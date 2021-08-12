@@ -19,13 +19,13 @@ import _ from 'underscore';
 import ShortId from 'shortid';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
-import { Folder } from 'oae-folders/lib/model';
+import { Folder } from 'oae-folders/lib/model.js';
 
 /**
  * Create a folder

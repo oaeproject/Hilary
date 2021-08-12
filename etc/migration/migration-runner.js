@@ -24,7 +24,7 @@ import { promisify } from 'util';
 import PrettyStream from 'bunyan-prettystream';
 import * as LogAPI from 'oae-logger';
 
-const { eachSeries } = require('async');
+import { eachSeries } from 'async';
 
 const _createLogger = function (config) {
   const prettyLog = new PrettyStream();
@@ -63,6 +63,24 @@ const lookForMigrations = async function (allModules) {
   }
 
   return migrationsToRun;
+};
+
+/*
+ * Serial executes Promises sequentially.
+ * @param {funcs} An array of funcs that return promises.
+ * @example
+ * const urls = ['/url1', '/url2', '/url3']
+ * serial(urls.map(url => () => $.ajax(url)))
+ *     .then(console.log.bind(console))
+ */
+const seriallyRunMigrations = (funcs) => {
+  funcs.reduce((p, eachFunc) => p.then(() => func()), Promise.resolve());
+  /*
+  funcs.reduce(
+    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+    Promise.resolve([])
+  );
+*/
 };
 
 const sequentiallyRunMigrations = (migrations, callback) => {
@@ -110,20 +128,35 @@ const promiseToRunMigrations = async function (dbConfig) {
         return initCassandra(dbConfig);
       })
       .then(() => {
-        const allImports = data.allMigrationsToRun.map((eachMigration) => {
-          const func = (callback) => {
-            import(eachMigration.file).then((eachModule) => {
-              eachModule.ensureSchema(callback);
+        return data.allMigrationsToRun.map((eachMigration) => {
+          const func = () => {
+            return new Promise((resolve, reject) => {
+              import(eachMigration.file)
+                .then((eachModule) => {
+                  log().info(`Updating schema for ${eachMigration.name}`);
+                  return promisify(eachModule.ensureSchema)();
+                })
+                .then((x) => resolve(x))
+                .catch((e) => reject(e));
             });
           };
           return { func, name: eachMigration.name };
         });
 
-        return allImports;
+        /*
+          const func = (callback) => {
+            import(eachMigration.file).then((eachModule) => {
+              eachModule.ensureSchema(callback);
+            });
+          };
+          */
       })
       .then((allImports) => {
-        const promiseToRunMigrations = promisify(sequentiallyRunMigrations);
-        return promiseToRunMigrations(allImports);
+        // const promiseToSequentiallyRunMigrations = promisify(sequentiallyRunMigrations);
+        // return promiseToSequentiallyRunMigrations(allImports);
+        // return seriallyRunMigrations(allImports.map((each) => each.func()));
+
+        return Promise.all(allImports.map((each) => each.func()));
       })
       .then(() => {
         log().info('Migrations completed. Creating etherpad keyspace next.');

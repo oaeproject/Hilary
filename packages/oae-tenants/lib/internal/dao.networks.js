@@ -21,9 +21,9 @@ import ShortId from 'shortid';
 
 import { logger } from 'oae-logger';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as Pubsub from 'oae-util/lib/pubsub';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
 
 import { TenantNetwork } from '../model.js';
 

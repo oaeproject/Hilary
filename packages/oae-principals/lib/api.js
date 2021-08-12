@@ -15,10 +15,10 @@
 
 import _ from 'underscore';
 
-import * as GroupAPI from './api.group';
-import * as PictureAPI from './api.picture';
-import * as TermsAndConditionsAPI from './api.termsAndConditions';
-import * as UserAPI from './api.user';
+import * as GroupAPI from './api.group.js';
+import * as PictureAPI from './api.picture.js';
+import * as TermsAndConditionsAPI from './api.termsAndConditions.js';
+import * as UserAPI from './api.user.js';
 
 /**
  * ### Events

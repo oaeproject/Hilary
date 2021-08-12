@@ -16,7 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import url from 'url';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 
 import {
@@ -43,11 +43,11 @@ import request from 'request';
 
 import { logger } from 'oae-logger';
 
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 const { getNumberParam } = OaeUtil;
 import { setUpConfig } from 'oae-config';
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer.js';
 
 const log = logger('oae-preview-processor');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -68,7 +68,7 @@ const isDefined = Boolean;
  * @param  {Function}   callback                            Standard callback function
  * @param  {Object}     callback.err                        An error that occurred, if any
  */
-const init = function(_config, callback) {
+const init = function (_config, callback) {
   _config = defaultTo({}, _config);
 
   screenShottingOptions.timeout = getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
@@ -86,7 +86,7 @@ const init = function(_config, callback) {
 /**
  * @borrows Interface.test as DefaultLinkProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObj, callback) {
   // Don't bother with non-link content items
   const isLink = propEq('resourceSubType', 'link');
   if (isLink(contentObj)) {
@@ -110,7 +110,7 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.test as DefaultLinkProcessor.test
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObj, callback) {
   let contentType;
   // Do a head request to check if this site allows for embedding
   const options = {
@@ -171,7 +171,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
     /*!
      * Generate a thumbnail
      */
-    const generateThumbnail = function() {
+    const generateThumbnail = function () {
       const imgPath = concat(ctx.baseDir, '/webshot.png');
       // If the link target is an image just grab it instead of screenshotting it
       const isImage = includes(__, PreviewConstants.TYPES.IMAGE);
@@ -181,7 +181,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
           LinkProcessorUtil.generatePreviewsFromImage(ctx, imgPath, null, callback);
         });
         request(contentObj.link)
-          .on('error', err => {
+          .on('error', (err) => {
             log().error({ err, contentId: ctx.contentId }, 'Could not fetch an image');
             return callback();
           })
@@ -191,7 +191,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
         screenShottingOptions.customHeaders = {
           'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
         };
-        puppeteerHelper.getImage(contentObj.link, imgPath, screenShottingOptions, err => {
+        puppeteerHelper.getImage(contentObj.link, imgPath, screenShottingOptions, (err) => {
           if (err) {
             log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
             return callback(err);
@@ -238,7 +238,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
 
     urlParts.protocol = 'https:';
     const link = url.format(urlParts);
-    _checkHttps(link, httpsAccessible => {
+    _checkHttps(link, (httpsAccessible) => {
       ctx.addPreviewMetadata('httpsAccessible', httpsAccessible);
       return generateThumbnail();
     });
@@ -253,7 +253,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {Boolean}    callback.httpsAccessible    Whether or not the link can be reached over HTTPS
  * @api private
  */
-const _checkHttps = function(link, callback) {
+const _checkHttps = function (link, callback) {
   const options = {
     url: link,
     method: HTTP_HEAD,

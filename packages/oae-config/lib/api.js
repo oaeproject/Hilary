@@ -17,14 +17,14 @@ import { format } from 'util';
 import _ from 'underscore';
 import clone from 'clone';
 
-import * as Modules from 'oae-util/lib/modules';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Modules from 'oae-util/lib/modules.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as IO from 'oae-util/lib/io';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as Pubsub from 'oae-util/lib/pubsub';
+import * as IO from 'oae-util/lib/io.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
 import { logger } from 'oae-logger';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 
 const log = logger('oae-config');
 

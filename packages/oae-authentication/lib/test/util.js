@@ -18,13 +18,13 @@ import { format } from 'util';
 import _ from 'underscore';
 
 import nock from 'nock';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Cookie } from 'tough-cookie';
 import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 
 /**
  * Assert that the authentication config can be updated and the authentication strategies get refreshed
@@ -295,8 +295,7 @@ const _mockGoogleResponse = function (email) {
     },
     url: 'https://plus.google.com/' + _.random(10000000),
     image: {
-      url:
-        'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
+      url: 'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
       isDefault: false
     },
     isPlusUser: true,

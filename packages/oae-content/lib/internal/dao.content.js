@@ -19,20 +19,20 @@ import {
   isResourceACollabSheet,
   isResourceALink,
   isResourceAFile
-} from 'oae-content/lib/backends/util';
+} from 'oae-content/lib/backends/util.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { Content } from 'oae-content/lib/model';
-import { ContentConstants } from 'oae-content/lib/constants';
-import * as RevisionsDAO from './dao.revisions';
+import { Content } from 'oae-content/lib/model.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import * as RevisionsDAO from './dao.revisions.js';
 
 const log = logger('content-dao');
 

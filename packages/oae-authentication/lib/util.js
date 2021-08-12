@@ -22,7 +22,7 @@ import MobileDetect from 'mobile-detect';
 import passport from 'passport';
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { getOrCreateUser } from 'oae-authentication';
 import { objectifySearchParams } from 'oae-tests';
 

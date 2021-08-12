@@ -18,16 +18,16 @@ import assert from 'assert';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 /**
  * Delete the given resource by its id and ensure it completes successfully

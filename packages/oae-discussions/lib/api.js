@@ -15,7 +15,7 @@
 
 import * as EmitterAPI from 'oae-emitter';
 
-import * as Discussions from './api.discussions';
+import * as Discussions from './api.discussions.js';
 
 /**
  * ### Events

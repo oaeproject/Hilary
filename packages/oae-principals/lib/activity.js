@@ -15,18 +15,19 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import { emitter } from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-/// ///////////////
-// GROUP-CREATE //
-/// ///////////////
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+
+/**
+ * Group-create
+ */
 
 /*!
  * Fire the 'group-create' activity when a new group is created.
@@ -248,7 +249,7 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGro
   const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
 
   // Post "Add Member" activities for each new member
-  _.each(addedMemberIds, memberId => {
+  _.each(addedMemberIds, (memberId) => {
     const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
     const activitySeed = new ActivityModel.ActivitySeed(
@@ -263,7 +264,7 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGro
   });
 
   // Post "Update member role" activities for each membership update
-  _.each(updatedMemberIds, memberId => {
+  _.each(updatedMemberIds, (memberId) => {
     const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
     const activitySeed = new ActivityModel.ActivitySeed(
@@ -307,7 +308,7 @@ emitter.on(
  * Fire the request-group-join activity when someone wants to join a group
  */
 // eslint-disable-next-line no-unused-vars
-emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(ctx, group, oldGroup, memberChangeInfo) {
+emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function (ctx, group, oldGroup, memberChangeInfo) {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, { user: ctx.user() });
   const objectResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
@@ -357,7 +358,7 @@ emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED, (ctx, grou
  * Create the 'user' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userProducer = function(resource, callback) {
+const _userProducer = function (resource, callback) {
   const user = resource.resourceData ? resource.resourceData.user : null;
 
   // If the user was provided in the resource data, use it instead of fetching
@@ -379,11 +380,11 @@ const _userProducer = function(resource, callback) {
  * Transform the user persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userTransformer = function(ctx, activityEntities, callback) {
+const _userTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentUserActivityEntity(
         ctx,
@@ -399,15 +400,14 @@ const _userTransformer = function(ctx, activityEntities, callback) {
  * Transform the user persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userInternalTransformer = function(ctx, activityEntities, callback) {
+const _userInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentUserActivityEntityToInternal(ctx, entityId, entity.user);
+      transformedActivityEntities[activityId][entityId] =
+        PrincipalsUtil.transformPersistentUserActivityEntityToInternal(ctx, entityId, entity.user);
     });
   });
   return callback(null, transformedActivityEntities);
@@ -417,7 +417,7 @@ const _userInternalTransformer = function(ctx, activityEntities, callback) {
  * Create the 'group' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupProducer = function(resource, callback) {
+const _groupProducer = function (resource, callback) {
   const group = resource.resourceData ? resource.resourceData.group : null;
 
   // If the group was delivered with the resource, use it instead of fetching
@@ -439,11 +439,11 @@ const _groupProducer = function(resource, callback) {
  * Transform the group persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupTransformer = function(ctx, activityEntities, callback) {
+const _groupTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentGroupActivityEntity(
         ctx,
@@ -459,15 +459,14 @@ const _groupTransformer = function(ctx, activityEntities, callback) {
  * Transform the group persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupInternalTransformer = function(ctx, activityEntities, callback) {
+const _groupInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  _.keys(activityEntities).forEach((activityId) => {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(ctx, entityId, entity.group);
+      transformedActivityEntities[activityId][entityId] =
+        PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(ctx, entityId, entity.group);
     });
   });
   return callback(null, transformedActivityEntities);

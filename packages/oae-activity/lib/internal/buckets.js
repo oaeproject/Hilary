@@ -17,9 +17,9 @@ import crypto from 'crypto';
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as Locking from 'oae-util/lib/locking';
+import * as Locking from 'oae-util/lib/locking.js';
 import { logger } from 'oae-logger';
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 import * as TelemetryAPI from 'oae-telemetry';
 
 const log = logger('oae-activity-buckets');
@@ -35,10 +35,8 @@ let shuttingDown = false;
  * continue until the bucket is empty, we want to ensure it completes within the shutdown grace-time. The only way
  * we can ensure that is to force it to stop after the current batch.
  */
-OAE.registerPreShutdownHandler('oae-activity-buckets', null, callback => {
-  log().info(
-    'Enabling shutdown status to abort any current bucket collections as soon as possible'
-  );
+OAE.registerPreShutdownHandler('oae-activity-buckets', null, (callback) => {
+  log().info('Enabling shutdown status to abort any current bucket collections as soon as possible');
   shuttingDown = true;
   return callback();
 });
@@ -53,7 +51,7 @@ OAE.registerPreShutdownHandler('oae-activity-buckets', null, callback => {
  * @param  {Number}     numberOfBuckets     The maximum number of buckets that can be created
  * @return {Number}                         The bucket number that identifies the given string
  */
-const getBucketNumber = function(string, numberOfBuckets) {
+const getBucketNumber = function (string, numberOfBuckets) {
   const sum = crypto.createHash('md5');
   sum.update(string);
 
@@ -81,7 +79,7 @@ const getBucketNumber = function(string, numberOfBuckets) {
  * @param  {Function}   [callback]                  Standard callback function
  * @param  {Object}     [callback.err]              An error that occurred, if any
  */
-const collectAllBuckets = function(
+const collectAllBuckets = function (
   type,
   numberOfBuckets,
   maxConcurrentCollections,
@@ -91,7 +89,7 @@ const collectAllBuckets = function(
 ) {
   callback =
     callback ||
-    function(error) {
+    function (error) {
       if (error) {
         log().error({ err: error }, 'Error collecting buckets');
       }
@@ -107,9 +105,7 @@ const collectAllBuckets = function(
   };
 
   // Ensure we don't surpass the maximum number of concurrent collections
-  if (
-    bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections
-  ) {
+  if (bucketsInfo[type].currentConcurrentCollectionCount >= bucketsInfo[type].maxConcurrentCollections) {
     log().trace({ type }, 'Aborting collection due to max concurrent collections count reached');
     return callback();
   }
@@ -125,7 +121,7 @@ const collectAllBuckets = function(
   log().trace({ type }, 'Beginning collection of %s buckets', bucketNumbers.length);
 
   // Perform a collection cycle on the bucket numbers
-  _collectBuckets(type, bucketNumbers, error => {
+  _collectBuckets(type, bucketNumbers, (error) => {
     log().trace({ type }, 'Completed collection cycle');
 
     // Mark that this collection cycle has completed, whether or not there was an error
@@ -145,7 +141,7 @@ const collectAllBuckets = function(
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
+const _collectBuckets = function (type, bucketNumbers, callback, _errs) {
   _errs = _errs || [];
   if (_.isEmpty(bucketNumbers)) {
     // Return the first error, if there was any
@@ -153,7 +149,7 @@ const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
   }
 
   const bucketNumber = bucketNumbers.pop();
-  _collectBucket(type, bucketNumber, error => {
+  _collectBucket(type, bucketNumber, (error) => {
     if (error) {
       log().warn({ err: error, bucketNumber, type }, 'Error collecting aggregate bucket');
       bucketsInfo[type].telemetry.incr('collection.error.count');
@@ -174,13 +170,9 @@ const _collectBuckets = function(type, bucketNumbers, callback, _errs) {
  * @param  {Object}    callback.err        An error that occurred, if any
  * @api private
  */
-const _collectBucket = function(type, bucketNumber, callback) {
+const _collectBucket = function (type, bucketNumber, callback) {
   if (shuttingDown) {
-    log().info(
-      { type },
-      'Aborting bucket collection of bucket %s as shutdown is in progress',
-      bucketNumber
-    );
+    log().info({ type }, 'Aborting bucket collection of bucket %s as shutdown is in progress', bucketNumber);
     return callback();
   }
 
@@ -224,11 +216,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
           return callback(releaseError);
         }
 
-        log().trace(
-          { lockId: lock, type },
-          'Successfully released lock for bucket number %s',
-          bucketNumber
-        );
+        log().trace({ lockId: lock, type }, 'Successfully released lock for bucket number %s', bucketNumber);
 
         if (!hadLock) {
           // This means that the lock expired before we finished collecting, which likely means the lock expiry
@@ -265,7 +253,7 @@ const _collectBucket = function(type, bucketNumber, callback) {
  * @return {String}                     The key that can be used to lock the bucket with the given number
  * @api private
  */
-const _getLockKey = function(type, bucketNumber) {
+const _getLockKey = function (type, bucketNumber) {
   return format('oae-activity:%s:lock-%s', type, bucketNumber);
 };
 

@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 /**
  * Get the list of followers of the specified user
@@ -28,7 +28,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
  * @param  {String[]}   callback.followerIds    The list of user ids of users who follow the specified user
  * @param  {String}     [callback.nextToken]    The value to provide as the `start` parameter when fetching the next page of followers. If unspecified, there are no more followers to fetch
  */
-const getFollowers = function(userId, start, limit, callback) {
+const getFollowers = function (userId, start, limit, callback) {
   start = start || '';
 
   Cassandra.runPagedQuery(
@@ -44,7 +44,7 @@ const getFollowers = function(userId, start, limit, callback) {
         return callback(err);
       }
 
-      const followerIds = _.map(rows, row => {
+      const followerIds = _.map(rows, (row) => {
         return row.get('followerId');
       });
 
@@ -64,7 +64,7 @@ const getFollowers = function(userId, start, limit, callback) {
  * @param  {String[]}   callback.followedUserIds    The user ids of users that are followed by the specified user
  * @param  {String}     [callback.nextToken]        The value to provide as the `start` parameter when fetching the next page of followed users. If unspecified, there are no more users to fetch
  */
-const getFollowing = function(userId, start, limit, callback) {
+const getFollowing = function (userId, start, limit, callback) {
   start = start || '';
 
   Cassandra.runPagedQuery(
@@ -80,7 +80,7 @@ const getFollowing = function(userId, start, limit, callback) {
         return callback(err);
       }
 
-      const followingIds = _.map(rows, row => {
+      const followingIds = _.map(rows, (row) => {
         return row.get('followingId');
       });
 
@@ -98,7 +98,7 @@ const getFollowing = function(userId, start, limit, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.following  An object whose key is the user id from followedUserIds and value is `true` or falsey, indicating whether or not the following user is following them
  */
-const isFollowing = function(followingUserId, followedUserIds, callback) {
+const isFollowing = function (followingUserId, followedUserIds, callback) {
   if (_.isEmpty(followedUserIds)) {
     return callback(null, {});
   }
@@ -112,7 +112,7 @@ const isFollowing = function(followingUserId, followedUserIds, callback) {
       }
 
       const following = {};
-      _.each(rows, row => {
+      _.each(rows, (row) => {
         row = Cassandra.rowToHash(row);
         if (row.value === '1') {
           following[row.followingId] = true;
@@ -132,7 +132,7 @@ const isFollowing = function(followingUserId, followedUserIds, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const saveFollows = function(followerUserId, followedUserIds, callback) {
+const saveFollows = function (followerUserId, followedUserIds, callback) {
   followedUserIds = followedUserIds || [];
   followedUserIds = _.compact(followedUserIds);
   if (_.isEmpty(followedUserIds)) {
@@ -140,7 +140,7 @@ const saveFollows = function(followerUserId, followedUserIds, callback) {
   }
 
   const queries = [];
-  _.each(followedUserIds, followedUserId => {
+  _.each(followedUserIds, (followedUserId) => {
     queries.push(
       // Query that indicates the follower is following the user
       {
@@ -168,7 +168,7 @@ const saveFollows = function(followerUserId, followedUserIds, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteFollows = function(followerUserId, followedUserIds, callback) {
+const deleteFollows = function (followerUserId, followedUserIds, callback) {
   followedUserIds = followedUserIds || [];
   followedUserIds = _.compact(followedUserIds);
   if (_.isEmpty(followedUserIds)) {
@@ -177,7 +177,7 @@ const deleteFollows = function(followerUserId, followedUserIds, callback) {
 
   const queries = [];
 
-  _.each(followedUserIds, followedUserId => {
+  _.each(followedUserIds, (followedUserId) => {
     queries.push(
       // Query that will delete all the `followedUserIds` from the follower's "Following" index
       {

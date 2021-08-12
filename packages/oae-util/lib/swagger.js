@@ -15,19 +15,19 @@
 
 import fs from 'fs';
 import { format } from 'util';
-import OaeEmitter from 'oae-util/lib/emitter';
+import OaeEmitter from 'oae-util/lib/emitter.js';
 
 import { logger } from 'oae-logger';
 
 import _ from 'underscore';
 import clone from 'clone';
 import readdirp from 'readdirp';
-import * as restjsdoc from 'restjsdoc';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as restjsdoc from 'restjsdoc/lib/restjsdoc.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
 import { equals, forEachObjIndexed } from 'ramda';
-import isIn from 'validator/lib/isIn';
+import isIn from 'validator/lib/isIn.js';
 import * as SwaggerParamTypes from './swaggerParamTypes.js';
 
 const log = logger('oae-swagger');

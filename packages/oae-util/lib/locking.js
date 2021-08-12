@@ -19,7 +19,7 @@ import * as Redis from './redis.js';
 import { logger } from 'oae-logger';
 
 import { compose } from 'ramda';
-import isInt from 'validator/lib/isInt';
+import isInt from 'validator/lib/isInt.js';
 import { Validator as validator } from './validator.js';
 import { config } from '../../../config.js';
 

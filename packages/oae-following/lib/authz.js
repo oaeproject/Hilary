@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 
 /**
  * Determine if the current user in context is allowed to see the followers list of the provided user.
@@ -23,7 +23,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions';
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const canViewFollowers = function(ctx, user, callback) {
+const canViewFollowers = function (ctx, user, callback) {
   if (user.deleted) {
     return callback({ code: 404, msg: 'The user could not be found' });
   }
@@ -39,7 +39,7 @@ const canViewFollowers = function(ctx, user, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const canViewFollowing = function(ctx, user, callback) {
+const canViewFollowing = function (ctx, user, callback) {
   if (user.deleted) {
     return callback({ code: 404, msg: 'The user could not be found' });
   }
@@ -56,7 +56,7 @@ const canViewFollowing = function(ctx, user, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const canFollow = function(ctx, user, callback) {
+const canFollow = function (ctx, user, callback) {
   if (ctx.user() && ctx.user().id === user.id) {
     return callback({ code: 400, msg: 'A user cannot follow themselves' });
   }

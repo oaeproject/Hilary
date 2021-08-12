@@ -14,12 +14,12 @@
  */
 
 import * as _ from 'underscore';
-import eachSeries from 'async/eachSeries';
+import eachSeries from 'async/eachSeries.js';
 import { CronJob } from 'cron';
 
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
-import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
 import * as PrincipalsDAO from './internal/dao.js';
 
 const log = logger('oae-principals');

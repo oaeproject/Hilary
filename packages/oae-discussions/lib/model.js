@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 /**
  * A model object that represents a discussion object.

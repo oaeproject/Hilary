@@ -17,11 +17,11 @@
 import { format } from 'util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { Revision } from 'oae-content/lib/model';
-import * as ContentPreviewsDAO from './dao.previews';
+import { Revision } from 'oae-content/lib/model.js';
+import * as ContentPreviewsDAO from './dao.previews.js';
 
 /// ////////////
 // Retrieval //

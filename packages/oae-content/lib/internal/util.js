@@ -17,15 +17,15 @@ import querystring from 'querystring';
 import { format } from 'util';
 import { setUpConfig } from 'oae-config';
 import _ from 'underscore';
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 
 import { logger } from 'oae-logger';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityModel from 'oae-activity/lib/model';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as Signature from 'oae-util/lib/signature';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as Signature from 'oae-util/lib/signature.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
 const ContentConfig = setUpConfig('oae-content');
 

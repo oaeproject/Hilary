@@ -22,18 +22,18 @@ import $ from 'cheerio';
 import Globalize from 'globalize';
 import less from 'less';
 import marked from 'marked';
-import pipe from 'ramda/src/pipe';
+import pipe from 'ramda/src/pipe.js';
 import PropertiesParser from 'properties-parser';
 import readdirp from 'readdirp';
 import watch from 'watch';
 
 import * as ConfigAPI from 'oae-config';
 
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as Sanitization from 'oae-util/lib/sanitization';
-import * as TZ from 'oae-util/lib/tz';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
+import * as TZ from 'oae-util/lib/tz.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import { logger } from 'oae-logger';
 
 import { JSDOM } from 'jsdom';

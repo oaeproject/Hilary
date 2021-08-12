@@ -1,6 +1,7 @@
 {
   "main": "./lib/api.js",
   "name": "oae-config",
+  "type": "module",
   "oae": {
     "priority": 3
   },

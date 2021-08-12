@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import * as Index from './api.index';
-import * as Authz from './api.authz';
-import * as Search from './api.search';
+import * as Index from './api.index.js';
+import * as Authz from './api.authz.js';
+import * as Search from './api.search.js';
 
 export { Index, Authz, Search };

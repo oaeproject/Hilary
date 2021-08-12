@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { User } from 'oae-principals/lib/model.user';
-import { Group } from 'oae-principals/lib/model.group';
+import { User } from 'oae-principals/lib/model.user.js';
+import { Group } from 'oae-principals/lib/model.group.js';
 
 // Expose the user and group model.
 export { User, Group };

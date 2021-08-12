@@ -18,13 +18,13 @@ import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
-import { Discussion } from 'oae-discussions/lib/model';
+import { Discussion } from 'oae-discussions/lib/model.js';
 
 const log = logger('discussions-dao');
 

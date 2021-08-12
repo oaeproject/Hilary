@@ -23,7 +23,7 @@ import { concat, contains, equals, defaultTo, compose, not, pipe, isEmpty, when 
 
 import { logger } from 'oae-logger';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   unless,
   validateInCase: bothCheck,

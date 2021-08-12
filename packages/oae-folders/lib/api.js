@@ -19,25 +19,25 @@ import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 import * as ContentAPI from 'oae-content';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as EmitterAPI from 'oae-emitter';
 import * as LibraryAPI from 'oae-library';
 
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as GroupAPI from 'oae-principals/lib/api.group';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as GroupAPI from 'oae-principals/lib/api.group.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
 import * as SearchAPI from 'oae-search';
-import * as Signature from 'oae-util/lib/signature';
-import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as Signature from 'oae-util/lib/signature.js';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const {
   isArray,
   isValidRoleChange,
@@ -54,8 +54,8 @@ const {
   isArrayNotEmpty,
   isLongString
 } = validator;
-import isIn from 'validator/lib/isIn';
-import isInt from 'validator/lib/isInt';
+import isIn from 'validator/lib/isIn.js';
+import isInt from 'validator/lib/isInt.js';
 import { forEachObjIndexed } from 'ramda';
 import * as FoldersFoldersLibrary from './internal/foldersLibrary.js';
 import * as FoldersAuthz from './authz.js';
@@ -98,7 +98,7 @@ const FoldersAPI = new EmitterAPI.EventEmitter();
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder}         callback.folder         The folder that was created
  */
-const createFolder = function(ctx, displayName, description, visibility, roles, callback) {
+const createFolder = function (ctx, displayName, description, visibility, roles, callback) {
   visibility = visibility || FoldersConfig.getValue(ctx.tenant().alias, 'visibility', 'folder');
   roles = roles || {};
 
@@ -133,7 +133,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
     })(visibility, allVisibilities);
 
     // Verify each role is valid
-    forEachObjIndexed(role => {
+    forEachObjIndexed((role) => {
       unless(isIn, {
         code: 400,
         msg: format('The role "%s" is not a valid member role for a folder', role)
@@ -146,7 +146,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
   // Check if the current user can manage any of the specified managers
   const managerIds = _.chain(roles)
     .keys()
-    .filter(principalId => {
+    .filter((principalId) => {
       return roles[principalId] === AuthzConstants.role.MANAGER;
     })
     .value();
@@ -171,7 +171,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
         return callback(error);
       }
 
-      FoldersAPI.emit(FoldersConstants.events.CREATED_FOLDER, ctx, folder, memberChangeInfo, errs => {
+      FoldersAPI.emit(FoldersConstants.events.CREATED_FOLDER, ctx, folder, memberChangeInfo, (errs) => {
         if (errs) {
           return callback(_.first(errs));
         }
@@ -195,7 +195,7 @@ const createFolder = function(ctx, displayName, description, visibility, roles, 
  * @param  {Object}         callback.err                    An error that occurred, if any
  * @param  {Folder}         callback.folder                 The updated folder
  */
-const updateFolder = function(ctx, folderId, updates, callback) {
+const updateFolder = function (ctx, folderId, updates, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   try {
@@ -258,7 +258,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
     }
 
     // Ensure the current user can manage the folder
-    AuthzPermissions.canManage(ctx, folder, error_ => {
+    AuthzPermissions.canManage(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -288,7 +288,7 @@ const updateFolder = function(ctx, folderId, updates, callback) {
  * @param  {Object}         callback.err                    An error that occurred, if any
  * @param  {Content[]}      callback.failedContent          The content items that could not be updated
  */
-const updateFolderContentVisibility = function(ctx, folderId, visibility, callback) {
+const updateFolderContentVisibility = function (ctx, folderId, visibility, callback) {
   const allVisibilities = _.values(AuthzConstants.visibility);
 
   try {
@@ -322,7 +322,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
     }
 
     // Ensure the current user can manage the folder
-    AuthzPermissions.canManage(ctx, folder, error_ => {
+    AuthzPermissions.canManage(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -355,7 +355,7 @@ const updateFolderContentVisibility = function(ctx, folderId, visibility, callba
  * @param  {Content[]}      callback.failedContent      The content items that could not be updated
  * @api private
  */
-const _updateFolderContentVisibility = function(ctx, folder, visibility, callback) {
+const _updateFolderContentVisibility = function (ctx, folder, visibility, callback) {
   // Get all the content items in this folder
   FoldersAuthz.getContentInFolder(folder, (error, contentIds) => {
     if (error) {
@@ -383,7 +383,7 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
         .compact()
 
         // Grab those content items that don't have the desired visibility
-        .filter(content => {
+        .filter((content) => {
           return content.visibility !== visibility;
         })
         .value();
@@ -393,14 +393,14 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
       /*!
        * Executed once all the content items have been updated
        */
-      const done = function() {
-        FoldersContentLibrary.purge(folder, error_ => {
+      const done = function () {
+        FoldersContentLibrary.purge(folder, (error_) => {
           if (error_) {
             return callback(error_);
           }
 
           // Sign the previews for each content item
-          _.each(failedContent, content => {
+          _.each(failedContent, (content) => {
             ContentUtil.augmentContent(ctx, content);
           });
 
@@ -419,7 +419,7 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
       /*!
        * Update a batch of content items
        */
-      const updateBatch = function() {
+      const updateBatch = function () {
         // If there are no items to update, we can move on
         if (_.isEmpty(contentItems)) {
           return done();
@@ -432,8 +432,8 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
         const contentUpdated = _.after(contentItemsToUpdate.length, updateBatch);
 
         // Try and update each content item
-        _.each(contentItemsToUpdate, content => {
-          _updateContentVisibility(ctx, content, visibility, error_ => {
+        _.each(contentItemsToUpdate, (content) => {
+          _updateContentVisibility(ctx, content, visibility, (error_) => {
             if (error_) {
               failedContent.push(content);
             }
@@ -461,13 +461,13 @@ const _updateFolderContentVisibility = function(ctx, folder, visibility, callbac
  * @param  {Object}         callback.err                An error that occurred, if any
  * @api private
  */
-const _updateContentVisibility = function(ctx, content, visibility, callback) {
-  AuthzPermissions.canManage(ctx, content, error => {
+const _updateContentVisibility = function (ctx, content, visibility, callback) {
+  AuthzPermissions.canManage(ctx, content, (error) => {
     if (error) {
       return callback(error);
     }
 
-    ContentDAO.Content.updateContent(content, { visibility }, true, error => {
+    ContentDAO.Content.updateContent(content, { visibility }, true, (error) => {
       if (error) {
         return callback(error);
       }
@@ -493,7 +493,7 @@ const _updateContentVisibility = function(ctx, content, visibility, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Folder}         callback.folder     The folder identified by the given id
  */
-const getFolder = function(ctx, folderId, callback) {
+const getFolder = function (ctx, folderId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -510,7 +510,7 @@ const getFolder = function(ctx, folderId, callback) {
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canView(ctx, folder, error_ => {
+    AuthzPermissions.canView(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -538,7 +538,7 @@ const getFolder = function(ctx, folderId, callback) {
  * @param  {Boolean}        callback.folder.canAddItem      Whether or not the current user can add a content item to the folder
  * @param  {User}           callback.folder.createdBy       The basic profile of the user who created the folder
  */
-const getFullFolderProfile = function(ctx, folderId, callback) {
+const getFullFolderProfile = function (ctx, folderId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -575,7 +575,7 @@ const getFullFolderProfile = function(ctx, folderId, callback) {
  * @param  {User}           callback.folder.createdBy       The basic profile of the user who created the folder
  * @api private
  */
-const _getFullFolderProfile = function(ctx, folder, callback) {
+const _getFullFolderProfile = function (ctx, folder, callback) {
   AuthzPermissions.resolveEffectivePermissions(ctx, folder, (error, permissions) => {
     if (error) {
       return callback(error);
@@ -630,7 +630,7 @@ const _getFullFolderProfile = function(ctx, folder, callback) {
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Content[]}      callback.failedContent      The content items that could not be deleted
  */
-const deleteFolder = function(ctx, folderId, deleteContent, callback) {
+const deleteFolder = function (ctx, folderId, deleteContent, callback) {
   try {
     unless(isResourceId, { code: 400, msg: 'a folder id must be provided' })(folderId);
 
@@ -647,7 +647,7 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
       return callback(error);
     }
 
-    AuthzPermissions.canManage(ctx, folder, error_ => {
+    AuthzPermissions.canManage(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -658,7 +658,7 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
         }
 
         // eslint-disable-next-line no-unused-vars
-        FoldersAPI.emit(FoldersConstants.events.DELETED_FOLDER, ctx, folder, memberIds, errs => {
+        FoldersAPI.emit(FoldersConstants.events.DELETED_FOLDER, ctx, folder, memberIds, (errs) => {
           // Get all the content items that were in this folder so we can either
           // remove the content items or remove the authz link
           FoldersAuthz.getContentInFolder(folder, (error, contentIds) => {
@@ -668,7 +668,7 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
 
             // Delete the content if we were instructed to do so
             if (deleteContent) {
-              _deleteContent(ctx, contentIds, failedContent => {
+              _deleteContent(ctx, contentIds, (failedContent) => {
                 // Get the content objects that we couldn't delete
                 ContentDAO.Content.getMultipleContentItems(failedContent, null, (error, contentItems) => {
                   if (error) {
@@ -684,7 +684,7 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
                     // Sign the content items, note that we don't have to do any permission
                     // checks here, as the user had access to these content items by virtue
                     // of being a member of the folder
-                    .each(contentItem => {
+                    .each((contentItem) => {
                       ContentUtil.augmentContent(ctx, contentItem);
                     });
 
@@ -713,7 +713,7 @@ const deleteFolder = function(ctx, folderId, deleteContent, callback) {
  * @param  {String[]}       callback.memberIds      The ids of the principals who were members of this folder
  * @api private
  */
-const _deleteFolder = function(folder, callback) {
+const _deleteFolder = function (folder, callback) {
   // Get all the principal ids who are a member of this folder
   AuthzAPI.getAllAuthzMembers(folder.groupId, (error, memberRoles) => {
     if (error) {
@@ -723,18 +723,18 @@ const _deleteFolder = function(folder, callback) {
     // Remove each principal from this folder
     const memberIds = _.pluck(memberRoles, 'id');
     const roleChanges = {};
-    _.each(memberIds, memberId => {
+    _.each(memberIds, (memberId) => {
       roleChanges[memberId] = false;
     });
 
     // Update the authz associations
-    AuthzAPI.updateRoles(folder.groupId, roleChanges, error_ => {
+    AuthzAPI.updateRoles(folder.groupId, roleChanges, (error_) => {
       if (error_) {
         return callback(error_);
       }
 
       // Remove the actual folder
-      FoldersDAO.deleteFolder(folder.id, error_ => {
+      FoldersDAO.deleteFolder(folder.id, (error_) => {
         if (error_) {
           return callback(error_);
         }
@@ -754,7 +754,7 @@ const _deleteFolder = function(folder, callback) {
  * @param  {Content[]}      callback.failedContent      The content items that could not be deleted
  * @api private
  */
-const _deleteContent = function(ctx, contentIds, callback, _failedContent) {
+const _deleteContent = function (ctx, contentIds, callback, _failedContent) {
   _failedContent = _failedContent || [];
 
   // If there are no items to delete, we can return to the caller
@@ -772,8 +772,8 @@ const _deleteContent = function(ctx, contentIds, callback, _failedContent) {
   });
 
   // Delete each content item
-  _.each(contentIdsToDelete, contentId => {
-    ContentAPI.deleteContent(ctx, contentId, error => {
+  _.each(contentIdsToDelete, (contentId) => {
+    ContentAPI.deleteContent(ctx, contentId, (error) => {
       // Keep track of the content items that could not be deleted
       if (error) {
         _failedContent.push(contentId);
@@ -793,7 +793,7 @@ const _deleteContent = function(ctx, contentIds, callback, _failedContent) {
  * @param  {Object}     callback.err    An error object, if any
  * @api private
  */
-const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback) {
+const _removeAuthzFolderFromContentItems = function (folder, contentIds, callback) {
   if (_.isEmpty(contentIds)) {
     return callback();
   }
@@ -808,11 +808,11 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
   });
 
   // Remove the link between the content items and the folder
-  _.each(contentIdsToDelete, contentId => {
+  _.each(contentIdsToDelete, (contentId) => {
     // Remove the folder as an authz member
     const roleChange = {};
     roleChange[folder.groupId] = false;
-    AuthzAPI.updateRoles(contentId, roleChange, error => {
+    AuthzAPI.updateRoles(contentId, roleChange, (error) => {
       if (error) {
         log().error(
           {
@@ -844,7 +844,7 @@ const _removeAuthzFolderFromContentItems = function(folder, contentIds, callback
  * @param  {String}         callback.results[i].role        The role of the user or group on the folder
  * @param  {String}         callback.nextToken              The token to use for the next `start` value in order to get the next page of members. If this value is `null`, it indicates that there are no more members to page
  */
-const getFolderMembers = function(ctx, folderId, start, limit, callback) {
+const getFolderMembers = function (ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -874,7 +874,7 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, memberRole => {
+        const memberList = _.map(memberRoles, (memberRole) => {
           return {
             profile: memberProfiles[memberRole.id],
             role: memberRole.role
@@ -896,7 +896,7 @@ const getFolderMembers = function(ctx, folderId, start, limit, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    The invitations
  */
-const getFolderInvitations = function(ctx, folderId, callback) {
+const getFolderInvitations = function (ctx, folderId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -924,7 +924,7 @@ const getFolderInvitations = function(ctx, folderId, callback) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const resendFolderInvitation = function(ctx, folderId, email, callback) {
+const resendFolderInvitation = function (ctx, folderId, email, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -954,7 +954,7 @@ const resendFolderInvitation = function(ctx, folderId, email, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const shareFolder = function(ctx, folderId, principalIds, callback) {
+const shareFolder = function (ctx, folderId, principalIds, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -986,7 +986,7 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
         return callback();
       }
 
-      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, (errs) => {
         if (errs) {
           return callback(_.first(errs));
         }
@@ -1008,7 +1008,7 @@ const shareFolder = function(ctx, folderId, principalIds, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const setFolderPermissions = function(ctx, folderId, changes, callback) {
+const setFolderPermissions = function (ctx, folderId, changes, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1057,7 +1057,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
         return callback();
       }
 
-      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+      FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, (errs) => {
         if (errs) {
           return callback(_.first(errs));
         }
@@ -1077,7 +1077,7 @@ const setFolderPermissions = function(ctx, folderId, changes, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
+const addContentItemsToFolder = function (ctx, folderId, contentIds, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1100,7 +1100,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
     })(_.values(contentIds));
 
     // Ensure each content id is valid
-    forEachObjIndexed(contentId => {
+    forEachObjIndexed((contentId) => {
       unless(isResourceId, {
         code: 400,
         msg: format('The id "%s" is not a valid content id', contentId)
@@ -1132,7 +1132,7 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
       }
 
       // Determine if the content items can be added to the folder
-      FoldersAuthz.canAddItemsToFolder(ctx, folder, contentItems, error_ => {
+      FoldersAuthz.canAddItemsToFolder(ctx, folder, contentItems, (error_) => {
         if (error_ && error_.code !== 401) {
           return callback(error_);
         }
@@ -1169,15 +1169,15 @@ const addContentItemsToFolder = function(ctx, folderId, contentIds, callback) {
  * @param  {Object}         callback.err        An error object, if any
  * @api private
  */
-const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, contentItems, callback) {
+const _addContentItemsToFolderLibrary = function (ctx, actionContext, folder, contentItems, callback) {
   // First, make the folder a member of all the content items
-  _addContentItemsToAuthzFolder(folder, contentItems.slice(), error => {
+  _addContentItemsToAuthzFolder(folder, contentItems.slice(), (error) => {
     if (error) {
       return callback(error);
     }
 
     // Second, add the content items in the folder's library buckets
-    FoldersContentLibrary.insert(folder, contentItems, error => {
+    FoldersContentLibrary.insert(folder, contentItems, (error) => {
       if (error) {
         log(ctx).warn(
           {
@@ -1205,7 +1205,7 @@ const _addContentItemsToFolderLibrary = function(ctx, actionContext, folder, con
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callback) {
+const removeContentItemsFromFolder = function (ctx, folderId, contentIds, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1228,7 +1228,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     })(_.values(contentIds));
 
     // Ensure each content id is valid
-    forEachObjIndexed(contentId => {
+    forEachObjIndexed((contentId) => {
       unless(isResourceId, {
         code: 400,
         msg: format('The id "%s" is not a valid content id', contentId)
@@ -1245,7 +1245,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
     }
 
     // Ensure that the user is allowed to remove items from this folder
-    AuthzPermissions.canManage(ctx, folder, error_ => {
+    AuthzPermissions.canManage(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -1266,12 +1266,12 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
         }
 
         // Remove all the items from the folder
-        _removeContentItemsFromFolder(folder, contentIds.slice(), error_ => {
+        _removeContentItemsFromFolder(folder, contentIds.slice(), (error_) => {
           if (error_) {
             return callback(error_);
           }
 
-          FoldersContentLibrary.remove(folder, contentItems, error_ => {
+          FoldersContentLibrary.remove(folder, contentItems, (error_) => {
             if (error_) {
               log(ctx).warn(
                 {
@@ -1304,7 +1304,7 @@ const removeContentItemsFromFolder = function(ctx, folderId, contentIds, callbac
  * @param  {Folder[]}       callback.folders        The list of folders
  * @param  {String}         callback.nextToken      The token to use for the next `start` value in order to get the next page of folders. If this value is `null`, it indicates that there are no more folders to page
  */
-const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
+const getFoldersLibrary = function (ctx, principalId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1344,7 +1344,7 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
             return callback(error);
           }
 
-          folders = _.map(folders, folder => {
+          folders = _.map(folders, (folder) => {
             return _augmentFolder(ctx, folder);
           });
 
@@ -1374,7 +1374,7 @@ const getFoldersLibrary = function(ctx, principalId, start, limit, callback) {
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder[]}       callback.folders        The folders which the current user can manage
  */
-const getManagedFolders = function(ctx, callback) {
+const getManagedFolders = function (ctx, callback) {
   if (!ctx.user()) {
     return callback({ code: 401, msg: 'Anonymous users cannot manage folders' });
   }
@@ -1387,10 +1387,10 @@ const getManagedFolders = function(ctx, callback) {
 
     // Get all the groups the user manages
     const managedGroupIds = _.chain(roles)
-      .filter(role => {
+      .filter((role) => {
         return role.role === AuthzConstants.role.MANAGER;
       })
-      .map(role => {
+      .map((role) => {
         return role.id;
       })
       .value();
@@ -1409,7 +1409,7 @@ const getManagedFolders = function(ctx, callback) {
         })
 
         // Augment the folder with the signed preview urls
-        .map(folder => {
+        .map((folder) => {
           return _augmentFolder(ctx, folder);
         })
         .value();
@@ -1428,7 +1428,7 @@ const getManagedFolders = function(ctx, callback) {
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
  */
-const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
+const removeFolderFromLibrary = function (ctx, principalId, folderId, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1467,12 +1467,12 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
         }
 
         // All validation checks have passed, finally persist the role change and update the library
-        AuthzAPI.updateRoles(folder.groupId, memberChangeInfo.changes, error_ => {
+        AuthzAPI.updateRoles(folder.groupId, memberChangeInfo.changes, (error_) => {
           if (error_) {
             return callback(error_);
           }
 
-          FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, errs => {
+          FoldersAPI.emit(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, ctx, folder, memberChangeInfo, {}, (errs) => {
             if (errs) {
               return callback(_.first(errs));
             }
@@ -1497,7 +1497,7 @@ const removeFolderFromLibrary = function(ctx, principalId, folderId, callback) {
  * @param  {Folder[]}       callback.contentItems   The list of content items in the folder library
  * @param  {String}         callback.nextToken      The token to use for the next `start` value in order to get the next page of content items. If this value is `null`, it indicates that there are no more content items to page
  */
-const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) {
+const getFolderContentLibrary = function (ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1542,7 +1542,7 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
             .compact()
 
             // Augment each content item with its signed preview urls
-            .each(contentItem => {
+            .each((contentItem) => {
               ContentUtil.augmentContent(ctx, contentItem);
             })
             .value();
@@ -1570,7 +1570,7 @@ const getFolderContentLibrary = function(ctx, folderId, start, limit, callback) 
  * @param  {Object}             callback.err                    An error that occurred, if any
  * @param  {Message}            callback.message                The created message
  */
-const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, callback) {
+const createMessage = function (ctx, folderId, body, replyToCreatedTimestamp, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1608,7 +1608,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canInteract(ctx, folder, error_ => {
+    AuthzPermissions.canInteract(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -1633,7 +1633,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
             message.createdBy = createdBy;
 
             // The message has been created in the database so we can emit the `createdComment` event
-            FoldersAPI.emit(FoldersConstants.events.CREATED_COMMENT, ctx, message, folder, errs => {
+            FoldersAPI.emit(FoldersConstants.events.CREATED_COMMENT, ctx, message, folder, (errs) => {
               if (errs) {
                 return callback(_.first(errs));
               }
@@ -1658,7 +1658,7 @@ const createMessage = function(ctx, folderId, body, replyToCreatedTimestamp, cal
  * @param  {Object}         callback.err                An error that occurred, if any
  * @param  {Comment}        [callback.softDeleted]      When the message has been soft deleted (because it has replies), a stripped down message object representing the deleted message will be returned, with the `deleted` parameter set to `false`. If the message has been deleted from the index, no message object will be returned
  */
-const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
+const deleteMessage = function (ctx, folderId, messageCreatedDate, callback) {
   try {
     unless(isLoggedInUser, {
       code: 401,
@@ -1697,7 +1697,7 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
       const message = messages[0];
 
       // Determine if we have access to delete the folder message
-      AuthzPermissions.canManageMessage(ctx, folder, message, error_ => {
+      AuthzPermissions.canManageMessage(ctx, folder, message, (error_) => {
         if (error_) {
           return callback(error_);
         }
@@ -1739,7 +1739,7 @@ const deleteMessage = function(ctx, folderId, messageCreatedDate, callback) {
  * @param  {Message[]}      callback.messages       The messages in the folder. Of the type `MessageBoxModel#Message`
  * @param  {String}         callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
-const getMessages = function(ctx, folderId, start, limit, callback) {
+const getMessages = function (ctx, folderId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 10, 1);
 
   try {
@@ -1763,7 +1763,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
     }
 
     // Ensure the current user can view the folder
-    AuthzPermissions.canView(ctx, folder, error_ => {
+    AuthzPermissions.canView(ctx, folder, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -1776,7 +1776,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
 
         // Get the unique user ids from the messages so we can retrieve their full user objects
         const userIds = _.chain(messages)
-          .map(message => {
+          .map((message) => {
             return message.createdBy;
           })
           .uniq()
@@ -1790,7 +1790,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
           }
 
           // Attach the user profiles to the message objects
-          _.each(messages, message => {
+          _.each(messages, (message) => {
             if (users[message.createdBy]) {
               message.createdBy = users[message.createdBy];
             }
@@ -1813,7 +1813,7 @@ const getMessages = function(ctx, folderId, start, limit, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _addContentItemsToAuthzFolder = function(folder, contentItems, callback) {
+const _addContentItemsToAuthzFolder = function (folder, contentItems, callback) {
   if (_.isEmpty(contentItems)) {
     return callback();
   }
@@ -1822,7 +1822,7 @@ const _addContentItemsToAuthzFolder = function(folder, contentItems, callback) {
   roleChange[folder.groupId] = AuthzConstants.role.VIEWER;
 
   const contentItem = contentItems.pop();
-  AuthzAPI.updateRoles(contentItem.id, roleChange, error => {
+  AuthzAPI.updateRoles(contentItem.id, roleChange, (error) => {
     if (error) {
       return callback(error);
     }
@@ -1841,7 +1841,7 @@ const _addContentItemsToAuthzFolder = function(folder, contentItems, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @api private
  */
-const _removeContentItemsFromFolder = function(folder, contentIds, callback) {
+const _removeContentItemsFromFolder = function (folder, contentIds, callback) {
   if (_.isEmpty(contentIds)) {
     return callback();
   }
@@ -1850,7 +1850,7 @@ const _removeContentItemsFromFolder = function(folder, contentIds, callback) {
   roleChange[folder.groupId] = false;
 
   const contentId = contentIds.pop();
-  AuthzAPI.updateRoles(contentId, roleChange, error => {
+  AuthzAPI.updateRoles(contentId, roleChange, (error) => {
     if (error) {
       return callback(error);
     }
@@ -1867,7 +1867,7 @@ const _removeContentItemsFromFolder = function(folder, contentIds, callback) {
  * @return {Folder}                 The augmented folder holding the signed urls
  * @api private
  */
-const _augmentFolder = function(ctx, folder) {
+const _augmentFolder = function (ctx, folder) {
   if (folder.previews && folder.previews.thumbnailUri) {
     folder.previews.thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.thumbnailUri);
   }

@@ -18,21 +18,21 @@ import fs from 'fs';
 import path from 'path';
 import { format } from 'util';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
-import * as ActivityDAO from 'oae-activity/lib/internal/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
 import * as TestsUtil from 'oae-tests';
 
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 
 import { filter, equals, not, find, pathSatisfies } from 'ramda';
 
@@ -115,7 +115,7 @@ describe('Content Activity', () => {
     suitableFiles = {
       'file.small.jpg': getFunctionThatReturnsFileStream('apereo-conference-2013.jpeg'),
       'file.medium.jpg': getFunctionThatReturnsFileStream('apereo.jpg'),
-      'thumbnail.png': getFunctionThatReturnsFileStream('oae-logo.png'),
+      'thumbnail.png': getFunctionThatReturnsFileStream('oae-logo.svg'),
       'wide.png': getFunctionThatReturnsFileStream('oae-video.png')
     };
     suitableSizes = {
@@ -503,20 +503,24 @@ describe('Content Activity', () => {
                   assert.notExists(error_);
 
                   // Bart retorts!
-                  createComment(asBart, link.id, "You're wrong and you smell bad!", null, (
-                    error /* , bartComment */
-                  ) => {
-                    assert.notExists(error);
-
-                    // Marge should only have the activity for the comment he made, not Bert's
-                    collectAndGetActivityStream(asMarge, marge.user.id, null, (error, activityStream) => {
+                  createComment(
+                    asBart,
+                    link.id,
+                    "You're wrong and you smell bad!",
+                    null,
+                    (error /* , bartComment */) => {
                       assert.notExists(error);
-                      assert.lengthOf(activityStream.items, 1);
-                      assert.strictEqual(activityStream.items[0].object['oae:id'], margeComment.id);
 
-                      callback();
-                    });
-                  });
+                      // Marge should only have the activity for the comment he made, not Bert's
+                      collectAndGetActivityStream(asMarge, marge.user.id, null, (error, activityStream) => {
+                        assert.notExists(error);
+                        assert.lengthOf(activityStream.items, 1);
+                        assert.strictEqual(activityStream.items[0].object['oae:id'], margeComment.id);
+
+                        callback();
+                      });
+                    }
+                  );
                 });
               });
             });
@@ -3542,59 +3546,63 @@ describe('Content Activity', () => {
             (error, link) => {
               assert.notExists(error);
 
-              createComment(asMarge, link.id, '<script>Nice link.</script>\n\nWould click again', null, (
-                error /* , margeUpdate */
-              ) => {
-                assert.notExists(error);
+              createComment(
+                asMarge,
+                link.id,
+                '<script>Nice link.</script>\n\nWould click again',
+                null,
+                (error /* , margeUpdate */) => {
+                  assert.notExists(error);
 
-                collectAndFetchAllEmails((messages) => {
-                  // There should be exactly one message, the one sent to homer (manager of content item receives content-comment notification)
-                  assert.lengthOf(messages, 1);
+                  collectAndFetchAllEmails((messages) => {
+                    // There should be exactly one message, the one sent to homer (manager of content item receives content-comment notification)
+                    assert.lengthOf(messages, 1);
 
-                  const stringEmail = JSON.stringify(messages[0], null, 2);
-                  const message = messages[0];
+                    const stringEmail = JSON.stringify(messages[0], null, 2);
+                    const message = messages[0];
 
-                  // Sanity check that the message is to homer
-                  assert.strictEqual(message.to[0].address, homer.user.email);
+                    // Sanity check that the message is to homer
+                    assert.strictEqual(message.to[0].address, homer.user.email);
 
-                  // Ensure that the subject of the email contains the poster's name
-                  assert.include(message.subject, 'swappedFromPublicAlias');
+                    // Ensure that the subject of the email contains the poster's name
+                    assert.include(message.subject, 'swappedFromPublicAlias');
 
-                  // Ensure some data expected to be in the email is there
-                  assert.include(stringEmail, link.profilePath);
-                  assert.include(stringEmail, link.displayName);
+                    // Ensure some data expected to be in the email is there
+                    assert.include(stringEmail, link.profilePath);
+                    assert.include(stringEmail, link.displayName);
 
-                  // Ensure marge's private info is *nowhere* to be found
-                  assert.notInclude(stringEmail, marge.user.displayName);
-                  assert.notInclude(stringEmail, marge.user.email);
-                  assert.notInclude(stringEmail, marge.user.locale);
+                    // Ensure marge's private info is *nowhere* to be found
+                    assert.notInclude(stringEmail, marge.user.displayName);
+                    assert.notInclude(stringEmail, marge.user.email);
+                    assert.notInclude(stringEmail, marge.user.locale);
 
-                  // The message probably contains the public alias, though
-                  assert.include(stringEmail, 'swappedFromPublicAlias');
+                    // The message probably contains the public alias, though
+                    assert.include(stringEmail, 'swappedFromPublicAlias');
 
-                  // The message should have escaped the HTML content in the original message
-                  assert.notInclude(stringEmail, '<script>Nice link.</script>');
+                    // The message should have escaped the HTML content in the original message
+                    assert.notInclude(stringEmail, '<script>Nice link.</script>');
 
-                  // The new line characters should've been converted into paragraphs
-                  assert.include(stringEmail, 'Would click again</p>');
+                    // The new line characters should've been converted into paragraphs
+                    assert.include(stringEmail, 'Would click again</p>');
 
-                  // Post a comment as bart and ensure the recent commenter, marge receives an email about it
-                  createComment(asBart, link.id, 'It 404d', null, (error /* , bartComment */) => {
-                    assert.notExists(error);
+                    // Post a comment as bart and ensure the recent commenter, marge receives an email about it
+                    createComment(asBart, link.id, 'It 404d', null, (error /* , bartComment */) => {
+                      assert.notExists(error);
 
-                    collectAndFetchAllEmails((emails) => {
-                      // There should be 2 emails this time, one to the manager and one to the recent commenter, marge
-                      assert.lengthOf(emails, 2);
+                      collectAndFetchAllEmails((emails) => {
+                        // There should be 2 emails this time, one to the manager and one to the recent commenter, marge
+                        assert.lengthOf(emails, 2);
 
-                      const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
-                      assert.include(emailAddresses, marge.user.email);
-                      assert.include(emailAddresses, homer.user.email);
+                        const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
+                        assert.include(emailAddresses, marge.user.email);
+                        assert.include(emailAddresses, homer.user.email);
 
-                      return callback();
+                        return callback();
+                      });
                     });
                   });
-                });
-              });
+                }
+              );
             }
           );
         });

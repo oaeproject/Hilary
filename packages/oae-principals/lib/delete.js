@@ -15,7 +15,7 @@
 
 import { format } from 'util';
 import _ from 'underscore';
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 
 import * as AuthzAPI from 'oae-authz';
 

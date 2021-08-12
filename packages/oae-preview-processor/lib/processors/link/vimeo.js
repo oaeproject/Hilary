@@ -18,8 +18,8 @@ import path from 'path';
 import _ from 'underscore';
 import request from 'request';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const VIMEO_REGEX = /^http(s)?:\/\/(www\.)?vimeo\.com\/(\d+)(\/.*)?$/;
 

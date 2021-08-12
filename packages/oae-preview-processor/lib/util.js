@@ -15,13 +15,13 @@
 
 import fs from 'fs';
 import { format } from 'util';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 import request from 'request';
 import _ from 'underscore';
 
-import * as ImageUtil from 'oae-util/lib/image';
-import * as IO from 'oae-util/lib/io';
+import * as ImageUtil from 'oae-util/lib/image.js';
+import * as IO from 'oae-util/lib/io.js';
 
 import { logger } from 'oae-logger';
 

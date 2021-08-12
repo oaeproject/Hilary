@@ -15,11 +15,11 @@
 
 /* eslint-disable unicorn/filename-case */
 import { setUpConfig } from 'oae-config';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { isUserId, unless, isLoggedInUser } = validator;
 import { not } from 'ramda';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import * as PrincipalsUtil from './util.js';
 

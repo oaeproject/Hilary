@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 /**
  * A basic field object that contains all the field properties and
@@ -29,7 +29,7 @@ import * as OaeUtil from 'oae-util/lib/util';
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  * @api private
  */
-const BaseField = function(type, name, description, defaultValue, options) {
+const BaseField = function (type, name, description, defaultValue, options) {
   options = options || {};
   const field = {
     type,
@@ -47,7 +47,7 @@ const BaseField = function(type, name, description, defaultValue, options) {
    * @param  {String}     value       The stored value
    * @return {Object}                 Depending on the field this will return a value that can be used through-out the application. If the field does not override this method, the database value will be returned as-is
    */
-  field.deserialize = function(value) {
+  field.deserialize = function (value) {
     return value;
   };
 
@@ -65,7 +65,7 @@ const BaseField = function(type, name, description, defaultValue, options) {
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-const Bool = function(name, description, defaultValue, options) {
+const Bool = function (name, description, defaultValue, options) {
   defaultValue = defaultValue || false;
   const field = new BaseField('boolean', name, description, defaultValue, options);
 
@@ -73,7 +73,7 @@ const Bool = function(name, description, defaultValue, options) {
    * @return {Boolean}    Convert the given Cassandra column value to a boolean
    * @see BaseField#deserialize
    */
-  field.deserialize = function(columnValue) {
+  field.deserialize = function (columnValue) {
     return OaeUtil.castToBoolean(columnValue);
   };
 
@@ -91,7 +91,7 @@ const Bool = function(name, description, defaultValue, options) {
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-const Text = function(name, description, defaultValue, options) {
+const Text = function (name, description, defaultValue, options) {
   defaultValue = defaultValue || '';
   return new BaseField('text', name, description, defaultValue, options);
 };
@@ -107,7 +107,7 @@ const Text = function(name, description, defaultValue, options) {
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-const InternationalizableText = function(name, description, defaultValue, options) {
+const InternationalizableText = function (name, description, defaultValue, options) {
   // The UI always needs an object with a default key in it
   defaultValue = defaultValue || '';
   defaultValue = { default: defaultValue };
@@ -128,7 +128,7 @@ const InternationalizableText = function(name, description, defaultValue, option
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-const Radio = function(name, description, defaultValue, group, options) {
+const Radio = function (name, description, defaultValue, group, options) {
   const field = new BaseField('radio', name, description, defaultValue, options);
   field.group = group;
   return field;
@@ -146,7 +146,7 @@ const Radio = function(name, description, defaultValue, group, options) {
  * @param  {Boolean}    [options.suppress]          Whether or not this config element can be retrieved by regular users. Defaults to `false`
  * @param  {Boolean}    [options.globalAdminOnly]   Whether or not this config element is only available to global admin users. Defaults to `false`
  */
-const List = function(name, description, defaultValue, list, options) {
+const List = function (name, description, defaultValue, list, options) {
   const field = new BaseField('list', name, description, defaultValue, options);
   field.list = list;
   return field;

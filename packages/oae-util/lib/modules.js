@@ -13,14 +13,18 @@
  * permissions and limitations under the License.
  */
 
+import { promisify, callbackify } from 'util';
+import { readFile } from 'fs/promises';
+import Path from 'path';
 import fs from 'fs';
 import async from 'async';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as IO from './io.js';
 import * as Swagger from './swagger.js';
+import { compose, map, prop, sortBy } from 'ramda';
 
 const log = logger('oae-modules');
 
@@ -70,7 +74,7 @@ const ES6Modules = [
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const bootstrapModules = function (config, callback) {
-  initAvailableModules((error, modules) => {
+  callbackify(initAvailableModules)((error, modules) => {
     if (error) return callback(error);
 
     if (_.isEmpty(modules)) {
@@ -170,40 +174,67 @@ const bootstrapModulesRest = function (modules, callback) {
  * @param  {Function}   callback                Standard callback function
  * @param  {String[]}   callback.finalModules   Array of strings representing the names of the available modules
  */
-const initAvailableModules = function (callback) {
-  IO.getFileListForFolder(OaeUtil.getNodeModulesDir(), (error, modules) => {
-    if (error) return callback(error);
+const initAvailableModules = function () {
+  return promisify(IO.getFileListForFolder)(OaeUtil.getNodeModulesDir())
+    .then((modules) => {
+      return modules.filter((each) => each.startsWith('oae-'));
+    })
+    .then((modules) => {
+      return Promise.all(
+        modules.map((each) => {
+          return new Promise((resolve, reject) => {
+            readFile(Path.join(process.cwd(), 'node_modules', each, 'package.json'), 'utf8')
+              .then((data) => {
+                return JSON.parse(data);
+              })
+              .then((pkg) => {
+                if (pkg.oae && pkg.oae.priority) {
+                  // Found a priority in package.json at oae.priority
+                  resolve({ module: pkg.name, priority: pkg.oae.priority });
+                } else {
+                  // No priority found, it goes in last
+                  resolve({ module: pkg.name, priority: Number.MAX_VALUE });
+                }
+              })
+              .catch((e) => {
+                reject(e);
+              });
+          });
+        })
+      );
+    })
+    .then((result) => {
+      // Order by the startup priority
+      const sortByPriority = sortBy(prop('priority'));
+      const getModuleName = map(prop('module'));
+      const finalModules = compose(getModuleName, sortByPriority)(result);
 
-    const finalModules = [];
-    const modulePriority = {};
+      // Cache the available modules
+      cachedAvailableModules = finalModules;
 
+      return finalModules;
+    });
+};
+/*
     // Aggregate the oae- modules
     for (const module of modules) {
       if (module.slice(0, 4) === 'oae-') {
         // Determine module priority
         const filename = module + '/package.json';
-        const pkg = require(filename);
-        if (pkg.oae && pkg.oae.priority) {
-          // Found a priority in package.json at oae.priority
-          modulePriority[module] = pkg.oae.priority;
-        } else {
-          // No priority found, it goes in last
-          modulePriority[module] = Number.MAX_VALUE;
-        }
-
-        finalModules.push(module);
+        // const pkg = require(filename);
+        import(filename).then((pkg) => {
+          if (pkg.oae && pkg.oae.priority) {
+            // Found a priority in package.json at oae.priority
+            modulePriority[module] = pkg.oae.priority;
+          } else {
+            // No priority found, it goes in last
+            modulePriority[module] = Number.MAX_VALUE;
+          }
+          finalModules.push(module);
+        });
       }
     }
-
-    // Order by the startup priority
-    finalModules.sort((a, b) => modulePriority[a] - modulePriority[b]);
-
-    // Cache the available modules
-    cachedAvailableModules = finalModules;
-
-    callback(null, finalModules);
-  });
-};
+    */
 
 /**
  * Returns the available modules from cache

@@ -1,4 +1,4 @@
-import { createColumnFamilies } from 'oae-util/lib/cassandra';
+import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
  * Create the following database schema
@@ -7,7 +7,7 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra';
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   createColumnFamilies(
     {
       FollowingUsersFollowers:

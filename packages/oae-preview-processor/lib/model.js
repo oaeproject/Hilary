@@ -20,7 +20,7 @@ import rimraf from 'rimraf';
 
 import { logger } from 'oae-logger';
 import * as RestAPI from 'oae-rest';
-import { RestContext } from 'oae-rest/lib/model';
+import { RestContext } from 'oae-rest/lib/model.js';
 
 const log = logger('oae-preview-processor');
 

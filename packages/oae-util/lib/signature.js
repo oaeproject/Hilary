@@ -19,7 +19,7 @@ import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 const log = logger('signature');
 

@@ -1,5 +1,6 @@
 {
   "name": "oae-google-analytics",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"

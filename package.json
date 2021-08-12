@@ -1,13 +1,14 @@
 {
   "name": "hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "16.0.1",
+  "version": "16.0.3",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
     "email": "oae@apereo.org"
   },
   "private": true,
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"
@@ -47,7 +48,7 @@
     "dompurify": "^2.0.8",
     "dox": "^0.9.0",
     "ent": "^2.2.0",
-    "esm": "3.2.20",
+    "esm": "^3.2.25",
     "ethercalc-client": "github:oaeproject/ethercalc-client#master",
     "etherpad-lite-client": "^0.8.0",
     "express": "^4.17.1",
@@ -123,11 +124,11 @@
     "pm2": "^4.3.0",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
-    "xo": "0.37.1"
+    "xo": "^0.44.0"
   },
   "scripts": {
-    "test": "mocha -r esm packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
-    "test-module": "mocha -r esm packages/oae-tests/runner/before-tests.js \"$@\"",
+    "test": "mocha packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
+    "test-module": "mocha packages/oae-tests/runner/before-tests.js \"$@\"",
     "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
     "ci:test-module": "nyc mocha -r esm --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js \"$@\"",
     "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov npm run test",
@@ -137,8 +138,8 @@
     "server": "npx pm2 startOrReload process.json --only Hilary",
     "servers": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
-    "lint": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "node_modules/.bin/xo --prettier --quiet --fix \"$@\""
+    "lint": "node_modules/.bin/xo --prettier --quiet 'packages/**/*.js'",
+    "lint-module": "node_modules/.bin/xo --prettier --quiet \"$@\""
   },
   "nyc": {
     "include": "packages/**/*",
@@ -156,6 +157,7 @@
       "prettier"
     ],
     "ignores": [
+      "node_modules",
       "**/processors/file/domstubs.js"
     ],
     "rules": {

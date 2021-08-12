@@ -17,8 +17,8 @@ import Youtube from 'youtube-api';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');
@@ -29,7 +29,7 @@ const YOUTUBE_SHORT_REGEX = /^http(s)?:\/\/youtu.be\/(.+)/;
 /**
  * @borrows Interface.test as YoutubeProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObj, callback) {
   // Don't bother with non-link content items
   if (contentObj.resourceSubType !== 'link') {
     return callback(null, -1);
@@ -52,7 +52,7 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as YoutubeProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObj, callback) {
   // Get the movie identifier
   const id = _getId(contentObj.link);
 
@@ -102,7 +102,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @return {String}             The movie identifier (or null)
  * @api private
  */
-const _getId = function(link) {
+const _getId = function (link) {
   const parsedUrl = new URL(link);
 
   // The full link has the ID in the `v` query parameter

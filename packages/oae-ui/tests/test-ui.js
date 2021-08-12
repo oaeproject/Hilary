@@ -739,7 +739,7 @@ describe('UI', () => {
      */
     it('verify logo can be uploaded for a tenant', (callback) => {
       const tenantAlias = global.oaeTests.tenants.cam.alias;
-      const filePath = path.join(__dirname, '/data/oae-logo.png');
+      const filePath = path.join(__dirname, '/data/oae-logo.svg');
       let fileStream = fs.createReadStream(filePath);
 
       // Assert that the global admin can change the logo for a tenant

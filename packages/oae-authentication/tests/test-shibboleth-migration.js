@@ -20,7 +20,7 @@ import csv from 'csv';
 import temp from 'temp';
 import { flatten, head, map, isEmpty, pipe, pluck } from 'ramda';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import { logger } from 'oae-logger';

@@ -16,9 +16,9 @@
 import assert from 'assert';
 import { format } from 'util';
 import ShortId from 'shortid';
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import { generateRandomText } from 'oae-tests';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TenantsAPI from 'oae-tenants';
 

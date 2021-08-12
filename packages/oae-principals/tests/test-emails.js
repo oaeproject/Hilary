@@ -18,14 +18,14 @@ import fs from 'fs';
 import { format } from 'util';
 
 import { mergeRight } from 'ramda';
-import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 const NO_MANAGERS = [];
 const NO_FOLDERS = [];
@@ -201,66 +201,66 @@ describe('User emails', () => {
     it('verify an email address can be re-used by other users', (callback) => {
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();
-      TestsUtil.createTenantWithAdmin(tenantAlias, tenantHost, (
-        error,
-        tenant,
-        tenantAdminRestContext /* , tenantAdmin */
-      ) => {
-        assert.notExists(error);
+      TestsUtil.createTenantWithAdmin(
+        tenantAlias,
+        tenantHost,
+        (error, tenant, tenantAdminRestContext /* , tenantAdmin */) => {
+          assert.notExists(error);
 
-        // Disable reCaptcha for this tenant
-        ConfigTestUtil.updateConfigAndWait(
-          asGlobalAdmin,
-          tenantAlias,
-          { 'oae-principals/recaptcha/enabled': false },
-          (error_) => {
-            assert.notExists(error_);
+          // Disable reCaptcha for this tenant
+          ConfigTestUtil.updateConfigAndWait(
+            asGlobalAdmin,
+            tenantAlias,
+            { 'oae-principals/recaptcha/enabled': false },
+            (error_) => {
+              assert.notExists(error_);
 
-            const email = TestsUtil.generateTestEmailAddress(null, tenantHost);
-            const parametersUser1 = {
-              displayName: 'Test user 1',
-              email,
-              password: 'password',
-              username: TestsUtil.generateTestUserId()
-            };
-            const parametersUser2 = {
-              displayName: 'Test user 2',
-              email,
-              password: 'password',
-              username: TestsUtil.generateTestUserId()
-            };
+              const email = TestsUtil.generateTestEmailAddress(null, tenantHost);
+              const parametersUser1 = {
+                displayName: 'Test user 1',
+                email,
+                password: 'password',
+                username: TestsUtil.generateTestUserId()
+              };
+              const parametersUser2 = {
+                displayName: 'Test user 2',
+                email,
+                password: 'password',
+                username: TestsUtil.generateTestUserId()
+              };
 
-            // Create the first user as a tenant admin so the email address is considered verified
-            PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parametersUser1, (user1) => {
-              // Verify there's a mapping for the first user
-              PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
-                // Create the second user as an anonymous user so the email address is not verified
-                const restContext = TestsUtil.createTenantRestContext(tenantHost);
-                PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parametersUser2, (user2, token) => {
-                  // Verify there's no mapping yet for the second user as the email address
-                  // hasn't been verified yet
-                  PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
-                    // Verify the email address
-                    AuthenticationTestUtil.assertLocalLoginSucceeds(
-                      restContext,
-                      parametersUser2.username,
-                      parametersUser2.password,
-                      () => {
-                        PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user2.id, token, () => {
-                          // The second user should now also be mapped to the email address
-                          PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id, user2.id], () => {
-                            return callback();
+              // Create the first user as a tenant admin so the email address is considered verified
+              PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parametersUser1, (user1) => {
+                // Verify there's a mapping for the first user
+                PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
+                  // Create the second user as an anonymous user so the email address is not verified
+                  const restContext = TestsUtil.createTenantRestContext(tenantHost);
+                  PrincipalsTestUtil.assertCreateUserSucceeds(restContext, parametersUser2, (user2, token) => {
+                    // Verify there's no mapping yet for the second user as the email address
+                    // hasn't been verified yet
+                    PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id], () => {
+                      // Verify the email address
+                      AuthenticationTestUtil.assertLocalLoginSucceeds(
+                        restContext,
+                        parametersUser2.username,
+                        parametersUser2.password,
+                        () => {
+                          PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user2.id, token, () => {
+                            // The second user should now also be mapped to the email address
+                            PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id, user2.id], () => {
+                              return callback();
+                            });
                           });
-                        });
-                      }
-                    );
+                        }
+                      );
+                    });
                   });
                 });
               });
-            });
-          }
-        );
-      });
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -681,13 +681,16 @@ describe('User emails', () => {
 
         // Let an administrator update the email address
         const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-        PrincipalsTestUtil.assertUpdateUserSucceeds(asCambridgeTenantAdmin, simong.user.id, { email }, (
-          user /* , token */
-        ) => {
-          // The email address still has to be verified
-          assert.strictEqual(user.email, oldEmailAddress);
-          return callback();
-        });
+        PrincipalsTestUtil.assertUpdateUserSucceeds(
+          asCambridgeTenantAdmin,
+          simong.user.id,
+          { email },
+          (user /* , token */) => {
+            // The email address still has to be verified
+            assert.strictEqual(user.email, oldEmailAddress);
+            return callback();
+          }
+        );
       });
     });
 

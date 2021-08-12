@@ -16,9 +16,9 @@
 import { assert } from 'chai';
 import { format } from 'util';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 describe('Members Library Search', () => {

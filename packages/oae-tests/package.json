@@ -1,6 +1,7 @@
 {
   "main": "./lib/util.js",
   "name": "oae-tests",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"

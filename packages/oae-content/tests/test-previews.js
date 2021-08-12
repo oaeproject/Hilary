@@ -130,7 +130,7 @@ describe('File previews', () => {
    *
    * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
    */
-  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.png'));
+  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.svg'));
 
   /**
    * Creates a file and adds 2 preview items

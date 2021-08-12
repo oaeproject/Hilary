@@ -17,13 +17,13 @@ import fs from 'fs';
 import { inherits, promisify, format } from 'util';
 import path from 'path';
 import stream from 'stream';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 import * as pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
-import domStubs from './domstubs.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
+import * as domStubs from './domstubs.js';
 import {
   curry,
   __,

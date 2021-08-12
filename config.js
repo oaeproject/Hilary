@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable camelcase, capitalized-comments */
-const Path = require('path');
-const bunyan = require('bunyan');
+/* eslint-disable camelcase */
+import Path from 'path';
+import bunyan from 'bunyan';
 
 const config = {};
 const LOCALHOST = 'localhost';
@@ -41,7 +41,8 @@ config.cassandra = {
   keyspace: 'oae',
   user: '',
   pass: '',
-  timeout: 3000,
+  timeout: 60000,
+  readTimeout: 0,
   replication: 1,
   strategyClass: 'SimpleStrategy',
   cqlVersion: '3.0.0'
@@ -89,13 +90,7 @@ config.servers = {
   strictHttps: true
 };
 
-let tmpDir =
-  process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
-/*
- * If you change `tmpDir` below, you also need to set the TMP environment variable
- * This is because that variable is needed in docker-compose.yml
- * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
- */
+const temporaryDir = Path.join(process.cwd(), 'tmp');
 
 /**
  * `config.files`
@@ -111,14 +106,14 @@ let tmpDir =
  * @param  {String}    limit                    The maximum file upload size, accepted formats look like "5mb", "200kb", "1gb". You should also adjust your front-end proxy (e.g., Nginx, Apache) to also handle files of this size
  */
 config.files = {
-  tmpDir,
-  uploadDir: Path.join(tmpDir, 'uploads'),
+  tmpDir: temporaryDir,
+  uploadDir: Path.join(temporaryDir, 'uploads'),
   cleaner: {
     enabled: true,
     interval: 2 * 60 * 60
   },
   limit: '4096mb',
-  localStorageDirectory: Path.join(tmpDir, 'files')
+  localStorageDirectory: Path.join(temporaryDir, 'files')
 };
 
 /**
@@ -183,12 +178,10 @@ config.telemetry = {
  * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
  */
 config.search = {
-  hosts: [
-    {
-      host: LOCALHOST,
-      port: 9200
-    }
-  ],
+  /**
+   * The Elasticsearch endpoint to use. It can be a single string or an array of strings:
+   */
+  nodes: [`http://${LOCALHOST}:9200`],
   index: {
     name: 'oae',
     settings: {
@@ -220,7 +213,7 @@ config.search = {
         },
         tokenizer: {
           display_name_tokenizer: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: '2',
             max_gram: '10',
             token_chars: []
@@ -228,24 +221,24 @@ config.search = {
         },
         filter: {
           q_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 2,
             max_gram: 15
           },
           message_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 5,
             max_gram: 15
           },
           content_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 5,
             max_gram: 15
           }
         }
       }
     },
-    destroyOnStartup: false
+    destroyOnStartup: true
   },
   processIndexJobs: true
 };
@@ -253,7 +246,7 @@ config.search = {
 /**
  * `config.mq`
  *
- * Configuration namespace for the message queue (RabbitMQ).
+ * Configuration namespace for the message queue (Redis).
  *
  * @param  {Object}     connection              The connection description
  * @param  {String}     connection.host         The host for the connection
@@ -288,7 +281,7 @@ config.mq = {
  */
 config.previews = {
   enabled: true,
-  tmpDir: Path.join(tmpDir, 'previews'),
+  tmpDir: Path.join(temporaryDir, 'previews'),
   office: {
     /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
     binary: 'soffice',
@@ -354,17 +347,17 @@ config.signing = {
 config.activity = {
   processActivityJobs: true,
   activityTtl: 2 * 30 * 24 * 60 * 60, // 2 months (in seconds)
-  numberOfProcessingBuckets: 3,
+  numberOfProcessingBuckets: 1,
   aggregateIdleExpiry: 3 * 60 * 60, // 3 hours (in seconds)
   aggregateMaxExpiry: 24 * 60 * 60, // 1 day (in seconds)
-  collectionExpiry: 60, // 1 minute (in seconds)
-  maxConcurrentCollections: 3,
+  collectionExpiry: 90, // 1 minute (in seconds)
+  maxConcurrentCollections: 1,
   maxConcurrentRouters: 5,
   collectionPollingFrequency: 5, // 5 seconds
   collectionBatchSize: 1000,
   mail: {
-    pollingFrequency: 15 * 60, // 15 minutes
-    gracePeriod: 3 * 60, // 3 minutes
+    pollingFrequency: 2 * 60, // 15 minutes
+    gracePeriod: 1 * 60, // 3 minutes
     daily: {
       hour: 8 // 8AM
     },
@@ -393,7 +386,7 @@ config.activity = {
  * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
  */
 config.email = {
-  debug: true,
+  debug: false,
   customEmailTemplatesDir: null,
   deduplicationInterval: 7 * 24 * 60 * 60, //  7 days
   throttling: {
@@ -483,3 +476,20 @@ config.mixpanel = {
   enabled: false,
   token: 'f3e9fce119d357b745a8dfa36248d632'
 };
+
+/*
+config.ui.path = './3akai-ux';
+config.cassandra.hosts = ['oae-cassandra'];
+config.cassandra.timeout = 9000;
+config.redis.host = 'oae-redis';
+config.search.hosts[0].host = 'oae-elasticsearch';
+config.mq.host = 'oae-redis';
+config.etherpad.hosts[0].host = 'oae-etherpad';
+config.ethercalc[0].host = 'oae-ethercalc';
+config.previews.enabled = true;
+config.email.debug = false;
+config.email.transport = 'sendmail';
+config.previews.office.binary = '/usr/bin/soffice';
+config.previews.screenShotting.binary = '/usr/bin/chromium-browser';
+config.previews.screenShotting.sandbox = '--no-sandbox';
+*/

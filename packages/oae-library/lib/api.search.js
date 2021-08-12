@@ -14,17 +14,17 @@
  */
 
 import { is, contains } from 'ramda';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { SearchConstants } from 'oae-search/lib/constants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { isResourceId, unless } = validator;
 
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as LibraryAPI from 'oae-library';
 
 /**
@@ -52,7 +52,7 @@ import * as LibraryAPI from 'oae-library';
  * @param  {Function}   [options.searches.loggedin]                         The function to use to derive the filter for the loggedin library bucket. See `options.searches.public` parameter for function parameters
  * @param  {Function}   [options.searches.private]                          The function to use to derive the filter for the private library bucket. See `options.searches.public` parameter for function parameters
  */
-export const registerLibrarySearch = function(searchName, resourceTypes, options) {
+export const registerLibrarySearch = function (searchName, resourceTypes, options) {
   options = options || {};
   options.searches = options.searches || {};
   options.getLibraryOwner = options.getLibraryOwner || PrincipalsDAO.getPrincipal;
@@ -172,13 +172,13 @@ export const registerLibrarySearch = function(searchName, resourceTypes, options
  * @param  {String}     [association.field]     The name of the document field that holds the library association (e.g., direct_members)
  * @return {Function}                           The function that can provide a default search filter, as per the `options.searches.<visibility>` search parameter specifications in Library.Search#registerLibrarySearch
  */
-const _defaultLibraryFilter = function(resourceTypes, visibility, association) {
+const _defaultLibraryFilter = function (resourceTypes, visibility, association) {
   association = association || {
     name: AuthzConstants.search.MAPPING_RESOURCE_MEMBERS,
     field: 'direct_members'
   };
 
-  return function(ctx, libraryOwner, opts, callback) {
+  return function (ctx, libraryOwner, opts, callback) {
     // Only look for resources that are in the user's library
     const baseFilter = SearchUtil.filterAnd(
       SearchUtil.filterTerm('type', SearchConstants.search.MAPPING_RESOURCE),

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as Server from 'oae-util/lib/server';
+import * as Server from 'oae-util/lib/server.js';
 import { setUpConfig } from 'oae-config';
 
 const TenantsConfig = setUpConfig('oae-tenants');
@@ -25,7 +25,7 @@ const TenantsConfig = setUpConfig('oae-tenants');
  * @param  {String}    tenantAlias         The alias of the tenant to check
  * @return {Boolean}                       Whether or not the user in context (if any) is authenticated to the specified alias
  */
-const isLoggedIn = function(ctx, tenantAlias) {
+const isLoggedIn = function (ctx, tenantAlias) {
   const isAnon = !ctx.user();
   const isGlobalAdmin = !isAnon && ctx.user().isGlobalAdmin && ctx.user().isGlobalAdmin();
   return !isAnon && (isGlobalAdmin || ctx.user().tenant.alias === tenantAlias);
@@ -37,7 +37,7 @@ const isLoggedIn = function(ctx, tenantAlias) {
  * @param  {String}    tenantAlias         The alias of the tenant to check
  * @return {Boolean}                       `true` if the tenant is private. `false` otherwise
  */
-const isPrivate = function(tenantAlias) {
+const isPrivate = function (tenantAlias) {
   return TenantsConfig.getValue(tenantAlias, 'tenantprivacy', 'tenantprivate') !== false;
 };
 
@@ -51,7 +51,7 @@ const isPrivate = function(tenantAlias) {
  * @param  {String}    tenantAliasOther    The alias of the other tenant to compare
  * @return {Boolean}                       `true` if the tenant boundaries should allow these two tenants to interact with one another. `false` otherwise
  */
-const canInteract = function(tenantAliasOne, tenantAliasOther) {
+const canInteract = function (tenantAliasOne, tenantAliasOther) {
   // This is very weird, be safe
   if (!tenantAliasOne || !tenantAliasOther) {
     return false;
@@ -72,7 +72,7 @@ const canInteract = function(tenantAliasOne, tenantAliasOther) {
  * @param  {String}    tenantAlias         The alias of the tenant to check
  * @return {Boolean}                       `true` if guests can be invited from the tenant. `false` otherwise
  */
-const canInviteGuests = function(tenantAlias) {
+const canInviteGuests = function (tenantAlias) {
   return TenantsConfig.getValue(tenantAlias, 'guests', 'allow') !== false;
 };
 
@@ -82,7 +82,7 @@ const canInviteGuests = function(tenantAlias) {
  * @param  {Tenant}     tenant  The tenant for which to retrieve the base URL
  * @return {String}             The base URL for the specified tenant
  */
-const getBaseUrl = function(tenant) {
+const getBaseUrl = function (tenant) {
   const protocol = Server.useHttps() ? 'https' : 'http';
   return protocol + '://' + tenant.host;
 };

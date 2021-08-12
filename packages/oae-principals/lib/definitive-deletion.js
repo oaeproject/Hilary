@@ -19,23 +19,23 @@ import async from 'async';
 import shortId from 'shortid';
 import { addMonths } from 'date-fns';
 
-import * as ActivityAPI from 'oae-activity';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitationDAO from 'oae-authz/lib/invitations/dao';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzInvitationDAO from 'oae-authz/lib/invitations/dao.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
 import * as ContentAPI from 'oae-content';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as DiscussionAPI from 'oae-discussions/lib/api.discussions';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as DiscussionAPI from 'oae-discussions/lib/api.discussions.js';
 import * as EmailAPI from 'oae-email';
 import * as FolderAPI from 'oae-folders';
-import * as FollowingAPI from 'oae-following';
+import * as FollowingAPI from 'oae-following/lib/api.js';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { setUpConfig } from 'oae-config';
 import { logger } from 'oae-logger';
-import * as GroupAPI from './api.group';
-import * as PrincipalsAPI from './api.user';
+import * as GroupAPI from './api.group.js';
+import * as PrincipalsAPI from './api.user.js';
 import { PrincipalsConstants } from './constants.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import PrincipalsEmitter from './internal/emitter.js';
@@ -123,13 +123,19 @@ const transferPermissionsToCloneUser = (ctx, user, cloneUsers, callback) => {
   async.eachSeries(
     RESOURCE_TYPES,
     (resourceType, done) => {
-      _transferResourcePermissions(ctx, user, cloneUsers, listEmail, listOfIdElementToBeTransferred, resourceType, (
-        error /* ListEmail, listOfIdElementToBeTransferred */
-      ) => {
-        if (error) return done(error);
+      _transferResourcePermissions(
+        ctx,
+        user,
+        cloneUsers,
+        listEmail,
+        listOfIdElementToBeTransferred,
+        resourceType,
+        (error /* ListEmail, listOfIdElementToBeTransferred */) => {
+          if (error) return done(error);
 
-        return done();
-      });
+          return done();
+        }
+      );
     },
     () => {
       _addToArchive(cloneUsers.archiveId, user, listOfIdElementToBeTransferred, (error) => {
@@ -420,17 +426,21 @@ const _transferResourcePermissions = (
                 }
               } else {
                 // We will just notify the members that the user will remove his account
-                _addMemberToList(listElementByMember, eachLibraryItem, newMemberList, false, (
-                  error /* ListElementByMember */
-                ) => {
-                  if (error) return callback(error);
+                _addMemberToList(
+                  listElementByMember,
+                  eachLibraryItem,
+                  newMemberList,
+                  false,
+                  (error /* ListElementByMember */) => {
+                    if (error) return callback(error);
 
-                  _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
-                    if (error_) return callback(error_);
+                    _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                      if (error_) return callback(error_);
 
-                    done();
-                  });
-                });
+                      done();
+                    });
+                  }
+                );
               }
             });
           });

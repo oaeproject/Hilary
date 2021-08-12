@@ -18,13 +18,13 @@ import _ from 'underscore';
 
 import { isNil, reject, map, path, last } from 'ramda';
 
-import * as FollowingTestUtil from 'oae-following/lib/test/util';
-import * as Redis from 'oae-util/lib/redis';
+import * as FollowingTestUtil from 'oae-following/lib/test/util.js';
+import * as Redis from 'oae-util/lib/redis.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as DisableUsersMigration from '../../../etc/migration/disable_users_from_tenancy/lib/disable-users-by-tenancy.js';
 
 describe('Principals Delete and Restore', () => {
@@ -1059,78 +1059,85 @@ describe('Principals Delete and Restore', () => {
           assert.notExists(error);
           const { 0: group } = groups;
           // Change user1's publicAlias
-          RestAPI.User.updateUser(user1.restContext, user1.user.id, { publicAlias: 'Clark Kent' }, (
-            error /* , user */
-          ) => {
-            assert.notExists(error);
+          RestAPI.User.updateUser(
+            user1.restContext,
+            user1.user.id,
+            { publicAlias: 'Clark Kent' },
+            (error /* , user */) => {
+              assert.notExists(error);
 
-            // Add the user to the group members library
-            const roleChanges = {};
-            roleChanges[user1.user.id] = 'member';
-            PrincipalsTestUtil.assertSetGroupMembersSucceeds(
-              asCambridgeTenantAdmin,
-              asCambridgeTenantAdmin,
-              group.group.id,
-              roleChanges,
-              () => {
-                // Delete the user
-                PrincipalsTestUtil.assertDeleteUserSucceeds(
-                  asCambridgeTenantAdmin,
-                  user1.restContext,
-                  user1.user.id,
-                  () => {
-                    // Get the members library for the group, ensuring the user is still there and marked as deleted
-                    PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                      asCambridgeTenantAdmin,
-                      group.group.id,
-                      null,
-                      null,
-                      (result) => {
-                        result = _.pluck(result.results, 'profile');
-                        const userEntry = _.findWhere(result, { id: user1.user.id });
-                        assert.ok(userEntry);
-                        assert.ok(_.isNumber(userEntry.deleted));
+              // Add the user to the group members library
+              const roleChanges = {};
+              roleChanges[user1.user.id] = 'member';
+              PrincipalsTestUtil.assertSetGroupMembersSucceeds(
+                asCambridgeTenantAdmin,
+                asCambridgeTenantAdmin,
+                group.group.id,
+                roleChanges,
+                () => {
+                  // Delete the user
+                  PrincipalsTestUtil.assertDeleteUserSucceeds(
+                    asCambridgeTenantAdmin,
+                    user1.restContext,
+                    user1.user.id,
+                    () => {
+                      // Get the members library for the group, ensuring the user is still there and marked as deleted
+                      PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                        asCambridgeTenantAdmin,
+                        group.group.id,
+                        null,
+                        null,
+                        (result) => {
+                          result = _.pluck(result.results, 'profile');
+                          const userEntry = _.findWhere(result, { id: user1.user.id });
+                          assert.ok(userEntry);
+                          assert.ok(_.isNumber(userEntry.deleted));
 
-                        // Get the members as a non-admin to verify the profile is masked
-                        PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
-                          user2.restContext,
-                          group.group.id,
-                          null,
-                          null,
-                          (result) => {
-                            result = _.pluck(result.results, 'profile');
-                            const userEntry = _.findWhere(result, { id: user1.user.id });
-                            assert.ok(userEntry);
-                            assert.ok(!userEntry.profilePath);
-                            assert.strictEqual('Clark Kent', userEntry.displayName);
-                            assert.ok(_.isNumber(userEntry.deleted));
+                          // Get the members as a non-admin to verify the profile is masked
+                          PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                            user2.restContext,
+                            group.group.id,
+                            null,
+                            null,
+                            (result) => {
+                              result = _.pluck(result.results, 'profile');
+                              const userEntry = _.findWhere(result, { id: user1.user.id });
+                              assert.ok(userEntry);
+                              assert.ok(!userEntry.profilePath);
+                              assert.strictEqual('Clark Kent', userEntry.displayName);
+                              assert.ok(_.isNumber(userEntry.deleted));
 
-                            // Restore the user
-                            PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user1.user.id, () => {
-                              // Get the members library for the group, ensuring the user is still there and no longer marked as deleted
-                              PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                              // Restore the user
+                              PrincipalsTestUtil.assertRestoreUserSucceeds(
                                 asCambridgeTenantAdmin,
-                                group.group.id,
-                                null,
-                                null,
-                                (result) => {
-                                  result = _.pluck(result.results, 'profile');
-                                  const userEntry = _.findWhere(result, { id: user1.user.id });
-                                  assert.ok(userEntry);
-                                  assert.ok(!userEntry.deleted);
-                                  return callback();
+                                user1.user.id,
+                                () => {
+                                  // Get the members library for the group, ensuring the user is still there and no longer marked as deleted
+                                  PrincipalsTestUtil.assertGetMembersLibrarySucceeds(
+                                    asCambridgeTenantAdmin,
+                                    group.group.id,
+                                    null,
+                                    null,
+                                    (result) => {
+                                      result = _.pluck(result.results, 'profile');
+                                      const userEntry = _.findWhere(result, { id: user1.user.id });
+                                      assert.ok(userEntry);
+                                      assert.ok(!userEntry.deleted);
+                                      return callback();
+                                    }
+                                  );
                                 }
                               );
-                            });
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });
@@ -2641,39 +2648,42 @@ describe('Principals Delete and Restore', () => {
           PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
             PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
               const globalAdminContext = TestsUtil.createGlobalAdminContext();
-              DisableUsersMigration.doMigration(globalAdminContext, global.oaeTests.tenants.cam.alias, true, (
-                error /* , affectedUsers */
-              ) => {
-                assert.notExists(error);
-                // Update redis and search since we updated outside the scope of the API
-                Redis.flush((error_) => {
-                  assert.notExists(error_);
-                  PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
-                    PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
-                      PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
-                        DisableUsersMigration.doMigration(
-                          globalAdminContext,
-                          global.oaeTests.tenants.cam.alias,
-                          false,
-                          (error /* , affectedUsers */) => {
-                            assert.notExists(error);
-                            Redis.flush((error_) => {
-                              assert.notExists(error_);
-                              PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
-                                PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
-                                  PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
-                                    return callback();
+              DisableUsersMigration.doMigration(
+                globalAdminContext,
+                global.oaeTests.tenants.cam.alias,
+                true,
+                (error /* , affectedUsers */) => {
+                  assert.notExists(error);
+                  // Update redis and search since we updated outside the scope of the API
+                  Redis.flush((error_) => {
+                    assert.notExists(error_);
+                    PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
+                      PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
+                        PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
+                          DisableUsersMigration.doMigration(
+                            globalAdminContext,
+                            global.oaeTests.tenants.cam.alias,
+                            false,
+                            (error /* , affectedUsers */) => {
+                              assert.notExists(error);
+                              Redis.flush((error_) => {
+                                assert.notExists(error_);
+                                PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
+                                  PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
+                                    PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
+                                      return callback();
+                                    });
                                   });
                                 });
                               });
-                            });
-                          }
-                        );
+                            }
+                          );
+                        });
                       });
                     });
                   });
-                });
-              });
+                }
+              );
             });
           });
         });

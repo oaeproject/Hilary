@@ -1,6 +1,7 @@
 {
   "main": "./lib/api.js",
   "name": "oae-tenants",
+  "type": "module",
   "oae": {
     "priority": 4
   },

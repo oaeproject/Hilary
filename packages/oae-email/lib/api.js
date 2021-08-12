@@ -24,20 +24,20 @@ import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 import { telemetry } from 'oae-telemetry';
 
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as IO from 'oae-util/lib/io';
-import * as Locking from 'oae-util/lib/locking';
-import * as OaeModules from 'oae-util/lib/modules';
-import * as Redis from 'oae-util/lib/redis';
+import * as IO from 'oae-util/lib/io.js';
+import * as Locking from 'oae-util/lib/locking.js';
+import * as OaeModules from 'oae-util/lib/modules.js';
+import * as Redis from 'oae-util/lib/redis.js';
 
 import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
 import { compose } from 'ramda';
-import { isEmail } from 'oae-authz/lib/util';
+import { isEmail } from 'oae-authz/lib/util.js';
 
 const EmailConfig = setUpConfig('oae-email');
 const log = logger('oae-email');

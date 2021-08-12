@@ -15,24 +15,18 @@
 
 import { assert } from 'chai';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as LibraryAPI from 'oae-library';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import { filter, forEach, prop, equals, compose, head, map, path } from 'ramda';
 
 const { runQuery } = Cassandra;
-const {
-  getLibrary,
-  shareContent,
-  updateContent,
-  removeContentFromLibrary,
-  deleteContent,
-  createLink
-} = RestAPI.Content;
+const { getLibrary, shareContent, updateContent, removeContentFromLibrary, deleteContent, createLink } =
+  RestAPI.Content;
 const { setGroupMembers, createGroup } = RestAPI.Group;
 const { updateUser } = RestAPI.User;
 const { generateTestTenantHost, generateTestTenantAlias } = TenantsTestUtil;
@@ -945,185 +939,184 @@ describe('Content Libraries', () => {
       const asGroupCreator = groupCreator.restContext;
       const asAnotherUser = anotherUser.restContext;
 
-      createGroupAndLibrary(asGroupCreator, PRIVATE, (
-        privateGroup,
-        privateGroupPrivateContent,
-        privateGroupLoggedinContent /* , privateGroupPublicContent */
-      ) => {
-        createGroupAndLibrary(
-          asGroupCreator,
-          LOGGED_IN,
-          (loggedinGroup, loggedinGroupPrivateContent, loggedinGroupLoggedinContent, loggedinGroupPublicContent) => {
-            createGroupAndLibrary(
-              asGroupCreator,
-              PUBLIC,
-              (publicGroup, publicGroupPrivateContent, publicGroupLoggedinContent, publicGroupPublicContent) => {
-                // An anonymous user can only see the public stream for the public group.
-                checkLibrary(asCambridgeAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
-                  checkLibrary(asCambridgeAnonymousUser, loggedinGroup.id, false, [], () => {
-                    checkLibrary(asCambridgeAnonymousUser, privateGroup.id, false, [], () => {
-                      checkLibrary(asGTAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
-                        checkLibrary(asGTAnonymousUser, loggedinGroup.id, false, [], () => {
-                          checkLibrary(asGTAnonymousUser, privateGroup.id, false, [], () => {
-                            // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
-                            checkLibrary(
-                              asAnotherUser,
-                              publicGroup.id,
-                              true,
-                              [publicGroupPublicContent, publicGroupLoggedinContent],
-                              () => {
-                                checkLibrary(
-                                  asAnotherUser,
-                                  loggedinGroup.id,
-                                  true,
-                                  [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
-                                  () => {
-                                    checkLibrary(asAnotherUser, privateGroup.id, false, [], () => {
-                                      // A loggedin user on *another* tenant can only see the public stream for the public group.
-                                      generateTestUsers(asGTTenantAdmin, 1, (error, users) => {
-                                        assert.notExists(error);
+      createGroupAndLibrary(
+        asGroupCreator,
+        PRIVATE,
+        (privateGroup, privateGroupPrivateContent, privateGroupLoggedinContent /* , privateGroupPublicContent */) => {
+          createGroupAndLibrary(
+            asGroupCreator,
+            LOGGED_IN,
+            (loggedinGroup, loggedinGroupPrivateContent, loggedinGroupLoggedinContent, loggedinGroupPublicContent) => {
+              createGroupAndLibrary(
+                asGroupCreator,
+                PUBLIC,
+                (publicGroup, publicGroupPrivateContent, publicGroupLoggedinContent, publicGroupPublicContent) => {
+                  // An anonymous user can only see the public stream for the public group.
+                  checkLibrary(asCambridgeAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
+                    checkLibrary(asCambridgeAnonymousUser, loggedinGroup.id, false, [], () => {
+                      checkLibrary(asCambridgeAnonymousUser, privateGroup.id, false, [], () => {
+                        checkLibrary(asGTAnonymousUser, publicGroup.id, true, [publicGroupPublicContent], () => {
+                          checkLibrary(asGTAnonymousUser, loggedinGroup.id, false, [], () => {
+                            checkLibrary(asGTAnonymousUser, privateGroup.id, false, [], () => {
+                              // A loggedin user on the same tenant can see the loggedin stream for the public and loggedin group.
+                              checkLibrary(
+                                asAnotherUser,
+                                publicGroup.id,
+                                true,
+                                [publicGroupPublicContent, publicGroupLoggedinContent],
+                                () => {
+                                  checkLibrary(
+                                    asAnotherUser,
+                                    loggedinGroup.id,
+                                    true,
+                                    [loggedinGroupPublicContent, loggedinGroupLoggedinContent],
+                                    () => {
+                                      checkLibrary(asAnotherUser, privateGroup.id, false, [], () => {
+                                        // A loggedin user on *another* tenant can only see the public stream for the public group.
+                                        generateTestUsers(asGTTenantAdmin, 1, (error, users) => {
+                                          assert.notExists(error);
 
-                                        const { 0: otherTenantUser } = users;
-                                        const asOtherTenantUser = otherTenantUser.restContext;
+                                          const { 0: otherTenantUser } = users;
+                                          const asOtherTenantUser = otherTenantUser.restContext;
 
-                                        checkLibrary(
-                                          asOtherTenantUser,
-                                          publicGroup.id,
-                                          true,
-                                          [publicGroupPublicContent],
-                                          () => {
-                                            checkLibrary(asOtherTenantUser, loggedinGroup.id, false, [], () => {
-                                              checkLibrary(asOtherTenantUser, privateGroup.id, false, [], () => {
-                                                // The cambridge tenant admin can see all the things.
-                                                checkLibrary(
-                                                  asCambridgeTenantAdmin,
-                                                  publicGroup.id,
-                                                  true,
-                                                  [
-                                                    publicGroupPublicContent,
-                                                    publicGroupLoggedinContent,
-                                                    publicGroupPrivateContent
-                                                  ],
-                                                  () => {
-                                                    checkLibrary(
-                                                      asCambridgeTenantAdmin,
-                                                      loggedinGroup.id,
-                                                      true,
-                                                      [
-                                                        loggedinGroupPublicContent,
-                                                        loggedinGroupLoggedinContent,
-                                                        loggedinGroupPrivateContent
-                                                      ],
-                                                      () => {
-                                                        checkLibrary(
-                                                          asCambridgeTenantAdmin,
-                                                          privateGroup.id,
-                                                          true,
-                                                          [
-                                                            privateGroupPrivateContent,
-                                                            privateGroupLoggedinContent,
-                                                            privateGroupPrivateContent
-                                                          ],
-                                                          () => {
-                                                            // The GT tenant admin can only see the public stream for the public group.
-                                                            checkLibrary(
-                                                              asGTTenantAdmin,
-                                                              publicGroup.id,
-                                                              true,
-                                                              [publicGroupPublicContent],
-                                                              () => {
-                                                                checkLibrary(
-                                                                  asGTTenantAdmin,
-                                                                  loggedinGroup.id,
-                                                                  false,
-                                                                  [],
-                                                                  () => {
-                                                                    checkLibrary(
-                                                                      asGTTenantAdmin,
-                                                                      privateGroup.id,
-                                                                      false,
-                                                                      [],
-                                                                      () => {
-                                                                        // If we make the cambridge user a member of the private group he should see everything.
-                                                                        let changes = {};
-                                                                        changes[anotherUser.user.id] = MEMBER;
-                                                                        setGroupMembers(
-                                                                          asGroupCreator,
-                                                                          privateGroup.id,
-                                                                          changes,
-                                                                          (error_) => {
-                                                                            assert.notExists(error_);
-                                                                            checkLibrary(
-                                                                              asAnotherUser,
-                                                                              privateGroup.id,
-                                                                              true,
-                                                                              [
-                                                                                privateGroupPrivateContent,
-                                                                                privateGroupLoggedinContent,
-                                                                                privateGroupPrivateContent
-                                                                              ],
-                                                                              () => {
-                                                                                // If we make the GT user a member of the private group, he should see everything.
-                                                                                changes = {};
-                                                                                changes[
-                                                                                  otherTenantUser.user.id
-                                                                                ] = MEMBER;
-                                                                                setGroupMembers(
-                                                                                  asGroupCreator,
-                                                                                  privateGroup.id,
-                                                                                  changes,
-                                                                                  (error_) => {
-                                                                                    assert.notExists(error_);
-                                                                                    checkLibrary(
-                                                                                      asOtherTenantUser,
-                                                                                      privateGroup.id,
-                                                                                      true,
-                                                                                      [
-                                                                                        privateGroupPrivateContent,
-                                                                                        privateGroupLoggedinContent,
-                                                                                        privateGroupPrivateContent
-                                                                                      ],
-                                                                                      callback
-                                                                                    );
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
+                                          checkLibrary(
+                                            asOtherTenantUser,
+                                            publicGroup.id,
+                                            true,
+                                            [publicGroupPublicContent],
+                                            () => {
+                                              checkLibrary(asOtherTenantUser, loggedinGroup.id, false, [], () => {
+                                                checkLibrary(asOtherTenantUser, privateGroup.id, false, [], () => {
+                                                  // The cambridge tenant admin can see all the things.
+                                                  checkLibrary(
+                                                    asCambridgeTenantAdmin,
+                                                    publicGroup.id,
+                                                    true,
+                                                    [
+                                                      publicGroupPublicContent,
+                                                      publicGroupLoggedinContent,
+                                                      publicGroupPrivateContent
+                                                    ],
+                                                    () => {
+                                                      checkLibrary(
+                                                        asCambridgeTenantAdmin,
+                                                        loggedinGroup.id,
+                                                        true,
+                                                        [
+                                                          loggedinGroupPublicContent,
+                                                          loggedinGroupLoggedinContent,
+                                                          loggedinGroupPrivateContent
+                                                        ],
+                                                        () => {
+                                                          checkLibrary(
+                                                            asCambridgeTenantAdmin,
+                                                            privateGroup.id,
+                                                            true,
+                                                            [
+                                                              privateGroupPrivateContent,
+                                                              privateGroupLoggedinContent,
+                                                              privateGroupPrivateContent
+                                                            ],
+                                                            () => {
+                                                              // The GT tenant admin can only see the public stream for the public group.
+                                                              checkLibrary(
+                                                                asGTTenantAdmin,
+                                                                publicGroup.id,
+                                                                true,
+                                                                [publicGroupPublicContent],
+                                                                () => {
+                                                                  checkLibrary(
+                                                                    asGTTenantAdmin,
+                                                                    loggedinGroup.id,
+                                                                    false,
+                                                                    [],
+                                                                    () => {
+                                                                      checkLibrary(
+                                                                        asGTTenantAdmin,
+                                                                        privateGroup.id,
+                                                                        false,
+                                                                        [],
+                                                                        () => {
+                                                                          // If we make the cambridge user a member of the private group he should see everything.
+                                                                          let changes = {};
+                                                                          changes[anotherUser.user.id] = MEMBER;
+                                                                          setGroupMembers(
+                                                                            asGroupCreator,
+                                                                            privateGroup.id,
+                                                                            changes,
+                                                                            (error_) => {
+                                                                              assert.notExists(error_);
+                                                                              checkLibrary(
+                                                                                asAnotherUser,
+                                                                                privateGroup.id,
+                                                                                true,
+                                                                                [
+                                                                                  privateGroupPrivateContent,
+                                                                                  privateGroupLoggedinContent,
+                                                                                  privateGroupPrivateContent
+                                                                                ],
+                                                                                () => {
+                                                                                  // If we make the GT user a member of the private group, he should see everything.
+                                                                                  changes = {};
+                                                                                  changes[otherTenantUser.user.id] =
+                                                                                    MEMBER;
+                                                                                  setGroupMembers(
+                                                                                    asGroupCreator,
+                                                                                    privateGroup.id,
+                                                                                    changes,
+                                                                                    (error_) => {
+                                                                                      assert.notExists(error_);
+                                                                                      checkLibrary(
+                                                                                        asOtherTenantUser,
+                                                                                        privateGroup.id,
+                                                                                        true,
+                                                                                        [
+                                                                                          privateGroupPrivateContent,
+                                                                                          privateGroupLoggedinContent,
+                                                                                          privateGroupPrivateContent
+                                                                                        ],
+                                                                                        callback
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                });
                                               });
-                                            });
-                                          }
-                                        );
+                                            }
+                                          );
+                                        });
                                       });
-                                    });
-                                  }
-                                );
-                              }
-                            );
+                                    }
+                                  );
+                                }
+                              );
+                            });
                           });
                         });
                       });
                     });
                   });
-                });
-              }
-            );
-          }
-        );
-      });
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 

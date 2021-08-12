@@ -373,7 +373,7 @@ describe('Content', () => {
    *
    * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
    */
-  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.png'));
+  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.svg'));
 
   describe('Get content', () => {
     /**
@@ -3910,14 +3910,14 @@ describe('Content', () => {
                     getRevision(asNico, contentObject.id, revisions.results[0].revisionId, (error, revision) => {
                       assert.notExists(error);
                       assert.strictEqual(revision.revisionId, updatedContentObject.latestRevisionId);
-                      assert.strictEqual(revision.filename, 'oae-logo.png');
+                      assert.strictEqual(revision.filename, 'oae-logo.svg');
                       assert.strictEqual(revision.mime, 'image/png');
                       assert.strictEqual(revision.downloadPath, updatedContentObject.downloadPath);
 
                       // Get the profile for a content item and ensure the most recent file properties are present
                       getContent(asNico, contentObject.id, (error, contentObject) => {
                         assert.notExists(error);
-                        assert.strictEqual(contentObject.filename, 'oae-logo.png');
+                        assert.strictEqual(contentObject.filename, 'oae-logo.svg');
                         assert.strictEqual(contentObject.mime, 'image/png');
 
                         return callback();

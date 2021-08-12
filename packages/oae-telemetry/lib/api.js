@@ -17,10 +17,10 @@ import { format } from 'util';
 import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as Locking from 'oae-util/lib/locking';
+import * as Locking from 'oae-util/lib/locking.js';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as Redis from 'oae-util/lib/redis';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as Redis from 'oae-util/lib/redis.js';
 import { isEmpty, head } from 'ramda';
 
 const log = logger('oae-telemetry');

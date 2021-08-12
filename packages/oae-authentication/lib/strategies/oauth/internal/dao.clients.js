@@ -16,7 +16,7 @@
 /* eslint-disable unicorn/no-array-callback-reference */
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 import { Client } from '../model.js';
 

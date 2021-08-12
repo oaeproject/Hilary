@@ -17,28 +17,28 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 
 import R from 'ramda';
 const { keys, not, map, mergeAll, has, head, gt, length, equals, defaultTo, forEach, assoc } = R;
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import { SearchResult } from 'oae-search/lib/model';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { SearchResult } from 'oae-search/lib/model.js';
 
 const { transformSearchResults } = SearchUtil;
 
-import * as MQ from 'oae-util/lib/mq';
+import * as MQ from 'oae-util/lib/mq.js';
 import * as client from './internal/elasticsearch.js';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import { FollowingConstants } from 'oae-following/lib/constants';
-import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 const resourceChildren = [
   DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,

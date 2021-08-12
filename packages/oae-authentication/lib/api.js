@@ -18,21 +18,21 @@ import { format } from 'util';
 import _ from 'underscore';
 import passport from 'passport';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
-import * as Locking from 'oae-util/lib/locking';
+import * as Locking from 'oae-util/lib/locking.js';
 import * as EmailAPI from 'oae-email';
-import OaeEmitter from 'oae-util/lib/emitter';
-import * as OaeUtil from 'oae-util/lib/util';
+import OaeEmitter from 'oae-util/lib/emitter.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import PrincipalsAPI from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const {
   validateInCase: bothCheck,
   getNestedObject,
@@ -47,12 +47,12 @@ const {
 } = validator;
 
 import { compose, and } from 'ramda';
-import isLength from 'validator/lib/isLength';
+import isLength from 'validator/lib/isLength.js';
 import { getTenantSkinVariables } from 'oae-ui';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
-import { LoginId } from 'oae-authentication/lib/model';
+import { LoginId } from 'oae-authentication/lib/model.js';
 
 const log = logger('oae-authentication');
 
@@ -211,8 +211,7 @@ const getOrCreateGlobalAdminUser = function (
   try {
     unless(isLoggedInUser, {
       code: 401,
-      msg:
-        'You must be authenticated to the global admin tenant to create a global administrator user'
+      msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
     })(ctx, globalTenantAlias);
 
     unless(isGlobalAdministratorUser, {
@@ -663,8 +662,7 @@ const _createUser = function (ctx, loginId, displayName, options, callback) {
     if (error) {
       return callback({
         code: 400,
-        msg:
-          'Failed to acquire lock probably because this login id already exists and is already associated to a user'
+        msg: 'Failed to acquire lock probably because this login id already exists and is already associated to a user'
       });
     }
 

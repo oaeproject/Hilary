@@ -15,7 +15,7 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
 /**
@@ -36,7 +36,7 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {String}     [opts.mediumPictureUri]     The uri of the medium picture. It will be made available at user.picture.mediumUri
  * @param  {String}     [opts.largePictureUri]      The uri of the large picture. It will be made available at user.picture.largeUri
  */
-export const Group = function(tenantAlias, id, displayName, opts) {
+export const Group = function (tenantAlias, id, displayName, opts) {
   opts = opts || {};
   const { resourceId } = AuthzUtil.getResourceFromId(id);
 

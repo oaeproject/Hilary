@@ -15,11 +15,11 @@
 
 import _ from 'underscore';
 
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzModel from 'oae-authz/lib/model';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzModel from 'oae-authz/lib/model.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 /**
  * Given an authz resource id and proposed email role changes, compute the EmailChangeInfo object
@@ -33,7 +33,7 @@ import * as AuthzUtil from 'oae-authz/lib/util';
  * @param  {Object}             [callback.err]              An error that occurred, if any
  * @param  {EmailChangeInfo}    [callback.emailChangeInfo]  The computed change information
  */
-const computeInvitationRolesAfterChanges = function(authzResourceId, changes, opts, callback) {
+const computeInvitationRolesAfterChanges = function (authzResourceId, changes, opts, callback) {
   // If no resource id is provided, we treat this invocation as though the invitations list is
   // empty (i.e., a resource is currently being created with invitations)
   OaeUtil.invokeIfNecessary(
@@ -47,7 +47,7 @@ const computeInvitationRolesAfterChanges = function(authzResourceId, changes, op
 
       const invitationRolesBefore = _.chain(invitations)
         .indexBy('email')
-        .mapObject(invitation => {
+        .mapObject((invitation) => {
           return invitation.role;
         })
         .value();

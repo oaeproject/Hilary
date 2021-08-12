@@ -29,15 +29,15 @@ import {
   equals
 } from 'ramda';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as LibraryAPI from 'oae-library';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 describe('Memberships Library', () => {
   // REST contexts we can use to do REST requests
@@ -211,371 +211,161 @@ describe('Memberships Library', () => {
      */
     it('verify memberships library feed validation', (callback) => {
       // Verify invalid id
-      RestAPI.Group.getMembershipsLibrary(asCambridgeTenantAdmin, 'not-a-valid-id', null, null, (
-        error /* , response */
-      ) => {
-        assert.ok(error);
-        assert.strictEqual(error.code, 400);
-
-        RestAPI.Group.getMembershipsLibrary(asCambridgeTenantAdmin, 'c:cam:not-a-principal-id', null, null, (
-          error /* , response */
-        ) => {
+      RestAPI.Group.getMembershipsLibrary(
+        asCambridgeTenantAdmin,
+        'not-a-valid-id',
+        null,
+        null,
+        (error /* , response */) => {
           assert.ok(error);
           assert.strictEqual(error.code, 400);
 
-          RestAPI.Group.getMembershipsLibrary(asCambridgeTenantAdmin, 'g:cam:non-existing-group', null, null, (
-            error /* , response */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 404);
-            return callback();
-          });
-        });
-      });
+          RestAPI.Group.getMembershipsLibrary(
+            asCambridgeTenantAdmin,
+            'c:cam:not-a-principal-id',
+            null,
+            null,
+            (error /* , response */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 400);
+
+              RestAPI.Group.getMembershipsLibrary(
+                asCambridgeTenantAdmin,
+                'g:cam:non-existing-group',
+                null,
+                null,
+                (error /* , response */) => {
+                  assert.ok(error);
+                  assert.strictEqual(error.code, 404);
+                  return callback();
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
      * Test that verifies that all users get the proper library visibility bucket when listing the memberships library
      */
     it('verify memberships library feed visibility', (callback) => {
-      TestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant1,
-        publicTenant2,
-        privateTenant1 /* , privateTenant2 */
-      ) => {
-        /**
-         * Add the publicTenant1 public user to all the groups
-         * in their own tenant, publicTenant2 and the private tenant
-         */
-        PrincipalsTestUtil.addUserToAllGroups(
-          publicTenant1.publicUser,
-          publicTenant1,
-          publicTenant2,
-          privateTenant1,
-          () => {
-            // Create a parent group with which we can verify indirect groups existing in the private feed
-            TestsUtil.generateTestGroups(publicTenant1.adminRestContext, 1, (error, groups) => {
-              assert.notExists(error);
-              const { 0: indirectGroup } = groups;
-              const changes = {};
-              changes[publicTenant1.publicGroup.id] = 'member';
-              RestAPI.Group.setGroupMembers(
-                publicTenant1.adminRestContext,
-                indirectGroup.group.id,
-                changes,
-                (error_) => {
-                  assert.notExists(error_);
-
-                  const expectedPrivateFeed = [
-                    indirectGroup.group.id,
-                    publicTenant1.publicGroup.id,
-                    publicTenant1.loggedinNotJoinableGroup.id,
-                    publicTenant1.loggedinJoinableGroup.id,
-                    publicTenant1.privateJoinableGroup.id,
-                    publicTenant1.privateNotJoinableGroup.id,
-                    publicTenant2.publicGroup.id,
-                    publicTenant2.loggedinNotJoinableGroup.id,
-                    publicTenant2.loggedinJoinableGroup.id,
-                    publicTenant2.privateNotJoinableGroup.id,
-                    publicTenant2.privateJoinableGroup.id,
-                    privateTenant1.publicGroup.id,
-                    privateTenant1.loggedinNotJoinableGroup.id,
-                    privateTenant1.loggedinJoinableGroup.id,
-                    privateTenant1.privateNotJoinableGroup.id,
-                    privateTenant1.privateJoinableGroup.id
-                  ];
-
-                  const expectedLoggedinFeed = [
-                    indirectGroup.group.id,
-                    publicTenant1.publicGroup.id,
-                    publicTenant1.loggedinJoinableGroup.id,
-                    publicTenant1.loggedinNotJoinableGroup.id,
-                    publicTenant2.publicGroup.id,
-                    privateTenant1.publicGroup.id
-                  ];
-
-                  const expectedPublicFeed = [
-                    indirectGroup.group.id,
-                    publicTenant1.publicGroup.id,
-                    publicTenant2.publicGroup.id,
-                    privateTenant1.publicGroup.id
-                  ];
-
-                  // Ensure the public user can see all their groups in the library feed
-                  PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                    publicTenant1.publicUser.restContext,
-                    publicTenant1.publicUser.user.id,
-                    null,
-                    (memberships) => {
-                      _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
-
-                      // Ensure tenant admin can see all groups in the memberships library feed
-                      PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                        publicTenant1.adminRestContext,
-                        publicTenant1.publicUser.user.id,
-                        null,
-                        (memberships) => {
-                          _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
-
-                          // Ensure the global admin can see all groups in the memberships library feed
-                          PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                            asGlobalAdminOnTenant,
-                            publicTenant1.publicUser.user.id,
-                            null,
-                            (memberships) => {
-                              _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
-
-                              // Ensure a user from the same tenant can see loggedin feed
-                              PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                                publicTenant1.loggedinUser.restContext,
-                                publicTenant1.publicUser.user.id,
-                                null,
-                                (memberships) => {
-                                  _assertArraysEqual(expectedLoggedinFeed, pluck('id', memberships));
-
-                                  // Ensure anonymous user gets the public feed
-                                  PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                                    publicTenant1.anonymousRestContext,
-                                    publicTenant1.publicUser.user.id,
-                                    null,
-                                    (memberships) => {
-                                      _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
-
-                                      // Ensure user from another tenant gets the public feed
-                                      PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                                        publicTenant2.publicUser.restContext,
-                                        publicTenant1.publicUser.user.id,
-                                        null,
-                                        (memberships) => {
-                                          _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
-
-                                          // Ensure tenant admin from another tenant gets the public feed
-                                          PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
-                                            publicTenant2.adminRestContext,
-                                            publicTenant1.publicUser.user.id,
-                                            null,
-                                            (memberships) => {
-                                              _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
-                                              return callback();
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            });
-          }
-        );
-      });
-    });
-
-    /**
-     * Test that verifies only authorized users can see a user's memberships library
-     */
-    it('verify memberships library feed authorization', (callback) => {
-      TestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant1,
-        publicTenant2 /* , privateTenant1, privateTenant2 */
-      ) => {
-        // 1. Public user library
-
-        // Ensure anonymous can see it
-        RestAPI.Group.getMembershipsLibrary(
-          publicTenant1.anonymousRestContext,
-          publicTenant1.publicUser.user.id,
-          null,
-          null,
-          (error /* , response */) => {
-            assert.notExists(error);
-
-            // Ensure user from another tenant can see it
-            RestAPI.Group.getMembershipsLibrary(
-              publicTenant2.publicUser.restContext,
-              publicTenant1.publicUser.user.id,
-              null,
-              null,
-              (error /* , response */) => {
+      TestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant1, publicTenant2, privateTenant1 /* , privateTenant2 */) => {
+          /**
+           * Add the publicTenant1 public user to all the groups
+           * in their own tenant, publicTenant2 and the private tenant
+           */
+          PrincipalsTestUtil.addUserToAllGroups(
+            publicTenant1.publicUser,
+            publicTenant1,
+            publicTenant2,
+            privateTenant1,
+            () => {
+              // Create a parent group with which we can verify indirect groups existing in the private feed
+              TestsUtil.generateTestGroups(publicTenant1.adminRestContext, 1, (error, groups) => {
                 assert.notExists(error);
+                const { 0: indirectGroup } = groups;
+                const changes = {};
+                changes[publicTenant1.publicGroup.id] = 'member';
+                RestAPI.Group.setGroupMembers(
+                  publicTenant1.adminRestContext,
+                  indirectGroup.group.id,
+                  changes,
+                  (error_) => {
+                    assert.notExists(error_);
 
-                // Ensure user from same tenant can see it
-                RestAPI.Group.getMembershipsLibrary(
-                  publicTenant1.privateUser.restContext,
-                  publicTenant1.publicUser.user.id,
-                  null,
-                  null,
-                  (error /* , response */) => {
-                    assert.notExists(error);
+                    const expectedPrivateFeed = [
+                      indirectGroup.group.id,
+                      publicTenant1.publicGroup.id,
+                      publicTenant1.loggedinNotJoinableGroup.id,
+                      publicTenant1.loggedinJoinableGroup.id,
+                      publicTenant1.privateJoinableGroup.id,
+                      publicTenant1.privateNotJoinableGroup.id,
+                      publicTenant2.publicGroup.id,
+                      publicTenant2.loggedinNotJoinableGroup.id,
+                      publicTenant2.loggedinJoinableGroup.id,
+                      publicTenant2.privateNotJoinableGroup.id,
+                      publicTenant2.privateJoinableGroup.id,
+                      privateTenant1.publicGroup.id,
+                      privateTenant1.loggedinNotJoinableGroup.id,
+                      privateTenant1.loggedinJoinableGroup.id,
+                      privateTenant1.privateNotJoinableGroup.id,
+                      privateTenant1.privateJoinableGroup.id
+                    ];
 
-                    // Ensure user themself can see it
-                    RestAPI.Group.getMembershipsLibrary(
+                    const expectedLoggedinFeed = [
+                      indirectGroup.group.id,
+                      publicTenant1.publicGroup.id,
+                      publicTenant1.loggedinJoinableGroup.id,
+                      publicTenant1.loggedinNotJoinableGroup.id,
+                      publicTenant2.publicGroup.id,
+                      privateTenant1.publicGroup.id
+                    ];
+
+                    const expectedPublicFeed = [
+                      indirectGroup.group.id,
+                      publicTenant1.publicGroup.id,
+                      publicTenant2.publicGroup.id,
+                      privateTenant1.publicGroup.id
+                    ];
+
+                    // Ensure the public user can see all their groups in the library feed
+                    PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
                       publicTenant1.publicUser.restContext,
                       publicTenant1.publicUser.user.id,
                       null,
-                      null,
-                      (error /* , response */) => {
-                        assert.notExists(error);
+                      (memberships) => {
+                        _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
 
-                        // Ensure tenant admin can see it
-                        RestAPI.Group.getMembershipsLibrary(
+                        // Ensure tenant admin can see all groups in the memberships library feed
+                        PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
                           publicTenant1.adminRestContext,
                           publicTenant1.publicUser.user.id,
                           null,
-                          null,
-                          (error /* , response */) => {
-                            assert.notExists(error);
+                          (memberships) => {
+                            _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
 
-                            // Ensure global admin can see it
-                            RestAPI.Group.getMembershipsLibrary(
+                            // Ensure the global admin can see all groups in the memberships library feed
+                            PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
                               asGlobalAdminOnTenant,
                               publicTenant1.publicUser.user.id,
                               null,
-                              null,
-                              (error /* , response */) => {
-                                assert.notExists(error);
+                              (memberships) => {
+                                _assertArraysEqual(expectedPrivateFeed, pluck('id', memberships));
 
-                                // 2. Logged in user library
-
-                                // Ensure anonymous cannot see it
-                                RestAPI.Group.getMembershipsLibrary(
-                                  publicTenant1.anonymousRestContext,
-                                  publicTenant1.loggedinUser.user.id,
+                                // Ensure a user from the same tenant can see loggedin feed
+                                PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
+                                  publicTenant1.loggedinUser.restContext,
+                                  publicTenant1.publicUser.user.id,
                                   null,
-                                  null,
-                                  (error /* , response */) => {
-                                    assert.ok(error);
-                                    assert.strictEqual(error.code, 401);
+                                  (memberships) => {
+                                    _assertArraysEqual(expectedLoggedinFeed, pluck('id', memberships));
 
-                                    // Ensure user from another tenant cannot see it
-                                    RestAPI.Group.getMembershipsLibrary(
-                                      publicTenant2.publicUser.restContext,
-                                      publicTenant1.loggedinUser.user.id,
+                                    // Ensure anonymous user gets the public feed
+                                    PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
+                                      publicTenant1.anonymousRestContext,
+                                      publicTenant1.publicUser.user.id,
                                       null,
-                                      null,
-                                      (error /* , response */) => {
-                                        assert.ok(error);
-                                        assert.strictEqual(error.code, 401);
+                                      (memberships) => {
+                                        _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
 
-                                        // Ensure user from same tenant can see it
-                                        RestAPI.Group.getMembershipsLibrary(
-                                          publicTenant1.publicUser.restContext,
-                                          publicTenant1.loggedinUser.user.id,
+                                        // Ensure user from another tenant gets the public feed
+                                        PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
+                                          publicTenant2.publicUser.restContext,
+                                          publicTenant1.publicUser.user.id,
                                           null,
-                                          null,
-                                          (error /* , response */) => {
-                                            assert.notExists(error);
+                                          (memberships) => {
+                                            _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
 
-                                            // Ensure user themself can see it
-                                            RestAPI.Group.getMembershipsLibrary(
-                                              publicTenant1.loggedinUser.restContext,
-                                              publicTenant1.loggedinUser.user.id,
+                                            // Ensure tenant admin from another tenant gets the public feed
+                                            PrincipalsTestUtil.assertGetAllMembershipsLibrarySucceeds(
+                                              publicTenant2.adminRestContext,
+                                              publicTenant1.publicUser.user.id,
                                               null,
-                                              null,
-                                              (error /* , response */) => {
-                                                assert.notExists(error);
-
-                                                // Ensure tenant admin can see it
-                                                RestAPI.Group.getMembershipsLibrary(
-                                                  publicTenant1.adminRestContext,
-                                                  publicTenant1.loggedinUser.user.id,
-                                                  null,
-                                                  null,
-                                                  (error /* , response */) => {
-                                                    assert.notExists(error);
-
-                                                    // Ensure global admin can see it
-                                                    RestAPI.Group.getMembershipsLibrary(
-                                                      asGlobalAdminOnTenant,
-                                                      publicTenant1.loggedinUser.user.id,
-                                                      null,
-                                                      null,
-                                                      (error /* , response */) => {
-                                                        assert.notExists(error);
-
-                                                        // 3. Private user library
-
-                                                        // Ensure anonymous cannot see it
-                                                        RestAPI.Group.getMembershipsLibrary(
-                                                          publicTenant1.anonymousRestContext,
-                                                          publicTenant1.privateUser.user.id,
-                                                          null,
-                                                          null,
-                                                          (error /* , response */) => {
-                                                            assert.ok(error);
-                                                            assert.strictEqual(error.code, 401);
-
-                                                            // Ensure user from another tenant cannot see it
-                                                            RestAPI.Group.getMembershipsLibrary(
-                                                              publicTenant2.publicUser.restContext,
-                                                              publicTenant1.privateUser.user.id,
-                                                              null,
-                                                              null,
-                                                              (error /* , response */) => {
-                                                                assert.ok(error);
-                                                                assert.strictEqual(error.code, 401);
-
-                                                                // Ensure user from same tenant can see it
-                                                                RestAPI.Group.getMembershipsLibrary(
-                                                                  publicTenant1.publicUser.restContext,
-                                                                  publicTenant1.privateUser.user.id,
-                                                                  null,
-                                                                  null,
-                                                                  (error /* , response */) => {
-                                                                    assert.ok(error);
-                                                                    assert.strictEqual(error.code, 401);
-
-                                                                    // Ensure user themself can see it
-                                                                    RestAPI.Group.getMembershipsLibrary(
-                                                                      publicTenant1.privateUser.restContext,
-                                                                      publicTenant1.privateUser.user.id,
-                                                                      null,
-                                                                      null,
-                                                                      (error /* , response */) => {
-                                                                        assert.notExists(error);
-
-                                                                        // Ensure tenant admin can see it
-                                                                        RestAPI.Group.getMembershipsLibrary(
-                                                                          publicTenant1.adminRestContext,
-                                                                          publicTenant1.privateUser.user.id,
-                                                                          null,
-                                                                          null,
-                                                                          (error /* , response */) => {
-                                                                            assert.notExists(error);
-
-                                                                            // Ensure global admin can see it
-                                                                            RestAPI.Group.getMembershipsLibrary(
-                                                                              asGlobalAdminOnTenant,
-                                                                              publicTenant1.privateUser.user.id,
-                                                                              null,
-                                                                              null,
-                                                                              (error /* , response */) => {
-                                                                                assert.notExists(error);
-                                                                                return callback();
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
+                                              (memberships) => {
+                                                _assertArraysEqual(expectedPublicFeed, pluck('id', memberships));
+                                                return callback();
                                               }
                                             );
                                           }
@@ -592,11 +382,230 @@ describe('Memberships Library', () => {
                     );
                   }
                 );
-              }
-            );
-          }
-        );
-      });
+              });
+            }
+          );
+        }
+      );
+    });
+
+    /**
+     * Test that verifies only authorized users can see a user's memberships library
+     */
+    it('verify memberships library feed authorization', (callback) => {
+      TestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+          // 1. Public user library
+
+          // Ensure anonymous can see it
+          RestAPI.Group.getMembershipsLibrary(
+            publicTenant1.anonymousRestContext,
+            publicTenant1.publicUser.user.id,
+            null,
+            null,
+            (error /* , response */) => {
+              assert.notExists(error);
+
+              // Ensure user from another tenant can see it
+              RestAPI.Group.getMembershipsLibrary(
+                publicTenant2.publicUser.restContext,
+                publicTenant1.publicUser.user.id,
+                null,
+                null,
+                (error /* , response */) => {
+                  assert.notExists(error);
+
+                  // Ensure user from same tenant can see it
+                  RestAPI.Group.getMembershipsLibrary(
+                    publicTenant1.privateUser.restContext,
+                    publicTenant1.publicUser.user.id,
+                    null,
+                    null,
+                    (error /* , response */) => {
+                      assert.notExists(error);
+
+                      // Ensure user themself can see it
+                      RestAPI.Group.getMembershipsLibrary(
+                        publicTenant1.publicUser.restContext,
+                        publicTenant1.publicUser.user.id,
+                        null,
+                        null,
+                        (error /* , response */) => {
+                          assert.notExists(error);
+
+                          // Ensure tenant admin can see it
+                          RestAPI.Group.getMembershipsLibrary(
+                            publicTenant1.adminRestContext,
+                            publicTenant1.publicUser.user.id,
+                            null,
+                            null,
+                            (error /* , response */) => {
+                              assert.notExists(error);
+
+                              // Ensure global admin can see it
+                              RestAPI.Group.getMembershipsLibrary(
+                                asGlobalAdminOnTenant,
+                                publicTenant1.publicUser.user.id,
+                                null,
+                                null,
+                                (error /* , response */) => {
+                                  assert.notExists(error);
+
+                                  // 2. Logged in user library
+
+                                  // Ensure anonymous cannot see it
+                                  RestAPI.Group.getMembershipsLibrary(
+                                    publicTenant1.anonymousRestContext,
+                                    publicTenant1.loggedinUser.user.id,
+                                    null,
+                                    null,
+                                    (error /* , response */) => {
+                                      assert.ok(error);
+                                      assert.strictEqual(error.code, 401);
+
+                                      // Ensure user from another tenant cannot see it
+                                      RestAPI.Group.getMembershipsLibrary(
+                                        publicTenant2.publicUser.restContext,
+                                        publicTenant1.loggedinUser.user.id,
+                                        null,
+                                        null,
+                                        (error /* , response */) => {
+                                          assert.ok(error);
+                                          assert.strictEqual(error.code, 401);
+
+                                          // Ensure user from same tenant can see it
+                                          RestAPI.Group.getMembershipsLibrary(
+                                            publicTenant1.publicUser.restContext,
+                                            publicTenant1.loggedinUser.user.id,
+                                            null,
+                                            null,
+                                            (error /* , response */) => {
+                                              assert.notExists(error);
+
+                                              // Ensure user themself can see it
+                                              RestAPI.Group.getMembershipsLibrary(
+                                                publicTenant1.loggedinUser.restContext,
+                                                publicTenant1.loggedinUser.user.id,
+                                                null,
+                                                null,
+                                                (error /* , response */) => {
+                                                  assert.notExists(error);
+
+                                                  // Ensure tenant admin can see it
+                                                  RestAPI.Group.getMembershipsLibrary(
+                                                    publicTenant1.adminRestContext,
+                                                    publicTenant1.loggedinUser.user.id,
+                                                    null,
+                                                    null,
+                                                    (error /* , response */) => {
+                                                      assert.notExists(error);
+
+                                                      // Ensure global admin can see it
+                                                      RestAPI.Group.getMembershipsLibrary(
+                                                        asGlobalAdminOnTenant,
+                                                        publicTenant1.loggedinUser.user.id,
+                                                        null,
+                                                        null,
+                                                        (error /* , response */) => {
+                                                          assert.notExists(error);
+
+                                                          // 3. Private user library
+
+                                                          // Ensure anonymous cannot see it
+                                                          RestAPI.Group.getMembershipsLibrary(
+                                                            publicTenant1.anonymousRestContext,
+                                                            publicTenant1.privateUser.user.id,
+                                                            null,
+                                                            null,
+                                                            (error /* , response */) => {
+                                                              assert.ok(error);
+                                                              assert.strictEqual(error.code, 401);
+
+                                                              // Ensure user from another tenant cannot see it
+                                                              RestAPI.Group.getMembershipsLibrary(
+                                                                publicTenant2.publicUser.restContext,
+                                                                publicTenant1.privateUser.user.id,
+                                                                null,
+                                                                null,
+                                                                (error /* , response */) => {
+                                                                  assert.ok(error);
+                                                                  assert.strictEqual(error.code, 401);
+
+                                                                  // Ensure user from same tenant can see it
+                                                                  RestAPI.Group.getMembershipsLibrary(
+                                                                    publicTenant1.publicUser.restContext,
+                                                                    publicTenant1.privateUser.user.id,
+                                                                    null,
+                                                                    null,
+                                                                    (error /* , response */) => {
+                                                                      assert.ok(error);
+                                                                      assert.strictEqual(error.code, 401);
+
+                                                                      // Ensure user themself can see it
+                                                                      RestAPI.Group.getMembershipsLibrary(
+                                                                        publicTenant1.privateUser.restContext,
+                                                                        publicTenant1.privateUser.user.id,
+                                                                        null,
+                                                                        null,
+                                                                        (error /* , response */) => {
+                                                                          assert.notExists(error);
+
+                                                                          // Ensure tenant admin can see it
+                                                                          RestAPI.Group.getMembershipsLibrary(
+                                                                            publicTenant1.adminRestContext,
+                                                                            publicTenant1.privateUser.user.id,
+                                                                            null,
+                                                                            null,
+                                                                            (error /* , response */) => {
+                                                                              assert.notExists(error);
+
+                                                                              // Ensure global admin can see it
+                                                                              RestAPI.Group.getMembershipsLibrary(
+                                                                                asGlobalAdminOnTenant,
+                                                                                publicTenant1.privateUser.user.id,
+                                                                                null,
+                                                                                null,
+                                                                                (error /* , response */) => {
+                                                                                  assert.notExists(error);
+                                                                                  return callback();
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 
@@ -870,359 +879,356 @@ describe('Memberships Library', () => {
      * Test that verifies that all users get the proper library visibility when searching the memberships library
      */
     it('verify memberships library search visibility', (callback) => {
-      TestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant1,
-        publicTenant2,
-        privateTenant1 /* , privateTenant2 */
-      ) => {
-        // Add the publicTenant1 public user to all the groups in their own tenant, publicTenant2 and the private tenant
-        PrincipalsTestUtil.addUserToAllGroups(
-          publicTenant1.publicUser,
-          publicTenant1,
-          publicTenant2,
-          privateTenant1,
-          () => {
-            const expectedPrivateSearch = [
-              publicTenant1.publicGroup.id,
-              publicTenant1.loggedinNotJoinableGroup.id,
-              publicTenant1.loggedinJoinableGroup.id,
-              publicTenant1.privateNotJoinableGroup.id,
-              publicTenant1.privateJoinableGroup.id,
-              publicTenant2.publicGroup.id,
-              publicTenant2.loggedinNotJoinableGroup.id,
-              publicTenant2.loggedinJoinableGroup.id,
-              publicTenant2.privateNotJoinableGroup.id,
-              publicTenant2.privateJoinableGroup.id,
-              privateTenant1.publicGroup.id,
-              privateTenant1.loggedinNotJoinableGroup.id,
-              privateTenant1.loggedinJoinableGroup.id,
-              privateTenant1.privateNotJoinableGroup.id,
-              privateTenant1.privateJoinableGroup.id
-            ];
+      TestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant1, publicTenant2, privateTenant1 /* , privateTenant2 */) => {
+          // Add the publicTenant1 public user to all the groups in their own tenant, publicTenant2 and the private tenant
+          PrincipalsTestUtil.addUserToAllGroups(
+            publicTenant1.publicUser,
+            publicTenant1,
+            publicTenant2,
+            privateTenant1,
+            () => {
+              const expectedPrivateSearch = [
+                publicTenant1.publicGroup.id,
+                publicTenant1.loggedinNotJoinableGroup.id,
+                publicTenant1.loggedinJoinableGroup.id,
+                publicTenant1.privateNotJoinableGroup.id,
+                publicTenant1.privateJoinableGroup.id,
+                publicTenant2.publicGroup.id,
+                publicTenant2.loggedinNotJoinableGroup.id,
+                publicTenant2.loggedinJoinableGroup.id,
+                publicTenant2.privateNotJoinableGroup.id,
+                publicTenant2.privateJoinableGroup.id,
+                privateTenant1.publicGroup.id,
+                privateTenant1.loggedinNotJoinableGroup.id,
+                privateTenant1.loggedinJoinableGroup.id,
+                privateTenant1.privateNotJoinableGroup.id,
+                privateTenant1.privateJoinableGroup.id
+              ];
 
-            const expectedLoggedinSearch = [
-              publicTenant1.publicGroup.id,
-              publicTenant1.loggedinNotJoinableGroup.id,
-              publicTenant1.loggedinJoinableGroup.id,
-              publicTenant2.publicGroup.id,
-              privateTenant1.publicGroup.id
-            ];
+              const expectedLoggedinSearch = [
+                publicTenant1.publicGroup.id,
+                publicTenant1.loggedinNotJoinableGroup.id,
+                publicTenant1.loggedinJoinableGroup.id,
+                publicTenant2.publicGroup.id,
+                privateTenant1.publicGroup.id
+              ];
 
-            const expectedPublicSearch = [
-              publicTenant1.publicGroup.id,
-              publicTenant2.publicGroup.id,
-              privateTenant1.publicGroup.id
-            ];
+              const expectedPublicSearch = [
+                publicTenant1.publicGroup.id,
+                publicTenant2.publicGroup.id,
+                privateTenant1.publicGroup.id
+              ];
 
-            // RestCtx, searchType, params, opts, callback
+              // RestCtx, searchType, params, opts, callback
 
-            // Ensure the public user can see all their groups in the library feed
-            SearchTestsUtil.searchAll(
-              publicTenant1.publicUser.restContext,
-              'memberships-library',
-              [publicTenant1.publicUser.user.id],
-              null,
-              (error, response) => {
-                assert.notExists(error);
-                _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
+              // Ensure the public user can see all their groups in the library feed
+              SearchTestsUtil.searchAll(
+                publicTenant1.publicUser.restContext,
+                'memberships-library',
+                [publicTenant1.publicUser.user.id],
+                null,
+                (error, response) => {
+                  assert.notExists(error);
+                  _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
 
-                // Ensure tenant admin can see all groups in the memberships library feed
-                SearchTestsUtil.searchAll(
-                  publicTenant1.adminRestContext,
-                  'memberships-library',
-                  [publicTenant1.publicUser.user.id],
-                  null,
-                  (error, response) => {
-                    assert.notExists(error);
-                    _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
+                  // Ensure tenant admin can see all groups in the memberships library feed
+                  SearchTestsUtil.searchAll(
+                    publicTenant1.adminRestContext,
+                    'memberships-library',
+                    [publicTenant1.publicUser.user.id],
+                    null,
+                    (error, response) => {
+                      assert.notExists(error);
+                      _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
 
-                    // Ensure the global admin can see all groups in the memberships library feed
-                    SearchTestsUtil.searchAll(
-                      asGlobalAdminOnTenant,
-                      'memberships-library',
-                      [publicTenant1.publicUser.user.id],
-                      null,
-                      (error, response) => {
-                        assert.notExists(error);
-                        _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
+                      // Ensure the global admin can see all groups in the memberships library feed
+                      SearchTestsUtil.searchAll(
+                        asGlobalAdminOnTenant,
+                        'memberships-library',
+                        [publicTenant1.publicUser.user.id],
+                        null,
+                        (error, response) => {
+                          assert.notExists(error);
+                          _assertArraysEqual(expectedPrivateSearch, pluck('id', response.results));
 
-                        // Ensure a user from the same tenant can see loggedin feed
-                        SearchTestsUtil.searchAll(
-                          publicTenant1.loggedinUser.restContext,
-                          'memberships-library',
-                          [publicTenant1.publicUser.user.id],
-                          null,
-                          (error, response) => {
-                            assert.notExists(error);
-                            _assertArraysEqual(expectedLoggedinSearch, pluck('id', response.results));
+                          // Ensure a user from the same tenant can see loggedin feed
+                          SearchTestsUtil.searchAll(
+                            publicTenant1.loggedinUser.restContext,
+                            'memberships-library',
+                            [publicTenant1.publicUser.user.id],
+                            null,
+                            (error, response) => {
+                              assert.notExists(error);
+                              _assertArraysEqual(expectedLoggedinSearch, pluck('id', response.results));
 
-                            // Ensure anonymous user gets the public feed
-                            SearchTestsUtil.searchAll(
-                              publicTenant1.anonymousRestContext,
-                              'memberships-library',
-                              [publicTenant1.publicUser.user.id],
-                              null,
-                              (error, response) => {
-                                assert.notExists(error);
-                                _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
+                              // Ensure anonymous user gets the public feed
+                              SearchTestsUtil.searchAll(
+                                publicTenant1.anonymousRestContext,
+                                'memberships-library',
+                                [publicTenant1.publicUser.user.id],
+                                null,
+                                (error, response) => {
+                                  assert.notExists(error);
+                                  _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
 
-                                // Ensure user from another tenant gets the public feed
-                                SearchTestsUtil.searchAll(
-                                  publicTenant2.publicUser.restContext,
-                                  'memberships-library',
-                                  [publicTenant1.publicUser.user.id],
-                                  null,
-                                  (error, response) => {
-                                    assert.notExists(error);
-                                    _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
+                                  // Ensure user from another tenant gets the public feed
+                                  SearchTestsUtil.searchAll(
+                                    publicTenant2.publicUser.restContext,
+                                    'memberships-library',
+                                    [publicTenant1.publicUser.user.id],
+                                    null,
+                                    (error, response) => {
+                                      assert.notExists(error);
+                                      _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
 
-                                    // Ensure tenant admin from another tenant gets the public feed
-                                    SearchTestsUtil.searchAll(
-                                      publicTenant2.adminRestContext,
-                                      'memberships-library',
-                                      [publicTenant1.publicUser.user.id],
-                                      null,
-                                      (error, response) => {
-                                        assert.notExists(error);
-                                        _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
-                                        return callback();
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                      // Ensure tenant admin from another tenant gets the public feed
+                                      SearchTestsUtil.searchAll(
+                                        publicTenant2.adminRestContext,
+                                        'memberships-library',
+                                        [publicTenant1.publicUser.user.id],
+                                        null,
+                                        (error, response) => {
+                                          assert.notExists(error);
+                                          _assertArraysEqual(expectedPublicSearch, pluck('id', response.results));
+                                          return callback();
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
      * Test that verifies only authorized users can see a user's memberships library
      */
     it('verify memberships library search authorization', (callback) => {
-      TestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant1,
-        publicTenant2 /* , privateTenant1, privateTenant2 */
-      ) => {
-        // 1. Public user library
+      TestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant1, publicTenant2 /* , privateTenant1, privateTenant2 */) => {
+          // 1. Public user library
 
-        // Ensure anonymous can see it
-        SearchTestsUtil.searchAll(
-          publicTenant1.anonymousRestContext,
-          'memberships-library',
-          [publicTenant1.publicUser.user.id],
-          null,
-          (error /* , results */) => {
-            assert.notExists(error);
+          // Ensure anonymous can see it
+          SearchTestsUtil.searchAll(
+            publicTenant1.anonymousRestContext,
+            'memberships-library',
+            [publicTenant1.publicUser.user.id],
+            null,
+            (error /* , results */) => {
+              assert.notExists(error);
 
-            // Ensure user from another tenant can see it
-            SearchTestsUtil.searchAll(
-              publicTenant2.publicUser.restContext,
-              'memberships-library',
-              [publicTenant1.publicUser.user.id],
-              null,
-              (error /* , results */) => {
-                assert.notExists(error);
+              // Ensure user from another tenant can see it
+              SearchTestsUtil.searchAll(
+                publicTenant2.publicUser.restContext,
+                'memberships-library',
+                [publicTenant1.publicUser.user.id],
+                null,
+                (error /* , results */) => {
+                  assert.notExists(error);
 
-                // Ensure user from same tenant can see it
-                SearchTestsUtil.searchAll(
-                  publicTenant1.privateUser.restContext,
-                  'memberships-library',
-                  [publicTenant1.publicUser.user.id],
-                  null,
-                  (error /* , results */) => {
-                    assert.notExists(error);
+                  // Ensure user from same tenant can see it
+                  SearchTestsUtil.searchAll(
+                    publicTenant1.privateUser.restContext,
+                    'memberships-library',
+                    [publicTenant1.publicUser.user.id],
+                    null,
+                    (error /* , results */) => {
+                      assert.notExists(error);
 
-                    // Ensure user themself can see it
-                    SearchTestsUtil.searchAll(
-                      publicTenant1.publicUser.restContext,
-                      'memberships-library',
-                      [publicTenant1.publicUser.user.id],
-                      null,
-                      (error /* , results */) => {
-                        assert.notExists(error);
+                      // Ensure user themself can see it
+                      SearchTestsUtil.searchAll(
+                        publicTenant1.publicUser.restContext,
+                        'memberships-library',
+                        [publicTenant1.publicUser.user.id],
+                        null,
+                        (error /* , results */) => {
+                          assert.notExists(error);
 
-                        // Ensure tenant admin can see it
-                        SearchTestsUtil.searchAll(
-                          publicTenant1.adminRestContext,
-                          'memberships-library',
-                          [publicTenant1.publicUser.user.id],
-                          null,
-                          (error /* , results */) => {
-                            assert.notExists(error);
+                          // Ensure tenant admin can see it
+                          SearchTestsUtil.searchAll(
+                            publicTenant1.adminRestContext,
+                            'memberships-library',
+                            [publicTenant1.publicUser.user.id],
+                            null,
+                            (error /* , results */) => {
+                              assert.notExists(error);
 
-                            // Ensure global admin can see it
-                            SearchTestsUtil.searchAll(
-                              asGlobalAdminOnTenant,
-                              'memberships-library',
-                              [publicTenant1.publicUser.user.id],
-                              null,
-                              (error /* , results */) => {
-                                assert.notExists(error);
+                              // Ensure global admin can see it
+                              SearchTestsUtil.searchAll(
+                                asGlobalAdminOnTenant,
+                                'memberships-library',
+                                [publicTenant1.publicUser.user.id],
+                                null,
+                                (error /* , results */) => {
+                                  assert.notExists(error);
 
-                                // 2. Logged in user library
+                                  // 2. Logged in user library
 
-                                // Ensure anonymous cannot see it
-                                SearchTestsUtil.searchAll(
-                                  publicTenant1.anonymousRestContext,
-                                  'memberships-library',
-                                  [publicTenant1.loggedinUser.user.id],
-                                  null,
-                                  (error /* , results */) => {
-                                    assert.ok(error);
-                                    assert.strictEqual(error.code, 401);
+                                  // Ensure anonymous cannot see it
+                                  SearchTestsUtil.searchAll(
+                                    publicTenant1.anonymousRestContext,
+                                    'memberships-library',
+                                    [publicTenant1.loggedinUser.user.id],
+                                    null,
+                                    (error /* , results */) => {
+                                      assert.ok(error);
+                                      assert.strictEqual(error.code, 401);
 
-                                    // Ensure user from another tenant cannot see it
-                                    SearchTestsUtil.searchAll(
-                                      publicTenant2.publicUser.restContext,
-                                      'memberships-library',
-                                      [publicTenant1.loggedinUser.user.id],
-                                      null,
-                                      (error /* , results */) => {
-                                        assert.ok(error);
-                                        assert.strictEqual(error.code, 401);
+                                      // Ensure user from another tenant cannot see it
+                                      SearchTestsUtil.searchAll(
+                                        publicTenant2.publicUser.restContext,
+                                        'memberships-library',
+                                        [publicTenant1.loggedinUser.user.id],
+                                        null,
+                                        (error /* , results */) => {
+                                          assert.ok(error);
+                                          assert.strictEqual(error.code, 401);
 
-                                        // Ensure user from same tenant can see it
-                                        SearchTestsUtil.searchAll(
-                                          publicTenant1.publicUser.restContext,
-                                          'memberships-library',
-                                          [publicTenant1.loggedinUser.user.id],
-                                          null,
-                                          (error /* , results */) => {
-                                            assert.notExists(error);
+                                          // Ensure user from same tenant can see it
+                                          SearchTestsUtil.searchAll(
+                                            publicTenant1.publicUser.restContext,
+                                            'memberships-library',
+                                            [publicTenant1.loggedinUser.user.id],
+                                            null,
+                                            (error /* , results */) => {
+                                              assert.notExists(error);
 
-                                            // Ensure user themself can see it
-                                            SearchTestsUtil.searchAll(
-                                              publicTenant1.loggedinUser.restContext,
-                                              'memberships-library',
-                                              [publicTenant1.loggedinUser.user.id],
-                                              null,
-                                              (error /* , results */) => {
-                                                assert.notExists(error);
+                                              // Ensure user themself can see it
+                                              SearchTestsUtil.searchAll(
+                                                publicTenant1.loggedinUser.restContext,
+                                                'memberships-library',
+                                                [publicTenant1.loggedinUser.user.id],
+                                                null,
+                                                (error /* , results */) => {
+                                                  assert.notExists(error);
 
-                                                // Ensure tenant admin can see it
-                                                SearchTestsUtil.searchAll(
-                                                  publicTenant1.adminRestContext,
-                                                  'memberships-library',
-                                                  [publicTenant1.loggedinUser.user.id],
-                                                  null,
-                                                  (error /* , results */) => {
-                                                    assert.notExists(error);
+                                                  // Ensure tenant admin can see it
+                                                  SearchTestsUtil.searchAll(
+                                                    publicTenant1.adminRestContext,
+                                                    'memberships-library',
+                                                    [publicTenant1.loggedinUser.user.id],
+                                                    null,
+                                                    (error /* , results */) => {
+                                                      assert.notExists(error);
 
-                                                    // Ensure global admin can see it
-                                                    SearchTestsUtil.searchAll(
-                                                      asGlobalAdminOnTenant,
-                                                      'memberships-library',
-                                                      [publicTenant1.loggedinUser.user.id],
-                                                      null,
-                                                      (error /* , results */) => {
-                                                        assert.notExists(error);
+                                                      // Ensure global admin can see it
+                                                      SearchTestsUtil.searchAll(
+                                                        asGlobalAdminOnTenant,
+                                                        'memberships-library',
+                                                        [publicTenant1.loggedinUser.user.id],
+                                                        null,
+                                                        (error /* , results */) => {
+                                                          assert.notExists(error);
 
-                                                        // 3. Private user library
+                                                          // 3. Private user library
 
-                                                        // Ensure anonymous cannot see it
-                                                        SearchTestsUtil.searchAll(
-                                                          publicTenant1.anonymousRestContext,
-                                                          'memberships-library',
-                                                          [publicTenant1.privateUser.user.id],
-                                                          null,
-                                                          (error /* , results */) => {
-                                                            assert.ok(error);
-                                                            assert.strictEqual(error.code, 401);
+                                                          // Ensure anonymous cannot see it
+                                                          SearchTestsUtil.searchAll(
+                                                            publicTenant1.anonymousRestContext,
+                                                            'memberships-library',
+                                                            [publicTenant1.privateUser.user.id],
+                                                            null,
+                                                            (error /* , results */) => {
+                                                              assert.ok(error);
+                                                              assert.strictEqual(error.code, 401);
 
-                                                            // Ensure user from another tenant cannot see it
-                                                            SearchTestsUtil.searchAll(
-                                                              publicTenant2.publicUser.restContext,
-                                                              'memberships-library',
-                                                              [publicTenant1.privateUser.user.id],
-                                                              null,
-                                                              (error /* , results */) => {
-                                                                assert.ok(error);
-                                                                assert.strictEqual(error.code, 401);
+                                                              // Ensure user from another tenant cannot see it
+                                                              SearchTestsUtil.searchAll(
+                                                                publicTenant2.publicUser.restContext,
+                                                                'memberships-library',
+                                                                [publicTenant1.privateUser.user.id],
+                                                                null,
+                                                                (error /* , results */) => {
+                                                                  assert.ok(error);
+                                                                  assert.strictEqual(error.code, 401);
 
-                                                                // Ensure user from same tenant can see it
-                                                                SearchTestsUtil.searchAll(
-                                                                  publicTenant1.publicUser.restContext,
-                                                                  'memberships-library',
-                                                                  [publicTenant1.privateUser.user.id],
-                                                                  null,
-                                                                  (error /* , results */) => {
-                                                                    assert.ok(error);
-                                                                    assert.strictEqual(error.code, 401);
+                                                                  // Ensure user from same tenant can see it
+                                                                  SearchTestsUtil.searchAll(
+                                                                    publicTenant1.publicUser.restContext,
+                                                                    'memberships-library',
+                                                                    [publicTenant1.privateUser.user.id],
+                                                                    null,
+                                                                    (error /* , results */) => {
+                                                                      assert.ok(error);
+                                                                      assert.strictEqual(error.code, 401);
 
-                                                                    // Ensure user themself can see it
-                                                                    SearchTestsUtil.searchAll(
-                                                                      publicTenant1.privateUser.restContext,
-                                                                      'memberships-library',
-                                                                      [publicTenant1.privateUser.user.id],
-                                                                      null,
-                                                                      (error /* , results */) => {
-                                                                        assert.notExists(error);
+                                                                      // Ensure user themself can see it
+                                                                      SearchTestsUtil.searchAll(
+                                                                        publicTenant1.privateUser.restContext,
+                                                                        'memberships-library',
+                                                                        [publicTenant1.privateUser.user.id],
+                                                                        null,
+                                                                        (error /* , results */) => {
+                                                                          assert.notExists(error);
 
-                                                                        // Ensure tenant admin can see it
-                                                                        SearchTestsUtil.searchAll(
-                                                                          publicTenant1.adminRestContext,
-                                                                          'memberships-library',
-                                                                          [publicTenant1.privateUser.user.id],
-                                                                          null,
-                                                                          (error /* , results */) => {
-                                                                            assert.notExists(error);
+                                                                          // Ensure tenant admin can see it
+                                                                          SearchTestsUtil.searchAll(
+                                                                            publicTenant1.adminRestContext,
+                                                                            'memberships-library',
+                                                                            [publicTenant1.privateUser.user.id],
+                                                                            null,
+                                                                            (error /* , results */) => {
+                                                                              assert.notExists(error);
 
-                                                                            // Ensure global admin can see it
-                                                                            SearchTestsUtil.searchAll(
-                                                                              asGlobalAdminOnTenant,
-                                                                              'memberships-library',
-                                                                              [publicTenant1.privateUser.user.id],
-                                                                              null,
-                                                                              (error /* , results */) => {
-                                                                                assert.notExists(error);
-                                                                                return callback();
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+                                                                              // Ensure global admin can see it
+                                                                              SearchTestsUtil.searchAll(
+                                                                                asGlobalAdminOnTenant,
+                                                                                'memberships-library',
+                                                                                [publicTenant1.privateUser.user.id],
+                                                                                null,
+                                                                                (error /* , results */) => {
+                                                                                  assert.notExists(error);
+                                                                                  return callback();
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 });

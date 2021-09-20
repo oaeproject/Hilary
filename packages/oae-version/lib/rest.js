@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 import * as VersionAPI from './api.js';
 
 const _getVersion = async function (request, response) {

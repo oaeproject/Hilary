@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { format } from 'util';
+import { callbackify, format } from 'util';
 import _ from 'underscore';
 import $ from 'cheerio';
 
@@ -98,32 +98,31 @@ const init = function (_uiDirectory, _hashes, callback) {
   hashes = _hashes;
 
   // Load all the globalize cultures
-  // eslint-disable-next-line no-unused-vars
-  const globalize = require('globalize/lib/cultures/globalize.cultures');
-
-  // Cache all of the widget manifest files
-  cacheWidgetManifests(() => {
-    // Monitor the UI repository for changes and refresh the cache.
-    // This will only be done in development mode
-    if (process.env.NODE_ENV !== 'production') {
-      watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, (monitor) => {
-        monitor.on('created', updateFileCaches);
-        monitor.on('changed', updateFileCaches);
-        monitor.on('removed', updateFileCaches);
-      });
-    }
-
-    // Cache the base skin file
-    _cacheSkinVariables((error) => {
-      if (error) {
-        return callback(error);
+  import('globalize/lib/cultures/globalize.cultures.js').then((globalize) => {
+    // Cache all of the widget manifest files
+    cacheWidgetManifests(() => {
+      // Monitor the UI repository for changes and refresh the cache.
+      // This will only be done in development mode
+      if (process.env.NODE_ENV !== 'production') {
+        watch.createMonitor(uiDirectory, { ignoreDotFiles: true }, (monitor) => {
+          monitor.on('created', updateFileCaches);
+          monitor.on('changed', updateFileCaches);
+          monitor.on('removed', updateFileCaches);
+        });
       }
 
-      // Ensure the skins are not cached, as they may be invalid now
-      cachedSkins = {};
+      // Cache the base skin file
+      _cacheSkinVariables((error) => {
+        if (error) {
+          return callback(error);
+        }
 
-      // Cache the i18n bundles
-      return _cacheI18nKeys(callback);
+        // Ensure the skins are not cached, as they may be invalid now
+        cachedSkins = {};
+
+        // Cache the i18n bundles
+        return _cacheI18nKeys(callback);
+      });
     });
   });
 };
@@ -1363,8 +1362,12 @@ const compileTemplate = function (template) {
  *
  * @return {Object}    The activity adapter
  */
-const getActivityAdapter = function () {
-  return _uiRequire('/shared/oae/js/activityadapter.js');
+const getActivityAdapter = function (callback) {
+  callbackify(_uiRequire)('/shared/oae/js/activityadapter.js', (error, pkg) => {
+    if (error) return callback(error);
+
+    return callback(null, pkg);
+  });
 };
 
 /// ////////////
@@ -1395,8 +1398,12 @@ const getHashedPath = function (path) {
  * @return {String}     result.countries[i].name    The english name of the country
  * @return {String}     [result.countries[i].icon]  The absolute path to an icon, if available
  */
-const getIso3166CountryInfo = function () {
-  return _uiRequire('/shared/oae/js/iso3166.js');
+const getIso3166CountryInfo = function (callback) {
+  callbackify(_uiRequire)('/shared/oae/js/iso3166.js', (error, pkg) => {
+    if (error) return callback(error);
+
+    return callback(null, pkg);
+  });
 };
 
 /**
@@ -1405,8 +1412,12 @@ const getIso3166CountryInfo = function () {
  * @return {Object}     The mimetype descriptor
  * @api private
  */
-const _getMimeTypeDescriptor = function () {
-  return _uiRequire('/shared/oae/js/mimetypes.js');
+const _getMimeTypeDescriptor = function (callback) {
+  callbackify(_uiRequire)('/shared/oae/js/mimetypes.js', (error, pkg) => {
+    if (error) return callback(error);
+
+    return callback(null, pkg);
+  });
 };
 
 /**
@@ -1417,8 +1428,17 @@ const _getMimeTypeDescriptor = function () {
  * @api private
  */
 const _uiRequire = function (path) {
-  path = getHashedPath(path);
-  return require(uiDirectory + path);
+  path = uiDirectory + getHashedPath(path);
+
+  return import(path)
+    .then((pkg) => {
+      return pkg;
+    })
+    .catch((e) => {
+      // TODO log here
+      throw e;
+    });
+  // return require(uiDirectory + path);
 };
 
 export {

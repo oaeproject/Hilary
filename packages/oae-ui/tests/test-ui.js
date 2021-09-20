@@ -23,7 +23,7 @@ import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 
 import * as UIAPI from 'oae-ui';
-import { UIConstants } from 'oae-ui/lib/constants';
+import { UIConstants } from 'oae-ui/lib/constants.js';
 import * as UITestUtil from 'oae-ui/lib/test/util';
 
 const { getUIDirectory, init, translate } = UIAPI;

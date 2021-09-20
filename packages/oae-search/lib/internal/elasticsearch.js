@@ -270,10 +270,10 @@ const putMapping = function (properties, opts, callback) {
      * - Resource following
      * - Meeting jitsi message
      */
+    properties = mergeAll([properties, {}]);
     properties.type = { type: 'keyword' };
 
     // This must be done because this is Module Object, whatever that is
-    properties = mergeAll([properties, {}]);
     const body = {
       properties
     };

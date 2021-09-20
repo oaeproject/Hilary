@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 describe('Authz-Permissions', () => {
   /**

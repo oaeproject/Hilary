@@ -75,6 +75,7 @@ let migrationRunner;
 // const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 
 const log = logger('before-tests');
+const requestLog = logger('request-log');
 
 const { setGroupMembers } = RestAPI.Group;
 const { whenIndexingComplete } = SearchTestUtil;
@@ -215,9 +216,7 @@ const clearAllData = function (callback) {
 const setUpTenants = function (callback) {
   global.oaeTests = { tenants: {} };
 
-  testingContext = { oaeTests: { coco: 'xixi ' } };
-  // TODO debug
-  console.log('yayayayayayayyayaayayayayayayayayaya');
+  testingContext.oaeTests = { coco: 'xixi ' };
 
   // Create the Global Tenant admin context to authenticate with
   global.oaeTests.tenants.global = new Tenant('admin', 'Global tenant', 'localhost:2000', {
@@ -1278,7 +1277,35 @@ const createInitialTestConfig = async function () {
  *
  * @api private
  */
-const _bindRequestLogger = function () {};
+const _bindRequestLogger = function () {
+  // const requestLog = require('oae-logger').logger('request-log');
+  RestUtil.emitter.on('request', (restCtx, url, method, data) => {
+    requestLog().trace(
+      {
+        restCtx,
+        url,
+        method,
+        data
+      },
+      'Performing REST request'
+    );
+  });
+
+  RestUtil.emitter.on('response', (body, response) => {
+    requestLog().trace({ res: response, body }, 'REST Request complete');
+  });
+
+  RestUtil.emitter.on('error', (error, body, response) => {
+    requestLog().error(
+      {
+        err: error,
+        res: response,
+        body
+      },
+      'An error occurred sending a REST request'
+    );
+  });
+};
 
 /**
  * Set up Hilary so tests can be executed.

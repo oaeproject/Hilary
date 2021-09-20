@@ -19,6 +19,12 @@ import path from 'path';
 import sharp from 'sharp';
 import { filter, map, prop, last, equals, not, compose, head } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as LocalStorage from 'oae-content/lib/backends/local.js';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util.js';
@@ -38,7 +44,7 @@ const LARGE = 'large';
 const codeIs200 = equals(200);
 const DUMMY_BASE = 'http://localhost';
 
-describe('Profile pictures', () => {
+describe.only('Profile pictures', () => {
   // Rest context that can be used every time we need to make a request as a Cambridge tenant admin
   let asCambridgeTenantAdmin = null;
 
@@ -297,7 +303,7 @@ describe('Profile pictures', () => {
   /**
    * Test that verifies cropping
    */
-  it('verify cropping', (callback) => {
+  it.only('verify cropping', (callback) => {
     _createUser((ctx) => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, (error) => {
         assert.notExists(error);

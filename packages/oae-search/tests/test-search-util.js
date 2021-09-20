@@ -16,10 +16,10 @@
 import { assert } from 'chai';
 
 import { Context } from 'oae-context';
-import { SearchConstants } from 'oae-search/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
 
 const { createGlobalAdminContext } = TestsUtil;
 

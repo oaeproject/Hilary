@@ -42,6 +42,7 @@ node -v # make sure you have v16+
 npm -v # make sure you have 7.0.8+
 
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
+git submodule update --init
 docker-compose up -d oae-cassandra oae-elasticsearch oae-redis oae-nginx
 cd ethercalc && npm install && cd ..
 cp ep-settings.json etherpad/settings.json

@@ -20,7 +20,7 @@ import { logger } from 'oae-logger';
 
 import * as RestAPI from 'oae-rest';
 import * as TelemetryAPI from 'oae-telemetry';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 const { getTelemetryData } = RestAPI.Telemetry;
 const { generateRandomText, createGlobalAdminRestContext } = TestsUtil;

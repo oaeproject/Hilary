@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -110,41 +110,47 @@ describe('Discussion Activity', () => {
               assert.notExists(error);
               assert.ok(discussion);
 
-              RestAPI.Discussions.updateDiscussion(simon.restContext, discussion.id, { displayName: 'Not bonobos' }, (
-                error /* , updatedDiscussion */
-              ) => {
-                assert.notExists(error);
-
-                // Simon should've received two entries in his stream (1 create and 1 update)
-                collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+              RestAPI.Discussions.updateDiscussion(
+                simon.restContext,
+                discussion.id,
+                { displayName: 'Not bonobos' },
+                (error /* , updatedDiscussion */) => {
                   assert.notExists(error);
-                  const entity = activityStream.items[0];
-                  assert.strictEqual(entity['oae:activityType'], 'discussion-update');
-                  assert.strictEqual(entity.verb, 'update');
 
-                  // Assert Simon is the actor.
-                  assert.strictEqual(entity.actor['oae:id'], simon.user.id);
-
-                  // Assert the discussion is the object.
-                  assert.strictEqual(entity.object['oae:id'], discussion.id);
-                  assert.strictEqual(entity.object.displayName, 'Not bonobos');
-                  assert.strictEqual(entity.object['oae:profilePath'], discussion.profilePath);
-
-                  RestAPI.Discussions.updateDiscussion(simon.restContext, discussion.id, { visibility: 'public' }, (
-                    error /* , updatedDiscussion */
-                  ) => {
+                  // Simon should've received two entries in his stream (1 create and 1 update)
+                  collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
                     assert.notExists(error);
+                    const entity = activityStream.items[0];
+                    assert.strictEqual(entity['oae:activityType'], 'discussion-update');
+                    assert.strictEqual(entity.verb, 'update');
 
-                    collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
-                      assert.notExists(error);
-                      const entity = activityStream.items[0];
-                      assert.strictEqual(entity['oae:activityType'], 'discussion-update-visibility');
-                      assert.strictEqual(entity.verb, 'update');
-                      callback();
-                    });
+                    // Assert Simon is the actor.
+                    assert.strictEqual(entity.actor['oae:id'], simon.user.id);
+
+                    // Assert the discussion is the object.
+                    assert.strictEqual(entity.object['oae:id'], discussion.id);
+                    assert.strictEqual(entity.object.displayName, 'Not bonobos');
+                    assert.strictEqual(entity.object['oae:profilePath'], discussion.profilePath);
+
+                    RestAPI.Discussions.updateDiscussion(
+                      simon.restContext,
+                      discussion.id,
+                      { visibility: 'public' },
+                      (error /* , updatedDiscussion */) => {
+                        assert.notExists(error);
+
+                        collectAndGetActivityStream(simon.restContext, simon.user.id, null, (error, activityStream) => {
+                          assert.notExists(error);
+                          const entity = activityStream.items[0];
+                          assert.strictEqual(entity['oae:activityType'], 'discussion-update-visibility');
+                          assert.strictEqual(entity.verb, 'update');
+                          callback();
+                        });
+                      }
+                    );
                   });
-                });
-              });
+                }
+              );
             }
           );
         });
@@ -671,21 +677,25 @@ describe('Discussion Activity', () => {
                   assert.notStrictEqual(stringEmail.indexOf('Would read again</p>'), -1);
 
                   // Send a message as nicolaas and ensure the recent commenter, simong receives an email about it
-                  createMessage(nicolaas.restContext, discussion.id, 'I have a computer, too', null, (
-                    error /* , nicolaasMessage */
-                  ) => {
-                    assert.notExists(error);
+                  createMessage(
+                    nicolaas.restContext,
+                    discussion.id,
+                    'I have a computer, too',
+                    null,
+                    (error /* , nicolaasMessage */) => {
+                      assert.notExists(error);
 
-                    collectAndFetchAllEmails((emails) => {
-                      // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
-                      assert.strictEqual(emails.length, 2);
+                      collectAndFetchAllEmails((emails) => {
+                        // There should be 2 emails this time, one to the manager and one to the recent commenter, simong
+                        assert.strictEqual(emails.length, 2);
 
-                      const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
-                      assert.ok(contains(simong.user.email, emailAddresses));
-                      assert.ok(contains(mrvisser.user.email, emailAddresses));
-                      return callback();
-                    });
-                  });
+                        const emailAddresses = [emails[0].to[0].address, emails[1].to[0].address];
+                        assert.ok(contains(simong.user.email, emailAddresses));
+                        assert.ok(contains(mrvisser.user.email, emailAddresses));
+                        return callback();
+                      });
+                    }
+                  );
                 });
               }
             );

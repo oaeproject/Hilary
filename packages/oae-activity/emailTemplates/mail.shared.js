@@ -15,9 +15,9 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Determine if the given string is an email
@@ -53,10 +53,7 @@ const getEmailSubject = (util, recipient, activities) => {
     // a little bit differently because we have to legitimize our email quicker (i.e., in the
     // subject)
     if (_.size(activities) === 1) {
-      return util.i18n.translate(
-        activities[0].summary.i18nKey,
-        activities[0].summary.i18nArguments
-      );
+      return util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
     }
 
     const actors = _getAllEntities(activities, 'actor');
@@ -85,10 +82,7 @@ const getEmailSubject = (util, recipient, activities) => {
   let message = util.i18n.translate('__MSG__RECENT_ACTIVITY__');
   if (emailPreference === 'immediate') {
     if (activities.length === 1) {
-      message = util.i18n.translate(
-        activities[0].summary.i18nKey,
-        activities[0].summary.i18nArguments
-      );
+      message = util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
     } else {
       message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_MULTIPLE__');
     }
@@ -117,7 +111,7 @@ const getEmailSubject = (util, recipient, activities) => {
  * @param  {String}         baseUrl         The base url that each link should have as a prefix
  * @return {String}                         An appropriate summary given the user's email preference and given activities
  */
-const getEmailSummary = function(util, recipient, activities, baseUrl) {
+const getEmailSummary = function (util, recipient, activities, baseUrl) {
   if (isEmail(recipient.id)) {
     // For an email invitation, we always use the subject invitation language, even for the
     // summary
@@ -146,7 +140,7 @@ const getEmailSummary = function(util, recipient, activities, baseUrl) {
     // Determine if there was a single or multiple actors
     let isSingleActor = true;
     let actor = null;
-    _.each(activities, activity => {
+    _.each(activities, (activity) => {
       if (actor !== null && actor['oae:id'] !== activity.originalActivity.actor['oae:id']) {
         isSingleActor = false;
       }
@@ -192,15 +186,15 @@ const getEmailSummary = function(util, recipient, activities, baseUrl) {
  * @param  {String}             entityType  The entity type (actor, object or target)
  * @return {ActivityEntity[]}               All entities of the specified type for all activities
  */
-const _getAllEntities = function(activities, entityType) {
+const _getAllEntities = function (activities, entityType) {
   const seenIds = {};
   const entities = [];
-  _.each(activities, activity => {
+  _.each(activities, (activity) => {
     const entity = activity.originalActivity[entityType];
 
     // If the entity is a collection, collect all of them
     if (entity.objectType === 'collection') {
-      _.each(entity[ActivityConstants.properties.OAE_COLLECTION], entity => {
+      _.each(entity[ActivityConstants.properties.OAE_COLLECTION], (entity) => {
         const entityId = entity[ActivityConstants.properties.OAE_ID];
         if (!seenIds[entityId]) {
           seenIds[entityId] = true;

@@ -18,6 +18,7 @@ import { logger } from 'oae-logger';
 
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util.js';
+import * as schema from './schema/resourceSchema.js';
 
 import R from 'ramda';
 const { keys, not, map, mergeAll, has, head, gt, length, equals, defaultTo, forEach, assoc } = R;
@@ -539,7 +540,27 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
  */
 const _ensureSearchSchema = (names, callback) => {
   if (!names) {
-    return client.putMapping(require('./schema/resourceSchema'), null, (error) => {
+    const resourceSchema = {
+      id: schema.id,
+      tenantAlias: schema.tenantAlias,
+      resourceType: schema.resourceType,
+      resourceSubType: schema.resourceSubType,
+      thumbnailUrl: schema.thumbnailUrl,
+      displayName: schema.displayName,
+      description: schema.description,
+      email: schema.email,
+      _extra: schema._extra,
+      visibility: schema.visibility,
+      joinable: schema.joinable,
+      deleted: schema.deleted,
+      q_high: schema.q_high,
+      q_low: schema.q_low,
+      sort: schema.sort,
+      dateCreated: schema.dateCreated,
+      lastModified: schema.lastModified,
+      createdBy: schema.createdBy
+    };
+    return client.putMapping(resourceSchema, null, (error) => {
       if (error) return callback(error);
 
       return _ensureSearchSchema(keys(childSearchDocuments), callback);

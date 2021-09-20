@@ -19,11 +19,11 @@ import * as VersionAPI from 'oae-version';
 import oauth from 'oauth-sign';
 import ShortId from 'shortid';
 
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
 import PrincipalsApi from 'oae-principals';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 const { isGroupId, unless, isNotEmpty } = validator;
 
 import * as LtiDAO from './internal/dao.js';

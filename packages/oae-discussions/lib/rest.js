@@ -18,9 +18,9 @@ import * as DiscussionsAPI from 'oae-discussions';
 import { forEach, forEachObjIndexed } from 'ramda';
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 /**
  * @REST postDiscussionCreate

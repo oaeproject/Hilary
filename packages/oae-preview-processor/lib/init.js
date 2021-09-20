@@ -16,9 +16,8 @@
 import fs from 'fs';
 import { logger } from 'oae-logger';
 
-import * as Cleaner from 'oae-util/lib/cleaner';
+import * as Cleaner from 'oae-util/lib/cleaner.js';
 import * as PreviewAPI from './api.js';
-// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
 
 const log = logger('oae-preview-processor');
@@ -27,16 +26,18 @@ const log = logger('oae-preview-processor');
  * Starts listening for new pieces of content that should be handled.
  */
 export function init(config, callback) {
-  // Create the previews directory and periodically clean it.
-  fs.mkdir(config.previews.tmpDir, { recursive: true }, (error) => {
-    if (error) {
-      log().error({ err: error }, 'Could not create the previews directory');
-      return callback({ code: 500, msg: 'Could not create the previews directory' });
-    }
+  activity.init(() => {
+    // Create the previews directory and periodically clean it.
+    fs.mkdir(config.previews.tmpDir, { recursive: true }, (error) => {
+      if (error) {
+        log().error({ err: error }, 'Could not create the previews directory');
+        return callback({ code: 500, msg: 'Could not create the previews directory' });
+      }
 
-    // Periodically clean that directory.
-    Cleaner.start(config.previews.tmpDir, config.files.cleaner.interval);
+      // Periodically clean that directory.
+      Cleaner.start(config.previews.tmpDir, config.files.cleaner.interval);
 
-    PreviewAPI.refreshPreviewConfiguration(config, callback);
+      PreviewAPI.refreshPreviewConfiguration(config, callback);
+    });
   });
 }

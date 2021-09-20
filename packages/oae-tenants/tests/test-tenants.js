@@ -26,7 +26,7 @@ import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api
 import * as TestsUtil from 'oae-tests';
 import * as TenantsAPI from 'oae-tenants';
 import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 
 const isUndefined = isNil;
@@ -2202,135 +2202,139 @@ describe('Tenants', () => {
 
                                     // Check if the update was successful.
                                     // The old host name should no longer be accepting requests
-                                    RestAPI.Tenants.getTenant(tenant2UpperCaseAdminRestContext, null, (
-                                      error /* , tenant */
-                                    ) => {
-                                      assert.ok(error);
-                                      assert.strictEqual(error.code, 418);
-                                      // The new host name should now be responding to requests
-                                      const tenant3AdminRestContext = TestsUtil.createTenantAdminRestContext(
-                                        tenant3Host
-                                      );
-                                      RestAPI.Tenants.getTenant(tenant3AdminRestContext, null, (error, tenant) => {
-                                        assert.notExists(error);
-                                        assert.ok(tenant);
-                                        assert.strictEqual(tenant.alias, 'camtest');
-                                        assert.strictEqual(tenant.host, tenant3Host.toLowerCase());
-                                        assert.strictEqual(tenant.displayName, 'Queens College');
+                                    RestAPI.Tenants.getTenant(
+                                      tenant2UpperCaseAdminRestContext,
+                                      null,
+                                      (error /* , tenant */) => {
+                                        assert.ok(error);
+                                        assert.strictEqual(error.code, 418);
+                                        // The new host name should now be responding to requests
+                                        const tenant3AdminRestContext =
+                                          TestsUtil.createTenantAdminRestContext(tenant3Host);
+                                        RestAPI.Tenants.getTenant(tenant3AdminRestContext, null, (error, tenant) => {
+                                          assert.notExists(error);
+                                          assert.ok(tenant);
+                                          assert.strictEqual(tenant.alias, 'camtest');
+                                          assert.strictEqual(tenant.host, tenant3Host.toLowerCase());
+                                          assert.strictEqual(tenant.displayName, 'Queens College');
 
-                                        // Update the tenant display name and host as the tenant admin
-                                        TenantsTestUtil.updateTenantAndWait(
-                                          tenant3AdminRestContext,
-                                          null,
-                                          {
-                                            displayName: tenant4Description,
-                                            host: tenant4Host
-                                          },
-                                          (error_) => {
-                                            assert.notExists(error_);
+                                          // Update the tenant display name and host as the tenant admin
+                                          TenantsTestUtil.updateTenantAndWait(
+                                            tenant3AdminRestContext,
+                                            null,
+                                            {
+                                              displayName: tenant4Description,
+                                              host: tenant4Host
+                                            },
+                                            (error_) => {
+                                              assert.notExists(error_);
 
-                                            // Check if the update was successful.
-                                            // The old host name should no longer be accepting requests
-                                            RestAPI.Tenants.getTenant(tenant3AdminRestContext, null, (
-                                              error /* , tenant */
-                                            ) => {
-                                              assert.ok(error);
-                                              assert.strictEqual(error.code, 418);
-                                              // The new host name should now be responding to requests
-                                              const tenant4AdminRestContext = TestsUtil.createTenantAdminRestContext(
-                                                tenant4Host
-                                              );
+                                              // Check if the update was successful.
+                                              // The old host name should no longer be accepting requests
                                               RestAPI.Tenants.getTenant(
-                                                tenant4AdminRestContext,
+                                                tenant3AdminRestContext,
                                                 null,
-                                                (error, tenant) => {
-                                                  assert.notExists(error);
-                                                  assert.ok(tenant);
-                                                  assert.strictEqual(tenant.alias, 'camtest');
-                                                  assert.strictEqual(tenant.host, tenant4Host.toLowerCase());
-                                                  assert.strictEqual(tenant.displayName, tenant4Description);
-
-                                                  // Update the tenant display name and host as the tenant admin
-                                                  TenantsTestUtil.updateTenantAndWait(
+                                                (error /* , tenant */) => {
+                                                  assert.ok(error);
+                                                  assert.strictEqual(error.code, 418);
+                                                  // The new host name should now be responding to requests
+                                                  const tenant4AdminRestContext =
+                                                    TestsUtil.createTenantAdminRestContext(tenant4Host);
+                                                  RestAPI.Tenants.getTenant(
                                                     tenant4AdminRestContext,
                                                     null,
-                                                    {
-                                                      displayName: 'Cambridge University Test',
-                                                      host: 'cambridge.oae.com'
-                                                    },
-                                                    (error_) => {
-                                                      assert.notExists(error_);
+                                                    (error, tenant) => {
+                                                      assert.notExists(error);
+                                                      assert.ok(tenant);
+                                                      assert.strictEqual(tenant.alias, 'camtest');
+                                                      assert.strictEqual(tenant.host, tenant4Host.toLowerCase());
+                                                      assert.strictEqual(tenant.displayName, tenant4Description);
 
-                                                      // Check if the update was successful
-                                                      // The old host name should no longer be accepting requests
-                                                      RestAPI.Tenants.getTenant(tenant4AdminRestContext, null, (
-                                                        error /* , tenant */
-                                                      ) => {
-                                                        assert.ok(error);
-                                                        assert.strictEqual(error.code, 418);
+                                                      // Update the tenant display name and host as the tenant admin
+                                                      TenantsTestUtil.updateTenantAndWait(
+                                                        tenant4AdminRestContext,
+                                                        null,
+                                                        {
+                                                          displayName: 'Cambridge University Test',
+                                                          host: 'cambridge.oae.com'
+                                                        },
+                                                        (error_) => {
+                                                          assert.notExists(error_);
 
-                                                        // The new host name should now be responding to requests
-                                                        RestAPI.Tenants.getTenant(
-                                                          camAdminRestContext,
-                                                          null,
-                                                          (error, tenant) => {
-                                                            assert.notExists(error);
-                                                            assert.ok(tenant);
-                                                            assert.strictEqual(tenant.alias, 'camtest');
-                                                            assert.strictEqual(tenant.host, 'cambridge.oae.com');
-                                                            assert.strictEqual(
-                                                              tenant.displayName,
-                                                              'Cambridge University Test'
-                                                            );
+                                                          // Check if the update was successful
+                                                          // The old host name should no longer be accepting requests
+                                                          RestAPI.Tenants.getTenant(
+                                                            tenant4AdminRestContext,
+                                                            null,
+                                                            (error /* , tenant */) => {
+                                                              assert.ok(error);
+                                                              assert.strictEqual(error.code, 418);
 
-                                                            // Update the country code, ensuring it changed
-                                                            TenantsTestUtil.updateTenantAndWait(
-                                                              camAdminRestContext,
-                                                              null,
-                                                              { countryCode: 'ca' },
-                                                              (error_) => {
-                                                                assert.notExists(error_);
-                                                                RestAPI.Tenants.getTenant(
-                                                                  camAdminRestContext,
-                                                                  null,
-                                                                  (error, tenant) => {
-                                                                    assert.notExists(error);
-                                                                    assert.strictEqual(tenant.countryCode, 'CA');
+                                                              // The new host name should now be responding to requests
+                                                              RestAPI.Tenants.getTenant(
+                                                                camAdminRestContext,
+                                                                null,
+                                                                (error, tenant) => {
+                                                                  assert.notExists(error);
+                                                                  assert.ok(tenant);
+                                                                  assert.strictEqual(tenant.alias, 'camtest');
+                                                                  assert.strictEqual(tenant.host, 'cambridge.oae.com');
+                                                                  assert.strictEqual(
+                                                                    tenant.displayName,
+                                                                    'Cambridge University Test'
+                                                                  );
 
-                                                                    // Unset the country code, ensuring it changed
-                                                                    TenantsTestUtil.updateTenantAndWait(
-                                                                      camAdminRestContext,
-                                                                      null,
-                                                                      { countryCode: '' },
-                                                                      (error_) => {
-                                                                        assert.notExists(error_);
-                                                                        RestAPI.Tenants.getTenant(
-                                                                          camAdminRestContext,
-                                                                          null,
-                                                                          (error, tenant) => {
-                                                                            assert.notExists(error);
-                                                                            assert.ok(!tenant.countryCode);
-                                                                            return callback();
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      });
+                                                                  // Update the country code, ensuring it changed
+                                                                  TenantsTestUtil.updateTenantAndWait(
+                                                                    camAdminRestContext,
+                                                                    null,
+                                                                    { countryCode: 'ca' },
+                                                                    (error_) => {
+                                                                      assert.notExists(error_);
+                                                                      RestAPI.Tenants.getTenant(
+                                                                        camAdminRestContext,
+                                                                        null,
+                                                                        (error, tenant) => {
+                                                                          assert.notExists(error);
+                                                                          assert.strictEqual(tenant.countryCode, 'CA');
+
+                                                                          // Unset the country code, ensuring it changed
+                                                                          TenantsTestUtil.updateTenantAndWait(
+                                                                            camAdminRestContext,
+                                                                            null,
+                                                                            { countryCode: '' },
+                                                                            (error_) => {
+                                                                              assert.notExists(error_);
+                                                                              RestAPI.Tenants.getTenant(
+                                                                                camAdminRestContext,
+                                                                                null,
+                                                                                (error, tenant) => {
+                                                                                  assert.notExists(error);
+                                                                                  assert.ok(!tenant.countryCode);
+                                                                                  return callback();
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
                                                     }
                                                   );
                                                 }
                                               );
-                                            });
-                                          }
-                                        );
-                                      });
-                                    });
+                                            }
+                                          );
+                                        });
+                                      }
+                                    );
                                   }
                                 );
                               });

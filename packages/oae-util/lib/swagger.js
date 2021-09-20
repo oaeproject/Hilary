@@ -17,6 +17,12 @@ import fs from 'fs';
 import { format } from 'util';
 import OaeEmitter from 'oae-util/lib/emitter.js';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { logger } from 'oae-logger';
 
 import _ from 'underscore';

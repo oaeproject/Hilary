@@ -16,19 +16,19 @@
 /* eslint-disable no-import-assign */
 import { assert } from 'chai';
 import { format } from 'util';
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
-import { Context } from 'oae-context/lib/api';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
+import { Context } from 'oae-context/lib/api.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
 import * as ActivityAPI from 'oae-activity';
-import * as ActivityDAO from 'oae-activity/lib/internal/dao';
-import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
-import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao.js';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
+import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model.js';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import {
   mergeRight,
   isEmpty,

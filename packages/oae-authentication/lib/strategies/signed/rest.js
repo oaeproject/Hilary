@@ -15,12 +15,12 @@
 
 import passport from 'passport';
 
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeServer from 'oae-util/lib/server';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeServer from 'oae-util/lib/server.js';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationSignedUtil from 'oae-authentication/lib/strategies/signed/util';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationSignedUtil from 'oae-authentication/lib/strategies/signed/util.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 // Ensure that the signed auth URL bypass CSRF validation.
 // It has its own authenticity handling.

@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import { format } from 'util';
 
 import * as AuthenticationAPI from 'oae-authentication';
@@ -24,31 +22,38 @@ import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Context } from 'oae-context';
 import { User } from 'oae-principals/lib/model.js';
 
-// Initialize activity capabilities
 import * as activity from 'oae-principals/lib/activity.js';
-
-// Initialize search capabilities
 import * as search from 'oae-principals/lib/search.js';
-
-// Initialize invitations capabilities
 import * as invitations from 'oae-principals/lib/invitations.js';
-
-// Initialize members and memberships library capabilities
 import * as members from 'oae-principals/lib/libraries/members.js';
-
 import * as memberships from 'oae-principals/lib/libraries/memberships.js';
-
-// Initialize principals delete capabilities
 import * as deleted from 'oae-principals/lib/delete.js';
 import * as Cron from './cron.js';
 
 let globalContext = {};
 
 export function init(config, callback) {
-  _ensureGlobalAdmin(config, function (error) {
-    if (error) return callback(error);
+  // Initialize activity capabilities
+  activity.init(() => {
+    // Initialize search capabilities
+    search.init(() => {
+      // Initialize invitations capabilities
+      invitations.init(() => {
+        // Initialize members and memberships library capabilities
+        members.init(() => {
+          memberships.init(() => {
+            // Initialize principals delete capabilities
+            deleted.setListeners(() => {
+              _ensureGlobalAdmin(config, function (error) {
+                if (error) return callback(error);
 
-    return Cron.programUserDeletionTask(globalContext, callback);
+                return Cron.programUserDeletionTask(globalContext, callback);
+              });
+            });
+          });
+        });
+      });
+    });
   });
 }
 

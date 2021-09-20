@@ -17,6 +17,9 @@ import { format } from 'util';
 import _ from 'underscore';
 import clone from 'clone';
 
+import { promisify, callbackify } from 'util';
+import ora from 'ora';
+
 import * as Modules from 'oae-util/lib/modules.js';
 import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
@@ -25,6 +28,8 @@ import * as OaeUtil from 'oae-util/lib/util.js';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator.js';
+import path from 'path';
+import { pipe, defaultTo, mergeDeepRight } from 'ramda';
 
 const log = logger('oae-config');
 
@@ -35,6 +40,8 @@ const cachedGlobalSchema = {};
 let cachedTenantSchema = {};
 
 let cachedTenantConfigValues = {};
+
+const defaultToEmpty = defaultTo({});
 
 /**
  * The Configuration API.
@@ -267,7 +274,7 @@ const initConfig = function (_config, callback) {
   config = _config;
 
   // Cache the config schema
-  _cacheSchema(() => {
+  callbackify(_cacheSchema)(() => {
     _cacheAllTenantConfigs(callback);
   });
 };
@@ -302,6 +309,22 @@ const updateTenantConfig = function (tenantAlias, callback) {
 };
 
 /**
+ * TODO this is redundant with modules.js !!! fix this
+ *
+ * Executes Promises sequentially.
+ * @param {funcs} An array of funcs that return promises.
+ * @example
+ * const urls = ['/url1', '/url2', '/url3']
+ * serial(urls.map(url => () => $.ajax(url)))
+ *     .then(console.log.bind(console))
+ */
+const serial = (funcs) =>
+  funcs.reduce(
+    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+    Promise.resolve([])
+  );
+
+/**
  * Cache all of the module config descriptors. First of all, all of the available modules are retrieved
  * and modules that don't have a configuration file in the config directory are filtered out. Every file
  * in the /config directory of a module is read and will be added to the globally cached schema object.
@@ -311,65 +334,89 @@ const updateTenantConfig = function (tenantAlias, callback) {
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const _cacheSchema = function (callback) {
+const _cacheSchema = function () {
   // Get the available module
   const modules = Modules.getAvailableModules();
-  const toDo = modules.length;
-  let done = 0;
-  let complete = false;
+  let spinner;
+  // const toDo = modules.length;
+  // let done = 0;
+  // let complete = false;
 
-  /*!
-   * Get the configuration files for a given module and create the schema for global and tenant administrators
-   * when all configuration files have been loaded
-   *
-   * @param  {String}     module      The module we're getting the configuration for. e.g., `oae-principals`
-   */
-  const getModuleSchema = function (module) {
-    const dir = OaeUtil.getNodeModulesDir() + module + '/config/';
-    // Get a list of the available config files
-    IO.getFileListForFolder(dir, (error, configFiles) => {
-      if (complete) {
-        return;
-      }
+  return serial(
+    modules.map((moduleName) => {
+      const dir = OaeUtil.getNodeModulesDir() + moduleName + '/config/';
 
-      if (error) {
-        complete = true;
-        return callback(error);
-      }
+      return () => {
+        return new Promise((resolve, reject) => {
+          spinner = ora({
+            text: `Loading config for ${moduleName}...`,
+            spinner: 'arc'
+          }).start();
 
-      // Require all of them
-      for (const element of configFiles) {
-        const configFile = require(module + '/config/' + element);
-        cachedGlobalSchema[module] = _.extend(cachedGlobalSchema[module] || {}, configFile);
-      }
+          // Get a list of the available config files
+          promisify(IO.getFileListForFolder)(dir)
+            .then((configFiles) => {
+              return Promise.all(promiseToImportConfigFiles(configFiles, moduleName));
+            })
+            .then(() => {
+              /**
+               * Clone the cached global schema and filter out elements
+               * that are only visible to the global admin users
+               */
+              cachedTenantSchema = clone(cachedGlobalSchema);
 
-      done++;
-      if (done === toDo) {
-        // Clone the cached global schema and filter out elements that are only visible to the global admin users
-        cachedTenantSchema = clone(cachedGlobalSchema);
-        // Loop over all modules
-        _.each(cachedTenantSchema, (mod, moduleKey) => {
-          // Loop over all features per module
-          _.each(mod, (feature, featureKey) => {
-            // Loop over all elements per feature
-            _.each(feature.elements, (element, elementKey) => {
-              // If the value is only visible to global admins remove it from the object
-              if (element.globalAdminOnly) {
-                delete cachedTenantSchema[moduleKey][featureKey].elements[elementKey];
-              }
+              // Loop over all modules
+              _.each(cachedTenantSchema, (mod, moduleKey) => {
+                // Loop over all features per module
+                _.each(mod, (feature, featureKey) => {
+                  // Loop over all elements per feature
+                  _.each(feature.elements, (element, elementKey) => {
+                    // If the value is only visible to global admins remove it from the object
+                    if (element.globalAdminOnly) {
+                      delete cachedTenantSchema[moduleKey][featureKey].elements[elementKey];
+                    }
+                  });
+                });
+              });
+
+              spinner.succeed(`Loaded config for module ${moduleName}`);
+              resolve();
+            })
+            .catch((e) => {
+              spinner.fail(`Failed to load config for module ${moduleName}`);
+              reject(e);
             });
-          });
         });
-
-        complete = true;
-        return callback();
-      }
+      };
+    })
+  )
+    .catch((e) => {
+      reject(e);
+    })
+    .finally(() => {
+      spinner.stop();
+      return;
     });
-  };
+};
 
-  for (const element of modules) {
-    getModuleSchema(element);
-  }
+const promiseToImportConfigFiles = (configFiles, moduleName) => {
+  let promises = configFiles.map((element) => {
+    const fileToImport = path.join(moduleName, 'config', element);
+
+    return new Promise((resolve, reject) => {
+      import(fileToImport)
+        .then((configFile) => {
+          cachedGlobalSchema[moduleName] = pipe(
+            defaultToEmpty,
+            mergeDeepRight(configFile)
+          )(cachedGlobalSchema[moduleName]);
+          resolve(configFile);
+        })
+        .catch((e) => reject(e));
+    });
+  });
+
+  return promises;
 };
 
 /**

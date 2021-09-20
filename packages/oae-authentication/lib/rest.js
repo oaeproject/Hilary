@@ -12,7 +12,7 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
 
@@ -20,24 +20,15 @@ import * as AuthenticationAPI from 'oae-authentication';
  * Authentication providers
  */
 
-// eslint-disable-next-line no-unused-vars
-import cas from './strategies/cas/rest.js';
-// eslint-disable-next-line no-unused-vars
-import facebook from './strategies/facebook/rest.js';
-// eslint-disable-next-line no-unused-vars
-import google from './strategies/google/rest.js';
-// eslint-disable-next-line no-unused-vars
-import ldap from './strategies/ldap/rest.js';
-// eslint-disable-next-line no-unused-vars
-import local from './strategies/local/rest.js';
-// eslint-disable-next-line no-unused-vars
-import oauth from './strategies/oauth/rest.js';
-// eslint-disable-next-line no-unused-vars
-import shibb from './strategies/shibboleth/rest.js';
-// eslint-disable-next-line no-unused-vars
-import signed from './strategies/signed/rest.js';
-// eslint-disable-next-line no-unused-vars
-import twitter from './strategies/twitter/rest.js';
+import * as cas from './strategies/cas/rest.js';
+import * as facebook from './strategies/facebook/rest.js';
+import * as google from './strategies/google/rest.js';
+import * as ldap from './strategies/ldap/rest.js';
+import * as local from './strategies/local/rest.js';
+import * as oauth from './strategies/oauth/rest.js';
+import * as shibb from './strategies/shibboleth/rest.js';
+import * as signed from './strategies/signed/rest.js';
+import * as twitter from './strategies/twitter/rest.js';
 
 /**
  * @REST postAuthLogout
@@ -55,7 +46,7 @@ OAE.tenantRouter.on('post', '/api/auth/logout', AuthenticationAPI.logout);
 /**
  * Add two endpoints for REST control
  */
-const _getResetPasswordSecret = function(request, response) {
+const _getResetPasswordSecret = function (request, response) {
   AuthenticationAPI.getResetPasswordSecret(request.ctx, request.params.username, (error, token) => {
     if (error) {
       return response.status(error.code).send(error.msg);
@@ -84,13 +75,13 @@ const _getResetPasswordSecret = function(request, response) {
  */
 OAE.tenantRouter.on('get', '/api/auth/local/reset/secret/:username', _getResetPasswordSecret);
 
-const _resetPassword = function(request, response) {
+const _resetPassword = function (request, response) {
   AuthenticationAPI.resetPassword(
     request.ctx,
     request.params.username,
     request.body.secret,
     request.body.newPassword,
-    error => {
+    (error) => {
       if (error) {
         return response.status(error.code).send(error.msg);
       }
@@ -128,7 +119,7 @@ OAE.tenantRouter.on('post', '/api/auth/local/reset/password/:username', _resetPa
  * @param  {Response}   res     The express response
  * @api private
  */
-const _getUserLoginIds = function(request, response) {
+const _getUserLoginIds = function (request, response) {
   AuthenticationAPI.getUserLoginIds(request.ctx, request.params.userId, (error, loginIds) => {
     if (error) {
       return response.status(error.code).send(error.msg);

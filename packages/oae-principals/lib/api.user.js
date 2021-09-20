@@ -57,7 +57,23 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
+import {
+  add,
+  defaultTo,
+  equals,
+  path,
+  __,
+  slice,
+  join,
+  last,
+  split,
+  curry,
+  forEach,
+  ifElse,
+  compose,
+  not,
+  isNil
+} from 'ramda';
 import isIn from 'validator/lib/isIn.js';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
@@ -186,11 +202,12 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
   }
 
   // Const isAdmin = ctx.user() && ctx.user().isAdmin(tenantAlias);
-  options.visibility = options.visibility || PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility');
+  // TODO I did this but I shouldn't have to... check this further
+  options.visibility = defaultTo('private', PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility'));
   options.publicAlias = options.publicAlias || displayName;
   options.acceptedTC = options.acceptedTC || false;
-  options.emailPreference =
-    options.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
+  // TODO I did this but I shouldn't have to... check this further
+  options.emailPreference = defaultTo('weekly', PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference'));
   options.isUserArchive = options.isUserArchive || null;
 
   try {

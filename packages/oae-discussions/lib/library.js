@@ -18,260 +18,260 @@ import DiscussionsAPI from 'oae-discussions';
 import _ from 'underscore';
 import * as AuthzAPI from 'oae-authz';
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
 
 const log = logger('oae-discussions');
 
 // When updating discussions as a result of new messages, update it at most every hour
 const LIBRARY_UPDATE_THRESHOLD_SECONDS = 3600;
 
-/*!
- * Register a library indexer that can provide resources to reindex the discussions library
- */
-LibraryAPI.Index.registerLibraryIndex(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, {
-  pageResources(libraryId, start, limit, callback) {
-    // Query all the discussion ids ('d') to which the library owner is directly associated in this batch of paged resources
-    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, (err, roles, nextToken) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // We just need the ids, not the roles
-      const ids = _.pluck(roles, 'id');
-
-      DiscussionsDAO.getDiscussionsById(
-        ids,
-        ['id', 'tenantAlias', 'visibility', 'lastModified'],
-        (err, discussions) => {
-          if (err) {
-            return callback(err);
-          }
-
-          // Convert all the discussions into the light-weight library items that describe how its placed in a library index
-          const resources = _.chain(discussions)
-            .compact()
-            .map(discussion => {
-              return { rank: discussion.lastModified, resource: discussion };
-            })
-            .value();
-
-          return callback(null, resources, nextToken);
+const init = (callback) => {
+  /*!
+   * Register a library indexer that can provide resources to reindex the discussions library
+   */
+  LibraryAPI.Index.registerLibraryIndex(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, {
+    pageResources(libraryId, start, limit, callback) {
+      // Query all the discussion ids ('d') to which the library owner is directly associated in this batch of paged resources
+      AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, (err, roles, nextToken) => {
+        if (err) {
+          return callback(err);
         }
-      );
-    });
-  }
-});
 
-/*!
- * Configure the discussion library search endpoint
- */
-LibraryAPI.Search.registerLibrarySearch('discussion-library', ['discussion']);
+        // We just need the ids, not the roles
+        const ids = _.pluck(roles, 'id');
 
-/*!
- * When a discussion is created, add the discussion to the member discussion libraries
- */
-DiscussionsAPI.when(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussion, memberChangeInfo, callback) => {
-  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  _insertLibrary(addedMemberIds, discussion, err => {
-    if (err) {
-      log().warn(
-        {
-          err,
-          discussionId: discussion.id,
-          memberIds: addedMemberIds
-        },
-        'An error occurred inserting discussion into discussion libraries after create'
-      );
+        DiscussionsDAO.getDiscussionsById(
+          ids,
+          ['id', 'tenantAlias', 'visibility', 'lastModified'],
+          (err, discussions) => {
+            if (err) {
+              return callback(err);
+            }
+
+            // Convert all the discussions into the light-weight library items that describe how its placed in a library index
+            const resources = _.chain(discussions)
+              .compact()
+              .map((discussion) => {
+                return { rank: discussion.lastModified, resource: discussion };
+              })
+              .value();
+
+            return callback(null, resources, nextToken);
+          }
+        );
+      });
     }
-
-    return callback();
   });
-});
 
-/*!
- * When a discussion is updated, update all discussion libraries with its updated last modified
- * date
- */
-DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, updatedDiscussion, oldDiscussion) => {
-  // Get all the member ids, we will update their discussion libraries
-  _getAllMemberIds(updatedDiscussion.id, (err, memberIds) => {
-    if (err) {
-      log().warn(
-        {
-          err,
-          discussionId: updatedDiscussion.id,
-          memberIds
-        },
-        'An error occurred while updating a discussion in all discussion libraries'
-      );
-    }
+  /*!
+   * Configure the discussion library search endpoint
+   */
+  LibraryAPI.Search.registerLibrarySearch('discussion-library', ['discussion']);
 
-    // Perform all the library updates
-    return _updateLibrary(memberIds, updatedDiscussion, oldDiscussion.lastModified);
-  });
-});
-
-/**
- * When a discussion is deleted, remove it from all discussion libraries
- */
-DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, removedMemberIds, callback) => {
-  // Remove the discussion from all libraries
-  _removeLibrary(removedMemberIds, discussion, err => {
-    if (err) {
-      log().warn(
-        {
-          err,
-          discussionId: discussion.id
-        },
-        'An error occurred while removing a deleted discussion from all discussion libraries'
-      );
-    }
-
-    return callback();
-  });
-});
-
-/**
- * When a discussions members are updated, pass the required updates to its members library as well
- * as all the discussions libraries that contain the discussion
- */
-DiscussionsAPI.when(
-  DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
-  (ctx, discussion, memberChangeInfo, opts, callback) => {
+  /*!
+   * When a discussion is created, add the discussion to the member discussion libraries
+   */
+  DiscussionsAPI.when(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussion, memberChangeInfo, callback) => {
     const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-    const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
-    const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
-
-    const oldLastModified = discussion.lastModified;
-
-    // Asynchronously remove from the library of removed members before we touch the discussion to update the lastModified
-    _removeLibrary(removedMemberIds, discussion, err => {
+    _insertLibrary(addedMemberIds, discussion, (err) => {
       if (err) {
         log().warn(
           {
             err,
-            principalIds: removedMemberIds,
-            discussionId: discussion.id
+            discussionId: discussion.id,
+            memberIds: addedMemberIds
           },
-          'Error removing discussion from principal libraries. Ignoring.'
+          'An error occurred inserting discussion into discussion libraries after create'
         );
-      } else if (_.isEmpty(updatedMemberIds) && _.isEmpty(addedMemberIds)) {
-        // If all we did was remove members, don't update the discussion timestamp and user
-        // discussion libraries
-        return callback();
       }
 
-      // Only touch the discussion and update its profile if it is within the update duration threshold
-      const touchDiscussion = _testDiscussionUpdateThreshold(discussion);
-      OaeUtil.invokeIfNecessary(touchDiscussion, _touch, discussion, (err, touchedDiscussion) => {
+      return callback();
+    });
+  });
+
+  /*!
+   * When a discussion is updated, update all discussion libraries with its updated last modified
+   * date
+   */
+  DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, updatedDiscussion, oldDiscussion) => {
+    // Get all the member ids, we will update their discussion libraries
+    _getAllMemberIds(updatedDiscussion.id, (err, memberIds) => {
+      if (err) {
+        log().warn(
+          {
+            err,
+            discussionId: updatedDiscussion.id,
+            memberIds
+          },
+          'An error occurred while updating a discussion in all discussion libraries'
+        );
+      }
+
+      // Perform all the library updates
+      return _updateLibrary(memberIds, updatedDiscussion, oldDiscussion.lastModified);
+    });
+  });
+
+  /**
+   * When a discussion is deleted, remove it from all discussion libraries
+   */
+  DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, removedMemberIds, callback) => {
+    // Remove the discussion from all libraries
+    _removeLibrary(removedMemberIds, discussion, (err) => {
+      if (err) {
+        log().warn(
+          {
+            err,
+            discussionId: discussion.id
+          },
+          'An error occurred while removing a deleted discussion from all discussion libraries'
+        );
+      }
+
+      return callback();
+    });
+  });
+
+  /**
+   * When a discussions members are updated, pass the required updates to its members library as well
+   * as all the discussions libraries that contain the discussion
+   */
+  DiscussionsAPI.when(
+    DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
+    (ctx, discussion, memberChangeInfo, opts, callback) => {
+      const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
+      const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+      const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
+
+      const oldLastModified = discussion.lastModified;
+
+      // Asynchronously remove from the library of removed members before we touch the discussion to update the lastModified
+      _removeLibrary(removedMemberIds, discussion, (err) => {
         if (err) {
           log().warn(
             {
               err,
+              principalIds: removedMemberIds,
               discussionId: discussion.id
             },
-            'Error touching the discussion while adding members. Ignoring.'
+            'Error removing discussion from principal libraries. Ignoring.'
           );
+        } else if (_.isEmpty(updatedMemberIds) && _.isEmpty(addedMemberIds)) {
+          // If all we did was remove members, don't update the discussion timestamp and user
+          // discussion libraries
+          return callback();
         }
 
-        discussion = touchedDiscussion || discussion;
-
-        // Always insert the discussion into the added user libraries
-        _insertLibrary(addedMemberIds, discussion, err => {
+        // Only touch the discussion and update its profile if it is within the update duration threshold
+        const touchDiscussion = _testDiscussionUpdateThreshold(discussion);
+        OaeUtil.invokeIfNecessary(touchDiscussion, _touch, discussion, (err, touchedDiscussion) => {
           if (err) {
             log().warn(
               {
                 err,
-                principalIds: addedMemberIds,
-                discussionIds: discussion.id
+                discussionId: discussion.id
               },
-              'Error inserting the discussion into new member libraries while adding members. Ignoring.'
+              'Error touching the discussion while adding members. Ignoring.'
             );
           }
 
-          // For all existing members of the discussion, we update the discussion in their
-          // library but only if the discussion last modified time was actually updated. Here
-          // we use the `touchedDiscussion` object because even if `touchDiscussion` was true,
-          // we could have failed to touch the discussion, in which case we would not want to
-          // update the discussion in libraries
-          const libraryUpdateIds = _.chain(memberChangeInfo.roles.before)
-            .keys()
-            .difference(removedMemberIds)
-            .value();
-          OaeUtil.invokeIfNecessary(
-            touchedDiscussion,
-            _updateLibrary,
-            libraryUpdateIds,
-            discussion,
-            oldLastModified,
-            err => {
-              if (err) {
-                log().warn(
-                  {
-                    err,
-                    principalIds: libraryUpdateIds,
-                    discussionId: discussion.id
-                  },
-                  'Error updating the library index for these users. Ignoring the error, but some repair may be necessary for these users.'
-                );
-              }
+          discussion = touchedDiscussion || discussion;
 
-              return callback();
+          // Always insert the discussion into the added user libraries
+          _insertLibrary(addedMemberIds, discussion, (err) => {
+            if (err) {
+              log().warn(
+                {
+                  err,
+                  principalIds: addedMemberIds,
+                  discussionIds: discussion.id
+                },
+                'Error inserting the discussion into new member libraries while adding members. Ignoring.'
+              );
             }
-          );
+
+            // For all existing members of the discussion, we update the discussion in their
+            // library but only if the discussion last modified time was actually updated. Here
+            // we use the `touchedDiscussion` object because even if `touchDiscussion` was true,
+            // we could have failed to touch the discussion, in which case we would not want to
+            // update the discussion in libraries
+            const libraryUpdateIds = _.chain(memberChangeInfo.roles.before).keys().difference(removedMemberIds).value();
+            OaeUtil.invokeIfNecessary(
+              touchedDiscussion,
+              _updateLibrary,
+              libraryUpdateIds,
+              discussion,
+              oldLastModified,
+              (err) => {
+                if (err) {
+                  log().warn(
+                    {
+                      err,
+                      principalIds: libraryUpdateIds,
+                      discussionId: discussion.id
+                    },
+                    'Error updating the library index for these users. Ignoring the error, but some repair may be necessary for these users.'
+                  );
+                }
+
+                return callback();
+              }
+            );
+          });
         });
       });
-    });
-  }
-);
+    }
+  );
 
-/*!
- * When a new message is created for the discussion, update its last modified date and update its
- * rank in all discussion libraries
- */
-DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
-  // Check to see if we are in a threshold to perform a discussion lastModified update. If not, we
-  // don't promote the discussion the library ranks
-  if (!_testDiscussionUpdateThreshold(discussion)) {
-    return;
-  }
-
-  // Try and get the principals whose libraries will be updated
-  _getAllMemberIds(discussion.id, (err, memberIds) => {
-    if (err) {
-      // If we can't get the members, don't so that we don't risk
-      return log().warn(
-        {
-          err,
-          discussionId: discussion.id,
-          memberIds
-        },
-        'Error fetching discussion members list to update library. Skipping updating libraries'
-      );
+  /*!
+   * When a new message is created for the discussion, update its last modified date and update its
+   * rank in all discussion libraries
+   */
+  DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
+    // Check to see if we are in a threshold to perform a discussion lastModified update. If not, we
+    // don't promote the discussion the library ranks
+    if (!_testDiscussionUpdateThreshold(discussion)) {
+      return;
     }
 
-    // Update the lastModified of the discussion
-    _touch(discussion, (err, updatedDiscussion) => {
+    // Try and get the principals whose libraries will be updated
+    _getAllMemberIds(discussion.id, (err, memberIds) => {
       if (err) {
-        // If we get an error touching the discussion, we simply won't update the libraries. Better luck next time.
+        // If we can't get the members, don't so that we don't risk
         return log().warn(
           {
             err,
             discussionId: discussion.id,
             memberIds
           },
-          'Error touching discussion to update lastModified time. Skipping updating libraries'
+          'Error fetching discussion members list to update library. Skipping updating libraries'
         );
       }
 
-      return _updateLibrary(memberIds, updatedDiscussion, discussion.lastModified);
+      // Update the lastModified of the discussion
+      _touch(discussion, (err, updatedDiscussion) => {
+        if (err) {
+          // If we get an error touching the discussion, we simply won't update the libraries. Better luck next time.
+          return log().warn(
+            {
+              err,
+              discussionId: discussion.id,
+              memberIds
+            },
+            'Error touching discussion to update lastModified time. Skipping updating libraries'
+          );
+        }
+
+        return _updateLibrary(memberIds, updatedDiscussion, discussion.lastModified);
+      });
     });
   });
-});
+  return callback();
+};
 
 /**
  * Perform a "touch" on a discussion, which updates only the lastModified date of the discussion
@@ -282,7 +282,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
  * @param  {Discussion} [callback.discussion]   The discussion object with the new lastModified date. If not specified, then the discussion was not updated due to rate-limiting.
  * @api private
  */
-const _touch = function(discussion, callback) {
+const _touch = function (discussion, callback) {
   DiscussionsDAO.updateDiscussion(discussion, { lastModified: Date.now() }, callback);
 };
 
@@ -293,7 +293,7 @@ const _touch = function(discussion, callback) {
  * @return {Boolean}                   `true` if the discussion was last updated beyond the threshold and `_touch` will be effective. `false` otherwise.
  * @api private
  */
-const _testDiscussionUpdateThreshold = function(discussion) {
+const _testDiscussionUpdateThreshold = function (discussion) {
   return !discussion.lastModified || Date.now() - discussion.lastModified > LIBRARY_UPDATE_THRESHOLD_SECONDS * 1000;
 };
 
@@ -306,7 +306,7 @@ const _testDiscussionUpdateThreshold = function(discussion) {
  * @param  {String[]}   callback.memberIds  The member ids associated to the discussion
  * @api private
  */
-const _getAllMemberIds = function(discussionId, callback) {
+const _getAllMemberIds = function (discussionId, callback) {
   AuthzAPI.getAllAuthzMembers(discussionId, (err, memberIdRoles) => {
     if (err) {
       return callback(err);
@@ -326,10 +326,10 @@ const _getAllMemberIds = function(discussionId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _insertLibrary = function(principalIds, discussion, callback) {
+const _insertLibrary = function (principalIds, discussion, callback) {
   callback =
     callback ||
-    function(err) {
+    function (err) {
       if (err) {
         log().error(
           {
@@ -346,7 +346,7 @@ const _insertLibrary = function(principalIds, discussion, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: principalId,
       rank: discussion.lastModified,
@@ -367,10 +367,10 @@ const _insertLibrary = function(principalIds, discussion, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _updateLibrary = function(principalIds, discussion, oldLastModified, callback) {
+const _updateLibrary = function (principalIds, discussion, oldLastModified, callback) {
   callback =
     callback ||
-    function(err) {
+    function (err) {
       if (err) {
         log().error(
           {
@@ -388,7 +388,7 @@ const _updateLibrary = function(principalIds, discussion, oldLastModified, callb
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: principalId,
       oldRank: oldLastModified,
@@ -409,10 +409,10 @@ const _updateLibrary = function(principalIds, discussion, oldLastModified, callb
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _removeLibrary = function(principalIds, discussion, callback) {
+const _removeLibrary = function (principalIds, discussion, callback) {
   callback =
     callback ||
-    function(err) {
+    function (err) {
       if (err) {
         log().error(
           {
@@ -429,7 +429,7 @@ const _removeLibrary = function(principalIds, discussion, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
+  const entries = _.map(principalIds, (principalId) => {
     return {
       id: principalId,
       rank: discussion.lastModified,
@@ -439,3 +439,5 @@ const _removeLibrary = function(principalIds, discussion, callback) {
 
   LibraryAPI.Index.remove(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };
+
+export { init };

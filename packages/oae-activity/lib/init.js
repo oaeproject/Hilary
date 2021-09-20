@@ -13,9 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
-import * as ActivityAPI from 'oae-activity';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityPush from './internal/push.js';
 
 // Register some of the default streams
@@ -28,12 +26,18 @@ import * as Notifications from './internal/notifications.js';
 import * as Email from './internal/email.js';
 
 export function init(config, callback) {
-  ActivityAPI.refreshConfiguration(config.activity, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  Activity.init(() => {
+    Notifications.init(() => {
+      Email.init(() => {
+        ActivityAPI.refreshConfiguration(config.activity, (error) => {
+          if (error) {
+            return callback(error);
+          }
 
-    // Configure the push notifications
-    ActivityPush.init(callback);
+          // Configure the push notifications
+          ActivityPush.init(callback);
+        });
+      });
+    });
   });
 }

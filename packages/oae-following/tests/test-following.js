@@ -17,7 +17,7 @@ import { assert } from 'chai';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 import { drop, map, path } from 'ramda';
 
@@ -218,19 +218,23 @@ describe('Following', () => {
           assert.strictEqual(error.code, 400);
 
           // Verify a non-existing user
-          RestAPI.Following.getFollowers(bert.restContext, 'u:cam:nonExistentUserId', null, null, (
-            error /* , response */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 404);
+          RestAPI.Following.getFollowers(
+            bert.restContext,
+            'u:cam:nonExistentUserId',
+            null,
+            null,
+            (error /* , response */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 404);
 
-            // Sanity check a valid fetch
-            RestAPI.Following.getFollowers(bert.restContext, bert.user.id, null, null, (error, response) => {
-              assert.notExists(error);
-              assert.ok(response);
-              return callback();
-            });
-          });
+              // Sanity check a valid fetch
+              RestAPI.Following.getFollowers(bert.restContext, bert.user.id, null, null, (error, response) => {
+                assert.notExists(error);
+                assert.ok(response);
+                return callback();
+              });
+            }
+          );
         });
       });
     });
@@ -256,19 +260,23 @@ describe('Following', () => {
           assert.strictEqual(error.code, 400);
 
           // Verify a non-existing user
-          RestAPI.Following.getFollowing(bert.restContext, 'u:cam:nonExistentUserId', null, null, (
-            error /* , response */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 404);
+          RestAPI.Following.getFollowing(
+            bert.restContext,
+            'u:cam:nonExistentUserId',
+            null,
+            null,
+            (error /* , response */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 404);
 
-            // Sanity check a valid fetch
-            RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (error, response) => {
-              assert.notExists(error);
-              assert.ok(response);
-              return callback();
-            });
-          });
+              // Sanity check a valid fetch
+              RestAPI.Following.getFollowing(bert.restContext, bert.user.id, null, null, (error, response) => {
+                assert.notExists(error);
+                assert.ok(response);
+                return callback();
+              });
+            }
+          );
         });
       });
     });

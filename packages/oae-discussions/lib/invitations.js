@@ -18,87 +18,91 @@ import DiscussionsAPI from 'oae-discussions';
 import { pipe, filter, keys, isEmpty } from 'ramda';
 import _ from 'underscore';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
 
 import { Context } from 'oae-context';
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
 
 import { logger } from 'oae-logger';
 
 const log = logger('oae-discussions-invitations');
 
-/*!
- * When an invitation is accepted, pass on the events to update discussion members and then feed
- * back the discussion resources into the event emitter
- */
-ResourceActions.emitter.when(
-  ResourceConstants.events.ACCEPTED_INVITATION,
-  (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
-    // Filter the invitations and changes down to only discussion invitations
-    const discussionIds = pipe(keys, filter(_isDiscussionId))(memberChangeInfosByResourceId);
-    if (isEmpty(discussionIds)) return callback();
+const init = (callback) => {
+  /*!
+   * When an invitation is accepted, pass on the events to update discussion members and then feed
+   * back the discussion resources into the event emitter
+   */
+  ResourceActions.emitter.when(
+    ResourceConstants.events.ACCEPTED_INVITATION,
+    (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
+      // Filter the invitations and changes down to only discussion invitations
+      const discussionIds = pipe(keys, filter(_isDiscussionId))(memberChangeInfosByResourceId);
+      if (isEmpty(discussionIds)) return callback();
 
-    DiscussionsDAO.getDiscussionsById(discussionIds, null, (error, discussions) => {
+      DiscussionsDAO.getDiscussionsById(discussionIds, null, (error, discussions) => {
+        if (error) {
+          log().warn(
+            {
+              err: error,
+              discussionIds
+            },
+            'An error occurred while getting discussions to update discussion libraries after an invitation was accepted'
+          );
+          return callback();
+        }
+
+        // Invoke the "accept invitation" handler with the resources when we have them. We
+        // invoke this after the get principals call for test synchronization
+        callback(null, discussions);
+
+        // Fire members update tasks for each discussion
+        _.each(discussions, (discussion) => {
+          const invitationHash = _.findWhere(invitationHashes, { resourceId: discussion.id });
+          const inviterUser = inviterUsersById[invitationHash.inviterUserId];
+
+          const invitationCtx = Context.fromUser(inviterUser);
+          const invitation = Invitation.fromHash(invitationHash, discussion, inviterUser);
+          const memberChangeInfo = memberChangeInfosByResourceId[discussion.id];
+
+          return DiscussionsAPI.emit(
+            DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
+            invitationCtx,
+            discussion,
+            memberChangeInfo,
+            { invitation }
+          );
+        });
+      });
+    }
+  );
+
+  /*!
+   * When a discussion is deleted, we delete all invitations associated to it
+   */
+  DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, memberIds, callback) => {
+    AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, (error) => {
       if (error) {
         log().warn(
           {
             err: error,
-            discussionIds
+            discussionId: discussion.id
           },
-          'An error occurred while getting discussions to update discussion libraries after an invitation was accepted'
+          'An error occurred while removing invitations after a discussion was deleted'
         );
-        return callback();
       }
 
-      // Invoke the "accept invitation" handler with the resources when we have them. We
-      // invoke this after the get principals call for test synchronization
-      callback(null, discussions);
-
-      // Fire members update tasks for each discussion
-      _.each(discussions, (discussion) => {
-        const invitationHash = _.findWhere(invitationHashes, { resourceId: discussion.id });
-        const inviterUser = inviterUsersById[invitationHash.inviterUserId];
-
-        const invitationCtx = Context.fromUser(inviterUser);
-        const invitation = Invitation.fromHash(invitationHash, discussion, inviterUser);
-        const memberChangeInfo = memberChangeInfosByResourceId[discussion.id];
-
-        return DiscussionsAPI.emit(
-          DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
-          invitationCtx,
-          discussion,
-          memberChangeInfo,
-          { invitation }
-        );
-      });
+      return callback();
     });
-  }
-);
-
-/*!
- * When a discussion is deleted, we delete all invitations associated to it
- */
-DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, memberIds, callback) => {
-  AuthzInvitationsDAO.deleteInvitationsByResourceId(discussion.id, (error) => {
-    if (error) {
-      log().warn(
-        {
-          err: error,
-          discussionId: discussion.id
-        },
-        'An error occurred while removing invitations after a discussion was deleted'
-      );
-    }
-
-    return callback();
   });
-});
+
+  return callback();
+};
 
 /**
  * Determine if the given id is a discussion id
@@ -110,3 +114,5 @@ DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discus
 const _isDiscussionId = function (discussionId) {
   return AuthzUtil.isResourceId(discussionId) && discussionId.indexOf('d:') === 0;
 };
+
+export { init };

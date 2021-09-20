@@ -63,6 +63,8 @@ const strategies = {};
 
 // When a tenant is created, configure the default authentication strategies
 TenantsAPI.emitter.on('created', (tenant) => {
+  // Waiting for AuthenticationAPI to boot and register the authentication strategies first
+  // before we can use them
   refreshStrategies(tenant);
 });
 
@@ -78,6 +80,10 @@ TenantsAPI.emitter.on('refresh', (tenant) => {
 
 // When the server has started up, we enable all the strategies for all the tenants
 OaeEmitter.on('ready', () => {
+  _refreshAllTenantStrategies();
+});
+
+OaeEmitter.on('refreshAllTenantStrategies', () => {
   _refreshAllTenantStrategies();
 });
 
@@ -1435,7 +1441,8 @@ const registerStrategy = function (strategyName, strategy) {
 };
 
 /**
- * Refresh the known passport login strategies for a given tenant. This will be called for all registered tenants upon start-up
+ * Refresh the known passport login strategies for a given tenant.
+ * This will be called for all registered tenants upon start-up
  * and when new tenants are being started on the fly.
  *
  * @param  {Tenant} tenant  The tenant for which we want to refresh the authentication capabilities

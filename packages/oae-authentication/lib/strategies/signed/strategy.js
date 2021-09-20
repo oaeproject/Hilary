@@ -16,11 +16,11 @@
 import { inherits } from 'util';
 import passport from 'passport';
 
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationSignedUtil from 'oae-authentication/lib/strategies/signed/util';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationSignedUtil from 'oae-authentication/lib/strategies/signed/util.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 const Strategy = function () {
   passport.Strategy.call(this);

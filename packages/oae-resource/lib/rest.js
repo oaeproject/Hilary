@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
-import * as ResourceActions from 'oae-resource/lib/actions';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
 
 /**
  * @REST postInvitationAccept

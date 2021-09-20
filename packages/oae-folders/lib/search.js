@@ -13,42 +13,35 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import _ from 'underscore';
 
-import * as AuthzSearch from 'oae-authz/lib/search';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as AuthzSearch from 'oae-authz/lib/search.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import { logger } from 'oae-logger';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 
 import * as FoldersAPI from 'oae-folders';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 
 const log = logger('folders-search');
 
 import {
-  unless,
   compose,
   identity,
-  has,
   assoc,
   __,
   mergeLeft,
   mergeDeepLeft,
   pipe,
   map,
-  concat,
   defaultTo,
   head,
-  mergeDeepWith,
   reject,
   isNil,
-  path,
   prop,
   mapObjIndexed
 } from 'ramda';
@@ -66,7 +59,7 @@ const removeFalsy = reject(isNil);
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     FoldersConstants.search.MAPPING_FOLDER_MESSAGE,
     ['folder'],
@@ -118,7 +111,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.DELETED_FOLDER, (ctx, folder) => {
 /*!
  * When the previews for a folder are updated we reindex its metadata
  */
-FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, folder => {
+FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_PREVIEWS, (folder) => {
   SearchAPI.postIndexTask('folder', [{ id: folder.groupId, folderId: folder.id }], {
     resource: true
   });
@@ -154,8 +147,8 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, fold
  * @param  {Content[]}      contentItems    The content items that were added or removed
  * @api private
  */
-const _indexContentResourceMembers = function(ctx, folder, contentItems) {
-  const resources = _.map(contentItems, contentItem => {
+const _indexContentResourceMembers = function (ctx, folder, contentItems) {
+  const resources = _.map(contentItems, (contentItem) => {
     return { id: contentItem.id };
   });
 
@@ -217,7 +210,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.DELETED_COMMENT, (ctx, message, fo
  *
  * @see MessageBoxSearch.registerMessageSearchDocument
  */
-const _produceFolderMessageDocuments = function(resources, callback, _documents) {
+const _produceFolderMessageDocuments = function (resources, callback, _documents) {
   _documents = _documents || [];
   if (_.isEmpty(resources)) {
     return callback(null, _documents);
@@ -256,12 +249,12 @@ const _produceFolderMessageDocuments = function(resources, callback, _documents)
  * @see SearchAPI#registerSearchDocumentProducer
  * @api private
  */
-const _produceFolderSearchDocuments = function(resources, callback) {
+const _produceFolderSearchDocuments = function (resources, callback) {
   if (_.isEmpty(resources)) {
     return callback(null, []);
   }
 
-  const folderIds = _.map(resources, resource => {
+  const folderIds = _.map(resources, (resource) => {
     return resource.folderId;
   });
 
@@ -282,7 +275,7 @@ const _produceFolderSearchDocuments = function(resources, callback) {
  * @return {Object}                 A search document
  * @api private
  */
-const _produceFolderSearchDocument = function(folder) {
+const _produceFolderSearchDocument = function (folder) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
   const fullText = _.compact([folder.displayName, folder.description]).join(' ');
 
@@ -336,7 +329,7 @@ SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter
  * @api private
  */
-const _transformFolderDocuments = function(ctx, docs, callback) {
+const _transformFolderDocuments = function (ctx, docs, callback) {
   const transformedDocs = mapObjIndexed((doc, docId) => {
     const scalarFields = map(head, doc.fields);
     const extraFields = compose(defaultToEmptyObject, head)(doc.fields._extra);
@@ -351,7 +344,7 @@ const _transformFolderDocuments = function(ctx, docs, callback) {
     const { thumbnailUrl } = scalarFields;
 
     // If applicable, sign the thumbnailUrl so the current user can access it
-    const signThumbnail = thumbnailUrl => {
+    const signThumbnail = (thumbnailUrl) => {
       if (thumbnailUrl) {
         return assoc('thumbnailUrl', ContentUtil.getSignedDownloadUrl(ctx, thumbnailUrl));
       }
@@ -384,16 +377,16 @@ SearchAPI.registerSearchDocumentTransformer('folder', _transformFolderDocuments)
 /*!
  * Binds a reindexAll handler that reindexes all rows from the Folders CF
  */
-SearchAPI.registerReindexAllHandler('folder', callback => {
+SearchAPI.registerReindexAllHandler('folder', (callback) => {
   /*!
    * Handles each iteration of the FoldersDAO iterate all method, firing tasks for all folders to
    * be reindexed.
    *
    * @see FoldersDAO#iterateAll
    */
-  const _onEach = function(folderRows, done) {
+  const _onEach = function (folderRows, done) {
     // Aggregate folder reindexing task resources
-    const folderResources = _.map(folderRows, row => {
+    const folderResources = _.map(folderRows, (row) => {
       return {
         id: row.groupId,
         folderId: row.id

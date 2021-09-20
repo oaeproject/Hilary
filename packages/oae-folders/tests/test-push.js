@@ -16,12 +16,12 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { FoldersConstants } from 'oae-folders/lib/constants';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util';
 
 const PUBLIC = 'public';
@@ -224,11 +224,14 @@ describe('Folders - Push', () => {
     it('verify updates trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { displayName: 'Laaike whatevs' }, (
-          error /* , data */
-        ) => {
-          assert.notExists(error);
-        });
+        RestAPI.Folders.updateFolder(
+          contexts.branden.restContext,
+          folder.id,
+          { displayName: 'Laaike whatevs' },
+          (error /* , data */) => {
+            assert.notExists(error);
+          }
+        );
 
         client.on('message', (message) => {
           ActivityTestsUtil.assertActivity(

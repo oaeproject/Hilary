@@ -37,7 +37,7 @@
     "clientOptions": {
       "keyspace": "oae",
       "port": 9160,
-      "contactPoints": ["oae-cassandra"]
+      "contactPoints": ["localhost"]
     },
     "columnFamily": "Etherpad"
   },
@@ -46,7 +46,7 @@
   "defaultPadText": "",
   "ep_oae": {
     "mq": {
-      "host": "oae-redis",
+      "host": "localhost",
       "port": 6379,
       "dbIndex": 0,
       "pass": ""

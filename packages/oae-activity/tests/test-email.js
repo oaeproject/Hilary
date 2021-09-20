@@ -27,7 +27,7 @@ import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
 import * as TestsUtil from 'oae-tests';
 import * as TZ from 'oae-util/lib/tz';
 import * as ActivityAPI from 'oae-activity';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityEmail from 'oae-activity/lib/internal/email';
 import * as ActivitySystemConfig from 'oae-activity/lib/internal/config';
 import * as ActivityTestUtil from 'oae-activity/lib/test/util';
@@ -1920,25 +1920,29 @@ describe('Activity Email', () => {
               '<p'
             ];
 
-            RestAPI.Discussions.createMessage(user2.restContext, discussion.id, markdownBody, null, (
-              error /* , comment */
-            ) => {
-              assert.notExists(error);
+            RestAPI.Discussions.createMessage(
+              user2.restContext,
+              discussion.id,
+              markdownBody,
+              null,
+              (error /* , comment */) => {
+                assert.notExists(error);
 
-              // Get the resulting email notification
-              EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                // Find the email message for the first user
-                const mail = find(compose(equals(user1.user.email), prop('address'), head, prop('to')), messages);
-                assert.ok(mail);
+                // Get the resulting email notification
+                EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                  // Find the email message for the first user
+                  const mail = find(compose(equals(user1.user.email), prop('address'), head, prop('to')), messages);
+                  assert.ok(mail);
 
-                // Verify all the expected HTML content is present in the message
-                forEach((htmlFragment) => {
-                  assert.notStrictEqual(mail.html.indexOf(htmlFragment), -1, htmlFragment);
-                }, htmlBody);
+                  // Verify all the expected HTML content is present in the message
+                  forEach((htmlFragment) => {
+                    assert.notStrictEqual(mail.html.indexOf(htmlFragment), -1, htmlFragment);
+                  }, htmlBody);
 
-                return callback();
-              });
-            });
+                  return callback();
+                });
+              }
+            );
           }
         );
       });
@@ -2052,32 +2056,35 @@ describe('Activity Email', () => {
                     assert.notExists(error_);
 
                     // Deliver the activities
-                    ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
-                      error /* activityStream */
-                    ) => {
-                      assert.notExists(error);
+                    ActivityTestUtil.collectAndGetActivityStream(
+                      nico.restContext,
+                      null,
+                      null,
+                      (error /* activityStream */) => {
+                        assert.notExists(error);
 
-                      // Let each user mark his notifications as read
-                      ActivityTestUtil.markNotificationsAsRead(nico.restContext, () => {
-                        ActivityTestUtil.markNotificationsAsRead(branden.restContext, (/* result */) => {
-                          ActivityTestUtil.markNotificationsAsRead(bert.restContext, (/* result */) => {
-                            ActivityTestUtil.markNotificationsAsRead(stuart.restContext, (/* result */) => {
-                              // Deliver the e-mails, only Branden and Bert should get an e-mail as stuart has
-                              // selected to never get emails and Nico his activity email stream should've been
-                              // cleared when he marked his notifications as read
-                              EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                                assert.lengthOf(messages, 2);
-                                forEach((message) => {
-                                  assert.ok(contains(message.to[0].address, [branden.user.email, bert.user.email]));
-                                }, messages);
+                        // Let each user mark his notifications as read
+                        ActivityTestUtil.markNotificationsAsRead(nico.restContext, () => {
+                          ActivityTestUtil.markNotificationsAsRead(branden.restContext, (/* result */) => {
+                            ActivityTestUtil.markNotificationsAsRead(bert.restContext, (/* result */) => {
+                              ActivityTestUtil.markNotificationsAsRead(stuart.restContext, (/* result */) => {
+                                // Deliver the e-mails, only Branden and Bert should get an e-mail as stuart has
+                                // selected to never get emails and Nico his activity email stream should've been
+                                // cleared when he marked his notifications as read
+                                EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                                  assert.lengthOf(messages, 2);
+                                  forEach((message) => {
+                                    assert.ok(contains(message.to[0].address, [branden.user.email, bert.user.email]));
+                                  }, messages);
 
-                                return callback();
+                                  return callback();
+                                });
                               });
                             });
                           });
                         });
-                      });
-                    });
+                      }
+                    );
                   }
                 );
               });
@@ -2114,31 +2121,34 @@ describe('Activity Email', () => {
             assert.notExists(error);
 
             // Run an activity collection, which will queue an immediate email for Nico
-            ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
-              error /* , activityStream */
-            ) => {
-              assert.notExists(error);
+            ActivityTestUtil.collectAndGetActivityStream(
+              nico.restContext,
+              null,
+              null,
+              (error /* , activityStream */) => {
+                assert.notExists(error);
 
-              // Change Nico's email preference to daily
-              RestAPI.User.updateUser(nico.restContext, nico.user.id, { emailPreference: 'daily' }, (error_) => {
-                assert.notExists(error_);
-              });
+                // Change Nico's email preference to daily
+                RestAPI.User.updateUser(nico.restContext, nico.user.id, { emailPreference: 'daily' }, (error_) => {
+                  assert.notExists(error_);
+                });
 
-              ActivityAPI.emitter.once(ActivityConstants.events.UPDATED_USER, () => {
-                // When we collect the emails, Nico should not get an email
-                EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                  assert.strictEqual(messages.length, 0);
+                ActivityAPI.emitter.once(ActivityConstants.events.UPDATED_USER, () => {
+                  // When we collect the emails, Nico should not get an email
+                  EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                    assert.strictEqual(messages.length, 0);
 
-                  // Sanity check that Nico gets the email when the dailies are sent out
-                  ActivityEmail.collectMails(0, 'daily', null, config.mail.daily.hour, (error, empty, users) => {
-                    assert.notExists(error);
-                    assert.lengthOf(users, 1);
-                    assert.strictEqual(users[0].id, nico.user.id);
-                    return callback();
+                    // Sanity check that Nico gets the email when the dailies are sent out
+                    ActivityEmail.collectMails(0, 'daily', null, config.mail.daily.hour, (error, empty, users) => {
+                      assert.notExists(error);
+                      assert.lengthOf(users, 1);
+                      assert.strictEqual(users[0].id, nico.user.id);
+                      return callback();
+                    });
                   });
                 });
-              });
-            });
+              }
+            );
           }
         );
       });
@@ -2264,56 +2274,62 @@ describe('Activity Email', () => {
                       assert.notExists(error);
 
                       // Collect the activity stream so A and B can aggregate
-                      ActivityTestUtil.collectAndGetActivityStream(simong.restContext, null, null, (
-                        error /* , activityStream */
-                      ) => {
-                        assert.notExists(error);
+                      ActivityTestUtil.collectAndGetActivityStream(
+                        simong.restContext,
+                        null,
+                        null,
+                        (error /* , activityStream */) => {
+                          assert.notExists(error);
 
-                        // Let the aggregation timeout expire and generate 2 more activities, these should not aggregate with the previous two
-                        // in the regular activity stream, they should however aggregate in the email
-                        setTimeout(
-                          RestAPI.Content.createComment,
-                          1100,
-                          nico.restContext,
-                          contentObject.id,
-                          'Comment C',
-                          null,
-                          (error, commentC) => {
-                            assert.notExists(error);
-                            RestAPI.Content.createComment(
-                              branden.restContext,
-                              contentObject.id,
-                              'Comment D',
-                              null,
-                              (error, commentD) => {
-                                assert.notExists(error);
+                          // Let the aggregation timeout expire and generate 2 more activities, these should not aggregate with the previous two
+                          // in the regular activity stream, they should however aggregate in the email
+                          setTimeout(
+                            RestAPI.Content.createComment,
+                            1100,
+                            nico.restContext,
+                            contentObject.id,
+                            'Comment C',
+                            null,
+                            (error, commentC) => {
+                              assert.notExists(error);
+                              RestAPI.Content.createComment(
+                                branden.restContext,
+                                contentObject.id,
+                                'Comment D',
+                                null,
+                                (error, commentD) => {
+                                  assert.notExists(error);
 
-                                // Collect the emails, there should only be one containing one activity which is an aggregate of 4 comments
-                                EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                                  // 3 messages, 1 for Simon (manager) and 2 for Nico and Branden (recent commenters)
-                                  assert.strictEqual(messages.length, 3);
+                                  // Collect the emails, there should only be one containing one activity which is an aggregate of 4 comments
+                                  EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                                    // 3 messages, 1 for Simon (manager) and 2 for Nico and Branden (recent commenters)
+                                    assert.strictEqual(messages.length, 3);
 
-                                  // The message for Simon should contain 1 content-comment activity on 1 content item with 4 comments
-                                  const simongMessage = find(
-                                    compose(equals(simong.user.email), prop('address'), head, prop('to')),
-                                    messages
-                                  );
-                                  // Assert that the correct content item is included in the email
-                                  assert.strictEqual(simongMessage.html.match(contentObject.profilePath).length, 1);
+                                    // The message for Simon should contain 1 content-comment activity on 1 content item with 4 comments
+                                    const simongMessage = find(
+                                      compose(equals(simong.user.email), prop('address'), head, prop('to')),
+                                      messages
+                                    );
+                                    // Assert that the correct content item is included in the email
+                                    assert.strictEqual(simongMessage.html.match(contentObject.profilePath).length, 1);
 
-                                  // Assert that all 4 comments are in the email
-                                  assert.strictEqual(simongMessage.html.match(/activity-comment-container/g).length, 4);
-                                  assert.ok(simongMessage.html.indexOf(commentA.body) > 0);
-                                  assert.ok(simongMessage.html.indexOf(commentB.body) > 0);
-                                  assert.ok(simongMessage.html.indexOf(commentC.body) > 0);
-                                  assert.ok(simongMessage.html.indexOf(commentD.body) > 0);
-                                  return callback();
-                                });
-                              }
-                            );
-                          }
-                        );
-                      });
+                                    // Assert that all 4 comments are in the email
+                                    assert.strictEqual(
+                                      simongMessage.html.match(/activity-comment-container/g).length,
+                                      4
+                                    );
+                                    assert.ok(simongMessage.html.indexOf(commentA.body) > 0);
+                                    assert.ok(simongMessage.html.indexOf(commentB.body) > 0);
+                                    assert.ok(simongMessage.html.indexOf(commentC.body) > 0);
+                                    assert.ok(simongMessage.html.indexOf(commentD.body) > 0);
+                                    return callback();
+                                  });
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
                     }
                   );
                 }
@@ -2353,59 +2369,62 @@ describe('Activity Email', () => {
             assert.notExists(error);
 
             // Run an activity collection, which will queue an immediate email for Nico
-            ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
-              error /* , activityStream */
-            ) => {
-              assert.notExists(error);
+            ActivityTestUtil.collectAndGetActivityStream(
+              nico.restContext,
+              null,
+              null,
+              (error /* , activityStream */) => {
+                assert.notExists(error);
 
-              // Collect the email and check for some basic pitfalls in the template
-              EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                assert.strictEqual(messages.length, 1);
-                const { html } = messages[0];
-                const { text } = messages[0];
+                // Collect the email and check for some basic pitfalls in the template
+                EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                  assert.strictEqual(messages.length, 1);
+                  const { html } = messages[0];
+                  const { text } = messages[0];
 
-                // Assert we have both html and text
-                assert.ok(html);
-                assert.ok(text);
+                  // Assert we have both html and text
+                  assert.ok(html);
+                  assert.ok(text);
 
-                // Assert there are no untranslated keys in there
-                assert.strictEqual(
-                  html.indexOf('__MSG__'),
-                  -1,
-                  'An i18n key was not replaced in the html email template'
-                );
-                assert.strictEqual(
-                  text.indexOf('__MSG__'),
-                  -1,
-                  'An i18n key was not replaced in the text email template'
-                );
+                  // Assert there are no untranslated keys in there
+                  assert.strictEqual(
+                    html.indexOf('__MSG__'),
+                    -1,
+                    'An i18n key was not replaced in the html email template'
+                  );
+                  assert.strictEqual(
+                    text.indexOf('__MSG__'),
+                    -1,
+                    'An i18n key was not replaced in the text email template'
+                  );
 
-                // Assert all dynamic variables are replaced
-                assert.strictEqual(
-                  html.indexOf('${'),
-                  -1,
-                  'A dynamic variable was not replaced in the html email template'
-                );
-                assert.strictEqual(
-                  text.indexOf('${'),
-                  -1,
-                  'A dynamic variable was not replaced in the text email template'
-                );
+                  // Assert all dynamic variables are replaced
+                  assert.strictEqual(
+                    html.indexOf('${'),
+                    -1,
+                    'A dynamic variable was not replaced in the html email template'
+                  );
+                  assert.strictEqual(
+                    text.indexOf('${'),
+                    -1,
+                    'A dynamic variable was not replaced in the text email template'
+                  );
 
-                // Assert that there are no URLs in the template that don't include the tenant base url
-                assert.strictEqual(html.indexOf('href="/'), -1, 'Links in emails should include the tenant base url');
-                assert.strictEqual(html.indexOf('src="/'), -1, 'Links in emails should include the tenant base url');
+                  // Assert that there are no URLs in the template that don't include the tenant base url
+                  assert.strictEqual(html.indexOf('href="/'), -1, 'Links in emails should include the tenant base url');
+                  assert.strictEqual(html.indexOf('src="/'), -1, 'Links in emails should include the tenant base url');
 
-                // Assert that html links have been converted to "plain text links"
-                assert.strictEqual(text.indexOf('<a href='), -1);
-                assert.notStrictEqual(text.indexOf(link.profilePath), -1);
+                  // Assert that html links have been converted to "plain text links"
+                  assert.strictEqual(text.indexOf('<a href='), -1);
+                  assert.notStrictEqual(text.indexOf(link.profilePath), -1);
 
-                // Ensure the long display name gets truncated
-                assert.notStrictEqual(html.indexOf(format('%s...', displayName.slice(0, 30))), -1);
+                  // Ensure the long display name gets truncated
+                  assert.notStrictEqual(html.indexOf(format('%s...', displayName.slice(0, 30))), -1);
 
-                return callback();
-              });
-            });
+                  return callback();
+                });
+              }
+            );
           }
         );
       });
@@ -2519,24 +2538,27 @@ describe('Activity Email', () => {
                 assert.notExists(error);
 
                 // Run an activity collection, which will queue an immediate email for Nico
-                ActivityTestUtil.collectAndGetActivityStream(nico.restContext, null, null, (
-                  error /* , activityStream */
-                ) => {
-                  assert.notExists(error);
+                ActivityTestUtil.collectAndGetActivityStream(
+                  nico.restContext,
+                  null,
+                  null,
+                  (error /* , activityStream */) => {
+                    assert.notExists(error);
 
-                  // Because of the grace period however, Nico should not get the email in this collection cycle
-                  EmailTestUtil.collectAndFetchAllEmails((messages) => {
-                    assert.strictEqual(messages.length, 0);
+                    // Because of the grace period however, Nico should not get the email in this collection cycle
+                    EmailTestUtil.collectAndFetchAllEmails((messages) => {
+                      assert.strictEqual(messages.length, 0);
 
-                    // If we let the grace period pass, Nico should get his email
-                    EmailTestUtil.waitForEmail((messages) => {
-                      assert.strictEqual(messages.length, 1);
-                      assert.ok(messages[0].html.indexOf('Link #1') > 0);
-                      assert.ok(messages[0].html.indexOf('Link #2') > 0);
-                      return callback();
+                      // If we let the grace period pass, Nico should get his email
+                      EmailTestUtil.waitForEmail((messages) => {
+                        assert.strictEqual(messages.length, 1);
+                        assert.ok(messages[0].html.indexOf('Link #1') > 0);
+                        assert.ok(messages[0].html.indexOf('Link #2') > 0);
+                        return callback();
+                      });
                     });
-                  });
-                });
+                  }
+                );
               }
             );
           }

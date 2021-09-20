@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { Bool } from 'oae-config/lib/fields';
+import { Bool } from 'oae-config/lib/fields.js';
 
 export const title = 'OAE Activity Module';
 export const activity = {

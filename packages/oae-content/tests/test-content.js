@@ -21,12 +21,12 @@ import temp from 'temp';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { Context } from 'oae-context';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
 import * as TenantsAPI from 'oae-tenants/lib/api';
 import * as MQ from 'oae-util/lib/mq';
 import * as TestsUtil from 'oae-tests';
@@ -3702,36 +3702,42 @@ describe('Content', () => {
             assert.notExists(error);
             assert.ok(contentObject.id);
 
-            updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (
-              error /* , updatedContentObj */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            updateContent(
+              asHomer,
+              contentObject.id,
+              { link: 'http://www.google.com' },
+              (error /* , updatedContentObj */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              createCollabDoc(
-                asHomer,
-                'Test Content 1',
-                'Test content description 1',
-                PUBLIC,
-                NO_MANAGERS,
-                NO_EDITORS,
-                NO_VIEWERS,
-                NO_FOLDERS,
-                (error, contentObject) => {
-                  assert.notExists(error);
-                  assert.ok(contentObject);
+                createCollabDoc(
+                  asHomer,
+                  'Test Content 1',
+                  'Test content description 1',
+                  PUBLIC,
+                  NO_MANAGERS,
+                  NO_EDITORS,
+                  NO_VIEWERS,
+                  NO_FOLDERS,
+                  (error, contentObject) => {
+                    assert.notExists(error);
+                    assert.ok(contentObject);
 
-                  updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (
-                    error /* , updatedContentObj */
-                  ) => {
-                    assert.ok(error);
-                    assert.strictEqual(error.code, 400);
+                    updateContent(
+                      asHomer,
+                      contentObject.id,
+                      { link: 'http://www.google.com' },
+                      (error /* , updatedContentObj */) => {
+                        assert.ok(error);
+                        assert.strictEqual(error.code, 400);
 
-                    callback();
-                  });
-                }
-              );
-            });
+                        callback();
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });

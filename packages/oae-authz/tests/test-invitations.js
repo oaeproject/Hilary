@@ -32,7 +32,7 @@ import * as UIAPI from 'oae-ui';
 
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import clone from 'clone';
 
 const _ = require('underscore');
@@ -792,9 +792,8 @@ describe('Invitations', () => {
               );
 
               // Grab the invitation link from the messages
-              const cambridgeInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(
-                cambridgeMessage
-              );
+              const cambridgeInvitationUrl =
+                AuthzTestUtil.parseInvitationUrlFromMessage(cambridgeMessage);
               const guestInvitationUrl = AuthzTestUtil.parseInvitationUrlFromMessage(guestMessage);
 
               // Ensure the links are to the proper tenancy
@@ -3612,18 +3611,19 @@ describe('Invitations', () => {
     options = options || {};
     options.contextId = options.contextId || userInfo.user.id;
 
-    const adapter = UIAPI.getActivityAdapter();
-    const adapted = adapter.adapt(
-      options.contextId,
-      userInfo.user,
-      [clone(activity)],
-      Sanitization
-    );
-    const { summary } = adapted[0];
-    const previewItems = adapted[0].activityItems;
-    return _.extend({}, userInfo, {
-      previewItems,
-      summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
+    UIAPI.getActivityAdapter((error, adapter) => {
+      const adapted = adapter.adapt(
+        options.contextId,
+        userInfo.user,
+        [clone(activity)],
+        Sanitization
+      );
+      const { summary } = adapted[0];
+      const previewItems = adapted[0].activityItems;
+      return _.extend({}, userInfo, {
+        previewItems,
+        summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
+      });
     });
   };
 

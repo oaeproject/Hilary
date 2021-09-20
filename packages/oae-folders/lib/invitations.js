@@ -18,94 +18,98 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { pipe, keys, filter } from 'ramda';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 const { isGroupId } = AuthzUtil;
-import * as ResourceActions from 'oae-resource/lib/actions';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
 import * as FoldersAPI from 'oae-folders';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 
 import { Context } from 'oae-context';
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { ResourceConstants } from 'oae-resource/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 const log = logger('oae-folders-invitations');
 
-/*!
- * When an invitation is accepted, pass on the events to update folder members and then feed back
- * the folder resources into the event emitter
- */
-ResourceActions.emitter.when(
-  ResourceConstants.events.ACCEPTED_INVITATION,
-  (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
-    // Filter the invitations and changes down to only folder invitations
-    const folderGroupIds = pipe(keys, filter(isGroupId))(memberChangeInfosByResourceId);
-    if (_.isEmpty(folderGroupIds)) {
-      return callback();
-    }
+const init = (callback) => {
+  /*!
+   * When an invitation is accepted, pass on the events to update folder members and then feed back
+   * the folder resources into the event emitter
+   */
+  ResourceActions.emitter.when(
+    ResourceConstants.events.ACCEPTED_INVITATION,
+    (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
+      // Filter the invitations and changes down to only folder invitations
+      const folderGroupIds = pipe(keys, filter(isGroupId))(memberChangeInfosByResourceId);
+      if (_.isEmpty(folderGroupIds)) {
+        return callback();
+      }
 
-    FoldersDAO.getFoldersByGroupIds(folderGroupIds, (error, folders) => {
+      FoldersDAO.getFoldersByGroupIds(folderGroupIds, (error, folders) => {
+        if (error) {
+          log().warn(
+            {
+              err: error,
+              folderGroupIds
+            },
+            'An error occurred while getting folders to update folder libraries after an invitation was accepted'
+          );
+          return callback();
+        }
+
+        if (_.isEmpty(folders)) {
+          return callback();
+        }
+
+        /**
+         * Invoke the "accept invitation" handler with the resources when we have them.
+         * We invoke this after the get principals call for test synchronization
+         */
+        callback(null, folders);
+
+        // Fire members update tasks for each folder
+        _.each(folders, (folder) => {
+          const invitationHash = _.findWhere(invitationHashes, { resourceId: folder.groupId });
+          const inviterUser = inviterUsersById[invitationHash.inviterUserId];
+
+          const invitationCtx = Context.fromUser(inviterUser);
+          const invitation = Invitation.fromHash(invitationHash, folder, inviterUser);
+          const memberChangeInfo = memberChangeInfosByResourceId[folder.groupId];
+
+          return FoldersAPI.emitter.emit(
+            FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
+            invitationCtx,
+            folder,
+            memberChangeInfo,
+            { invitation }
+          );
+        });
+      });
+    }
+  );
+
+  /*!
+   * When a folder is deleted, we delete all invitations associated to it
+   */
+  FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, memberIds, callback) => {
+    AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, (error) => {
       if (error) {
         log().warn(
           {
             err: error,
-            folderGroupIds
+            folderId: folder.id
           },
-          'An error occurred while getting folders to update folder libraries after an invitation was accepted'
+          'An error occurred while removing invitations after a folder was deleted'
         );
-        return callback();
       }
 
-      if (_.isEmpty(folders)) {
-        return callback();
-      }
-
-      /**
-       * Invoke the "accept invitation" handler with the resources when we have them.
-       * We invoke this after the get principals call for test synchronization
-       */
-      callback(null, folders);
-
-      // Fire members update tasks for each folder
-      _.each(folders, (folder) => {
-        const invitationHash = _.findWhere(invitationHashes, { resourceId: folder.groupId });
-        const inviterUser = inviterUsersById[invitationHash.inviterUserId];
-
-        const invitationCtx = Context.fromUser(inviterUser);
-        const invitation = Invitation.fromHash(invitationHash, folder, inviterUser);
-        const memberChangeInfo = memberChangeInfosByResourceId[folder.groupId];
-
-        return FoldersAPI.emitter.emit(
-          FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-          invitationCtx,
-          folder,
-          memberChangeInfo,
-          { invitation }
-        );
-      });
+      return callback();
     });
-  }
-);
-
-/*!
- * When a folder is deleted, we delete all invitations associated to it
- */
-FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, memberIds, callback) => {
-  AuthzInvitationsDAO.deleteInvitationsByResourceId(folder.id, (error) => {
-    if (error) {
-      log().warn(
-        {
-          err: error,
-          folderId: folder.id
-        },
-        'An error occurred while removing invitations after a folder was deleted'
-      );
-    }
-
-    return callback();
   });
-});
+
+  return callback();
+};
 
 /**
  * Determine if the given id is a folder id
@@ -118,3 +122,5 @@ FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, me
 const _isFolderId = function (folderId) {
   return AuthzUtil.isResourceId(folderId) && folderId.indexOf('f:') === 0;
 };
+
+export { init };

@@ -14,21 +14,21 @@
  */
 
 import fs from 'fs';
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 const { getTenant } = TenantsAPI;
 
 import * as ContentAPI from 'oae-content';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import { ContentConstants } from 'oae-content/lib/constants';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 import * as contentBodySchema from './search/schema/contentBodySchema.js';
 
 const log = logger('content-search');

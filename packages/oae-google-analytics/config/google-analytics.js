@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import * as Fields from 'oae-config/lib/fields';
+import * as Fields from 'oae-config/lib/fields.js';
 
-module.exports = {
+export const config = {
   title: 'OAE Google Analytics Module',
   'google-analytics': {
     name: 'Google Analytics configuration',

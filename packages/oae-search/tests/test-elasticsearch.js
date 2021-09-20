@@ -15,7 +15,7 @@
 
 import assert from 'assert';
 
-import { generateTestElasticSearchName } from 'oae-tests/lib/util';
+import { generateTestElasticSearchName } from 'oae-tests/lib/util.js';
 import {
   putMapping,
   mappingExists,

@@ -17,12 +17,12 @@ import { stat as doesFileExist, readFile } from 'fs';
 import _ from 'underscore';
 import dox from 'dox';
 
-import { getFileListForFolder } from 'oae-util/lib/io';
-import * as modules from 'oae-util/lib/modules';
-import * as OaeUtil from 'oae-util/lib/util';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { getFileListForFolder } from 'oae-util/lib/io.js';
+import * as modules from 'oae-util/lib/modules.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 const { unless, isNotEmpty } = validator;
-import isIn from 'validator/lib/isIn';
+import isIn from 'validator/lib/isIn.js';
 
 import { logger } from 'oae-logger';
 
@@ -41,9 +41,9 @@ const cachedDocs = {
  * @param  {Object}     uiConfig         JSON object containing UI configuration values, like the path to the UI directory
  * @param  {Function}   callback         Standard callback function
  */
-const initializeDocs = function(uiConfig, callback) {
+const initializeDocs = function (uiConfig, callback) {
   // Initialize the front-end documentation
-  _initializeFrontendDocs(uiConfig, err => {
+  _initializeFrontendDocs(uiConfig, (err) => {
     if (err) {
       return callback(err);
     }
@@ -62,7 +62,7 @@ const initializeDocs = function(uiConfig, callback) {
  * @param  {Object}     callback.err     An error that occurred, if any
  * @api private
  */
-const _initializeFrontendDocs = function(uiConfig, callback) {
+const _initializeFrontendDocs = function (uiConfig, callback) {
   let baseDir = uiConfig.path;
   // When we are running with an optimized UI build, we cannot use these files for documentation parsing as all of the
   // JSDocs will be stripped out of these files. However, in that case an `original` folder should exist as a sibling
@@ -98,7 +98,7 @@ const _initializeFrontendDocs = function(uiConfig, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _initializeBackendDocs = function(backendModules, callback) {
+const _initializeBackendDocs = function (backendModules, callback) {
   if (_.isEmpty(backendModules)) {
     return callback();
   }
@@ -128,7 +128,7 @@ const _initializeBackendDocs = function(backendModules, callback) {
  * @param  {Object}     [callback.docs] JSON Object where the keys are the file names and the values are the parsed JSDocs
  * @api private
  */
-const _parseDocs = function(dir, exclude, callback) {
+const _parseDocs = function (dir, exclude, callback) {
   // Get all of the files in the provided base directory
   getFileListForFolder(dir, (err, fileNames) => {
     if (err) {
@@ -142,8 +142,8 @@ const _parseDocs = function(dir, exclude, callback) {
     let done = 0;
     const doc = {};
 
-    _.each(fileNames, fileName => {
-      (function(fileName) {
+    _.each(fileNames, (fileName) => {
+      (function (fileName) {
         // Read each of the files in the provided directory
         readFile(dir + '/' + fileName, 'utf8', (err, data) => {
           done++;
@@ -187,8 +187,8 @@ const _parseDocs = function(dir, exclude, callback) {
  * @return {String[]}                       The returned filtered array of filenames
  * @api private
  */
-const _filterFiles = function(fileNames, exclude) {
-  return _.filter(fileNames, fileName => {
+const _filterFiles = function (fileNames, exclude) {
+  return _.filter(fileNames, (fileName) => {
     if (fileName.includes('.js') && _.indexOf(exclude, fileName) === -1) {
       return true;
     }
@@ -205,7 +205,7 @@ const _filterFiles = function(fileNames, exclude) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String[]}   callback.modules    The list of available modules for the provided type
  */
-const getModules = function(type, callback) {
+const getModules = function (type, callback) {
   if (!cachedDocs[type]) {
     return callback({
       code: 400,
@@ -225,7 +225,7 @@ const getModules = function(type, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Object}     callback.doc    The parsed Dox documentation for the requested module
  */
-const getModuleDocumentation = function(moduleId, type, callback) {
+const getModuleDocumentation = function (moduleId, type, callback) {
   try {
     unless(isNotEmpty, {
       code: 400,

@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { initConfig } from 'oae-config';
+import * as Config from 'oae-config';
 
-export const init = function(config, callback) {
-  return initConfig(config, callback);
+const init = function (config, callback) {
+  return Config.initConfig(config, callback);
 };
+
+export { init };

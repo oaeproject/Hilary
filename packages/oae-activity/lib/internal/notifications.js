@@ -33,35 +33,39 @@ const log = logger('oae-activity-notifications');
 // notifications being processed
 const notificationsCounter = new Counter();
 
-/*!
- * When a batch of activities are delivered, we check if there are any notifications in there and
- * increment all the target user notification counters.
- */
-ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivityInfos) => {
-  // Figure out by how much to increment user notifications, if at all
-  const userIdsIncrBy = {};
-  _.each(deliveredActivityInfos, (streams, resourceId) => {
-    _.each(streams, (activityInfo, streamType) => {
-      if (streamType === 'notification') {
-        userIdsIncrBy[resourceId] = userIdsIncrBy[resourceId] || 0;
-        userIdsIncrBy[resourceId] += activityInfo.numNewActivities;
+const init = (callback) => {
+  /*!
+   * When a batch of activities are delivered, we check if there are any notifications in there and
+   * increment all the target user notification counters.
+   */
+  ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivityInfos) => {
+    // Figure out by how much to increment user notifications, if at all
+    const userIdsIncrBy = {};
+    _.each(deliveredActivityInfos, (streams, resourceId) => {
+      _.each(streams, (activityInfo, streamType) => {
+        if (streamType === 'notification') {
+          userIdsIncrBy[resourceId] = userIdsIncrBy[resourceId] || 0;
+          userIdsIncrBy[resourceId] += activityInfo.numNewActivities;
+        }
+      });
+    });
+
+    // Keep track of the async operation
+    notificationsCounter.incr();
+
+    // All users receiving notifications will have their "notifications unread" counter incremented
+    incrementNotificationsUnread(userIdsIncrBy, (error) => {
+      if (error) {
+        log().error({ err: new Error(error.msg), userIdsIncrBy }, 'Could not mark notifications as unread');
       }
+
+      // Our async operation is over, decrement the counter
+      notificationsCounter.decr();
     });
   });
 
-  // Keep track of the async operation
-  notificationsCounter.incr();
-
-  // All users receiving notifications will have their "notifications unread" counter incremented
-  incrementNotificationsUnread(userIdsIncrBy, (error) => {
-    if (error) {
-      log().error({ err: new Error(error.msg), userIdsIncrBy }, 'Could not mark notifications as unread');
-    }
-
-    // Our async operation is over, decrement the counter
-    notificationsCounter.decr();
-  });
-});
+  return callback();
+};
 
 /**
  * Marks all notifications as read for a given user.
@@ -183,4 +187,4 @@ const whenNotificationsEmpty = function (handler) {
   notificationsCounter.whenZero(handler);
 };
 
-export { markNotificationsRead, incrementNotificationsUnread, whenNotificationsEmpty };
+export { init, markNotificationsRead, incrementNotificationsUnread, whenNotificationsEmpty };

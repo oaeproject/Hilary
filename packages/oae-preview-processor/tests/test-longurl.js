@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 describe('Long url', () => {
   let anonymousCamRestContext = null;

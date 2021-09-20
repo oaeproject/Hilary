@@ -18,4 +18,6 @@ const ensureSchema = function (callback) {
   );
 };
 
-export { ensureSchema };
+const naConaDaTuaMae = () => {};
+
+export { ensureSchema, naConaDaTuaMae };

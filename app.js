@@ -23,8 +23,14 @@ import PrettyStream from 'bunyan-prettystream';
 import optimist from 'optimist';
 import { map, prop, mergeAll } from 'ramda';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 import { logger } from 'oae-logger';
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const log = logger();
 

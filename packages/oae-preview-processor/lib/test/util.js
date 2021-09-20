@@ -14,7 +14,7 @@
  */
 
 import assert from 'assert';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 
 // import * as pubSub from 'oae-util/lib/pubsub';
 import * as MQ from 'oae-util/lib/mq';
@@ -25,14 +25,14 @@ import * as MQ from 'oae-util/lib/mq';
  * @param  {Function}       callback        Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs while purging the queue
  */
-const purgePreviewsQueue = function(callback) {
-  MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+const purgePreviewsQueue = function (callback) {
+  MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, (err) => {
     assert.ok(!err);
-    MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, err => {
+    MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS_PROCESSING, (err) => {
       assert.ok(!err);
 
       // Unbind our dummy-handler from the queue
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_PREVIEWS, (err) => {
         assert.ok(!err);
         return callback();
       });
@@ -46,14 +46,14 @@ const purgePreviewsQueue = function(callback) {
  * @param  {Function}       callback        Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs while purging the queue
  */
-const purgeRegeneratePreviewsQueue = function(callback) {
-  MQ.purgeQueue(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+const purgeRegeneratePreviewsQueue = function (callback) {
+  MQ.purgeQueue(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (err) => {
     assert.ok(!err);
-    MQ.purgeQueue(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS_PROCESSING, err => {
+    MQ.purgeQueue(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS_PROCESSING, (err) => {
       assert.ok(!err);
 
       // Unbind our dummy-handler from the queue
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_REGENERATE_PREVIEWS, (err) => {
         assert.ok(!err);
 
         return callback();
@@ -68,14 +68,14 @@ const purgeRegeneratePreviewsQueue = function(callback) {
  * @param  {Function}       callback        Standard callback function
  * @throws {AssertionError}                 Thrown if an error occurs while purging the queue
  */
-const purgeFoldersPreviewsQueue = function(callback) {
-  MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+const purgeFoldersPreviewsQueue = function (callback) {
+  MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, (err) => {
     assert.ok(!err);
-    MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, err => {
+    MQ.purgeQueue(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS_PROCESSING, (err) => {
       assert.ok(!err);
 
       // Unbind our dummy-handler from the queue
-      MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, err => {
+      MQ.unsubscribe(PreviewConstants.MQ.TASK_GENERATE_FOLDER_PREVIEWS, (err) => {
         assert.ok(!err);
 
         return callback();

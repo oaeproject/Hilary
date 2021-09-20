@@ -60,9 +60,7 @@ const init = function (rootDir, callback) {
  *
  * @return {String}     The root directory where files will be stored
  */
-const getRootDirectory = function () {
-  return _rootDir;
-};
+const getRootDirectory = () => _rootDir;
 
 /// //////////////////
 // Storage methods //

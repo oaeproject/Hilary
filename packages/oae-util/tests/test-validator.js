@@ -58,7 +58,7 @@ const {
   defaultToEmptyObject,
   isNotEmpty
 } = validator;
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 describe('Utilities', () => {
   describe('Validator', () => {

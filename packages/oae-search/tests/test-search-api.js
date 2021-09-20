@@ -16,7 +16,7 @@
 /* eslint-disable camelcase */
 import { assert } from 'chai';
 
-import { getResourceFromId } from 'oae-authz/lib/util';
+import { getResourceFromId } from 'oae-authz/lib/util.js';
 import { whenTasksEmpty } from 'oae-util/lib/test/mq-util';
 import * as RestAPI from 'oae-rest';
 import {
@@ -35,8 +35,8 @@ import {
   generateTestUsers,
   createGlobalAdminRestContext,
   createTenantAdminRestContext
-} from 'oae-tests/lib/util';
-import { SearchConstants } from 'oae-search/lib/constants';
+} from 'oae-tests/lib/util.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 
 import { compose, forEach, prop, of } from 'ramda';
 

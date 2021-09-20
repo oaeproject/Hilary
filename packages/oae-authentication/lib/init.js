@@ -16,17 +16,19 @@
 import crypto from 'crypto';
 import passport from 'passport';
 import { Context } from 'oae-context';
-import * as OAE from 'oae-util/lib/oae';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import initCas from './strategies/cas/init.js';
 import initFacebook from './strategies/facebook/init.js';
 import initGoogle from './strategies/google/init.js';
 import initLDAP from './strategies/ldap/init.js';
-import initLocal from './strategies/local/init.js';
+import { initLocalAuth } from './strategies/local/init.js';
 import initOAuth from './strategies/oauth/init.js';
 import initShibb from './strategies/shibboleth/init.js';
 import initSigned from './strategies/signed/init.js';
 import initTwitter from './strategies/twitter/init.js';
+
+import OaeEmitter from 'oae-util/lib/emitter.js';
 
 import * as AuthenticationAPI from './api.js';
 import { AuthenticationConstants } from './constants.js';
@@ -46,7 +48,7 @@ export function init(config, callback) {
   initFacebook(config);
   initGoogle(config);
   initLDAP(config);
-  initLocal(config);
+  initLocalAuth(config);
   initOAuth(config);
   initShibb(config);
   initSigned(config);
@@ -57,6 +59,13 @@ export function init(config, callback) {
   // so they have a chance to add any middleware that could set the logged in user
   OAE.tenantServer.use(contextMiddleware);
   OAE.globalAdminServer.use(contextMiddleware);
+
+  /**
+   * TODO experimental shit
+   * Let's force refreshing the authentication strategies for all tenants
+   * even if that is redundant, it's just at boot, and it's temporary
+   */
+  // OaeEmitter.emit('refreshAllTenantStrategies');
 
   return callback();
 }
@@ -82,8 +91,9 @@ const contextMiddleware = function (request, response, next) {
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
     if (request.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(request.oaeAuthInfo.strategyId)
-        .strategyName;
+      authenticationStrategy = AuthenticationUtil.parseStrategyId(
+        request.oaeAuthInfo.strategyId
+      ).strategyName;
     }
   }
 

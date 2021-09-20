@@ -15,11 +15,11 @@
 
 import { assert } from 'chai';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { FollowingConstants } from 'oae-following/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
 
 import {
   assertActivity,
@@ -28,7 +28,7 @@ import {
 } from 'oae-activity/lib/test/util';
 import * as EmailTestsUtil from 'oae-email/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import { generateTestUsers, createTenantAdminRestContext } from 'oae-tests/lib/util';
+import { generateTestUsers, createTenantAdminRestContext } from 'oae-tests/lib/util.js';
 import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
 const PUBLIC = 'public';

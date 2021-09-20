@@ -17,7 +17,7 @@ import assert from 'assert';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util';
 import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as FollowingTestsUtil from 'oae-following/lib/test/util';
 
 describe('Following Profile Decorator', () => {

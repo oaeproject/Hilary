@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util';
 import { assertSetGroupMembersSucceeds } from 'oae-principals/lib/test/util';
 import * as RestAPI from 'oae-rest';
@@ -1562,61 +1562,63 @@ describe('General Search', () => {
                                               shouldNotBeAbleToFindIt,
                                               () => {
                                                 // It should search public resources from private tenants when searching as a private tenant user
-                                                setupMultiTenantPrivacyEntities((
-                                                  publicTenantA,
-                                                  publicTenant1,
-                                                  privateTenantA /* , privateTenant1 */
-                                                ) => {
-                                                  searchForResource(
-                                                    asPublicUserOn(privateTenantA),
-                                                    ALL_SCOPE,
-                                                    somePublicUserFrom(publicTenantA),
-                                                    shouldNotBeAbleToFindIt,
-                                                    () => {
-                                                      searchForResource(
-                                                        asPublicUserOn(privateTenantA),
-                                                        ALL_SCOPE,
-                                                        someLoggedInUserFrom(publicTenantA),
-                                                        shouldNotBeAbleToFindIt,
-                                                        () => {
-                                                          searchForResource(
-                                                            asPublicUserOn(privateTenantA),
-                                                            ALL_SCOPE,
-                                                            somePrivateUserFrom(publicTenantA),
-                                                            shouldNotBeAbleToFindIt,
-                                                            () => {
-                                                              searchForResource(
-                                                                asPublicUserOn(privateTenantA),
-                                                                ALL_SCOPE,
-                                                                somePublicUserFrom(privateTenantA),
-                                                                shouldBeAbleToFindIt,
-                                                                () => {
-                                                                  searchForResource(
-                                                                    asPublicUserOn(privateTenantA),
-                                                                    ALL_SCOPE,
-                                                                    someLoggedInUserFrom(privateTenantA),
-                                                                    shouldBeAbleToFindIt,
-                                                                    () => {
-                                                                      searchForResource(
-                                                                        asPublicUserOn(privateTenantA),
-                                                                        ALL_SCOPE,
-                                                                        somePrivateUserFrom(privateTenantA),
-                                                                        shouldNotBeAbleToFindIt,
-                                                                        () => {
-                                                                          return callback();
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                });
+                                                setupMultiTenantPrivacyEntities(
+                                                  (
+                                                    publicTenantA,
+                                                    publicTenant1,
+                                                    privateTenantA /* , privateTenant1 */
+                                                  ) => {
+                                                    searchForResource(
+                                                      asPublicUserOn(privateTenantA),
+                                                      ALL_SCOPE,
+                                                      somePublicUserFrom(publicTenantA),
+                                                      shouldNotBeAbleToFindIt,
+                                                      () => {
+                                                        searchForResource(
+                                                          asPublicUserOn(privateTenantA),
+                                                          ALL_SCOPE,
+                                                          someLoggedInUserFrom(publicTenantA),
+                                                          shouldNotBeAbleToFindIt,
+                                                          () => {
+                                                            searchForResource(
+                                                              asPublicUserOn(privateTenantA),
+                                                              ALL_SCOPE,
+                                                              somePrivateUserFrom(publicTenantA),
+                                                              shouldNotBeAbleToFindIt,
+                                                              () => {
+                                                                searchForResource(
+                                                                  asPublicUserOn(privateTenantA),
+                                                                  ALL_SCOPE,
+                                                                  somePublicUserFrom(privateTenantA),
+                                                                  shouldBeAbleToFindIt,
+                                                                  () => {
+                                                                    searchForResource(
+                                                                      asPublicUserOn(privateTenantA),
+                                                                      ALL_SCOPE,
+                                                                      someLoggedInUserFrom(privateTenantA),
+                                                                      shouldBeAbleToFindIt,
+                                                                      () => {
+                                                                        searchForResource(
+                                                                          asPublicUserOn(privateTenantA),
+                                                                          ALL_SCOPE,
+                                                                          somePrivateUserFrom(privateTenantA),
+                                                                          shouldNotBeAbleToFindIt,
+                                                                          () => {
+                                                                            return callback();
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
                                               }
                                             );
                                           }
@@ -1805,213 +1807,221 @@ describe('General Search', () => {
     it('verify the "interact" search scope searches only resources with which the user can interact', (callback) => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA, privateTenantB) => {
         // Anonymous users cannot use the _interact scope without a 401 error
-        searchRefreshed(asAnonymousUserOn(publicTenantA), GENERAL_SEARCH, NO_PARAMS, { scope: INTERACT_SCOPE }, (
-          error /* , results */
-        ) => {
-          assert.ok(error);
-          assert.ok(returns401(error));
+        searchRefreshed(
+          asAnonymousUserOn(publicTenantA),
+          GENERAL_SEARCH,
+          NO_PARAMS,
+          { scope: INTERACT_SCOPE },
+          (error /* , results */) => {
+            assert.ok(error);
+            assert.ok(returns401(error));
 
-          // Public and loggedin items from the current public tenant should be searched
-          searchForResource(
-            asPublicUserOn(publicTenantA),
-            INTERACT_SCOPE,
-            somePublicUserFrom(publicTenantA),
-            shouldBeAbleToFindIt,
-            () => {
-              searchForResource(
-                asPublicUserOn(publicTenantA),
-                INTERACT_SCOPE,
-                someLoggedInUserFrom(publicTenantA),
-                shouldBeAbleToFindIt,
-                () => {
-                  searchForResource(
-                    asPublicUserOn(publicTenantA),
-                    INTERACT_SCOPE,
-                    somePrivateUserFrom(publicTenantA),
-                    shouldNotBeAbleToFindIt,
-                    () => {
-                      // A private user cannot search themself for interaction
-                      searchForResource(
-                        asPrivateUserOn(publicTenantA),
-                        INTERACT_SCOPE,
-                        somePrivateUserFrom(publicTenantA),
-                        shouldNotBeAbleToFindIt,
-                        () => {
-                          // Private joinable groups from the current tenant should be searched when searched with the tenant admin
-                          searchForResource(
-                            asAdminUserOn(publicTenantA),
-                            INTERACT_SCOPE,
-                            somePrivateJoinableGroupFrom(publicTenantA),
-                            shouldBeAbleToFindIt,
-                            () => {
-                              // Private joinable groups from the current tenant should not be searched when searched as a regular user
-                              searchForResource(
-                                asPublicUserOn(publicTenantA),
-                                INTERACT_SCOPE,
-                                somePrivateJoinableGroupFrom(publicTenantA),
-                                shouldNotBeAbleToFindIt,
-                                () => {
-                                  // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
-                                  searchForResource(
-                                    asPublicUserOn(publicTenantA),
-                                    NETWORK_SCOPE,
-                                    somePrivateJoinableGroupFrom(publicTenantA),
-                                    shouldBeAbleToFindIt,
-                                    () => {
-                                      // Only public items from another public tenant should be searched
-                                      searchForResource(
-                                        asPublicUserOn(publicTenantA),
-                                        INTERACT_SCOPE,
-                                        somePublicUserFrom(publicTenantB),
-                                        shouldBeAbleToFindIt,
-                                        () => {
-                                          searchForResource(
-                                            asPublicUserOn(publicTenantA),
-                                            INTERACT_SCOPE,
-                                            someLoggedInUserFrom(publicTenantB),
-                                            shouldNotBeAbleToFindIt,
-                                            () => {
-                                              searchForResource(
-                                                asPublicUserOn(publicTenantA),
-                                                INTERACT_SCOPE,
-                                                somePrivateUserFrom(publicTenantB),
-                                                shouldNotBeAbleToFindIt,
-                                                () => {
-                                                  // Nothing from an external private tenant should be searched
-                                                  searchForResource(
-                                                    asPublicUserOn(publicTenantA),
-                                                    INTERACT_SCOPE,
-                                                    somePublicUserFrom(privateTenantA),
-                                                    shouldNotBeAbleToFindIt,
-                                                    () => {
-                                                      searchForResource(
-                                                        asPublicUserOn(publicTenantA),
-                                                        INTERACT_SCOPE,
-                                                        someLoggedInUserFrom(privateTenantA),
-                                                        shouldNotBeAbleToFindIt,
-                                                        () => {
-                                                          searchForResource(
-                                                            asPublicUserOn(publicTenantA),
-                                                            INTERACT_SCOPE,
-                                                            somePrivateUserFrom(privateTenantA),
-                                                            shouldNotBeAbleToFindIt,
-                                                            () => {
-                                                              // Public and logged items from the current private tenant should be searched
-                                                              searchForResource(
-                                                                asPublicUserOn(privateTenantA),
-                                                                INTERACT_SCOPE,
-                                                                somePublicUserFrom(privateTenantA),
-                                                                shouldBeAbleToFindIt,
-                                                                () => {
-                                                                  searchForResource(
-                                                                    asPublicUserOn(privateTenantA),
-                                                                    INTERACT_SCOPE,
-                                                                    someLoggedInUserFrom(privateTenantA),
-                                                                    shouldBeAbleToFindIt,
-                                                                    () => {
-                                                                      searchForResource(
-                                                                        asPublicUserOn(privateTenantA),
-                                                                        INTERACT_SCOPE,
-                                                                        somePrivateUserFrom(privateTenantA),
-                                                                        shouldNotBeAbleToFindIt,
-                                                                        () => {
-                                                                          // Nothing from an external public tenant should be searched when searching from a private tenant
-                                                                          searchForResource(
-                                                                            asPublicUserOn(privateTenantA),
-                                                                            INTERACT_SCOPE,
-                                                                            somePublicUserFrom(publicTenantA),
-                                                                            shouldNotBeAbleToFindIt,
-                                                                            () => {
-                                                                              searchForResource(
-                                                                                asPublicUserOn(privateTenantA),
-                                                                                INTERACT_SCOPE,
-                                                                                someLoggedInUserFrom(publicTenantA),
-                                                                                shouldNotBeAbleToFindIt,
-                                                                                () => {
-                                                                                  searchForResource(
-                                                                                    asPublicUserOn(privateTenantA),
-                                                                                    INTERACT_SCOPE,
-                                                                                    somePrivateUserFrom(publicTenantA),
-                                                                                    shouldNotBeAbleToFindIt,
-                                                                                    () => {
-                                                                                      /**
-                                                                                       * Nothing from an external private tenant should
-                                                                                       * be searched when searching from a private tenant
-                                                                                       */
-                                                                                      searchForResource(
-                                                                                        asPublicUserOn(privateTenantA),
-                                                                                        INTERACT_SCOPE,
-                                                                                        somePublicUserFrom(
-                                                                                          privateTenantB
-                                                                                        ),
-                                                                                        shouldNotBeAbleToFindIt,
-                                                                                        () => {
-                                                                                          searchForResource(
-                                                                                            asPublicUserOn(
-                                                                                              privateTenantA
-                                                                                            ),
-                                                                                            INTERACT_SCOPE,
-                                                                                            someLoggedInUserFrom(
-                                                                                              privateTenantB
-                                                                                            ),
-                                                                                            shouldNotBeAbleToFindIt,
-                                                                                            () => {
-                                                                                              searchForResource(
-                                                                                                asPublicUserOn(
-                                                                                                  privateTenantA
-                                                                                                ),
-                                                                                                INTERACT_SCOPE,
-                                                                                                somePrivateUserFrom(
-                                                                                                  privateTenantB
-                                                                                                ),
-                                                                                                shouldNotBeAbleToFindIt,
-                                                                                                () => {
-                                                                                                  return callback();
-                                                                                                }
-                                                                                              );
-                                                                                            }
-                                                                                          );
-                                                                                        }
-                                                                                      );
-                                                                                    }
-                                                                                  );
-                                                                                }
-                                                                              );
-                                                                            }
-                                                                          );
-                                                                        }
-                                                                      );
-                                                                    }
-                                                                  );
-                                                                }
-                                                              );
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
+            // Public and loggedin items from the current public tenant should be searched
+            searchForResource(
+              asPublicUserOn(publicTenantA),
+              INTERACT_SCOPE,
+              somePublicUserFrom(publicTenantA),
+              shouldBeAbleToFindIt,
+              () => {
+                searchForResource(
+                  asPublicUserOn(publicTenantA),
+                  INTERACT_SCOPE,
+                  someLoggedInUserFrom(publicTenantA),
+                  shouldBeAbleToFindIt,
+                  () => {
+                    searchForResource(
+                      asPublicUserOn(publicTenantA),
+                      INTERACT_SCOPE,
+                      somePrivateUserFrom(publicTenantA),
+                      shouldNotBeAbleToFindIt,
+                      () => {
+                        // A private user cannot search themself for interaction
+                        searchForResource(
+                          asPrivateUserOn(publicTenantA),
+                          INTERACT_SCOPE,
+                          somePrivateUserFrom(publicTenantA),
+                          shouldNotBeAbleToFindIt,
+                          () => {
+                            // Private joinable groups from the current tenant should be searched when searched with the tenant admin
+                            searchForResource(
+                              asAdminUserOn(publicTenantA),
+                              INTERACT_SCOPE,
+                              somePrivateJoinableGroupFrom(publicTenantA),
+                              shouldBeAbleToFindIt,
+                              () => {
+                                // Private joinable groups from the current tenant should not be searched when searched as a regular user
+                                searchForResource(
+                                  asPublicUserOn(publicTenantA),
+                                  INTERACT_SCOPE,
+                                  somePrivateJoinableGroupFrom(publicTenantA),
+                                  shouldNotBeAbleToFindIt,
+                                  () => {
+                                    // Sanity check that under _network search, the private joinable group does get searched when searching as a regular user
+                                    searchForResource(
+                                      asPublicUserOn(publicTenantA),
+                                      NETWORK_SCOPE,
+                                      somePrivateJoinableGroupFrom(publicTenantA),
+                                      shouldBeAbleToFindIt,
+                                      () => {
+                                        // Only public items from another public tenant should be searched
+                                        searchForResource(
+                                          asPublicUserOn(publicTenantA),
+                                          INTERACT_SCOPE,
+                                          somePublicUserFrom(publicTenantB),
+                                          shouldBeAbleToFindIt,
+                                          () => {
+                                            searchForResource(
+                                              asPublicUserOn(publicTenantA),
+                                              INTERACT_SCOPE,
+                                              someLoggedInUserFrom(publicTenantB),
+                                              shouldNotBeAbleToFindIt,
+                                              () => {
+                                                searchForResource(
+                                                  asPublicUserOn(publicTenantA),
+                                                  INTERACT_SCOPE,
+                                                  somePrivateUserFrom(publicTenantB),
+                                                  shouldNotBeAbleToFindIt,
+                                                  () => {
+                                                    // Nothing from an external private tenant should be searched
+                                                    searchForResource(
+                                                      asPublicUserOn(publicTenantA),
+                                                      INTERACT_SCOPE,
+                                                      somePublicUserFrom(privateTenantA),
+                                                      shouldNotBeAbleToFindIt,
+                                                      () => {
+                                                        searchForResource(
+                                                          asPublicUserOn(publicTenantA),
+                                                          INTERACT_SCOPE,
+                                                          someLoggedInUserFrom(privateTenantA),
+                                                          shouldNotBeAbleToFindIt,
+                                                          () => {
+                                                            searchForResource(
+                                                              asPublicUserOn(publicTenantA),
+                                                              INTERACT_SCOPE,
+                                                              somePrivateUserFrom(privateTenantA),
+                                                              shouldNotBeAbleToFindIt,
+                                                              () => {
+                                                                // Public and logged items from the current private tenant should be searched
+                                                                searchForResource(
+                                                                  asPublicUserOn(privateTenantA),
+                                                                  INTERACT_SCOPE,
+                                                                  somePublicUserFrom(privateTenantA),
+                                                                  shouldBeAbleToFindIt,
+                                                                  () => {
+                                                                    searchForResource(
+                                                                      asPublicUserOn(privateTenantA),
+                                                                      INTERACT_SCOPE,
+                                                                      someLoggedInUserFrom(privateTenantA),
+                                                                      shouldBeAbleToFindIt,
+                                                                      () => {
+                                                                        searchForResource(
+                                                                          asPublicUserOn(privateTenantA),
+                                                                          INTERACT_SCOPE,
+                                                                          somePrivateUserFrom(privateTenantA),
+                                                                          shouldNotBeAbleToFindIt,
+                                                                          () => {
+                                                                            // Nothing from an external public tenant should be searched when searching from a private tenant
+                                                                            searchForResource(
+                                                                              asPublicUserOn(privateTenantA),
+                                                                              INTERACT_SCOPE,
+                                                                              somePublicUserFrom(publicTenantA),
+                                                                              shouldNotBeAbleToFindIt,
+                                                                              () => {
+                                                                                searchForResource(
+                                                                                  asPublicUserOn(privateTenantA),
+                                                                                  INTERACT_SCOPE,
+                                                                                  someLoggedInUserFrom(publicTenantA),
+                                                                                  shouldNotBeAbleToFindIt,
+                                                                                  () => {
+                                                                                    searchForResource(
+                                                                                      asPublicUserOn(privateTenantA),
+                                                                                      INTERACT_SCOPE,
+                                                                                      somePrivateUserFrom(
+                                                                                        publicTenantA
+                                                                                      ),
+                                                                                      shouldNotBeAbleToFindIt,
+                                                                                      () => {
+                                                                                        /**
+                                                                                         * Nothing from an external private tenant should
+                                                                                         * be searched when searching from a private tenant
+                                                                                         */
+                                                                                        searchForResource(
+                                                                                          asPublicUserOn(
+                                                                                            privateTenantA
+                                                                                          ),
+                                                                                          INTERACT_SCOPE,
+                                                                                          somePublicUserFrom(
+                                                                                            privateTenantB
+                                                                                          ),
+                                                                                          shouldNotBeAbleToFindIt,
+                                                                                          () => {
+                                                                                            searchForResource(
+                                                                                              asPublicUserOn(
+                                                                                                privateTenantA
+                                                                                              ),
+                                                                                              INTERACT_SCOPE,
+                                                                                              someLoggedInUserFrom(
+                                                                                                privateTenantB
+                                                                                              ),
+                                                                                              shouldNotBeAbleToFindIt,
+                                                                                              () => {
+                                                                                                searchForResource(
+                                                                                                  asPublicUserOn(
+                                                                                                    privateTenantA
+                                                                                                  ),
+                                                                                                  INTERACT_SCOPE,
+                                                                                                  somePrivateUserFrom(
+                                                                                                    privateTenantB
+                                                                                                  ),
+                                                                                                  shouldNotBeAbleToFindIt,
+                                                                                                  () => {
+                                                                                                    return callback();
+                                                                                                  }
+                                                                                                );
+                                                                                              }
+                                                                                            );
+                                                                                          }
+                                                                                        );
+                                                                                      }
+                                                                                    );
+                                                                                  }
+                                                                                );
+                                                                              }
+                                                                            );
+                                                                          }
+                                                                        );
+                                                                      }
+                                                                    );
+                                                                  }
+                                                                );
+                                                              }
+                                                            );
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+                                                );
+                                              }
+                                            );
+                                          }
+                                        );
+                                      }
+                                    );
+                                  }
+                                );
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+            );
+          }
+        );
       });
     });
 

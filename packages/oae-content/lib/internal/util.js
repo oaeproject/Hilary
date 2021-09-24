@@ -27,6 +27,13 @@ import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import * as Signature from 'oae-util/lib/signature.js';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
+import * as amazonS3 from '../backends/amazons3.js';
+import * as localDirStorage from '../backends/local.js';
+import * as remoteDirStorage from '../backends/remote.js';
+import * as testStorage from '../backends/test.js';
+
+const availableBackends = { local: localDirStorage, amazon: amazonS3, remote: remoteDirStorage, test: testStorage };
+
 const ContentConfig = setUpConfig('oae-content');
 
 const log = logger('oae-content-util');
@@ -58,7 +65,8 @@ const getStorageBackend = function (ctx, uri) {
   }
 
   try {
-    return require('oae-content/lib/backends/' + backendName);
+    // return require('oae-content/lib/backends/' + backendName);
+    return availableBackends[backendName];
   } catch (error) {
     log(ctx).error({ err: error }, "Couldn't load the backend %s", backendName);
     throw new Error('Could not find storage back-end ' + backendName);

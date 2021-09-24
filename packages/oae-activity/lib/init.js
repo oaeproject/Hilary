@@ -26,18 +26,12 @@ import * as Notifications from './internal/notifications.js';
 import * as Email from './internal/email.js';
 
 export function init(config, callback) {
-  Activity.init(() => {
-    Notifications.init(() => {
-      Email.init(() => {
-        ActivityAPI.refreshConfiguration(config.activity, (error) => {
-          if (error) {
-            return callback(error);
-          }
+  ActivityAPI.refreshConfiguration(config.activity, (error) => {
+    if (error) {
+      return callback(error);
+    }
 
-          // Configure the push notifications
-          ActivityPush.init(callback);
-        });
-      });
-    });
+    // Configure the push notifications
+    ActivityPush.init(callback);
   });
 }

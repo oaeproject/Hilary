@@ -28,6 +28,7 @@ import { setUpConfig } from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
+import * as FoldersAPI from 'oae-folders/lib/api.js';
 
 import { getFoldersByIds } from 'oae-folders/lib/internal/dao.js';
 import * as MessageBoxAPI from 'oae-messagebox';
@@ -903,7 +904,7 @@ const _addContentItemToFolders = function (ctx, content, folders, callback) {
   // We have to require the FoldersAPI inline
   // as we'd get a dependency cycle otherwise
   const folder = folders.pop();
-  require('oae-folders')._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], (error) => {
+  FoldersAPI._addContentItemsToFolderLibrary(ctx, 'content-create', folder, [content], (error) => {
     if (error) return callback(error);
 
     _addContentItemToFolders(ctx, content, folders, callback);

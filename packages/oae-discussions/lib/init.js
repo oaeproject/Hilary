@@ -20,11 +20,5 @@ import * as activity from './activity.js';
 import * as invitations from './invitations.js';
 
 export function init(config, callback) {
-  library.init(() => {
-    activity.init(() => {
-      invitations.init(() => {
-        return DiscussionsSearch.init(callback);
-      });
-    });
-  });
+  return DiscussionsSearch.init(callback);
 }

@@ -16,11 +16,11 @@
 import { assert } from 'chai';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
 import { contains, filter, find, equals, propSatisfies } from 'ramda';
 
 const { clearEmailCollections, collectAndFetchAllEmails } = EmailTestsUtil;

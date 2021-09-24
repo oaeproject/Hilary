@@ -19,12 +19,12 @@ import { format } from 'util';
 import path from 'path';
 
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import * as UIAPI from 'oae-ui';
 import { UIConstants } from 'oae-ui/lib/constants.js';
-import * as UITestUtil from 'oae-ui/lib/test/util';
+import * as UITestUtil from 'oae-ui/lib/test/util.js';
 
 const { getUIDirectory, init, translate } = UIAPI;
 const { updateSkinAndWait } = UITestUtil;
@@ -739,7 +739,7 @@ describe('UI', () => {
      */
     it('verify logo can be uploaded for a tenant', (callback) => {
       const tenantAlias = global.oaeTests.tenants.cam.alias;
-      const filePath = path.join(__dirname, '/data/oae-logo.svg');
+      const filePath = path.join(__dirname, '/data/oae-logo.png');
       let fileStream = fs.createReadStream(filePath);
 
       // Assert that the global admin can change the logo for a tenant

@@ -19,6 +19,12 @@ import { format } from 'util';
 import _ from 'underscore';
 import { keys, reject, isNil, forEach, map, path, last } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as Cassandra from 'oae-util/lib/cassandra.js';

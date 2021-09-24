@@ -17,12 +17,12 @@ import { assert } from 'chai';
 import _ from 'underscore';
 
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
 import { FoldersConstants } from 'oae-folders/lib/constants.js';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 
 const PUBLIC = 'public';
 const PRIVATE = 'private';

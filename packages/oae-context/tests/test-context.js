@@ -14,8 +14,9 @@
  */
 
 import { assert } from 'chai';
-import { Locale } from 'locale';
-import { User } from 'oae-principals/lib/model';
+import pkg from 'locale';
+const { Locale } = pkg;
+import { User } from 'oae-principals/lib/model.js';
 import { Context } from 'oae-context';
 
 describe('Context', () => {

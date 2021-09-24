@@ -18,10 +18,10 @@ import _ from 'underscore';
 import { assoc, propEq, none } from 'ramda';
 import shortid from 'shortid';
 
-import AuthzGraph from 'oae-authz/lib/internal/graph';
+import AuthzGraph from 'oae-authz/lib/internal/graph.js';
 import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 describe('Authz Groups', () => {

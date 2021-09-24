@@ -18,6 +18,12 @@ import fs from 'fs';
 import path from 'path';
 import dateFormat from 'dateformat';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { map, head, reverse, compose, split, join } from 'ramda';
 
 import {

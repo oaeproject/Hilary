@@ -359,7 +359,7 @@ describe('Principals Activity', () => {
     /**
      * Test that verifies the contents of the full group and user activity entity models.
      */
-    it.skip('verify the user and group activity entity model', (callback) => {
+    it('verify the user and group activity entity model', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
         assert.notExists(error);
         const { 0: publicUser, 1: privateUser } = users;

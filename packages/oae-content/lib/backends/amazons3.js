@@ -21,9 +21,9 @@ import mime from 'mime';
 import { S3 } from 'awssum-amazon-s3';
 
 import { setUpConfig } from 'oae-config';
-import * as IO from 'oae-util/lib/io';
+import * as IO from 'oae-util/lib/io.js';
 import { logger } from 'oae-logger';
-import * as TempFile from 'oae-util/lib/tempfile';
+import * as TempFile from 'oae-util/lib/tempfile.js';
 
 import { ContentConstants } from '../constants.js';
 import { DownloadStrategy } from '../model.js';

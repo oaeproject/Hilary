@@ -17,7 +17,7 @@
 import { assert } from 'chai';
 
 import { getResourceFromId } from 'oae-authz/lib/util.js';
-import { whenTasksEmpty } from 'oae-util/lib/test/mq-util';
+import { whenTasksEmpty } from 'oae-util/lib/test/mq-util.js';
 import * as RestAPI from 'oae-rest';
 import {
   registerChildSearchDocument,
@@ -28,7 +28,7 @@ import {
   registerSearchDocumentTransformer,
   postIndexTask
 } from 'oae-search';
-import { subscribe, unsubscribe } from 'oae-util/lib/mq';
+import { subscribe, unsubscribe } from 'oae-util/lib/mq.js';
 import {
   createTenantRestContext,
   createGlobalRestContext,

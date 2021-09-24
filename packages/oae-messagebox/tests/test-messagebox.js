@@ -17,7 +17,7 @@ import { assert } from 'chai';
 import { format } from 'util';
 import ShortId from 'shortid';
 
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
 

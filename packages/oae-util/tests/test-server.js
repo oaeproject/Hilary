@@ -16,11 +16,10 @@
 import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-
 import { pluck, forEach } from 'ramda';
 
-import * as OaeServer from 'oae-util/lib/server';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as OaeServer from 'oae-util/lib/server.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util.js';
 import * as TestsUtil from 'oae-tests';

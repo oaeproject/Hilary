@@ -34,61 +34,53 @@ import * as invitations from './invitations.js';
 const log = logger('oae-content');
 
 export function init(config, callback) {
-  library.init(() => {
-    activity.init(() => {
-      previews.init(() => {
-        invitations.init(() => {
-          // Initialize the etherpad client.
-          Etherpad.refreshConfiguration(config.etherpad);
+  // Initialize the etherpad client.
+  Etherpad.refreshConfiguration(config.etherpad);
 
-          // Initialize the ethercalc client
-          Ethercalc.refreshConfiguration(config.ethercalc);
+  // Initialize the ethercalc client
+  Ethercalc.refreshConfiguration(config.ethercalc);
 
-          ContentSearch.init((error) => {
-            if (error) {
-              return callback(error);
-            }
+  ContentSearch.init((error) => {
+    if (error) {
+      return callback(error);
+    }
 
-            // Create the directory where files will be stored.
-            fs.mkdir(config.files.uploadDir, { recursive: true }, (error) => {
-              if (error && error.code !== 'EEXIST') {
-                log().error({ err: error }, 'Could not create the directory where uploaded files can be stored.');
-                return callback(error);
-              }
+    // Create the directory where files will be stored.
+    fs.mkdir(config.files.uploadDir, { recursive: true }, (error) => {
+      if (error && error.code !== 'EEXIST') {
+        log().error({ err: error }, 'Could not create the directory where uploaded files can be stored.');
+        return callback(error);
+      }
 
-              if (config.files.cleaner.enabled) {
-                // Start a timed process that checks the uploaded dir and remove files
-                // which should not be there.
-                Cleaner.start(config.files.uploadDir, config.files.cleaner.interval);
-              }
+      if (config.files.cleaner.enabled) {
+        // Start a timed process that checks the uploaded dir and remove files
+        // which should not be there.
+        Cleaner.start(config.files.uploadDir, config.files.cleaner.interval);
+      }
 
-              LocalStorage.init(config.files.localStorageDirectory, (error) => {
-                if (error) {
-                  return callback(error);
-                }
+      LocalStorage.init(config.files.localStorageDirectory, (error) => {
+        if (error) {
+          return callback(error);
+        }
 
-                /**
-                 * Handle "publish" messages that are sent from Etherpad
-                 * via Redis. These messages indicate that a user made
-                 * edits and has closed the document
-                 */
-                MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, (error) => {
-                  if (error) {
-                    return callback(error);
-                  }
+        /**
+         * Handle "publish" messages that are sent from Etherpad
+         * via Redis. These messages indicate that a user made
+         * edits and has closed the document
+         */
+        MQ.subscribe(ContentConstants.queue.ETHERPAD_PUBLISH, ContentAPI.handlePublish, (error) => {
+          if (error) {
+            return callback(error);
+          }
 
-                  // Same for Ethercalc - no ack because ack breaks Ethercalc
-                  MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, (error) => {
-                    if (error) return callback(error);
+          // Same for Ethercalc - no ack because ack breaks Ethercalc
+          MQ.subscribe(ContentConstants.queue.ETHERCALC_EDIT, Ethercalc.setEditedBy, (error) => {
+            if (error) return callback(error);
 
-                    MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, (error) => {
-                      if (error) return callback(error);
+            MQ.subscribe(ContentConstants.queue.ETHERCALC_PUBLISH, ContentAPI.ethercalcPublish, (error) => {
+              if (error) return callback(error);
 
-                      return callback();
-                    });
-                  });
-                });
-              });
+              return callback();
             });
           });
         });

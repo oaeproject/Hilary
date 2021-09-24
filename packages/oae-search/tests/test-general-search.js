@@ -16,13 +16,13 @@
 import { assert } from 'chai';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import { assertSetGroupMembersSucceeds } from 'oae-principals/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import { assertSetGroupMembersSucceeds } from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
-import { buildIndex } from 'oae-search/lib/api';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
+import { buildIndex } from 'oae-search/lib/api.js';
 
 import {
   compose,

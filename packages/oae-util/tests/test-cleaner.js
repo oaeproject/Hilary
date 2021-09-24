@@ -19,7 +19,7 @@ import path from 'path';
 import shell from 'shelljs';
 import { head, equals } from 'ramda';
 
-import * as Cleaner from 'oae-util/lib/cleaner';
+import * as Cleaner from 'oae-util/lib/cleaner.js';
 
 describe('Content', () => {
   describe('Cleaner', () => {

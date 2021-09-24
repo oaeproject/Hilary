@@ -17,10 +17,10 @@ import { assert } from 'chai';
 import { format } from 'util';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 
 import { pathSatisfies, is, map, prop, last, propSatisfies, equals, find } from 'ramda';
 

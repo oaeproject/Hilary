@@ -23,6 +23,8 @@ import dateFormat from 'dateformat';
 import jszip from 'jszip';
 import ShortId from 'shortid';
 
+import * as AuthenticationAPI from 'oae-authentication';
+
 import { getJSON } from 'oae-content/lib/internal/ethercalc.js';
 import { getTenantSkinVariables } from 'oae-ui';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
@@ -203,11 +205,14 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
 
   // Const isAdmin = ctx.user() && ctx.user().isAdmin(tenantAlias);
   // TODO I did this but I shouldn't have to... check this further
-  options.visibility = defaultTo('private', PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility'));
+  // options.visibility = defaultTo('private', PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility'));
+  options.visibility = options.visibility || PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility');
   options.publicAlias = options.publicAlias || displayName;
   options.acceptedTC = options.acceptedTC || false;
   // TODO I did this but I shouldn't have to... check this further
-  options.emailPreference = defaultTo('weekly', PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference'));
+  // options.emailPreference = defaultTo('weekly', PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference'));
+  options.emailPreference =
+    options.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   options.isUserArchive = options.isUserArchive || null;
 
   try {
@@ -504,7 +509,7 @@ const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy,
           // If the user already exists but has a different displayName from the one
           // in the CSV file, we update it
           // TODO: Fix cross-dependency between the Authentication API and the Principals API
-          require('oae-authentication').getOrCreateUser(
+          AuthenticationAPI.getOrCreateUser(
             adminCtx,
             authenticationStrategy,
             externalId,

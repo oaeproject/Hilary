@@ -17,14 +17,14 @@
 import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import { flush } from 'oae-util/lib/redis';
+import { flush } from 'oae-util/lib/redis.js';
 
 import { find, filter, equals, propSatisfies, pathSatisfies } from 'ramda';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util.js';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 const { searchAll } = SearchTestsUtil;
@@ -130,7 +130,7 @@ describe('File previews', () => {
    *
    * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
    */
-  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.svg'));
+  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.png'));
 
   /**
    * Creates a file and adds 2 preview items

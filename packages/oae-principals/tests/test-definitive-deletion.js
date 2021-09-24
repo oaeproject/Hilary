@@ -17,6 +17,12 @@ import { assert } from 'chai';
 import fs from 'fs';
 import { format } from 'util';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { pipe, forEach, filter, equals, contains, pluck, propSatisfies } from 'ramda';
 
 import { addMonths } from 'date-fns';
@@ -91,7 +97,7 @@ describe('Delete and eliminate users', () => {
   });
 
   after((callback) => {
-    EmailTestUtil.collectAndFetchAllEmails(() => {
+    EmailTestUtil.collectAndFetchAllEmails((error) => {
       callback();
     });
   });

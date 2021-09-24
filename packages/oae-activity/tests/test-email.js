@@ -17,20 +17,20 @@ import { assert } from 'chai';
 
 import { format } from 'util';
 import $ from 'cheerio';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as EmailTestUtil from 'oae-email/lib/test/util';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as Sanitization from 'oae-util/lib/sanitization';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as TZ from 'oae-util/lib/tz';
-import * as ActivityAPI from 'oae-activity';
+import * as TZ from 'oae-util/lib/tz.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
-import * as ActivityEmail from 'oae-activity/lib/internal/email';
-import * as ActivitySystemConfig from 'oae-activity/lib/internal/config';
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
+import * as ActivityEmail from 'oae-activity/lib/internal/email.js';
+import * as ActivitySystemConfig from 'oae-activity/lib/internal/config.js';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
 
 import {
   forEach,

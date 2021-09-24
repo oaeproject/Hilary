@@ -22,7 +22,7 @@ import {
   indexExists,
   createIndex,
   deleteIndex
-} from 'oae-search/lib/internal/elasticsearch';
+} from 'oae-search/lib/internal/elasticsearch.js';
 
 import { not, assoc } from 'ramda';
 

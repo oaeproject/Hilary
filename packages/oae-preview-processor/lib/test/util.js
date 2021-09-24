@@ -16,8 +16,7 @@
 import assert from 'assert';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 
-// import * as pubSub from 'oae-util/lib/pubsub';
-import * as MQ from 'oae-util/lib/mq';
+import * as MQ from 'oae-util/lib/mq.js';
 
 /**
  * Purges all the events out of the previews queue

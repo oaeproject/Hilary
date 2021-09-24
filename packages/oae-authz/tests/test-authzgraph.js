@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 import { pluck } from 'ramda';
 
-import AuthzGraph from 'oae-authz/lib/internal/graph';
+import AuthzGraph from 'oae-authz/lib/internal/graph.js';
 
 describe('Authz Graph', () => {
   /**

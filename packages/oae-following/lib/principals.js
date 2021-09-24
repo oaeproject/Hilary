@@ -17,65 +17,59 @@ import PrincipalsAPI from 'oae-principals';
 import * as FollowingAuthz from 'oae-following/lib/authz.js';
 import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
 
-const init = (callback) => {
-  /*!
-   * Register a full user profile decorator that will indicate if the user in context
-   * is following, or is able to follow the user profile being accessed.
-   */
-  PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback) => {
-    if (!ctx.user()) {
-      return callback();
+/*!
+ * Register a full user profile decorator that will indicate if the user in context
+ * is following, or is able to follow the user profile being accessed.
+ */
+PrincipalsAPI.registerFullUserProfileDecorator('following', (ctx, user, callback) => {
+  if (!ctx.user()) {
+    return callback();
+  }
+
+  if (ctx.user().id === user.id) {
+    return callback();
+  }
+
+  // Determine if the current user is following the given user
+  FollowingDAO.isFollowing(ctx.user().id, [user.id], (err, following) => {
+    if (err) {
+      return callback(err);
     }
 
-    if (ctx.user().id === user.id) {
-      return callback();
+    // If the user is following them, we can't follow anymore, so we have all our answers
+    const isFollowing = following[user.id];
+    if (isFollowing) {
+      return callback(null, _createFullUserProfileDecoration(false, true));
     }
 
-    // Determine if the current user is following the given user
-    FollowingDAO.isFollowing(ctx.user().id, [user.id], (err, following) => {
-      if (err) {
+    // If we aren't following, see if we're allowed to follow them
+    let canFollow = true;
+    FollowingAuthz.canFollow(ctx, user, (err) => {
+      if (err && err.code !== 401) {
         return callback(err);
       }
 
-      // If the user is following them, we can't follow anymore, so we have all our answers
-      const isFollowing = following[user.id];
-      if (isFollowing) {
-        return callback(null, _createFullUserProfileDecoration(false, true));
+      if (err) {
+        canFollow = false;
       }
 
-      // If we aren't following, see if we're allowed to follow them
-      let canFollow = true;
-      FollowingAuthz.canFollow(ctx, user, (err) => {
-        if (err && err.code !== 401) {
-          return callback(err);
-        }
-
-        if (err) {
-          canFollow = false;
-        }
-
-        return callback(null, _createFullUserProfileDecoration(canFollow, false));
-      });
+      return callback(null, _createFullUserProfileDecoration(canFollow, false));
     });
   });
+});
 
-  /*!
-   * Return the decoration object indicating if the user can follow the other, or if they are
-   * currently following them
-   *
-   * @param  {Boolean}    [canFollow]     Whether or not the decoration object should indicate that the user can be followed by the user receiving the profile. Default: `false`
-   * @param  {Boolean}    [isFollowing]   Whether or not the decoration object should indicate that the user is being followed by the user receiving the profile. Default: `false`
-   * @return {Object}                     The decoration object to attach to the user profile
-   * @api private
-   */
-  const _createFullUserProfileDecoration = function (canFollow, isFollowing) {
-    return {
-      canFollow: canFollow === true,
-      isFollowing: isFollowing === true
-    };
+/*!
+ * Return the decoration object indicating if the user can follow the other, or if they are
+ * currently following them
+ *
+ * @param  {Boolean}    [canFollow]     Whether or not the decoration object should indicate that the user can be followed by the user receiving the profile. Default: `false`
+ * @param  {Boolean}    [isFollowing]   Whether or not the decoration object should indicate that the user is being followed by the user receiving the profile. Default: `false`
+ * @return {Object}                     The decoration object to attach to the user profile
+ * @api private
+ */
+const _createFullUserProfileDecoration = function (canFollow, isFollowing) {
+  return {
+    canFollow: canFollow === true,
+    isFollowing: isFollowing === true
   };
-
-  return callback();
 };
-
-export { init };

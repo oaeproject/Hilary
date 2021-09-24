@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import * as Sanitization from 'oae-util/lib/sanitization';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
 
 describe('Sanitization', () => {
   /**

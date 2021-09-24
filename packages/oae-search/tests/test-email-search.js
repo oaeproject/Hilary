@@ -35,12 +35,12 @@ import {
   head
 } from 'ramda';
 
-import { loginOnTenant } from 'oae-rest/lib/api.admin';
-import { createLink } from 'oae-rest/lib/api.content';
-import { createGroup } from 'oae-rest/lib/api.group';
-import { createDiscussion } from 'oae-rest/lib/api.discussions';
-import { flush } from 'oae-util/lib/redis';
-import { assertVerifyEmailsSucceeds, assertUpdateUsersSucceeds } from 'oae-principals/lib/test/util';
+import { loginOnTenant } from 'oae-rest/lib/api.admin.js';
+import { createLink } from 'oae-rest/lib/api.content.js';
+import { createGroup } from 'oae-rest/lib/api.group.js';
+import { createDiscussion } from 'oae-rest/lib/api.discussions.js';
+import { flush } from 'oae-util/lib/redis.js';
+import { assertVerifyEmailsSucceeds, assertUpdateUsersSucceeds } from 'oae-principals/lib/test/util.js';
 import {
   whenIndexingComplete,
   assertSearchContains,
@@ -48,7 +48,7 @@ import {
   assertSearchNotContains,
   assertSearchEquals,
   assertSearchFails
-} from 'oae-search/lib/test/util';
+} from 'oae-search/lib/test/util.js';
 import {
   generateTestUsers,
   createTenantRestContext,
@@ -56,7 +56,7 @@ import {
   createTenantAdminRestContext,
   setupMultiTenantPrivacyEntities
 } from 'oae-tests';
-import { assertCreateFolderSucceeds } from 'oae-folders/lib/test/util';
+import { assertCreateFolderSucceeds } from 'oae-folders/lib/test/util.js';
 
 const PUBLIC_USER = 'publicUser';
 const PRIVATE_USER = 'privateUser';

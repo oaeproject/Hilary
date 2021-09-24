@@ -444,24 +444,19 @@ const _transformPrincipals = function (ctx, principals) {
  * @param  {Number}         [offset]    The minimum time in seconds for which the generated picture URLs will be valid. Default: 1 week
  * @api private
  */
-const _generatePictureURLs = async function (ctx, principal, duration, offset) {
+const _generatePictureURLs = function (ctx, principal, duration, offset) {
   if (principal.picture.smallUri) {
-    principal.picture.small = await ContentUtil.getSignedDownloadUrl(ctx, principal.picture.smallUri, duration, offset);
+    principal.picture.small = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.smallUri, duration, offset);
     delete principal.picture.smallUri;
   }
 
   if (principal.picture.mediumUri) {
-    principal.picture.medium = await ContentUtil.getSignedDownloadUrl(
-      ctx,
-      principal.picture.mediumUri,
-      duration,
-      offset
-    );
+    principal.picture.medium = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.mediumUri, duration, offset);
     delete principal.picture.mediumUri;
   }
 
   if (principal.picture.largeUri) {
-    principal.picture.large = await ContentUtil.getSignedDownloadUrl(ctx, principal.picture.largeUri, duration, offset);
+    principal.picture.large = ContentUtil.getSignedDownloadUrl(ctx, principal.picture.largeUri, duration, offset);
     delete principal.picture.largeUri;
   }
 };

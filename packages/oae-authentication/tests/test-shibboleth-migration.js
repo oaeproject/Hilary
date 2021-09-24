@@ -24,7 +24,7 @@ import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import { logger } from 'oae-logger';
-import ShibbolethMigrator from '../../../etc/migration/shibboleth_migration/migrate-users-to-shibboleth.js';
+import * as ShibbolethMigrator from '../../../etc/migration/shibboleth_migration/migrate-users-to-shibboleth.js';
 
 const log = logger('oae-authentication');
 

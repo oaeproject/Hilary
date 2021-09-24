@@ -44,7 +44,7 @@ const LARGE = 'large';
 const codeIs200 = equals(200);
 const DUMMY_BASE = 'http://localhost';
 
-describe.only('Profile pictures', () => {
+describe('Profile pictures', () => {
   // Rest context that can be used every time we need to make a request as a Cambridge tenant admin
   let asCambridgeTenantAdmin = null;
 
@@ -303,7 +303,7 @@ describe.only('Profile pictures', () => {
   /**
    * Test that verifies cropping
    */
-  it.only('verify cropping', (callback) => {
+  it('verify cropping', (callback) => {
     _createUser((ctx) => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, (error) => {
         assert.notExists(error);

@@ -2,8 +2,8 @@ import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 
 const PRIVATE = 'private';
 
@@ -235,30 +235,34 @@ describe('Meeting Activity', () => {
             assert.notExists(error);
 
             // Send a message
-            RestAPI.MeetingsJitsi.createComment(simon.restContext, meeting.id, '<b>Nice meeting.</b>', null, (
-              error /* , simonMessage */
-            ) => {
-              assert.notExists(error);
+            RestAPI.MeetingsJitsi.createComment(
+              simon.restContext,
+              meeting.id,
+              '<b>Nice meeting.</b>',
+              null,
+              (error /* , simonMessage */) => {
+                assert.notExists(error);
 
-              // Collect the activities
-              ActivityTestsUtil.collectAndGetActivityStream(
-                simon.restContext,
-                simon.user.id,
-                null,
-                (error, activityStream) => {
-                  assert.notExists(error);
+                // Collect the activities
+                ActivityTestsUtil.collectAndGetActivityStream(
+                  simon.restContext,
+                  simon.user.id,
+                  null,
+                  (error, activityStream) => {
+                    assert.notExists(error);
 
-                  // Verify the meeting-jitsi-message activity
-                  const activity = activityStream.items[0];
-                  assert.ok(activity);
-                  assert.strictEqual(activity['oae:activityType'], 'meeting-jitsi-message');
-                  assert.strictEqual(activity.actor['oae:id'], simon.user.id);
-                  assert.strictEqual(activity.object['oae:id'], meeting.id + '#' + activity.object.published);
+                    // Verify the meeting-jitsi-message activity
+                    const activity = activityStream.items[0];
+                    assert.ok(activity);
+                    assert.strictEqual(activity['oae:activityType'], 'meeting-jitsi-message');
+                    assert.strictEqual(activity.actor['oae:id'], simon.user.id);
+                    assert.strictEqual(activity.object['oae:id'], meeting.id + '#' + activity.object.published);
 
-                  return callback();
-                }
-              );
-            });
+                    return callback();
+                  }
+                );
+              }
+            );
           }
         );
       });

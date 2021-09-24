@@ -18,6 +18,12 @@ import fs from 'fs';
 import path from 'path';
 import { format } from 'util';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as ActivityDAO from 'oae-activity/lib/internal/dao.js';
@@ -115,7 +121,7 @@ describe('Content Activity', () => {
     suitableFiles = {
       'file.small.jpg': getFunctionThatReturnsFileStream('apereo-conference-2013.jpeg'),
       'file.medium.jpg': getFunctionThatReturnsFileStream('apereo.jpg'),
-      'thumbnail.png': getFunctionThatReturnsFileStream('oae-logo.svg'),
+      'thumbnail.png': getFunctionThatReturnsFileStream('oae-logo.png'),
       'wide.png': getFunctionThatReturnsFileStream('oae-video.png')
     };
     suitableSizes = {

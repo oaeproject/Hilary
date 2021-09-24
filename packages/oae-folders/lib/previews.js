@@ -74,70 +74,67 @@ const _handleContentChange = function (ctx, folder, contentItems) {
   }
 };
 
-const init = (callback) => {
-  /*!
-   * If a content item gets added to a folder we need to generate previews for the folder
-   */
-  FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionContext, folder, contentItems) => {
-    return _handleContentChange(ctx, folder, contentItems);
-  });
+/*!
+ * If a content item gets added to a folder we need to generate previews for the folder
+ */
+FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionContext, folder, contentItems) => {
+  return _handleContentChange(ctx, folder, contentItems);
+});
 
-  /*!
-   * If a content item gets removed from a folder, we need to regenerate the previews for the folder
-   */
-  FoldersAPI.emitter.on(FoldersConstants.events.REMOVED_CONTENT_ITEMS, _handleContentChange);
+/*!
+ * If a content item gets removed from a folder, we need to regenerate the previews for the folder
+ */
+FoldersAPI.emitter.on(FoldersConstants.events.REMOVED_CONTENT_ITEMS, _handleContentChange);
 
-  /*!
-   * If a folder's visibility is updated we need to regenerate the previews for the folder
-   */
-  FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, newFolder, oldFolder) => {
-    if (oldFolder.visibility !== newFolder.visibility) {
-      PreviewProcessorAPI.submitFolderForProcessing(newFolder.id);
+/*!
+ * If a folder's visibility is updated we need to regenerate the previews for the folder
+ */
+FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, newFolder, oldFolder) => {
+  if (oldFolder.visibility !== newFolder.visibility) {
+    PreviewProcessorAPI.submitFolderForProcessing(newFolder.id);
+  }
+});
+
+/*!
+ * If a content item's preview images are updated we need to generate previews for the folder
+ */
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, (content) => {
+  _reprocessFoldersThatContainContent(content.id);
+});
+
+/*!
+ * If a piece of content is removed from the system we need to regenerate previews for the folders it was located in
+ */
+ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj, members) => {
+  previewCounter.incr();
+
+  const groupIds = AuthzUtil.getGroupIds(members);
+  FoldersDAO.getFoldersByGroupIds(groupIds, (err, folders) => {
+    if (err) {
+      log().error(
+        { err, contentId: contentObj.id },
+        'Unable to regenerate folder preview after removing a piece of content'
+      );
+      return;
     }
-  });
 
-  /*!
-   * If a content item's preview images are updated we need to generate previews for the folder
-   */
-  ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_PREVIEW, (content) => {
-    _reprocessFoldersThatContainContent(content.id);
-  });
-
-  /*!
-   * If a piece of content is removed from the system we need to regenerate previews for the folders it was located in
-   */
-  ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj, members) => {
-    previewCounter.incr();
-
-    const groupIds = AuthzUtil.getGroupIds(members);
-    FoldersDAO.getFoldersByGroupIds(groupIds, (err, folders) => {
-      if (err) {
-        log().error(
-          { err, contentId: contentObj.id },
-          'Unable to regenerate folder preview after removing a piece of content'
-        );
-        return;
-      }
-
-      // Submit each folder for processing
-      _.each(folders, (folder) => {
-        PreviewProcessorAPI.submitFolderForProcessing(folder.id);
-      });
-
-      previewCounter.decr();
+    // Submit each folder for processing
+    _.each(folders, (folder) => {
+      PreviewProcessorAPI.submitFolderForProcessing(folder.id);
     });
-  });
 
-  /*!
-   * If a content item's visibility setting changes we need to regenerate the preview items for those folders that contain the content item
-   */
-  ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
-    if (newContentObj.visibility !== oldContentObj.visibility) {
-      _reprocessFoldersThatContainContent(newContentObj.id);
-    }
+    previewCounter.decr();
   });
-  return callback();
-};
+});
+
+/*!
+ * If a content item's visibility setting changes we need to regenerate the preview items for those folders that contain the content item
+ */
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
+  if (newContentObj.visibility !== oldContentObj.visibility) {
+    _reprocessFoldersThatContainContent(newContentObj.id);
+  }
+});
 
 /**
  * Reprocess the folders that contain a given content item
@@ -165,4 +162,4 @@ const _reprocessFoldersThatContainContent = function (contentId) {
   });
 };
 
-export { init, whenPreviewsComplete };
+export { whenPreviewsComplete };

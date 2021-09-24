@@ -14,6 +14,7 @@
  */
 
 import crypto from 'crypto';
+import { equals, and } from 'ramda';
 import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
@@ -30,6 +31,8 @@ const log = logger('oae-activity');
 
 // The redis client that will be used for storing / fetch aggregate entities
 let redisClient = null;
+
+const TRUE = 'true';
 
 /**
  * Initialize the activity DAO.
@@ -337,6 +340,17 @@ const deleteQueuedActivities = function (bucketNumber, numberToDelete, callback)
  * @param  {Object}    callback.aggregateStatus    An object, keyed by the aggregate key, whose value is the status of the aggregate
  */
 const getAggregateStatus = function (aggregateKeys, callback) {
+  const testsAreRunning = equals(TRUE, process.env.OAE_TESTS_RUNNING);
+  const testingAlternativeAggregation = equals(TRUE, process.env.TEST_ALTERNATE_AGGREGATION);
+
+  /**
+   * This aint pretty, but we previously had module overloading
+   * and apparently we can't have that no more
+   */
+  if (and(testsAreRunning, testingAlternativeAggregation)) {
+    return global.alternateAggregateStatus(aggregateKeys, callback);
+  }
+
   if (_.isEmpty(aggregateKeys)) {
     return callback(null, {});
   }

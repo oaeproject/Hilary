@@ -14,8 +14,7 @@
  */
 
 import { assert } from 'chai';
-
-import * as Signature from 'oae-util/lib/signature';
+import * as Signature from 'oae-util/lib/signature.js';
 
 // Keep track of the node Date.now function since we will override it at times in tests to mock a future date
 const _originalDateNow = Date.now;

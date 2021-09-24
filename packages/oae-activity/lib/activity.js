@@ -25,133 +25,123 @@ import * as MeetingsAPI from 'oae-jitsi/lib/api.meetings.js';
 
 import * as ActivityAPI from './api.js';
 
-const init = (callback) => {
-  ActivityAPI.registerActivityStreamType('activity', {
-    transient: false,
-    visibilityBucketing: true,
-    authorizationHandler(ctx, resourceId, token, callback) {
-      // Tenant admins can see all the streams
-      const resource = AuthzUtil.getResourceFromId(resourceId);
-      if (ctx.user() && ctx.user().isAdmin(resource.tenantAlias)) {
-        return callback();
-
-        // User streams
-      }
-
-      if (AuthzUtil.isUserId(resourceId)) {
-        return _authorizeUserActivityStream(ctx, resourceId, token, callback);
-
-        // Group streams
-      }
-
-      if (AuthzUtil.isGroupId(resourceId)) {
-        return _authorizeGroupActivityStream(ctx, resourceId, token, callback);
-
-        // Content streams
-      }
-
-      if (resource.resourceType === 'c') {
-        return _authorizeContentActivityStream(ctx, resourceId, token, callback);
-
-        // Discussion streams
-      }
-
-      if (resource.resourceType === 'd') {
-        return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
-
-        // Folder streams
-      }
-
-      if (resource.resourceType === 'f') {
-        return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
-
-        // Jitsi streams
-      }
-
-      if (resource.resourceType === 'm') {
-        return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
-
-        // Unknown type of resource
-      }
-
-      return callback({ code: 404, msg: 'Unknown type of resource' });
-    }
-  });
-
-  ActivityAPI.registerActivityStreamType('message', {
-    transient: true,
-    authorizationHandler(ctx, resourceId, token, callback) {
-      // Tenant admins can see all the streams
-      const resource = AuthzUtil.getResourceFromId(resourceId);
-      if (ctx.user() && ctx.user().isAdmin(resource.tenantAlias)) {
-        return callback();
-
-        // Content streams
-      }
-
-      if (resourceId[0] === 'c') {
-        return _authorizeContentActivityStream(ctx, resourceId, token, callback);
-
-        // Discussion streams
-      }
-
-      if (resourceId[0] === 'd') {
-        return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
-
-        // Folder streams
-      }
-
-      if (resourceId[0] === 'f') {
-        return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
-
-        // Meeting streams
-      }
-
-      if (resourceId[0] === 'm') {
-        return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
-
-        // Unknown type of resource
-      }
-
-      return callback({ code: 404, msg: 'Unknown type of resource' });
-    }
-  });
-
-  ActivityAPI.registerActivityStreamType('notification', {
-    transient: false,
-    push: {
-      delivery: {
-        phase: 'aggregation'
-      }
-    },
-    authorizationHandler(ctx, resourceId, token, callback) {
-      if (!AuthzUtil.isUserId(resourceId)) {
-        return callback({ code: 400, msg: 'Only users can have notification streams' });
-      }
-
-      if (!ctx.user()) {
-        return callback({
-          code: 401,
-          msg: 'Only authenticated users can retrieve a notification stream'
-        });
-      }
-
-      if (ctx.user().id !== resourceId) {
-        return callback({ code: 401, msg: 'You can only request your own notification stream' });
-      }
-
+ActivityAPI.registerActivityStreamType('activity', {
+  transient: false,
+  visibilityBucketing: true,
+  authorizationHandler(ctx, resourceId, token, callback) {
+    // Tenant admins can see all the streams
+    const resource = AuthzUtil.getResourceFromId(resourceId);
+    if (ctx.user() && ctx.user().isAdmin(resource.tenantAlias)) {
       return callback();
+
+      // User streams
     }
-  });
 
-  return callback();
-};
+    if (AuthzUtil.isUserId(resourceId)) {
+      return _authorizeUserActivityStream(ctx, resourceId, token, callback);
 
-export { init };
+      // Group streams
+    }
 
-/// ////////////////////////////////
-// SPECIFIC AUTHORIZATION HANDLERS //
-/// ////////////////////////////////
+    if (AuthzUtil.isGroupId(resourceId)) {
+      return _authorizeGroupActivityStream(ctx, resourceId, token, callback);
+
+      // Content streams
+    }
+
+    if (resource.resourceType === 'c') {
+      return _authorizeContentActivityStream(ctx, resourceId, token, callback);
+
+      // Discussion streams
+    }
+
+    if (resource.resourceType === 'd') {
+      return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
+
+      // Folder streams
+    }
+
+    if (resource.resourceType === 'f') {
+      return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
+
+      // Jitsi streams
+    }
+
+    if (resource.resourceType === 'm') {
+      return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
+
+      // Unknown type of resource
+    }
+
+    return callback({ code: 404, msg: 'Unknown type of resource' });
+  }
+});
+
+ActivityAPI.registerActivityStreamType('message', {
+  transient: true,
+  authorizationHandler(ctx, resourceId, token, callback) {
+    // Tenant admins can see all the streams
+    const resource = AuthzUtil.getResourceFromId(resourceId);
+    if (ctx.user() && ctx.user().isAdmin(resource.tenantAlias)) {
+      return callback();
+
+      // Content streams
+    }
+
+    if (resourceId[0] === 'c') {
+      return _authorizeContentActivityStream(ctx, resourceId, token, callback);
+
+      // Discussion streams
+    }
+
+    if (resourceId[0] === 'd') {
+      return _authorizeDiscussionActivityStream(ctx, resourceId, token, callback);
+
+      // Folder streams
+    }
+
+    if (resourceId[0] === 'f') {
+      return _authorizeFolderActivityStream(ctx, resourceId, token, callback);
+
+      // Meeting streams
+    }
+
+    if (resourceId[0] === 'm') {
+      return _authorizeJitsiActivityStream(ctx, resourceId, token, callback);
+
+      // Unknown type of resource
+    }
+
+    return callback({ code: 404, msg: 'Unknown type of resource' });
+  }
+});
+
+ActivityAPI.registerActivityStreamType('notification', {
+  transient: false,
+  push: {
+    delivery: {
+      phase: 'aggregation'
+    }
+  },
+  authorizationHandler(ctx, resourceId, token, callback) {
+    if (!AuthzUtil.isUserId(resourceId)) {
+      return callback({ code: 400, msg: 'Only users can have notification streams' });
+    }
+
+    if (!ctx.user()) {
+      return callback({
+        code: 401,
+        msg: 'Only authenticated users can retrieve a notification stream'
+      });
+    }
+
+    if (ctx.user().id !== resourceId) {
+      return callback({ code: 401, msg: 'You can only request your own notification stream' });
+    }
+
+    return callback();
+  }
+});
 
 /**
  * User authorization handler
@@ -170,8 +160,6 @@ const _authorizeUserActivityStream = function (ctx, userId, token, callback) {
   if (ctx.user().id !== userId) {
     return callback({ code: 401, msg: 'You can only request your own notification stream' });
   }
-
-  return callback();
 };
 
 /**

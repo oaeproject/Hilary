@@ -19,20 +19,26 @@ import path from 'path';
 import { format } from 'util';
 import temp from 'temp';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { Context } from 'oae-context';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util.js';
-import * as TenantsAPI from 'oae-tenants/lib/api';
-import * as MQ from 'oae-util/lib/mq';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
+import * as MQ from 'oae-util/lib/mq.js';
 import * as TestsUtil from 'oae-tests';
 import * as ContentAPI from 'oae-content';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import {
   filter,
   omit,
@@ -373,7 +379,7 @@ describe('Content', () => {
    *
    * @return {Stream}     A stream that points to the OAE logo that can be uploaded.
    */
-  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.svg'));
+  const getOAELogoStream = () => fs.createReadStream(path.join(__dirname, '/data/oae-logo.png'));
 
   describe('Get content', () => {
     /**
@@ -3916,14 +3922,14 @@ describe('Content', () => {
                     getRevision(asNico, contentObject.id, revisions.results[0].revisionId, (error, revision) => {
                       assert.notExists(error);
                       assert.strictEqual(revision.revisionId, updatedContentObject.latestRevisionId);
-                      assert.strictEqual(revision.filename, 'oae-logo.svg');
+                      assert.strictEqual(revision.filename, 'oae-logo.png');
                       assert.strictEqual(revision.mime, 'image/png');
                       assert.strictEqual(revision.downloadPath, updatedContentObject.downloadPath);
 
                       // Get the profile for a content item and ensure the most recent file properties are present
                       getContent(asNico, contentObject.id, (error, contentObject) => {
                         assert.notExists(error);
-                        assert.strictEqual(contentObject.filename, 'oae-logo.svg');
+                        assert.strictEqual(contentObject.filename, 'oae-logo.png');
                         assert.strictEqual(contentObject.mime, 'image/png');
 
                         return callback();

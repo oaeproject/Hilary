@@ -18,16 +18,16 @@ import { format } from 'util';
 import { forEach, pipe, union, map, pluck, isNil, head, length, keys } from 'ramda';
 import _ from 'underscore';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api';
+import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api.js';
 import * as TestsUtil from 'oae-tests';
 import * as TenantsAPI from 'oae-tenants';
-import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex';
+import TenantsEmailDomainIndex from 'oae-tenants/lib/internal/emailDomainIndex.js';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 
 const isUndefined = isNil;
 

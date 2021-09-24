@@ -19,6 +19,12 @@ import { format } from 'util';
 
 import { pluck, mergeRight, keys } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthenticationAPI from 'oae-authentication';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';

@@ -20,7 +20,7 @@ import sharp from 'sharp';
 
 import { gt, toUpper, __ } from 'ramda';
 
-import * as ImageUtil from 'oae-util/lib/image';
+import * as ImageUtil from 'oae-util/lib/image.js';
 
 const greaterThanZero = gt(__, 0);
 

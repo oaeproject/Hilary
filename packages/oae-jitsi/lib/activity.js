@@ -31,606 +31,593 @@ import * as MeetingsAPI from './api.js';
 
 import { MeetingsConstants } from './constants.js';
 
-const init = (callback) => {
-  /**
-   * Meeting create
-   */
+/**
+ * Meeting create
+ */
 
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_CREATE, {
-    groupBy: [{ actor: true }],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self', 'followers'],
-          object: ['self', 'members']
-        }
-      },
-      notification: {
-        router: {
-          object: ['members']
-        }
-      },
-      email: {
-        router: {
-          object: ['members']
-        }
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_CREATE, {
+  groupBy: [{ actor: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self', 'followers'],
+        object: ['self', 'members']
       }
-    }
-  });
-
-  /*!
-   * Post a meeting-create activity when a user creates a meeting.
-   */
-  MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, memberChangeInfo) => {
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
-      'meeting-jitsi': meeting
-    });
-    let targetResource = null;
-
-    // Get the extra members
-    const extraMembers = _.chain(memberChangeInfo.changes)
-      .keys()
-      .filter((member) => {
-        return member !== ctx.user().id;
-      })
-      .value();
-
-    // If we only added 1 extra user or group, we set the target to that entity
-    if (extraMembers.length === 1) {
-      const extraMember = _.first(extraMembers);
-      const targetResourceType = PrincipalsUtil.isGroup(extraMember) ? 'group' : 'user';
-      targetResource = new ActivityModel.ActivitySeedResource(targetResourceType, extraMember);
-    }
-
-    // Generate the activity seed and post it to the queue
-    const activitySeed = new ActivityModel.ActivitySeed(
-      MeetingsConstants.activity.ACTIVITY_MEETING_CREATE,
-      millis,
-      ActivityConstants.verbs.CREATE,
-      actorResource,
-      objectResource,
-      targetResource
-    );
-    ActivityAPI.postActivity(ctx, activitySeed);
-  });
-
-  /// ///////////////////////////////////////////////////////////////////////
-  // MEETING-SHARE, MEETING-ADD-TO-LIBRARY and MEETING-UPDATE-MEMBER-ROLE //
-  /// ///////////////////////////////////////////////////////////////////////
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_SHARE, {
-    groupBy: [
-      // "Branden Visser shared Content Item with 5 users and groups"
-      { actor: true, object: true },
-
-      // "Branden Visser shared 8 files with OAE Team"
-      { actor: true, target: true }
-    ],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['managers'],
-          target: ['self', 'members', 'followers']
-        }
-      },
-      notification: {
-        router: {
-          target: ['self']
-        }
-      },
-      email: {
-        router: {
-          target: ['self']
-        }
-      }
-    }
-  });
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_MEMBER_ROLE, {
-    groupBy: [{ actor: true, target: true }],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['self', 'members'],
-          target: ['managers']
-        }
-      }
-    }
-  });
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_ADD_TO_LIBRARY, {
-    // "Branden Visser added 5 items to his library"
-    groupBy: [{ actor: true }],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self', 'followers'],
-          object: ['managers']
-        }
-      }
-    }
-  });
-
-  /**
-   * Post a meeting-share, meeting-add-to-library or meeting-update-member role activity based on meeting sharing
-   */
-  MeetingsAPI.emitter.on(
-    MeetingsConstants.events.UPDATED_MEETING_MEMBERS,
-    (ctx, meeting, memberChangeInfo, options) => {
-      if (options.invitation) {
-        // If this member update came from an invitation, we bypass adding activity as there is a
-        // dedicated activity for that
-        return;
-      }
-
-      const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
-      const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
-
-      const millis = Date.now();
-      const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-        user: ctx.user()
-      });
-      const meetingResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
-        'meeting-jitsi': meeting
-      });
-      // For users that are newly added to the meeting, post either a share or "add to library" activity, depending on context
-      _.each(addedPrincipalIds, (principalId) => {
-        if (principalId === ctx.user().id) {
-          // Users can't "share" with themselves, they actually "add it to their library"
-          ActivityAPI.postActivity(
-            ctx,
-            new ActivityModel.ActivitySeed(
-              MeetingsConstants.activity.ACTIVITY_MEETING_ADD_TO_LIBRARY,
-              millis,
-              ActivityConstants.verbs.ADD,
-              actorResource,
-              meetingResource
-            )
-          );
-        } else {
-          // A user shared meeting with some other user, fire the meeting share activity
-          const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
-          const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
-          ActivityAPI.postActivity(
-            ctx,
-            new ActivityModel.ActivitySeed(
-              MeetingsConstants.activity.ACTIVITY_MEETING_SHARE,
-              millis,
-              ActivityConstants.verbs.SHARE,
-              actorResource,
-              meetingResource,
-              principalResource
-            )
-          );
-        }
-      });
-
-      // For users whose role changed, post the meeting-update-member-role activity
-      _.each(updatedPrincipalIds, (principalId) => {
-        const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
-        const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
-        ActivityAPI.postActivity(
-          ctx,
-          new ActivityModel.ActivitySeed(
-            MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_MEMBER_ROLE,
-            millis,
-            ActivityConstants.verbs.UPDATE,
-            actorResource,
-            principalResource,
-            meetingResource
-          )
-        );
-      });
-    }
-  );
-
-  /// ///////////////////////////////////////////////
-  // MEETING-UPDATE and MEETING-UPDATE-VISIBILITY //
-  /// ///////////////////////////////////////////////
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE, {
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['self', 'members']
-        }
-      },
-      notification: {
-        router: {
-          object: ['managers']
-        }
-      },
-      email: {
-        router: {
-          object: ['managers']
-        }
-      }
-    }
-  });
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY, {
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          object: ['self', 'members']
-        }
-      },
-      notification: {
-        router: {
-          object: ['managers']
-        }
-      }
-    }
-  });
-
-  /**
-   * Post either a meeting-update or meeting-update-visibility activity when an user updates a meeting's metadata
-   */
-  MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, newMeeting, oldMeeting) => {
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', newMeeting.id, {
-      'meeting-jitsi': newMeeting
-    });
-
-    // We discriminate between general updates and visibility changes.
-    // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
-    let activityType = null;
-    activityType =
-      newMeeting.visibility === oldMeeting.visibility
-        ? MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE
-        : MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY;
-
-    const activitySeed = new ActivityModel.ActivitySeed(
-      activityType,
-      millis,
-      ActivityConstants.verbs.UPDATE,
-      actorResource,
-      objectResource
-    );
-    ActivityAPI.postActivity(ctx, activitySeed);
-  });
-
-  /// //////////////////
-  // MEETING-MESSAGE //
-  /// //////////////////
-
-  ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_MESSAGE, {
-    groupBy: [{ target: true }],
-    streams: {
-      activity: {
-        router: {
-          actor: ['self'],
-          target: ['message-contributors', 'members']
-        }
-      },
-      notification: {
-        router: {
-          target: ['message-contributors', 'members']
-        }
-      },
-      email: {
-        router: {
-          target: ['message-contributors', 'members']
-        }
-      },
-      message: {
-        transient: true,
-        router: {
-          // Route the activity to the meeting
-          target: ['self']
-        }
-      }
-    }
-  });
-
-  /**
-   * Post a meeting-jitsi-message activity when an user comments on a meeting
-   */
-  MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, message, meeting) => {
-    const millis = Date.now();
-    const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
-      user: ctx.user()
-    });
-    const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi-message', message.id, {
-      meetingId: meeting.id,
-      message
-    });
-    const targetResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
-      'meeting-jitsi': meeting
-    });
-    const activitySeed = new ActivityModel.ActivitySeed(
-      MeetingsConstants.activity.ACTIVITY_MEETING_MESSAGE,
-      millis,
-      ActivityConstants.verbs.POST,
-      actorResource,
-      objectResource,
-      targetResource
-    );
-
-    ActivityAPI.postActivity(ctx, activitySeed);
-  });
-
-  /// ////////////////////////
-  // ACTIVITY ENTITY TYPES //
-  /// ////////////////////////
-
-  /*
-   * Produces a persistent 'meeting' activity entity
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingProducer = function (resource, callback) {
-    const meeting =
-      resource.resourceData && resource.resourceData['meeting-jitsi'] ? resource.resourceData['meeting-jitsi'] : null;
-
-    // If the meeting item was fired with the resource, use it instead of fetching
-    if (meeting) {
-      return callback(null, _createPersistentMeetingActivityEntity(meeting));
-    }
-
-    MeetingsDAO.getMeeting(resource.resourceId, (error, meeting) => {
-      if (error) {
-        return callback(error);
-      }
-
-      return callback(null, _createPersistentMeetingActivityEntity(meeting));
-    });
-  };
-
-  /*
-   * Produces an persistent activity entity that represents a message that was posted
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingMessageProducer = function (resource, callback) {
-    const { message, meetingId } = resource.resourceData;
-    MeetingsDAO.getMeeting(meetingId, (error, meeting) => {
-      if (error) {
-        return callback(error);
-      }
-
-      MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
-        if (error) {
-          return callback(error);
-        }
-
-        // Store the meeting id and visibility on the entity as these are required for routing the activities
-        entity.objectType = 'meeting-jitsi-message';
-        entity.meetingId = meeting.id;
-        entity.meetingVisibility = meeting.visibility;
-        return callback(null, entity);
-      });
-    });
-  };
-
-  /**
-   * Create the persistent meeting entity that can be transformed into an activity entity for the UI.
-   *
-   * @param  {Meeting}     meeting      The meeting that provides the data for the entity.
-   * @return {Object}                         An object containing the entity data that can be transformed into a UI meeting activity entity
-   * @api private
-   */
-  const _createPersistentMeetingActivityEntity = function (meeting) {
-    return new ActivityModel.ActivityEntity('meeting-jitsi', meeting.id, meeting.visibility, {
-      'meeting-jitsi': meeting
-    });
-  };
-
-  /*
-   * Transform the meeting persistent activity entities into UI-friendly ones
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingTransformer = function (ctx, activityEntities, callback) {
-    const transformedActivityEntities = {};
-
-    _.each(activityEntities, (entities, activityId) => {
-      transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-
-      _.each(entities, (entity, entityId) => {
-        // Transform the persistent entity into an ActivityStrea.ms compliant format
-        transformedActivityEntities[activityId][entityId] = _transformPersistentMeetingActivityEntity(ctx, entity);
-      });
-    });
-
-    return callback(null, transformedActivityEntities);
-  };
-
-  /*
-   * Transform the persisted message activity entities into UI-friendly ones
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingMessageTransformer = function (ctx, activityEntities, callback) {
-    const transformedActivityEntities = {};
-    _.keys(activityEntities).forEach((activityId) => {
-      transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-      _.keys(activityEntities[activityId]).forEach((entityId) => {
-        const entity = activityEntities[activityId][entityId];
-        const { meetingId } = entity;
-        const resource = AuthzUtil.getResourceFromId(meetingId);
-        const profilePath = format('/meeting-jitsi/%s/%s', resource.tenanAlias, resource.resourceId);
-        const urlFormat = '/api/meeting-jitsi/' + meetingId + '/messages/%s';
-        transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
-          ctx,
-          entity,
-          profilePath,
-          urlFormat
-        );
-      });
-    });
-    return callback(null, transformedActivityEntities);
-  };
-
-  /*!
-   * Transform the meeting persistent activity entities into their OAE profiles
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingInternalTransformer = function (ctx, activityEntities, callback) {
-    const transformedActivityEntities = {};
-
-    _.each(activityEntities, (entities, activityId) => {
-      transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-
-      _.each(entities, (entity, entityId) => {
-        // Transform the persistent entity into the OAE model
-        transformedActivityEntities[activityId][entityId] = entity['meeting-jitsi'];
-      });
-    });
-
-    return callback(null, transformedActivityEntities);
-  };
-
-  /*
-   * Transform the persisted message activity entities into UI-friendly ones
-   * @see ActivityAPI#registerActivityEntityType
-   */
-  const _meetingMessageInternalTransformer = function (ctx, activityEntities, callback) {
-    const transformedActivityEntities = {};
-    _.keys(activityEntities).forEach((activityId) => {
-      transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-      _.keys(activityEntities[activityId]).forEach((entityId) => {
-        const entity = activityEntities[activityId][entityId];
-        transformedActivityEntities[activityId][entityId] =
-          MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
-      });
-    });
-    return callback(null, transformedActivityEntities);
-  };
-
-  /**
-   * Transform a meeting object into an activity entity suitable to be displayed in an activity stream.
-   *
-   * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityTransformer
-   *
-   * @param  {Context}           ctx         Standard context object containing the current user and the current tenant
-   * @param  {Object}            entity      The persistent activity entity to transform
-   * @return {ActivityEntity}                The activity entity that represents the given meeting item
-   */
-  const _transformPersistentMeetingActivityEntity = function (ctx, entity) {
-    const meeting = entity['meeting-jitsi'];
-
-    // Generate URLs for this activity
-    const tenant = ctx.tenant();
-    const baseUrl = TenantsUtil.getBaseUrl(tenant);
-    const globalId = baseUrl + '/api/meeting-jitsi/' + meeting.id;
-    const resource = AuthzUtil.getResourceFromId(meeting.id);
-    const profileUrl = baseUrl + '/meeting-jitsi/' + resource.tenantAlias + '/' + resource.resourceId;
-
-    const options = {};
-    options.url = profileUrl;
-    options.displayName = meeting.displayName;
-    options.ext = {};
-    options.ext[ActivityConstants.properties.OAE_ID] = meeting.id;
-    options.ext[ActivityConstants.properties.OAE_VISIBILITY] = meeting.visibility;
-    options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = meeting.profilePath;
-    return new ActivityModel.ActivityEntity('meeting-jitsi', globalId, meeting.visibility, options);
-  };
-
-  ActivityAPI.registerActivityEntityType('meeting-jitsi', {
-    producer: _meetingProducer,
-    transformer: {
-      activitystreams: _meetingTransformer,
-      internal: _meetingInternalTransformer
     },
-    propagation(associationsCtx, entity, callback) {
-      ActivityUtil.getStandardResourcePropagation(
-        entity['meeting-jitsi'].visibility,
-        AuthzConstants.joinable.NO,
-        callback
+    notification: {
+      router: {
+        object: ['members']
+      }
+    },
+    email: {
+      router: {
+        object: ['members']
+      }
+    }
+  }
+});
+
+/*!
+ * Post a meeting-create activity when a user creates a meeting.
+ */
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, memberChangeInfo) => {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
+    'meeting-jitsi': meeting
+  });
+  let targetResource = null;
+
+  // Get the extra members
+  const extraMembers = _.chain(memberChangeInfo.changes)
+    .keys()
+    .filter((member) => {
+      return member !== ctx.user().id;
+    })
+    .value();
+
+  // If we only added 1 extra user or group, we set the target to that entity
+  if (extraMembers.length === 1) {
+    const extraMember = _.first(extraMembers);
+    const targetResourceType = PrincipalsUtil.isGroup(extraMember) ? 'group' : 'user';
+    targetResource = new ActivityModel.ActivitySeedResource(targetResourceType, extraMember);
+  }
+
+  // Generate the activity seed and post it to the queue
+  const activitySeed = new ActivityModel.ActivitySeed(
+    MeetingsConstants.activity.ACTIVITY_MEETING_CREATE,
+    millis,
+    ActivityConstants.verbs.CREATE,
+    actorResource,
+    objectResource,
+    targetResource
+  );
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
+
+/// ///////////////////////////////////////////////////////////////////////
+// MEETING-SHARE, MEETING-ADD-TO-LIBRARY and MEETING-UPDATE-MEMBER-ROLE //
+/// ///////////////////////////////////////////////////////////////////////
+
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_SHARE, {
+  groupBy: [
+    // "Branden Visser shared Content Item with 5 users and groups"
+    { actor: true, object: true },
+
+    // "Branden Visser shared 8 files with OAE Team"
+    { actor: true, target: true }
+  ],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['managers'],
+        target: ['self', 'members', 'followers']
+      }
+    },
+    notification: {
+      router: {
+        target: ['self']
+      }
+    },
+    email: {
+      router: {
+        target: ['self']
+      }
+    }
+  }
+});
+
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_MEMBER_ROLE, {
+  groupBy: [{ actor: true, target: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'members'],
+        target: ['managers']
+      }
+    }
+  }
+});
+
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_ADD_TO_LIBRARY, {
+  // "Branden Visser added 5 items to his library"
+  groupBy: [{ actor: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self', 'followers'],
+        object: ['managers']
+      }
+    }
+  }
+});
+
+/**
+ * Post a meeting-share, meeting-add-to-library or meeting-update-member role activity based on meeting sharing
+ */
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, meeting, memberChangeInfo, options) => {
+  if (options.invitation) {
+    // If this member update came from an invitation, we bypass adding activity as there is a
+    // dedicated activity for that
+    return;
+  }
+
+  const addedPrincipalIds = _.pluck(memberChangeInfo.members.added, 'id');
+  const updatedPrincipalIds = _.pluck(memberChangeInfo.members.updated, 'id');
+
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const meetingResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
+    'meeting-jitsi': meeting
+  });
+  // For users that are newly added to the meeting, post either a share or "add to library" activity, depending on context
+  _.each(addedPrincipalIds, (principalId) => {
+    if (principalId === ctx.user().id) {
+      // Users can't "share" with themselves, they actually "add it to their library"
+      ActivityAPI.postActivity(
+        ctx,
+        new ActivityModel.ActivitySeed(
+          MeetingsConstants.activity.ACTIVITY_MEETING_ADD_TO_LIBRARY,
+          millis,
+          ActivityConstants.verbs.ADD,
+          actorResource,
+          meetingResource
+        )
+      );
+    } else {
+      // A user shared meeting with some other user, fire the meeting share activity
+      const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
+      const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
+      ActivityAPI.postActivity(
+        ctx,
+        new ActivityModel.ActivitySeed(
+          MeetingsConstants.activity.ACTIVITY_MEETING_SHARE,
+          millis,
+          ActivityConstants.verbs.SHARE,
+          actorResource,
+          meetingResource,
+          principalResource
+        )
       );
     }
   });
 
-  ActivityAPI.registerActivityEntityType('meeting-jitsi-message', {
-    producer: _meetingMessageProducer,
-    transformer: {
-      activitystreams: _meetingMessageTransformer,
-      internal: _meetingMessageInternalTransformer
+  // For users whose role changed, post the meeting-update-member-role activity
+  _.each(updatedPrincipalIds, (principalId) => {
+    const principalResourceType = PrincipalsUtil.isGroup(principalId) ? 'group' : 'user';
+    const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, principalId);
+    ActivityAPI.postActivity(
+      ctx,
+      new ActivityModel.ActivitySeed(
+        MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_MEMBER_ROLE,
+        millis,
+        ActivityConstants.verbs.UPDATE,
+        actorResource,
+        principalResource,
+        meetingResource
+      )
+    );
+  });
+});
+
+/// ///////////////////////////////////////////////
+// MEETING-UPDATE and MEETING-UPDATE-VISIBILITY //
+/// ///////////////////////////////////////////////
+
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE, {
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'members']
+      }
     },
-    propagation(associationsCtx, entity, callback) {
-      return callback(null, [{ type: ActivityConstants.entityPropagation.ALL }]);
-    }
-  });
-
-  /// ///////////////////////////////
-  // ACTIVITY ENTITY ASSOCIATIONS //
-  /// ///////////////////////////////
-
-  /*
-   * Register an association that presents the meeting
-   */
-  ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'self', (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  });
-
-  /*
-   * Register an association that presents the members of a meeting categorized by role
-   */
-  ActivityAPI.registerActivityEntityAssociation(
-    'meeting-jitsi',
-    'members-by-role',
-    (associationsCtx, entity, callback) => {
-      ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
-    }
-  );
-
-  /*
-   * Register an association that presents all the indirect members of a meeting
-   */
-  ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'members', (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (error, membersByRole) => {
-      if (error) {
-        return callback(error);
+    notification: {
+      router: {
+        object: ['managers']
       }
-
-      return callback(null, _.flatten(_.values(membersByRole)));
-    });
-  });
-
-  /*
-   * Register an association that presents all the managers of a meeting
-   */
-  ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'managers', (associationsCtx, entity, callback) => {
-    associationsCtx.get('members-by-role', (error, membersByRole) => {
-      if (error) {
-        return callback(error);
+    },
+    email: {
+      router: {
+        object: ['managers']
       }
+    }
+  }
+});
 
-      return callback(null, membersByRole[MeetingsConstants.roles.MANAGER]);
-    });
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY, {
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        object: ['self', 'members']
+      }
+    },
+    notification: {
+      router: {
+        object: ['managers']
+      }
+    }
+  }
+});
+
+/**
+ * Post either a meeting-update or meeting-update-visibility activity when an user updates a meeting's metadata
+ */
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, newMeeting, oldMeeting) => {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', newMeeting.id, {
+    'meeting-jitsi': newMeeting
   });
 
-  /*
-   * Register an assocation that presents all the commenting contributors of a meeting
-   */
-  ActivityAPI.registerActivityEntityAssociation(
-    'meeting-jitsi',
-    'message-contributors',
-    (associationsCtx, entity, callback) => {
-      MessageBoxAPI.getRecentContributions(entity[ActivityConstants.properties.OAE_ID], null, 100, callback);
+  // We discriminate between general updates and visibility changes.
+  // If the visibility has changed, we fire a visibility changed activity *instead* of an update activity
+  let activityType = null;
+  activityType =
+    newMeeting.visibility === oldMeeting.visibility
+      ? MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE
+      : MeetingsConstants.activity.ACTIVITY_MEETING_UPDATE_VISIBILITY;
+
+  const activitySeed = new ActivityModel.ActivitySeed(
+    activityType,
+    millis,
+    ActivityConstants.verbs.UPDATE,
+    actorResource,
+    objectResource
+  );
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
+
+/// //////////////////
+// MEETING-MESSAGE //
+/// //////////////////
+
+ActivityAPI.registerActivityType(MeetingsConstants.activity.ACTIVITY_MEETING_MESSAGE, {
+  groupBy: [{ target: true }],
+  streams: {
+    activity: {
+      router: {
+        actor: ['self'],
+        target: ['message-contributors', 'members']
+      }
+    },
+    notification: {
+      router: {
+        target: ['message-contributors', 'members']
+      }
+    },
+    email: {
+      router: {
+        target: ['message-contributors', 'members']
+      }
+    },
+    message: {
+      transient: true,
+      router: {
+        // Route the activity to the meeting
+        target: ['self']
+      }
     }
+  }
+});
+
+/**
+ * Post a meeting-jitsi-message activity when an user comments on a meeting
+ */
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, message, meeting) => {
+  const millis = Date.now();
+  const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {
+    user: ctx.user()
+  });
+  const objectResource = new ActivityModel.ActivitySeedResource('meeting-jitsi-message', message.id, {
+    meetingId: meeting.id,
+    message
+  });
+  const targetResource = new ActivityModel.ActivitySeedResource('meeting-jitsi', meeting.id, {
+    'meeting-jitsi': meeting
+  });
+  const activitySeed = new ActivityModel.ActivitySeed(
+    MeetingsConstants.activity.ACTIVITY_MEETING_MESSAGE,
+    millis,
+    ActivityConstants.verbs.POST,
+    actorResource,
+    objectResource,
+    targetResource
   );
 
-  /*!
-   * Register an association that presents the meeting for a meeting-message entity
-   */
-  ActivityAPI.registerActivityEntityAssociation(
-    'meeting-jitsi-message',
-    'self',
-    (associationsCtx, entity, callback) => {
-      return callback(null, [entity.meetingId]);
-    }
-  );
+  ActivityAPI.postActivity(ctx, activitySeed);
+});
 
-  return callback();
+/// ////////////////////////
+// ACTIVITY ENTITY TYPES //
+/// ////////////////////////
+
+/*
+ * Produces a persistent 'meeting' activity entity
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingProducer = function (resource, callback) {
+  const meeting =
+    resource.resourceData && resource.resourceData['meeting-jitsi'] ? resource.resourceData['meeting-jitsi'] : null;
+
+  // If the meeting item was fired with the resource, use it instead of fetching
+  if (meeting) {
+    return callback(null, _createPersistentMeetingActivityEntity(meeting));
+  }
+
+  MeetingsDAO.getMeeting(resource.resourceId, (error, meeting) => {
+    if (error) {
+      return callback(error);
+    }
+
+    return callback(null, _createPersistentMeetingActivityEntity(meeting));
+  });
 };
 
-export { init };
+/*
+ * Produces an persistent activity entity that represents a message that was posted
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingMessageProducer = function (resource, callback) {
+  const { message, meetingId } = resource.resourceData;
+  MeetingsDAO.getMeeting(meetingId, (error, meeting) => {
+    if (error) {
+      return callback(error);
+    }
+
+    MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
+      if (error) {
+        return callback(error);
+      }
+
+      // Store the meeting id and visibility on the entity as these are required for routing the activities
+      entity.objectType = 'meeting-jitsi-message';
+      entity.meetingId = meeting.id;
+      entity.meetingVisibility = meeting.visibility;
+      return callback(null, entity);
+    });
+  });
+};
+
+/**
+ * Create the persistent meeting entity that can be transformed into an activity entity for the UI.
+ *
+ * @param  {Meeting}     meeting      The meeting that provides the data for the entity.
+ * @return {Object}                         An object containing the entity data that can be transformed into a UI meeting activity entity
+ * @api private
+ */
+const _createPersistentMeetingActivityEntity = function (meeting) {
+  return new ActivityModel.ActivityEntity('meeting-jitsi', meeting.id, meeting.visibility, {
+    'meeting-jitsi': meeting
+  });
+};
+
+/*
+ * Transform the meeting persistent activity entities into UI-friendly ones
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingTransformer = function (ctx, activityEntities, callback) {
+  const transformedActivityEntities = {};
+
+  _.each(activityEntities, (entities, activityId) => {
+    transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
+
+    _.each(entities, (entity, entityId) => {
+      // Transform the persistent entity into an ActivityStrea.ms compliant format
+      transformedActivityEntities[activityId][entityId] = _transformPersistentMeetingActivityEntity(ctx, entity);
+    });
+  });
+
+  return callback(null, transformedActivityEntities);
+};
+
+/*
+ * Transform the persisted message activity entities into UI-friendly ones
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingMessageTransformer = function (ctx, activityEntities, callback) {
+  const transformedActivityEntities = {};
+  _.keys(activityEntities).forEach((activityId) => {
+    transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
+      const entity = activityEntities[activityId][entityId];
+      const { meetingId } = entity;
+      const resource = AuthzUtil.getResourceFromId(meetingId);
+      const profilePath = format('/meeting-jitsi/%s/%s', resource.tenanAlias, resource.resourceId);
+      const urlFormat = '/api/meeting-jitsi/' + meetingId + '/messages/%s';
+      transformedActivityEntities[activityId][entityId] = MessageBoxUtil.transformPersistentMessageActivityEntity(
+        ctx,
+        entity,
+        profilePath,
+        urlFormat
+      );
+    });
+  });
+  return callback(null, transformedActivityEntities);
+};
+
+/*!
+ * Transform the meeting persistent activity entities into their OAE profiles
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingInternalTransformer = function (ctx, activityEntities, callback) {
+  const transformedActivityEntities = {};
+
+  _.each(activityEntities, (entities, activityId) => {
+    transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
+
+    _.each(entities, (entity, entityId) => {
+      // Transform the persistent entity into the OAE model
+      transformedActivityEntities[activityId][entityId] = entity['meeting-jitsi'];
+    });
+  });
+
+  return callback(null, transformedActivityEntities);
+};
+
+/*
+ * Transform the persisted message activity entities into UI-friendly ones
+ * @see ActivityAPI#registerActivityEntityType
+ */
+const _meetingMessageInternalTransformer = function (ctx, activityEntities, callback) {
+  const transformedActivityEntities = {};
+  _.keys(activityEntities).forEach((activityId) => {
+    transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
+    _.keys(activityEntities[activityId]).forEach((entityId) => {
+      const entity = activityEntities[activityId][entityId];
+      transformedActivityEntities[activityId][entityId] =
+        MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
+    });
+  });
+  return callback(null, transformedActivityEntities);
+};
+
+/**
+ * Transform a meeting object into an activity entity suitable to be displayed in an activity stream.
+ *
+ * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityTransformer
+ *
+ * @param  {Context}           ctx         Standard context object containing the current user and the current tenant
+ * @param  {Object}            entity      The persistent activity entity to transform
+ * @return {ActivityEntity}                The activity entity that represents the given meeting item
+ */
+const _transformPersistentMeetingActivityEntity = function (ctx, entity) {
+  const meeting = entity['meeting-jitsi'];
+
+  // Generate URLs for this activity
+  const tenant = ctx.tenant();
+  const baseUrl = TenantsUtil.getBaseUrl(tenant);
+  const globalId = baseUrl + '/api/meeting-jitsi/' + meeting.id;
+  const resource = AuthzUtil.getResourceFromId(meeting.id);
+  const profileUrl = baseUrl + '/meeting-jitsi/' + resource.tenantAlias + '/' + resource.resourceId;
+
+  const options = {};
+  options.url = profileUrl;
+  options.displayName = meeting.displayName;
+  options.ext = {};
+  options.ext[ActivityConstants.properties.OAE_ID] = meeting.id;
+  options.ext[ActivityConstants.properties.OAE_VISIBILITY] = meeting.visibility;
+  options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = meeting.profilePath;
+  return new ActivityModel.ActivityEntity('meeting-jitsi', globalId, meeting.visibility, options);
+};
+
+ActivityAPI.registerActivityEntityType('meeting-jitsi', {
+  producer: _meetingProducer,
+  transformer: {
+    activitystreams: _meetingTransformer,
+    internal: _meetingInternalTransformer
+  },
+  propagation(associationsCtx, entity, callback) {
+    ActivityUtil.getStandardResourcePropagation(
+      entity['meeting-jitsi'].visibility,
+      AuthzConstants.joinable.NO,
+      callback
+    );
+  }
+});
+
+ActivityAPI.registerActivityEntityType('meeting-jitsi-message', {
+  producer: _meetingMessageProducer,
+  transformer: {
+    activitystreams: _meetingMessageTransformer,
+    internal: _meetingMessageInternalTransformer
+  },
+  propagation(associationsCtx, entity, callback) {
+    return callback(null, [{ type: ActivityConstants.entityPropagation.ALL }]);
+  }
+});
+
+/// ///////////////////////////////
+// ACTIVITY ENTITY ASSOCIATIONS //
+/// ///////////////////////////////
+
+/*
+ * Register an association that presents the meeting
+ */
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
+});
+
+/*
+ * Register an association that presents the members of a meeting categorized by role
+ */
+ActivityAPI.registerActivityEntityAssociation(
+  'meeting-jitsi',
+  'members-by-role',
+  (associationsCtx, entity, callback) => {
+    ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
+  }
+);
+
+/*
+ * Register an association that presents all the indirect members of a meeting
+ */
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'members', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
+    }
+
+    return callback(null, _.flatten(_.values(membersByRole)));
+  });
+});
+
+/*
+ * Register an association that presents all the managers of a meeting
+ */
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'managers', (associationsCtx, entity, callback) => {
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
+    }
+
+    return callback(null, membersByRole[MeetingsConstants.roles.MANAGER]);
+  });
+});
+
+/*
+ * Register an assocation that presents all the commenting contributors of a meeting
+ */
+ActivityAPI.registerActivityEntityAssociation(
+  'meeting-jitsi',
+  'message-contributors',
+  (associationsCtx, entity, callback) => {
+    MessageBoxAPI.getRecentContributions(entity[ActivityConstants.properties.OAE_ID], null, 100, callback);
+  }
+);
+
+/*!
+ * Register an association that presents the meeting for a meeting-message entity
+ */
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi-message', 'self', (associationsCtx, entity, callback) => {
+  return callback(null, [entity.meetingId]);
+});

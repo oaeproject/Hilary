@@ -19,6 +19,8 @@ import async from 'async';
 import shortId from 'shortid';
 import { addMonths } from 'date-fns';
 
+import * as UIAPI from 'oae-ui/lib/api.js';
+import * as AuthenticationAPI from 'oae-authentication/lib/api.js';
 import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzInvitationDAO from 'oae-authz/lib/invitations/dao.js';
@@ -285,7 +287,7 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
             user,
             month,
             baseUrl: TenantsUtil.getBaseUrl(ctx.tenant()),
-            skinVariables: require('oae-ui').getTenantSkinVariables(ctx.tenant().alias),
+            skinVariables: UIAPI.getTenantSkinVariables(ctx.tenant().alias),
             token,
             archiveEmail: cloneUser.email
           };
@@ -886,7 +888,7 @@ const eliminateUser = (ctx, user, alias, callback) => {
           }
 
           // Get the login to delete the user form the table AuthenticationLoginId
-          require('oae-authentication').getUserLoginIds(ctx, user.id, (error, login) => {
+          AuthenticationAPI.getUserLoginIds(ctx, user.id, (error, login) => {
             if (error) return callback(error);
 
             // Set (or re-Set) the principal as deleted in the authz index

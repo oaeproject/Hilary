@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import * as Locking from 'oae-util/lib/locking';
+import * as Locking from 'oae-util/lib/locking.js';
 
 describe('Locking', () => {
   /**

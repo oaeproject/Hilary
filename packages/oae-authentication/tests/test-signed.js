@@ -18,7 +18,7 @@ import { format } from 'util';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
-import { RestContext } from 'oae-rest/lib/model';
+import { RestContext } from 'oae-rest/lib/model.js';
 import * as TestsUtil from 'oae-tests';
 
 const _originalDateNow = Date.now;

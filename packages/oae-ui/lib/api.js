@@ -1154,8 +1154,8 @@ const renderTemplate = function (template, data, locale = 'en_US') {
        * @param  {String}     [mimeType]          In case the `resourceSubType` is a `file` a more detailed description can be returned by providing a mime type
        * @return {String}                         Human readable mimetype description for the provided resource subtype and mime type
        */
-      getMimetypeDescription(resourceSubType, mimeType) {
-        const descriptor = _getMimeTypeDescriptor();
+      async getMimetypeDescription(resourceSubType, mimeType) {
+        const descriptor = await _getMimeTypeDescriptor();
         return descriptor.getDescription(resourceSubType, mimeType);
       }
     },
@@ -1412,19 +1412,21 @@ const getIso3166CountryInfo = function (callback) {
  * @return {Object}     The mimetype descriptor
  * @api private
  */
-const _getMimeTypeDescriptor = function (callback) {
-  callbackify(_uiRequire)('/shared/oae/js/mimetypes.js', (error, pkg) => {
-    if (error) return callback(error);
-
-    return callback(null, pkg);
-  });
+const _getMimeTypeDescriptor = async function () {
+  await _uiRequire('/shared/oae/js/mimetypes.js')
+    .then((file) => {
+      return file;
+    })
+    .catch((e) => {
+      // TODO log here
+    });
 };
 
 /**
  * Require a file from the UI repository
  *
  * @param  {String}     path    The path to the file that should be required. This should start with a `/`
- * @return {Object}             The module as returned by Node.JS's `require` method
+ * @return {Object}             The module as returned by Node.JS's `import` method
  * @api private
  */
 const _uiRequire = function (path) {
@@ -1438,7 +1440,6 @@ const _uiRequire = function (path) {
       // TODO log here
       throw e;
     });
-  // return require(uiDirectory + path);
 };
 
 export {

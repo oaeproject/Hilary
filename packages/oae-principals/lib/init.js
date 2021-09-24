@@ -33,27 +33,10 @@ import * as Cron from './cron.js';
 let globalContext = {};
 
 export function init(config, callback) {
-  // Initialize activity capabilities
-  activity.init(() => {
-    // Initialize search capabilities
-    search.init(() => {
-      // Initialize invitations capabilities
-      invitations.init(() => {
-        // Initialize members and memberships library capabilities
-        members.init(() => {
-          memberships.init(() => {
-            // Initialize principals delete capabilities
-            deleted.setListeners(() => {
-              _ensureGlobalAdmin(config, function (error) {
-                if (error) return callback(error);
+  _ensureGlobalAdmin(config, function (error) {
+    if (error) return callback(error);
 
-                return Cron.programUserDeletionTask(globalContext, callback);
-              });
-            });
-          });
-        });
-      });
-    });
+    return Cron.programUserDeletionTask(globalContext, callback);
   });
 }
 

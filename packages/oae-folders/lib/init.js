@@ -20,13 +20,5 @@ import * as previews from './previews.js';
 import * as invitations from './invitations.js';
 
 export function init(config, callback) {
-  activity.init(() => {
-    library.init(() => {
-      previews.init(() => {
-        invitations.init(() => {
-          return FoldersSearch.init(callback);
-        });
-      });
-    });
-  });
+  return FoldersSearch.init(callback);
 }

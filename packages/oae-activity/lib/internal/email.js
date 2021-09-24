@@ -65,122 +65,118 @@ const TWO_WEEKS_IN_MS = 14 * 24 * ONE_HOUR_IN_MS;
 // helpful to synchronize things like tests so we know when email should be collected
 const scheduledEmailsCounter = new Counter();
 
-const init = (callback) => {
-  /*!
-   * When activities get delivered to a stream, we check if any were delivered to users their
-   * `email` stream and queue the user IDs for email delivery
-   */
-  ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivities) => {
-    const emailRecipientIds = pipe(
-      keys,
-      filter(_isEmailRecipientId),
-      filter((emailRecipientId) => {
-        // Only keep email recipients who have an entry for an email stream delivery
-        return deliveredActivities[emailRecipientId].email;
-      })
-    )(deliveredActivities);
+/*!
+ * When activities get delivered to a stream, we check if any were delivered to users their
+ * `email` stream and queue the user IDs for email delivery
+ */
+ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivities) => {
+  const emailRecipientIds = pipe(
+    keys,
+    filter(_isEmailRecipientId),
+    filter((emailRecipientId) => {
+      // Only keep email recipients who have an entry for an email stream delivery
+      return deliveredActivities[emailRecipientId].email;
+    })
+  )(deliveredActivities);
 
-    // If there were no activities delivered in email streams we can stop here
-    if (isEmpty(emailRecipientIds)) {
-      return;
+  // If there were no activities delivered in email streams we can stop here
+  if (isEmpty(emailRecipientIds)) {
+    return;
+  }
+
+  scheduledEmailsCounter.incr();
+
+  // Get the full resource representation of each recipient. For user accounts, we need to know
+  // their email preference so we can schedule their email appropriately
+  _getEmailRecipientResources(emailRecipientIds, (error, recipients) => {
+    if (error) {
+      scheduledEmailsCounter.decr();
+      return log().error(
+        { err: error, emailRecipientIds: recipients },
+        'Failed to get the email preference field for all the users in this activity'
+      );
     }
 
-    scheduledEmailsCounter.incr();
+    // Filter out recipients that should not get emails
+    const recipientsToQueue = _.filter(recipients, (emailRecipient) => {
+      return (
+        !emailRecipient.deleted &&
+        emailRecipient.email &&
+        emailRecipient.emailPreference !== PrincipalsConstants.emailPreferences.NEVER
+      );
+    });
 
-    // Get the full resource representation of each recipient. For user accounts, we need to know
-    // their email preference so we can schedule their email appropriately
-    _getEmailRecipientResources(emailRecipientIds, (error, recipients) => {
-      if (error) {
+    const emailBuckets = {};
+    _.each(recipientsToQueue, (recipient) => {
+      const bucketId = _createEmailBucketIdForRecipient(recipient);
+      emailBuckets[bucketId] = emailBuckets[bucketId] || [];
+      emailBuckets[bucketId].push(recipient.id);
+    });
+
+    ActivityDAO.saveQueuedUserIdsForEmail(emailBuckets, (error_) => {
+      if (error_) {
         scheduledEmailsCounter.decr();
         return log().error(
-          { err: error, emailRecipientIds: recipients },
-          'Failed to get the email preference field for all the users in this activity'
+          { err: error_, deliveredActivities },
+          'Unable to store the IDs of the users who need to receive mail'
         );
       }
 
-      // Filter out recipients that should not get emails
-      const recipientsToQueue = _.filter(recipients, (emailRecipient) => {
-        return (
-          !emailRecipient.deleted &&
-          emailRecipient.email &&
-          emailRecipient.emailPreference !== PrincipalsConstants.emailPreferences.NEVER
-        );
-      });
-
-      const emailBuckets = {};
-      _.each(recipientsToQueue, (recipient) => {
-        const bucketId = _createEmailBucketIdForRecipient(recipient);
-        emailBuckets[bucketId] = emailBuckets[bucketId] || [];
-        emailBuckets[bucketId].push(recipient.id);
-      });
-
-      ActivityDAO.saveQueuedUserIdsForEmail(emailBuckets, (error_) => {
-        if (error_) {
-          scheduledEmailsCounter.decr();
-          return log().error(
-            { err: error_, deliveredActivities },
-            'Unable to store the IDs of the users who need to receive mail'
-          );
-        }
-
-        log().trace({ recipientsToQueue }, 'Queued mail for users');
-        Telemetry.incr('queued.count', recipientsToQueue.length);
-        scheduledEmailsCounter.decr();
-      });
+      log().trace({ recipientsToQueue }, 'Queued mail for users');
+      Telemetry.incr('queued.count', recipientsToQueue.length);
+      scheduledEmailsCounter.decr();
     });
   });
+});
 
-  /// //////////////
-  // UPDATE-USER //
-  /// //////////////
+/// //////////////
+// UPDATE-USER //
+/// //////////////
 
-  /*!
-   * When a user changes his email preferences we might need to re-queue the user id in another bucket
-   * or take it out of a queue
-   */
-  PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, newUser, oldUser) => {
-    // If the user's email preference didn't change we don't have to do anything. Similarly,
-    // if the old preference was set to `never` we don't have to do anything either
-    if (
-      newUser.emailPreference === oldUser.emailPreference ||
-      oldUser.emailPreference === PrincipalsConstants.emailPreferences.NEVER
-    ) {
+/*!
+ * When a user changes his email preferences we might need to re-queue the user id in another bucket
+ * or take it out of a queue
+ */
+PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, (ctx, newUser, oldUser) => {
+  // If the user's email preference didn't change we don't have to do anything. Similarly,
+  // if the old preference was set to `never` we don't have to do anything either
+  if (
+    newUser.emailPreference === oldUser.emailPreference ||
+    oldUser.emailPreference === PrincipalsConstants.emailPreferences.NEVER
+  ) {
+    return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
+  }
+
+  // Take the user out of the old bucket
+  const oldBucketId = _createEmailBucketIdForRecipient(oldUser);
+  ActivityDAO.unqueueUsersForEmail(oldBucketId, [oldUser.id], (error) => {
+    if (error) {
+      return log().error(
+        { err: error, user: oldUser.id },
+        'Unable to unqueue a user from an email bucket when they changed their email preference'
+      );
+
+      // Users who opt out of email delivery shouldn't be queued for email delivery as they simply should not get email
+    }
+
+    if (newUser.emailPreference === PrincipalsConstants.emailPreferences.NEVER) {
       return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
     }
 
-    // Take the user out of the old bucket
-    const oldBucketId = _createEmailBucketIdForRecipient(oldUser);
-    ActivityDAO.unqueueUsersForEmail(oldBucketId, [oldUser.id], (error) => {
+    // Queue the user for his new email preference. If he has no pending emails,
+    // he will be ignored during the collection cycle
+    const newBucketId = _createEmailBucketIdForRecipient(newUser);
+    const emailBucket = {};
+    emailBucket[newBucketId] = [newUser.id];
+    ActivityDAO.saveQueuedUserIdsForEmail(emailBucket, (error) => {
       if (error) {
-        return log().error(
-          { err: error, user: oldUser.id },
-          'Unable to unqueue a user from an email bucket when they changed their email preference'
-        );
-
-        // Users who opt out of email delivery shouldn't be queued for email delivery as they simply should not get email
+        log().error({ err: error, user: newUser.id }, 'Could not re-queue the user for email');
       }
 
-      if (newUser.emailPreference === PrincipalsConstants.emailPreferences.NEVER) {
-        return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
-      }
-
-      // Queue the user for his new email preference. If he has no pending emails,
-      // he will be ignored during the collection cycle
-      const newBucketId = _createEmailBucketIdForRecipient(newUser);
-      const emailBucket = {};
-      emailBucket[newBucketId] = [newUser.id];
-      ActivityDAO.saveQueuedUserIdsForEmail(emailBucket, (error) => {
-        if (error) {
-          log().error({ err: error, user: newUser.id }, 'Could not re-queue the user for email');
-        }
-
-        return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
-      });
+      return ActivityEmitter.emit(ActivityConstants.events.UPDATED_USER, ctx, newUser, oldUser);
     });
   });
-
-  return callback();
-};
+});
 
 /// ////////////////////
 // Bucket collection //
@@ -1005,4 +1001,4 @@ const _getBucketNumber = function (userId) {
   return ActivityBuckets.getBucketNumber(userId, numberOfBuckets);
 };
 
-export { init, collectAllBuckets, collectMails, whenEmailsScheduled };
+export { collectAllBuckets, collectMails, whenEmailsScheduled };

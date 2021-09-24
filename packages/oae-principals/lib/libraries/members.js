@@ -70,279 +70,272 @@ const list = function (group, visibility, options, callback) {
   );
 };
 
-const init = (callback) => {
-  /**
-   * Registrations
-   */
+/**
+ * Registrations
+ */
 
-  /*!
-   * Register a library indexer that can provide resources to reindex the members library
-   */
-  LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERS_INDEX_NAME, {
-    pageResources(libraryId, start, limit, callback) {
-      AuthzAPI.getAuthzMembers(libraryId, start, limit, (error, memberEntries) => {
-        if (error) {
-          return callback(error);
-        }
-
-        PrincipalsDAO.getPrincipals(
-          _.pluck(memberEntries, 'id'),
-          ['principalId', 'tenantAlias', 'visibility', 'smallPictureUri'],
-          (error, members) => {
-            if (error) {
-              return callback(error);
-            }
-
-            const resources = _.map(memberEntries, (memberEntry) => {
-              const member = members[memberEntry.id];
-              const { role } = memberEntry;
-              return {
-                rank: _getMembersLibraryRank(libraryId, member, role),
-                resource: member,
-                value: role
-              };
-            });
-
-            return callback(null, resources);
-          }
-        );
-      });
-    }
-  });
-
-  /*!
-   * Register a library search for resource members
-   */
-  LibraryAPI.Search.registerLibrarySearch('members-library', ['user', 'group'], {
-    association: {
-      name: AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS,
-      field: 'direct_memberships'
-    }
-  });
-
-  /// /////////
-  // EVENTS //
-  /// /////////
-
-  /**
-   * Update the given principal in the members libraries if applicable changes have been made that
-   * indicate their rank or visibility will need to change
-   *
-   * @param  {RestContext}    ctx                 The REST context of the user that performed the update
-   * @param  {User|Group}     updatedPrincipal    The updated copy of the principal
-   * @param  {User|Group}     oldPrincipal        The old copy of the principal before update
-   */
-  const _updatePrincipalInMembersLibraries = function (ctx, updatedPrincipal, oldPrincipal) {
-    // If there is no change in state of their profile picture or visibility, we don't have to make
-    // any updates
-    if (
-      _hasProfilePicture(updatedPrincipal) === _hasProfilePicture(oldPrincipal) &&
-      oldPrincipal.visibility === updatedPrincipal.visibility
-    ) {
-      return;
-    }
-
-    // If the user updated their profile picture, we need to recalculate their rank for every group
-    // members library to which they belong
-    AuthzAPI.getAllRolesForPrincipalAndResourceType(
-      updatedPrincipal.id,
-      AuthzConstants.resourceTypes.GROUP,
-      (error, allRoles) => {
-        if (error) {
-          return log().error(
-            { err: error, userId: updatedPrincipal.id },
-            'An error occurred while trying to update all members libraries to which a user belongs'
-          );
-        }
-
-        const entries = _.map(allRoles, (groupRole) => {
-          return {
-            id: groupRole.id,
-            oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
-            newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
-            resource: updatedPrincipal,
-            value: groupRole.role
-          };
-        });
-
-        return LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERS_INDEX_NAME, entries);
+/*!
+ * Register a library indexer that can provide resources to reindex the members library
+ */
+LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERS_INDEX_NAME, {
+  pageResources(libraryId, start, limit, callback) {
+    AuthzAPI.getAuthzMembers(libraryId, start, limit, (error, memberEntries) => {
+      if (error) {
+        return callback(error);
       }
-    );
-  };
 
-  /*!
-   * When a user or group updates their profile or visibility, we have to update their rank in the
-   * members libraries to which they belong
-   */
-  PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, _updatePrincipalInMembersLibraries);
-  PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, _updatePrincipalInMembersLibraries);
+      PrincipalsDAO.getPrincipals(
+        _.pluck(memberEntries, 'id'),
+        ['principalId', 'tenantAlias', 'visibility', 'smallPictureUri'],
+        (error, members) => {
+          if (error) {
+            return callback(error);
+          }
 
-  /*!
-   * When a group's members are updated, we should update the members library
-   */
-  PrincipalsEmitter.when(
-    PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
-    (ctx, group, oldGroup, memberChangeInfo, options, callback) => {
-      // When group members are updated (users are removed / roles updated, etc...) it's just easier
-      // to purge the library unless there is good reason to do surgical library updates (e.g., known
-      // performance issues with many group members updates)
-      LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, (error) => {
-        if (error) {
-          log().error(
-            { err: error, groupId: group.id },
-            'An unexpected error occurred trying to purge a group members library'
-          );
-          return callback(error);
+          const resources = _.map(memberEntries, (memberEntry) => {
+            const member = members[memberEntry.id];
+            const { role } = memberEntry;
+            return {
+              rank: _getMembersLibraryRank(libraryId, member, role),
+              resource: member,
+              value: role
+            };
+          });
+
+          return callback(null, resources);
         }
+      );
+    });
+  }
+});
 
-        return callback();
+/*!
+ * Register a library search for resource members
+ */
+LibraryAPI.Search.registerLibrarySearch('members-library', ['user', 'group'], {
+  association: {
+    name: AuthzConstants.search.MAPPING_RESOURCE_MEMBERSHIPS,
+    field: 'direct_memberships'
+  }
+});
+
+/// /////////
+// EVENTS //
+/// /////////
+
+/**
+ * Update the given principal in the members libraries if applicable changes have been made that
+ * indicate their rank or visibility will need to change
+ *
+ * @param  {RestContext}    ctx                 The REST context of the user that performed the update
+ * @param  {User|Group}     updatedPrincipal    The updated copy of the principal
+ * @param  {User|Group}     oldPrincipal        The old copy of the principal before update
+ */
+const _updatePrincipalInMembersLibraries = function (ctx, updatedPrincipal, oldPrincipal) {
+  // If there is no change in state of their profile picture or visibility, we don't have to make
+  // any updates
+  if (
+    _hasProfilePicture(updatedPrincipal) === _hasProfilePicture(oldPrincipal) &&
+    oldPrincipal.visibility === updatedPrincipal.visibility
+  ) {
+    return;
+  }
+
+  // If the user updated their profile picture, we need to recalculate their rank for every group
+  // members library to which they belong
+  AuthzAPI.getAllRolesForPrincipalAndResourceType(
+    updatedPrincipal.id,
+    AuthzConstants.resourceTypes.GROUP,
+    (error, allRoles) => {
+      if (error) {
+        return log().error(
+          { err: error, userId: updatedPrincipal.id },
+          'An error occurred while trying to update all members libraries to which a user belongs'
+        );
+      }
+
+      const entries = _.map(allRoles, (groupRole) => {
+        return {
+          id: groupRole.id,
+          oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
+          newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
+          resource: updatedPrincipal,
+          value: groupRole.role
+        };
       });
+
+      return LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERS_INDEX_NAME, entries);
     }
   );
-
-  /*!
-   * When someone joins a group, we should add them to the group's members library
-   */
-  PrincipalsEmitter.when(
-    PrincipalsConstants.events.JOINED_GROUP,
-    (ctx, group, oldGroup, memberChangeInfo, callback) => {
-      const joinRole = memberChangeInfo.changes[ctx.user().id];
-      const entry = {
-        id: group.id,
-        rank: _getMembersLibraryRank(group.id, ctx.user(), joinRole),
-        resource: ctx.user(),
-        value: joinRole
-      };
-
-      LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], (error) => {
-        if (error) {
-          log().error(
-            { err: error, groupId: group.id, userId: ctx.user().id },
-            'An unexpected error occurred trying to insert a user into a group members library'
-          );
-          return callback(error);
-        }
-
-        return callback();
-      });
-    }
-  );
-
-  /*!
-   * When someone leaves a group, we should remove them from the group's members library. We don't
-   * have to do this with a synchronous `when` handler because the user generally won't notice within
-   * such small latency if the members library hasn't been updated
-   */
-  PrincipalsEmitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo) => {
-    const leaveRole = memberChangeInfo.roles.before[ctx.user().id];
-    const entry = {
-      id: group.id,
-      rank: _getMembersLibraryRank(group.id, ctx.user(), leaveRole),
-      resource: ctx.user()
-    };
-
-    LibraryAPI.Index.remove(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry]);
-  });
-
-  /// /////////////////////
-  // INTERNAL FUNCTIONS //
-  /// /////////////////////
-
-  /**
-   * Get the numeric rank of a principal given the principal and their role in the members library
-   * they appear
-   *
-   * @param  {String}         groupId     The id of the group whose members library the principal is being inserted
-   * @param  {User|Group}     principal   The user or group for which to get their members library rank
-   * @param  {String}         role        The role for the principal in the members library
-   * @return {Number}                     The numeric rank to use for the principal in a members list
-   * @api private
-   */
-  const _getMembersLibraryRank = function (groupId, principal, role) {
-    const libraryTenantAlias = AuthzUtil.getResourceFromId(groupId).tenantAlias;
-
-    // The picture visibility rank is based on if they have a profile picture, and how widely it
-    // is available to other users who might see the group
-    let pictureVisibilityRank = '0';
-
-    // The link visibility rank is based on how widely available their profile is to be viewed by
-    // other users. If a profile is not able to be "clicked", we don't want to rank them high in
-    // members displays
-    let linkVisibilityRank = '0';
-
-    // Lastly, managers who have wide visibility settings should be ranked higher than regular
-    // members with wide visibility settings
-    let roleRank = '0';
-
-    // A user's link visibility is directly related to their visibility leniency relative to the
-    // group's tenant
-    if (principal.visibility === AuthzConstants.visibility.PUBLIC) {
-      linkVisibilityRank = '2';
-    } else if (
-      principal.visibility === AuthzConstants.visibility.LOGGEDIN &&
-      principal.tenant.alias === libraryTenantAlias
-    ) {
-      linkVisibilityRank = '1';
-    }
-
-    // A user's profile picture visibility ranking is only applicable if they have uploaded one. If
-    // so, it's visibility is identical to that of the profile link
-    if (_hasProfilePicture(principal)) {
-      pictureVisibilityRank = linkVisibilityRank;
-    }
-
-    // Simply rank managers higher
-    if (role === AuthzConstants.role.MANAGER) {
-      roleRank = '1';
-    }
-
-    // Picture visibility (which implies link visibility) is the most important, secondary
-    // importance given to their link visibility. Finally, all else being equal, we prefer manager
-    // profiles over members
-    return format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
-  };
-
-  /**
-   * Determine if the given principal has a profile picture
-   *
-   * @param  {User|Group}     principal   The principal to check
-   * @return {Boolean}                    Whether or not the principal has a profile picture
-   */
-  const _hasProfilePicture = function (principal) {
-    // Force explicit booleans as truthy/falsey makes checking for differences difficult
-    if (principal.picture && principal.picture.smallUri) {
-      return true;
-    }
-
-    return false;
-  };
-
-  /// //////////////////
-  // DELETE HANDLERS //
-  /// //////////////////
-
-  /**
-   * Handler to invalidate the members library of a group when it is deleted
-   *
-   * @param  {Group}          group               The group that needs to be invalidated
-   * @param  {AuthzGraph}     membershipsGraph    The graph of group memberships of the group
-   * @param  {AuthzGraph}     membersGraph        The graph of group members of the group
-   * @param  {Function}       callback            Standard callback function
-   * @param  {Object}         callback.errs       An error that occurred, if any
-   * @api private
-   */
-  const _handleInvalidateMembersLibrary = function (group, membershipsGraph, membersGraph, callback) {
-    LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, callback);
-  };
-
-  /*!
-   * Register group delete and restore handlers that invalidate members libraries so they can
-   * be reconstructed with or without the group
-   */
-  PrincipalsDelete.registerGroupDeleteHandler('members-library', _handleInvalidateMembersLibrary);
-  PrincipalsDelete.registerGroupRestoreHandler('members-library', _handleInvalidateMembersLibrary);
-
-  return callback();
 };
 
-export { list, init };
+/*!
+ * When a user or group updates their profile or visibility, we have to update their rank in the
+ * members libraries to which they belong
+ */
+PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_USER, _updatePrincipalInMembersLibraries);
+PrincipalsEmitter.on(PrincipalsConstants.events.UPDATED_GROUP, _updatePrincipalInMembersLibraries);
+
+/*!
+ * When a group's members are updated, we should update the members library
+ */
+PrincipalsEmitter.when(
+  PrincipalsConstants.events.UPDATED_GROUP_MEMBERS,
+  (ctx, group, oldGroup, memberChangeInfo, options, callback) => {
+    // When group members are updated (users are removed / roles updated, etc...) it's just easier
+    // to purge the library unless there is good reason to do surgical library updates (e.g., known
+    // performance issues with many group members updates)
+    LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, (error) => {
+      if (error) {
+        log().error(
+          { err: error, groupId: group.id },
+          'An unexpected error occurred trying to purge a group members library'
+        );
+        return callback(error);
+      }
+
+      return callback();
+    });
+  }
+);
+
+/*!
+ * When someone joins a group, we should add them to the group's members library
+ */
+PrincipalsEmitter.when(PrincipalsConstants.events.JOINED_GROUP, (ctx, group, oldGroup, memberChangeInfo, callback) => {
+  const joinRole = memberChangeInfo.changes[ctx.user().id];
+  const entry = {
+    id: group.id,
+    rank: _getMembersLibraryRank(group.id, ctx.user(), joinRole),
+    resource: ctx.user(),
+    value: joinRole
+  };
+
+  LibraryAPI.Index.insert(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry], (error) => {
+    if (error) {
+      log().error(
+        { err: error, groupId: group.id, userId: ctx.user().id },
+        'An unexpected error occurred trying to insert a user into a group members library'
+      );
+      return callback(error);
+    }
+
+    return callback();
+  });
+});
+
+/*!
+ * When someone leaves a group, we should remove them from the group's members library. We don't
+ * have to do this with a synchronous `when` handler because the user generally won't notice within
+ * such small latency if the members library hasn't been updated
+ */
+PrincipalsEmitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo) => {
+  const leaveRole = memberChangeInfo.roles.before[ctx.user().id];
+  const entry = {
+    id: group.id,
+    rank: _getMembersLibraryRank(group.id, ctx.user(), leaveRole),
+    resource: ctx.user()
+  };
+
+  LibraryAPI.Index.remove(PrincipalsConstants.library.MEMBERS_INDEX_NAME, [entry]);
+});
+
+/// /////////////////////
+// INTERNAL FUNCTIONS //
+/// /////////////////////
+
+/**
+ * Get the numeric rank of a principal given the principal and their role in the members library
+ * they appear
+ *
+ * @param  {String}         groupId     The id of the group whose members library the principal is being inserted
+ * @param  {User|Group}     principal   The user or group for which to get their members library rank
+ * @param  {String}         role        The role for the principal in the members library
+ * @return {Number}                     The numeric rank to use for the principal in a members list
+ * @api private
+ */
+const _getMembersLibraryRank = function (groupId, principal, role) {
+  const libraryTenantAlias = AuthzUtil.getResourceFromId(groupId).tenantAlias;
+
+  // The picture visibility rank is based on if they have a profile picture, and how widely it
+  // is available to other users who might see the group
+  let pictureVisibilityRank = '0';
+
+  // The link visibility rank is based on how widely available their profile is to be viewed by
+  // other users. If a profile is not able to be "clicked", we don't want to rank them high in
+  // members displays
+  let linkVisibilityRank = '0';
+
+  // Lastly, managers who have wide visibility settings should be ranked higher than regular
+  // members with wide visibility settings
+  let roleRank = '0';
+
+  // A user's link visibility is directly related to their visibility leniency relative to the
+  // group's tenant
+  if (principal.visibility === AuthzConstants.visibility.PUBLIC) {
+    linkVisibilityRank = '2';
+  } else if (
+    principal.visibility === AuthzConstants.visibility.LOGGEDIN &&
+    principal.tenant.alias === libraryTenantAlias
+  ) {
+    linkVisibilityRank = '1';
+  }
+
+  // A user's profile picture visibility ranking is only applicable if they have uploaded one. If
+  // so, it's visibility is identical to that of the profile link
+  if (_hasProfilePicture(principal)) {
+    pictureVisibilityRank = linkVisibilityRank;
+  }
+
+  // Simply rank managers higher
+  if (role === AuthzConstants.role.MANAGER) {
+    roleRank = '1';
+  }
+
+  // Picture visibility (which implies link visibility) is the most important, secondary
+  // importance given to their link visibility. Finally, all else being equal, we prefer manager
+  // profiles over members
+  return format('%s%s%s', pictureVisibilityRank, linkVisibilityRank, roleRank);
+};
+
+/**
+ * Determine if the given principal has a profile picture
+ *
+ * @param  {User|Group}     principal   The principal to check
+ * @return {Boolean}                    Whether or not the principal has a profile picture
+ */
+const _hasProfilePicture = function (principal) {
+  // Force explicit booleans as truthy/falsey makes checking for differences difficult
+  if (principal.picture && principal.picture.smallUri) {
+    return true;
+  }
+
+  return false;
+};
+
+/// //////////////////
+// DELETE HANDLERS //
+/// //////////////////
+
+/**
+ * Handler to invalidate the members library of a group when it is deleted
+ *
+ * @param  {Group}          group               The group that needs to be invalidated
+ * @param  {AuthzGraph}     membershipsGraph    The graph of group memberships of the group
+ * @param  {AuthzGraph}     membersGraph        The graph of group members of the group
+ * @param  {Function}       callback            Standard callback function
+ * @param  {Object}         callback.errs       An error that occurred, if any
+ * @api private
+ */
+const _handleInvalidateMembersLibrary = function (group, membershipsGraph, membersGraph, callback) {
+  LibraryAPI.Index.purge(PrincipalsConstants.library.MEMBERS_INDEX_NAME, group.id, callback);
+};
+
+/*!
+ * Register group delete and restore handlers that invalidate members libraries so they can
+ * be reconstructed with or without the group
+ */
+PrincipalsDelete.registerGroupDeleteHandler('members-library', _handleInvalidateMembersLibrary);
+PrincipalsDelete.registerGroupRestoreHandler('members-library', _handleInvalidateMembersLibrary);
+
+export { list };

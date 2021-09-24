@@ -25,11 +25,11 @@ import {
   assertActivity,
   collectAndGetActivityStream,
   collectAndGetNotificationStream
-} from 'oae-activity/lib/test/util';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
+} from 'oae-activity/lib/test/util.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import { generateTestUsers, createTenantAdminRestContext } from 'oae-tests/lib/util.js';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
 
 const PUBLIC = 'public';
 

@@ -31,89 +31,83 @@ import { logger } from 'oae-logger';
 
 const log = logger('oae-content-invitations');
 
-const init = (callback) => {
-  /*!
-   * When an invitation is accepted, pass on the events to update content members and then feed back
-   * the content item resources into the event emitter
-   */
-  ResourceActions.emitter.when(
-    ResourceConstants.events.ACCEPTED_INVITATION,
-    (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
-      // Filter the invitations and changes down to only content invitations
-      const contentIds = pipe(keys, filter(_isContentId))(memberChangeInfosByResourceId);
-      if (_.isEmpty(contentIds)) {
-        return callback();
-      }
-
-      // Get all the content profiles
-      ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
-        if (error) {
-          log().warn(
-            {
-              err: error,
-              contentIds
-            },
-            'An error occurred while getting content items to update content libraries after an invitation was accepted'
-          );
-          return callback();
-        }
-
-        // Invoke the "accept invitation" handler with the resources when we have them. We
-        // invoke this after the get principals call for test synchronization
-        callback(null, contentItems);
-
-        // Fire members update tasks for each content item
-        _.each(contentItems, (contentItem) => {
-          const invitationHash = _.findWhere(invitationHashes, { resourceId: contentItem.id });
-          const inviterUser = inviterUsersById[invitationHash.inviterUserId];
-
-          const invitationCtx = Context.fromUser(inviterUser);
-          const invitation = Invitation.fromHash(invitationHash, contentItem, inviterUser);
-          const memberChangeInfo = memberChangeInfosByResourceId[contentItem.id];
-
-          return ContentAPI.emitter.emit(
-            ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-            invitationCtx,
-            contentItem,
-            memberChangeInfo,
-            { invitation }
-          );
-        });
-      });
+/*!
+ * When an invitation is accepted, pass on the events to update content members and then feed back
+ * the content item resources into the event emitter
+ */
+ResourceActions.emitter.when(
+  ResourceConstants.events.ACCEPTED_INVITATION,
+  (ctx, invitationHashes, memberChangeInfosByResourceId, inviterUsersById, token, callback) => {
+    // Filter the invitations and changes down to only content invitations
+    const contentIds = pipe(keys, filter(_isContentId))(memberChangeInfosByResourceId);
+    if (_.isEmpty(contentIds)) {
+      return callback();
     }
-  );
 
-  /*!
-   * When content is deleted, delete all its invitations as well
-   */
-  ContentAPI.emitter.when(ContentConstants.events.DELETED_CONTENT, (ctx, content, members, callback) => {
-    AuthzInvitationsDAO.deleteInvitationsByResourceId(content.id, (error) => {
+    // Get all the content profiles
+    ContentDAO.Content.getMultipleContentItems(contentIds, null, (error, contentItems) => {
       if (error) {
         log().warn(
           {
             err: error,
-            contentId: content.id
+            contentIds
           },
-          'An error occurred while removing invitations after a content item was deleted'
+          'An error occurred while getting content items to update content libraries after an invitation was accepted'
         );
+        return callback();
       }
 
-      return callback();
+      // Invoke the "accept invitation" handler with the resources when we have them. We
+      // invoke this after the get principals call for test synchronization
+      callback(null, contentItems);
+
+      // Fire members update tasks for each content item
+      _.each(contentItems, (contentItem) => {
+        const invitationHash = _.findWhere(invitationHashes, { resourceId: contentItem.id });
+        const inviterUser = inviterUsersById[invitationHash.inviterUserId];
+
+        const invitationCtx = Context.fromUser(inviterUser);
+        const invitation = Invitation.fromHash(invitationHash, contentItem, inviterUser);
+        const memberChangeInfo = memberChangeInfosByResourceId[contentItem.id];
+
+        return ContentAPI.emitter.emit(
+          ContentConstants.events.UPDATED_CONTENT_MEMBERS,
+          invitationCtx,
+          contentItem,
+          memberChangeInfo,
+          { invitation }
+        );
+      });
     });
+  }
+);
+
+/*!
+ * When content is deleted, delete all its invitations as well
+ */
+ContentAPI.emitter.when(ContentConstants.events.DELETED_CONTENT, (ctx, content, members, callback) => {
+  AuthzInvitationsDAO.deleteInvitationsByResourceId(content.id, (error) => {
+    if (error) {
+      log().warn(
+        {
+          err: error,
+          contentId: content.id
+        },
+        'An error occurred while removing invitations after a content item was deleted'
+      );
+    }
+
+    return callback();
   });
+});
 
-  /**
-   * Determine if the given id is a content id
-   *
-   * @param  {String}     contentId   The id to check
-   * @return {Boolean}                Whether or not the string was a content id
-   * @api private
-   */
-  const _isContentId = function (contentId) {
-    return AuthzUtil.isResourceId(contentId) && contentId.indexOf('c:') === 0;
-  };
-
-  return callback();
+/**
+ * Determine if the given id is a content id
+ *
+ * @param  {String}     contentId   The id to check
+ * @return {Boolean}                Whether or not the string was a content id
+ * @api private
+ */
+const _isContentId = function (contentId) {
+  return AuthzUtil.isResourceId(contentId) && contentId.indexOf('c:') === 0;
 };
-
-export { init };

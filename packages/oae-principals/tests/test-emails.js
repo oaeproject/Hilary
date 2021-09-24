@@ -17,6 +17,12 @@ import { assert } from 'chai';
 import fs from 'fs';
 import { format } from 'util';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { mergeRight } from 'ramda';
 import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';

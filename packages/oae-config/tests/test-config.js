@@ -15,9 +15,9 @@
 
 import { assert } from 'chai';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import * as ConfigAPI from 'oae-config';
@@ -93,7 +93,7 @@ describe('Configuration', () => {
       'oae-content/storage/backend',
       'oae-email/general/fromAddress',
       'oae-email/general/fromName',
-      'oae-google-analytics/google-analytics/globalEnabled',
+      'oae-google-analytics/googleAnalytics/globalEnabled',
       'oae-principals/group/visibility',
       'oae-principals/recaptcha/privateKey',
       'oae-principals/recaptcha/publicKey',
@@ -1139,7 +1139,7 @@ describe('Configuration', () => {
                                                       asCambridgeTenantAdmin,
                                                       null,
                                                       {
-                                                        'oae-google-analytics/google-analytics/globalEnabled': '1'
+                                                        'oae-google-analytics/googleAnalytics/globalEnabled': '1'
                                                       },
                                                       (error_) => {
                                                         assert.ok(error_);
@@ -1152,7 +1152,7 @@ describe('Configuration', () => {
                                                           (error, config) => {
                                                             assert.notExists(error);
                                                             assert.strictEqual(
-                                                              config['oae-google-analytics']['google-analytics']
+                                                              config['oae-google-analytics']['googleAnalytics']
                                                                 .globalEnabled,
                                                               false
                                                             );
@@ -1162,7 +1162,7 @@ describe('Configuration', () => {
                                                               asGlobalAdmin,
                                                               null,
                                                               {
-                                                                'oae-google-analytics/google-analytics/globalEnabled':
+                                                                'oae-google-analytics/googleAnalytics/globalEnabled':
                                                                   '1'
                                                               },
                                                               (error_) => {
@@ -1175,20 +1175,22 @@ describe('Configuration', () => {
                                                                   (error, config) => {
                                                                     assert.notExists(error);
                                                                     assert.strictEqual(
-                                                                      config['oae-google-analytics']['google-analytics']
+                                                                      config['oae-google-analytics']['googleAnalytics']
                                                                         .globalEnabled,
                                                                       true
                                                                     );
 
                                                                     // Verify getting tenant configuration through the global server needs a valid ID
-                                                                    getTenantConfig(asGlobalAdmin, ' ', (
-                                                                      error__ /* , config */
-                                                                    ) => {
-                                                                      assert.ok(error__);
-                                                                      assert.strictEqual(error__.code, 400);
+                                                                    getTenantConfig(
+                                                                      asGlobalAdmin,
+                                                                      ' ',
+                                                                      (error__ /* , config */) => {
+                                                                        assert.ok(error__);
+                                                                        assert.strictEqual(error__.code, 400);
 
-                                                                      return callback();
-                                                                    });
+                                                                        return callback();
+                                                                      }
+                                                                    );
                                                                   }
                                                                 );
                                                               }

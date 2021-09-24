@@ -16,26 +16,26 @@
 import { assert } from 'chai';
 import { format } from 'util';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
-import * as EmailTestUtil from 'oae-email/lib/test/util';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
-import * as Sanitization from 'oae-util/lib/sanitization';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util.js';
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
+import * as Sanitization from 'oae-util/lib/sanitization.js';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import * as UIAPI from 'oae-ui';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import clone from 'clone';
 
-const _ = require('underscore');
+import _ from 'underscore';
 
 import { find, equals } from 'ramda';
 

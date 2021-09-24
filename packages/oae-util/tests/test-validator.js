@@ -16,9 +16,9 @@
 import { assert } from 'chai';
 
 import { Context } from 'oae-context';
-import { Tenant } from 'oae-tenants/lib/model';
-import { User } from 'oae-principals/lib/model.user';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Tenant } from 'oae-tenants/lib/model.js';
+import { User } from 'oae-principals/lib/model.user.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 
 const {
   isDefined,

@@ -17,11 +17,11 @@ import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import * as FoldersAPI from 'oae-folders';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 const { assertGeneralFolderSearchEquals, generateTestFoldersWithVisibility } = FoldersTestUtil;

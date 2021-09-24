@@ -21,10 +21,6 @@ import * as library from './library.js';
 const log = logger('oae-jitsi-init');
 
 export function init(config, callback) {
-  activity.init(() => {
-    library.init(() => {
-      log().info('Initializing the oae-jitsi module');
-      return MeetingSearch.init(callback);
-    });
-  });
+  log().info('Initializing the oae-jitsi module');
+  return MeetingSearch.init(callback);
 }

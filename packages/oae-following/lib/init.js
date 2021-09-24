@@ -20,9 +20,5 @@ import * as activity from './activity.js';
 import * as principals from './principals.js';
 
 export function init(config, callback) {
-  activity.init(() => {
-    principals.init(() => {
-      return FollowingSearch.init(callback);
-    });
-  });
+  return FollowingSearch.init(callback);
 }

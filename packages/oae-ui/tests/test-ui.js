@@ -18,6 +18,12 @@ import fs from 'fs';
 import { format } from 'util';
 import path from 'path';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';

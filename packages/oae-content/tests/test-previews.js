@@ -19,6 +19,12 @@ import fs from 'fs';
 import path from 'path';
 import { flush } from 'oae-util/lib/redis.js';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { find, filter, equals, propSatisfies, pathSatisfies } from 'ramda';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';

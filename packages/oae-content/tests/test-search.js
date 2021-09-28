@@ -16,6 +16,12 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch.js';

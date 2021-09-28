@@ -19,12 +19,13 @@
  */
 
 /* eslint-disable */
-const util = require('util');
-const _ = require('underscore');
+import * as util from 'util';
+import _ from 'underscore';
 
-const Cassandra = require('oae-util/lib/cassandra');
-const log = require('oae-logger').logger('oae-script-main');
-const PrincipalsDAO = require('oae-principals/lib/internal/dao');
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as Logger from 'oae-logger';
+const log = Logger.logger('oae-script-main');
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 
 let csvStream = {};
 let errors = 0;
@@ -57,7 +58,7 @@ function _writeErrorRow(userHash, message) {
  * @param  {Object[]}   callback.userHashes     An array of user hashes
  * @api private
  */
-const _getAllUsersForTenant = function(tenantAlias, callback) {
+const _getAllUsersForTenant = function (tenantAlias, callback) {
   const userHashes = [];
 
   PrincipalsDAO.iterateAll(
@@ -65,7 +66,7 @@ const _getAllUsersForTenant = function(tenantAlias, callback) {
     100,
     // eslint-disable-next-line no-use-before-define
     _aggregateUsers,
-    err => {
+    (err) => {
       if (err) {
         log().error({ err }, 'Failed to iterate all users');
         return callback(err);
@@ -78,22 +79,19 @@ const _getAllUsersForTenant = function(tenantAlias, callback) {
   );
 
   /*!
-     * Filter users down to those that are part of the specified tenant. Then add them to the `userHashes` array
-     *
-     * @param  {Object[]}   principalHashes       The principals to filter and aggregate
-     * @param  {Function}   callback              Will be invoked when the principals are aggregated
-     */
+   * Filter users down to those that are part of the specified tenant. Then add them to the `userHashes` array
+   *
+   * @param  {Object[]}   principalHashes       The principals to filter and aggregate
+   * @param  {Function}   callback              Will be invoked when the principals are aggregated
+   */
   function _aggregateUsers(principalHashes, callback) {
     log().info('Checking %s principals for tenancy', principalHashes.length);
     _.chain(principalHashes)
-      .filter(principalHash => {
-        return (
-          principalHash.tenantAlias === tenantAlias &&
-          PrincipalsDAO.isUser(principalHash.principalId)
-        );
+      .filter((principalHash) => {
+        return principalHash.tenantAlias === tenantAlias && PrincipalsDAO.isUser(principalHash.principalId);
       })
 
-      .each(userHash => {
+      .each((userHash) => {
         log().info('Adding user %s to tenant users', userHash.displayName);
         userHashes.push(userHash);
       });
@@ -111,7 +109,7 @@ const _getAllUsersForTenant = function(tenantAlias, callback) {
  * @param  {Object[]}   callback.userHashes     The users for a tenancy with ID
  * @api private
  */
-const _getExternalIds = function(userHashes, callback, _userHashes) {
+const _getExternalIds = function (userHashes, callback, _userHashes) {
   _userHashes = _userHashes || [];
 
   if (_.isEmpty(userHashes)) {
@@ -122,11 +120,7 @@ const _getExternalIds = function(userHashes, callback, _userHashes) {
   const principalHash = userHashes.shift();
   _findExternalId(principalHash, (err, userHash) => {
     if (err) {
-      log().error(
-        { err },
-        "Failed Cassandra query for user %s's loginId",
-        principalHash.principalId
-      );
+      log().error({ err }, "Failed Cassandra query for user %s's loginId", principalHash.principalId);
       return callback(err);
     }
 
@@ -153,29 +147,25 @@ const _getExternalIds = function(userHashes, callback, _userHashes) {
  */
 function _findExternalId(userHash, callback) {
   const userId = userHash.principalId;
-  Cassandra.runQuery(
-    'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
-    [userId],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
-      }
-
-      const loginId = _.chain(rows)
-        .map(Cassandra.rowToHash)
-        .pluck('loginId')
-        .filter(loginId => {
-          // If user has more than one loginId, take the Google one
-          return loginId.split(':')[1] === 'google';
-        })
-        .first()
-        .value();
-
-      userHash = loginId ? _.extend(userHash, { loginId }) : userHash;
-
-      return callback(null, userHash);
+  Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], (err, rows) => {
+    if (err) {
+      return callback(err);
     }
-  );
+
+    const loginId = _.chain(rows)
+      .map(Cassandra.rowToHash)
+      .pluck('loginId')
+      .filter((loginId) => {
+        // If user has more than one loginId, take the Google one
+        return loginId.split(':')[1] === 'google';
+      })
+      .first()
+      .value();
+
+    userHash = loginId ? _.extend(userHash, { loginId }) : userHash;
+
+    return callback(null, userHash);
+  });
 }
 
 /**
@@ -186,7 +176,7 @@ function _findExternalId(userHash, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @api private
  */
-const _createNewUserLogin = function(userHash, callback) {
+const _createNewUserLogin = function (userHash, callback) {
   const userId = userHash.principalId;
   const email = userHash.loginId.slice(userHash.loginId.lastIndexOf(':') + 1);
   const newLoginId = util.format('%s:shibboleth:%s', userHash.tenantAlias, email);
@@ -194,14 +184,14 @@ const _createNewUserLogin = function(userHash, callback) {
   Cassandra.runQuery(
     'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
     [newLoginId, userId, '1'],
-    err => {
+    (err) => {
       if (err) {
         _notifyOfError('AuthenticationUserLoginId', userHash, err, callback);
       }
       Cassandra.runQuery(
         'INSERT INTO "AuthenticationLoginId" ("loginId", "userId") VALUES (?, ?)',
         [newLoginId, userId],
-        err => {
+        (err) => {
           if (err) {
             _notifyOfError('AuthenticationLoginId', userHash, err, callback);
           }
@@ -228,7 +218,7 @@ const _notifyOfError = (table, userHash, err, callback) => {
  * @param  {Object[]}   callback.mappedUsers    The Shibboleth users that were mapped to existing users
  * @api private
  */
-const _createShibLoginRecords = function(userHashes, callback, _mappedUsers) {
+const _createShibLoginRecords = function (userHashes, callback, _mappedUsers) {
   _mappedUsers = _mappedUsers || [];
 
   if (_.isEmpty(userHashes)) {
@@ -240,7 +230,7 @@ const _createShibLoginRecords = function(userHashes, callback, _mappedUsers) {
   log().info('Processing user %s', userHash.displayName);
 
   // Create a new login record for user
-  _createNewUserLogin(userHash, err => {
+  _createNewUserLogin(userHash, (err) => {
     if (err) {
       return callback(err);
     }
@@ -259,7 +249,7 @@ const _createShibLoginRecords = function(userHashes, callback, _mappedUsers) {
  * @param  {Object[]}   callback.mappedUsers    The Shibboleth users that were mapped to existing users
  * @api private
  */
-const _mapUsersToShibLogin = function(allUsers, callback) {
+const _mapUsersToShibLogin = function (allUsers, callback) {
   if (_.isEmpty(allUsers)) {
     log().info('No suitable users found for this tenant');
     return callback();
@@ -282,7 +272,7 @@ const _mapUsersToShibLogin = function(allUsers, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object}     callback.errorCount     Whether there were errors in the migration
  */
-const doMigration = function(tenantAlias, stream, callback) {
+const doMigration = function (tenantAlias, stream, callback) {
   csvStream = stream;
   _getAllUsersForTenant(tenantAlias, (err, userHashes) => {
     if (err) {
@@ -296,11 +286,7 @@ const doMigration = function(tenantAlias, stream, callback) {
 
       _mapUsersToShibLogin(usersWithIds, (err, mappedUsers) => {
         if (err) {
-          log().error(
-            { err },
-            'Encountered error when migrating %s users to Shibboleth',
-            tenantAlias
-          );
+          log().error({ err }, 'Encountered error when migrating %s users to Shibboleth', tenantAlias);
           return callback(err);
         }
 
@@ -316,6 +302,4 @@ const doMigration = function(tenantAlias, stream, callback) {
   });
 };
 
-module.exports = {
-  doMigration
-};
+export { doMigration };

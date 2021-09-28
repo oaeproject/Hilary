@@ -17,6 +17,12 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';

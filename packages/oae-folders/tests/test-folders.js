@@ -20,6 +20,12 @@ import Path from 'path';
 import _ from 'underscore';
 import { find, head, path, forEach, values, reject, isNil, map, last } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';

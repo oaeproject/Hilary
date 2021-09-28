@@ -18,6 +18,12 @@ import fs from 'fs';
 import path from 'path';
 import { pluck, forEach } from 'ramda';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import * as OaeServer from 'oae-util/lib/server.js';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';

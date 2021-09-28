@@ -17,6 +17,12 @@ import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { compose, not, values, filter, equals, pluck, contains, forEach, pathSatisfies } from 'ramda';
 
 import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';

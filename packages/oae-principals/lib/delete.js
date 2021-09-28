@@ -215,33 +215,28 @@ const _invokeHandlers = function (...args) {
 /// /////////
 // EVENTS //
 /// /////////
-const setListeners = (callback) => {
-  /*!
-   * When a group is deleted, we must invoke the handlers that were registered to be triggered when
-   * a group is deleted
-   */
-  PrincipalsEmitter.on(PrincipalsConstants.events.DELETED_GROUP, (ctx, group) => {
-    // Invoke all group delete handlers
-    invokeGroupDeleteHandlers(group);
-  });
+/*!
+ * When a group is deleted, we must invoke the handlers that were registered to be triggered when
+ * a group is deleted
+ */
+PrincipalsEmitter.on(PrincipalsConstants.events.DELETED_GROUP, (ctx, group) => {
+  // Invoke all group delete handlers
+  invokeGroupDeleteHandlers(group);
+});
 
-  /*!
-   * When a group is restored, we must invoke the handlers that were registered to be triggered when
-   * a group is restored
-   */
-  PrincipalsEmitter.on(PrincipalsConstants.events.RESTORED_GROUP, (ctx, group) => {
-    // Invoke all group restore handlers
-    invokeGroupRestoreHandlers(group);
-  });
-
-  return callback();
-};
+/*!
+ * When a group is restored, we must invoke the handlers that were registered to be triggered when
+ * a group is restored
+ */
+PrincipalsEmitter.on(PrincipalsConstants.events.RESTORED_GROUP, (ctx, group) => {
+  // Invoke all group restore handlers
+  invokeGroupRestoreHandlers(group);
+});
 
 export {
   registerGroupDeleteHandler,
   registerGroupRestoreHandler,
   invokeGroupDeleteHandlers,
   invokeGroupRestoreHandlers,
-  whenDeletesComplete,
-  setListeners
+  whenDeletesComplete
 };

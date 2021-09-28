@@ -3236,26 +3236,36 @@ describe('Invitations', () => {
         assert.notExists(error);
 
         const activity = _.first(result.items);
-        inviterUserInfo = _withAdaptedInfo(inviterUserInfo, activity);
-        invitedUserInfo = _withAdaptedInfo(invitedUserInfo, activity);
-        otherUserInfo = _withAdaptedInfo(otherUserInfo, activity, {
-          contextId: _.first(resources).id
+        _withAdaptedInfo(inviterUserInfo, activity, {}, (error, inviterUserInfo) => {
+          assert.notExists(error);
+          _withAdaptedInfo(invitedUserInfo, activity, {}, (error, invitedUserInfo) => {
+            assert.notExists(error);
+            _withAdaptedInfo(
+              otherUserInfo,
+              activity,
+              {
+                contextId: _.first(resources).id
+              },
+              (error, otherUserInfo) => {
+                assert.notExists(error);
+                _assertStandardInvitationAcceptSummaries(
+                  inviterUserInfo,
+                  invitedUserInfo,
+                  otherUserInfo,
+                  resources
+                );
+
+                // Check the resource-specific summary match against this number of resources
+                const match = assertions.matches[resources.length - 1];
+                _assertContains(inviterUserInfo.summary, match);
+                _assertContains(invitedUserInfo.summary, match);
+                _assertContains(otherUserInfo.summary, match);
+
+                return callback();
+              }
+            );
+          });
         });
-
-        _assertStandardInvitationAcceptSummaries(
-          inviterUserInfo,
-          invitedUserInfo,
-          otherUserInfo,
-          resources
-        );
-
-        // Check the resource-specific summary match against this number of resources
-        const match = assertions.matches[resources.length - 1];
-        _assertContains(inviterUserInfo.summary, match);
-        _assertContains(invitedUserInfo.summary, match);
-        _assertContains(otherUserInfo.summary, match);
-
-        return callback();
       }
     );
   };
@@ -3607,11 +3617,12 @@ describe('Invitations', () => {
    * @param  {String}     [opts.contextId]    The context id for the adapted activity. Defaults to the user id of the user info
    * @return {Object}                         The user info with the adapted activity preview items and summary applied
    */
-  const _withAdaptedInfo = function (userInfo, activity, options) {
+  const _withAdaptedInfo = function (userInfo, activity, options, callback) {
     options = options || {};
     options.contextId = options.contextId || userInfo.user.id;
 
     UIAPI.getActivityAdapter((error, adapter) => {
+      assert.notExists(error);
       const adapted = adapter.adapt(
         options.contextId,
         userInfo.user,
@@ -3620,10 +3631,12 @@ describe('Invitations', () => {
       );
       const { summary } = adapted[0];
       const previewItems = adapted[0].activityItems;
-      return _.extend({}, userInfo, {
+      const result = _.extend({}, userInfo, {
         previewItems,
         summary: UIAPI.translate(summary.i18nKey, null, summary.i18nArguments)
       });
+
+      return callback(null, result);
     });
   };
 

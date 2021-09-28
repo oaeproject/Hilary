@@ -64,7 +64,7 @@ if (argv.config.match(/^\.\//)) {
 (async function () {
   const fileConfig = await import(argv.config);
 
-  const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local'}`;
+  const envConfigPath = `${process.cwd()}/${process.env.NODE_ENV || 'local.js'}`;
   const envConfig = await import(envConfigPath);
 
   // Merge config read from file with the one set by NODE_ENV corresponding file

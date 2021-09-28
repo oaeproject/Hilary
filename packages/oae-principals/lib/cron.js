@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as _ from 'underscore';
+import _ from 'underscore';
 import eachSeries from 'async/eachSeries.js';
 import { CronJob } from 'cron';
 

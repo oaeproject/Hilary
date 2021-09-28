@@ -18,6 +18,12 @@ import fs from 'fs';
 import Path from 'path';
 import sharp from 'sharp';
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { gt, toUpper, __ } from 'ramda';
 
 import * as ImageUtil from 'oae-util/lib/image.js';

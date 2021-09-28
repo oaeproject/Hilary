@@ -22,7 +22,7 @@ import { path } from 'ramda';
 
 const { generateTestUsers, createTenantRestContext, createTenantAdminRestContext } = TestsUtil;
 const { getTenantConfig } = RestAPI.Config;
-const googleAnalyticsSettings = path(['oae-google-analytics', 'google-analytics']);
+const googleAnalyticsSettings = path(['oae-google-analytics', 'googleAnalytics']);
 
 describe('Google Analytics', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user

@@ -37,7 +37,7 @@
     "clientOptions": {
       "keyspace": "oae",
       "port": 9160,
-      "contactPoints": ["localhost"]
+      "contactPoints": ["oae-cassandra"]
     },
     "columnFamily": "Etherpad"
   },
@@ -46,7 +46,7 @@
   "defaultPadText": "",
   "ep_oae": {
     "mq": {
-      "host": "localhost",
+      "host": "oae-redis",
       "port": 6379,
       "dbIndex": 0,
       "pass": ""
@@ -171,27 +171,11 @@
   },
   */
   // restrict socket.io transport methods
-  "socketTransportProtocols": [
-    "websocket",
-    "xhr-polling",
-    "jsonp-polling",
-    "htmlfile"
-  ],
+  "socketTransportProtocols": ["websocket", "xhr-polling", "jsonp-polling", "htmlfile"],
   // Allow Load Testing tools to hit the Etherpad Instance.  Warning this will disable security on the instance.
   "loadTest": false,
   "toolbar": {
-    "left": [
-      [
-        "bold",
-        "italic",
-        "underline",
-        "strikethrough",
-        "orderedlist",
-        "unorderedlist",
-        "indent",
-        "outdent"
-      ]
-    ],
+    "left": [["bold", "italic", "underline", "strikethrough", "orderedlist", "unorderedlist", "indent", "outdent"]],
     "right": [["showusers"]]
   },
   // Disable indentation on new line when previous line ends with some special chars (':', '[', '(', '{')

@@ -49,7 +49,7 @@
     "dox": "^0.9.0",
     "ent": "^2.2.0",
     "esm": "^3.2.25",
-    "ethercalc-client": "github:oaeproject/ethercalc-client#master",
+    "ethercalc-client": "github:oaeproject/ethercalc-client#es-modules",
     "etherpad-lite-client": "^0.8.0",
     "express": "^4.17.1",
     "globalize": "0.1.1",

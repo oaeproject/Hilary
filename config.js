@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable camelcase, capitalized-comments */
-const Path = require('path');
-const bunyan = require('bunyan');
+/* eslint-disable camelcase */
+import Path from 'node:path';
+import bunyan from 'bunyan';
 
 const config = {};
 const LOCALHOST = 'localhost';

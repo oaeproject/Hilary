@@ -19,6 +19,7 @@ import url from 'url';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 
+import { callbackify } from 'util';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -197,7 +198,7 @@ const generatePreviews = function (ctx, contentObj, callback) {
         screenShottingOptions.customHeaders = {
           'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
         };
-        puppeteerHelper.getImage(contentObj.link, imgPath, screenShottingOptions, (err) => {
+        callbackify(puppeteerHelper.getImage)(contentObj.link, imgPath, screenShottingOptions, (err, cenas) => {
           if (err) {
             log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
             return callback(err);

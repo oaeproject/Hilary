@@ -160,6 +160,8 @@ const _authorizeUserActivityStream = function (ctx, userId, token, callback) {
   if (ctx.user().id !== userId) {
     return callback({ code: 401, msg: 'You can only request your own notification stream' });
   }
+
+  return callback();
 };
 
 /**

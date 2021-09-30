@@ -24,7 +24,6 @@ import { Validator as validator } from './validator.js';
 import { config } from '../../../config.js';
 
 const { unless, isDefined, isNotNull } = validator;
-const log = logger('oae-util-locking');
 
 let locker;
 
@@ -69,6 +68,7 @@ const init = (done) => {
  * @returns {Function}                 Returns a callback
  */
 const acquire = function (lockKey, expiresIn, callback) {
+  const log = logger('oae-util-locking');
   try {
     unless(isDefined, {
       code: 400,
@@ -110,6 +110,8 @@ const acquire = function (lockKey, expiresIn, callback) {
  * @returns {Function}                      Returns a callback
  */
 const release = function (lock, callback) {
+  const log = logger('oae-util-locking');
+
   try {
     unless(isNotNull, {
       code: 400,

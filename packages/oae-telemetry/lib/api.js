@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { callbackify, format } from 'util';
 import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
@@ -22,8 +22,6 @@ import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as Redis from 'oae-util/lib/redis.js';
 import { isEmpty, head } from 'ramda';
-
-const log = logger('oae-telemetry');
 
 let locker = null;
 let lockerRedisClient = null;
@@ -66,6 +64,10 @@ const init = (_telemetryConfig, callback) => {
   });
 };
 
+const importPublisher = async (publisherUrl) => {
+  return await import(publisherUrl);
+};
+
 /**
  * Post-initialization for Telemetry API
  *
@@ -75,22 +77,30 @@ const init = (_telemetryConfig, callback) => {
  */
 const _initPublish = (telemetryConfig, callback) => {
   if (telemetryConfig.enabled && telemetryConfig.publisher) {
-    publisher = require('./publishers/' + telemetryConfig.publisher);
-    publisher.init(telemetryConfig);
+    const publisherUrl =
+      process.cwd() + '/node_modules/oae-telemetry/lib/publishers/' + telemetryConfig.publisher + '.js';
 
-    /**
-     * Immediately try and reset telemetry counts so if the servers are
-     * rebooted it doesn't put off the reset for potentially another
-     * full day
-     */
-    _resetTelemetryCounts((error) => {
-      if (error) return callback(error);
+    callbackify(importPublisher)(publisherUrl, (error, _publisher) => {
+      if (error) callback(error);
 
-      // Begin the publish and reset intervals
-      publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
-      resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
+      publisher = _publisher;
 
-      return callback();
+      publisher.init(telemetryConfig);
+
+      /**
+       * Immediately try and reset telemetry counts so if the servers are
+       * rebooted it doesn't put off the reset for potentially another
+       * full day
+       */
+      _resetTelemetryCounts((error) => {
+        if (error) return callback(error);
+
+        // Begin the publish and reset intervals
+        publishIntervalId = setInterval(_publishTelemetryData, telemetryConfig.publishInterval * 1000);
+        resetIntervalId = setInterval(_resetTelemetryCounts, telemetryConfig.resetInterval * 1000);
+
+        return callback();
+      });
     });
   } else {
     return callback();
@@ -234,6 +244,8 @@ const request = function (request_, response) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const reset = function (callback) {
+  const log = logger('oae-telemetry');
+
   _resetGlobalCounts(() => {
     _resetLocalHistograms();
     _resetLocalCounts();
@@ -301,6 +313,8 @@ const _publishTelemetryData = function () {
  * @api private
  */
 const _resetTelemetryCounts = function (callback) {
+  const log = logger('oae-telemetry');
+
   callback = callback || function () {};
   Locking.acquire(_getTelemetryCountResetLock(), telemetryConfig.resetInterval, (error /* , token */) => {
     if (error) {
@@ -331,6 +345,8 @@ const _resetTelemetryCounts = function (callback) {
  * @api private
  */
 const _pushCountsToRedis = function (callback) {
+  const log = logger('oae-telemetry');
+
   if (isEmpty(stats.counts)) {
     return callback();
   }
@@ -367,6 +383,8 @@ const _pushCountsToRedis = function (callback) {
  * @api private
  */
 const _lockAndGetCounts = function (callback) {
+  const log = logger('oae-telemetry');
+
   // Try and fetch the lock for the duration of the publishing interval
   Locking.acquire(_getTelemetryCountPublishLock(), telemetryConfig.publishInterval, (error /* , token */) => {
     if (error) {
@@ -398,6 +416,8 @@ const _lockAndGetCounts = function (callback) {
  * @api private
  */
 const _getCounts = function (callback) {
+  const log = logger('oae-telemetry');
+
   Redis.getClient().hgetall(_getTelemetryCountHashKey(), (error, countsHash) => {
     if (error) {
       log().error({ err: error }, 'Error querying telemetry counts from redis');

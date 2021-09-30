@@ -657,8 +657,11 @@ describe('Tenants', () => {
     it('verify get tenant by email domain', (callback) => {
       const commonTld = TenantsTestUtil.generateTestTenantHost();
 
-      // Create two tenants that share a common TLD, however they have subdomains "a" and "aa"
-      // that are very close to matching
+      /**
+       * Create two tenants that share a common TLD,
+       * however they have subdomains "a" and "aa"
+       * that are very close to matching
+       */
 
       // Intialize tenant information for a tenant whose email domain suffix is "a" followed
       // by a host
@@ -699,21 +702,21 @@ describe('Tenants', () => {
               assert.strictEqual(head(gotTenant1.emailDomains), tenant1Options.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 with an email address by an exact match
-              gotTenant1 = TenantsAPI.getTenantByEmail(format('mrvisser@%s', tenant1Options.emailDomains));
+              gotTenant1 = TenantsAPI.getTenantByEmail(format('mrvisser@%s', tenant1Options.emailDomains[0]));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
               assert.strictEqual(gotTenant1.emailDomains[0], tenant1Options.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 by a valid host suffix
-              gotTenant1 = TenantsAPI.getTenantByEmail(format('prefix.%s', tenant1Options.emailDomains));
+              gotTenant1 = TenantsAPI.getTenantByEmail(format('prefix.%s', tenant1Options.emailDomains[0]));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());
               assert.strictEqual(gotTenant1.emailDomains[0], tenant1Options.emailDomains[0].toLowerCase());
 
               // Ensure we can get tenant 1 by a valid host suffix in an email address
-              gotTenant1 = TenantsAPI.getTenantByEmail(format('mrvisser@prefix.%s', tenant1Options.emailDomains));
+              gotTenant1 = TenantsAPI.getTenantByEmail(format('mrvisser@prefix.%s', tenant1Options.emailDomains[0]));
               assert.ok(gotTenant1);
               assert.strictEqual(gotTenant1.alias, tenant1Alias);
               assert.strictEqual(gotTenant1.host, tenant1Host.toLowerCase());

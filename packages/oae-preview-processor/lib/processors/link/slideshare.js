@@ -99,7 +99,7 @@ const generatePreviews = function (ctx, contentObj, callback) {
     }
 
     // Download the thumbnail
-    const imageUrl = 'http:' + result.ThumbnailURL[0];
+    const imageUrl = result.ThumbnailURL[0];
     const path = ctx.baseDir + '/slideshare.jpg';
     PreviewUtil.downloadRemoteFile(imageUrl, path, (err, path) => {
       if (err) {

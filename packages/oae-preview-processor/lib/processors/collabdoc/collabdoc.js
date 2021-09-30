@@ -19,6 +19,7 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+import { callbackify } from 'util';
 import fs from 'fs';
 import Path from 'path';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
@@ -116,7 +117,7 @@ const generatePreviews = function (ctx, contentObj, callback) {
       const collabFileUri = FILE_URI + collabFilePath;
       const imgPath = Path.join(ctx.baseDir, '/wide.png');
 
-      puppeteerHelper.getImage(collabFileUri, imgPath, screenShottingOptions, (err) => {
+      callbackify(puppeteerHelper.getImage)(collabFileUri, imgPath, screenShottingOptions, (err) => {
         if (err) {
           log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
           return callback(err);

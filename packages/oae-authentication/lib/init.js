@@ -28,8 +28,6 @@ import initShibb from './strategies/shibboleth/init.js';
 import initSigned from './strategies/signed/init.js';
 import initTwitter from './strategies/twitter/init.js';
 
-import OaeEmitter from 'oae-util/lib/emitter.js';
-
 import * as AuthenticationAPI from './api.js';
 import { AuthenticationConstants } from './constants.js';
 import * as AuthenticationUtil from './util.js';
@@ -59,13 +57,6 @@ export function init(config, callback) {
   // so they have a chance to add any middleware that could set the logged in user
   OAE.tenantServer.use(contextMiddleware);
   OAE.globalAdminServer.use(contextMiddleware);
-
-  /**
-   * TODO experimental shit
-   * Let's force refreshing the authentication strategies for all tenants
-   * even if that is redundant, it's just at boot, and it's temporary
-   */
-  // OaeEmitter.emit('refreshAllTenantStrategies');
 
   return callback();
 }

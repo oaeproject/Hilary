@@ -16,7 +16,6 @@
 import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
-const log = logger('oae-redis');
 import { equals, not } from 'ramda';
 
 let client = null;
@@ -46,6 +45,7 @@ const init = function (redisConfig, callback) {
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = function (_config, callback) {
+  const log = logger('oae-redis');
   const onTestingEnvironment = equals('true', process.env.OAE_TESTS_RUNNING);
   const notOnTestingEnvironment = not(onTestingEnvironment);
 

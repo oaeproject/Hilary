@@ -83,10 +83,6 @@ OaeEmitter.on('ready', () => {
   _refreshAllTenantStrategies();
 });
 
-OaeEmitter.on('refreshAllTenantStrategies', () => {
-  _refreshAllTenantStrategies();
-});
-
 /**
  * Refresh the tenant authentication strategies when the configuration for a tenant has been updated.
  * In case the configuration of the global admin tenant was updated, all authentication strategies will

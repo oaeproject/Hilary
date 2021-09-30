@@ -16,9 +16,7 @@
 import events from 'events';
 import { inherits, format } from 'util';
 import _ from 'underscore';
-import { logger } from 'oae-logger';
-
-const log = logger('oae-emitter');
+import * as Log from 'oae-logger';
 
 /**
  * The OAE EventEmitter extends the core Node.js event emitter to allow chained event handling
@@ -49,6 +47,8 @@ inherits(EventEmitter, events.EventEmitter);
  * @param  {Function}   [callback]      Standard callback function. Invoked when all `when` handlers have completed their task
  */
 EventEmitter.prototype.emit = function (...args) {
+  const log = Log.logger('oae-emitter');
+
   const self = this;
 
   // The name is required and must be the first argument

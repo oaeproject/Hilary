@@ -63,7 +63,7 @@ const NO_MANAGERS = [];
 const NO_FOLDERS = [];
 const NO_VIEWERS = [];
 
-describe.skip('Preview processor', () => {
+describe('Preview processor', () => {
   // We fill this variable on tests startup with the configuration as specified in the root config.js/beforeTests file.
   let defaultConfig = null;
 
@@ -435,7 +435,7 @@ describe.skip('Preview processor', () => {
     );
   };
 
-  describe.skip('Preview generation', () => {
+  describe('Preview generation', () => {
     /*!
      * Enable the Preview Processor if the config specifies we can run with it enabled
      */

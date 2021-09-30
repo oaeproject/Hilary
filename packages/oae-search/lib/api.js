@@ -18,6 +18,7 @@ import { logger } from 'oae-logger';
 
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util.js';
+import { callbackify } from 'util';
 import * as schema from './schema/resourceSchema.js';
 
 import R from 'ramda';
@@ -531,6 +532,16 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
   }
 };
 
+const importSchema = (schemaPath) => {
+  return import(schemaPath)
+    .then((module) => {
+      return module;
+    })
+    .catch((e) => {
+      throw e;
+    });
+};
+
 /**
  * Ensure the OAE search schema is created.
  *
@@ -540,7 +551,12 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
  */
 const _ensureSearchSchema = (names, callback) => {
   if (!names) {
-    const resourceSchema = {
+    return callbackify(importSchema)('./schema/resourceSchema.js', (error, resourceSchema) => {
+      if (error) return callback(error);
+
+      // return client.putMapping(require('./schema/resourceSchema'), null, (error) => {
+      /*
+        const resourceSchema = {
       id: schema.id,
       tenantAlias: schema.tenantAlias,
       resourceType: schema.resourceType,
@@ -560,10 +576,12 @@ const _ensureSearchSchema = (names, callback) => {
       lastModified: schema.lastModified,
       createdBy: schema.createdBy
     };
-    return client.putMapping(resourceSchema, null, (error) => {
-      if (error) return callback(error);
+    */
+      return client.putMapping(resourceSchema, null, (error) => {
+        if (error) return callback(error);
 
-      return _ensureSearchSchema(keys(childSearchDocuments), callback);
+        return _ensureSearchSchema(keys(childSearchDocuments), callback);
+      });
     });
   }
 

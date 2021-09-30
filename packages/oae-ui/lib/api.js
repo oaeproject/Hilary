@@ -56,13 +56,16 @@ let uiDirectory = null;
 // A mapping object that maps pre-optimized paths to post-optimized paths in the UI
 let hashes = null;
 
-// A dictionary that will hold the content for each file. This will be lazy filled. The first
-// time a particular file is requested, it will be cached. After that, the cached version will
-// be used
+/**
+ * A dictionary that will hold the content for each file. This will be lazy filled. The first
+ * time a particular file is requested, it will be cached. After that, the cached version will
+ * be used
+ */
 const staticFileCache = {};
 
-// A dictionary that will hold the widget manifests for all widgets. This will be filled upon
-// initialization.
+/**
+ * A dictionary that will hold the widget manifests for all widgets. This will be filled upon initialization.
+ */
 let widgetManifestCache = {};
 
 // A dictionary that will hold all the i18n keys keyed by their locale
@@ -1154,9 +1157,11 @@ const renderTemplate = function (template, data, locale = 'en_US') {
        * @param  {String}     [mimeType]          In case the `resourceSubType` is a `file` a more detailed description can be returned by providing a mime type
        * @return {String}                         Human readable mimetype description for the provided resource subtype and mime type
        */
-      async getMimetypeDescription(resourceSubType, mimeType) {
-        const descriptor = await _getMimeTypeDescriptor();
-        return descriptor.getDescription(resourceSubType, mimeType);
+      getMimetypeDescription(resourceSubType, mimeType) {
+        // const descriptor = await _getMimeTypeDescriptor();
+        return _getMimeTypeDescriptor().then((descriptor) => {
+          return descriptor.getDescription(resourceSubType, mimeType);
+        });
       }
     },
 

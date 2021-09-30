@@ -165,9 +165,9 @@ const collectAndFetchAllEmails = function (callback) {
                     _assertEmailTemplateFieldValid(message, 'text');
                     _.each(message.html.split('\n'), (line) => {
                       assert.ok(
-                        line.length <= 500,
+                        line.length <= 550,
                         format(
-                          'Expected no email line to be more than 500 characters, but found: (%s) %s',
+                          'Expected no email line to be more than 50 characters, but found: (%s) %s',
                           line.length,
                           line
                         )

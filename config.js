@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable camelcase */
-import Path from 'path';
-import bunyan from 'bunyan';
+/* eslint-disable camelcase, capitalized-comments */
+const Path = require('path');
+const bunyan = require('bunyan');
 
 const config = {};
 const LOCALHOST = 'localhost';
@@ -41,9 +41,9 @@ config.cassandra = {
   keyspace: 'oae',
   user: '',
   pass: '',
-  timeout: 60000,
-  readTimeout: 0,
+  timeout: 3000,
   replication: 1,
+  readTimeout: 0,
   strategyClass: 'SimpleStrategy',
   cqlVersion: '3.0.0'
 };
@@ -90,7 +90,13 @@ config.servers = {
   strictHttps: true
 };
 
-const temporaryDir = Path.join(process.cwd(), 'tmp');
+/*
+ * If you change `tmpDir` below, you also need to set the TMP environment variable
+ * This is because that variable is needed in docker-compose.yml
+ * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
+ */
+// const temporaryDir = Path.join(process.cwd(), 'tmp');
+let temporaryDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
 
 /**
  * `config.files`
@@ -238,7 +244,7 @@ config.search = {
         }
       }
     },
-    destroyOnStartup: true
+    destroyOnStartup: false
   },
   processIndexJobs: true
 };
@@ -347,17 +353,17 @@ config.signing = {
 config.activity = {
   processActivityJobs: true,
   activityTtl: 2 * 30 * 24 * 60 * 60, // 2 months (in seconds)
-  numberOfProcessingBuckets: 1,
+  numberOfProcessingBuckets: 3,
   aggregateIdleExpiry: 3 * 60 * 60, // 3 hours (in seconds)
   aggregateMaxExpiry: 24 * 60 * 60, // 1 day (in seconds)
-  collectionExpiry: 90, // 1 minute (in seconds)
-  maxConcurrentCollections: 1,
+  collectionExpiry: 60, // 1 minute (in seconds)
+  maxConcurrentCollections: 3,
   maxConcurrentRouters: 5,
   collectionPollingFrequency: 5, // 5 seconds
   collectionBatchSize: 1000,
   mail: {
-    pollingFrequency: 2 * 60, // 15 minutes
-    gracePeriod: 1 * 60, // 3 minutes
+    pollingFrequency: 15 * 60, // 15 minutes
+    gracePeriod: 3 * 60, // 3 minutes
     daily: {
       hour: 8 // 8AM
     },
@@ -476,20 +482,3 @@ config.mixpanel = {
   enabled: false,
   token: 'f3e9fce119d357b745a8dfa36248d632'
 };
-
-/*
-config.ui.path = './3akai-ux';
-config.cassandra.hosts = ['oae-cassandra'];
-config.cassandra.timeout = 9000;
-config.redis.host = 'oae-redis';
-config.search.hosts[0].host = 'oae-elasticsearch';
-config.mq.host = 'oae-redis';
-config.etherpad.hosts[0].host = 'oae-etherpad';
-config.ethercalc[0].host = 'oae-ethercalc';
-config.previews.enabled = true;
-config.email.debug = false;
-config.email.transport = 'sendmail';
-config.previews.office.binary = '/usr/bin/soffice';
-config.previews.screenShotting.binary = '/usr/bin/chromium-browser';
-config.previews.screenShotting.sandbox = '--no-sandbox';
-*/

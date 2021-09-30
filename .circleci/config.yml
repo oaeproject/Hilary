@@ -169,7 +169,6 @@ jobs:
       - *install_etherpad
       - *install_3akai
       - *install_hilary
-      - *run_linting
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
       - *store_results
@@ -192,7 +191,6 @@ jobs:
       - *install_etherpad
       - *install_3akai
       - *install_hilary
-      - *run_linting
       - *run_sequential_tests # includes coverage
       - *copy_artifacts
       - *store_results

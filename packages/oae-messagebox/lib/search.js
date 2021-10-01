@@ -15,10 +15,10 @@
 
 import _ from 'underscore';
 
-import * as discussionMessageBody from './search/schema/resourceMessagesSchema.js';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
+import * as discussionMessageBody from './search/schema/resourceMessagesSchema.js';
 
 /**
  * Register and create a message search document name and schema that is a child of resource documents. Registering
@@ -34,12 +34,7 @@ import * as MessageBoxAPI from 'oae-messagebox';
 const registerMessageSearchDocument = function (name, resourceTypes, producer, callback) {
   const messagesChildSearchDocumentOptions = {
     resourceTypes,
-    schema: {
-      type: discussionMessageBody.type,
-      store: discussionMessageBody.store,
-      index: discussionMessageBody.index,
-      analyzer: discussionMessageBody.analizer
-    },
+    schema: discussionMessageBody,
     producer
   };
 

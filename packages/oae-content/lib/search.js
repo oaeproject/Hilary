@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 import _ from 'underscore';
 
@@ -23,22 +23,11 @@ import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
-const { getTenant } = TenantsAPI;
 
 import * as ContentAPI from 'oae-content';
 import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import { ContentConstants } from 'oae-content/lib/constants.js';
-import * as contentBodySchema from './search/schema/contentBodySchema.js';
-
-const log = logger('content-search');
-
-const getResourceId = prop('resourceId');
-const getTenantAlias = prop('tenantAlias');
-const { getSignedDownloadUrl } = ContentUtil;
-const { getResourceFromId } = AuthzUtil;
-
-const defaultToEmptyObject = defaultTo({});
 
 import {
   prop,
@@ -55,6 +44,18 @@ import {
   mergeDeepLeft,
   mapObjIndexed
 } from 'ramda';
+
+import * as contentBodySchema from './search/schema/contentBodySchema.js';
+
+const { getTenant } = TenantsAPI;
+const log = logger('content-search');
+
+const getResourceId = prop('resourceId');
+const getTenantAlias = prop('tenantAlias');
+const { getSignedDownloadUrl } = ContentUtil;
+const { getResourceFromId } = AuthzUtil;
+
+const defaultToEmptyObject = defaultTo({});
 
 /**
  * Initializes the child search documents for the Content module
@@ -82,9 +83,7 @@ export const init = function (callback) {
       return MessageBoxSearch.registerMessageSearchDocument(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         ['content'],
-        (resources, callback) => {
-          return _produceContentCommentDocuments(resources.slice(), callback);
-        },
+        (resources, callback) => _produceContentCommentDocuments(resources.slice(), callback),
         callback
       );
     }
@@ -201,13 +200,9 @@ ContentAPI.emitter.on(ContentConstants.events.CREATED_COMMENT, (ctx, comment, co
 /*!
  * when a comment is deleted on a content item, we must delete the child message document
  */
-ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, content) => {
-  return MessageBoxSearch.deleteMessageSearchDocument(
-    ContentConstants.search.MAPPING_CONTENT_COMMENT,
-    content.id,
-    comment
-  );
-});
+ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, content) =>
+  MessageBoxSearch.deleteMessageSearchDocument(ContentConstants.search.MAPPING_CONTENT_COMMENT, content.id, comment)
+);
 
 /**
  * Document producers

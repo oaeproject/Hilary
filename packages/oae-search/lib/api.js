@@ -19,7 +19,6 @@ import { logger } from 'oae-logger';
 import * as EmitterAPI from 'oae-emitter';
 import * as SearchUtil from 'oae-search/lib/util.js';
 import { callbackify } from 'util';
-import * as schema from './schema/resourceSchema.js';
 
 import R from 'ramda';
 const { keys, not, map, mergeAll, has, head, gt, length, equals, defaultTo, forEach, assoc } = R;
@@ -28,12 +27,12 @@ import { Validator as validator } from 'oae-util/lib/validator.js';
 const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
 
 import { SearchConstants } from 'oae-search/lib/constants.js';
+import * as client from './internal/elasticsearch.js';
 import { SearchResult } from 'oae-search/lib/model.js';
 
 const { transformSearchResults } = SearchUtil;
 
 import * as MQ from 'oae-util/lib/mq.js';
-import * as client from './internal/elasticsearch.js';
 
 import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
@@ -554,29 +553,6 @@ const _ensureSearchSchema = (names, callback) => {
     return callbackify(importSchema)('./schema/resourceSchema.js', (error, resourceSchema) => {
       if (error) return callback(error);
 
-      // return client.putMapping(require('./schema/resourceSchema'), null, (error) => {
-      /*
-        const resourceSchema = {
-      id: schema.id,
-      tenantAlias: schema.tenantAlias,
-      resourceType: schema.resourceType,
-      resourceSubType: schema.resourceSubType,
-      thumbnailUrl: schema.thumbnailUrl,
-      displayName: schema.displayName,
-      description: schema.description,
-      email: schema.email,
-      _extra: schema._extra,
-      visibility: schema.visibility,
-      joinable: schema.joinable,
-      deleted: schema.deleted,
-      q_high: schema.q_high,
-      q_low: schema.q_low,
-      sort: schema.sort,
-      dateCreated: schema.dateCreated,
-      lastModified: schema.lastModified,
-      createdBy: schema.createdBy
-    };
-    */
       return client.putMapping(resourceSchema, null, (error) => {
         if (error) return callback(error);
 

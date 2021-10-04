@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format, promisify, callbackify } from 'node:util';
+import path from 'node:path';
 import _ from 'underscore';
 import clone from 'clone';
 
-import { promisify, callbackify } from 'util';
 import ora from 'ora';
 
 import * as Modules from 'oae-util/lib/modules.js';
@@ -28,8 +28,7 @@ import * as OaeUtil from 'oae-util/lib/util.js';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-import path from 'path';
-import { pipe, defaultTo, mergeDeepRight } from 'ramda';
+import { reduce, pipe, defaultTo, mergeDeepRight } from 'ramda';
 
 const log = logger('oae-config');
 
@@ -319,9 +318,10 @@ const updateTenantConfig = function (tenantAlias, callback) {
  *     .then(console.log.bind(console))
  */
 const serial = (funcs) =>
-  funcs.reduce(
+  reduce(
     (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
-    Promise.resolve([])
+    Promise.resolve([]),
+    funcs
   );
 
 /**
@@ -338,16 +338,13 @@ const _cacheSchema = function () {
   // Get the available module
   const modules = Modules.getAvailableModules();
   let spinner;
-  // const toDo = modules.length;
-  // let done = 0;
-  // let complete = false;
 
   return serial(
     modules.map((moduleName) => {
       const dir = OaeUtil.getNodeModulesDir() + moduleName + '/config/';
 
-      return () => {
-        return new Promise((resolve, reject) => {
+      return () =>
+        new Promise((resolve, reject) => {
           spinner = ora({
             text: `Loading config for ${moduleName}...`,
             spinner: 'arc'
@@ -355,9 +352,7 @@ const _cacheSchema = function () {
 
           // Get a list of the available config files
           promisify(IO.getFileListForFolder)(dir)
-            .then((configFiles) => {
-              return Promise.all(promiseToImportConfigFiles(configFiles, moduleName));
-            })
+            .then((configFiles) => Promise.all(promiseToImportConfigFiles(configFiles, moduleName)))
             .then(() => {
               /**
                * Clone the cached global schema and filter out elements
@@ -382,25 +377,23 @@ const _cacheSchema = function () {
               spinner.succeed(`Loaded config for module ${moduleName}`);
               resolve();
             })
-            .catch((e) => {
+            .catch((error) => {
               spinner.fail(`Failed to load config for module ${moduleName}`);
-              reject(e);
+              reject(error);
             });
         });
-      };
     })
   )
-    .catch((e) => {
-      reject(e);
+    .catch((error) => {
+      throw error;
     })
     .finally(() => {
       spinner.stop();
-      return;
     });
 };
 
 const promiseToImportConfigFiles = (configFiles, moduleName) => {
-  let promises = configFiles.map((element) => {
+  const promises = configFiles.map((element) => {
     const fileToImport = path.join(moduleName, 'config', element);
 
     return new Promise((resolve, reject) => {
@@ -412,7 +405,7 @@ const promiseToImportConfigFiles = (configFiles, moduleName) => {
           )(cachedGlobalSchema[moduleName]);
           resolve(configFile);
         })
-        .catch((e) => reject(e));
+        .catch((error) => reject(error));
     });
   });
 

@@ -9,6 +9,10 @@
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"
   },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.8"
+  },
   "version": "0.0.1",
   "xo": false
 }

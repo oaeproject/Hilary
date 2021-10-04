@@ -14,6 +14,7 @@
  */
 
 import { assert } from 'chai';
+import process from 'node:process';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
@@ -22,10 +23,10 @@ import * as TestsUtil from 'oae-tests';
 
 import * as ConfigAPI from 'oae-config';
 
+import { filter, equals, forEach, keys } from 'ramda';
+
 const { clearConfigAndWait, updateConfigAndWait } = ConfigTestUtil;
 const { getSchema, getTenantConfig } = RestAPI.Config;
-
-import { filter, equals, forEach, keys } from 'ramda';
 
 const { setUpConfig } = ConfigAPI;
 const { generateTestTenantAlias, generateTestTenantHost } = TenantsTestUtil;
@@ -1152,7 +1153,7 @@ describe('Configuration', () => {
                                                           (error, config) => {
                                                             assert.notExists(error);
                                                             assert.strictEqual(
-                                                              config['oae-google-analytics']['googleAnalytics']
+                                                              config['oae-google-analytics'].googleAnalytics
                                                                 .globalEnabled,
                                                               false
                                                             );
@@ -1175,7 +1176,7 @@ describe('Configuration', () => {
                                                                   (error, config) => {
                                                                     assert.notExists(error);
                                                                     assert.strictEqual(
-                                                                      config['oae-google-analytics']['googleAnalytics']
+                                                                      config['oae-google-analytics'].googleAnalytics
                                                                         .globalEnabled,
                                                                       true
                                                                     );
@@ -1414,9 +1415,10 @@ describe('Configuration', () => {
         }, schema['oae-principals'].group.elements.visibility.list);
 
         // Assert that there is a value 'private' in the list
-        const privateValues = filter((option) => {
-          return equals(option.value, 'private');
-        }, schema['oae-principals'].group.elements.visibility.list);
+        const privateValues = filter(
+          (option) => equals(option.value, 'private'),
+          schema['oae-principals'].group.elements.visibility.list
+        );
         assert.lengthOf(privateValues, 1);
 
         // Set a value for a list config field
@@ -1467,9 +1469,10 @@ describe('Configuration', () => {
         }, schema['oae-content'].storage.elements.backend.group);
 
         // Assert that there is a value 'amazons3' in the set
-        const amazons3Values = filter((option) => {
-          return equals(option.value, 'amazons3');
-        }, schema['oae-content'].storage.elements.backend.group);
+        const amazons3Values = filter(
+          (option) => equals(option.value, 'amazons3'),
+          schema['oae-content'].storage.elements.backend.group
+        );
         assert.lengthOf(amazons3Values, 1);
 
         // Update one of the values

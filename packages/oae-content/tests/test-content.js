@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 import fs from 'fs';
 import path from 'path';
-import { format } from 'util';
+import { format } from 'node:util';
 import temp from 'temp';
 
 import { fileURLToPath } from 'url';

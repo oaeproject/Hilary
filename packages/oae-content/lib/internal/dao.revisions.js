@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';

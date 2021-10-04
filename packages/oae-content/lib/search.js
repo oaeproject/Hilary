@@ -45,7 +45,7 @@ import {
   mapObjIndexed
 } from 'ramda';
 
-import * as contentBodySchema from './search/schema/contentBodySchema.js';
+import * as contentBodySchema from './search/schema/content-body-schema.js';
 
 const { getTenant } = TenantsAPI;
 const log = logger('content-search');

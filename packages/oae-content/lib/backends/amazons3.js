@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
-import { format } from 'util';
+import { format } from 'node:util';
 import mime from 'mime';
 
 import { S3 } from 'awssum-amazon-s3';

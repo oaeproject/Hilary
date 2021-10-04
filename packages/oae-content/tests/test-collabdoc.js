@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import { format } from 'util';
+import { format } from 'node:util';
 import ShortId from 'shortid';
 import { not, keys, equals } from 'ramda';
 

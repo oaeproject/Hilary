@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import { format } from 'util';
+import { format } from 'node:util';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';

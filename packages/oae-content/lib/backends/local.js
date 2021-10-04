@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
-import { format } from 'util';
+import { format } from 'node:util';
 
 import * as IO from 'oae-util/lib/io.js';
 import { logger } from 'oae-logger';

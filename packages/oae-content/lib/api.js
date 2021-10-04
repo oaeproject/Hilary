@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import Path from 'path';
-import { format } from 'util';
+import { format } from 'node:util';
 import * as ContentUtils from 'oae-content/lib/backends/util.js';
 import mime from 'mime';
 import ShortId from 'shortid';

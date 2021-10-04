@@ -14,7 +14,7 @@
  */
 
 import url from 'url';
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 

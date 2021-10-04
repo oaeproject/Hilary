@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 
 import * as Cleaner from 'oae-util/lib/cleaner.js';
 import { logger } from 'oae-logger';
@@ -26,9 +26,13 @@ import * as ContentAPI from './api.js';
 import { ContentConstants } from './constants.js';
 import * as ContentSearch from './search.js';
 
+// eslint-disable-next-line no-unused-vars
 import * as library from './library.js';
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
 import * as previews from './previews.js';
+// eslint-disable-next-line no-unused-vars
 import * as invitations from './invitations.js';
 
 const log = logger('oae-content');

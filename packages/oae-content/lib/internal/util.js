@@ -14,7 +14,7 @@
  */
 
 import querystring from 'querystring';
-import { format } from 'util';
+import { format } from 'node:util';
 import { setUpConfig } from 'oae-config';
 import _ from 'underscore';
 import { ContentConstants } from 'oae-content/lib/constants.js';

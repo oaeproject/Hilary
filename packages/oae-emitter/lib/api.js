@@ -13,8 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import events from 'events';
-import { inherits, format } from 'util';
+import events from 'node:events';
+import process from 'node:process';
+import { inherits, format } from 'node:util';
 import _ from 'underscore';
 import * as Log from 'oae-logger';
 
@@ -49,8 +50,6 @@ inherits(EventEmitter, events.EventEmitter);
 EventEmitter.prototype.emit = function (...args) {
   const log = Log.logger('oae-emitter');
 
-  const self = this;
-
   // The name is required and must be the first argument
   const name = args.shift();
   if (!_.isString(name)) {
@@ -58,7 +57,7 @@ EventEmitter.prototype.emit = function (...args) {
   }
 
   // First invoke the core event listeners
-  events.EventEmitter.prototype.emit.apply(self, [name, ...args]);
+  events.EventEmitter.prototype.emit.apply(this, [name, ...args]);
 
   // The consumer callback is optional, and is always the last parameter if the last parameter is
   // a function
@@ -71,7 +70,7 @@ EventEmitter.prototype.emit = function (...args) {
       };
 
   // If there are no _when handlers, invoke the consumer callback immediately
-  const handlers = self._when[name];
+  const handlers = this._when[name];
   if (_.isEmpty(handlers)) {
     return consumerCallback();
   }
@@ -82,9 +81,7 @@ EventEmitter.prototype.emit = function (...args) {
 
   // The final callback is invoked when all handlers have returned, which basically just passes
   // the errors we have aggregated into the consumer callback
-  const finalCallback = _.after(handlers.length, () => {
-    return consumerCallback(handlerErrs, handlerResults);
-  });
+  const finalCallback = _.after(handlers.length, () => consumerCallback(handlerErrs, handlerResults));
 
   // The handler callback is invoked when each handler finishes its job. It simply builds the
   // array of handler errors if applicable
@@ -102,9 +99,7 @@ EventEmitter.prototype.emit = function (...args) {
 
   // Finally invoke each handler, shielding each one from exceptions by other handlers
   _.each(handlers, (handler) => {
-    process.nextTick(() => {
-      return handler.apply(self, args.concat(_handlerCallback));
-    });
+    process.nextTick(() => handler.apply(this, [...args, _handlerCallback]));
   });
 };
 

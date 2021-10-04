@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 
-import { format } from 'util';
+import { format } from 'node:util';
 import $ from 'cheerio';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as ContentTestUtil from 'oae-content/lib/test/util.js';

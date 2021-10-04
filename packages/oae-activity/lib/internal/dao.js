@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
+import { format } from 'node:util';
+import process from 'node:process';
 import { equals, and } from 'ramda';
-import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -232,17 +233,18 @@ const saveQueuedActivities = function (activityBuckets, callback) {
       return;
     }
 
-    // We use a Redis sorted list ("zadd") to stored bucketed queued activities so that we can always collect the oldest first
-    // Arguments to zadd start with the key, then each arguments after are ordered pairs of <rank>, <value>. The "rank" specifies
-    // the order in which values will be sorted, from lowest to highest.
+    /**
+     * We use a Redis sorted list ("zadd") to stored bucketed queued activities so that we can always collect the oldest first
+     * Arguments to zadd start with the key, then each arguments after are ordered pairs of <rank>, <value>. The "rank" specifies
+     * the order in which values will be sorted, from lowest to highest.
+     */
 
     // The bucket cache-key as the first argument
     const key = _createBucketCacheKey(bucketNumber);
     const zaddArgs = [];
     _.each(activityBucket, (routedActivity) => {
       // Append the ordered pair of <rank>, <value> for this routed activity
-      zaddArgs.push(routedActivity.activity.published);
-      zaddArgs.push(JSON.stringify(routedActivity));
+      zaddArgs.push(routedActivity.activity.published, JSON.stringify(routedActivity));
     });
 
     // Append this bucket zadd command to the batch
@@ -504,7 +506,7 @@ const resetAggregationForActivityStreams = function (activityStreamIds, callback
 
         // Keep track of all the active aggregate keys across activitystreams so we can generate the status and entity cache keys
         // This allows us to delete them in one big `del` command
-        allActiveAggregateKeys = allActiveAggregateKeys.concat(activeAggregateKeys[1]);
+        allActiveAggregateKeys = [...allActiveAggregateKeys, ...activeAggregateKeys[1]];
       }
     });
 
@@ -698,12 +700,25 @@ const getAggregatedEntities = function (aggregateKeys, callback) {
 
           const aggregateKey = aggregateKeys[aggregateKeyIndex];
           let entityType = null;
-          if (entityIndex === 0) {
-            entityType = 'actors';
-          } else if (entityIndex === 1) {
-            entityType = 'objects';
-          } else if (entityIndex === 2) {
-            entityType = 'targets';
+          switch (entityIndex) {
+            case 0: {
+              entityType = 'actors';
+
+              break;
+            }
+
+            case 1: {
+              entityType = 'objects';
+
+              break;
+            }
+
+            case 2: {
+              entityType = 'targets';
+
+              break;
+            }
+            // No default
           }
 
           // Seed the aggregate entities for the aggregate key
@@ -745,9 +760,9 @@ const _fetchEntitiesByIdentities = function (entityIdentities, callback) {
   const entitiesByIdentity = {};
 
   // Convert the entity identities into their associated cache keys
-  const entityIdentityCacheKeys = _.map(entityIdentities, (entityIdentity) => {
-    return _createEntityIdentityCacheKey(entityIdentity);
-  });
+  const entityIdentityCacheKeys = _.map(entityIdentities, (entityIdentity) =>
+    _createEntityIdentityCacheKey(entityIdentity)
+  );
 
   redisClient.mget(entityIdentityCacheKeys, (error, results) => {
     if (error) {
@@ -944,9 +959,7 @@ const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
         return callback(error);
       }
 
-      const userIds = _.map(rows, (row) => {
-        return row.get('userId');
-      });
+      const userIds = _.map(rows, (row) => row.get('userId'));
 
       return callback(null, userIds, nextToken);
     }
@@ -966,12 +979,10 @@ const unqueueUsersForEmail = function (bucketId, userIds, callback) {
     return callback();
   }
 
-  const queries = _.map(userIds, (userId) => {
-    return {
-      query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
-      parameters: [bucketId, userId]
-    };
-  });
+  const queries = _.map(userIds, (userId) => ({
+    query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
+    parameters: [bucketId, userId]
+  }));
   Cassandra.runBatchQuery(queries, callback);
 };
 
@@ -1004,9 +1015,7 @@ const incrementNotificationsUnreadCounts = function (userIdsIncrBy, callback) {
   // Filter out those users whose notification count should be "incremented" by 0
   const userIds = _.chain(userIdsIncrBy)
     .keys()
-    .filter((userId) => {
-      return userIdsIncrBy[userId] !== 0;
-    })
+    .filter((userId) => userIdsIncrBy[userId] !== 0)
     .value();
 
   // Return back to the caller if there are no real updates to perform
@@ -1115,10 +1124,12 @@ const _createAggregateStatusCacheKey = function (aggregateKey) {
 const _getAggregateCacheKeysForAggregateKeys = function (aggregateKeys) {
   const aggregateCacheKeys = [];
   _.each(aggregateKeys, (aggregateKey) => {
-    aggregateCacheKeys.push(_createAggregateStatusCacheKey(aggregateKey));
-    aggregateCacheKeys.push(_createAggregateEntityCacheKey(aggregateKey, 'actors'));
-    aggregateCacheKeys.push(_createAggregateEntityCacheKey(aggregateKey, 'objects'));
-    aggregateCacheKeys.push(_createAggregateEntityCacheKey(aggregateKey, 'targets'));
+    aggregateCacheKeys.push(
+      _createAggregateStatusCacheKey(aggregateKey),
+      _createAggregateEntityCacheKey(aggregateKey, 'actors'),
+      _createAggregateEntityCacheKey(aggregateKey, 'objects'),
+      _createAggregateEntityCacheKey(aggregateKey, 'targets')
+    );
   });
   return aggregateCacheKeys;
 };

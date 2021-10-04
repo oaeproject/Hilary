@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { filter, pipe, keys, isEmpty } from 'ramda';
 
@@ -73,10 +73,11 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActi
   const emailRecipientIds = pipe(
     keys,
     filter(_isEmailRecipientId),
-    filter((emailRecipientId) => {
-      // Only keep email recipients who have an entry for an email stream delivery
-      return deliveredActivities[emailRecipientId].email;
-    })
+    filter(
+      (emailRecipientId) =>
+        // Only keep email recipients who have an entry for an email stream delivery
+        deliveredActivities[emailRecipientId].email
+    )
   )(deliveredActivities);
 
   // If there were no activities delivered in email streams we can stop here
@@ -98,13 +99,13 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActi
     }
 
     // Filter out recipients that should not get emails
-    const recipientsToQueue = _.filter(recipients, (emailRecipient) => {
-      return (
+    const recipientsToQueue = _.filter(
+      recipients,
+      (emailRecipient) =>
         !emailRecipient.deleted &&
         emailRecipient.email &&
         emailRecipient.emailPreference !== PrincipalsConstants.emailPreferences.NEVER
-      );
-    });
+    );
 
     const emailBuckets = {};
     _.each(recipientsToQueue, (recipient) => {
@@ -433,9 +434,10 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
     }
 
     const recipientIdsByActivityStreamIds = _.chain(recipientIds)
-      .map((recipientId) => {
-        return [ActivityUtil.createActivityStreamId(recipientId, ActivityConstants.streams.EMAIL), recipientId];
-      })
+      .map((recipientId) => [
+        ActivityUtil.createActivityStreamId(recipientId, ActivityConstants.streams.EMAIL),
+        recipientId
+      ])
       .object()
       .value();
 
@@ -456,9 +458,7 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
         // 3. Filter the activity streams to those who have no activities within the grace period
         const threshold = Date.now() - ActivitySystemConfig.getConfig().mail.gracePeriod * 1000;
         _.each(activitiesPerStream, (activities, activityStreamId) => {
-          const hasRecentActivity = _.find(activities, (activity) => {
-            return activity.published > threshold;
-          });
+          const hasRecentActivity = _.find(activities, (activity) => activity.published > threshold);
 
           if (!hasRecentActivity) {
             // Keep track of the activities for which we'll send out an e-mail
@@ -539,7 +539,7 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
                     return callback(error_);
                   }
 
-                  _collectedRecipients = _collectedRecipients.concat(recipientsToMail);
+                  _collectedRecipients = [..._collectedRecipients, ...recipientsToMail];
 
                   if (nextToken) {
                     _collectMails(bucketId, oldestActivityTimestamp, nextToken, callback, _collectedRecipients);
@@ -679,12 +679,10 @@ const _aggregate = function (userId, activities) {
 
   // Convert the set of unrolled activities into a set of "routed activities"
   // so we can generate the aggregates for it
-  const routedActivities = _.map(unrolledActivities, (activity) => {
-    return {
-      route: userId,
-      activity
-    };
-  });
+  const routedActivities = _.map(unrolledActivities, (activity) => ({
+    route: userId,
+    activity
+  }));
 
   // Re-aggregate everything
   const aggregates = ActivityAggregator.createAggregates(routedActivities);
@@ -712,9 +710,7 @@ const _aggregate = function (userId, activities) {
   });
 
   // Return an array of activities sorted in time
-  return aggregatedActivities.sort((a, b) => {
-    return b.published - a.published;
-  });
+  return aggregatedActivities.sort((a, b) => b.published - a.published);
 };
 
 /**
@@ -848,15 +844,13 @@ const _getEmailRecipientResources = function (emailRecipientIds, callback) {
 
       // Derive a resource profile for the email, where the tenant is the tenant whose configured
       // email domain matches the email address
-      const emailResources = _.map(emails, (email) => {
-        return {
-          id: email,
-          tenant: TenantsAPI.getTenantByEmail(email),
-          email,
-          emailPreference: PrincipalsConstants.emailPreferences.IMMEDIATE,
-          token: tokensByEmail[email]
-        };
-      });
+      const emailResources = _.map(emails, (email) => ({
+        id: email,
+        tenant: TenantsAPI.getTenantByEmail(email),
+        email,
+        emailPreference: PrincipalsConstants.emailPreferences.IMMEDIATE,
+        token: tokensByEmail[email]
+      }));
 
       // If there were user recipients, get the user profiles
       OaeUtil.invokeIfNecessary(

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import ShortId from 'shortid';

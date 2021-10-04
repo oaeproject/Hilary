@@ -17,12 +17,15 @@ import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityPush from './internal/push.js';
 
 // Register some of the default streams
+// eslint-disable-next-line no-unused-vars
 import * as Activity from './activity.js';
 
 // Bind the notification event listeners
+// eslint-disable-next-line no-unused-vars
 import * as Notifications from './internal/notifications.js';
 
 // Bind the email event listeners
+// eslint-disable-next-line no-unused-vars
 import * as Email from './internal/email.js';
 
 export function init(config, callback) {

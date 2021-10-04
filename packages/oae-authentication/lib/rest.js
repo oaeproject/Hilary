@@ -20,14 +20,23 @@ import * as AuthenticationAPI from 'oae-authentication';
  * Authentication providers
  */
 
+// eslint-disable-next-line no-unused-vars
 import * as cas from './strategies/cas/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as facebook from './strategies/facebook/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as google from './strategies/google/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as ldap from './strategies/ldap/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as local from './strategies/local/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as oauth from './strategies/oauth/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as shibb from './strategies/shibboleth/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as signed from './strategies/signed/rest.js';
+// eslint-disable-next-line no-unused-vars
 import * as twitter from './strategies/twitter/rest.js';
 
 /**

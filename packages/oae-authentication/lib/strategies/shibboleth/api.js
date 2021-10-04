@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as Signature from 'oae-util/lib/signature.js';

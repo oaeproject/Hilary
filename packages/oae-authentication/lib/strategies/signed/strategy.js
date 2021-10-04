@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { inherits } from 'util';
+import { inherits } from 'node:util';
 import passport from 'passport';
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
@@ -39,15 +39,13 @@ inherits(Strategy, passport.Strategy);
  * @api protected
  */
 Strategy.prototype.authenticate = function (request) {
-  const self = this;
-
   // Verify and extract the signed body from the request
   AuthenticationSignedUtil.verifySignedAuthenticationBody(
     request.ctx,
     request.body,
     (error, userId, becomeUserId) => {
       if (error) {
-        return self.fail(error.msg, error.code);
+        return this.fail(error.msg, error.code);
       }
 
       // Will hold the user and imposter (if any) for the authentication callback
@@ -58,12 +56,12 @@ Strategy.prototype.authenticate = function (request) {
       PrincipalsDAO.getPrincipal(userId, (error_, user) => {
         if (error_ && error_.code !== 404) {
           // Ensure there wasn't un unexpected error fetching the user
-          return self.error(new Error(error_.msg));
+          return this.error(new Error(error_.msg));
         }
 
         if (error_ && error_.code === 404) {
           // Ensure the authenticating user exists
-          return self.fail(error_.msg, 404);
+          return this.fail(error_.msg, 404);
         }
 
         if (!becomeUserId) {
@@ -74,8 +72,8 @@ Strategy.prototype.authenticate = function (request) {
             AuthenticationConstants.providers.SIGNED
           );
           authObject = { user, strategyId };
-          AuthenticationUtil.logAuthenticationSuccess(request, authObject, self.name);
-          return self.success(authObject);
+          AuthenticationUtil.logAuthenticationSuccess(request, authObject, this.name);
+          return this.success(authObject);
         }
 
         // If we get here we are trying to become someone, fetch that person
@@ -83,17 +81,17 @@ Strategy.prototype.authenticate = function (request) {
         PrincipalsDAO.getPrincipal(becomeUserId, (error_, becomeUser) => {
           if (error_ && error_.code !== 404) {
             // Ensure there wasn't un unexpected error fetching the target user
-            return self.error(new Error(error_.msg));
+            return this.error(new Error(error_.msg));
           }
 
           if (error_ && error_.code === 404) {
             // Ensure the impersonated user exists
-            return self.fail(error_.msg, 404);
+            return this.fail(error_.msg, 404);
           }
 
           if (!user.isAdmin(becomeUser.tenant.alias)) {
             // Ensure the authenticated user (impersonator) has the required access to become this user
-            return self.fail('You are not authorized to become the target user', 401);
+            return this.fail('You are not authorized to become the target user', 401);
           }
 
           strategyId = AuthenticationUtil.getStrategyId(
@@ -101,8 +99,8 @@ Strategy.prototype.authenticate = function (request) {
             AuthenticationConstants.providers.SIGNED
           );
           authObject = { user: becomeUser, imposter: user, strategyId };
-          AuthenticationUtil.logAuthenticationSuccess(request, authObject, self.name);
-          return self.success(authObject);
+          AuthenticationUtil.logAuthenticationSuccess(request, authObject, this.name);
+          return this.success(authObject);
         });
       });
     }

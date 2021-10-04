@@ -14,6 +14,7 @@
  */
 
 import { Bool, Text } from 'oae-config/lib/fields.js';
+import process from 'node:process';
 import { defaultTo } from 'ramda';
 
 const yadaYadaOtherwise = defaultTo('yadayada');

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import passport from 'passport';
 import { Context } from 'oae-context';
 import * as OAE from 'oae-util/lib/oae.js';
@@ -218,7 +218,6 @@ const setupPassportSerializers = function (cookieSecret) {
  * @api private
  */
 const _encryptCookieData = function (cookieData, cookieSecret) {
-  // eslint-disable-next-line node/no-deprecated-api
   const cipher = crypto.createCipher('aes-256-cbc', cookieSecret);
   return cipher.update(cookieData, 'utf8', 'base64') + cipher.final('base64');
 };
@@ -232,7 +231,6 @@ const _encryptCookieData = function (cookieData, cookieSecret) {
  * @api private
  */
 const _decryptCookieData = function (encryptedData, cookieSecret) {
-  // eslint-disable-next-line node/no-deprecated-api
   const decipher = crypto.createDecipher('aes-256-cbc', cookieSecret);
   return decipher.update(encryptedData, 'base64', 'utf8') + decipher.final('utf8');
 };

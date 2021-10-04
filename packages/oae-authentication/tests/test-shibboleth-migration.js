@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import csv from 'csv';
 import temp from 'temp';

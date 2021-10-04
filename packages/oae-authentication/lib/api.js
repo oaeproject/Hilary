@@ -14,7 +14,7 @@
  */
 
 import crypto from 'crypto';
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
 

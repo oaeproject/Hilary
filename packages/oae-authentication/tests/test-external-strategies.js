@@ -16,7 +16,7 @@
 import path from 'path';
 import { assert } from 'chai';
 import fs from 'fs';
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import request from 'request';
 

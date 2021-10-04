@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import { format } from 'util';
+import assert from 'node:assert';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';

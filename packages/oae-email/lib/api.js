@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import crypto from 'crypto';
-import fs from 'fs';
-import { callbackify, format } from 'util';
-import path from 'path';
+import { fileURLToPath } from 'node:url';
+import path, { dirname } from 'node:path';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { callbackify, format } from 'node:util';
 import juice from 'juice';
 import _ from 'underscore';
 import nodemailer from 'nodemailer';
@@ -37,11 +36,12 @@ import * as UIAPI from 'oae-ui';
 import { htmlToText } from 'nodemailer-html-to-text';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
 import { compose } from 'ramda';
 import { isEmail } from 'oae-authz/lib/util.js';
 
 import * as RateLimiter from 'ioredis-ratelimit';
+
+const { validateInCase: bothCheck, getNestedObject, isDefined, unless, isNotEmpty, isObject } = validator;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -564,13 +564,11 @@ const sendEmail = function (templateModule, templateId, recipient, data, options
             // Process the HTML such that we add line breaks before each html attribute to try and keep
             // line length below 998 characters
             emailInfo.html = _.chain(inlinedHtml.split('\n'))
-              .map((line) => {
-                return line.replace(/<[^/][^>]+>/g, (match) => {
-                  return match.replace(/\s+[\w-]+="[^"]+"/g, (match) => {
-                    return format('\n%s', match);
-                  });
-                });
-              })
+              .map((line) =>
+                line.replace(/<[^/][^>]+>/g, (match) =>
+                  match.replace(/\s+[\w-]+="[^"]+"/g, (match) => format('\n%s', match))
+                )
+              )
               .value()
               .join('\n');
 
@@ -623,14 +621,14 @@ const _sendEmail = function (emailInfo, options, callback) {
 
     // Ensure we're not sending out too many emails to a single user within the last timespan
     return rateLimit(emailInfo.to)
-      .then(() => {
+      .then(() =>
         // We will proceed to send an email, so add it to the rate-limit counts
         // We got a lock and aren't throttled, send our mail
-        return emailTransport.sendMail(emailInfo).catch((error) => {
+        emailTransport.sendMail(emailInfo).catch((error) => {
           log().error({ err: error, to: emailInfo.to, subject: emailInfo.subject }, 'Error sending email to recipient');
           return callback(error_);
-        });
-      })
+        })
+      )
       .then((info) => {
         if (debug) {
           log().info(
@@ -811,16 +809,13 @@ const _getTemplatesForTemplateIds = function (basedir, module, templateIds, call
  * @param  {type} templatePath {description}
  * @return {type} {description}
  */
-const importTemplate = (templatePath) => {
-  return import(templatePath)
-    .then((pkg) => {
-      return pkg;
-    })
-    .catch((e) => {
+const importTemplate = (templatePath) =>
+  import(templatePath)
+    .then((pkg) => pkg)
+    .catch((error) => {
       // TODO log here
-      throw e;
+      throw error;
     });
-};
 
 /**
  * Get the template at the given path.

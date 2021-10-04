@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format, inherits } from 'util';
+import { format, inherits } from 'node:util';
 import _ from 'underscore';
 import { Graph } from 'data-structures';
 
@@ -111,9 +111,7 @@ AuthzGraph.prototype.addEdge = function (fromId, toId, metadata) {
  */
 AuthzGraph.prototype.toString = function () {
   const nodeStrs = _.pluck(this.getNodes(), 'id');
-  const edgeStrs = _.map(this.getEdges(), (edge) => {
-    return format('%s -> %s', edge.from.id, edge.to.id);
-  });
+  const edgeStrs = _.map(this.getEdges(), (edge) => format('%s -> %s', edge.from.id, edge.to.id));
 
   return JSON.stringify({ nodes: nodeStrs, edges: edgeStrs }, null, 2);
 };
@@ -158,8 +156,6 @@ AuthzGraph.prototype._traverse = function (
   _nodes,
   _visitedIds
 ) {
-  const self = this;
-
   _nodes = _nodes || [];
   _visitedIds = _visitedIds || {};
 
@@ -168,15 +164,15 @@ AuthzGraph.prototype._traverse = function (
     return;
   }
 
-  _nodes.push(self.getNode(nodeId));
+  _nodes.push(this.getNode(nodeId));
   _visitedIds[nodeId] = true;
 
   // Traverse edges, recursively visiting the next nodes that we haven't visited yet
-  _.chain(getEdgeFn.call(self, nodeId))
+  _.chain(getEdgeFn.call(this, nodeId))
     .pluck(nextNodeProperty)
     .pluck('id')
     .each((nextId) => {
-      self._traverse(nextId, getEdgeFn, nextNodeProperty, _nodes, _visitedIds);
+      this._traverse(nextId, getEdgeFn, nextNodeProperty, _nodes, _visitedIds);
     });
 
   // The result should be all the nodes we accumulated into the `_nodes` array

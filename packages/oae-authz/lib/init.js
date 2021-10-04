@@ -14,6 +14,7 @@
  */
 
 import * as AuthzSearch from './search.js';
+// eslint-disable-next-line no-unused-vars
 import * as AuthzActivity from './activity.js';
 
 export function init(config, callback) {

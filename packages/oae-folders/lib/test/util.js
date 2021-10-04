@@ -17,7 +17,7 @@
 /* eslint-disable unicorn/no-array-callback-reference */
 
 import { assert } from 'chai';
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import shortid from 'shortid';
 

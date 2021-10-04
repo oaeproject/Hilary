@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
@@ -38,6 +38,7 @@ import * as Signature from 'oae-util/lib/signature.js';
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
+
 const {
   isArray,
   isValidRoleChange,
@@ -54,12 +55,13 @@ const {
   isArrayNotEmpty,
   isLongString
 } = validator;
+
 import isIn from 'validator/lib/isIn.js';
 import isInt from 'validator/lib/isInt.js';
 import { forEachObjIndexed } from 'ramda';
-import * as FoldersFoldersLibrary from './internal/foldersLibrary.js';
+import * as FoldersFoldersLibrary from './internal/folders-library.js';
 import * as FoldersAuthz from './authz.js';
-import * as FoldersContentLibrary from './internal/contentLibrary.js';
+import * as FoldersContentLibrary from './internal/content-library.js';
 import * as FoldersDAO from './internal/dao.js';
 
 import { FoldersConstants } from './constants.js';

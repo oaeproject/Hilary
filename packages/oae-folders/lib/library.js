@@ -26,9 +26,9 @@ import { logger } from 'oae-logger';
 
 import * as FoldersAPI from 'oae-folders';
 import * as FoldersAuthz from 'oae-folders/lib/authz.js';
-import * as FoldersContentLibrary from 'oae-folders/lib/internal/contentLibrary.js';
+import * as FoldersContentLibrary from 'oae-folders/lib/internal/content-library.js';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
-import * as FoldersFoldersLibrary from 'oae-folders/lib/internal/foldersLibrary.js';
+import * as FoldersFoldersLibrary from 'oae-folders/lib/internal/folders-library.js';
 
 import { FoldersConstants } from 'oae-folders/lib/constants.js';
 import { ContentConstants } from 'oae-content/lib/constants.js';

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import _ from 'underscore';
 import { types } from 'cassandra-driver';
 
@@ -84,13 +83,11 @@ const insert = function (principalIds, folder, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, (principalId) => {
-    return {
-      id: principalId,
-      rank: folder.lastModified,
-      resource: folder
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: folder.lastModified,
+    resource: folder
+  }));
 
   LibraryAPI.Index.insert(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -147,14 +144,12 @@ const update = function (principalIds, folder, oldLastModified, callback) {
 
     folder = updatedFolder || folder;
 
-    const entries = _.map(principalIds, (principalId) => {
-      return {
-        id: principalId,
-        oldRank: oldLastModified,
-        newRank: folder.lastModified,
-        resource: folder
-      };
-    });
+    const entries = _.map(principalIds, (principalId) => ({
+      id: principalId,
+      oldRank: oldLastModified,
+      newRank: folder.lastModified,
+      resource: folder
+    }));
 
     // Update the library entries for the provided principal ids
     LibraryAPI.Index.update(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, (error_) => {
@@ -195,13 +190,11 @@ const remove = function (principalIds, folder, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, (principalId) => {
-    return {
-      id: principalId,
-      rank: folder.lastModified,
-      resource: folder
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: folder.lastModified,
+    resource: folder
+  }));
 
   LibraryAPI.Index.remove(FoldersConstants.library.FOLDERS_LIBRARY_INDEX_NAME, entries, callback);
 };

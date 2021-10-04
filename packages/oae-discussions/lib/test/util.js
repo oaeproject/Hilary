@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
 import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';

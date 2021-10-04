@@ -15,8 +15,11 @@
 
 import * as DiscussionsSearch from './search.js';
 
+// eslint-disable-next-line no-unused-vars
 import * as library from './library.js';
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
 import * as invitations from './invitations.js';
 
 export function init(config, callback) {

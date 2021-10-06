@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+import process from 'node:process';
 import _ from 'underscore';
 import bunyan from 'bunyan';
 
+import * as T from 'oae-telemetry/lib/api.js';
+
 // The logger to use when no logger is specified
 const SYSTEM_LOGGER_NAME = 'system';
-
-import * as T from 'oae-telemetry/lib/api.js';
 
 // Logger state variables to record active loggers and current configuration
 let config = null;

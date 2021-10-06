@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 
 import { assert } from 'chai';
 import { logger } from 'oae-logger';

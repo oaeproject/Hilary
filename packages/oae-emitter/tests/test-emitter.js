@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import process from 'node:process';
+import { assert } from 'chai';
 import _ from 'underscore';
 import * as EmitterAPI from 'oae-emitter';
 

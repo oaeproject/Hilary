@@ -57,7 +57,7 @@ EventEmitter.prototype.emit = function (...args) {
   }
 
   // First invoke the core event listeners
-  events.EventEmitter.prototype.emit.apply(this, [name, ...args]);
+  Reflect.apply(events.EventEmitter.prototype.emit, this, [name, ...args]);
 
   // The consumer callback is optional, and is always the last parameter if the last parameter is
   // a function
@@ -99,7 +99,7 @@ EventEmitter.prototype.emit = function (...args) {
 
   // Finally invoke each handler, shielding each one from exceptions by other handlers
   _.each(handlers, (handler) => {
-    process.nextTick(() => handler.apply(this, [...args, _handlerCallback]));
+    process.nextTick(() => Reflect.apply(handler, this, [...args, _handlerCallback]));
   });
 };
 

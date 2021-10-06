@@ -23,9 +23,10 @@ import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as FollowingAuthz from 'oae-following/lib/authz.js';
 
 import { Validator as validator } from 'oae-authz/lib/validator.js';
-const { unless, isUserId, isLoggedInUser } = validator;
 import { FollowingConstants } from 'oae-following/lib/constants.js';
 import * as FollowingDAO from './internal/dao.js';
+
+const { unless, isUserId, isLoggedInUser } = validator;
 
 /**
  * ### Events
@@ -306,17 +307,20 @@ const _expandUserIds = function (ctx, userIds, callback) {
  * @api private
  */
 const deleteFollowing = function (ctx, user, callback) {
-  FollowingDAO.getFollowing(user.id, null, null, function (error, userIdsFollowing) {
+  const errorHandler = function (error) {
+    if (error) return callback(error);
+  };
+
+  FollowingDAO.getFollowing(user.id, null, null, (error, userIdsFollowing) => {
     if (_.isEmpty(userIdsFollowing)) return callback();
 
-    FollowingDAO.deleteFollows(user.id, userIdsFollowing, function (error) {
+    FollowingDAO.deleteFollows(user.id, userIdsFollowing, (error) => {
       if (error) return callback(error);
 
-      userIdsFollowing.forEach(function (id) {
-        FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), id, function (error) {
-          if (error) return callback(error);
-        });
-      });
+      for (const id of userIdsFollowing) {
+        FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, ctx.user(), id, errorHandler);
+      }
+
       return callback();
     });
   });
@@ -332,22 +336,23 @@ const deleteFollowing = function (ctx, user, callback) {
  * @api private
  */
 const deleteFollowers = function (ctx, user, callback) {
-  FollowingDAO.getFollowers(user.id, null, null, function (error, userIdsFollowers) {
+  FollowingDAO.getFollowers(user.id, null, null, (error, userIdsFollowers) => {
     if (_.isEmpty(userIdsFollowers)) return callback();
 
-    userIdsFollowers.forEach(function (id) {
-      FollowingDAO.deleteFollows(id, [user.id], function (error) {
+    for (const id of userIdsFollowers) {
+      FollowingDAO.deleteFollows(id, [user.id], (error) => {
         if (error) return callback(error);
 
-        PrincipalsDAO.getPrincipal(user.id, function (error, userUnfollowed) {
+        PrincipalsDAO.getPrincipal(user.id, (error, userUnfollowed) => {
           if (error) return callback(error);
 
-          FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, userUnfollowed, user.id, function (error) {
+          FollowingAPI.emit(FollowingConstants.events.UNFOLLOW, ctx, userUnfollowed, user.id, (error) => {
             if (error) return callback(error);
           });
         });
       });
-    });
+    }
+
     return callback();
   });
 };

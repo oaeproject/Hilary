@@ -39,14 +39,12 @@ const getFollowers = function (userId, start, limit, callback) {
     start,
     limit,
     null,
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      const followerIds = _.map(rows, (row) => {
-        return row.get('followerId');
-      });
+      const followerIds = _.map(rows, (row) => row.get('followerId'));
 
       return callback(null, followerIds, nextToken);
     }
@@ -75,14 +73,12 @@ const getFollowing = function (userId, start, limit, callback) {
     start,
     limit,
     null,
-    (err, rows, nextToken) => {
-      if (err) {
-        return callback(err);
+    (error, rows, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
-      const followingIds = _.map(rows, (row) => {
-        return row.get('followingId');
-      });
+      const followingIds = _.map(rows, (row) => row.get('followingId'));
 
       return callback(null, followingIds, nextToken);
     }
@@ -106,9 +102,9 @@ const isFollowing = function (followingUserId, followedUserIds, callback) {
   Cassandra.runQuery(
     'SELECT "followingId", "value" FROM "FollowingUsersFollowing" WHERE "userId" = ? AND "followingId" IN ?',
     [followingUserId, followedUserIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       const following = {};

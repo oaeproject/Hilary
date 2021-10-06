@@ -20,8 +20,8 @@ import * as SearchUtil from 'oae-search/lib/util.js';
 import * as FollowingAPI from 'oae-following/lib/api.js';
 import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
 import { FollowingConstants } from 'oae-following/lib/constants.js';
-import * as resourceFollowersSchema from './search/schema/resourceFollowersSchema.js';
-import * as resourceFollowingSchema from './search/schema/resourceFollowingSchema.js';
+import * as resourceFollowersSchema from './search/schema/resource-followers-schema.js';
+import * as resourceFollowingSchema from './search/schema/resource-following-schema.js';
 
 /**
  * Search endpoints
@@ -41,7 +41,7 @@ const init = function (callback) {
     resourceTypes: ['user'],
     schema: resourceFollowersSchema,
     producer(resources, callback) {
-      return _produceResourceFollowersDocuments(resources.slice(), callback);
+      return _produceResourceFollowersDocuments([...resources], callback);
     }
   };
 
@@ -49,7 +49,7 @@ const init = function (callback) {
     resourceTypes: ['user'],
     schema: resourceFollowingSchema,
     producer(resources, callback) {
-      return _produceResourceFollowingDocuments(resources.slice(), callback);
+      return _produceResourceFollowingDocuments([...resources], callback);
     }
   };
 
@@ -172,16 +172,16 @@ SearchAPI.registerSearch('following', following);
 /*!
  * Update the following search index and the followers search index based on the change in the following user and the followed user
  */
-FollowingAPI.emitter.on(FollowingConstants.events.FOLLOW, (ctx, followingUser, followedUser) => {
-  return _handleIndexChange(ctx, followingUser.id, followedUser.id);
-});
+FollowingAPI.emitter.on(FollowingConstants.events.FOLLOW, (ctx, followingUser, followedUser) =>
+  _handleIndexChange(ctx, followingUser.id, followedUser.id)
+);
 
 /*!
  * Update the following search index and the followers search index based on the change in the following user and the unfollowed user
  */
-FollowingAPI.emitter.on(FollowingConstants.events.UNFOLLOW, (ctx, followingUser, unfollowedUserId) => {
-  return _handleIndexChange(ctx, followingUser.id, unfollowedUserId);
-});
+FollowingAPI.emitter.on(FollowingConstants.events.UNFOLLOW, (ctx, followingUser, unfollowedUserId) =>
+  _handleIndexChange(ctx, followingUser.id, unfollowedUserId)
+);
 
 /*!
  * Handle the change in follower/following index. The `followingUserId` will have their following index updated

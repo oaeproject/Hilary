@@ -88,16 +88,17 @@ ActivityAPI.registerActivityEntityAssociation('user', 'followers', (associations
     return callback(null, []);
   }
 
-  FollowingDAO.getFollowers(userId, null, 10000, (err, followers) => {
-    if (err) {
-      return callback(err);
+  FollowingDAO.getFollowers(userId, null, 10_000, (error, followers) => {
+    if (error) {
+      return callback(error);
     }
 
     if (userVisibility === AuthzConstants.visibility.LOGGEDIN) {
       // If the user is loggedin, only associate the user to followers that are within their tenant
-      followers = _.filter(followers, (follower) => {
-        return userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias;
-      });
+      followers = _.filter(
+        followers,
+        (follower) => userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias
+      );
     }
 
     return callback(null, followers);

@@ -15,8 +15,9 @@
 
 import * as FollowingSearch from 'oae-following/lib/search.js';
 
-// Bind some plugins
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
 import * as principals from './principals.js';
 
 export function init(config, callback) {

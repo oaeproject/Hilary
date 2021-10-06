@@ -14,20 +14,19 @@
  */
 
 /**
- * Create the schema for a document that indexes resource following information (i.e., ids of resources that are being followed by the
- * parent resource). This document is intended to be a child document, whose parent is the central resource document. This relationship
- * allows for a resource's following index to be updated without having to re-index any other aspects of associations of the parent
- * resource document (e.g., memberships index) document.
+ * Create the schema for a document that indexes resource followers information (i.e., ids of resources that are following the parent
+ * resource). This document is intended to be a child document, whose parent is the central resource document. This relationship allows
+ * for a resource's followers to be updated without having to re-index any other aspects of associations of the parent resource document
+ * (e.g., memberships index) document.
  *
- * @return {Object}     schema              The resource following schema object
- *         {String[]}   schema.following    A multi-value field that holds the resource ids of which the parent resource is following
+ * @return {Object}     schema              The resource followers schema object
+ *         {String[]}   schema.followers    A multi-value field that holds the resource ids by which the parent resource is being followed
  *
  * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
  * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 
-/* eslint-disable unicorn/filename-case */
-export const following = {
+export const followers = {
   type: 'keyword',
   store: 'false',
   index: 'true'

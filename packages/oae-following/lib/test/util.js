@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
@@ -33,12 +33,12 @@ import * as TestsUtil from 'oae-tests/lib/util.js';
  * @param  {User}           callback.followed.user          The user object representing the user being followed by the other
  */
 const createFollowerAndFollowed = function (restCtx, callback) {
-  TestsUtil.generateTestUsers(restCtx, 2, (err, testUsers) => {
+  TestsUtil.generateTestUsers(restCtx, 2, (error, testUsers) => {
     const follower = _.values(testUsers)[0];
     const following = _.values(testUsers)[1];
 
-    RestAPI.Following.follow(follower.restContext, following.user.id, (err) => {
-      assert.ok(!err);
+    RestAPI.Following.follow(follower.restContext, following.user.id, (error) => {
+      assert.ok(!error);
       return callback(follower, following);
     });
   });
@@ -58,10 +58,10 @@ const followByAll = function (followedUserId, followerUserInfos, callback) {
     return callback();
   }
 
-  followerUserInfos = followerUserInfos.slice();
+  followerUserInfos = [...followerUserInfos];
   const followerUserInfo = followerUserInfos.shift();
-  RestAPI.Following.follow(followerUserInfo.restContext, followedUserId, (err) => {
-    assert.ok(!err);
+  RestAPI.Following.follow(followerUserInfo.restContext, followedUserId, (error) => {
+    assert.ok(!error);
 
     // Recursively invoke the method again to follow the followedUserId by the next follower user in the list
     return followByAll(followedUserId, followerUserInfos, callback);
@@ -80,10 +80,10 @@ const followAll = function (restContext, followedUserIds, callback) {
     return callback();
   }
 
-  followedUserIds = followedUserIds.slice();
+  followedUserIds = [...followedUserIds];
   const followedUserId = followedUserIds.shift();
-  RestAPI.Following.follow(restContext, followedUserId, (err) => {
-    assert.ok(!err);
+  RestAPI.Following.follow(restContext, followedUserId, (error) => {
+    assert.ok(!error);
 
     // Recursively invoke the method again to follow the next user in the list
     return followAll(restContext, followedUserIds, callback);
@@ -102,9 +102,9 @@ const followAll = function (restContext, followedUserIds, callback) {
  * @param  {User[]}         callback.followers      All followers of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowersEquals = function (restCtx, userId, opts, expectedFollowerIds, callback) {
-  assertGetAllFollowersSucceeds(restCtx, userId, opts, (followers) => {
-    assert.deepStrictEqual(_.pluck(followers, 'id').sort(), expectedFollowerIds.slice().sort());
+const assertGetAllFollowersEquals = function (restCtx, userId, options, expectedFollowerIds, callback) {
+  assertGetAllFollowersSucceeds(restCtx, userId, options, (followers) => {
+    assert.deepStrictEqual(_.pluck(followers, 'id').sort(), [...expectedFollowerIds].sort());
     return callback(followers);
   });
 };
@@ -120,22 +120,22 @@ const assertGetAllFollowersEquals = function (restCtx, userId, opts, expectedFol
  * @param  {User[]}         callback.followers      All followers of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowersSucceeds = function (restCtx, userId, opts, callback, _followers, _nextToken) {
+const assertGetAllFollowersSucceeds = function (restCtx, userId, options, callback, _followers, _nextToken) {
   if (_nextToken === null) {
     return callback(_followers);
   }
 
-  opts = opts || {};
-  assertGetFollowersSucceeds(restCtx, userId, { start: _nextToken, limit: opts.batchSize }, (result) => {
-    return assertGetAllFollowersSucceeds(
+  options = options || {};
+  assertGetFollowersSucceeds(restCtx, userId, { start: _nextToken, limit: options.batchSize }, (result) =>
+    assertGetAllFollowersSucceeds(
       restCtx,
       userId,
-      opts,
+      options,
       callback,
       _.union(_followers, result.results),
       result.nextToken
-    );
-  });
+    )
+  );
 };
 
 /**
@@ -150,13 +150,13 @@ const assertGetAllFollowersSucceeds = function (restCtx, userId, opts, callback,
  * @param  {User[]}         callback.followers      A list of followers of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetFollowersSucceeds = function (restCtx, userId, opts, callback) {
-  opts = opts || {};
-  RestAPI.Following.getFollowers(restCtx, userId, opts.start, opts.limit, (err, result, nextToken) => {
-    assert.ok(!err);
+const assertGetFollowersSucceeds = function (restCtx, userId, options, callback) {
+  options = options || {};
+  RestAPI.Following.getFollowers(restCtx, userId, options.start, options.limit, (error, result, nextToken) => {
+    assert.ok(!error);
     assert.ok(_.isArray(result.results));
-    if (_.isNumber(opts.limit) && opts.limit > 0) {
-      assert.ok(result.results.length <= opts.limit);
+    if (_.isNumber(options.limit) && options.limit > 0) {
+      assert.ok(result.results.length <= options.limit);
     }
 
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
@@ -178,9 +178,9 @@ const assertGetFollowersSucceeds = function (restCtx, userId, opts, callback) {
  * @param  {User[]}         callback.following      All followed users of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowingEquals = function (restCtx, userId, opts, expectedFollowingIds, callback) {
-  assertGetAllFollowingSucceeds(restCtx, userId, opts, (following) => {
-    assert.deepStrictEqual(_.pluck(following, 'id').sort(), expectedFollowingIds.slice().sort());
+const assertGetAllFollowingEquals = function (restCtx, userId, options, expectedFollowingIds, callback) {
+  assertGetAllFollowingSucceeds(restCtx, userId, options, (following) => {
+    assert.deepStrictEqual(_.pluck(following, 'id').sort(), [...expectedFollowingIds].sort());
     return callback(following);
   });
 };
@@ -196,22 +196,22 @@ const assertGetAllFollowingEquals = function (restCtx, userId, opts, expectedFol
  * @param  {User[]}         callback.following      All followed users of the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetAllFollowingSucceeds = function (restCtx, userId, opts, callback, _following, _nextToken) {
+const assertGetAllFollowingSucceeds = function (restCtx, userId, options, callback, _following, _nextToken) {
   if (_nextToken === null) {
     return callback(_following);
   }
 
-  opts = opts || {};
-  assertGetFollowingSucceeds(restCtx, userId, { start: _nextToken, limit: opts.batchSize }, (result) => {
-    return assertGetAllFollowingSucceeds(
+  options = options || {};
+  assertGetFollowingSucceeds(restCtx, userId, { start: _nextToken, limit: options.batchSize }, (result) =>
+    assertGetAllFollowingSucceeds(
       restCtx,
       userId,
-      opts,
+      options,
       callback,
       _.union(_following, result.results),
       result.nextToken
-    );
-  });
+    )
+  );
 };
 
 /**
@@ -226,13 +226,13 @@ const assertGetAllFollowingSucceeds = function (restCtx, userId, opts, callback,
  * @param  {User[]}         callback.following      A list of users who are being followed by the specified user
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertGetFollowingSucceeds = function (restCtx, userId, opts, callback) {
-  opts = opts || {};
-  RestAPI.Following.getFollowing(restCtx, userId, opts.start, opts.limit, (err, result, nextToken) => {
-    assert.ok(!err);
+const assertGetFollowingSucceeds = function (restCtx, userId, options, callback) {
+  options = options || {};
+  RestAPI.Following.getFollowing(restCtx, userId, options.start, options.limit, (error, result, nextToken) => {
+    assert.ok(!error);
     assert.ok(_.isArray(result.results));
-    if (_.isNumber(opts.limit) && opts.limit > 0) {
-      assert.ok(result.results.length <= opts.limit);
+    if (_.isNumber(options.limit) && options.limit > 0) {
+      assert.ok(result.results.length <= options.limit);
     }
 
     assert.ok(_.isString(result.nextToken) || _.isNull(result.nextToken));
@@ -298,13 +298,13 @@ const assertNoFollowFeedAccess = function (restCtx, userIds, httpCode, callback)
   }
 
   const userId = userIds.shift();
-  RestAPI.Following.getFollowers(restCtx, userId, null, null, (err) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Following.getFollowers(restCtx, userId, null, null, (error) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
 
-    RestAPI.Following.getFollowing(restCtx, userId, null, null, (err) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
+    RestAPI.Following.getFollowing(restCtx, userId, null, null, (error) => {
+      assert.ok(error);
+      assert.strictEqual(error.code, httpCode);
       return assertNoFollowFeedAccess(restCtx, userIds, httpCode, callback);
     });
   });
@@ -323,10 +323,10 @@ const assertHasFollowFeedAccess = function (restCtx, userIds, callback) {
   }
 
   const userId = userIds.shift();
-  _findFollowerAndFollowing(userId, restCtx, userId, restCtx, () => {
+  _findFollowerAndFollowing(userId, restCtx, userId, restCtx, () =>
     // We don't actually care about the results, we just care about the no-err assertions in the method
-    return assertHasFollowFeedAccess(restCtx, userIds, callback);
-  });
+    assertHasFollowFeedAccess(restCtx, userIds, callback)
+  );
 };
 
 /**
@@ -343,14 +343,14 @@ const assertNoSearchFeedAccess = function (restCtx, userIds, httpCode, callback)
   }
 
   const userId = userIds.shift();
-  RestAPI.Search.search(restCtx, 'following', [userId], null, (err, response) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Search.search(restCtx, 'following', [userId], null, (error, response) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     assert.ok(!response);
 
-    RestAPI.Search.search(restCtx, 'followers', [userId], null, (err, response) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
+    RestAPI.Search.search(restCtx, 'followers', [userId], null, (error, response) => {
+      assert.ok(error);
+      assert.strictEqual(error.code, httpCode);
       assert.ok(!response);
       return assertNoSearchFeedAccess(restCtx, userIds, httpCode, callback);
     });
@@ -370,10 +370,10 @@ const assertHasSearchFeedAccess = function (restCtx, userIds, callback) {
   }
 
   const userId = userIds.shift();
-  searchFollowerAndFollowing(userId, restCtx, userId, restCtx, () => {
+  searchFollowerAndFollowing(userId, restCtx, userId, restCtx, () =>
     // We don't actually care about the results, we just care about the no-err assertions in the method
-    return assertHasSearchFeedAccess(restCtx, userIds, callback);
-  });
+    assertHasSearchFeedAccess(restCtx, userIds, callback)
+  );
 };
 
 /**
@@ -396,11 +396,11 @@ const searchFollowerAndFollowing = function (
   followedRestCtx,
   callback
 ) {
-  SearchTestUtil.searchAll(followerRestCtx, 'following', [followerUserId], null, (err, followingResponse) => {
-    assert.ok(!err);
+  SearchTestUtil.searchAll(followerRestCtx, 'following', [followerUserId], null, (error, followingResponse) => {
+    assert.ok(!error);
 
-    SearchTestUtil.searchAll(followedRestCtx, 'followers', [followedUserId], null, (err, followerResponse) => {
-      assert.ok(!err);
+    SearchTestUtil.searchAll(followedRestCtx, 'followers', [followedUserId], null, (error, followerResponse) => {
+      assert.ok(!error);
 
       return callback(
         _.findWhere(followerResponse.results, { id: followerUserId }),

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import { format } from 'node:util';
+import { assert } from 'chai';
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';

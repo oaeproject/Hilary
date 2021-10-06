@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import { isNil, reject, map, path, last } from 'ramda';
+import { pluck, append, pipe, slice, isNil, reject, map, path, last } from 'ramda';
 
 import * as FollowingTestUtil from 'oae-following/lib/test/util.js';
 import * as Redis from 'oae-util/lib/redis.js';
@@ -61,32 +61,24 @@ describe('Principals Delete and Restore', () => {
       // Register one of each, these should be fine
       PrincipalsDelete.registerGroupDeleteHandler(
         'test-throws-duplicate',
-        (group, membershipsGraph, membersGraph, callback) => {
-          return callback();
-        }
+        (group, membershipsGraph, membersGraph, callback) => callback()
       );
       PrincipalsDelete.registerGroupRestoreHandler(
         'test-throws-duplicate',
-        (group, membershipsGraph, membersGraph, callback) => {
-          return callback();
-        }
+        (group, membershipsGraph, membersGraph, callback) => callback()
       );
 
       assert.throws(() => {
         PrincipalsDelete.registerGroupDeleteHandler(
           'test-throws-duplicate',
-          (group, membershipsGraph, membersGraph, callback) => {
-            return callback();
-          }
+          (group, membershipsGraph, membersGraph, callback) => callback()
         );
       });
 
       assert.throws(() => {
         PrincipalsDelete.registerGroupRestoreHandler(
           'test-throws-duplicate',
-          (group, membershipsGraph, membersGraph, callback) => {
-            return callback();
-          }
+          (group, membershipsGraph, membersGraph, callback) => callback()
         );
       });
 
@@ -121,15 +113,15 @@ describe('Principals Delete and Restore', () => {
           PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'not-an-id', 400, () => {
             PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'u:oae:not-a-group-id', 400, () => {
               // Ensure we can't delete a non-existing group
-              PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'g:cam:non-existing-group', 404, () => {
+              PrincipalsTestUtil.assertDeleteGroupFails(manager.restContext, 'g:cam:non-existing-group', 404, () =>
                 // Sanity check that we can delete a group
-                return PrincipalsTestUtil.assertDeleteGroupSucceeds(
+                PrincipalsTestUtil.assertDeleteGroupSucceeds(
                   asCambridgeTenantAdmin,
                   manager.restContext,
                   group.group.id,
                   callback
-                );
-              });
+                )
+              );
             });
           });
         });
@@ -162,15 +154,14 @@ describe('Principals Delete and Restore', () => {
                     asCambridgeTenantAdmin,
                     'g:cam:non-existing-group',
                     404,
-                    () => {
+                    () =>
                       // Sanity check that we can restore the group with the administrator
-                      return PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                      PrincipalsTestUtil.assertRestoreGroupSucceeds(
                         asCambridgeTenantAdmin,
                         asCambridgeTenantAdmin,
                         group.group.id,
                         callback
-                      );
-                    }
+                      )
                   );
                 });
               });
@@ -192,15 +183,15 @@ describe('Principals Delete and Restore', () => {
         PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'not-an-id', 400, () => {
           PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'g:oae:not-a-user-id', 400, () => {
             // Ensure we can't delete a non-existing user
-            PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'u:cam:non-existing-user', 404, () => {
+            PrincipalsTestUtil.assertDeleteUserFails(user.restContext, 'u:cam:non-existing-user', 404, () =>
               // Sanity check that we can delete a user
-              return PrincipalsTestUtil.assertDeleteUserSucceeds(
+              PrincipalsTestUtil.assertDeleteUserSucceeds(
                 asCambridgeTenantAdmin,
                 user.restContext,
                 user.user.id,
                 callback
-              );
-            });
+              )
+            );
           });
         });
       });
@@ -229,9 +220,9 @@ describe('Principals Delete and Restore', () => {
                   404,
                   () => {
                     // Sanity check that we can restore the user with the administrator
-                    PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user.user.id, () => {
-                      return callback();
-                    });
+                    PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user.user.id, () =>
+                      callback()
+                    );
                   }
                 );
               });
@@ -334,14 +325,13 @@ describe('Principals Delete and Restore', () => {
                                                               publicTenant1.adminRestContext,
                                                               asGlobalAdminOnLocalhost,
                                                               publicTenant1.privateNotJoinableGroup.id,
-                                                              () => {
-                                                                return PrincipalsTestUtil.assertDeleteGroupSucceeds(
+                                                              () =>
+                                                                PrincipalsTestUtil.assertDeleteGroupSucceeds(
                                                                   publicTenant1.adminRestContext,
                                                                   asGlobalAdminOnLocalhost,
                                                                   publicTenant1.privateJoinableGroup.id,
                                                                   callback
-                                                                );
-                                                              }
+                                                                )
                                                             );
                                                           }
                                                         );
@@ -404,14 +394,13 @@ describe('Principals Delete and Restore', () => {
                           asCambridgeTenantAdmin,
                           manager.restContext,
                           group.group.id,
-                          () => {
-                            return PrincipalsTestUtil.assertRestoreGroupSucceeds(
+                          () =>
+                            PrincipalsTestUtil.assertRestoreGroupSucceeds(
                               asCambridgeTenantAdmin,
                               asGlobalAdminOnLocalhost,
                               group.group.id,
                               callback
-                            );
-                          }
+                            )
                         );
                       }
                     );
@@ -456,9 +445,7 @@ describe('Principals Delete and Restore', () => {
                           asCambridgeTenantAdmin,
                           user3.restContext,
                           user3.user.id,
-                          () => {
-                            return callback();
-                          }
+                          () => callback()
                         );
                       }
                     );
@@ -496,9 +483,9 @@ describe('Principals Delete and Restore', () => {
                       PrincipalsTestUtil.assertRestoreUserFails(asGeorgiaTechTenantAdmin, user1.user.id, 401, () => {
                         // Ensure the global admin and admin of the same tenant can restore the user
                         PrincipalsTestUtil.assertRestoreUserSucceeds(asGlobalAdmin, user1.user.id, () => {
-                          PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user2.user.id, () => {
-                            return callback();
-                          });
+                          PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, user2.user.id, () =>
+                            callback()
+                          );
                         });
                       });
                     });
@@ -681,9 +668,7 @@ describe('Principals Delete and Restore', () => {
                             manager.restContext,
                             group.group.id,
                             [manager.user.id],
-                            (/* members */) => {
-                              return callback();
-                            }
+                            (/* members */) => callback()
                           );
                         }
                       );
@@ -738,9 +723,7 @@ describe('Principals Delete and Restore', () => {
                             manager.restContext,
                             group.group.id,
                             { displayName: 'Another Display Name' },
-                            (/* group */) => {
-                              return callback();
-                            }
+                            (/* group */) => callback()
                           );
                         }
                       );
@@ -797,15 +780,14 @@ describe('Principals Delete and Restore', () => {
                             asCambridgeTenantAdmin,
                             asCambridgeTenantAdmin,
                             childGroup.group.id,
-                            () => {
+                            () =>
                               // Ensure the memberships library is restored to its expected result
-                              return PrincipalsTestUtil.assertMembershipsLibraryEquals(
+                              PrincipalsTestUtil.assertMembershipsLibraryEquals(
                                 manager.restContext,
                                 childGroup.group.id,
                                 [parentGroup.group.id],
                                 callback
-                              );
-                            }
+                              )
                           );
                         }
                       );
@@ -879,9 +861,7 @@ describe('Principals Delete and Restore', () => {
                                 manager.restContext,
                                 parentGroup.group.id,
                                 permissionChanges,
-                                (/* members */) => {
-                                  return callback();
-                                }
+                                (/* members */) => callback()
                               );
                             }
                           );
@@ -923,15 +903,14 @@ describe('Principals Delete and Restore', () => {
                     asCambridgeTenantAdmin,
                     asCambridgeTenantAdmin,
                     group.group.id,
-                    () => {
+                    () =>
                       // Ensure the user can now leave the group
-                      return PrincipalsTestUtil.assertLeaveGroupSucceeds(
+                      PrincipalsTestUtil.assertLeaveGroupSucceeds(
                         manager.restContext,
                         member.restContext,
                         group.group.id,
                         callback
-                      );
-                    }
+                      )
                   );
                 });
               }
@@ -966,15 +945,14 @@ describe('Principals Delete and Restore', () => {
                     asCambridgeTenantAdmin,
                     asCambridgeTenantAdmin,
                     group.group.id,
-                    () => {
+                    () =>
                       // Ensure the user can now join the group
-                      return PrincipalsTestUtil.assertJoinGroupSucceeds(
+                      PrincipalsTestUtil.assertJoinGroupSucceeds(
                         manager.restContext,
                         member.restContext,
                         group.group.id,
                         callback
-                      );
-                    }
+                      )
                   );
                 });
               }
@@ -1175,9 +1153,7 @@ describe('Principals Delete and Restore', () => {
                     userToDelete.user.id,
                     null,
                     null,
-                    () => {
-                      return callback();
-                    }
+                    () => callback()
                   );
                 });
               }
@@ -1199,7 +1175,7 @@ describe('Principals Delete and Restore', () => {
         TestsUtil.generateTestGroups(asCambridgeTenantAdmin, 4, (...args) => {
           const groups = last(args);
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
-          const principalIds = groupIds.concat(user.user.id);
+          const principalIds = [...groupIds, user.user.id];
 
           // Create the group hierarchy and ensure it is as expected
           TestsUtil.generateGroupHierarchy(asCambridgeTenantAdmin, principalIds, 'member', () => {
@@ -1219,15 +1195,14 @@ describe('Principals Delete and Restore', () => {
                       asCambridgeTenantAdmin,
                       asCambridgeTenantAdmin,
                       _.last(groupIds),
-                      () => {
+                      () =>
                         // Ensure the user's memberships library now has all original groups we created
-                        return PrincipalsTestUtil.assertMembershipsLibraryEquals(
+                        PrincipalsTestUtil.assertMembershipsLibraryEquals(
                           user.restContext,
                           user.user.id,
                           groupIds,
                           callback
-                        );
-                      }
+                        )
                     );
                   });
                 }
@@ -1266,9 +1241,10 @@ describe('Principals Delete and Restore', () => {
                     parentGroup.group.id,
                     [manager.user.id, childGroup.group.id],
                     (members) => {
-                      const childGroupEntry = _.find(members, (memberEntry) => {
-                        return memberEntry.profile.id === childGroup.group.id;
-                      });
+                      const childGroupEntry = _.find(
+                        members,
+                        (memberEntry) => memberEntry.profile.id === childGroup.group.id
+                      );
 
                       assert.ok(_.isNumber(childGroupEntry.profile.deleted));
                       assert.ok(!_.chain(childGroupEntry.profile).keys().contains('profilePath').value());
@@ -1287,9 +1263,10 @@ describe('Principals Delete and Restore', () => {
                             parentGroup.group.id,
                             [manager.user.id, childGroup.group.id],
                             (members) => {
-                              const childGroupEntry = _.find(members, (memberEntry) => {
-                                return memberEntry.profile.id === childGroup.group.id;
-                              });
+                              const childGroupEntry = _.find(
+                                members,
+                                (memberEntry) => memberEntry.profile.id === childGroup.group.id
+                              );
 
                               assert.ok(!_.chain(childGroupEntry.profile).keys().contains('deleted').value());
                               assert.ok(childGroupEntry.profile.profilePath);
@@ -1330,9 +1307,7 @@ describe('Principals Delete and Restore', () => {
               // Restore the user
               PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                 // Ensure access is restored to the following and followers feed
-                FollowingTestUtil.assertHasFollowFeedAccess(user.restContext, [userToDelete.user.id], () => {
-                  return callback();
-                });
+                FollowingTestUtil.assertHasFollowFeedAccess(user.restContext, [userToDelete.user.id], () => callback());
               });
             });
           }
@@ -1391,9 +1366,7 @@ describe('Principals Delete and Restore', () => {
                                     userToFollow.user.id,
                                     { batchSize: 1 },
                                     followerUserIds,
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -1462,9 +1435,7 @@ describe('Principals Delete and Restore', () => {
                                     userFollowing.user.id,
                                     { batchSize: 1 },
                                     followingUserIds,
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -1533,9 +1504,7 @@ describe('Principals Delete and Restore', () => {
                               null,
                               { q: group.group.displayName },
                               [group.group.id],
-                              (/* response */) => {
-                                return callback();
-                              }
+                              (/* response */) => callback()
                             );
                           }
                         );
@@ -1589,9 +1558,7 @@ describe('Principals Delete and Restore', () => {
                           null,
                           { q: userDeleted.user.displayName },
                           [userDeleted.user.id],
-                          (/* response */) => {
-                            return callback();
-                          }
+                          (/* response */) => callback()
                         );
                       });
                     }
@@ -1652,9 +1619,7 @@ describe('Principals Delete and Restore', () => {
                               'memberships-library',
                               [group.group.id],
                               null,
-                              (/* response */) => {
-                                return callback();
-                              }
+                              (/* response */) => callback()
                             );
                           }
                         );
@@ -1700,9 +1665,7 @@ describe('Principals Delete and Restore', () => {
                       'memberships-library',
                       [userToDelete.user.id],
                       null,
-                      (/* response */) => {
-                        return callback();
-                      }
+                      (/* response */) => callback()
                     );
                   });
                 }
@@ -1726,7 +1689,7 @@ describe('Principals Delete and Restore', () => {
             const { 1: group2, 3: group4 } = groups;
 
             const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
-            TestsUtil.generateGroupHierarchy(manager.restContext, groupIds.concat(member.user.id), 'member', () => {
+            TestsUtil.generateGroupHierarchy(manager.restContext, [...groupIds, member.user.id], 'member', () => {
               // Ensure our member user can find all the groups in their memberships
               // library search
               SearchTestUtil.assertSearchContains(
@@ -1782,9 +1745,7 @@ describe('Principals Delete and Restore', () => {
                                             [member.user.id],
                                             null,
                                             groupIds.slice(2),
-                                            () => {
-                                              return callback();
-                                            }
+                                            () => callback()
                                           );
                                         }
                                       );
@@ -1854,9 +1815,7 @@ describe('Principals Delete and Restore', () => {
                               [group.group.id],
                               null,
                               [manager.user.id],
-                              (/* response */) => {
-                                return callback();
-                              }
+                              (/* response */) => callback()
                             );
                           }
                         );
@@ -1883,7 +1842,14 @@ describe('Principals Delete and Restore', () => {
           TestsUtil.generateTestGroups(manager.restContext, 4, (...args) => {
             const groups = last(args);
             const [parentGroup, childGroup1] = groups;
-            const memberIds = _.chain(groups).pluck('group').pluck('id').value().slice(1).concat(member.user.id);
+            const memberIds = pipe(
+              pluck('group'),
+              pluck('id'),
+              // path(['group', 'id']),
+              slice(1, Number.POSITIVE_INFINITY),
+              append(member.user.id)
+            )(groups);
+            // _.chain(groups).pluck('group').pluck('id').value().slice(1).concat(member.user.id);
 
             // Add all members to the parent group
             const roleChanges = {};
@@ -1992,9 +1958,9 @@ describe('Principals Delete and Restore', () => {
                 // Restore the user
                 PrincipalsTestUtil.assertRestoreUserSucceeds(asCambridgeTenantAdmin, userToDelete.user.id, () => {
                   // Ensure access is restored to the following and followers feed
-                  FollowingTestUtil.assertHasSearchFeedAccess(user.restContext, [userToDelete.user.id], () => {
-                    return callback();
-                  });
+                  FollowingTestUtil.assertHasSearchFeedAccess(user.restContext, [userToDelete.user.id], () =>
+                    callback()
+                  );
                 });
               });
             }
@@ -2056,9 +2022,7 @@ describe('Principals Delete and Restore', () => {
                                       [userToFollow.user.id],
                                       null,
                                       followerUserIds,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -2131,9 +2095,7 @@ describe('Principals Delete and Restore', () => {
                                       [userFollowing.user.id],
                                       null,
                                       followingUserIds,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -2169,9 +2131,8 @@ describe('Principals Delete and Restore', () => {
                 null,
                 (/* response */) => {
                   SearchTestUtil.assertSearchSucceeds(asGlobalAdmin, 'deleted', null, null, (/* response */) => {
-                    SearchTestUtil.assertSearchSucceeds(asGlobalAdmin, 'deleted', null, null, (/* response */) => {
-                      return callback();
-                    });
+                    SearchTestUtil.assertSearchSucceeds(asGlobalAdmin, 'deleted', null, null, (/* response */) =>
+                      callback());
                   });
                 }
               );
@@ -2361,9 +2322,7 @@ describe('Principals Delete and Restore', () => {
                                                                                             publicTenant2.tenant.alias
                                                                                         },
                                                                                         tenant1UserIds,
-                                                                                        () => {
-                                                                                          return callback();
-                                                                                        }
+                                                                                        () => callback()
                                                                                       );
                                                                                     }
                                                                                   );
@@ -2589,9 +2548,7 @@ describe('Principals Delete and Restore', () => {
                                                                                           tenant1GroupIds,
                                                                                           tenant1UserIds
                                                                                         ),
-                                                                                        () => {
-                                                                                          return callback();
-                                                                                        }
+                                                                                        () => callback()
                                                                                       );
                                                                                     }
                                                                                   );
@@ -2670,9 +2627,9 @@ describe('Principals Delete and Restore', () => {
                                 assert.notExists(error_);
                                 PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
                                   PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
-                                    PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
-                                      return callback();
-                                    });
+                                    PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () =>
+                                      callback()
+                                    );
                                   });
                                 });
                               });

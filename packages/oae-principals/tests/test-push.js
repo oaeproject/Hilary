@@ -98,7 +98,7 @@ describe('Group Push', () => {
                                 group.id,
                                 'activity',
                                 {
-                                  expires: Date.now() + 10000,
+                                  expires: Date.now() + 10_000,
                                   signature: 'foo',
                                   lastModified: Date.now()
                                 },

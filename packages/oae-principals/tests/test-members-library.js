@@ -59,15 +59,8 @@ describe('Members Library', () => {
                     404,
                     () => {
                       // Sanity check we can get a successful response with our setup
-                      PrincipalsTestUtil.assertGetMembersLibraryFails(
-                        user.restContext,
-                        group.id,
-                        null,
-                        null,
-                        400,
-                        () => {
-                          return callback();
-                        }
+                      PrincipalsTestUtil.assertGetMembersLibraryFails(user.restContext, group.id, null, null, 400, () =>
+                        callback()
                       );
                     }
                   );
@@ -116,9 +109,7 @@ describe('Members Library', () => {
                               publicTenant1.publicGroup.id,
                               null,
                               null,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -169,9 +160,7 @@ describe('Members Library', () => {
                               publicTenant1.loggedinJoinableGroup.id,
                               null,
                               null,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -221,9 +210,7 @@ describe('Members Library', () => {
                               null,
                               null,
                               401,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -271,9 +258,7 @@ describe('Members Library', () => {
                               publicTenant1.loggedinJoinableGroupByRequest.id,
                               null,
                               null,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -341,9 +326,7 @@ describe('Members Library', () => {
                                       publicTenant1.privateJoinableGroup.id,
                                       null,
                                       null,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -413,9 +396,7 @@ describe('Members Library', () => {
                                       publicTenant1.privateNotJoinableGroup.id,
                                       null,
                                       null,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -484,9 +465,7 @@ describe('Members Library', () => {
                                       publicTenant1.privateJoinableGroupByRequest.id,
                                       null,
                                       null,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -517,8 +496,8 @@ describe('Members Library', () => {
 
               // These are the expected public, loggedin, private library contents
               const publicItems = [publicTenant1.publicUser.user.id];
-              const loggedinItems = publicItems.concat(publicTenant1.loggedinUser.user.id);
-              const privateItems = loggedinItems.concat(publicTenant1.privateUser.user.id);
+              const loggedinItems = [...publicItems, publicTenant1.loggedinUser.user.id];
+              const privateItems = [...loggedinItems, publicTenant1.privateUser.user.id];
 
               // Add users to the public group
               const change = {};
@@ -684,19 +663,14 @@ describe('Members Library', () => {
                 [user1.user.id],
                 () => {
                   // Join the group as user2, which ensures the members library is appropriately updated
-                  PrincipalsTestUtil.assertJoinGroupSucceeds(
-                    user1.restContext,
-                    user2.restContext,
-                    group.group.id,
-                    () => {
-                      // Leave the group as user2, which ensures the members library is appropriately updated
-                      return PrincipalsTestUtil.assertLeaveGroupSucceeds(
-                        user1.restContext,
-                        user2.restContext,
-                        group.group.id,
-                        callback
-                      );
-                    }
+                  PrincipalsTestUtil.assertJoinGroupSucceeds(user1.restContext, user2.restContext, group.group.id, () =>
+                    // Leave the group as user2, which ensures the members library is appropriately updated
+                    PrincipalsTestUtil.assertLeaveGroupSucceeds(
+                      user1.restContext,
+                      user2.restContext,
+                      group.group.id,
+                      callback
+                    )
                   );
                 }
               );
@@ -819,9 +793,7 @@ describe('Members Library', () => {
                                   asCambridgeAnonymousUser,
                                   group.group.id,
                                   [],
-                                  () => {
-                                    return callback();
-                                  }
+                                  () => callback()
                                 );
                               }
                             );

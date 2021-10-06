@@ -13,17 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import _ from 'underscore';
 import { keys, reject, isNil, forEach, map, path, last } from 'ramda';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
@@ -39,6 +36,9 @@ import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';
@@ -1746,9 +1746,7 @@ describe('Groups', () => {
                 assert.notExists(error);
                 assert.strictEqual(members.results.length, 4);
                 // Morph results to hash for easy access.
-                const hash = _.groupBy(members.results, (member) => {
-                  return member.profile.id;
-                });
+                const hash = _.groupBy(members.results, (member) => member.profile.id);
                 assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
                 assert.strictEqual(hash[jack.user.id][0].role, 'member');
                 assert.strictEqual(hash[jane.user.id][0].role, 'manager');
@@ -1772,9 +1770,7 @@ describe('Groups', () => {
                       assert.notExists(error);
                       assert.strictEqual(members.results.length, 3);
                       // Morph results to hash for easy access.
-                      const hash = _.groupBy(members.results, (member) => {
-                        return member.profile.id;
-                      });
+                      const hash = _.groupBy(members.results, (member) => member.profile.id);
                       assert.strictEqual(hash[johnRestContext.user.id][0].role, 'manager');
                       assert.strictEqual(hash[jack.user.id][0].role, 'member');
                       assert.strictEqual(hash[jane.user.id][0].role, 'member');
@@ -2308,7 +2304,7 @@ describe('Groups', () => {
                     // Verify anonymous user cannot leave
                     PrincipalsTestUtil.assertLeaveGroupFails(anonymousRestContext, group.id, 401, () => {
                       // Verify branden is still a member
-                      RestAPI.Group.getGroupMembers(branden.restContext, group.id, null, 10000, (error, members) => {
+                      RestAPI.Group.getGroupMembers(branden.restContext, group.id, null, 10_000, (error, members) => {
                         assert.notExists(error);
                         assert.strictEqual(members.results.length, 2);
 
@@ -2531,15 +2527,15 @@ describe('Groups', () => {
                     assert.strictEqual(memberships.results.length, 2);
 
                     // Assert we only retrieved groups
-                    assert.ok(_.contains(groupIds, memberships.results[0].id));
-                    assert.ok(_.contains(groupIds, memberships.results[1].id));
+                    assert.include(groupIds, memberships.results[0].id);
+                    assert.include(groupIds, memberships.results[1].id);
 
                     // Assert that we've not seen these groups before
-                    assert.ok(!_.contains(seenGroupIds, memberships.results[0].id));
-                    assert.ok(!_.contains(seenGroupIds, memberships.results[1].id));
+                    assert.notInclude(seenGroupIds, memberships.results[0].id);
+                    assert.notInclude(seenGroupIds, memberships.results[1].id);
 
                     // Add the retrieved groups to the set of seen groups
-                    seenGroupIds = seenGroupIds.concat(_.pluck(memberships.results, 'id'));
+                    seenGroupIds = [...seenGroupIds, ..._.pluck(memberships.results, 'id')];
 
                     // Get the final group
                     RestAPI.Group.getMembershipsLibrary(
@@ -2905,9 +2901,7 @@ describe('Groups', () => {
                                                             PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME,
                                                             createdPrincipals.branden.id,
                                                             PRIVATE,
-                                                            () => {
-                                                              return callback(createdPrincipals);
-                                                            }
+                                                            () => callback(createdPrincipals)
                                                           );
                                                         }
                                                       );
@@ -2959,9 +2953,7 @@ describe('Groups', () => {
           // We also always expect John to come back as a member
           assert.strictEqual(members.results.length, expectedMembers.length + 1);
           // Morph results to hash for easy access.
-          const hash = _.groupBy(members.results, (principal) => {
-            return principal.profile.id;
-          });
+          const hash = _.groupBy(members.results, (principal) => principal.profile.id);
           for (const element of expectedMembers) {
             assert.strictEqual(hash[createdPrincipals[element].id][0].profile.id, createdPrincipals[element].id);
           }
@@ -2992,9 +2984,7 @@ describe('Groups', () => {
           assert.notExists(error);
           assert.strictEqual(memberships.results.length, expectedGroups.length);
           // Morph results to hash for easy access
-          const hash = _.groupBy(memberships.results, (membership) => {
-            return membership.id;
-          });
+          const hash = _.groupBy(memberships.results, (membership) => membership.id);
           for (const element of expectedGroups) {
             assert.strictEqual(hash[createdPrincipals[element].id][0].id, createdPrincipals[element].id);
           }
@@ -3037,9 +3027,7 @@ describe('Groups', () => {
                                     createdPrincipals,
                                     'branden',
                                     ['canadian', 'backend-team', 'oae-team'],
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -3226,9 +3214,7 @@ describe('Groups', () => {
                                                                                   true,
                                                                                   true,
                                                                                   2,
-                                                                                  () => {
-                                                                                    return callback();
-                                                                                  }
+                                                                                  () => callback()
                                                                                 );
                                                                               }
                                                                             );

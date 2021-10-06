@@ -36,33 +36,33 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {String}     [opts.mediumPictureUri]     The uri of the medium picture. It will be made available at user.picture.mediumUri
  * @param  {String}     [opts.largePictureUri]      The uri of the large picture. It will be made available at user.picture.largeUri
  */
-export const Group = function (tenantAlias, id, displayName, opts) {
-  opts = opts || {};
+export const Group = function (tenantAlias, id, displayName, options) {
+  options = options || {};
   const { resourceId } = AuthzUtil.getResourceFromId(id);
 
   const that = {};
   that.id = id;
   that.displayName = displayName;
   that.tenant = TenantsAPI.getTenant(tenantAlias).compact();
-  that.visibility = opts.visibility;
-  that.joinable = opts.joinable;
-  that.deleted = opts.deleted;
-  that.description = opts.description;
-  that.lastModified = opts.lastModified;
+  that.visibility = options.visibility;
+  that.joinable = options.joinable;
+  that.deleted = options.deleted;
+  that.description = options.description;
+  that.lastModified = options.lastModified;
   that.resourceType = 'group';
-  that.created = opts.created;
-  that.createdBy = opts.createdBy;
+  that.created = options.created;
+  that.createdBy = options.createdBy;
   that.picture = _.oaeExtendDefined(
     {},
     {
-      smallUri: opts.smallPictureUri,
-      mediumUri: opts.mediumPictureUri,
-      largeUri: opts.largePictureUri
+      smallUri: options.smallPictureUri,
+      mediumUri: options.mediumPictureUri,
+      largeUri: options.largePictureUri
     }
   );
 
   // Only set the profile path if the group has not been deleted
-  if (!opts.deleted) {
+  if (!options.deleted) {
     that.profilePath = '/group/' + tenantAlias + '/' + resourceId;
   }
 

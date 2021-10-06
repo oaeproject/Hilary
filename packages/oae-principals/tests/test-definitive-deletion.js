@@ -13,15 +13,12 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import { format } from 'node:util';
+
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { pipe, forEach, filter, equals, contains, pluck, propSatisfies } from 'ramda';
 
@@ -63,6 +60,11 @@ import {
   getDataFromArchive
 } from 'oae-principals/lib/internal/dao.js';
 
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const PrincipalsConfig = setUpConfig('oae-principals');
 
 const USER = 'user';
@@ -75,8 +77,6 @@ const MEMBER = 'member';
 const EDITOR = 'editor';
 const TYPE_COLLABDOC = 'collabdoc';
 const TYPE_COLLABSHEET = 'collabsheet';
-
-import * as EmailTestUtil from 'oae-email/lib/test/util.js';
 
 // Avoid the "Error: global leak detected: r", temporary solution
 Object.defineProperty(global, 'r', {});
@@ -97,7 +97,7 @@ describe('Delete and eliminate users', () => {
   });
 
   after((callback) => {
-    EmailTestUtil.collectAndFetchAllEmails((error) => {
+    EmailTestUtil.collectAndFetchAllEmails(() => {
       callback();
     });
   });
@@ -113,9 +113,8 @@ describe('Delete and eliminate users', () => {
      * Test that verifies we get the correct expired users
      */
     it('Verify if the DAO gets the correct expired users', (callback) => {
-      const isUserAmongTheExpired = (expiredUsers, userToDelete) => {
-        return pipe(pluck('principalId'), contains(userToDelete.user.id))(expiredUsers);
-      };
+      const isUserAmongTheExpired = (expiredUsers, userToDelete) =>
+        pipe(pluck('principalId'), contains(userToDelete.user.id))(expiredUsers);
 
       // Generate a deleted user to test with
       generateTestUsers(asCambridgeTenantAdmin, 2, (error, users) => {
@@ -201,21 +200,13 @@ describe('Delete and eliminate users', () => {
         assert.notExists(error);
         const { 2: userToDelete, 3: userArchive } = users;
 
-        asCambridgeTenantAdmin.user = () => {
-          return userArchive.user;
-        };
+        asCambridgeTenantAdmin.user = () => userArchive.user;
 
-        asCambridgeTenantAdmin.tenant = () => {
-          return userArchive.user.tenant;
-        };
+        asCambridgeTenantAdmin.tenant = () => userArchive.user.tenant;
 
-        asCambridgeTenantAdmin.user().isAdmin = () => {
-          return true;
-        };
+        asCambridgeTenantAdmin.user().isAdmin = () => true;
 
-        asCambridgeTenantAdmin.locale = () => {
-          return DEFAULT_LOCALE;
-        };
+        asCambridgeTenantAdmin.locale = () => DEFAULT_LOCALE;
 
         // Delete User - step 1
         removeUser(asCambridgeTenantAdmin, userToDelete.user.id, (error_) => {
@@ -1360,14 +1351,16 @@ describe('Delete and eliminate users', () => {
                             assert.notExists(error);
 
                             // Add element to a list
-                            list.push(group[0].id);
-                            list.push(discussion[0].id);
-                            list.push(meeting[0].id);
-                            list.push(file[0].id);
-                            list.push(link[0].id);
-                            list.push(collabdoc[0].id);
-                            list.push(collabsheet[0].id);
-                            list.push(folder[0].id);
+                            list.push(
+                              group[0].id,
+                              discussion[0].id,
+                              meeting[0].id,
+                              file[0].id,
+                              link[0].id,
+                              collabdoc[0].id,
+                              collabsheet[0].id,
+                              folder[0].id
+                            );
 
                             // Delete User
                             assertDataIsTransferredToArchiveUser(
@@ -1381,9 +1374,9 @@ describe('Delete and eliminate users', () => {
                                 // Get Data and compare it with the id list
                                 getDataFromArchive(userArchive.archiveId, userToDelete.user.id, (error, elements) => {
                                   const listElementId = [];
-                                  elements.resourceId.split(',').forEach((element) => {
+                                  for (const element of elements.resourceId.split(',')) {
                                     listElementId.push(element);
-                                  });
+                                  }
 
                                   assert.notExists(error);
                                   assert.deepStrictEqual(list.sort(), listElementId.sort());
@@ -1429,9 +1422,7 @@ describe('Delete and eliminate users', () => {
               assert.ok(userArchive);
 
               // Discussion is in library
-              checkLibrary(asCambridgeTenantAdmin, userArchive.archiveId, true, [discussion], () => {
-                return callback();
-              });
+              checkLibrary(asCambridgeTenantAdmin, userArchive.archiveId, true, [discussion], () => callback());
             }
           );
         });
@@ -1534,10 +1525,7 @@ describe('Delete and eliminate users', () => {
                 (error, collabsheet) => {
                   assert.notExists(error);
 
-                  list.push(file[0].id);
-                  list.push(link[0].id);
-                  list.push(collabdoc[0].id);
-                  list.push(collabsheet[0].id);
+                  list.push(file[0].id, link[0].id, collabdoc[0].id, collabsheet[0].id);
                   list.sort();
 
                   // Delete User
@@ -1558,9 +1546,10 @@ describe('Delete and eliminate users', () => {
                         (error, data) => {
                           assert.notExists(error);
                           const library = [];
-                          data.results.forEach((element) => {
+                          for (const element of data.results) {
                             library.push(element.id);
-                          });
+                          }
+
                           library.sort();
                           assert.deepStrictEqual(library, list);
 
@@ -2413,8 +2402,7 @@ describe('Delete and eliminate users', () => {
                       assert.notExists(error_);
 
                       const list = [];
-                      list.push(otherUser.user.email);
-                      list.push(user.user.email);
+                      list.push(otherUser.user.email, user.user.email);
                       list.sort();
 
                       // Delete User
@@ -2468,8 +2456,7 @@ describe('Delete and eliminate users', () => {
                       assert.notExists(error_);
 
                       const list = [];
-                      list.push(otherUser.user.email);
-                      list.push(user.user.email);
+                      list.push(otherUser.user.email, user.user.email);
                       list.sort();
 
                       // Delete User
@@ -2526,8 +2513,7 @@ describe('Delete and eliminate users', () => {
                         assert.notExists(error_);
 
                         const list = [];
-                        list.push(otherUser.user.email);
-                        list.push(user.user.email);
+                        list.push(otherUser.user.email, user.user.email);
                         list.sort();
 
                         // Delete User
@@ -2585,8 +2571,7 @@ describe('Delete and eliminate users', () => {
                         assert.notExists(error_);
 
                         const list = [];
-                        list.push(otherUser.user.email);
-                        list.push(user.user.email);
+                        list.push(otherUser.user.email, user.user.email);
                         list.sort();
 
                         // Delete User
@@ -2642,8 +2627,7 @@ describe('Delete and eliminate users', () => {
                       assert.notExists(error_);
 
                       const list = [];
-                      list.push(otherUser.user.email);
-                      list.push(user.user.email);
+                      list.push(otherUser.user.email, user.user.email);
                       list.sort();
 
                       // Delete User
@@ -2698,8 +2682,7 @@ describe('Delete and eliminate users', () => {
                       assert.notExists(error_);
 
                       const list = [];
-                      list.push(otherUser.user.email);
-                      list.push(user.user.email);
+                      list.push(otherUser.user.email, user.user.email);
                       list.sort();
 
                       // Delete User
@@ -2754,8 +2737,7 @@ describe('Delete and eliminate users', () => {
                       assert.notExists(error_);
 
                       const list = [];
-                      list.push(otherUser.user.email);
-                      list.push(user.user.email);
+                      list.push(otherUser.user.email, user.user.email);
                       list.sort();
 
                       // Delete User

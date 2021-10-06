@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+import process from 'node:process';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthenticationAPI from 'oae-authentication';

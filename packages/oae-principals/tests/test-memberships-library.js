@@ -81,7 +81,7 @@ describe('Memberships Library', () => {
         const { 0: branden, 1: simon } = users;
 
         // We need 110 groups because the paging size while rebuilding is 100
-        TestsUtil.generateTestGroups(branden.restContext, 110, function (...args) {
+        TestsUtil.generateTestGroups(branden.restContext, 110, (...args) => {
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
           assert.strictEqual(groupIds.length, 110);
 
@@ -137,7 +137,7 @@ describe('Memberships Library', () => {
         const { 0: branden, 1: simon } = users;
 
         // Generate 2 groups to be in branden's library
-        TestsUtil.generateTestGroups(branden.restContext, 2, function (...args) {
+        TestsUtil.generateTestGroups(branden.restContext, 2, (...args) => {
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
 
           // Update both groups through a back door to not have a lastModified

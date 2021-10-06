@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import Counter from 'oae-util/lib/counter.js';
 
@@ -187,25 +187,28 @@ const _invokeHandlers = function (...args) {
     deleteCounter.incr();
 
     // Add the callback function to the handlerArgs
-    const thisHandlerArgs = handlerArgs.concat((errs) => {
-      if (!errs) {
-        errs = [];
-      } else if (!_.isArray(errs)) {
-        errs = [errs];
+    const thisHandlerArgs = [
+      ...handlerArgs,
+      (errs) => {
+        if (!errs) {
+          errs = [];
+        } else if (!_.isArray(errs)) {
+          errs = [errs];
+        }
+
+        // Decrement the delete counter to indicate we've finished processing this handler
+        deleteCounter.decr();
+
+        if (!_.isEmpty(errs)) {
+          return log().error(
+            { principalId: principal.id, handlerName: name, errs },
+            'Error(s) occurred while trying to process a handler'
+          );
+        }
+
+        return log().debug({ principalId: principal.id, handlerName: name }, 'Successfully processed handler');
       }
-
-      // Decrement the delete counter to indicate we've finished processing this handler
-      deleteCounter.decr();
-
-      if (!_.isEmpty(errs)) {
-        return log().error(
-          { principalId: principal.id, handlerName: name, errs },
-          'Error(s) occurred while trying to process a handler'
-        );
-      }
-
-      return log().debug({ principalId: principal.id, handlerName: name }, 'Successfully processed handler');
-    });
+    ];
 
     // Invoke the handler with our arguments array
     handler.apply(handler, thisHandlerArgs);

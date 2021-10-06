@@ -17,7 +17,7 @@ import _ from 'underscore';
 
 import * as GroupAPI from './api.group.js';
 import * as PictureAPI from './api.picture.js';
-import * as TermsAndConditionsAPI from './api.termsAndConditions.js';
+import * as TermsAndConditionsAPI from './api.terms-and-conditions.js';
 import * as UserAPI from './api.user.js';
 
 /**

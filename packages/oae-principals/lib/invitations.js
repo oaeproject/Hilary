@@ -59,9 +59,7 @@ ResourceActions.emitter.when(
       // Filter out soft-deleted groups
       const groups = _.chain(groupsById)
         .values()
-        .filter((group) => {
-          return !group.deleted;
-        })
+        .filter((group) => !group.deleted)
         .value();
       if (_.isEmpty(groups)) {
         return callback();
@@ -117,9 +115,7 @@ const _touchAllGroups = function (groups, callback) {
   const updatedGroupsById = {};
   const _done = _.chain(groups)
     .size()
-    .after(() => {
-      return callback(updatedGroupsById);
-    })
+    .after(() => callback(updatedGroupsById))
     .value();
 
   _.each(groups, (group) => {

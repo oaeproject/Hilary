@@ -38,9 +38,7 @@ const ensureSchema = function (callback) {
         'CREATE TABLE "DataArchive" ("archiveId" text, "principalId" text, "resourceId" text, "deletionDate" text, PRIMARY KEY ("archiveId", "principalId"))'
     },
     () => {
-      runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {
-        return callback();
-      });
+      runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => callback());
     }
   );
 };

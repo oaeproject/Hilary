@@ -13,17 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { pluck, mergeRight, keys } from 'ramda';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import * as AuthenticationAPI from 'oae-authentication';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
@@ -38,6 +34,9 @@ import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 import { RestContext } from 'oae-rest/lib/model.js';
 import { Context } from 'oae-context';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Users', () => {
   // Rest contexts that can be used to make requests as different types of users
@@ -79,15 +78,11 @@ describe('Users', () => {
       });
 
       // Verify we can successfully register one with a function afterward
-      PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => {
-        return callback();
-      });
+      PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => callback());
 
       // Verify we cannot register a duplicate
       assert.throws(() => {
-        PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => {
-          return callback();
-        });
+        PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => callback());
       });
 
       return callback();
@@ -104,24 +99,18 @@ describe('Users', () => {
       const testFalseNamespace = TestsUtil.generateRandomText();
       const testErrorNamespace = TestsUtil.generateRandomText();
 
-      PrincipalsAPI.registerFullUserProfileDecorator(testUndefinedNamespace, (ctx, user, callback) => {
-        return callback();
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testNullNamespace, (ctx, user, callback) => {
-        return callback(null, null);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testZeroNamespace, (ctx, user, callback) => {
-        return callback(null, 0);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testEmptyStringNamespace, (ctx, user, callback) => {
-        return callback(null, '');
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testFalseNamespace, (ctx, user, callback) => {
-        return callback(null, false);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testErrorNamespace, (ctx, user, callback) => {
-        return callback({ code: 500, msg: 'Expected' });
-      });
+      PrincipalsAPI.registerFullUserProfileDecorator(testUndefinedNamespace, (ctx, user, callback) => callback());
+      PrincipalsAPI.registerFullUserProfileDecorator(testNullNamespace, (ctx, user, callback) => callback(null, null));
+      PrincipalsAPI.registerFullUserProfileDecorator(testZeroNamespace, (ctx, user, callback) => callback(null, 0));
+      PrincipalsAPI.registerFullUserProfileDecorator(testEmptyStringNamespace, (ctx, user, callback) =>
+        callback(null, '')
+      );
+      PrincipalsAPI.registerFullUserProfileDecorator(testFalseNamespace, (ctx, user, callback) =>
+        callback(null, false)
+      );
+      PrincipalsAPI.registerFullUserProfileDecorator(testErrorNamespace, (ctx, user, callback) =>
+        callback({ code: 500, msg: 'Expected' })
+      );
 
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
@@ -216,9 +205,7 @@ describe('Users', () => {
                         assert.ok(!token);
 
                         // Ensure no verification email was sent since we had a verification token
-                        EmailTestUtil.collectAndFetchAllEmails((/* messages */) => {
-                          return callback();
-                        });
+                        EmailTestUtil.collectAndFetchAllEmails((/* messages */) => callback());
                       }
                     );
                   });
@@ -454,9 +441,7 @@ describe('Users', () => {
 
                   // Only user accounts with an email that belongs to the configured email domain can be created
                   _verifyCreateUserWithEmailDomain(tenantHost, emailDomain1, () => {
-                    _verifyCreateUserWithEmailDomainFails(tenantHost, emailDomain2, () => {
-                      return callback();
-                    });
+                    _verifyCreateUserWithEmailDomainFails(tenantHost, emailDomain2, () => callback());
                   });
                 });
               });
@@ -496,9 +481,7 @@ describe('Users', () => {
             displayName: 'displayName',
             email: TestsUtil.generateTestEmailAddress(null, emailDomain)
           };
-          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => {
-            return callback();
-          });
+          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => callback());
         });
       });
     });

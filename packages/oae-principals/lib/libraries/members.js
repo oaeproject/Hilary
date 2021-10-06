@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 
 import _ from 'underscore';
@@ -61,9 +61,7 @@ const list = function (group, visibility, options, callback) {
         return callback(error);
       }
 
-      const memberEntries = _.map(entries, (entry) => {
-        return { id: entry.resourceId, role: entry.value };
-      });
+      const memberEntries = _.map(entries, (entry) => ({ id: entry.resourceId, role: entry.value }));
 
       return callback(null, memberEntries, nextToken);
     }
@@ -154,15 +152,13 @@ const _updatePrincipalInMembersLibraries = function (ctx, updatedPrincipal, oldP
         );
       }
 
-      const entries = _.map(allRoles, (groupRole) => {
-        return {
-          id: groupRole.id,
-          oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
-          newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
-          resource: updatedPrincipal,
-          value: groupRole.role
-        };
-      });
+      const entries = _.map(allRoles, (groupRole) => ({
+        id: groupRole.id,
+        oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
+        newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
+        resource: updatedPrincipal,
+        value: groupRole.role
+      }));
 
       return LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERS_INDEX_NAME, entries);
     }

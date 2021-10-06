@@ -18,7 +18,9 @@ import locale from 'locale';
 
 import * as OAE from 'oae-util/lib/oae.js';
 
+// eslint-disable-next-line no-unused-vars
 import * as UserRESTEndpoints from 'oae-principals/lib/rest.user.js';
+// eslint-disable-next-line no-unused-vars
 import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group.js';
 
 import * as userConfig from '../config/user.js';
@@ -30,9 +32,7 @@ import PrincipalsAPI from './api.js';
 let languages = userConfig.user.elements.defaultLanguage.list;
 
 // Make languages into an array of just the values as that's what locale needs
-languages = _.map(languages, (lang) => {
-  return lang.value;
-});
+languages = _.map(languages, (lang) => lang.value);
 
 // Use the locale middleware
 OAE.tenantServer.use(locale(languages));

@@ -46,11 +46,11 @@ const programUserDeletionTask = function (globalContext, callback) {
    */
   const job = new CronJob(
     '00 00 00 * * 6', // '0 */2 * * * *',
-    function () {
+    () => {
       const actualDate = new Date();
 
       // Get list of pricipals which must be deleted
-      PrincipalsDAO.getExpiredUser(actualDate, function (error, principalsToDelete) {
+      PrincipalsDAO.getExpiredUser(actualDate, (error, principalsToDelete) => {
         if (error) return callback(error);
 
         if (_.isEmpty(principalsToDelete)) return;

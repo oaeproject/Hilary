@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 import _ from 'underscore';
 import async from 'async';
 import clone from 'clone';
@@ -45,6 +45,18 @@ import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator.js';
+import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
+import isIn from 'validator/lib/isIn.js';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
+import * as PrincipalsDAO from './internal/dao.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsTermsAndConditionsAPI from './api.terms-and-conditions.js';
+import * as PrincipalsUtil from './util.js';
+import { PrincipalsConstants } from './constants.js';
+import { User } from './model.js';
+
 const {
   unless,
   isShortString,
@@ -59,33 +71,6 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import {
-  add,
-  defaultTo,
-  equals,
-  path,
-  __,
-  slice,
-  join,
-  last,
-  split,
-  curry,
-  forEach,
-  ifElse,
-  compose,
-  not,
-  isNil
-} from 'ramda';
-import isIn from 'validator/lib/isIn.js';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
-import { AuthzConstants } from 'oae-authz/lib/constants.js';
-import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
-import * as PrincipalsDAO from './internal/dao.js';
-import PrincipalsEmitter from './internal/emitter.js';
-import * as PrincipalsTermsAndConditionsAPI from './api.termsAndConditions.js';
-import * as PrincipalsUtil from './util.js';
-import { PrincipalsConstants } from './constants.js';
-import { User } from './model.js';
 
 const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -809,18 +794,18 @@ const deleteUser = function (ctx, userId, callback) {
       return callback({ code: 401, msg: 'You are not authorized to delete this user' });
     }
 
-    PrincipalsDAO.getPrincipalSkipCache(userId, function (error, user) {
+    PrincipalsDAO.getPrincipalSkipCache(userId, (error, user) => {
       if (error) return callback(error);
 
       // Get and/or create archiveUser
-      UserDeletionUtil.fetchOrCloneFromUser(ctx, user, function (error, archiveUser) {
+      UserDeletionUtil.fetchOrCloneFromUser(ctx, user, (error, archiveUser) => {
         if (error) return callback(error);
 
         if (user.isUserArchive === 'true' || archiveUser.archiveId === user.id) {
           return callback({ code: 401, msg: "This user can't be deleted" });
         }
 
-        UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, function (error) {
+        UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, (error) => {
           if (error) return callback(error);
 
           PrincipalsDAO.deletePrincipal(userId, (error_) => {
@@ -1625,11 +1610,11 @@ const _assemblePersonalData = function (personalDetails, profilePicture, data, c
   if (data) {
     const dataTypes = ['uploads', 'links', 'collabdocs', 'collabsheets', 'meetings', 'discussions'];
 
-    dataTypes.forEach((dataType) => {
+    for (const dataType of dataTypes) {
       if (data[dataType]) {
         personalData[dataType] = data[dataType];
       }
-    });
+    }
   }
 
   return callback(null, personalData);
@@ -1656,15 +1641,11 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
 
     // Remove all content that was not created by the user
     if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-      contents = _.reject(contents, (content) => {
-        return content.createdBy !== userId;
-      });
+      contents = _.reject(contents, (content) => content.createdBy !== userId);
     }
 
     // Group all content by type
-    const contentsSplited = _.groupBy(contents, (content) => {
-      return content.resourceSubType;
-    });
+    const contentsSplited = _.groupBy(contents, (content) => content.resourceSubType);
 
     // Get uploaded files
     _getUploadedFiles(ctx, contentsSplited.file, (error, uploadData) => {
@@ -1686,9 +1667,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
               if (error) return callback(error);
 
               if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                meetings = _.reject(meetings, (meeting) => {
-                  return meeting.createdBy !== userId;
-                });
+                meetings = _.reject(meetings, (meeting) => meeting.createdBy !== userId);
               }
 
               // Convert meetings into txt file
@@ -1700,9 +1679,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
                   if (error) return callback(error);
 
                   if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                    discussions = _.reject(discussions, (discussion) => {
-                      return discussion.createdBy !== userId;
-                    });
+                    discussions = _.reject(discussions, (discussion) => discussion.createdBy !== userId);
                   }
 
                   // Convert meetings into txt file

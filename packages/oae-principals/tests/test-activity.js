@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
@@ -26,14 +27,10 @@ import * as TestsUtil from 'oae-tests';
 
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
-import { testingContext } from 'oae-tests/lib/context.js';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { forEach, not, and } from 'ramda';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-import { forEach, not, and } from 'ramda';
 
 const NO_VIEWERS = [];
 const NO_FOLDERS = [];

@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import * as Fields from 'oae-config/lib/fields.js';
 
 export const title = 'OAE Principals Module';

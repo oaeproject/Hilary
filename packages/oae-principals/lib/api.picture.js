@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 import _ from 'underscore';
 import mime from 'mime';
 
@@ -24,6 +24,14 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as ImageUtil from 'oae-util/lib/image.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
+import { compose, curry, __, pipe } from 'ramda';
+import * as GroupAPI from './api.group.js';
+import * as PrincipalsDAO from './internal/dao.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsUtil from './util.js';
+
+import { PrincipalsConstants } from './constants.js';
+
 const {
   validateInCase: bothCheck,
   unless,
@@ -34,13 +42,6 @@ const {
   isZeroOrGreater,
   isInt
 } = validator;
-import { compose, curry, __, pipe } from 'ramda';
-import * as GroupAPI from './api.group.js';
-import * as PrincipalsDAO from './internal/dao.js';
-import PrincipalsEmitter from './internal/emitter.js';
-import * as PrincipalsUtil from './util.js';
-
-import { PrincipalsConstants } from './constants.js';
 
 const log = logger('oae-principals-shared');
 
@@ -90,11 +91,9 @@ const storePicture = function (ctx, principalId, file, callback) {
       msg: 'Missing size on the file object.'
     })(file.size);
 
-    const UPLOAD_LIMIT = 10485760;
+    const UPLOAD_LIMIT = 10_485_760;
     unless(
-      bothCheck(fileIsThere, (size, max) => {
-        return size <= max;
-      }),
+      bothCheck(fileIsThere, (size, max) => size <= max),
       {
         code: 400,
         msg: 'The size of a picture has an upper limit of 10MB.'

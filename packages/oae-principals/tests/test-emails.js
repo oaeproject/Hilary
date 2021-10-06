@@ -13,15 +13,12 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import { format } from 'node:util';
+
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { mergeRight } from 'ramda';
 import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
@@ -32,6 +29,9 @@ import * as RestAPI from 'oae-rest';
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const NO_MANAGERS = [];
 const NO_FOLDERS = [];
@@ -109,9 +109,7 @@ describe('User emails', () => {
                     // Sanity-check
                     PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
                       // A token can only be verified once
-                      PrincipalsTestUtil.assertVerifyEmailFails(restContext, user.id, token, 404, () => {
-                        return callback();
-                      });
+                      PrincipalsTestUtil.assertVerifyEmailFails(restContext, user.id, token, 404, () => callback());
                     });
                   });
                 }
@@ -151,9 +149,7 @@ describe('User emails', () => {
                   parameters.username,
                   parameters.password,
                   () => {
-                    PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
-                      return callback();
-                    });
+                    PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => callback());
                   }
                 );
               });
@@ -191,9 +187,9 @@ describe('User emails', () => {
               'password',
               () => {
                 // Assert we cannot user the token from the first user
-                PrincipalsTestUtil.assertVerifyEmailFails(restContextUser2, user2.id, tokenUser1, 401, () => {
-                  return callback();
-                });
+                PrincipalsTestUtil.assertVerifyEmailFails(restContextUser2, user2.id, tokenUser1, 401, () =>
+                  callback()
+                );
               }
             );
           });
@@ -253,9 +249,9 @@ describe('User emails', () => {
                         () => {
                           PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user2.id, token, () => {
                             // The second user should now also be mapped to the email address
-                            PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id, user2.id], () => {
-                              return callback();
-                            });
+                            PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user1.id, user2.id], () =>
+                              callback()
+                            );
                           });
                         }
                       );
@@ -298,9 +294,7 @@ describe('User emails', () => {
               () => {
                 PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, token, () => {
                   // Assert the mapping has been created
-                  PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => {
-                    return callback();
-                  });
+                  PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => callback());
                 });
               }
             );
@@ -373,9 +367,7 @@ describe('User emails', () => {
           assert.strictEqual(user.email, email.toLowerCase());
 
           // Assert that there's a mapping for the email address
-          PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => {
-            return callback();
-          });
+          PrincipalsTestUtil.assertUserEmailMappingEquals(email, [user.id], () => callback());
         });
       });
     });
@@ -471,9 +463,7 @@ describe('User emails', () => {
                 assert.strictEqual(me.email, email.toLowerCase());
 
                 // Assert that there's a mapping for the email address
-                PrincipalsTestUtil.assertUserEmailMappingEquals(email, [me.id], () => {
-                  return callback();
-                });
+                PrincipalsTestUtil.assertUserEmailMappingEquals(email, [me.id], () => callback());
               });
             });
           }
@@ -582,7 +572,7 @@ describe('User emails', () => {
 
             // Verify the user's email address is verified
             const restContext = TestsUtil.createTenantRestContext(tenant.host, 'users-emails-abc123', 'password');
-            setTimeout(RestAPI.User.getMe, 15000, restContext, (error, user) => {
+            setTimeout(RestAPI.User.getMe, 15_000, restContext, (error, user) => {
               assert.notExists(error);
               assert.strictEqual(user.email, 'foo@users.emails.com');
 
@@ -605,9 +595,7 @@ describe('User emails', () => {
                       // Assert there's a mapping for the new email address
                       PrincipalsTestUtil.assertUserEmailMappingEquals('bar@users.emails.com', [user.id], () => {
                         // Assert there's no mapping for the old email address
-                        PrincipalsTestUtil.assertUserEmailMappingEquals('foo@users.emails.com', [], () => {
-                          return callback();
-                        });
+                        PrincipalsTestUtil.assertUserEmailMappingEquals('foo@users.emails.com', [], () => callback());
                       });
                     });
                   }
@@ -776,9 +764,7 @@ describe('User emails', () => {
             assert.strictEqual(newToken, token);
 
             // Sanity-check we can use this new token to verify the email address
-            PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, newToken, () => {
-              return callback();
-            });
+            PrincipalsTestUtil.assertVerifyEmailSucceeds(restContext, user.id, newToken, () => callback());
           });
         });
       });
@@ -802,9 +788,7 @@ describe('User emails', () => {
           assert.notExists(error);
 
           // Invalid user id
-          PrincipalsTestUtil.assertResendEmailTokenFails(restContext, 'not a user id', 400, () => {
-            return callback();
-          });
+          PrincipalsTestUtil.assertResendEmailTokenFails(restContext, 'not a user id', 400, () => callback());
         });
       });
     });
@@ -841,9 +825,8 @@ describe('User emails', () => {
                     user.id,
                     (/* newToken */) => {
                       // Global administrators can resend a token
-                      PrincipalsTestUtil.assertResendEmailTokenSucceeds(asGlobalAdmin, user.id, (/* newToken */) => {
-                        return callback();
-                      });
+                      PrincipalsTestUtil.assertResendEmailTokenSucceeds(asGlobalAdmin, user.id, (/* newToken */) =>
+                        callback());
                     }
                   );
                 });
@@ -877,9 +860,9 @@ describe('User emails', () => {
                 // Use the token to verify the new email address
                 PrincipalsTestUtil.assertVerifyEmailSucceeds(simong.restContext, simong.user.id, newToken, () => {
                   // Resending a token should now fail as the token has been used and should be removed
-                  PrincipalsTestUtil.assertResendEmailTokenFails(simong.restContext, simong.user.id, 404, () => {
-                    return callback();
-                  });
+                  PrincipalsTestUtil.assertResendEmailTokenFails(simong.restContext, simong.user.id, 404, () =>
+                    callback()
+                  );
                 });
               });
             }
@@ -926,9 +909,7 @@ describe('User emails', () => {
 
         // Invalid user id
         PrincipalsTestUtil.assertGetEmailTokenFails(simong.restContext, 'not a user id', 400, () => {
-          PrincipalsTestUtil.assertGetEmailTokenFails(simong.restContext, 'g:camtest:1234234', 400, () => {
-            return callback();
-          });
+          PrincipalsTestUtil.assertGetEmailTokenFails(simong.restContext, 'g:camtest:1234234', 400, () => callback());
         });
       });
     });
@@ -959,9 +940,7 @@ describe('User emails', () => {
                     PrincipalsTestUtil.assertGetEmailTokenSucceeds(
                       asCambridgeTenantAdmin,
                       simong.user.id,
-                      (/* emailForToken */) => {
-                        return callback();
-                      }
+                      (/* emailForToken */) => callback()
                     );
                   }
                 );
@@ -988,9 +967,7 @@ describe('User emails', () => {
           // Delete the token
           PrincipalsTestUtil.assertDeleteEmailTokenSucceeds(simong.restContext, simong.user.id, () => {
             // Verify a token can't be deleted twice
-            PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, simong.user.id, 404, () => {
-              return callback();
-            });
+            PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, simong.user.id, 404, () => callback());
           });
         });
       });
@@ -1008,9 +985,7 @@ describe('User emails', () => {
         PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, 'not a user id', 400, () => {
           PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, 'g:camtest:1234234', 400, () => {
             // No token should return a 404
-            PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, simong.user.id, 404, () => {
-              return callback();
-            });
+            PrincipalsTestUtil.assertDeleteEmailTokenFails(simong.restContext, simong.user.id, 404, () => callback());
           });
         });
       });
@@ -1044,9 +1019,7 @@ describe('User emails', () => {
                       PrincipalsTestUtil.assertDeleteEmailTokenSucceeds(
                         asCambridgeTenantAdmin,
                         simong.user.id,
-                        (/* emailForToken */) => {
-                          return callback();
-                        }
+                        (/* emailForToken */) => callback()
                       );
                     });
                   }

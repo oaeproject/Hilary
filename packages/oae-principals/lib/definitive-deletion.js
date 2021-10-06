@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 import _ from 'underscore';
 import async from 'async';
 import shortId from 'shortid';
@@ -185,9 +185,7 @@ const _addMemberToList = (list, resource, memberList, action, callback) => {
         return done();
       });
     },
-    () => {
-      return callback(null, list);
-    }
+    () => callback(null, list)
   );
 };
 
@@ -301,9 +299,7 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
           return done();
         });
       },
-      () => {
-        return callback(null, listEmail);
-      }
+      () => callback(null, listEmail)
     );
   });
 };
@@ -370,9 +366,10 @@ const _transferResourcePermissions = (
                     });
                   });
                 } else {
-                  const hasAnotherManager = _.find(newMemberList, (member) => {
-                    return member.role === AuthzConstants.role.MANAGER;
-                  });
+                  const hasAnotherManager = _.find(
+                    newMemberList,
+                    (member) => member.role === AuthzConstants.role.MANAGER
+                  );
 
                   // If there is another manager on the resource, send a notification email
                   if (hasAnotherManager) {
@@ -448,9 +445,7 @@ const _transferResourcePermissions = (
           });
         });
       },
-      () => {
-        return callback(null, listElementByMember, listOfIdElementToBeTransferred);
-      }
+      () => callback(null, listElementByMember, listOfIdElementToBeTransferred)
     );
   });
 };
@@ -465,14 +460,11 @@ const _transferResourcePermissions = (
  * @param  {Object}     callback.newMemberList      Array of user without the deleted user
  * @api private
  */
-const _removeUserFromMemberList = (memberList, userId, callback) => {
-  return callback(
+const _removeUserFromMemberList = (memberList, userId, callback) =>
+  callback(
     null,
-    _.reject(memberList, (element) => {
-      return element.profile.id === userId;
-    })
+    _.reject(memberList, (element) => element.profile.id === userId)
   );
-};
 
 /**
  * Add elements to archive
@@ -494,9 +486,7 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
   }
 
   // Return list of ids after removing duplicate elements
-  const duplicationRemoved = elementId.filter((element, index, self) => {
-    return index === self.indexOf(element);
-  });
+  const duplicationRemoved = elementId.filter((element, index, self) => index === self.indexOf(element));
 
   const monthsUntilDeletion = PrincipalsConfig.getValue(principalToEliminate.tenant.alias, 'user', DELETE);
   const deletionDate = addMonths(new Date(), Number.parseInt(monthsUntilDeletion, 10));
@@ -997,13 +987,9 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
 
             const doesResourceHaveManagers =
               _.chain(memberIdRoles)
-                .reject((each) => {
-                  return each.id === archiveId;
-                })
+                .reject((each) => each.id === archiveId)
                 .pluck('role')
-                .filter((role) => {
-                  return role === AuthzConstants.role.MANAGER;
-                })
+                .filter((role) => role === AuthzConstants.role.MANAGER)
                 .value().length > 0;
 
             // Lets erase only if there are no new managers in the meantime
@@ -1045,9 +1031,7 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
         });
       }
     },
-    () => {
-      return callback();
-    }
+    () => callback()
   );
 };
 

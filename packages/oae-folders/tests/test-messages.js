@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PUBLIC = 'public';
 
@@ -79,7 +78,7 @@ describe('Folders', () => {
                       400,
                       () => {
                         // Test a body that is longer than the maximum allowed size
-                        const body = TestsUtil.generateRandomText(10000);
+                        const body = TestsUtil.generateRandomText(10_000);
                         FoldersTestUtil.assertCreateMessageFails(user1.restContext, folder.id, body, null, 400, () => {
                           // Sanity check
                           FoldersTestUtil.assertCreateMessageSucceeds(

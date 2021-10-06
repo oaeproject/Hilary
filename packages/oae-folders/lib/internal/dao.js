@@ -89,9 +89,7 @@ const getFoldersByIds = function (folderIds, callback) {
     // Assemble the folders array, ensuring it is in the same order as the original ids
     const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
     const folders = _.chain(folderIds)
-      .map((folderId) => {
-        return foldersById[folderId];
-      })
+      .map((folderId) => foldersById[folderId])
       .compact()
       .value();
 
@@ -120,9 +118,7 @@ const getFoldersByGroupIds = function (groupIds, callback) {
     // Assemble the folder ids, ensuring the original ordering is maintained
     const folderIdsByGroupIds = _.chain(rows).map(Cassandra.rowToHash).indexBy('groupId').value();
     const folderIds = _.chain(groupIds)
-      .map((groupId) => {
-        return folderIdsByGroupIds[groupId];
-      })
+      .map((groupId) => folderIdsByGroupIds[groupId])
       .compact()
       .pluck('folderId')
       .value();

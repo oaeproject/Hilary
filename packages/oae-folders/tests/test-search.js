@@ -131,8 +131,8 @@ describe('Folders', () => {
                         simong.restContext,
                         folder.id,
                         [publicContent.id, loggedinContent.id, privateContent.id],
-                        () => {
-                          return callback(
+                        () =>
+                          callback(
                             simong,
                             folder,
                             publicContent,
@@ -142,8 +142,7 @@ describe('Folders', () => {
                             publicTenant2,
                             privateTenant,
                             privateTenant1
-                          );
-                        }
+                          )
                       );
                     }
                   );
@@ -217,9 +216,7 @@ describe('Folders', () => {
                                   folder1.id,
                                   'marsupilamisausage',
                                   [mars],
-                                  () => {
-                                    return callback();
-                                  }
+                                  () => callback()
                                 );
                               });
                             }
@@ -301,9 +298,7 @@ describe('Folders', () => {
                                     folder.id,
                                     null,
                                     [publicContent, loggedinContent, privateContent],
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -371,9 +366,7 @@ describe('Folders', () => {
                               folder.id,
                               null,
                               [publicContent, loggedinContent, privateContent],
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -433,9 +426,7 @@ describe('Folders', () => {
                             folder.id,
                             null,
                             [publicContent, loggedinContent, privateContent],
-                            () => {
-                              return callback();
-                            }
+                            () => callback()
                           );
                         }
                       );

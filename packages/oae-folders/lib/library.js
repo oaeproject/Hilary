@@ -62,16 +62,16 @@ LibraryAPI.Index.registerLibraryIndex(FoldersConstants.library.FOLDERS_LIBRARY_I
     // Query all the group ids ('g') to which the principal is directly associated in this
     // batch of paged resources. Since the group can be a member of both user groups and
     // folder groups, we filter down to just the folder groups for folder libraries
-    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'g', start, limit, (err, roles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'g', start, limit, (error, roles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // We just need the ids, not the roles
       const ids = _.pluck(roles, 'id');
-      FoldersDAO.getFoldersByGroupIds(ids, (err, folders) => {
-        if (err) {
-          return callback(err);
+      FoldersDAO.getFoldersByGroupIds(ids, (error, folders) => {
+        if (error) {
+          return callback(error);
         }
 
         // Remove empty items, which indicates they mapped to user groups and not folder
@@ -80,9 +80,7 @@ LibraryAPI.Index.registerLibraryIndex(FoldersConstants.library.FOLDERS_LIBRARY_I
 
         // Convert all the folders into the light-weight library items that describe how
         // they are placed in a library index
-        const resources = _.map(folders, (folder) => {
-          return { rank: folder.lastModified, resource: folder };
-        });
+        const resources = _.map(folders, (folder) => ({ rank: folder.lastModified, resource: folder }));
 
         return callback(null, resources, nextToken);
       });
@@ -95,23 +93,24 @@ LibraryAPI.Index.registerLibraryIndex(FoldersConstants.library.FOLDERS_LIBRARY_I
  */
 LibraryAPI.Index.registerLibraryIndex(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
-    const opts = {
+    const options = {
       fields: ['contentId', 'tenantAlias', 'visibility', 'lastModified'],
       start,
       limit
     };
 
     // Page through the content items that are in the folder to build the library resources
-    FoldersDAO.getContentItems(libraryId, opts, (err, contentItems, nextToken) => {
-      if (err) {
-        return callback(err);
+    FoldersDAO.getContentItems(libraryId, options, (error, contentItems, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // Convert all the content into the light-weight library items that describe how
       // they are placed in a library index
-      const resources = _.map(contentItems, (contentItem) => {
-        return { rank: contentItem.lastModified, resource: contentItem };
-      });
+      const resources = _.map(contentItems, (contentItem) => ({
+        rank: contentItem.lastModified,
+        resource: contentItem
+      }));
 
       return callback(null, resources, nextToken);
     });
@@ -123,9 +122,9 @@ LibraryAPI.Index.registerLibraryIndex(FoldersConstants.library.CONTENT_LIBRARY_I
  */
 LibraryAPI.Search.registerLibrarySearch('folder-content', ['content'], {
   getLibraryOwner(folderId, callback) {
-    FoldersDAO.getFolder(folderId, (err, folder) => {
-      if (err) {
-        return callback(err);
+    FoldersDAO.getFolder(folderId, (error, folder) => {
+      if (error) {
+        return callback(error);
       }
 
       // We use the *groupId* as a "direct member" of content in the search index
@@ -146,11 +145,11 @@ LibraryAPI.Search.registerLibrarySearch('folder-library', ['folder']);
  */
 FoldersAPI.emitter.when(FoldersConstants.events.CREATED_FOLDER, (ctx, folder, memberChangeInfo, callback) => {
   const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  FoldersFoldersLibrary.insert(addedMemberIds, folder, (err) => {
-    if (err) {
+  FoldersFoldersLibrary.insert(addedMemberIds, folder, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           folderId: folder.id,
           memberIds: addedMemberIds
         },
@@ -169,16 +168,16 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, updatedFolde
   // Keep track of the async operation
   purgeCounter.incr();
 
-  _getAllMemberIds(updatedFolder.groupId, (err, memberIds) => {
-    if (err) {
+  _getAllMemberIds(updatedFolder.groupId, (error, memberIds) => {
+    if (error) {
       purgeCounter.decr();
-      return log().error({ err, updatedFolder }, 'An error occurred while retrieving the members for a folder');
+      return log().error({ err: error, updatedFolder }, 'An error occurred while retrieving the members for a folder');
     }
 
-    FoldersFoldersLibrary.update(memberIds, updatedFolder, oldFolder.lastModified, (err) => {
-      if (err) {
+    FoldersFoldersLibrary.update(memberIds, updatedFolder, oldFolder.lastModified, (error) => {
+      if (error) {
         purgeCounter.decr();
-        return log().error({ err, updatedFolder }, 'Could not update the folder libraries for a set of users');
+        return log().error({ err: error, updatedFolder }, 'Could not update the folder libraries for a set of users');
       }
 
       // At this point the async operation is over
@@ -196,11 +195,11 @@ FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, re
   purgeCounter.incr();
 
   // Purge the content library as it's no longer needed
-  FoldersContentLibrary.purge(folder, (err) => {
-    if (err) {
+  FoldersContentLibrary.purge(folder, (error) => {
+    if (error) {
       log().error(
         {
-          err,
+          err: error,
           folderId: folder.id,
           folderGroupId: folder.groupId
         },
@@ -208,11 +207,11 @@ FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, re
       );
     }
 
-    FoldersFoldersLibrary.remove(removedMemberIds, folder, (err) => {
-      if (err) {
+    FoldersFoldersLibrary.remove(removedMemberIds, folder, (error) => {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             folderId: folder.id,
             folderGroupId: folder.groupId,
             removedMemberIds
@@ -233,7 +232,7 @@ FoldersAPI.emitter.when(FoldersConstants.events.DELETED_FOLDER, (ctx, folder, re
  */
 FoldersAPI.emitter.when(
   FoldersConstants.events.UPDATED_FOLDER_MEMBERS,
-  (ctx, folder, memberChangeInfo, opts, callback) => {
+  (ctx, folder, memberChangeInfo, options, callback) => {
     purgeCounter.incr();
 
     const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
@@ -241,11 +240,11 @@ FoldersAPI.emitter.when(
     const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
 
     // Insert the folder into the libraries of new members
-    FoldersFoldersLibrary.insert(addedMemberIds, folder, (err) => {
-      if (err) {
+    FoldersFoldersLibrary.insert(addedMemberIds, folder, (error) => {
+      if (error) {
         log(ctx).warn(
           {
-            err,
+            err: error,
             folderId: folder.id,
             principalIds: addedMemberIds
           },
@@ -254,11 +253,11 @@ FoldersAPI.emitter.when(
       }
 
       // Remove the folder from the libraries of removed members
-      FoldersFoldersLibrary.remove(removedMemberIds, folder, (err) => {
-        if (err) {
+      FoldersFoldersLibrary.remove(removedMemberIds, folder, (error) => {
+        if (error) {
           log(ctx).warn(
             {
-              err,
+              err: error,
               folderId: folder.id,
               principalIds: removedMemberIds
             },
@@ -278,11 +277,11 @@ FoldersAPI.emitter.when(
           memberIdsAfterUpdate,
           folder,
           null,
-          (err) => {
-            if (err) {
+          (error) => {
+            if (error) {
               log(ctx).warn(
                 {
-                  err,
+                  err: error,
                   folderId: folder.id,
                   principalIds: memberIdsAfterUpdate
                 },
@@ -308,13 +307,13 @@ FoldersAPI.emitter.on(FoldersConstants.events.CREATED_COMMENT, (ctx, message, fo
     purgeCounter.incr();
 
     // Try and get the principals whose libraries will be updated
-    _getAllMemberIds(folder.groupId, (err, memberIds) => {
-      if (err) {
+    _getAllMemberIds(folder.groupId, (error, memberIds) => {
+      if (error) {
         // There isn't much we can do at this point other than log an error
         purgeCounter.decr();
         return log().warn(
           {
-            err,
+            err: error,
             folderId: folder.id
           },
           'Error fetching folder members list to update library. Skipping updating libraries'
@@ -323,12 +322,12 @@ FoldersAPI.emitter.on(FoldersConstants.events.CREATED_COMMENT, (ctx, message, fo
 
       // Bump the `lastModified` timestamp and update the folder libraries for all of the
       // members
-      FoldersFoldersLibrary.update(memberIds, folder, null, (err) => {
-        if (err) {
+      FoldersFoldersLibrary.update(memberIds, folder, null, (error) => {
+        if (error) {
           // There isn't much we can do at this point other than log an error
           log().warn(
             {
-              err,
+              err: error,
               folderId: folder.id
             },
             'Error updating the folder libraries when a message came in'
@@ -355,12 +354,12 @@ FoldersAPI.emitter.on(FoldersConstants.events.CREATED_COMMENT, (ctx, message, fo
  *  3.  We need to bump the last updated items in a library to the top. By re-inserting
  *      the content item with its latest `lastModified` timestamp this will be achieved
  */
-ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObj, oldContentObj) => {
+ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentObject, oldContentObject) => {
   purgeCounter.incr();
 
   // Purge all the libraries this content item was in
-  FoldersAuthz.getFoldersForContent(newContentObj.id, (err, folders) => {
-    if (err) {
+  FoldersAuthz.getFoldersForContent(newContentObject.id, (error, folders) => {
+    if (error) {
       // The error is logged further down the chain, there isn't much more that we can do
       purgeCounter.decr();
       return;
@@ -372,19 +371,19 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentO
       purgeCounter.incr();
 
       // Remove the content item from the old visibility bucket
-      FoldersContentLibrary.remove(folder, [oldContentObj], (err) => {
-        if (err) {
+      FoldersContentLibrary.remove(folder, [oldContentObject], (error) => {
+        if (error) {
           log().error(
-            { err, folder: folder.folderId, contentId: oldContentObj.id },
+            { err: error, folder: folder.folderId, contentId: oldContentObject.id },
             "Unable to update a folder's content library"
           );
         }
 
         // Insert the content item in the proper visibility bucket
-        FoldersContentLibrary.insert(folder, [newContentObj], (err) => {
-          if (err) {
+        FoldersContentLibrary.insert(folder, [newContentObject], (error) => {
+          if (error) {
             log().error(
-              { err, folder: folder.folderId, contentId: oldContentObj.id },
+              { err: error, folder: folder.folderId, contentId: oldContentObject.id },
               "Unable to update a folder's content library"
             );
           }
@@ -401,16 +400,16 @@ ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT, (ctx, newContentO
 /*!
  * When a content item is removed, we need to remove it from the folders it's in
  */
-ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj, members) => {
+ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObject, members) => {
   // Keep track of the async operation
   purgeCounter.incr();
 
   // Get all the folder that contained this piece of content
   const groupIds = AuthzUtil.getGroupIds(members);
-  FoldersDAO.getFoldersByGroupIds(groupIds, (err, folders) => {
-    if (err) {
+  FoldersDAO.getFoldersByGroupIds(groupIds, (error, folders) => {
+    if (error) {
       purgeCounter.decr();
-      log().error({ err, contentId: contentObj.id }, 'Unable to remove content from a folder');
+      log().error({ err: error, contentId: contentObject.id }, 'Unable to remove content from a folder');
       return;
     }
 
@@ -418,7 +417,7 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj,
     _.each(folders, (folder) => {
       purgeCounter.incr();
 
-      FoldersContentLibrary.remove(folder, [contentObj], () => {
+      FoldersContentLibrary.remove(folder, [contentObject], () => {
         purgeCounter.decr();
       });
     });
@@ -437,9 +436,9 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_CONTENT, (ctx, contentObj,
  * @api private
  */
 const _getAllMemberIds = function (groupId, callback) {
-  AuthzAPI.getAllAuthzMembers(groupId, (err, memberIdRoles) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.getAllAuthzMembers(groupId, (error, memberIdRoles) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _.pluck(memberIdRoles, 'id'));

@@ -20,7 +20,6 @@ import { pipe, keys, filter } from 'ramda';
 
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-const { isGroupId } = AuthzUtil;
 import * as ResourceActions from 'oae-resource/lib/actions.js';
 import * as FoldersAPI from 'oae-folders';
 import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
@@ -29,6 +28,8 @@ import { Context } from 'oae-context';
 import { Invitation } from 'oae-authz/lib/invitations/model.js';
 import { ResourceConstants } from 'oae-resource/lib/constants.js';
 import { FoldersConstants } from 'oae-folders/lib/constants.js';
+
+const { isGroupId } = AuthzUtil;
 
 const log = logger('oae-folders-invitations');
 

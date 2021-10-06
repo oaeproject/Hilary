@@ -39,6 +39,16 @@ import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
 
+import isIn from 'validator/lib/isIn.js';
+import isInt from 'validator/lib/isInt.js';
+import { forEachObjIndexed } from 'ramda';
+import * as FoldersFoldersLibrary from './internal/folders-library.js';
+import * as FoldersAuthz from './authz.js';
+import * as FoldersContentLibrary from './internal/content-library.js';
+import * as FoldersDAO from './internal/dao.js';
+
+import { FoldersConstants } from './constants.js';
+
 const {
   isArray,
   isValidRoleChange,
@@ -55,16 +65,6 @@ const {
   isArrayNotEmpty,
   isLongString
 } = validator;
-
-import isIn from 'validator/lib/isIn.js';
-import isInt from 'validator/lib/isInt.js';
-import { forEachObjIndexed } from 'ramda';
-import * as FoldersFoldersLibrary from './internal/folders-library.js';
-import * as FoldersAuthz from './authz.js';
-import * as FoldersContentLibrary from './internal/content-library.js';
-import * as FoldersDAO from './internal/dao.js';
-
-import { FoldersConstants } from './constants.js';
 
 const log = logger('oae-folders-api');
 
@@ -148,9 +148,7 @@ const createFolder = function (ctx, displayName, description, visibility, roles,
   // Check if the current user can manage any of the specified managers
   const managerIds = _.chain(roles)
     .keys()
-    .filter((principalId) => {
-      return roles[principalId] === AuthzConstants.role.MANAGER;
-    })
+    .filter((principalId) => roles[principalId] === AuthzConstants.role.MANAGER)
     .value();
   GroupAPI.canManageAny(ctx, managerIds, (error, canManageAny) => {
     if (error && error.code !== 404) {
@@ -385,9 +383,7 @@ const _updateFolderContentVisibility = function (ctx, folder, visibility, callba
         .compact()
 
         // Grab those content items that don't have the desired visibility
-        .filter((content) => {
-          return content.visibility !== visibility;
-        })
+        .filter((content) => content.visibility !== visibility)
         .value();
 
       const failedContent = [];
@@ -876,12 +872,10 @@ const getFolderMembers = function (ctx, folderId, start, limit, callback) {
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, (memberRole) => {
-          return {
-            profile: memberProfiles[memberRole.id],
-            role: memberRole.role
-          };
-        });
+        const memberList = _.map(memberRoles, (memberRole) => ({
+          profile: memberProfiles[memberRole.id],
+          role: memberRole.role
+        }));
 
         return callback(null, memberList, nextToken);
       });
@@ -1154,7 +1148,7 @@ const addContentItemsToFolder = function (ctx, folderId, contentIds, callback) {
         }
 
         // Add all the items to the folder
-        return _addContentItemsToFolderLibrary(ctx, 'add-to-folder', folder, contentItems.slice(), callback);
+        return _addContentItemsToFolderLibrary(ctx, 'add-to-folder', folder, [...contentItems], callback);
       });
     });
   });
@@ -1173,7 +1167,7 @@ const addContentItemsToFolder = function (ctx, folderId, contentIds, callback) {
  */
 const _addContentItemsToFolderLibrary = function (ctx, actionContext, folder, contentItems, callback) {
   // First, make the folder a member of all the content items
-  _addContentItemsToAuthzFolder(folder, contentItems.slice(), (error) => {
+  _addContentItemsToAuthzFolder(folder, [...contentItems], (error) => {
     if (error) {
       return callback(error);
     }
@@ -1268,7 +1262,7 @@ const removeContentItemsFromFolder = function (ctx, folderId, contentIds, callba
         }
 
         // Remove all the items from the folder
-        _removeContentItemsFromFolder(folder, contentIds.slice(), (error_) => {
+        _removeContentItemsFromFolder(folder, [...contentIds], (error_) => {
           if (error_) {
             return callback(error_);
           }
@@ -1346,9 +1340,7 @@ const getFoldersLibrary = function (ctx, principalId, start, limit, callback) {
             return callback(error);
           }
 
-          folders = _.map(folders, (folder) => {
-            return _augmentFolder(ctx, folder);
-          });
+          folders = _.map(folders, (folder) => _augmentFolder(ctx, folder));
 
           // Emit an event indicating that the folder library has been retrieved
           FoldersAPI.emit(
@@ -1389,12 +1381,8 @@ const getManagedFolders = function (ctx, callback) {
 
     // Get all the groups the user manages
     const managedGroupIds = _.chain(roles)
-      .filter((role) => {
-        return role.role === AuthzConstants.role.MANAGER;
-      })
-      .map((role) => {
-        return role.id;
-      })
+      .filter((role) => role.role === AuthzConstants.role.MANAGER)
+      .map((role) => role.id)
       .value();
 
     // Get all the folders that match these groups
@@ -1406,14 +1394,10 @@ const getManagedFolders = function (ctx, callback) {
       folders = _.chain(folders)
         // Because we retrieved all the folders that this user manages
         // we sort them, so they can be displayed immediately
-        .sort((a, b) => {
-          return a.displayName.localeCompare(b.displayName);
-        })
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
 
         // Augment the folder with the signed preview urls
-        .map((folder) => {
-          return _augmentFolder(ctx, folder);
-        })
+        .map((folder) => _augmentFolder(ctx, folder))
         .value();
 
       return callback(null, folders);
@@ -1778,9 +1762,7 @@ const getMessages = function (ctx, folderId, start, limit, callback) {
 
         // Get the unique user ids from the messages so we can retrieve their full user objects
         const userIds = _.chain(messages)
-          .map((message) => {
-            return message.createdBy;
-          })
+          .map((message) => message.createdBy)
           .uniq()
           .compact()
           .value();

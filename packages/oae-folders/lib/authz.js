@@ -71,7 +71,7 @@ const canAddItemsToFolder = function (ctx, folder, contentItems, callback) {
  * @param  {Folder[]}   callback.folders    The folders that contain the content item
  */
 const getFoldersForContent = function (contentId, callback) {
-  AuthzAPI.getAuthzMembers(contentId, null, 10000, (error, members) => {
+  AuthzAPI.getAuthzMembers(contentId, null, 10_000, (error, members) => {
     if (error) {
       log().error({ err: error, contentId }, 'Unable to get the members of a piece of content');
       return callback(error);

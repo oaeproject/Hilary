@@ -100,7 +100,7 @@ describe('Folders - Push', () => {
                               client.subscribe(
                                 folder.id,
                                 'activity',
-                                { expires: Date.now() + 10000, signature: 'foo' },
+                                { expires: Date.now() + 10_000, signature: 'foo' },
                                 null,
                                 (error_) => {
                                   assert.strictEqual(error_.code, 401);
@@ -214,9 +214,7 @@ describe('Folders - Push', () => {
       });
     };
 
-    const isMessageFromFolderCreation = (message) => {
-      return _.last(message.activities).verb === 'create';
-    };
+    const isMessageFromFolderCreation = (message) => _.last(message.activities).verb === 'create';
 
     /**
      * Test that verifies an update gets pushed out

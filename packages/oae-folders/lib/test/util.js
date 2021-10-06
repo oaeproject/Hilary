@@ -16,8 +16,8 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable unicorn/no-array-callback-reference */
 
-import { assert } from 'chai';
 import { format } from 'node:util';
+import { assert } from 'chai';
 import _ from 'underscore';
 import shortid from 'shortid';
 
@@ -150,9 +150,7 @@ const setupMultiTenantPrivacyEntities = function (callback) {
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
         _setupTenant(privateTenant, () => {
-          _setupTenant(privateTenant1, () => {
-            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-          });
+          _setupTenant(privateTenant1, () => callback(publicTenant, publicTenant1, privateTenant, privateTenant1));
         });
       });
     });
@@ -230,12 +228,12 @@ const assertAddContentItemToFoldersSucceeds = function (restContext, folderIds, 
   }
 
   // Add the content item to the next folder in the list
-  folderIds = folderIds.slice();
+  folderIds = [...folderIds];
   const folderId = folderIds.shift();
-  assertAddContentItemsToFolderSucceeds(restContext, folderId, [contentId], () => {
+  assertAddContentItemsToFolderSucceeds(restContext, folderId, [contentId], () =>
     // Recursively add the content item to the next folder
-    return assertAddContentItemToFoldersSucceeds(restContext, folderIds, contentId, callback);
-  });
+    assertAddContentItemToFoldersSucceeds(restContext, folderIds, contentId, callback)
+  );
 };
 
 /**
@@ -543,9 +541,7 @@ const assertUpdateFolderSucceeds = function (restContext, folderId, updates, cal
 
     // Wait for library and search to be udpated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
-      SearchTestUtil.whenIndexingComplete(() => {
-        return callback(folder);
-      });
+      SearchTestUtil.whenIndexingComplete(() => callback(folder));
     });
   });
 };
@@ -620,9 +616,7 @@ const assertDeleteFolderSucceeds = function (restContext, folderId, deleteConten
 
     // Wait for library and search to be updated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
-      SearchTestUtil.whenIndexingComplete(() => {
-        return FoldersLibrary.whenAllPurged(callback);
-      });
+      SearchTestUtil.whenIndexingComplete(() => FoldersLibrary.whenAllPurged(callback));
     });
   });
 };
@@ -937,9 +931,7 @@ const assertRemoveFolderFromLibrarySucceeds = function (restContext, principalId
  * @throws {AssertionError}                     Thrown if the request did not succeed
  */
 const assertShareFolderSucceeds = function (managerRestContext, actorRestContext, folderId, viewers, callback) {
-  const viewersSplit = _.partition(viewers, (viewer) => {
-    return _.isString(viewer);
-  });
+  const viewersSplit = _.partition(viewers, (viewer) => _.isString(viewer));
 
   // Get the viewer infos from the input while making the object more agnostic to the principal
   // type by changing the "user" / "group" key to just "profile"
@@ -1613,9 +1605,9 @@ const _setupTenant = function (tenant, callback) {
 const _createMultiPrivacyFolders = function (restContext, callback) {
   _createFolderWithVisibility(restContext, 'public', (publicFolder) => {
     _createFolderWithVisibility(restContext, 'loggedin', (loggedinFolder) => {
-      _createFolderWithVisibility(restContext, 'private', (privateFolder) => {
-        return callback(publicFolder, loggedinFolder, privateFolder);
-      });
+      _createFolderWithVisibility(restContext, 'private', (privateFolder) =>
+        callback(publicFolder, loggedinFolder, privateFolder)
+      );
     });
   });
 };
@@ -1662,7 +1654,7 @@ const _getAllFoldersInLibraries = function (principalInfos, callback, _principal
   }
 
   // Copy the input array so we don't destroy it during recursion
-  principalInfos = principalInfos.slice();
+  principalInfos = [...principalInfos];
 
   // Get the next principal and gather their folders
   const principalInfo = principalInfos.pop();

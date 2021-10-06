@@ -15,7 +15,7 @@
 
 /* eslint-disable camelcase */
 
-import { format } from 'util';
+import { format } from 'node:util';
 
 /**
  * The LTI tool model.

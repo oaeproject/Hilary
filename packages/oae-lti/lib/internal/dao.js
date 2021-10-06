@@ -39,9 +39,9 @@ const createLtiTool = function (id, groupId, launchUrl, secret, consumerKey, dis
   const query =
     'INSERT INTO "LtiTools" ("id", "groupId", "launchUrl", "secret", "oauthConsumerKey", "displayName", "description") VALUES (?, ?, ?, ?, ?, ?, ?)';
   const parameters = [id, groupId, launchUrl, secret, consumerKey, displayName, description];
-  Cassandra.runQuery(query, parameters, (err) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const ltiTool = new LtiTool(id, groupId, launchUrl, secret, consumerKey, {
@@ -66,9 +66,9 @@ const createLtiTool = function (id, groupId, launchUrl, secret, consumerKey, dis
  * @param  {LtiTool}    callback.ltiTool    The request LTI tool object
  */
 const getLtiTool = function (id, groupId, callback) {
-  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ? AND "id" = ?', [groupId, id], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ? AND "id" = ?', [groupId, id], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -91,9 +91,9 @@ const getLtiTool = function (id, groupId, callback) {
  * @param  {LtiTool[]}      callback.ltiTools   The LtiTools that are identified by the given group.
  */
 const getLtiToolsByGroupId = function (groupId, callback) {
-  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ?', [groupId], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ?', [groupId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     const tools = _.map(rows, (row) => {

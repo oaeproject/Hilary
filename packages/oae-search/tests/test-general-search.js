@@ -893,12 +893,12 @@ describe('General Search', () => {
                                   shouldNotFindDiscussion,
                                   searchTerm,
                                   () => {
-                                    reindexAll(createGlobalAdminRestContext(), () => {
+                                    reindexAll(createGlobalAdminRestContext(), () =>
                                       /**
                                        * Ensure we can now search both content and
                                        * discussion item again by their message bodies
                                        */
-                                      return _verifySearchResults(
+                                      _verifySearchResults(
                                         asHoracio,
                                         getId(someLink),
                                         getId(someDiscussion),
@@ -906,8 +906,8 @@ describe('General Search', () => {
                                         shouldFindDiscussion,
                                         searchTerm,
                                         callback
-                                      );
-                                    });
+                                      )
+                                    );
                                   }
                                 );
                               });
@@ -1032,8 +1032,8 @@ describe('General Search', () => {
                                               shouldFindContent,
                                               shouldFindDiscussion,
                                               searchTerm,
-                                              () => {
-                                                return _verifySearchResults(
+                                              () =>
+                                                _verifySearchResults(
                                                   asLopes,
                                                   getId(otherLink),
                                                   getId(otherDiscussion),
@@ -1041,8 +1041,7 @@ describe('General Search', () => {
                                                   shouldNotFindDiscussion,
                                                   searchTerm,
                                                   callback
-                                                );
-                                              }
+                                                )
                                             );
                                           });
                                         });
@@ -1603,9 +1602,7 @@ describe('General Search', () => {
                                                                           ALL_SCOPE,
                                                                           somePrivateUserFrom(privateTenantA),
                                                                           shouldNotBeAbleToFindIt,
-                                                                          () => {
-                                                                            return callback();
-                                                                          }
+                                                                          () => callback()
                                                                         );
                                                                       }
                                                                     );
@@ -1760,9 +1757,7 @@ describe('General Search', () => {
                                                                               NETWORK_SCOPE,
                                                                               somePrivateUserFrom(privateTenantB),
                                                                               shouldNotBeAbleToFindIt,
-                                                                              () => {
-                                                                                return callback();
-                                                                              }
+                                                                              () => callback()
                                                                             );
                                                                           }
                                                                         );
@@ -1974,9 +1969,7 @@ describe('General Search', () => {
                                                                                                     privateTenantB
                                                                                                   ),
                                                                                                   shouldNotBeAbleToFindIt,
-                                                                                                  () => {
-                                                                                                    return callback();
-                                                                                                  }
+                                                                                                  () => callback()
                                                                                                 );
                                                                                               }
                                                                                             );
@@ -2132,9 +2125,7 @@ describe('General Search', () => {
                                                                   MY_SCOPE,
                                                                   somePublicGroupFrom(publicTenantB),
                                                                   shouldBeAbleToFindIt,
-                                                                  () => {
-                                                                    return callback();
-                                                                  }
+                                                                  () => callback()
                                                                 );
                                                               }
                                                             );
@@ -2269,9 +2260,7 @@ describe('General Search', () => {
                                                               getTenantAlias(publicTenantB),
                                                               somePrivateUserFrom(publicTenantB),
                                                               shouldNotBeAbleToFindIt,
-                                                              () => {
-                                                                return callback();
-                                                              }
+                                                              () => callback()
                                                             );
                                                           }
                                                         );

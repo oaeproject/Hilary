@@ -24,6 +24,7 @@ import { SearchConstants } from 'oae-search/lib/constants.js';
 
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as SearchUtil from 'oae-search/lib/util.js';
+
 const {
   filterCreatedBy,
   createHasChildQuery,
@@ -167,10 +168,9 @@ const _createQuery = function (ctx, options) {
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         createQueryStringQuery(options.q, ['discussion_message_body']),
         'max'
-      )
-    );
-    // If the content_body matches that should be boosted over a comment match
-    query.bool.should.push(
+      ),
+
+      // If the content_body matches that should be boosted over a comment match
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_BODY,
         createQueryStringQuery(options.q, ['content_body']),

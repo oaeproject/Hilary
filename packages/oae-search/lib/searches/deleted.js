@@ -18,6 +18,7 @@ import * as OaeUtil from 'oae-util/lib/util.js';
 
 import { SearchConstants } from 'oae-search/lib/constants.js';
 import * as SearchUtil from 'oae-search/lib/util.js';
+
 const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterScopeAndAccess } = SearchUtil;
 
 /**

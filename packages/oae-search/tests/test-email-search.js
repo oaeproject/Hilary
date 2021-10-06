@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import {
   values,
   mergeAll,
@@ -183,9 +183,7 @@ describe('Email Search', () => {
       assertSearchFails(asAnonymousUser, EMAIL, NO_PARAMS, { q: johnDoeEmail }, 401, () => {
         assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
           assertSearchEquals(asTenantAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-            assertSearchEquals(asGlobalAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-              return callback();
-            });
+            assertSearchEquals(asGlobalAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => callback());
           });
         });
       });
@@ -208,9 +206,7 @@ describe('Email Search', () => {
       assertSearchFails(asJohnDoe, EMAIL, NO_PARAMS, null, 400, () => {
         assertSearchFails(asJohnDoe, EMAIL, NO_PARAMS, { q: 'notanemail' }, 400, () => {
           // Sanity check user can perform an email search
-          assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-            return callback();
-          });
+          assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => callback());
         });
       });
     });
@@ -370,15 +366,13 @@ describe('Email Search', () => {
       assertUpdateUsersSucceeds(asTenantAdmin, userIdsToUpdate, { email: getEmail(fonseca) }, (users, tokens) => {
         const userInfoTokens = compose(
           values,
-          map((eachUser) => {
-            return {
-              token: prop(getId(eachUser), tokens),
-              userInfo: {
-                restContext: getContext(prop(getId(eachUser), userInfos)),
-                user: prop(getId(eachUser), users)
-              }
-            };
-          })
+          map((eachUser) => ({
+            token: prop(getId(eachUser), tokens),
+            userInfo: {
+              restContext: getContext(prop(getId(eachUser), userInfos)),
+              user: prop(getId(eachUser), users)
+            }
+          }))
         )(users);
 
         assertVerifyEmailsSucceeds(userInfoTokens, () => {
@@ -450,9 +444,7 @@ describe('Email Search', () => {
                                   NO_PARAMS,
                                   { q: getEmail(fonseca) },
                                   allUserIds,
-                                  () => {
-                                    return callback();
-                                  }
+                                  () => callback()
                                 );
                               }
                             );

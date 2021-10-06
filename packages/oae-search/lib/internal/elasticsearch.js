@@ -99,8 +99,8 @@ const refreshSearchConfiguration = function (_index, serverNodes) {
  * @param  {Object}      callback.err    An error that occurred, if any
  */
 const createIndex = function (index, settings, callback) {
-  indexExists(index, (err, indexExists) => {
-    if (err) return callback(err);
+  indexExists(index, (error, indexExists) => {
+    if (error) return callback(error);
     if (indexExists) return callback(null, true);
 
     log().info(
@@ -120,10 +120,10 @@ const createIndex = function (index, settings, callback) {
         index,
         body
       },
-      (err, result) => {
-        if (err) {
-          _logError(CREATE_INDEX, err);
-          return callback(err);
+      (error, result) => {
+        if (error) {
+          _logError(CREATE_INDEX, error);
+          return callback(error);
         }
 
         Telemetry.appendDuration('exec.' + CREATE_INDEX + '.time', start);
@@ -141,8 +141,8 @@ const createIndex = function (index, settings, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  */
 const deleteIndex = function (index, callback) {
-  indexExists(index, (err, indexExists) => {
-    if (err) return callback(err);
+  indexExists(index, (error, indexExists) => {
+    if (error) return callback(error);
 
     if (indexExists) {
       log().info('Deleting index "%s"...', index);
@@ -153,9 +153,9 @@ const deleteIndex = function (index, callback) {
         {
           index
         },
-        (err, result) => {
-          if (err) {
-            _logError(DELETE_INDEX, err);
+        (error, result) => {
+          if (error) {
+            _logError(DELETE_INDEX, error);
           }
 
           Telemetry.appendDuration('exec.' + DELETE_INDEX + '.time', start);
@@ -183,10 +183,10 @@ const indexExists = function (index, callback) {
     {
       index
     },
-    (err, queryResult) => {
-      if (err) {
-        _logError(INDEX_STATUS, err);
-        return callback(err);
+    (error, queryResult) => {
+      if (error) {
+        _logError(INDEX_STATUS, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + INDEX_STATUS + '.time', start);
@@ -208,10 +208,10 @@ const refresh = (callback) => {
     {
       index
     },
-    (err, result) => {
-      if (err) {
-        _logError(REFRESH, err);
-        return callback(err);
+    (error, result) => {
+      if (error) {
+        _logError(REFRESH, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + REFRESH + '.time', start);
@@ -249,11 +249,11 @@ const refresh = (callback) => {
  * @param  {Function}  callback            Standard callback function
  * @param  {Object}    callback.err        An error that occurred, if any
  */
-const putMapping = function (properties, opts, callback) {
-  opts = opts || {};
+const putMapping = function (properties, options, callback) {
+  options = options || {};
 
-  indexExists(index, (err, exists) => {
-    if (err) return callback(err);
+  indexExists(index, (error, exists) => {
+    if (error) return callback(error);
     if (not(exists)) return callback();
 
     /**
@@ -287,10 +287,10 @@ const putMapping = function (properties, opts, callback) {
         index,
         body
       },
-      (err, result) => {
-        if (err) {
-          _logError(PUT_MAPPING, err);
-          return callback(err);
+      (error, result) => {
+        if (error) {
+          _logError(PUT_MAPPING, error);
+          return callback(error);
         }
 
         Telemetry.appendDuration('exec.' + PUT_MAPPING + '.time', start);
@@ -344,10 +344,10 @@ const mappingExists = function (property, callback) {
     {
       index
     },
-    (err, result) => {
-      if (err) {
-        _logError(GET_MAPPING, err);
-        return callback(err);
+    (error, result) => {
+      if (error) {
+        _logError(GET_MAPPING, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + GET_MAPPING + '.time', start);
@@ -382,10 +382,10 @@ const search = function (body, options, callback) {
       from,
       size
     },
-    (err, result) => {
-      if (err) {
-        _logError(SEARCH, err);
-        return callback(err);
+    (error, result) => {
+      if (error) {
+        _logError(SEARCH, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + SEARCH + '.time', start);
@@ -411,10 +411,10 @@ const runIndex = function (typeName, id, body, options, callback) {
   Telemetry.incr('exec.' + RUN_INDEX + '.count');
   const start = Date.now();
 
-  return client.index({ id, index, body, routing }, (err, result) => {
-    if (err) {
-      _logError(RUN_INDEX, err);
-      return callback(err);
+  return client.index({ id, index, body, routing }, (error, result) => {
+    if (error) {
+      _logError(RUN_INDEX, error);
+      return callback(error);
     }
 
     Telemetry.appendDuration('exec.' + RUN_INDEX + '.time', start);
@@ -456,10 +456,10 @@ const bulk = (operationsToRun, callback) => {
       index,
       body: operationsToRun
     },
-    (err, bulkResponse) => {
-      if (err) {
-        _logError(BULK, err);
-        return callback(err);
+    (error, bulkResponse) => {
+      if (error) {
+        _logError(BULK, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + BULK + '.time', start);
@@ -471,7 +471,7 @@ const bulk = (operationsToRun, callback) => {
          * The presence of the `error` key indicates that the operation
          * that we did for the document has failed.
          */
-        bulkResponse.items.forEach((action, i) => {
+        for (const [i, action] of bulkResponse.items.entries()) {
           const operation = pipe(keys, head)(action);
           if (action[operation].error) {
             erroredDocuments.push({
@@ -486,9 +486,10 @@ const bulk = (operationsToRun, callback) => {
               document: operationsToRun[i * 2 + 1]
             });
           }
-        });
+        }
+
         _logError(BULK, erroredDocuments);
-        return callback(err);
+        return callback(error);
       }
 
       return callback();
@@ -546,10 +547,10 @@ const del = function (typeName, id, callback) {
       id,
       index
     },
-    (err, result) => {
-      if (err) {
-        _logError(DELETE, err);
-        return callback(err);
+    (error, result) => {
+      if (error) {
+        _logError(DELETE, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + DELETE + '.time', start);
@@ -578,10 +579,10 @@ const deleteByQuery = function (type, query, options, callback) {
       type,
       q: query
     },
-    (err, result) => {
-      if (err) {
-        _logError(DELETE_BY_QUERY, err);
-        return callback(err);
+    (error, result) => {
+      if (error) {
+        _logError(DELETE_BY_QUERY, error);
+        return callback(error);
       }
 
       Telemetry.appendDuration('exec.' + DELETE_BY_QUERY + '.time', start);
@@ -597,9 +598,9 @@ const deleteByQuery = function (type, query, options, callback) {
  * @param  {Object} err      The error to log.
  * @api private
  */
-const _logError = function (fn, err) {
+const _logError = function (fn, error) {
   Telemetry.incr('exec.' + fn + '.error.count');
-  log().error({ err }, 'Error executing %s query.', fn);
+  log().error({ err: error }, 'Error executing %s query.', fn);
 };
 
 export {

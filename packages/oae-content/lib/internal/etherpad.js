@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import url from 'url';
+import url from 'node:url';
 import { format } from 'node:util';
 import _ from 'underscore';
 import cheerio from 'cheerio';

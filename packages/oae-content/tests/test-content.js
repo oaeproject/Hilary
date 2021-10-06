@@ -13,17 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
 import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import temp from 'temp';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
@@ -58,6 +54,9 @@ import {
   fromPairs,
   mergeAll
 } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const {
   createTenantRestContext,
@@ -747,7 +746,7 @@ describe('Content', () => {
                                               mergeAll([
                                                 objectifySearchParams(parsedUrl.searchParams),
                                                 {
-                                                  expires: 2345678901
+                                                  expires: 2_345_678_901
                                                 }
                                               ]),
                                               (error /* , body, request */) => {
@@ -2004,7 +2003,7 @@ describe('Content', () => {
                                 assert.isEmpty(comments.results);
 
                                 // Create a comment that is larger than the allowed maximum size
-                                const commentBody = generateRandomText(10000);
+                                const commentBody = generateRandomText(10_000);
                                 createComment(asBert, contentObject.id, commentBody, null, (error, comment) => {
                                   assert.ok(error);
                                   assert.strictEqual(error.code, 400);
@@ -4574,9 +4573,9 @@ describe('Content', () => {
             const permissions = {};
             permissions[stuart.user.id] = VIEWER;
 
-            return assertUpdateContentMembersSucceeds(asNico, asNico, contentObject.id, permissions, () => {
-              return callback(contentObject);
-            });
+            return assertUpdateContentMembersSucceeds(asNico, asNico, contentObject.id, permissions, () =>
+              callback(contentObject)
+            );
           });
         }
       );
@@ -4708,9 +4707,7 @@ describe('Content', () => {
                 permissions[stuart.user.id] = VIEWER;
                 permissions['u:cam:non-existing-user'] = VIEWER;
 
-                assertUpdateContentMembersFails(asNico, asNico, contentObject.id, permissions, 400, () => {
-                  return callback();
-                });
+                assertUpdateContentMembersFails(asNico, asNico, contentObject.id, permissions, 400, () => callback());
               });
             });
           }
@@ -5166,9 +5163,9 @@ describe('Content', () => {
           (content) => {
             // Set the roles of the content item
             const roleChanges = fromPairs([[format('%s:%s', targetUser.user.email, targetUser.user.id), MANAGER]]);
-            assertUpdateContentMembersSucceeds(asCreatingUser, asCreatingUser, content.id, roleChanges, () => {
-              return callback();
-            });
+            assertUpdateContentMembersSucceeds(asCreatingUser, asCreatingUser, content.id, roleChanges, () =>
+              callback()
+            );
           }
         );
       });
@@ -5237,9 +5234,7 @@ describe('Content', () => {
                             asCreatingUser,
                             content.id,
                             roleChanges,
-                            () => {
-                              return callback();
-                            }
+                            () => callback()
                           );
                         });
                       }
@@ -5290,9 +5285,7 @@ describe('Content', () => {
             true,
             true,
             true,
-            () => {
-              return callback(contentObject);
-            }
+            () => callback(contentObject)
           );
         }
       );

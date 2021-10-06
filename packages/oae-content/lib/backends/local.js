@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import Path from 'path';
+import fs from 'node:fs';
+import Path from 'node:path';
 import { format } from 'node:util';
 
 import * as IO from 'oae-util/lib/io.js';

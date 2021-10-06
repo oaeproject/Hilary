@@ -13,15 +13,11 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
@@ -30,6 +26,9 @@ import * as TestsUtil from 'oae-tests';
 
 import { equals } from 'ramda';
 import { ContentConstants } from 'oae-content/lib/constants.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PRIVATE = 'private';
 const ACTIVITY = 'activity';
@@ -111,7 +110,7 @@ describe('Content Push', () => {
                         client.subscribe(
                           contentObject.id,
                           ACTIVITY,
-                          { expires: Date.now() + 10000 },
+                          { expires: Date.now() + 10_000 },
                           null,
                           (error_) => {
                             assert.strictEqual(error_.code, 401);
@@ -120,7 +119,7 @@ describe('Content Push', () => {
                             client.subscribe(
                               contentObject.id,
                               ACTIVITY,
-                              { expires: Date.now() + 10000, signature: 'foo' },
+                              { expires: Date.now() + 10_000, signature: 'foo' },
                               null,
                               (error_) => {
                                 assert.strictEqual(error_.code, 401);

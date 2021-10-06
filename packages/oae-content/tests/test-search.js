@@ -12,15 +12,11 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
@@ -34,6 +30,9 @@ import * as SearchAPI from 'oae-search';
 import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import { not, propSatisfies, equals, find } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const GENERAL = 'general';
 const RESOURCE = 'resource';

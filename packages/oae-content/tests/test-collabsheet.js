@@ -32,14 +32,14 @@ const EDITOR = 'editor';
 const MANAGER = 'manager';
 const VIEWER = 'viewer';
 
-describe('Collaborative spreadsheets', function () {
+describe('Collaborative spreadsheets', () => {
   // Rest context that can be used every time we need to make a request as a tenant admin
   let camAdminRestContext = null;
 
   /**
    * Function that will fill up the anonymous and tenant admin REST context
    */
-  before(function (callback) {
+  before((callback) => {
     // Fill up tenant admin rest contexts
     camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
 
@@ -49,8 +49,8 @@ describe('Collaborative spreadsheets', function () {
   /**
    * Test that verifies the request parameters get validated when joining a collaborative spreadsheet
    */
-  it('verify basic parameter validation when joining a collaborative spreadsheet', function (callback) {
-    generateTestUsers(camAdminRestContext, 1, function (error, users) {
+  it('verify basic parameter validation when joining a collaborative spreadsheet', (callback) => {
+    generateTestUsers(camAdminRestContext, 1, (error, users) => {
       assert.notExists(error);
       const { 0: johnDoe } = users;
       const asJohnDoe = johnDoe.restContext;
@@ -112,8 +112,8 @@ describe('Collaborative spreadsheets', function () {
   /**
    * Test that verifies that you can only join a collaborative spreadsheet if you have manager or editor permissions
    */
-  it('verify joining a room respects the content permissions', function (callback) {
-    generateTestUsers(camAdminRestContext, 3, function (error, users) {
+  it('verify joining a room respects the content permissions', (callback) => {
+    generateTestUsers(camAdminRestContext, 3, (error, users) => {
       assert.notExists(error);
 
       const { 0: homer, 1: marge, 2: bart } = users;
@@ -152,7 +152,7 @@ describe('Collaborative spreadsheets', function () {
                 assert.notExists(error_);
 
                 // marge can see the spreadsheet, but he cannot join in and start editing it
-                joinCollabDoc(asMarge, contentObject.id, function (error, data) {
+                joinCollabDoc(asMarge, contentObject.id, (error, data) => {
                   assert.strictEqual(error.code, 401);
                   assert.isNotOk(data);
 
@@ -193,8 +193,8 @@ describe('Collaborative spreadsheets', function () {
   /**
    * Test that verifies that `ethercalcRoomId` cannot be set.
    */
-  it('verify that ethercalc related properties cannot be set on the content object', function (callback) {
-    generateTestUsers(camAdminRestContext, 1, function (error, users) {
+  it('verify that ethercalc related properties cannot be set on the content object', (callback) => {
+    generateTestUsers(camAdminRestContext, 1, (error, users) => {
       assert.notExists(error);
 
       const { 0: homer } = users;
@@ -240,14 +240,14 @@ describe('Collaborative spreadsheets', function () {
   /**
    * Test that verifies that a collabsheet is created and initialized with no content
    */
-  it('verify ethercalc spreadsheet starts with empty spreadsheet', function (callback) {
+  it('verify ethercalc spreadsheet starts with empty spreadsheet', (callback) => {
     // Create a collaborative spreadsheet to test with
     ContentTestUtil.createCollabsheet(camAdminRestContext, 1, 1, (error, collabsheet) => {
       assert.notExists(error);
 
       const { 0: content } = collabsheet;
       // Ensure the content of the ethercalc starts as empty
-      Ethercalc.getHTML(content.ethercalcRoomId, function (error, html) {
+      Ethercalc.getHTML(content.ethercalcRoomId, (error, html) => {
         assert.notExists(error);
         assert.strictEqual(Ethercalc.isContentEmpty(html), true);
 

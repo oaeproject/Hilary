@@ -68,7 +68,7 @@ export const init = function (callback) {
     resourceTypes: ['content'],
     schema: contentBodySchema,
     producer(resources, callback) {
-      return _produceContentBodyDocuments(resources.slice(), callback);
+      return _produceContentBodyDocuments([...resources], callback);
     }
   };
 
@@ -83,7 +83,7 @@ export const init = function (callback) {
       return MessageBoxSearch.registerMessageSearchDocument(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         ['content'],
-        (resources, callback) => _produceContentCommentDocuments(resources.slice(), callback),
+        (resources, callback) => _produceContentCommentDocuments([...resources], callback),
         callback
       );
     }

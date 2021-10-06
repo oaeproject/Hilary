@@ -77,7 +77,7 @@ const insert = function (contentItem, principals, callback) {
       }
     };
 
-  _insert(contentItem, principals.slice(), callback);
+  _insert(contentItem, [...principals], callback);
 };
 
 /**
@@ -117,12 +117,10 @@ const remove = function (contentItem, principalIds, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const _insert = function (contentItem, principals, callback) {
-  const entries = _.map(principals, (principal) => {
-    return {
-      id: contentItem.id,
-      resource: principal
-    };
-  });
+  const entries = _.map(principals, (principal) => ({
+    id: contentItem.id,
+    resource: principal
+  }));
 
   LibraryAPI.Index.insert(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -138,12 +136,10 @@ const _insert = function (contentItem, principals, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const _remove = function (contentItem, principalIds, callback) {
-  const entries = _.map(principalIds, (principalId) => {
-    return {
-      id: contentItem.id,
-      resource: { id: principalId }
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: contentItem.id,
+    resource: { id: principalId }
+  }));
 
   // Remove the items from the library index
   LibraryAPI.Index.remove(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, entries, callback);

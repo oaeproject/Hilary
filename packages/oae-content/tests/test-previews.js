@@ -14,16 +14,12 @@
  */
 /* eslint-disable camelcase */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { flush } from 'oae-util/lib/redis.js';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import { find, filter, equals, propSatisfies, pathSatisfies } from 'ramda';
 
@@ -32,6 +28,9 @@ import * as RestAPI from 'oae-rest';
 import * as RestUtil from 'oae-rest/lib/util.js';
 import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const { searchAll } = SearchTestsUtil;
 const {

@@ -13,16 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
 import { format } from 'node:util';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { fileURLToPath } from 'node:url';
+import { assert } from 'chai';
 
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
@@ -41,6 +37,9 @@ import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 
 import { filter, equals, not, find, pathSatisfies } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const { followByAll } = FollowingTestsUtil;
 const { rowToHash, runQuery } = Cassandra;
@@ -199,13 +198,13 @@ describe('Content Activity', () => {
       return null;
     }
 
-    return find((activity) => {
-      return (
+    return find(
+      (activity) =>
         pathSatisfies(Boolean, [entityType], activity) &&
         pathSatisfies(equals(activityType), ['oae:activityType'], activity) &&
-        pathSatisfies(equals(entityOaeId, ['entityType', 'oae:id'], activity))
-      );
-    }, activityStream.items);
+        pathSatisfies(equals(entityOaeId, ['entityType', 'oae:id'], activity)),
+      activityStream.items
+    );
   };
 
   /*!
@@ -215,9 +214,7 @@ describe('Content Activity', () => {
    * @param  {String}            to                  The email address to which the email should be sent
    * @return {Object}                                The first email from the email list that matches the to address
    */
-  const _getEmail = (emails, to) => {
-    return find((email) => equals(to, email.to[0].address), emails);
-  };
+  const _getEmail = (emails, to) => find((email) => equals(to, email.to[0].address), emails);
 
   /**
    * Returns a function that will return a stream that points to the specified file.
@@ -226,12 +223,11 @@ describe('Content Activity', () => {
    * @param  {String}     filename    The file in the tests/data directory that should be returned as a stream.
    * @return {Function}               A function that returns a stream when executed.
    */
-  const getFunctionThatReturnsFileStream = (filename) => {
-    return function () {
+  const getFunctionThatReturnsFileStream = (filename) =>
+    function () {
       const file = path.join(__dirname, `/data/${filename}`);
       return fs.createReadStream(file);
     };
-  };
 
   describe('Routes', () => {
     /**
@@ -1504,24 +1500,37 @@ describe('Content Activity', () => {
                     };
 
                     // Verify that the collection contains all comments, and their models are correct.
-                    activity.object['oae:collection'].forEach((entity) => {
-                      if (entity.content === 'Comment A') {
-                        hadCommentA = true;
+                    for (const entity of activity.object['oae:collection']) {
+                      switch (entity.content) {
+                        case 'Comment A': {
+                          hadCommentA = true;
 
-                        // Ensures that comment A has correct data, and no parents
-                        _validateComment(entity, commentA);
-                      } else if (entity.content === 'Comment B') {
-                        hadCommentB = true;
+                          // Ensures that comment A has correct data, and no parents
+                          _validateComment(entity, commentA);
 
-                        // Ensures that comment B has correct data, and no parents
-                        _validateComment(entity, commentB);
-                      } else if (entity.content === 'Reply Comment A') {
-                        hadReplyCommentA = true;
+                          break;
+                        }
 
-                        // Verify that the reply to comment A has the right data and the parent (comment A)
-                        _validateComment(entity, replyCommentA, commentA);
+                        case 'Comment B': {
+                          hadCommentB = true;
+
+                          // Ensures that comment B has correct data, and no parents
+                          _validateComment(entity, commentB);
+
+                          break;
+                        }
+
+                        case 'Reply Comment A': {
+                          hadReplyCommentA = true;
+
+                          // Verify that the reply to comment A has the right data and the parent (comment A)
+                          _validateComment(entity, replyCommentA, commentA);
+
+                          break;
+                        }
+                        // No default
                       }
-                    });
+                    }
 
                     assert.ok(hadCommentA);
                     assert.ok(hadCommentB);

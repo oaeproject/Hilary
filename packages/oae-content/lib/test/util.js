@@ -73,9 +73,7 @@ const setupMultiTenantPrivacyEntities = function (callback) {
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
         _setupTenant(privateTenant, () => {
-          _setupTenant(privateTenant1, () => {
-            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-          });
+          _setupTenant(privateTenant1, () => callback(publicTenant, publicTenant1, privateTenant, privateTenant1));
         });
       });
     });
@@ -682,9 +680,7 @@ const generateTestLinks = function (restContext, total, callback) {
   RestAPI.User.getMe(restContext, (error) => {
     assert.ok(!error);
 
-    const done = _.after(total, () => {
-      return callback.apply(callback, contentItems);
-    });
+    const done = _.after(total, () => callback.apply(callback, contentItems));
 
     // eslint-disable-next-line no-unused-vars
     _.each(_.range(total), (i) => {
@@ -737,9 +733,9 @@ const _setupTenant = function (tenant, callback) {
 const _createMultiPrivacyContent = function (restCtx, callback) {
   _createContentWithVisibility(restCtx, 'public', (publicContent) => {
     _createContentWithVisibility(restCtx, 'loggedin', (loggedinContent) => {
-      _createContentWithVisibility(restCtx, 'private', (privateContent) => {
-        return callback(publicContent, loggedinContent, privateContent);
-      });
+      _createContentWithVisibility(restCtx, 'private', (privateContent) =>
+        callback(publicContent, loggedinContent, privateContent)
+      );
     });
   });
 };
@@ -812,9 +808,7 @@ const createCollabDoc = function (adminRestContext, nrOfUsers, nrOfJoinedUsers, 
         assert.ok(!error);
 
         // Create a function that will get executed once each user has joined the document
-        const done = _.after(nrOfJoinedUsers, () => {
-          return callback(null, _.union([contentObject, users], userValues));
-        });
+        const done = _.after(nrOfJoinedUsers, () => callback(null, _.union([contentObject, users], userValues)));
 
         // If no user should join the document we can return immediately
         if (nrOfJoinedUsers === 0) {
@@ -878,7 +872,7 @@ const publishCollabDoc = function (contentId, userId, callback) {
  * @param  {Object}         callback.user..             An object containing the user profile and a rest context for the next user of the set of users that was created
  */
 const createCollabsheet = function (adminRestContext, nrOfUsers, nrOfJoinedUsers, callback) {
-  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, function (error, users) {
+  TestsUtil.generateTestUsers(adminRestContext, nrOfUsers, (error, users) => {
     assert.ok(!error);
 
     const VISIBILITY_PUBLIC = 'public';
@@ -897,7 +891,7 @@ const createCollabsheet = function (adminRestContext, nrOfUsers, nrOfJoinedUsers
       [],
       [],
       [],
-      function (error, content) {
+      (error, content) => {
         assert.ok(!error);
 
         const restContexts = _.pluck(userValues, 'restContext');
@@ -961,10 +955,10 @@ const createCollabsheetForUser = function (creator, callback) {
     [],
     [],
     [],
-    function (error, contentObject) {
+    (error, contentObject) => {
       assert.ok(!error);
 
-      RestAPI.Content.joinCollabDoc(creator.restContext, contentObject.id, function (error /* data */) {
+      RestAPI.Content.joinCollabDoc(creator.restContext, contentObject.id, (error /* data */) => {
         if (error) return callback(error);
 
         assert.ok(!error);

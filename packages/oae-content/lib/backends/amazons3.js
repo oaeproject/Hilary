@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import Path from 'path';
+import fs from 'node:fs';
+import Path from 'node:path';
 import { format } from 'node:util';
 import mime from 'mime';
 
@@ -168,7 +168,7 @@ const remove = function (tenantAlias, uri, callback) {
  */
 const getDownloadStrategy = function (tenantAlias, uri) {
   // Date.now returns the milliseconds since epoch, so divide/round it by a thousand
-  const expires = Math.round((Date.now() + 5 * 60000) / 1000);
+  const expires = Math.round((Date.now() + 5 * 60_000) / 1000);
 
   // Construct a proper signature
   const s3 = _getClient(tenantAlias);

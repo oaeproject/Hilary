@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import querystring from 'querystring';
+import querystring from 'node:querystring';
 import { format } from 'node:util';
 import { setUpConfig } from 'oae-config';
 import _ from 'underscore';

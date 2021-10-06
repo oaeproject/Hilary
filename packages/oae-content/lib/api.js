@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import Path from 'path';
+import fs from 'node:fs';
+import Path from 'node:path';
 import { format } from 'node:util';
 import * as ContentUtils from 'oae-content/lib/backends/util.js';
 import mime from 'mime';
@@ -43,21 +43,6 @@ import isUrl from 'validator/lib/isURL.js';
 import isInt from 'validator/lib/isInt.js';
 import isIn from 'validator/lib/isIn.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const {
-  validateInCase: bothCheck,
-  unless,
-  isOneOrGreater,
-  isANumber,
-  isResourceId,
-  isLoggedInUser,
-  isNotNull,
-  isShortString,
-  isNotEmpty,
-  isMediumString,
-  isArrayNotEmpty,
-  isPrincipalId,
-  isLongString
-} = validator;
 import {
   startsWith,
   values,
@@ -95,6 +80,22 @@ import * as ContentMembersLibrary from './internal/membersLibrary.js';
 import * as ContentUtil from './internal/util.js';
 import * as Ethercalc from './internal/ethercalc.js';
 import * as Etherpad from './internal/etherpad.js';
+
+const {
+  validateInCase: bothCheck,
+  unless,
+  isOneOrGreater,
+  isANumber,
+  isResourceId,
+  isLoggedInUser,
+  isNotNull,
+  isShortString,
+  isNotEmpty,
+  isMediumString,
+  isArrayNotEmpty,
+  isPrincipalId,
+  isLongString
+} = validator;
 
 const Config = setUpConfig('oae-content');
 const log = logger('oae-content');
@@ -262,11 +263,7 @@ const _getFullContentProfile = (ctx, contentObject, isManager, callback) => {
         AuthzPermissions.canEdit(ctx, contentObject, (error_) => {
           if (both(isDefined, isOtherThanUnauthorized)(error_)) return callback(error_);
 
-          if (error_) {
-            contentObject.isEditor = false;
-          } else {
-            contentObject.isEditor = true;
-          }
+          contentObject.isEditor = !error_;
 
           emitter.emit(ContentConstants.events.GET_CONTENT_PROFILE, ctx, contentObject);
           return callback(null, contentObject);
@@ -295,7 +292,7 @@ const _getFullContentProfile = (ctx, contentObject, isManager, callback) => {
  * @param  {Content}        callback.content        The created link
  */
 const createLink = (ctx, linkDetails, callback) => {
-  callback = defaultTo(function () {}, callback);
+  callback = defaultTo(() => {}, callback);
   const { displayName, description, additionalMembers, folders } = linkDetails;
 
   // Setting content to default if no visibility setting is provided
@@ -394,8 +391,8 @@ const createFile = (ctx, fileDetails, callback) => {
  * @return {Function}                       A function that removes the file on disk in case something went wrong
  * @api private
  */
-const _getCleanUpCallback = (files, callback) => {
-  return function (...args) {
+const _getCleanUpCallback = (files, callback) =>
+  function (...args) {
     // Remember the arguments so we can pass them to the callback later.
     const callbackArguments = args;
 
@@ -412,7 +409,6 @@ const _getCleanUpCallback = (files, callback) => {
       return callback.apply(this, callbackArguments);
     }
   };
-};
 
 /**
  * Recursively iterates trough an array of uploaded files and removes them.
@@ -459,7 +455,7 @@ const _cleanupUploadedFiles = (files, callback) => {
  * @api private
  */
 const _createFile = function (ctx, fileDetails, callback) {
-  callback = defaultTo(function () {}, callback);
+  callback = defaultTo(() => {}, callback);
   const { displayName, description, file, additionalMembers, folders } = fileDetails;
 
   // Setting content to default if no visibility setting is provided
@@ -648,7 +644,7 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
  * @param  {Content} callback.content        The created collaborative spreadsheet
  */
 const createCollabSheet = function (ctx, displayName, description, visibility, additionalMembers, folders, callback) {
-  callback = defaultTo(function () {}, callback);
+  callback = defaultTo(() => {}, callback);
 
   // Setting content to default if no visibility setting is provided
   visibility = defaultTo(Config.getValue(ctx.tenant().alias, 'visibility', 'collabsheets'), visibility);
@@ -656,7 +652,7 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);
 
-  Ethercalc.createRoom(contentId, function (error, roomId) {
+  Ethercalc.createRoom(contentId, (error, roomId) => {
     if (error) return callback(error);
 
     _createContent(
@@ -671,7 +667,7 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
       folders,
       { ethercalcRoomId: roomId },
       {},
-      function (error, content, revision, memberChangeInfo) {
+      (error, content, revision, memberChangeInfo) => {
         if (error) return callback(error);
 
         content.ethercalcRoomId = roomId;
@@ -683,7 +679,7 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
           revision,
           memberChangeInfo,
           folders,
-          function (error) {
+          (error) => {
             if (error) return callback(head(error));
 
             return callback(null, content);
@@ -728,7 +724,7 @@ const _createContent = function (
   revisionData,
   callback
 ) {
-  callback = defaultTo(function () {}, callback);
+  callback = defaultTo(() => {}, callback);
 
   // Use an empty description if no description has been provided
   description = defaultTo(emptyString, description);
@@ -856,7 +852,7 @@ const canManageFolders = (ctx, folderIds, callback) => {
     }
 
     // Ensure that the user can manage all the folder items
-    _canManageAllFolders(ctx, folders.slice(), (error_) => {
+    _canManageAllFolders(ctx, [...folders], (error_) => {
       if (error_) return callback(error_);
 
       return callback(null, folders);
@@ -1232,7 +1228,7 @@ const joinCollabDoc = (ctx, contentId, callback) => {
         });
       });
     } else if (ContentUtils.isResourceACollabSheet(contentObject.resourceSubType)) {
-      Ethercalc.joinRoom(ctx, contentObject, function (error, data) {
+      Ethercalc.joinRoom(ctx, contentObject, (error, data) => {
         if (error) return callback(error);
 
         callback(null, data);
@@ -1664,7 +1660,7 @@ const resendContentInvitation = function (ctx, contentId, email, callback) {
  * @param  {Content}    [callback.content]  The updated content item
  */
 const updateFileBody = function (ctx, contentId, file, callback) {
-  callback = defaultTo(function (error) {
+  callback = defaultTo((error) => {
     if (error) log().error({ err: error }, 'Error updating the filebody for %s', contentId);
   }, callback);
 
@@ -1939,12 +1935,12 @@ const setPreviewItems = function (
       };
 
       // Iterate each preview item, store it and record it in the `previewMetadata` hash
-      fileKeys.forEach((key) => {
+      for (const key of fileKeys) {
         const size = sizes[key];
         if (isNotDefined(size)) {
           todo--;
           log().warn('Ignoring file %s as it has no size associated to it', key);
-          return;
+          continue;
         }
 
         // Store the file with a regular storage backend
@@ -1972,7 +1968,7 @@ const setPreviewItems = function (
           fileData[files[key].name] = `${size}#${uri}`;
           return _finishIteration();
         });
-      });
+      }
     });
   });
 };
@@ -2088,7 +2084,7 @@ const updateContentMetadata = function (ctx, contentId, profileFields, callback)
       msg: 'You should at least specify a new displayName, description, visibility or link'
     })(fieldNames);
 
-    fieldNames.forEach((fieldName) => {
+    for (const fieldName of fieldNames) {
       unless(isIn, {
         code: 400,
         msg: fieldName + ' is not a recognized content profile field'
@@ -2118,7 +2114,7 @@ const updateContentMetadata = function (ctx, contentId, profileFields, callback)
         code: 400,
         msg: 'A valid link should be provided'
       })(profileFields.link);
-    });
+    }
 
     const fieldIsVisibility = isDefined(profileFields.visibility);
     unless(bothCheck(fieldIsVisibility, isIn), {
@@ -2179,7 +2175,7 @@ const updateContentMetadata = function (ctx, contentId, profileFields, callback)
  * @param  {Comment}    [callback.comment]          The created comment
  */
 const createComment = function (ctx, contentId, body, replyToCreatedTimestamp, callback) {
-  callback = defaultTo(function () {}, callback);
+  callback = defaultTo(() => {}, callback);
 
   // Parameter validation
   try {
@@ -2542,9 +2538,7 @@ const _getRevisions = function (ctx, contentObject, start, limit, options, callb
   ContentDAO.Revisions.getRevisions(contentObject.id, start, limit, options, (error, revisions, nextToken) => {
     if (error) return callback(error);
 
-    const userIds = map((eachRevision) => {
-      return eachRevision.createdBy;
-    }, revisions);
+    const userIds = map((eachRevision) => eachRevision.createdBy, revisions);
 
     PrincipalsUtil.getPrincipals(ctx, userIds, (error, users) => {
       if (error) return callback(error);

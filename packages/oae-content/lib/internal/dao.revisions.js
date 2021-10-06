@@ -111,9 +111,7 @@ const getMultipleRevisions = function (revisionIds, options, callback) {
       let revisions = _.map(rows, _rowToRevision);
 
       // The above query doesn't respect the order of revisionIds, hence this DESC sort
-      revisions = _.sortBy(revisions, (eachRevision) => {
-        return eachRevision.created * -1;
-      });
+      revisions = _.sortBy(revisions, (eachRevision) => eachRevision.created * -1);
       return callback(null, revisions);
     }
   );

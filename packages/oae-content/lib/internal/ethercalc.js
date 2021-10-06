@@ -13,12 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import url from 'url';
+import url from 'node:url';
 import EthercalcClient from 'ethercalc-client';
 import cheerio from 'cheerio';
 import { logger } from 'oae-logger';
 
-import * as ContentDAO from './dao.js';
 import {
   curry,
   startsWith,
@@ -40,6 +39,7 @@ import {
   not,
   ifElse
 } from 'ramda';
+import * as ContentDAO from './dao.js';
 
 const log = logger('ethercalc');
 
@@ -69,12 +69,13 @@ const returnFalse = () => false;
  */
 const refreshConfiguration = (_ethercalcConfig) => {
   ethercalcConfig = _ethercalcConfig;
-  ethercalcServers = map((eachConfig) => {
-    return {
+  ethercalcServers = map(
+    (eachConfig) => ({
       config: eachConfig,
       client: new EthercalcClient(eachConfig.host, eachConfig.port, eachConfig.protocol, eachConfig.timeout)
-    };
-  }, _ethercalcConfig);
+    }),
+    _ethercalcConfig
+  );
 };
 
 const _pickARandomServer = () => ethercalcServers[Math.floor(Math.random() * ethercalcServers.length)];

@@ -13,18 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import url from 'url';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import url, { fileURLToPath } from 'node:url';
+import { callbackify } from 'node:util';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
-
-import { callbackify } from 'util';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import {
   both,
@@ -51,10 +45,13 @@ import request from 'request';
 import { logger } from 'oae-logger';
 
 import * as OaeUtil from 'oae-util/lib/util.js';
-const { getNumberParam } = OaeUtil;
 import { setUpConfig } from 'oae-config';
 import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
 import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const { getNumberParam } = OaeUtil;
 
 const log = logger('oae-preview-processor');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -93,11 +90,11 @@ const init = function (_config, callback) {
 /**
  * @borrows Interface.test as DefaultLinkProcessor.test
  */
-const test = function (ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   // Don't bother with non-link content items
   const isLink = propEq('resourceSubType', 'link');
-  if (isLink(contentObj)) {
-    const { link } = contentObj;
+  if (isLink(contentObject)) {
+    const { link } = contentObject;
     // Only allow HTTP(S) URLs
     const isHTTPS = compose(not, isEmpty, match(/^http(s)?:\/\//));
     if (isHTTPS(link)) {
@@ -117,25 +114,25 @@ const test = function (ctx, contentObj, callback) {
 /**
  * @borrows Interface.test as DefaultLinkProcessor.test
  */
-const generatePreviews = function (ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   let contentType;
   // Do a head request to check if this site allows for embedding
   const options = {
-    url: contentObj.link,
+    url: contentObject.link,
     method: HTTP_HEAD,
     timeout: screenShottingOptions.timeout,
     headers: {
       // Certain webservers will not send an `x-frame-options` header when no browser user agent is not specified
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.77 Safari/537.36',
-      'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
+      'Accept-Language': PrincipalsConfig.getValue(contentObject.tenant.alias, 'user', 'defaultLanguage')
     }
   };
 
-  request(options, (err, response) => {
-    if (err) {
+  request(options, (error, response) => {
+    if (error) {
       log().warn(
-        { err, contentId: ctx.contentId },
+        { err: error, contentId: ctx.contentId },
         'An error occurred while checking if this URL allows for iframe embedding'
       );
       ctx.addPreviewMetadata('embeddable', false);
@@ -187,34 +184,34 @@ const generatePreviews = function (ctx, contentObj, callback) {
         image.on('close', () => {
           LinkProcessorUtil.generatePreviewsFromImage(ctx, imgPath, null, callback);
         });
-        request(contentObj.link)
-          .on('error', (err) => {
-            log().error({ err, contentId: ctx.contentId }, 'Could not fetch an image');
+        request(contentObject.link)
+          .on('error', (error_) => {
+            log().error({ err: error_, contentId: ctx.contentId }, 'Could not fetch an image');
             return callback();
           })
           .pipe(image);
       } else {
         // Try to localize the screenshot of the link to the default tenant language
         screenShottingOptions.customHeaders = {
-          'Accept-Language': PrincipalsConfig.getValue(contentObj.tenant.alias, 'user', 'defaultLanguage')
+          'Accept-Language': PrincipalsConfig.getValue(contentObject.tenant.alias, 'user', 'defaultLanguage')
         };
-        callbackify(puppeteerHelper.getImage)(contentObj.link, imgPath, screenShottingOptions, (err, cenas) => {
-          if (err) {
-            log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
-            return callback(err);
+        callbackify(puppeteerHelper.getImage)(contentObject.link, imgPath, screenShottingOptions, (error_) => {
+          if (error_) {
+            log().error({ err: error_, contentId: ctx.contentId }, 'Could not generate an image');
+            return callback(error_);
           }
 
           // specific callback for image comparison
-          const throwComparisonError = (err, callback) => {
-            log().error({ err, contentId: ctx.contentId }, 'Could not compare image');
-            return callback(err);
+          const throwComparisonError = (error_, callback) => {
+            log().error({ err: error_, contentId: ctx.contentId }, 'Could not compare image');
+            return callback(error_);
           };
 
           // If the image is solid white don't attach it as a screenshot
-          sharp(imgPath).metadata((err, imageMetainfo) => {
-            if (err) throwComparisonError(err, callback);
-            sharp(path.resolve(__dirname, '../../../static/link/blank.png')).metadata((err, solidWhiteMetainfo) => {
-              if (err) return throwComparisonError(err, callback);
+          sharp(imgPath).metadata((error_, imageMetainfo) => {
+            if (error_) throwComparisonError(error_, callback);
+            sharp(path.resolve(__dirname, '../../../static/link/blank.png')).metadata((error_, solidWhiteMetainfo) => {
+              if (error_) return throwComparisonError(error_, callback);
 
               const isEqual = equals(imageMetainfo, solidWhiteMetainfo);
               log().trace({ contentId: ctx.contentId, equality: isEqual });
@@ -231,12 +228,12 @@ const generatePreviews = function (ctx, contentObj, callback) {
       }
     };
 
-    const urlParts = new URL(contentObj.link);
+    const urlParts = new URL(contentObject.link);
 
     // If we previously tried an HTTPS link we can just determine whether the link is embeddable over HTTPS by checking if that request succeeded
     const isHTTPS = equals('https:');
     if (isHTTPS(urlParts.protocol)) {
-      const httpsAccessible = not(err);
+      const httpsAccessible = not(error);
       ctx.addPreviewMetadata('httpsAccessible', httpsAccessible);
       return generateThumbnail();
 
@@ -266,8 +263,8 @@ const _checkHttps = function (link, callback) {
     method: HTTP_HEAD,
     timeout: screenShottingOptions.timeout
   };
-  request(options, (err /* , response */) => {
-    if (err) return callback(false);
+  request(options, (error /* , response */) => {
+    if (error) return callback(false);
 
     return callback(true);
   });

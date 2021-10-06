@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
-import path from 'path';
+import { format } from 'node:util';
+import path from 'node:path';
 import _ from 'underscore';
 import request from 'request';
 

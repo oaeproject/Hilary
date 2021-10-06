@@ -12,15 +12,11 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from 'node:url';
+import Path, { dirname } from 'node:path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-import fs from 'fs';
-import Path from 'path';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import { logger } from 'oae-logger';
 import sharp from 'sharp';
@@ -51,10 +47,13 @@ import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 import * as FoldersAPI from 'oae-folders';
 import * as ContentUtil from 'oae-content/lib/internal/util.js';
-const { getStorageBackend } = ContentUtil;
 import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 import * as LibraryAPI from 'oae-library';
 import * as TempFile from 'oae-util/lib/tempfile.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const { getStorageBackend } = ContentUtil;
 
 const log = logger('folders-previews');
 
@@ -199,7 +198,7 @@ const _getContentWithPreviews = function (folder, callback, _contentWithPreviews
 const _generatePreviews = function (folder, contentItems, callback) {
   // Retrieve the thumbnails
   const ctx = new Context(folder.tenant);
-  _retrieveThumbnails(ctx, contentItems.slice(), (error, paths) => {
+  _retrieveThumbnails(ctx, [...contentItems], (error, paths) => {
     if (error) return callback(error);
 
     // Construct the montages

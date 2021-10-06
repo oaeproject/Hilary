@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { exec } from 'child_process';
-import fs from 'fs';
-import Path from 'path';
-import { format } from 'util';
+import { exec } from 'node:child_process';
+import fs from 'node:fs';
+import Path, { dirname } from 'node:path';
+import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
@@ -24,9 +25,6 @@ import { logger } from 'oae-logger';
 
 import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf.js';
 import * as TempFile from 'oae-util/lib/tempfile.js';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

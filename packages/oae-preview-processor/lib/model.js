@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { format } from 'util';
+import fs from 'node:fs';
+import path from 'node:path';
+import { format } from 'node:util';
 import rimraf from 'rimraf';
 
 import { logger } from 'oae-logger';
@@ -308,10 +308,10 @@ const PreviewContext = function (config, contentId, revisionId) {
     }
 
     // The preview images.
-    _previews.forEach((preview) => {
+    for (const preview of _previews) {
       let filename;
       // Local paths start with a '/'
-      if (preview.path.match(/^\//)) {
+      if (/^\//.test(preview.path)) {
         filename = path.basename(preview.path);
         files[filename] = function () {
           return fs.createReadStream(preview.path);
@@ -322,7 +322,7 @@ const PreviewContext = function (config, contentId, revisionId) {
       }
 
       sizes[filename] = preview.size;
-    });
+    }
 
     _status = 'done';
     RestAPI.Content.setPreviewItems(

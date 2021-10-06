@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 import { logger } from 'oae-logger';
 
 import * as Cleaner from 'oae-util/lib/cleaner.js';
 import * as PreviewAPI from './api.js';
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
 
 const log = logger('oae-preview-processor');

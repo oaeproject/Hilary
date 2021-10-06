@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import { promisify } from 'node:util';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { logger } from 'oae-logger';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-import { logger } from 'oae-logger';
 
 const log = logger('oae-preview-processor');
 
@@ -78,11 +77,7 @@ const getPuppeteerImage = async function (url, imgPath, options) {
   let isAttachment = false;
   page.on('response', (response) => {
     const contentDispositionHeader = response._headers['content-disposition'];
-    if (contentDispositionHeader && contentDispositionHeader.startsWith(`attachment;`)) {
-      isAttachment = true;
-    } else {
-      isAttachment = false;
-    }
+    isAttachment = Boolean(contentDispositionHeader && contentDispositionHeader.startsWith(`attachment;`));
   });
 
   try {
@@ -94,19 +89,19 @@ const getPuppeteerImage = async function (url, imgPath, options) {
     await page.screenshot({ path: imgPath });
   } catch (error) {
     if (isAttachment) {
-      // Set image path to be blank in the case of attachment
-      // webshot would write that file before, but not puppeteer
+      /**
+       * Set image path to be blank in the case of attachment
+       * webshot would write that file before, but not puppeteer
+       */
       log().trace({ url, imgPath }, 'Generating image for an url that is in fact an attachment.');
       const blankPng = path.resolve(__dirname, '../../static/link/blank.png');
-      fs.copyFile(blankPng, imgPath, (err) => {
-        if (err) {
-          log().error({ err }, 'Could not copy blank screenshot file after realising file url is an attachment.');
-          return callback({ code: 500, msg: err.message });
-        }
+      await promisify(fs.copyFile)(blankPng, imgPath).catch((error) => {
+        log().error({ err: error }, 'Could not copy blank screenshot file after realising file url is an attachment.');
+        return { code: 500, msg: error };
       });
     } else {
       log().error({ err: error }, 'Could not generate a screenshot.');
-      return callback({ code: 500, msg: error });
+      return { code: 500, msg: error };
     }
   } finally {
     await browser.close();

@@ -107,15 +107,13 @@ const FilterGenerator = function (filters) {
    * required to do in-app filtering
    */
   const getFilter = (filterValue) => curry(contains)(__, toArray(filterValue));
-  const getStatusFilter = (filter) => {
-    return (revision) => {
-      if (both(isDefined, statusIsDefined)(revision.previews)) {
-        return filter(revision.previews.status);
-      }
+  const getStatusFilter = (filter) => (revision) => {
+    if (both(isDefined, statusIsDefined)(revision.previews)) {
+      return filter(revision.previews.status);
+    }
 
-      // If the previews object is missing, something is seriously wrong and we should reprocess it
-      return true;
-    };
+    // If the previews object is missing, something is seriously wrong and we should reprocess it
+    return true;
   };
 
   forEachObjIndexed((filterValue, filterKey) => {

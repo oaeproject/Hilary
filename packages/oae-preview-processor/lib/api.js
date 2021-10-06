@@ -37,6 +37,10 @@ import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder/in
 
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator.js';
+import PreviewConstants from './constants.js';
+import { FilterGenerator } from './filters.js';
+import { PreviewContext } from './model.js';
+
 const {
   unless,
   isNotEmpty,
@@ -50,9 +54,6 @@ const {
   isNotNull,
   isLoggedInUser
 } = validator;
-import PreviewConstants from './constants.js';
-import { FilterGenerator } from './filters.js';
-import { PreviewContext } from './model.js';
 
 const log = logger('oae-preview-processor');
 const Telemetry = telemetry('preview-processor');
@@ -672,9 +673,7 @@ const _handleRegeneratePreviewsTask = function (data, callback) {
     }
 
     // We need to filter by revisions
-    const contentIds = _.map(filteredContent, (contentObject) => {
-      return contentObject.contentId;
-    });
+    const contentIds = _.map(filteredContent, (contentObject) => contentObject.contentId);
     ContentDAO.Revisions.getAllRevisionsForContent(contentIds, (error, revisionsByContent) => {
       if (error) {
         log().error({ err: error }, 'Error trying to retrieve revisions for content');

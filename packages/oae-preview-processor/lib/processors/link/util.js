@@ -32,22 +32,26 @@ const log = logger('oae-preview-processor');
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const generatePreviewsFromImage = function (ctx, path, opts, callback) {
+const generatePreviewsFromImage = function (ctx, path, options, callback) {
   // Crop the screenshot.
-  PreviewUtil.generatePreviewsFromImage(ctx, path, {}, (err) => {
-    if (err) {
-      return callback(err);
+  PreviewUtil.generatePreviewsFromImage(ctx, path, {}, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Check if we can update the main content metadata (displayName, description, ..)
-    opts = opts || {};
-    if (opts.displayName && ctx.content.displayName === ctx.content.link && typeof opts.displayName === 'string') {
-      ctx.addContentMetadata('displayName', ent.decode(opts.displayName));
+    options = options || {};
+    if (
+      options.displayName &&
+      ctx.content.displayName === ctx.content.link &&
+      typeof options.displayName === 'string'
+    ) {
+      ctx.addContentMetadata('displayName', ent.decode(options.displayName));
       log().trace({ contentId: ctx.contentId }, 'Updating the content displayName.');
     }
 
-    if (opts.description && !ctx.content.description && typeof opts.description === 'string') {
-      ctx.addContentMetadata('description', ent.decode(opts.description));
+    if (options.description && !ctx.content.description && typeof options.description === 'string') {
+      ctx.addContentMetadata('description', ent.decode(options.description));
       log().trace({ contentId: ctx.contentId }, 'Updating the content description.');
     }
 

@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { inherits, promisify, format } from 'util';
-import path from 'path';
-import stream from 'stream';
+import fs from 'node:fs';
+import { inherits, promisify, format } from 'node:util';
+import path from 'node:path';
+import stream from 'node:stream';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 import * as pdfjsLib from 'pdfjs-dist';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
-import * as domStubs from './domstubs.js';
 import {
   curry,
   __,
@@ -40,6 +39,7 @@ import {
   equals,
   compose
 } from 'ramda';
+import * as domStubs from './domstubs.js';
 
 const fsWriteFile = promisify(fs.writeFile);
 const fsMakeDir = promisify(fs.mkdir);

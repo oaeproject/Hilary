@@ -14,18 +14,14 @@
  */
 
 /* eslint-disable camelcase */
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-import { format } from 'util';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { keys, equals, find, toUpper, not, compose, head, values, prop } from 'ramda';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { assert } from 'chai';
 
 import request from 'request';
 import nock from 'nock';
@@ -55,6 +51,9 @@ import * as PreviewPDF from 'oae-preview-processor/lib/processors/file/pdf.js';
 import * as PreviewSlideShare from 'oae-preview-processor/lib/processors/link/slideshare.js';
 import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util.js';
 import { downloadRemoteFile } from 'oae-preview-processor/lib/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';
@@ -254,7 +253,7 @@ describe('Preview processor', () => {
     it('verify the Office PP can detect if it is configured correctly', (callback) => {
       const config = {
         binary: 'some-none-existinant-binary',
-        timeout: 120000
+        timeout: 120_000
       };
       PreviewOffice.init(config, (error) => {
         assert.ok(error);
@@ -309,66 +308,79 @@ describe('Preview processor', () => {
           });
         };
 
-        if (resourceSubType === 'file') {
-          RestAPI.Content.createFile(
-            restCtx,
-            {
-              displayName: 'Test Content 1',
-              description: 'Test content description 1',
-              PUBLIC,
-              file: stream,
-              managers: NO_MANAGERS,
-              viewers: NO_VIEWERS,
-              folders: NO_FOLDERS
-            },
-            contentCreated
-          );
-        } else if (resourceSubType === 'link') {
-          RestAPI.Content.createLink(
-            restCtx,
-            {
-              displayName: link,
-              description: null,
-              PRIVATE,
-              link,
-              managers: NO_MANAGERS,
-              viewers: NO_VIEWERS,
-              folders: NO_FOLDERS
-            },
-            contentCreated
-          );
-        } else if (resourceSubType === 'collabdoc') {
-          RestAPI.Content.createCollabDoc(
-            restCtx,
-            'Test document',
-            'Test document',
-            'private',
-            [],
-            [],
-            [],
-            [],
-            (error, contentObject) => {
-              assert.notExists(error);
-              RestAPI.Content.joinCollabDoc(restCtx, contentObject.id, (error /* , data */) => {
+        switch (resourceSubType) {
+          case 'file': {
+            RestAPI.Content.createFile(
+              restCtx,
+              {
+                displayName: 'Test Content 1',
+                description: 'Test content description 1',
+                PUBLIC,
+                file: stream,
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
+              },
+              contentCreated
+            );
+
+            break;
+          }
+
+          case 'link': {
+            RestAPI.Content.createLink(
+              restCtx,
+              {
+                displayName: link,
+                description: null,
+                PRIVATE,
+                link,
+                managers: NO_MANAGERS,
+                viewers: NO_VIEWERS,
+                folders: NO_FOLDERS
+              },
+              contentCreated
+            );
+
+            break;
+          }
+
+          case 'collabdoc': {
+            RestAPI.Content.createCollabDoc(
+              restCtx,
+              'Test document',
+              'Test document',
+              'private',
+              [],
+              [],
+              [],
+              [],
+              (error, contentObject) => {
                 assert.notExists(error);
+                RestAPI.Content.joinCollabDoc(restCtx, contentObject.id, (error /* , data */) => {
+                  assert.notExists(error);
 
-                // Put some text in the document, as we would otherwise ignore the document
-                const etherpadClient = Etherpad.getClient(contentObject.id);
-                const args = {
-                  padID: contentObject.etherpadPadId,
-                  text: 'Sweet update'
-                };
-                etherpadClient.setText(args, (error_) => {
-                  assert.notExists(error_);
+                  // Put some text in the document, as we would otherwise ignore the document
+                  const etherpadClient = Etherpad.getClient(contentObject.id);
+                  const args = {
+                    padID: contentObject.etherpadPadId,
+                    text: 'Sweet update'
+                  };
+                  etherpadClient.setText(args, (error_) => {
+                    assert.notExists(error_);
 
-                  // Create a new revision, as the document would otherwise be ignored by the PP
-                  ContentTestUtil.publishCollabDoc(contentObject.id, simon.user.id, (error_) => {
-                    return contentCreated(error_, contentObject);
+                    // Create a new revision, as the document would otherwise be ignored by the PP
+                    ContentTestUtil.publishCollabDoc(contentObject.id, simon.user.id, (error_) =>
+                      contentCreated(error_, contentObject)
+                    );
                   });
                 });
-              });
-            }
-          );
+              }
+            );
+
+            break;
+          }
+          // No default
         }
       });
     });
@@ -495,9 +507,7 @@ describe('Preview processor', () => {
         // Ensure we have a thumbnail url.
         assert.ok(content.previews.thumbnailUrl);
         assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
-        _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
-          return callback();
-        });
+        _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => callback());
       });
     });
 
@@ -553,7 +563,7 @@ describe('Preview processor', () => {
       }
 
       // OpenOffice can sometimes be painfully slow to start up.
-      this.timeout(30000);
+      this.timeout(30_000);
 
       _createContentAndWait('file', null, getOfficeStream, (restCtx, content) => {
         assert.strictEqual(content.previews.status, 'done');
@@ -583,7 +593,7 @@ describe('Preview processor', () => {
       }
 
       // OpenOffice can sometimes be painfully slow to start up
-      this.timeout(30000);
+      this.timeout(30_000);
 
       _createContentAndWait('file', null, getPDFStream, (restCtx, content) => {
         assert.strictEqual(content.previews.status, 'done');
@@ -637,7 +647,7 @@ describe('Preview processor', () => {
       }
 
       // OpenOffice can sometimes be painfully slow to start up
-      this.timeout(30000);
+      this.timeout(30_000);
 
       _createContentAndWait('file', null, getMultiplePagesPDFStream, (restCtx, content) => {
         assert.strictEqual(content.previews.status, 'done');
@@ -683,7 +693,7 @@ describe('Preview processor', () => {
       if (not(defaultConfig.previews.enabled)) return callback();
 
       // OpenOffice can sometimes be painfully slow to start up
-      this.timeout(50000);
+      this.timeout(50_000);
 
       _createContentAndWait('file', null, getMultiplePagesPDFStream, (restCtx, content) => {
         assert.strictEqual(content.previews.status, 'done');
@@ -873,9 +883,7 @@ describe('Preview processor', () => {
             // Ensure we have a thumbnail url
             assert.ok(content.previews.thumbnailUrl);
             assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
-            _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
-              return callback();
-            });
+            _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => callback());
           });
         });
       });
@@ -914,9 +922,7 @@ describe('Preview processor', () => {
             assert.ok(content.previews.smallUrl);
             _verifySignedUriDownload(restCtx, content.previews.smallUrl, () => {
               assert.ok(content.previews.mediumUrl);
-              _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
-                return server.close(callback);
-              });
+              _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => server.close(callback));
             });
           });
         });
@@ -1087,9 +1093,7 @@ describe('Preview processor', () => {
                     assert.ok(content.previews.smallUrl);
                     _verifySignedUriDownload(restCtx, content.previews.smallUrl, () => {
                       assert.ok(content.previews.mediumUrl);
-                      _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
-                        return callback();
-                      });
+                      _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => callback());
                     });
                   });
                 });
@@ -1110,9 +1114,7 @@ describe('Preview processor', () => {
     const _mockSlideShareIfNecessary = function (serverStartedCallback) {
       // If we're running an integration test we don't have to mock the API and can return immediately
       if (TestsUtil.isIntegrationTest()) {
-        serverStartedCallback((serverClosedCallback) => {
-          return serverClosedCallback();
-        });
+        serverStartedCallback((serverClosedCallback) => serverClosedCallback());
         return;
       }
 
@@ -1194,9 +1196,7 @@ describe('Preview processor', () => {
               assert.ok(content.previews.smallUrl);
               _verifySignedUriDownload(restCtx, content.previews.smallUrl, () => {
                 assert.ok(content.previews.mediumUrl);
-                _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
-                  return closeServer(callback);
-                });
+                _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => closeServer(callback));
               });
             });
           }
@@ -1263,9 +1263,7 @@ describe('Preview processor', () => {
     const _mockFlickrIfNecessary = function (serverStartedCallback) {
       // If we're running an integration test we don't have to mock the API and can return immediately
       if (TestsUtil.isIntegrationTest()) {
-        serverStartedCallback({}, (serverClosedCallback) => {
-          return serverClosedCallback();
-        });
+        serverStartedCallback({}, (serverClosedCallback) => serverClosedCallback());
         return;
       }
 
@@ -1311,68 +1309,104 @@ describe('Preview processor', () => {
             // A photo_id needs to be present
             assert.ok(request_.query.photo_id);
 
-            if (expectedResponses.photo === 'error') {
-              response.connection.destroy();
-            } else if (expectedResponses.photo === 'bad_status_code') {
-              response.sendStatus(404);
-            } else if (expectedResponses.photo === 'bad_json') {
-              response.send('This is not JSON');
-            } else if (expectedResponses.photo === 'no_photo_object') {
-              response.send({ foo: 'bar' });
-            } else {
-              response.send({
-                photo: {
-                  id: '8949876197',
-                  server: '3736',
-                  secret: '42',
-                  farm: 4,
-                  dateuploaded: '1370367237',
-                  isfavorite: 0,
-                  license: '2',
-                  safety_level: '0',
-                  rotation: 0,
-                  originalsecret: '367286f7ab',
-                  originalformat: 'jpg',
-                  owner: {},
-                  title: { _content: 'Apereo Sakai/Jasig Fellows' },
-                  description: { _content: '' }
-                }
-              });
+            switch (expectedResponses.photo) {
+              case 'error': {
+                response.connection.destroy();
+
+                break;
+              }
+
+              case 'bad_status_code': {
+                response.sendStatus(404);
+
+                break;
+              }
+
+              case 'bad_json': {
+                response.send('This is not JSON');
+
+                break;
+              }
+
+              case 'no_photo_object': {
+                response.send({ foo: 'bar' });
+
+                break;
+              }
+
+              default: {
+                response.send({
+                  photo: {
+                    id: '8949876197',
+                    server: '3736',
+                    secret: '42',
+                    farm: 4,
+                    dateuploaded: '1370367237',
+                    isfavorite: 0,
+                    license: '2',
+                    safety_level: '0',
+                    rotation: 0,
+                    originalsecret: '367286f7ab',
+                    originalformat: 'jpg',
+                    owner: {},
+                    title: { _content: 'Apereo Sakai/Jasig Fellows' },
+                    description: { _content: '' }
+                  }
+                });
+              }
             }
           } else if (request_.query.method === 'flickr.photosets.getInfo') {
             // A photo_id needs to be present
             assert.ok(request_.query.photoset_id);
 
-            if (expectedResponses.photoset === 'error') {
-              response.connection.destroy();
-            } else if (expectedResponses.photoset === 'bad_status_code') {
-              response.sendStatus(404);
-            } else if (expectedResponses.photoset === 'bad_json') {
-              response.send('This is not JSON');
-            } else if (expectedResponses.photoset === 'no_photoset_object') {
-              response.send({ foo: 'bar' });
-            } else {
-              response.send({
-                photoset: {
-                  id: '72057594140880342',
-                  primary: '150332756',
-                  secret: 'a96f53dc7e',
-                  server: '47',
-                  farm: 1,
-                  photos: 5,
-                  count_views: '118',
-                  count_comments: '0',
-                  count_photos: '5',
-                  count_videos: 0,
-                  title: { _content: 'JA-SIG Denver 03' },
-                  description: { _content: '' },
-                  can_comment: 0,
-                  date_create: '1148217744',
-                  date_update: '1356369692',
-                  coverphoto_server: '0',
-                  coverphoto_farm: 0
-                }
-              });
+            switch (expectedResponses.photoset) {
+              case 'error': {
+                response.connection.destroy();
+
+                break;
+              }
+
+              case 'bad_status_code': {
+                response.sendStatus(404);
+
+                break;
+              }
+
+              case 'bad_json': {
+                response.send('This is not JSON');
+
+                break;
+              }
+
+              case 'no_photoset_object': {
+                response.send({ foo: 'bar' });
+
+                break;
+              }
+
+              default: {
+                response.send({
+                  photoset: {
+                    id: '72057594140880342',
+                    primary: '150332756',
+                    secret: 'a96f53dc7e',
+                    server: '47',
+                    farm: 1,
+                    photos: 5,
+                    count_views: '118',
+                    count_comments: '0',
+                    count_photos: '5',
+                    count_videos: 0,
+                    title: { _content: 'JA-SIG Denver 03' },
+                    description: { _content: '' },
+                    can_comment: 0,
+                    date_create: '1148217744',
+                    date_update: '1356369692',
+                    coverphoto_server: '0',
+                    coverphoto_farm: 0
+                  }
+                });
+              }
             }
           }
         });
@@ -1432,9 +1466,7 @@ describe('Preview processor', () => {
                       assert.ok(content.previews.smallUrl);
                       _verifySignedUriDownload(restCtx, content.previews.smallUrl, () => {
                         assert.ok(content.previews.mediumUrl);
-                        _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
-                          return closeServer(callback);
-                        });
+                        _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => closeServer(callback));
                       });
                     });
                   });
@@ -1472,9 +1504,7 @@ describe('Preview processor', () => {
               assert.ok(content.previews.smallUrl);
               _verifySignedUriDownload(restCtx, content.previews.smallUrl, () => {
                 assert.ok(content.previews.mediumUrl);
-                _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => {
-                  return closeServer(callback);
-                });
+                _verifySignedUriDownload(restCtx, content.previews.mediumUrl, () => closeServer(callback));
               });
             });
           }
@@ -2755,9 +2785,9 @@ describe('Preview processor', () => {
 
                                   // Assert the previews can be downloaded
                                   _verifySignedUriDownload(user.restContext, folder.previews.thumbnailUrl, () => {
-                                    _verifySignedUriDownload(user.restContext, folder.previews.thumbnailUrl, () => {
-                                      return callback();
-                                    });
+                                    _verifySignedUriDownload(user.restContext, folder.previews.thumbnailUrl, () =>
+                                      callback()
+                                    );
                                   });
                                 });
                               });

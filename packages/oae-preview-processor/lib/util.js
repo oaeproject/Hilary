@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import sharp from 'sharp';
 import request from 'request';
@@ -167,7 +167,7 @@ const _resizeImages = function (ctx, path, sizes, callback) {
       return callback({ code: 500, msg: error.message });
     }
 
-    sizes.forEach((size) => {
+    for (const size of sizes) {
       let ratio = metainfo.height / size.height;
       // If both sides are smaller we don't have to do anything.
       if (size.width > metainfo.width && size.height > metainfo.height) {
@@ -199,7 +199,7 @@ const _resizeImages = function (ctx, path, sizes, callback) {
           callback();
         }
       });
-    });
+    }
   });
 };
 
@@ -379,14 +379,7 @@ const _cropIntelligently = function (ctx, path, width, height, options, filename
 
     if (!options.cropMode) {
       // In landscape mode we crop out a box the size of the image height in the (absolute) center of the image.
-      if (imageWidth > imageHeight) {
-        options.cropMode = 'CENTER';
-
-        // In portrait mode we crop out a box the size of the image width at the top of the image.
-        // This is to get the top of the page for content items such as PDFs, Office files, ...
-      } else {
-        options.cropMode = 'TOP';
-      }
+      options.cropMode = imageWidth > imageHeight ? 'CENTER' : 'TOP';
     }
 
     // TOP cropMode

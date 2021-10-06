@@ -713,62 +713,76 @@ const _applyPropagation = function (
     return callback(null, includedRoutes, excludedRoutes);
   }
 
-  if (propagation.type === ActivityConstants.entityPropagation.SELF) {
-    // Apply the "self" association of the item
-    _applyAssociationsCtx(associationsContexts[objectType], 'self', (error) => {
-      if (error) {
-        return callback(error);
-      }
+  switch (propagation.type) {
+    case ActivityConstants.entityPropagation.SELF: {
+      // Apply the "self" association of the item
+      _applyAssociationsCtx(associationsContexts[objectType], 'self', (error) => {
+        if (error) {
+          return callback(error);
+        }
 
-      return callback(null, includedRoutes, excludedRoutes);
-    });
-  } else if (propagation.type === ActivityConstants.entityPropagation.ASSOCIATION) {
-    // Apply the specified association of the item
-    _applyAssociationsCtx(associationsContexts[objectType], propagation.association, (error) => {
-      if (error) {
-        return callback(error);
-      }
+        return callback(null, includedRoutes, excludedRoutes);
+      });
 
-      return callback(null, includedRoutes, excludedRoutes);
-    });
-  } else if (propagation.type === ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION) {
-    /*!
-     * Apply a specified association that is of an entity that is external to the item itself. This is useful
-     * in situations where an item you have access to has been impacted by an item that you do not have access
-     * to in an activity. It is useful for you to still receive the activity, even though more basic propagation
-     * may indicate that you don't have access. For example:
-     *
-     *  * UserA is the manager of ContentA, but not a member of private GroupB
-     *  * UserB adds ContentA to the library of GroupB
-     *  * This generates activity "content-share" with an {actor, object, target} of {UserB, ContentA, GroupB}
-     *  * UserA should receive this activity since they are a manager of ContentA, but theoretically they don't
-     *    have access to GroupB
-     *
-     * For this case, we actually do want to deliver the activity to UserA's activity feed. This is not necessarily
-     * a privacy breach, because UserA is now able to discover GroupB VIA the members list of ContentA. To express
-     * this relationship, EXTERNAL_ASSOCATION can be used on groups to indicate:
-     *
-     *  "The 'managers' association of the 'object' entity of an activity is allowed to receive the group as an activity"
-     *
-     * Thus, the "managers" of ContentA will be in the propagation list of GroupB since ContentA is the "object" entity
-     * of the activity.
-     */
-
-    const externalAssociationsCtx = associationsContexts[propagation.objectType];
-    if (!externalAssociationsCtx) {
-      // There is no entity that is of this object type (e.g., no object or no target), therefore we apply no inclusions
-      return callback(null, [], routes);
+      break;
     }
 
-    _applyAssociationsCtx(externalAssociationsCtx, propagation.association, (error) => {
-      if (error) {
-        return callback(error);
+    case ActivityConstants.entityPropagation.ASSOCIATION: {
+      // Apply the specified association of the item
+      _applyAssociationsCtx(associationsContexts[objectType], propagation.association, (error) => {
+        if (error) {
+          return callback(error);
+        }
+
+        return callback(null, includedRoutes, excludedRoutes);
+      });
+
+      break;
+    }
+
+    case ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION: {
+      /*!
+       * Apply a specified association that is of an entity that is external to the item itself. This is useful
+       * in situations where an item you have access to has been impacted by an item that you do not have access
+       * to in an activity. It is useful for you to still receive the activity, even though more basic propagation
+       * may indicate that you don't have access. For example:
+       *
+       *  * UserA is the manager of ContentA, but not a member of private GroupB
+       *  * UserB adds ContentA to the library of GroupB
+       *  * This generates activity "content-share" with an {actor, object, target} of {UserB, ContentA, GroupB}
+       *  * UserA should receive this activity since they are a manager of ContentA, but theoretically they don't
+       *    have access to GroupB
+       *
+       * For this case, we actually do want to deliver the activity to UserA's activity feed. This is not necessarily
+       * a privacy breach, because UserA is now able to discover GroupB VIA the members list of ContentA. To express
+       * this relationship, EXTERNAL_ASSOCATION can be used on groups to indicate:
+       *
+       *  "The 'managers' association of the 'object' entity of an activity is allowed to receive the group as an activity"
+       *
+       * Thus, the "managers" of ContentA will be in the propagation list of GroupB since ContentA is the "object" entity
+       * of the activity.
+       */
+
+      const externalAssociationsCtx = associationsContexts[propagation.objectType];
+      if (!externalAssociationsCtx) {
+        // There is no entity that is of this object type (e.g., no object or no target), therefore we apply no inclusions
+        return callback(null, [], routes);
       }
 
-      return callback(null, includedRoutes, excludedRoutes);
-    });
-  } else {
-    return callback(new Error(format('Received invalid propagation type "%s"', propagation.type)));
+      _applyAssociationsCtx(externalAssociationsCtx, propagation.association, (error) => {
+        if (error) {
+          return callback(error);
+        }
+
+        return callback(null, includedRoutes, excludedRoutes);
+      });
+
+      break;
+    }
+
+    default: {
+      return callback(new Error(format('Received invalid propagation type "%s"', propagation.type)));
+    }
   }
 };
 
@@ -823,7 +837,7 @@ const _produceRoutes = function (associationsCtx, entity, routeConfig, callback)
     }
 
     const stream = routeConfig.pop();
-    _routeAssociations(associationsCtx, stream.associationNames.slice(), (error, streamRoutes) => {
+    _routeAssociations(associationsCtx, [...stream.associationNames], (error, streamRoutes) => {
       if (error) {
         return callback(error);
       }
@@ -940,12 +954,12 @@ const _queueActivities = function (activitySeed, routedActivities, callback) {
   const allRoutes = _.keys(routedActivities);
   const activityBuckets = [];
 
-  allRoutes.forEach((route) => {
+  for (const route of allRoutes) {
     // Assign all activities to their processing buckets to support safe concurrency
     const bucketNumber = _getBucketNumber(route, activitySeed);
     activityBuckets[bucketNumber] = activityBuckets[bucketNumber] || [];
     activityBuckets[bucketNumber].push({ route, activity: routedActivities[route] });
-  });
+  }
 
   // Queue the aggregates into their associated buckets to indicate they need to be collected and delivered
   ActivityDAO.saveQueuedActivities(activityBuckets, (error) => {

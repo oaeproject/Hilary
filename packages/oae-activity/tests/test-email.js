@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
 
-import { format } from 'node:util';
 import $ from 'cheerio';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as ContentTestUtil from 'oae-content/lib/test/util.js';
@@ -46,6 +46,7 @@ import {
   sortBy,
   propSatisfies
 } from 'ramda';
+
 const NO_MANAGERS = [];
 const NO_VIEWERS = [];
 const NO_FOLDERS = [];
@@ -69,9 +70,7 @@ describe('Activity Email', () => {
 
     // Flush the pending mails
     EmailTestUtil.clearEmailCollections(() => {
-      refreshConfiguration(null, false, false, {}, () => {
-        return callback();
-      });
+      refreshConfiguration(null, false, false, {}, () => callback());
     });
   });
 
@@ -81,9 +80,7 @@ describe('Activity Email', () => {
   afterEach((callback) => {
     Date.now = _originalDateNow;
 
-    refreshConfiguration(null, false, false, {}, () => {
-      return callback();
-    });
+    refreshConfiguration(null, false, false, {}, () => callback());
   });
 
   /**

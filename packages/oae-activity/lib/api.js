@@ -25,18 +25,6 @@ import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as Redis from 'oae-util/lib/redis.js';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
 
-const {
-  getNestedObject,
-  validateInCase: bothCheck,
-  unless,
-  isLoggedInUser,
-  isUserId,
-  isPrincipalId,
-  isNotEmpty,
-  isANumber,
-  isObject
-} = validator;
-
 import { both } from 'ramda';
 import isIn from 'validator/lib/isIn.js';
 
@@ -53,6 +41,18 @@ import * as ActivitySystemConfig from './internal/config.js';
 import * as ActivityTransformer from './internal/transformer.js';
 import * as ActivityDAO from './internal/dao.js';
 import * as ActivityAggregator from './internal/aggregator.js';
+
+const {
+  getNestedObject,
+  validateInCase: bothCheck,
+  unless,
+  isLoggedInUser,
+  isUserId,
+  isPrincipalId,
+  isNotEmpty,
+  isANumber,
+  isObject
+} = validator;
 
 const log = logger('oae-activity-api');
 const ActivityConfig = setUpConfig('oae-activity');
@@ -656,9 +656,7 @@ const markNotificationsRead = function (ctx, callback) {
  * @param  {Context}       ctx              Standard context object containing the current user and the current tenant
  * @return {Boolean|String|Number|Object}   cachedConfiguration     The requested config value e.g. `true`. This will be null if the config element cannot be found
  */
-const isActivityFeedDisabled = (ctx) => {
-  return !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
-};
+const isActivityFeedDisabled = (ctx) => !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
 
 /**
  * Post an activity in the system to be routed.
@@ -810,22 +808,20 @@ const removeActivityStream = function (ctx, principalId, callback) {
 
     async.eachSeries(
       activityTypes,
-      function (activityType, done) {
+      (activityType, done) => {
         // Get all the activity streams corresponding to the deleted principal
-        ActivityDAO.getActivities(principalId + activityType, null, null, function (error, activities) {
+        ActivityDAO.getActivities(principalId + activityType, null, null, (error, activities) => {
           if (error) return callback(error);
 
           // Delete all data in the ActivityStreams table corresponding to the deleted principal
-          ActivityDAO.deleteActivities(activities, function (error) {
+          ActivityDAO.deleteActivities(activities, (error) => {
             if (error) return callback(error);
 
             return done();
           });
         });
       },
-      function () {
-        return callback();
-      }
+      () => callback()
     );
   } else {
     return callback({ code: 400, msg: 'You must be an admin' });

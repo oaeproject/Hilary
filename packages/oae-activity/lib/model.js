@@ -144,11 +144,11 @@ const Activity = function (oaeActivityType, oaeActivityId, verb, published, acto
  * @param  {Number}    [opts.created]      Time in millis since the epoch when the object was created
  * @param  {Object}    [opts.ext]          A hash of custom extension properties that will be overlayed onto the Object model
  */
-const ActivityEntity = function (objectType, id, visibility, opts) {
-  opts = opts || {};
-  const ext = opts.ext || {};
-  delete opts.ext;
-  return _.extend({}, ext, opts, { objectType, id, 'oae:visibility': visibility });
+const ActivityEntity = function (objectType, id, visibility, options) {
+  options = options || {};
+  const ext = options.ext || {};
+  delete options.ext;
+  return _.extend({}, ext, options, { objectType, id, 'oae:visibility': visibility });
 };
 
 /**
@@ -257,9 +257,9 @@ const AssociationsSession = function (registeredAssociations, actor, object, tar
     associationFunction(
       associationsSession.createAssociationsContext(entityType, entityId),
       entity,
-      (err, association) => {
-        if (err) {
-          return callback(err);
+      (error, association) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!association) {

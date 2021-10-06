@@ -26,6 +26,13 @@ import * as Signature from 'oae-util/lib/signature.js';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { compose, equals, not, path } from 'ramda';
+
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
+import * as ActivityTransformer from 'oae-activity/lib/internal/transformer.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
+
 const {
   validateInCase: bothCheck,
   getNestedObject,
@@ -36,12 +43,6 @@ const {
   isNotNull,
   isANumber
 } = validator;
-import { compose, equals, not, path } from 'ramda';
-
-import { ActivityConstants } from 'oae-activity/lib/constants.js';
-import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
-import * as ActivityTransformer from 'oae-activity/lib/internal/transformer.js';
-import * as ActivityUtil from 'oae-activity/lib/util.js';
 
 const log = logger('oae-activity-push');
 const Telemetry = telemetry('push');
@@ -218,13 +219,13 @@ const registerConnection = function (socket) {
    *
    * @param  {Object}     msg     The message the client sent us
    */
-  socket.on('data', (msg) => {
+  socket.on('data', (message_) => {
     let message = null;
     try {
       // Deserialize the incoming message (Sock.JS only supports strings)
-      message = JSON.parse(msg);
+      message = JSON.parse(message_);
     } catch (error) {
-      log().error({ msg, err: error }, 'Ignoring malformed message');
+      log().error({ msg: message_, err: error }, 'Ignoring malformed message');
       _writeResponse(connectionInfo, 0, { code: 400, msg: 'Malformed message' });
       socket.close();
 
@@ -232,11 +233,11 @@ const registerConnection = function (socket) {
       return;
     }
 
-    log().trace({ sid: socket.id, request: msg }, 'Received websocket request');
+    log().trace({ sid: socket.id, request: message_ }, 'Received websocket request');
 
     // We require an id for all incoming messages
     if (!message.id) {
-      log().error({ msg }, 'Missing id on the message');
+      log().error({ msg: message_ }, 'Missing id on the message');
       _writeResponse(connectionInfo, 0, { code: 400, msg: 'Missing id on the message' });
       return socket.close();
     }
@@ -399,10 +400,10 @@ const _authenticate = function (connectionInfo, message) {
   }
 
   // Get the full user object so we can build a context with which to authenticate to the signing utility
-  PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
-    if (err) {
-      _writeResponse(connectionInfo, message.id, err);
-      log().error({ err, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
+  PrincipalsDAO.getPrincipal(data.userId, (error, user) => {
+    if (error) {
+      _writeResponse(connectionInfo, message.id, error);
+      log().error({ err: error, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
       return socket.close();
     }
 
@@ -472,9 +473,9 @@ const _subscribe = function (connectionInfo, message) {
   }
 
   // Perform authorization
-  authzHandler(connectionInfo.ctx, data.stream.resourceId, data.token, (err) => {
-    if (err) {
-      return _writeResponse(connectionInfo, message.id, err);
+  authzHandler(connectionInfo.ctx, data.stream.resourceId, data.token, (error) => {
+    if (error) {
+      return _writeResponse(connectionInfo, message.id, error);
     }
 
     const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
@@ -550,22 +551,22 @@ const _getAuthorizationHandler = function (activityStreamId) {
  */
 const _writeResponse = function (connectionInfo, id, error) {
   const { socket } = connectionInfo;
-  const msg = {};
-  msg.replyTo = id;
+  const message = {};
+  message.replyTo = id;
   if (error) {
-    msg.error = error;
+    message.error = error;
   }
 
   log().trace(
     {
       sid: socket.id,
       messageId: id,
-      response: msg
+      response: message
     },
     'Writing response to websocket connection'
   );
 
-  socket.write(JSON.stringify(msg));
+  socket.write(JSON.stringify(message));
 };
 
 /// ///////////////////////////
@@ -615,21 +616,21 @@ const _handlePushActivity = function (data, callback) {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, (err) => {
-        if (err) {
-          return log().error({ err }, 'Could not transform event');
+      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, (error) => {
+        if (error) {
+          return log().error({ err: error }, 'Could not transform event');
         }
 
-        const msgData = {
+        const messageData = {
           resourceId: data.resourceId,
           streamType: data.streamType,
           activities,
           format: transformerType,
           numNewActivities: data.numNewActivities
         };
-        log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-        const msg = JSON.stringify(msgData);
-        socket.write(msg);
+        log().trace({ data: messageData, sid: socket.id }, 'Pushing message to socket');
+        const message = JSON.stringify(messageData);
+        socket.write(message);
 
         todo--;
         if (todo === 0) {

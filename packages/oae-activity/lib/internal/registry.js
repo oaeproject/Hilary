@@ -65,7 +65,7 @@ const registerActivityType = function (activityType, options) {
 
     // Iterate over the defined routers in the stream's router config
     // In this case entityName will be one of `actor`, `object` or `target`
-    _.each(options.streams[streamName].router, function (assocations, entityName) {
+    _.each(options.streams[streamName].router, (assocations, entityName) => {
       if (_.isEmpty(assocations)) {
         throw new Error(
           format('Missing or empty associations for stream "%s" and entity "%s"', streamName, entityName)

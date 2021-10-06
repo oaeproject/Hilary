@@ -80,16 +80,27 @@ const getEmailSubject = (util, recipient, activities) => {
   // on their email preference and number of activities
   const { emailPreference } = recipient;
   let message = util.i18n.translate('__MSG__RECENT_ACTIVITY__');
-  if (emailPreference === 'immediate') {
-    if (activities.length === 1) {
-      message = util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments);
-    } else {
-      message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_MULTIPLE__');
+  switch (emailPreference) {
+    case 'immediate': {
+      message =
+        activities.length === 1
+          ? util.i18n.translate(activities[0].summary.i18nKey, activities[0].summary.i18nArguments)
+          : util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_MULTIPLE__');
+      break;
     }
-  } else if (emailPreference === 'daily') {
-    message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_DAILY__');
-  } else if (emailPreference === 'weekly') {
-    message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_WEEKLY__');
+
+    case 'daily': {
+      message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_DAILY__');
+
+      break;
+    }
+
+    case 'weekly': {
+      message = util.i18n.translate('__MSG__ACTIVITY_EMAIL_SUBJECT_WEEKLY__');
+
+      break;
+    }
+    // No default
   }
 
   return message;

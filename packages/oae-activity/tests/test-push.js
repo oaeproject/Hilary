@@ -148,9 +148,7 @@ describe('Activity push', () => {
      */
     it('verify authentication timeout', (callback) => {
       getPushClient((client) => {
-        client.on('close', () => {
-          return callback();
-        });
+        client.on('close', () => callback());
       });
     });
   });

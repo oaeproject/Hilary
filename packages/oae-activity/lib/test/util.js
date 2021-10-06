@@ -126,9 +126,7 @@ const assertGetActivityStreamFails = function (restCtx, resourceId, options, cod
 const markNotificationsAsRead = function (restContext, callback) {
   let result = null;
 
-  ActivityAPI.emitter.once(ActivityConstants.events.RESET_AGGREGATION, () => {
-    return callback(result);
-  });
+  ActivityAPI.emitter.once(ActivityConstants.events.RESET_AGGREGATION, () => callback(result));
 
   RestAPI.Activity.markNotificationsRead(restContext, (error, _result) => {
     assert.ok(!error);
@@ -397,9 +395,9 @@ const getPushClient = function (callback) {
     }
   });
 
-  socket.onclose = function () {
+  socket.addEventListener('close', () => {
     client.emit('close');
-  };
+  });
 
   /**
    * Returns the raw socket. This allows you to send custom messages
@@ -475,9 +473,9 @@ const getPushClient = function (callback) {
    */
   client.close = function (callback) {
     callback = callback || function () {};
-    socket.onclose = function () {
+    socket.addEventListener('close', () => {
       callback();
-    };
+    });
 
     socket.close();
   };

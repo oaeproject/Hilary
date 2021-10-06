@@ -76,14 +76,12 @@ const getStandardResourcePropagation = function (resourceVisibility, resourceJoi
       type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
       objectType: 'target',
       association: 'self'
+    },
+    {
+      type: ActivityConstants.entityPropagation.ASSOCIATION,
+      association: 'members'
     }
   );
-
-  // Always allow routing to the members of the item whether it's loggedin or private
-  propagation.push({
-    type: ActivityConstants.entityPropagation.ASSOCIATION,
-    association: 'members'
-  });
   return callback(null, propagation);
 };
 
@@ -97,7 +95,7 @@ const getStandardResourcePropagation = function (resourceVisibility, resourceJoi
  * @param  {Object}    callback.membersByRole  An object holding all the direct and indirect members of the given resource item. The key of the hash is the role, and the values are a list of strings that represent the principal ids of those members
  */
 const getAllAuthzMembersByRole = function (resourceId, callback) {
-  AuthzAPI.getAuthzMembers(resourceId, null, 10000, (error, members) => {
+  AuthzAPI.getAuthzMembers(resourceId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }
@@ -195,7 +193,7 @@ const _getAllAuthzMembers = function (groupIds, callback, aggregatedMembers) {
   }
 
   const groupId = groupIds.shift();
-  AuthzAPI.getAuthzMembers(groupId, null, 10000, (error, members) => {
+  AuthzAPI.getAuthzMembers(groupId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }

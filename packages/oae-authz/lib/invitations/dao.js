@@ -21,6 +21,8 @@ import Chance from 'chance';
 import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { not, equals, forEachObjIndexed } from 'ramda';
+
 const {
   unless,
   validateInCase: bothCheck,
@@ -31,7 +33,6 @@ const {
   isUserId,
   isValidRoleChange
 } = validator;
-import { not, equals, forEachObjIndexed } from 'ramda';
 
 const chance = new Chance();
 
@@ -108,9 +109,7 @@ const getTokensByEmails = function (emails, callback) {
       const emailTokens = _.chain(rows)
         .map(Cassandra.rowToHash)
         .indexBy('email')
-        .mapObject((hash) => {
-          return hash.token;
-        })
+        .mapObject((hash) => hash.token)
         .value();
       return callback(null, emailTokens);
     }
@@ -280,31 +279,27 @@ const createInvitations = function (resourceId, emailRoles, inviterUserId, callb
     }
 
     // Create the invitation storage hashes that will be persisted
-    const invitationHashes = _.map(emailRoles, (role, email) => {
-      return {
-        resourceId,
-        email,
-        inviterUserId,
-        role
-      };
-    });
+    const invitationHashes = _.map(emailRoles, (role, email) => ({
+      resourceId,
+      email,
+      inviterUserId,
+      role
+    }));
 
     // Create and run the batch set of queries that will create all the invitations
     const queries = _.chain(invitationHashes)
-      .map((hash) => {
-        return [
-          {
-            query:
-              'UPDATE "AuthzInvitations" SET "inviterUserId" = ?, "role" = ? WHERE "resourceId" = ? AND "email" = ?',
-            parameters: [hash.inviterUserId, hash.role, hash.resourceId, hash.email]
-          },
-          {
-            query:
-              'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
-            parameters: [hash.resourceId, hash.email]
-          }
-        ];
-      })
+      .map((hash) => [
+        {
+          query:
+            'UPDATE "AuthzInvitations" SET "inviterUserId" = ?, "role" = ? WHERE "resourceId" = ? AND "email" = ?',
+          parameters: [hash.inviterUserId, hash.role, hash.resourceId, hash.email]
+        },
+        {
+          query:
+            'INSERT INTO "AuthzInvitationsResourceIdByEmail" ("resourceId", "email") VALUES (?, ?)',
+          parameters: [hash.resourceId, hash.email]
+        }
+      ])
       .flatten()
       .value();
     Cassandra.runBatchQuery(queries, (error_) => {
@@ -395,9 +390,7 @@ const deleteInvitationsByResourceId = function (resourceId, callback) {
 
     const changes = _.chain(invitations)
       .pluck('email')
-      .map((email) => {
-        return [email, false];
-      })
+      .map((email) => [email, false])
       .object()
       .value();
     return updateInvitationRoles(resourceId, changes, callback);

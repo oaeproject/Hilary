@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import { format } from 'node:util';
+import { assert } from 'chai';
 
 import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
@@ -75,7 +75,7 @@ describe('Invitations', () => {
       }
 
       // Create the first partial with the applied arguments
-      const firstFnPartial = _.partial.apply(null, [firstFn].concat(firstArgsApplied));
+      const firstFnPartial = Reflect.apply(_.partial, null, [firstFn, ...firstArgsApplied]);
 
       // Now return the result of the partial function with the 2nd set of arguments verbatim
       return firstFnPartial(...secondArgs);
@@ -318,9 +318,7 @@ describe('Invitations', () => {
 
   beforeEach((callback) => {
     // Ensure we start each test with no emails pending
-    EmailTestUtil.collectAndFetchAllEmails(() => {
-      return callback();
-    });
+    EmailTestUtil.collectAndFetchAllEmails(() => callback());
   });
 
   describe('Create', () => {
@@ -328,92 +326,80 @@ describe('Invitations', () => {
       /**
        * Test that verifies creating content with members and invitations saves invitations
        */
-      it('verify creating content with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForCreate('content', callback);
-      });
+      it('verify creating content with members and invitations saves invitations', (callback) =>
+        _testInvitationsForCreate('content', callback));
 
       /**
        * Test that verifies validation of creating content with invitations
        */
-      it('verify validation of creating content with invitations', (callback) => {
-        return _testInvitationsValidationForCreate('content', callback);
-      });
+      it('verify validation of creating content with invitations', (callback) =>
+        _testInvitationsValidationForCreate('content', callback));
 
       /**
        * Test that verifies authorization of creating content with invitations
        */
-      it('verify authorization of creating content with invitations', (callback) => {
-        return _testInvitationsAuthorizationForCreate('content', callback);
-      });
+      it('verify authorization of creating content with invitations', (callback) =>
+        _testInvitationsAuthorizationForCreate('content', callback));
     });
 
     describe('Discussion', () => {
       /**
        * Test that verifies creating discussions with members and invitations saves invitations
        */
-      it('verify creating discussion with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForCreate('discussion', callback);
-      });
+      it('verify creating discussion with members and invitations saves invitations', (callback) =>
+        _testInvitationsForCreate('discussion', callback));
 
       /**
        * Test that verifies validation of creating discussions with invitations
        */
-      it('verify validation of creating discussion with invitations', (callback) => {
-        return _testInvitationsValidationForCreate('discussion', callback);
-      });
+      it('verify validation of creating discussion with invitations', (callback) =>
+        _testInvitationsValidationForCreate('discussion', callback));
 
       /**
        * Test that verifies authorization of creating discussions with invitations
        */
-      it('verify authorization of creating discussion with invitations', (callback) => {
-        return _testInvitationsAuthorizationForCreate('discussion', callback);
-      });
+      it('verify authorization of creating discussion with invitations', (callback) =>
+        _testInvitationsAuthorizationForCreate('discussion', callback));
     });
 
     describe('Folder', () => {
       /**
        * Test that verifies creating folders with members and invitations saves invitations
        */
-      it('verify creating folder with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForCreate('folder', callback);
-      });
+      it('verify creating folder with members and invitations saves invitations', (callback) =>
+        _testInvitationsForCreate('folder', callback));
 
       /**
        * Test that verifies validation of creating folders with invitations
        */
-      it('verify validation of creating folder with invitations', (callback) => {
-        return _testInvitationsValidationForCreate('folder', callback);
-      });
+      it('verify validation of creating folder with invitations', (callback) =>
+        _testInvitationsValidationForCreate('folder', callback));
 
       /**
        * Test that verifies authorization of creating folders with invitations
        */
-      it('verify authorization of creating folder with invitations', (callback) => {
-        return _testInvitationsAuthorizationForCreate('folder', callback);
-      });
+      it('verify authorization of creating folder with invitations', (callback) =>
+        _testInvitationsAuthorizationForCreate('folder', callback));
     });
 
     describe('Group', () => {
       /**
        * Test that verifies creating groups with members and invitations saves invitations
        */
-      it('verify creating group with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForCreate('group', callback);
-      });
+      it('verify creating group with members and invitations saves invitations', (callback) =>
+        _testInvitationsForCreate('group', callback));
 
       /**
        * Test that verifies validation of creating groups with invitations
        */
-      it('verify validation of creating group with invitations', (callback) => {
-        return _testInvitationsValidationForCreate('group', callback);
-      });
+      it('verify validation of creating group with invitations', (callback) =>
+        _testInvitationsValidationForCreate('group', callback));
 
       /**
        * Test that verifies authorization of creating groups with invitations
        */
-      it('verify authorization of creating group with invitations', (callback) => {
-        return _testInvitationsAuthorizationForCreate('group', callback);
-      });
+      it('verify authorization of creating group with invitations', (callback) =>
+        _testInvitationsAuthorizationForCreate('group', callback));
     });
   });
 
@@ -422,69 +408,60 @@ describe('Invitations', () => {
       /**
        * Test that verifies sharing content with members and invitations saves invitations
        */
-      it('verify sharing content with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForShare('content', callback);
-      });
+      it('verify sharing content with members and invitations saves invitations', (callback) =>
+        _testInvitationsForShare('content', callback));
 
       /**
        * Test that verifies validation of content share with invitations
        */
-      it('verify validation of content share with invitations', (callback) => {
-        return _testInvitationsValidationForShare('content', callback);
-      });
+      it('verify validation of content share with invitations', (callback) =>
+        _testInvitationsValidationForShare('content', callback));
 
       /**
        * Test that verifies authorization of content share with invitations
        */
-      it('verify authorization of content share with invitations', (callback) => {
-        return _testInvitationsAuthorizationForShare('content', callback);
-      });
+      it('verify authorization of content share with invitations', (callback) =>
+        _testInvitationsAuthorizationForShare('content', callback));
     });
 
     describe('Discussion', () => {
       /**
        * Test that verifies sharing discussion with members and invitations saves invitations
        */
-      it('verify sharing discussion with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForShare('discussion', callback);
-      });
+      it('verify sharing discussion with members and invitations saves invitations', (callback) =>
+        _testInvitationsForShare('discussion', callback));
 
       /**
        * Test that verifies validation of discussion share with invitations
        */
-      it('verify validation of discussion share with invitations', (callback) => {
-        return _testInvitationsValidationForShare('discussion', callback);
-      });
+      it('verify validation of discussion share with invitations', (callback) =>
+        _testInvitationsValidationForShare('discussion', callback));
 
       /**
        * Test that verifies authorization of discussion share with invitations
        */
-      it('verify authorization of discussion share with invitations', (callback) => {
-        return _testInvitationsAuthorizationForShare('discussion', callback);
-      });
+      it('verify authorization of discussion share with invitations', (callback) =>
+        _testInvitationsAuthorizationForShare('discussion', callback));
     });
 
     describe('Folder', () => {
       /**
        * Test that verifies sharing folder with members and invitations saves invitations
        */
-      it('verify sharing folder with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForShare('folder', callback);
-      });
+      it('verify sharing folder with members and invitations saves invitations', (callback) =>
+        _testInvitationsForShare('folder', callback));
 
       /**
        * Test that verifies validation of folder share with invitations
        */
-      it('verify validation of folder share with invitations', (callback) => {
-        return _testInvitationsValidationForShare('folder', callback);
-      });
+      it('verify validation of folder share with invitations', (callback) =>
+        _testInvitationsValidationForShare('folder', callback));
 
       /**
        * Test that verifies authorization of folder share with invitations
        */
-      it('verify authorization of folder share with invitations', (callback) => {
-        return _testInvitationsAuthorizationForShare('folder', callback);
-      });
+      it('verify authorization of folder share with invitations', (callback) =>
+        _testInvitationsAuthorizationForShare('folder', callback));
     });
   });
 
@@ -493,124 +470,108 @@ describe('Invitations', () => {
       /**
        * Test that verifies setting roles of content with members and invitations saves invitations
        */
-      it('verify setting roles of content with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForSetRoles('content', callback);
-      });
+      it('verify setting roles of content with members and invitations saves invitations', (callback) =>
+        _testInvitationsForSetRoles('content', callback));
 
       /**
        * Test that verifies validation of setting roles of content with invitations
        */
-      it('verify validation of setting roles of content with invitations', (callback) => {
-        return _testInvitationsValidationForSetRoles('content', callback);
-      });
+      it('verify validation of setting roles of content with invitations', (callback) =>
+        _testInvitationsValidationForSetRoles('content', callback));
 
       /**
        * Test that verifies authorization of setting roles of content with invitations
        */
-      it('verify authorization of setting roles of content with invitations', (callback) => {
-        return _testInvitationsAuthorizationForSetRoles('content', callback);
-      });
+      it('verify authorization of setting roles of content with invitations', (callback) =>
+        _testInvitationsAuthorizationForSetRoles('content', callback));
 
       /**
        * Test that verifies removing one of multiple content invitations still allows the other
        * invited content items to be associated when accepted
        */
-      it('verify removing one of multiple content invitations for an email', (callback) => {
-        return _testInvitationsPartialRemoveRoles('content', callback);
-      });
+      it('verify removing one of multiple content invitations for an email', (callback) =>
+        _testInvitationsPartialRemoveRoles('content', callback));
     });
 
     describe('Discussion', () => {
       /**
        * Test that verifies setting roles of discussion with members and invitations saves invitations
        */
-      it('verify setting roles of discussion with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForSetRoles('discussion', callback);
-      });
+      it('verify setting roles of discussion with members and invitations saves invitations', (callback) =>
+        _testInvitationsForSetRoles('discussion', callback));
 
       /**
        * Test that verifies validation of setting roles of discussion with invitations
        */
-      it('verify validation of setting roles of discussion with invitations', (callback) => {
-        return _testInvitationsValidationForSetRoles('discussion', callback);
-      });
+      it('verify validation of setting roles of discussion with invitations', (callback) =>
+        _testInvitationsValidationForSetRoles('discussion', callback));
 
       /**
        * Test that verifies authorization of setting roles of discussion with invitations
        */
-      it('verify authorization of setting roles of discussion with invitations', (callback) => {
-        return _testInvitationsAuthorizationForSetRoles('discussion', callback);
-      });
+      it('verify authorization of setting roles of discussion with invitations', (callback) =>
+        _testInvitationsAuthorizationForSetRoles('discussion', callback));
 
       /**
        * Test that verifies removing one of multiple discussion invitations still allows the other
        * invited discussions to be associated when accepted
        */
-      it('verify removing one of multiple discussion invitations for an email', (callback) => {
-        return _testInvitationsPartialRemoveRoles('discussion', callback);
-      });
+      it('verify removing one of multiple discussion invitations for an email', (callback) =>
+        _testInvitationsPartialRemoveRoles('discussion', callback));
     });
 
     describe('Folder', () => {
       /**
        * Test that verifies setting roles of folder with members and invitations saves invitations
        */
-      it('verify setting roles of folder with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForSetRoles('folder', callback);
-      });
+      it('verify setting roles of folder with members and invitations saves invitations', (callback) =>
+        _testInvitationsForSetRoles('folder', callback));
 
       /**
        * Test that verifies validation of setting roles of folder with invitations
        */
-      it('verify validation of setting roles of folder with invitations', (callback) => {
-        return _testInvitationsValidationForSetRoles('folder', callback);
-      });
+      it('verify validation of setting roles of folder with invitations', (callback) =>
+        _testInvitationsValidationForSetRoles('folder', callback));
 
       /**
        * Test that verifies authorization of setting roles of folder with invitations
        */
-      it('verify authorization of setting roles of folder with invitations', (callback) => {
-        return _testInvitationsAuthorizationForSetRoles('folder', callback);
-      });
+      it('verify authorization of setting roles of folder with invitations', (callback) =>
+        _testInvitationsAuthorizationForSetRoles('folder', callback));
 
       /**
        * Test that verifies removing one of multiple folder invitations still allows the other
        * invited folders to be associated when accepted
        */
-      it('verify removing one of multiple folder invitations for an email', (callback) => {
-        return _testInvitationsPartialRemoveRoles('folder', callback);
-      });
+      it('verify removing one of multiple folder invitations for an email', (callback) =>
+        _testInvitationsPartialRemoveRoles('folder', callback));
     });
 
     describe('Group', () => {
       /**
        * Test that verifies setting roles of group with members and invitations saves invitations
        */
-      it('verify setting roles of group with members and invitations saves invitations', (callback) => {
-        return _testInvitationsForSetRoles('group', callback);
-      });
+      it('verify setting roles of group with members and invitations saves invitations', (callback) =>
+        _testInvitationsForSetRoles('group', callback));
 
       /**
        * Test that verifies validation of setting roles of group with invitations
        */
-      it('verify validation of setting roles of group with invitations', (callback) => {
-        return _testInvitationsValidationForSetRoles('group', callback);
-      });
+      it('verify validation of setting roles of group with invitations', (callback) =>
+        _testInvitationsValidationForSetRoles('group', callback));
 
       /**
        * Test that verifies authorization of setting roles of group with invitations
        */
-      it('verify authorization of setting roles of group with invitations', (callback) => {
-        return _testInvitationsAuthorizationForSetRoles('group', callback);
-      });
+      it('verify authorization of setting roles of group with invitations', (callback) =>
+        _testInvitationsAuthorizationForSetRoles('group', callback));
 
       /**
        * Test that verifies removing one of multiple group invitations still allows the other
        * invited groups to be associated when accepted
        */
-      it('verify removing one of multiple group invitations for an email', (callback) => {
-        return _testInvitationsPartialRemoveRoles('group', callback);
-      });
+      it('verify removing one of multiple group invitations for an email', (callback) =>
+        _testInvitationsPartialRemoveRoles('group', callback));
     });
   });
 
@@ -734,9 +695,7 @@ describe('Invitations', () => {
                   acceptingUser,
                   resources,
                   assertions,
-                  () => {
-                    return callback();
-                  }
+                  () => callback()
                 );
               })
               .value();
@@ -748,9 +707,7 @@ describe('Invitations', () => {
                 resource.resourceType,
                 resource.id,
                 email,
-                () => {
-                  return _done();
-                }
+                () => _done()
               );
             });
           });
@@ -869,9 +826,9 @@ describe('Invitations', () => {
           // Ensure when the invitation is accepted from the email, all resources are
           // added to the user's respective libraries
           const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-          _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () => {
-            return callback();
-          });
+          _assertAcceptEmailInvitation(creatingUser, acceptingUser, resources, assertions, () =>
+            callback()
+          );
         });
       });
     });
@@ -1080,9 +1037,9 @@ describe('Invitations', () => {
      */
     it('verify a separate activity is sent for each resource type when an invitation is accepted', (callback) => {
       _testActivityVisibilityForAccept('public', () => {
-        _testActivityVisibilityForAccept('loggedin', () => {
-          return _testActivityVisibilityForAccept('private', callback);
-        });
+        _testActivityVisibilityForAccept('loggedin', () =>
+          _testActivityVisibilityForAccept('private', callback)
+        );
       });
     });
 
@@ -1130,9 +1087,7 @@ describe('Invitations', () => {
        * Test that verifies content that gets deleted simply gets removed from invitations
        */
       it('verify content that gets deleted simply gets removed from invitations', (callback) => {
-        _testHardDeleteForAccept('content', () => {
-          return callback();
-        });
+        _testHardDeleteForAccept('content', () => callback());
       });
     });
 
@@ -1141,9 +1096,7 @@ describe('Invitations', () => {
        * Test that verifies discussion that gets deleted simply gets removed from invitations
        */
       it('verify discussion that gets deleted simply gets removed from invitations', (callback) => {
-        _testHardDeleteForAccept('discussion', () => {
-          return callback();
-        });
+        _testHardDeleteForAccept('discussion', () => callback());
       });
     });
 
@@ -1152,9 +1105,7 @@ describe('Invitations', () => {
        * Test that verifies folder that gets deleted simply gets removed from invitations
        */
       it('verify folder that gets deleted simply gets removed from invitations', (callback) => {
-        _testHardDeleteForAccept('folder', () => {
-          return callback();
-        });
+        _testHardDeleteForAccept('folder', () => callback());
       });
     });
 
@@ -1405,16 +1356,16 @@ describe('Invitations', () => {
                                         // Ensure the summary has at exactly one of the resources
                                         const numberMatchesDisplayName = _.chain(resourceCs)
                                           .pluck('displayName')
-                                          .filter((displayName) => {
-                                            return activities[0].summary.html.includes(displayName);
-                                          })
+                                          .filter((displayName) =>
+                                            activities[0].summary.html.includes(displayName)
+                                          )
                                           .size()
                                           .value();
                                         const numberMatchesProfilePath = _.chain(resourceCs)
                                           .pluck('profilePath')
-                                          .filter((profilePath) => {
-                                            return activities[0].summary.html.includes(profilePath);
-                                          })
+                                          .filter((profilePath) =>
+                                            activities[0].summary.html.includes(profilePath)
+                                          )
                                           .size()
                                           .value();
 
@@ -1512,9 +1463,9 @@ describe('Invitations', () => {
                               resourceC3
                             ])
                               .pluck('displayName')
-                              .filter((displayName) => {
-                                return activities[0].summary.html.includes(displayName);
-                              })
+                              .filter((displayName) =>
+                                activities[0].summary.html.includes(displayName)
+                              )
                               .size()
                               .value();
                             const numberMatchesProfilePath = _.chain([
@@ -1523,9 +1474,9 @@ describe('Invitations', () => {
                               resourceC3
                             ])
                               .pluck('profilePath')
-                              .filter((profilePath) => {
-                                return activities[0].summary.html.includes(profilePath);
-                              })
+                              .filter((profilePath) =>
+                                activities[0].summary.html.includes(profilePath)
+                              )
                               .size()
                               .value();
 
@@ -1655,9 +1606,9 @@ describe('Invitations', () => {
                                               ])
                                                 .pluck('user')
                                                 .pluck('displayName')
-                                                .filter((displayName) => {
-                                                  return subject.includes(displayName);
-                                                })
+                                                .filter((displayName) =>
+                                                  subject.includes(displayName)
+                                                )
                                                 .size()
                                                 .value();
                                               assert.strictEqual(numberMatches, 1);
@@ -1707,9 +1658,7 @@ describe('Invitations', () => {
       fns.restoreSucceeds(camAdminRestContext, camAdminRestContext, resource.id, () => {
         // Ensure that when the item is restored, the user becomes a member
         const assertions = { role: 'manager', membersSize: 2, librarySize: 1 };
-        _assertRole(creatingUserInfo, acceptingUserInfo, resource, assertions, () => {
-          return callback();
-        });
+        _assertRole(creatingUserInfo, acceptingUserInfo, resource, assertions, () => callback());
       });
     });
   };
@@ -1812,15 +1761,15 @@ describe('Invitations', () => {
                 _.each(resources, (resource) => {
                   // eslint-disable-next-line no-unused-expressions
                   resourceAcceptActivityInfo[resource.resourceType];
-                  const matchingActivities = _.filter(activities, (activity) => {
-                    return (
+                  const matchingActivities = _.filter(
+                    activities,
+                    (activity) =>
                       activity['oae:activityType'] === 'invitation-accept' &&
                       activity.verb === 'accept' &&
                       activity.actor['oae:id'] === acceptingUserInfo.user.id &&
                       activity.object['oae:id'] === creatingUserInfo.user.id &&
                       activity.target['oae:id'] === resource.id
-                    );
-                  });
+                  );
 
                   assert.ok(matchingActivities);
                   assert.strictEqual(matchingActivities.length, 1);
@@ -1861,9 +1810,7 @@ describe('Invitations', () => {
               acceptingUser,
               [resource1, resource2, resource3],
               assertions,
-              () => {
-                return callback();
-              }
+              () => callback()
             );
           });
         });
@@ -1921,9 +1868,7 @@ describe('Invitations', () => {
                           acceptingUser,
                           [resource1, resource2, resource3],
                           assertions,
-                          () => {
-                            return callback();
-                          }
+                          () => callback()
                         );
                       }
                     );
@@ -1987,9 +1932,7 @@ describe('Invitations', () => {
                           acceptingUser,
                           [resource1, resource2, resource3],
                           assertions,
-                          () => {
-                            return callback();
-                          }
+                          () => callback()
                         );
                       }
                     );
@@ -2055,9 +1998,7 @@ describe('Invitations', () => {
                   assert.strictEqual(invitation.role, memberRole);
 
                   assertions = { role: memberRole, membersSize: 3, librarySize: 1 };
-                  _assertRole(user0, userViewer, resource, assertions, () => {
-                    return callback();
-                  });
+                  _assertRole(user0, userViewer, resource, assertions, () => callback());
                 }
               );
             });
@@ -2152,9 +2093,7 @@ describe('Invitations', () => {
                                               user5,
                                               resource,
                                               { role: false },
-                                              () => {
-                                                return callback();
-                                              }
+                                              () => callback()
                                             );
                                           }
                                         );
@@ -2233,9 +2172,7 @@ describe('Invitations', () => {
                               sneakyUser,
                               resource,
                               { role: false, membersSize: 2 },
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           });
                         }
@@ -2271,9 +2208,7 @@ describe('Invitations', () => {
         'public',
         ['manager@oae.local', userManager.user.id],
         [userViewer.user.id, 'viewer@oae.local'],
-        (/* resource */) => {
-          return callback();
-        }
+        (/* resource */) => callback()
       );
     });
   };
@@ -2300,9 +2235,7 @@ describe('Invitations', () => {
           'public',
           ['manager@oae.local'],
           [],
-          (/* resource */) => {
-            return callback();
-          }
+          (/* resource */) => callback()
         );
       });
     });
@@ -2391,9 +2324,7 @@ describe('Invitations', () => {
                                               'loggedin',
                                               [_emailForTenantInfo(publicTenant1)],
                                               [],
-                                              (/* resource */) => {
-                                                return callback();
-                                              }
+                                              (/* resource */) => callback()
                                             );
                                           }
                                         );
@@ -2438,9 +2369,7 @@ describe('Invitations', () => {
           userSharer.restContext,
           resource.id,
           [user0.user.id, 'email1@oae.local', 'email2@oae.local', user1.user.id],
-          () => {
-            return callback();
-          }
+          () => callback()
         );
       });
     });
@@ -2474,9 +2403,7 @@ describe('Invitations', () => {
               user0.restContext,
               resource.id,
               ['email1@oae.local'],
-              () => {
-                return callback();
-              }
+              () => callback()
             );
           }
         );
@@ -2602,9 +2529,7 @@ describe('Invitations', () => {
                                     resource.id,
                                     [_emailForTenantInfo(privateTenant0)],
                                     401,
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -2703,9 +2628,7 @@ describe('Invitations', () => {
                                       resource.id,
                                       [_emailForTenantInfo(privateTenant0)],
                                       401,
-                                      () => {
-                                        return callback();
-                                      }
+                                      () => callback()
                                     );
                                   }
                                 );
@@ -2801,9 +2724,7 @@ describe('Invitations', () => {
                                     resource.id,
                                     [_emailForTenantInfo(privateTenant0)],
                                     401,
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 }
                               );
@@ -2903,9 +2824,7 @@ describe('Invitations', () => {
                                         resource.id,
                                         [_emailForTenantInfo(privateTenant0)],
                                         401,
-                                        () => {
-                                          return callback();
-                                        }
+                                        () => callback()
                                       );
                                     }
                                   );
@@ -2969,9 +2888,7 @@ describe('Invitations', () => {
                 userSetRoles.restContext,
                 resource.id,
                 rolesRemove,
-                () => {
-                  return callback();
-                }
+                () => callback()
               );
             }
           );
@@ -3013,14 +2930,8 @@ describe('Invitations', () => {
               // Accept the email invitation as the invited email user, ensuring they get access
               // to just the one resource (resource2)
               const assertions = { role: memberRole, membersSize: 2, librarySize: 1 };
-              _assertAcceptEmailInvitation(
-                userSetRoles,
-                userAccept,
-                [resource2],
-                assertions,
-                () => {
-                  return callback();
-                }
+              _assertAcceptEmailInvitation(userSetRoles, userAccept, [resource2], assertions, () =>
+                callback()
               );
             }
           );
@@ -3065,9 +2976,7 @@ describe('Invitations', () => {
                   user0.restContext,
                   resource.id,
                   { 'email1@oae.local': 'manager' },
-                  () => {
-                    return callback();
-                  }
+                  () => callback()
                 );
               }
             );
@@ -3171,9 +3080,7 @@ describe('Invitations', () => {
                                               resource.id,
                                               rolesExternalPrivateTenant,
                                               401,
-                                              () => {
-                                                return callback();
-                                              }
+                                              () => callback()
                                             );
                                           }
                                         );
@@ -3338,16 +3245,15 @@ describe('Invitations', () => {
 
       // Ensure only 1 resource appears in the summary
       const numberMatches = _.chain(resources)
-        .filter((resource) => {
-          return (
+        .filter(
+          (resource) =>
             inviterUserInfo.summary.includes(resource.displayName) &&
             inviterUserInfo.summary.includes(resource.profilePath) &&
             invitedUserInfo.summary.includes(resource.displayName) &&
             invitedUserInfo.summary.includes(resource.profilePath) &&
             otherUserInfo.summary.includes(resource.displayName) &&
             otherUserInfo.summary.includes(resource.profilePath)
-          );
-        })
+        )
         .size()
         .value();
       assert.strictEqual(numberMatches, 1);
@@ -3449,7 +3355,7 @@ describe('Invitations', () => {
       return callback();
     }
 
-    resources = resources.slice();
+    resources = [...resources];
     const resource = resources.shift();
     const fns = resourceFns[resource.resourceType];
 
@@ -3459,9 +3365,10 @@ describe('Invitations', () => {
         assert.strictEqual(members.length, assertions.membersSize);
       }
 
-      const memberInfo = _.find(members, (memberInfo) => {
-        return memberInfo.profile.id === memberUserInfo.user.id;
-      });
+      const memberInfo = _.find(
+        members,
+        (memberInfo) => memberInfo.profile.id === memberUserInfo.user.id
+      );
 
       if (assertions.role) {
         assert.ok(memberInfo);
@@ -3497,9 +3404,7 @@ describe('Invitations', () => {
           [memberUserInfo.user.id],
           null,
           [resource.id],
-          () => {
-            return _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback);
-          }
+          () => _assertRole(managerUserInfo, memberUserInfo, resources, assertions, callback)
         );
       });
     });
@@ -3584,9 +3489,7 @@ describe('Invitations', () => {
     const resources = [];
     const _done = _.chain(resourceFns)
       .size()
-      .after(() => {
-        return callback(resources);
-      })
+      .after(() => callback(resources))
       .value();
 
     // Perform all the creates and kick off the assertions on the created resources

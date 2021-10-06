@@ -640,9 +640,7 @@ describe('Authz Groups', () => {
               nextToken,
               3,
               [groupId4],
-              (/* groupIds, nextToken */) => {
-                return callback();
-              }
+              (/* groupIds, nextToken */) => callback()
             );
           }
         );
@@ -713,9 +711,7 @@ describe('Authz Groups', () => {
                                       null,
                                       null,
                                       [groupId1, groupId2, groupId3],
-                                      (/* groupIds, nextToken */) => {
-                                        return callback();
-                                      }
+                                      (/* groupIds, nextToken */) => callback()
                                     );
                                   }
                                 );
@@ -1070,7 +1066,7 @@ describe('Authz Groups', () => {
     const _assertAllIndirectMembershipsEquals = function (principalId, expectedGroupIds, callback) {
       AuthzAPI.getAllIndirectPrincipalMemberships(principalId, (error, groupIds) => {
         assert.notExists(error);
-        assert.deepStrictEqual(groupIds.sort(), expectedGroupIds.slice().sort());
+        assert.deepStrictEqual(groupIds.sort(), [...expectedGroupIds].sort());
         return callback();
       });
     };
@@ -1122,9 +1118,7 @@ describe('Authz Groups', () => {
                               _assertAllIndirectMembershipsEquals(
                                 groupId5,
                                 [groupId1, groupId2, groupId3],
-                                () => {
-                                  return callback();
-                                }
+                                () => callback()
                               );
                             }
                           );
@@ -1359,9 +1353,7 @@ describe('Authz Groups', () => {
      */
     it('verify paging', (callback) => {
       const userId = AuthzUtil.toId('u', 'aipm-p', shortid.generate());
-      const groupIds = _.times(230, () => {
-        return AuthzUtil.toId('g', 'aipm-p', shortid.generate());
-      });
+      const groupIds = _.times(230, () => AuthzUtil.toId('g', 'aipm-p', shortid.generate()));
 
       const graph = new AuthzGraph();
 
@@ -1384,9 +1376,7 @@ describe('Authz Groups', () => {
         _assertAllIndirectMembershipsEquals(userId, groupIds.slice(0, -1), () => {
           // Ensure the paged indirect memberships give all the groups when the cache has
           // been initialized for the user
-          _assertAllIndirectMembershipsEquals(userId, groupIds.slice(0, -1), () => {
-            return callback();
-          });
+          _assertAllIndirectMembershipsEquals(userId, groupIds.slice(0, -1), () => callback());
         });
       });
     });
@@ -1404,9 +1394,7 @@ describe('Authz Groups', () => {
           AuthzTestUtil.assertAuthzMembersGraphIdsEqual(
             [groupId3, groupId2, groupId1],
             [[groupId3], [groupId2], [groupId1]],
-            (/* graph */) => {
-              return callback();
-            }
+            (/* graph */) => callback()
           );
         });
       });
@@ -1482,9 +1470,8 @@ describe('Authz Groups', () => {
      */
     it('verify group with no memberships results in single node graph', (callback) => {
       TestsUtil.generateResourceIds(1, 'g', 'oae', (groupId) => {
-        AuthzTestUtil.assertPrincipalMembershipsGraphIdsEqual(groupId, [groupId], (/* graph */) => {
-          return callback();
-        });
+        AuthzTestUtil.assertPrincipalMembershipsGraphIdsEqual(groupId, [groupId], (/* graph */) =>
+          callback());
       });
     });
 

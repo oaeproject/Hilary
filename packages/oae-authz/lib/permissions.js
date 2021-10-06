@@ -667,9 +667,7 @@ const canInteract = function (ctx, resources, callback) {
 const _validateRoleChanges = function (ctx, resource, targetRoles, options, callback) {
   // Separate target roles into a list that targets existing principals, and one that targets
   // email invitations
-  targetRoles = _.partition(targetRoles, (targetRole) => {
-    return targetRole.principal;
-  });
+  targetRoles = _.partition(targetRoles, (targetRole) => targetRole.principal);
   const principalTargetRoles = _.first(targetRoles);
   const emailTargetRoles = _.last(targetRoles);
 
@@ -765,9 +763,10 @@ const _validateRoleChanges = function (ctx, resource, targetRoles, options, call
             }
 
             // Then check the resources that require only tenant interaction checks
-            const invalidPrincipals = _.filter(checkTenantInteraction, (resource) => {
-              return !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias);
-            });
+            const invalidPrincipals = _.filter(
+              checkTenantInteraction,
+              (resource) => !TenantsUtil.canInteract(ctx.user().tenant.alias, resource.tenant.alias)
+            );
             if (!_.isEmpty(invalidPrincipals)) {
               return callback(_.extend({ invalidPrincipals }, interactionError));
             }

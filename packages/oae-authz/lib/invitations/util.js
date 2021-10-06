@@ -33,25 +33,23 @@ import * as AuthzUtil from 'oae-authz/lib/util.js';
  * @param  {Object}             [callback.err]              An error that occurred, if any
  * @param  {EmailChangeInfo}    [callback.emailChangeInfo]  The computed change information
  */
-const computeInvitationRolesAfterChanges = function (authzResourceId, changes, opts, callback) {
+const computeInvitationRolesAfterChanges = function (authzResourceId, changes, options, callback) {
   // If no resource id is provided, we treat this invocation as though the invitations list is
   // empty (i.e., a resource is currently being created with invitations)
   OaeUtil.invokeIfNecessary(
     authzResourceId,
     AuthzInvitationsDAO.getAllInvitationsByResourceId,
     authzResourceId,
-    (err, invitations) => {
-      if (err) {
-        return callback(err);
+    (error, invitations) => {
+      if (error) {
+        return callback(error);
       }
 
       const invitationRolesBefore = _.chain(invitations)
         .indexBy('email')
-        .mapObject((invitation) => {
-          return invitation.role;
-        })
+        .mapObject((invitation) => invitation.role)
         .value();
-      const idChangeInfo = AuthzUtil.computeRoleChanges(invitationRolesBefore, changes, opts);
+      const idChangeInfo = AuthzUtil.computeRoleChanges(invitationRolesBefore, changes, options);
       return callback(null, AuthzModel.EmailChangeInfo.fromIdChangeInfo(idChangeInfo));
     }
   );

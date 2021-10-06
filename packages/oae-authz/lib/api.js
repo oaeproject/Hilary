@@ -25,6 +25,9 @@ import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import AuthzGraph from 'oae-authz/lib/internal/graph.js';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
+
+import { logger } from 'oae-logger';
+
 const {
   unless,
   isArrayNotEmpty,
@@ -34,8 +37,6 @@ const {
   isNonUserResourceId,
   isValidRoleChange
 } = validator;
-
-import { logger } from 'oae-logger';
 
 const log = logger('oae-authz-api');
 
@@ -84,12 +85,12 @@ const getDirectRoles = function (principalIds, resourceId, callback) {
       msg: 'Invalid non-user resource id provided'
     })(resourceId);
 
-    principalIds.forEach((principalId) => {
+    for (const principalId of principalIds) {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id provided'
       })(principalId);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
@@ -224,7 +225,7 @@ const _getResourceGroupMembers = function (resourceId, callback) {
     resourceId,
     'memberId',
     start,
-    10000,
+    10_000,
     { end },
     (error, rows) => {
       if (error) {
@@ -371,7 +372,7 @@ const updateRoles = function (resourceId, changes, callback) {
       msg: 'At least one role change needs to be applied'
     })(roleChanges);
 
-    roleChanges.forEach((principalId) => {
+    for (const principalId of roleChanges) {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
@@ -381,7 +382,7 @@ const updateRoles = function (resourceId, changes, callback) {
         code: 400,
         msg: 'Invalid role provided'
       })(changes[principalId]);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
@@ -521,9 +522,7 @@ const getAllAuthzMembers = function (resourceId, callback /* , _members, _nextTo
 
       const members = pipe(
         map(Cassandra.rowToHash),
-        map((hash) => {
-          return { id: hash.memberId, role: hash.role };
-        })
+        map((hash) => ({ id: hash.memberId, role: hash.role }))
       )(rows);
       return callback(null, members);
     }
@@ -611,9 +610,7 @@ const _checkGroupMembershipsForUser = function (userId, groupIds, callback) {
               return callback(error);
             }
 
-            const memberships = _.map(rows, (row) => {
-              return row.get('groupId');
-            });
+            const memberships = _.map(rows, (row) => row.get('groupId'));
 
             return callback(null, memberships);
           }
@@ -685,9 +682,7 @@ const _explodeGroupMemberships = function (principalId, callback) {
       // that are relevant in the memberships graph and their roles. We will JSON encode and
       // store them in the cache so that we can reconstruct the graph quickly
       const memberRoles = _.chain(graph.getInEdgesOf(groupId))
-        .map((edge) => {
-          return { memberId: edge.from.id, role: edge.role };
-        })
+        .map((edge) => ({ memberId: edge.from.id, role: edge.role }))
         .value();
 
       return {
@@ -697,13 +692,11 @@ const _explodeGroupMemberships = function (principalId, callback) {
       };
     });
 
-    const authzMembershipsIndirectCacheQueries = _.map(indirectMemberships, (groupId) => {
-      return {
-        query:
-          'INSERT INTO "AuthzMembershipsIndirectCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
-        parameters: [principalId, groupId, '1']
-      };
-    });
+    const authzMembershipsIndirectCacheQueries = _.map(indirectMemberships, (groupId) => ({
+      query:
+        'INSERT INTO "AuthzMembershipsIndirectCache" ("principalId", "groupId", "value") VALUES (?, ?, ?)',
+      parameters: [principalId, groupId, '1']
+    }));
 
     // Update both the full memberships cache and the dedicated indirect cache with the exploded memberships
     Cassandra.runBatchQuery(
@@ -748,7 +741,7 @@ const _explodeGroupMemberships = function (principalId, callback) {
  */
 const getAuthzMembersGraph = function (resourceIds, callback, _graph, _resourceIds) {
   _graph = _graph || new AuthzGraph();
-  _resourceIds = _resourceIds || resourceIds.slice();
+  _resourceIds = _resourceIds || [...resourceIds];
   if (_.isEmpty(_resourceIds)) {
     return callback(null, _graph);
   }
@@ -760,7 +753,7 @@ const getAuthzMembersGraph = function (resourceIds, callback, _graph, _resourceI
   _graph.addNode(resourceId);
 
   // Get the members of the current resource
-  getAuthzMembers(resourceId, null, 10000, (error, members) => {
+  getAuthzMembers(resourceId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }
@@ -927,9 +920,7 @@ const getPrincipalMemberships = function (principalId, start, limit, callback) {
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we can
         // use the data we have
-        const groupIds = _.map(rows, (row) => {
-          return row.get('groupId');
-        });
+        const groupIds = _.map(rows, (row) => row.get('groupId'));
 
         return callback(null, groupIds, nextToken);
       }
@@ -1063,9 +1054,7 @@ const _getIndirectPrincipalMembershipsFromCache = function (principalId, start, 
       if (startMatched || !_.isEmpty(rows)) {
         // If we received some groups from the memberships cache, it means it is valid and we
         // can use the data we have
-        const groupIds = _.map(rows, (row) => {
-          return row.get('groupId');
-        });
+        const groupIds = _.map(rows, (row) => row.get('groupId'));
 
         return callback(null, groupIds, nextToken);
       }
@@ -1198,18 +1187,16 @@ const _getAuthzGroupMembershipsGraph = function (principalIds, callback, _graph)
  */
 const _getInvalidateMembershipsCacheQueries = function (userIds) {
   return _.chain(userIds)
-    .map((userId) => {
-      return [
-        {
-          query: 'DELETE FROM "AuthzMembershipsCache" WHERE "principalId" = ?',
-          parameters: [userId]
-        },
-        {
-          query: 'DELETE FROM "AuthzMembershipsIndirectCache" WHERE "principalId" = ?',
-          parameters: [userId]
-        }
-      ];
-    })
+    .map((userId) => [
+      {
+        query: 'DELETE FROM "AuthzMembershipsCache" WHERE "principalId" = ?',
+        parameters: [userId]
+      },
+      {
+        query: 'DELETE FROM "AuthzMembershipsIndirectCache" WHERE "principalId" = ?',
+        parameters: [userId]
+      }
+    ])
     .flatten()
     .value();
 };
@@ -1253,12 +1240,10 @@ const getAllRolesForPrincipalAndResourceType = function (principalId, resourceTy
         return callback(error);
       }
 
-      const roles = _.map(rows, (row) => {
-        return {
-          id: row.get('resourceId'),
-          role: row.get('role')
-        };
-      });
+      const roles = _.map(rows, (row) => ({
+        id: row.get('resourceId'),
+        role: row.get('role')
+      }));
 
       return callback(null, roles);
     }
@@ -1324,12 +1309,10 @@ const getRolesForPrincipalAndResourceType = function (
       }
 
       // Build the response roles array
-      const roles = _.map(rows, (row) => {
-        return {
-          id: row.get('resourceId'),
-          role: row.get('role')
-        };
-      });
+      const roles = _.map(rows, (row) => ({
+        id: row.get('resourceId'),
+        role: row.get('role')
+      }));
 
       return callback(null, roles, nextToken);
     }
@@ -1379,12 +1362,12 @@ const getRolesForPrincipalsAndResourceType = function (principalIds, resourceTyp
       msg: 'At least one principal Id needs to be passed in'
     })(principalIds);
 
-    principalIds.forEach((principalId) => {
+    for (const principalId of principalIds) {
       unless(isPrincipalId, {
         code: 400,
         msg: 'Invalid principal id specified: ' + principalId
       })(principalId);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
@@ -1449,7 +1432,7 @@ const computeMemberRolesAfterChanges = function (resourceId, memberRoles, option
     getAuthzMembers,
     resourceId,
     null,
-    10000,
+    10_000,
     (error, memberIdsWithRoleBefore) => {
       if (error) {
         return callback(error);
@@ -1458,9 +1441,7 @@ const computeMemberRolesAfterChanges = function (resourceId, memberRoles, option
       // Convert the member ids + role array into the permission change object
       const memberRolesBefore = _.chain(memberIdsWithRoleBefore)
         .indexBy('id')
-        .mapObject((memberIdWithRole) => {
-          return memberIdWithRole.role;
-        })
+        .mapObject((memberIdWithRole) => memberIdWithRole.role)
         .value();
       return callback(null, AuthzUtil.computeRoleChanges(memberRolesBefore, memberRoles, options));
     }

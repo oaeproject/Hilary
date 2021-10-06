@@ -34,7 +34,7 @@ const init = function (callback) {
     resourceTypes: ['content', 'discussion', 'group'],
     schema: resourceMembersSchema,
     producer(resources, callback) {
-      return _produceResourceMembersDocuments(resources.slice(), callback);
+      return _produceResourceMembersDocuments([...resources], callback);
     }
   };
 
@@ -42,7 +42,7 @@ const init = function (callback) {
     resourceTypes: ['group', 'user'],
     schema: resourceMembershipsSchema,
     producer(resources, callback) {
-      return _produceResourceMembershipsDocuments(resources.slice(), callback);
+      return _produceResourceMembershipsDocuments([...resources], callback);
     }
   };
 
@@ -178,7 +178,7 @@ const _getMemberIds = function (resource, callback) {
     return callback(null, resource.memberIds);
   }
 
-  AuthzAPI.getAuthzMembers(resource.id, null, 10000, (error, memberIdRoles) => {
+  AuthzAPI.getAuthzMembers(resource.id, null, 10_000, (error, memberIdRoles) => {
     if (error) {
       return callback(error);
     }

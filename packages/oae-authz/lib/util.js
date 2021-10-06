@@ -222,9 +222,7 @@ const filterDeletedIds = function (ids, callback) {
 
     return callback(
       null,
-      _.filter(ids, (id) => {
-        return !deletedIds[id];
-      })
+      _.filter(ids, (id) => !deletedIds[id])
     );
   });
 };

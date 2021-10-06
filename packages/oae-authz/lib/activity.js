@@ -32,36 +32,36 @@ ActivityAPI.registerActivityEntityType('email', {
     activitystreams(ctx, activityEntities, callback) {
       const currentUserId = ctx.user() && ctx.user().id;
       // eslint-disable-next-line no-unused-vars
-      const transformedEntities = _.mapObject(activityEntities, (entities, activityId) => {
-        return _.mapObject(entities, (entity) => {
+      const transformedEntities = _.mapObject(activityEntities, (entities, activityId) =>
+        _.mapObject(entities, (entity) => {
           const { token, email } = entity.email;
 
           const tenant = TenantsAPI.getTenantByEmail(email);
 
           let globalId = null;
-          const opts = { ext: {} };
+          const options = { ext: {} };
 
-          opts.ext[ActivityConstants.properties.OAE_TENANT] = tenant.compact();
+          options.ext[ActivityConstants.properties.OAE_TENANT] = tenant.compact();
           if (currentUserId === entity[ActivityConstants.properties.OAE_ID]) {
             // If the target user is the email address feed itself (i.e., the recipient
             // of an email), we can keep the email address on the transformed entity
             globalId = email;
-            opts.ext[ActivityConstants.properties.OAE_ID] = email;
-            opts.ext[ActivityConstants.properties.OAE_EMAIL] = email;
-            opts.ext[ActivityConstants.properties.OAE_TOKEN] = token;
+            options.ext[ActivityConstants.properties.OAE_ID] = email;
+            options.ext[ActivityConstants.properties.OAE_EMAIL] = email;
+            options.ext[ActivityConstants.properties.OAE_TOKEN] = token;
           }
 
-          return new ActivityModel.ActivityEntity('email', globalId, null, opts);
-        });
-      });
+          return new ActivityModel.ActivityEntity('email', globalId, null, options);
+        })
+      );
 
       return callback(null, transformedEntities);
     },
     internal(ctx, activityEntities, callback) {
       const currentUserId = ctx.user() && ctx.user().id;
       // eslint-disable-next-line no-unused-vars
-      const transformedEntities = _.mapObject(activityEntities, (entities, activityId) => {
-        return _.mapObject(entities, (entity) => {
+      const transformedEntities = _.mapObject(activityEntities, (entities, activityId) =>
+        _.mapObject(entities, (entity) => {
           const email = entity[ActivityConstants.properties.OAE_ID];
 
           const transformedEntity = {};
@@ -74,8 +74,8 @@ ActivityAPI.registerActivityEntityType('email', {
           }
 
           return transformedEntity;
-        });
-      });
+        })
+      );
 
       return callback(null, transformedEntities);
     }
@@ -115,9 +115,8 @@ ActivityAPI.registerActivityEntityType('email', {
 ActivityAPI.registerActivityEntityAssociation(
   'email',
   'self',
-  (associationsCtx, entity, callback) => {
-    return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-  }
+  (associationsCtx, entity, callback) =>
+    callback(null, [entity[ActivityConstants.properties.OAE_ID]])
 );
 
 /// //////////////////

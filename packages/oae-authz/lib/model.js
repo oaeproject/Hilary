@@ -23,7 +23,7 @@ import _ from 'underscore';
  * @param  {String}   principalId    The ID of this principal
  * @return {Object}                  The principal Object
  */
-const Principal = function(principalType, tenantAlias, principalId) {
+const Principal = function (principalType, tenantAlias, principalId) {
   const that = {};
 
   that.tenantAlias = tenantAlias;
@@ -41,7 +41,7 @@ const Principal = function(principalType, tenantAlias, principalId) {
  * @param  {String}   resourceId     The ID of this resource
  * @return {Object}                  The resource Object
  */
-const Resource = function(resourceType, tenantAlias, resourceId) {
+const Resource = function (resourceType, tenantAlias, resourceId) {
   const that = {};
 
   that.tenantAlias = tenantAlias;
@@ -69,7 +69,7 @@ const Resource = function(resourceType, tenantAlias, resourceId) {
  * @param  {String}     [email]         The email address
  * @param  {String}     [role]          The role change to apply, if applicable
  */
-const ShareTarget = function(principal, email, role) {
+const ShareTarget = function (principal, email, role) {
   return {
     principal,
     email,
@@ -85,7 +85,7 @@ const ShareTarget = function(principal, email, role) {
  *
  * @param  {Object}     idRoles     The id roles as described in the summary
  */
-const IdRoles = function(idRoles) {
+const IdRoles = function (idRoles) {
   return _.extend({}, idRoles);
 };
 
@@ -95,7 +95,7 @@ const IdRoles = function(idRoles) {
  *
  * @see IdRoles
  */
-const MemberRoles = function(memberRoles) {
+const MemberRoles = function (memberRoles) {
   return _.extend({}, memberRoles);
 };
 
@@ -105,7 +105,7 @@ const MemberRoles = function(memberRoles) {
  *
  * @see IdRoles
  */
-const EmailRoles = function(emailRoles) {
+const EmailRoles = function (emailRoles) {
   return _.extend({}, emailRoles);
 };
 
@@ -121,7 +121,7 @@ const EmailRoles = function(emailRoles) {
  * @param  {String[]}   ids.updated     The ids which previously had a role association, and whose roles are changing on the resource
  * @param  {String[]}   ids.removed     The ids which previously had a role association, and who are being removed from the resource
  */
-const IdChangeInfo = function(changes, roles, ids) {
+const IdChangeInfo = function (changes, roles, ids) {
   return {
     changes,
     roles,
@@ -135,7 +135,7 @@ const IdChangeInfo = function(changes, roles, ids) {
  *
  * return {IdChangeInfo}    An id change info with all its associations info empty
  */
-IdChangeInfo.empty = function() {
+IdChangeInfo.empty = function () {
   const changes = {};
   const roles = {
     before: {},
@@ -164,7 +164,7 @@ IdChangeInfo.empty = function() {
  * @param  {Resource[]}     members.updated     The members who previously had a role, and whose roles are changing on the resource
  * @param  {Resource[]}     members.removed     The members who previously had a role, and who are being removed from the resource
  */
-const MemberChangeInfo = function(changes, roles, members) {
+const MemberChangeInfo = function (changes, roles, members) {
   return {
     changes,
     roles,
@@ -178,7 +178,7 @@ const MemberChangeInfo = function(changes, roles, members) {
  *
  * return {MemberChangeInfo}    A member change info with all its membership info empty
  */
-MemberChangeInfo.empty = function() {
+MemberChangeInfo.empty = function () {
   return MemberChangeInfo.fromIdChangeInfo(IdChangeInfo.empty(), {});
 };
 
@@ -190,7 +190,7 @@ MemberChangeInfo.empty = function() {
  * @param  {Object}             membersById     A collection of the members that are referenced in the id change info object, indexed by their resource id
  * @return {MemberChangeInfo}                   The member change info
  */
-MemberChangeInfo.fromIdChangeInfo = function(idChangeInfo, membersById) {
+MemberChangeInfo.fromIdChangeInfo = function (idChangeInfo, membersById) {
   const getMemberById = _.propertyOf(membersById);
   const members = {
     added: _.map(idChangeInfo.ids.added, getMemberById),
@@ -215,7 +215,7 @@ MemberChangeInfo.fromIdChangeInfo = function(idChangeInfo, membersById) {
  * @param  {String[]}       emails.updated      The emails that previously had an invitation role, and whose roles are changing on the resource
  * @param  {String[]}       emails.removed      The emails that previously had an invitation role, and are being removed from the resource
  */
-const EmailChangeInfo = function(changes, roles, emails) {
+const EmailChangeInfo = function (changes, roles, emails) {
   return {
     changes,
     roles,
@@ -229,7 +229,7 @@ const EmailChangeInfo = function(changes, roles, emails) {
  *
  * return {IdChangeInfo}    An email change info with all its association info empty
  */
-EmailChangeInfo.empty = function() {
+EmailChangeInfo.empty = function () {
   return EmailChangeInfo.fromIdChangeInfo(IdChangeInfo.empty());
 };
 
@@ -239,7 +239,7 @@ EmailChangeInfo.empty = function() {
  * @param  {IdChangeInfo}       idChangeInfo    The id change info object to transform
  * @return {EmailChangeInfo}                    The email change info
  */
-EmailChangeInfo.fromIdChangeInfo = function(idChangeInfo) {
+EmailChangeInfo.fromIdChangeInfo = function (idChangeInfo) {
   return new EmailChangeInfo(idChangeInfo.changes, idChangeInfo.roles, idChangeInfo.ids);
 };
 

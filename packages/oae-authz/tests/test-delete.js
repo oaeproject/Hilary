@@ -28,14 +28,10 @@ describe('Authz Delete', () => {
       // Verify isDeleted that contains 1 non-deleted id works as expected
       AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [group1], () => {
         // Verify we successfully delete the second id
-        AuthzTestUtil.assertSetDeletedSucceeds(group2, () => {
+        AuthzTestUtil.assertSetDeletedSucceeds(group2, () =>
           // Verify isDeleted that contains both deleted ids works as expected
-          return AuthzTestUtil.assertIsDeletedSucceeds(
-            [group1, group2],
-            [group1, group2],
-            callback
-          );
-        });
+          AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [group1, group2], callback)
+        );
       });
     });
   });
@@ -55,10 +51,10 @@ describe('Authz Delete', () => {
           // Verify isDeleted that contains 1 restored id works as expected
           AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [group2], () => {
             // Verify we successfully restore the second id
-            AuthzTestUtil.assertUnsetDeletedSucceeds(group2, () => {
+            AuthzTestUtil.assertUnsetDeletedSucceeds(group2, () =>
               // Verify isDeleted that contains both restored ids works as expected
-              return AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [], callback);
-            });
+              AuthzTestUtil.assertIsDeletedSucceeds([group1, group2], [], callback)
+            );
           });
         });
       });

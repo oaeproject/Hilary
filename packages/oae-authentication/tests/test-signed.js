@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import { format } from 'node:util';
+import { assert } from 'chai';
 import _ from 'underscore';
 
 import * as RestAPI from 'oae-rest';
@@ -488,18 +488,17 @@ describe('Authentication', () => {
                             () => {
                               _performSignedAuthenticationRequest(
                                 requestInfo.url,
-                                _.extend({}, requestInfo.body, { expires: 1234567890 }),
+                                _.extend({}, requestInfo.body, { expires: 1_234_567_890 }),
                                 false,
-                                () => {
-                                  return _performSignedAuthenticationRequest(
+                                () =>
+                                  _performSignedAuthenticationRequest(
                                     requestInfo.url,
                                     _.extend({}, requestInfo.body, {
                                       signature: 'bad signature'
                                     }),
                                     false,
                                     callback
-                                  );
-                                }
+                                  )
                               );
                             }
                           );
@@ -619,23 +618,22 @@ describe('Authentication', () => {
                                   () => {
                                     _performSignedAuthenticationRequest(
                                       requestInfo.url,
-                                      _.extend(requestInfo.body, { expires: 1234567890 }),
+                                      _.extend(requestInfo.body, { expires: 1_234_567_890 }),
                                       false,
                                       () => {
                                         _performSignedAuthenticationRequest(
                                           requestInfo.url,
                                           _.extend(requestInfo.body, { signature: 'different' }),
                                           false,
-                                          () => {
-                                            return _performSignedAuthenticationRequest(
+                                          () =>
+                                            _performSignedAuthenticationRequest(
                                               requestInfo.url,
                                               _.extend(requestInfo.body, {
                                                 becomeUserId: simon.user.id
                                               }),
                                               false,
                                               callback
-                                            );
-                                          }
+                                            )
                                         );
                                       }
                                     );

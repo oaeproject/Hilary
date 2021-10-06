@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { format } from 'node:util';
 import _ from 'underscore';
 import cookieParser from 'cookie-parser';

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import { format } from 'node:util';
+import { assert } from 'chai';
 import _ from 'underscore';
 import csv from 'csv';
 import temp from 'temp';
@@ -54,9 +54,7 @@ describe('Shibboleth Migration', () => {
 
   after((callback) => {
     // Make sure we close the CSV stream and remove the file
-    csvStream.end(() => {
-      return callback();
-    });
+    csvStream.end(() => callback());
   });
 
   /*!
@@ -126,27 +124,26 @@ describe('Shibboleth Migration', () => {
    */
   const _createGoogleLogins = function (tenantAlias, users) {
     // Create Google logins for users
-    const googleLoginIds = map((user) => {
-      return {
+    const googleLoginIds = map(
+      (user) => ({
         userId: user.id,
         loginId: format('%s:google:%s', tenantAlias, user.email)
-      };
-    }, users);
+      }),
+      users
+    );
 
     const queries = pipe(
-      map((googleLoginId) => {
-        return [
-          {
-            query:
-              'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
-            parameters: [googleLoginId.loginId, googleLoginId.userId, '1']
-          },
-          {
-            query: 'INSERT INTO "AuthenticationLoginId" ("loginId", "userId") VALUES (?, ?)',
-            parameters: [googleLoginId.loginId, googleLoginId.userId]
-          }
-        ];
-      }),
+      map((googleLoginId) => [
+        {
+          query:
+            'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
+          parameters: [googleLoginId.loginId, googleLoginId.userId, '1']
+        },
+        {
+          query: 'INSERT INTO "AuthenticationLoginId" ("loginId", "userId") VALUES (?, ?)',
+          parameters: [googleLoginId.loginId, googleLoginId.userId]
+        }
+      ]),
       flatten
     )(googleLoginIds);
 
@@ -173,9 +170,7 @@ describe('Shibboleth Migration', () => {
           ShibbolethMigrator.doMigration(tenantAlias, csvStream, (error /* , errors */) => {
             assert.notExists(error);
 
-            _assertHaveShibbolethLoginIds(tenantAlias, users, () => {
-              return callback();
-            });
+            _assertHaveShibbolethLoginIds(tenantAlias, users, () => callback());
           });
         });
       });
@@ -207,9 +202,7 @@ describe('Shibboleth Migration', () => {
             assert.notExists(error);
 
             _assertHaveShibbolethLoginIds(tenantAlias, googleUsers, () => {
-              _assertHaveNoShibbolethLoginIds(tenantAlias, nonGoogleUsers, () => {
-                return callback();
-              });
+              _assertHaveNoShibbolethLoginIds(tenantAlias, nonGoogleUsers, () => callback());
             });
           });
         });

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
@@ -33,6 +33,15 @@ import * as TenantsAPI from 'oae-tenants';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
+
+import { compose, and } from 'ramda';
+import isLength from 'validator/lib/isLength.js';
+import { getTenantSkinVariables } from 'oae-ui';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
+
+import { LoginId } from 'oae-authentication/lib/model.js';
+
 const {
   validateInCase: bothCheck,
   getNestedObject,
@@ -45,14 +54,6 @@ const {
   unless,
   isNotEmpty
 } = validator;
-
-import { compose, and } from 'ramda';
-import isLength from 'validator/lib/isLength.js';
-import { getTenantSkinVariables } from 'oae-ui';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
-import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
-
-import { LoginId } from 'oae-authentication/lib/model.js';
 
 const log = logger('oae-authentication');
 
@@ -689,9 +690,7 @@ const _createUser = function (ctx, loginId, displayName, options, callback) {
       // Create the user and immediately associate the login id
       PrincipalsAPI.createUser(ctx, loginId.tenantAlias, displayName, options, (error, user) => {
         if (error) {
-          Locking.release(lock, () => {
-            return callback(error);
-          });
+          Locking.release(lock, () => callback(error));
           return;
         }
 
@@ -1181,8 +1180,7 @@ const _associateLoginId = function (loginId, userId, callback) {
   );
   if (query) {
     const queries = [];
-    queries.push(query);
-    queries.push({
+    queries.push(query, {
       query:
         'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']

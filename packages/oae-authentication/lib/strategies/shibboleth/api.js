@@ -19,11 +19,12 @@ import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as Signature from 'oae-util/lib/signature.js';
 import * as TenantsAPI from 'oae-tenants/lib/api.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, isInt } = validator;
 import { compose } from 'ramda';
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import { setUpConfig } from 'oae-config';
+
+const { isDefined, unless, dateIsIntoTheFuture, isNotEmpty, isInt } = validator;
 
 const AuthenticationConfig = setUpConfig('oae-authentication');
 

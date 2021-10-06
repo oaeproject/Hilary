@@ -58,14 +58,14 @@ describe('Authentication', () => {
   /**
    * Ensure that all tests will start with local authentication enabled, even if tests that disable it fail
    */
-  afterEach((callback) => {
-    return AuthenticationTestUtil.assertUpdateAuthConfigSucceeds(
+  afterEach((callback) =>
+    AuthenticationTestUtil.assertUpdateAuthConfigSucceeds(
       asCambridgeTenantAdmin,
       null,
       { 'oae-authentication/local/enabled': true },
       callback
-    );
-  });
+    )
+  );
 
   describe('Local authentication', () => {
     /**

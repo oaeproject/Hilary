@@ -48,9 +48,9 @@ const _handleLDAPAuthentication = function (request, response, next) {
  * @HttpResponse                200         The user succesfully logged in
  * @HttpResponse                401         Incorrect credentials were provided
  */
-OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (request, response) => {
+OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (request, response) =>
   // This callback only gets called when we log in succesfully.
-  return response.status(200).send(request.ctx.user());
-});
+  response.status(200).send(request.ctx.user())
+);
 
 export default OAE;

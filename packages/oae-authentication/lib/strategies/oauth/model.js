@@ -20,7 +20,7 @@
  * @param  {String}     userId      The ID of the user for which this token is valid
  * @param  {String}     clientId    The ID of the client for which this token was granted
  */
-const AccessToken = function(token, userId, clientId) {
+const AccessToken = function (token, userId, clientId) {
   const that = {};
   that.token = token;
   that.userId = userId;
@@ -36,7 +36,7 @@ const AccessToken = function(token, userId, clientId) {
  * @param  {String}     secret          The secret for the OAuth client
  * @param  {String}     userId          The id of the user associated to the OAuth client
  */
-const Client = function(id, displayName, secret, userId) {
+const Client = function (id, displayName, secret, userId) {
   const that = {};
   that.id = id;
   that.displayName = displayName;

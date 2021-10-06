@@ -118,7 +118,7 @@ function initShibbAuth(config) {
 
         // Get a locale, if any
         const locale = _getBestAttributeValue(tenant.alias, 'mapLocale', headers, headers.locale);
-        if (locale && locale.match(/^[a-z]{2}_[A-Z]{2}$/)) {
+        if (locale && /^[a-z]{2}_[A-Z]{2}$/.test(locale)) {
           options.locale = locale;
         }
 
@@ -238,9 +238,10 @@ const _getBestAttributeValue = function (tenantAlias, configKey, headers, defaul
   );
   priorityList = _.chain(priorityList.split(' ')).compact().uniq().value();
 
-  const attribute = _.find(priorityList, (attribute) => {
-    return headers[attribute] && headers[attribute] !== defaultValue;
-  });
+  const attribute = _.find(
+    priorityList,
+    (attribute) => headers[attribute] && headers[attribute] !== defaultValue
+  );
 
   const value = headers[attribute] || defaultValue;
   return value;

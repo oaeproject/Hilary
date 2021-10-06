@@ -13,18 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
-import { assert } from 'chai';
-import fs from 'fs';
+import path, { dirname } from 'node:path';
+import fs from 'node:fs';
 import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { assert } from 'chai';
 import _ from 'underscore';
 import request from 'request';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Cookie } from 'tough-cookie';
@@ -38,6 +33,9 @@ import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import * as AuthenticationTestUtil from 'oae-authentication/lib/test/util.js';
 import { setUpConfig } from 'oae-config/lib/api.js';
 import * as ShibbolethAPI from 'oae-authentication/lib/strategies/shibboleth/api.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const DUMMY_BASE = 'http://localhost';
 const Config = setUpConfig('oae-authentication');
@@ -259,9 +257,7 @@ describe('Authentication', () => {
       // When we did update the test we need to wait untill the authentication strategies have been refreshed
       AuthenticationAPI.emitter.once(
         AuthenticationConstants.events.REFRESHED_STRATEGIES,
-        (/* tenant */) => {
-          return callback();
-        }
+        (/* tenant */) => callback()
       );
     });
 
@@ -482,9 +478,7 @@ describe('Authentication', () => {
                               AuthenticationTestUtil.assertGoogleLoginSucceeds(
                                 tenant.host,
                                 email,
-                                (/* restCtx, me */) => {
-                                  return callback();
-                                }
+                                (/* restCtx, me */) => callback()
                               );
                             }
                           );
@@ -521,8 +515,8 @@ describe('Authentication', () => {
         server = _server;
         port = _port;
 
-        validTicket = 'ticket-' + _.random(0, 10000);
-        externalId = 'sg555@' + _.random(0, 10000);
+        validTicket = 'ticket-' + _.random(0, 10_000);
+        externalId = 'sg555@' + _.random(0, 10_000);
         email = TestsUtil.generateTestEmailAddress();
         app.get('/cas/serviceValidate', (request_, response) => {
           if (request_.query.ticket === validTicket) {
@@ -1346,9 +1340,7 @@ describe('Authentication', () => {
                     // ...or http.
                     verifyInvalidDisplayNameMakesProfilePrivate(
                       'http://example.tenant.com/profile',
-                      () => {
-                        return done();
-                      }
+                      () => done()
                     );
                   }
                 );
@@ -1412,7 +1404,7 @@ describe('Authentication', () => {
                                 {
                                   tenantAlias,
                                   signature: 'sign',
-                                  expires: Date.now() + 10000
+                                  expires: Date.now() + 10_000
                                 },
                                 (error /* , body, response */) => {
                                   assert.strictEqual(error.code, 401);
@@ -1492,7 +1484,7 @@ describe('Authentication', () => {
                                 {
                                   userId: 'u:foo:bar',
                                   signature: 'sign',
-                                  expires: Date.now() + 10000
+                                  expires: Date.now() + 10_000
                                 },
                                 (error /* , body, response */) => {
                                   assert.strictEqual(error.code, 401);
@@ -1637,7 +1629,7 @@ describe('Authentication', () => {
           // Verify the display name attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
-              'shib-session-id': _.random(100000),
+              'shib-session-id': _.random(100_000),
               'persistent-id':
                 'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                 Math.random(),
@@ -1645,7 +1637,7 @@ describe('Authentication', () => {
               affiliation: 'Digital Services',
               unscopedAffiliation: 'OAE Team',
               // eslint-disable-next-line camelcase
-              remote_user: 'simon' + _.random(100000),
+              remote_user: 'simon' + _.random(100_000),
 
               // Supply both `displayName` and `cn`. `displayName` has the highest priority
               displayname: 'Simon via displayname',
@@ -1673,7 +1665,7 @@ describe('Authentication', () => {
                     '/content/bla',
                     (tenantRestContext, spRestContext) => {
                       const attributes = {
-                        'shib-session-id': _.random(100000),
+                        'shib-session-id': _.random(100_000),
                         'persistent-id':
                           'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                           Math.random(),
@@ -1681,7 +1673,7 @@ describe('Authentication', () => {
                         affiliation: 'Digital Services',
                         unscopedAffiliation: 'OAE Team',
                         // eslint-disable-next-line camelcase
-                        remote_user: 'nico' + _.random(100000),
+                        remote_user: 'nico' + _.random(100_000),
 
                         // Supply `cn`, which has a lower priority than `displayName`.
                         // Because `displayName` is not provided, `cn` will be used
@@ -1727,7 +1719,7 @@ describe('Authentication', () => {
           // Verify the email attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
-              'shib-session-id': _.random(100000),
+              'shib-session-id': _.random(100_000),
               'persistent-id':
                 'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                 Math.random(),
@@ -1735,7 +1727,7 @@ describe('Authentication', () => {
               affiliation: 'Digital Services',
               unscopedAffiliation: 'OAE Team',
               // eslint-disable-next-line camelcase
-              remote_user: 'simon' + _.random(100000),
+              remote_user: 'simon' + _.random(100_000),
 
               // Supply both `email` and `eppn`. `email` has the highest priority
               displayname: 'Simon',
@@ -1763,7 +1755,7 @@ describe('Authentication', () => {
                     '/content/bla',
                     (tenantRestContext, spRestContext) => {
                       const attributes = {
-                        'shib-session-id': _.random(100000),
+                        'shib-session-id': _.random(100_000),
                         'persistent-id':
                           'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                           Math.random(),
@@ -1771,7 +1763,7 @@ describe('Authentication', () => {
                         affiliation: 'Digital Services',
                         unscopedAffiliation: 'OAE Team',
                         // eslint-disable-next-line camelcase
-                        remote_user: 'simon' + _.random(100000),
+                        remote_user: 'simon' + _.random(100_000),
 
                         // Supply `eppn`, which has a lower priority than `email`.
                         // Because `email` is not provided, `eppn` will be used
@@ -1817,7 +1809,7 @@ describe('Authentication', () => {
           // Verify the locale attribute with the highest priority is selected
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
-              'shib-session-id': _.random(100000),
+              'shib-session-id': _.random(100_000),
               'persistent-id':
                 'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                 Math.random(),
@@ -1825,7 +1817,7 @@ describe('Authentication', () => {
               affiliation: 'Digital Services',
               unscopedAffiliation: 'OAE Team',
               // eslint-disable-next-line camelcase
-              remote_user: 'simon' + _.random(100000),
+              remote_user: 'simon' + _.random(100_000),
 
               // Supply both `locality` and `locale`. `locality` has the highest priority
               displayname: 'Simon',
@@ -1853,7 +1845,7 @@ describe('Authentication', () => {
                     '/content/bla',
                     (tenantRestContext, spRestContext) => {
                       const attributes = {
-                        'shib-session-id': _.random(100000),
+                        'shib-session-id': _.random(100_000),
                         'persistent-id':
                           'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                           Math.random(),
@@ -1861,7 +1853,7 @@ describe('Authentication', () => {
                         affiliation: 'Digital Services',
                         unscopedAffiliation: 'OAE Team',
                         // eslint-disable-next-line camelcase
-                        remote_user: 'simon' + _.random(100000),
+                        remote_user: 'simon' + _.random(100_000),
 
                         // Supply `locale`, which has a lower priority than `locality`.
                         // Because `locality` is not provided, `locale` will be used
@@ -1906,7 +1898,7 @@ describe('Authentication', () => {
         (done) => {
           _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
             const attributes = {
-              'shib-session-id': _.random(10000),
+              'shib-session-id': _.random(10_000),
               'persistent-id':
                 'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                 Math.random(),
@@ -1914,7 +1906,7 @@ describe('Authentication', () => {
               affiliation: 'Digital Services',
               unscopedAffiliation: 'OAE Team',
               // eslint-disable-next-line camelcase
-              remote_user: 'simon' + _.random(10000),
+              remote_user: 'simon' + _.random(10_000),
 
               // Use an invalid locale. This should not be stored against the user
               displayname: 'Simon',
@@ -1957,7 +1949,7 @@ describe('Authentication', () => {
       _enableStrategy('shibboleth', (/* done */) => {
         _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
           const attributes = {
-            'shib-session-id': _.random(10000),
+            'shib-session-id': _.random(10_000),
             'persistent-id':
               'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
               Math.random(),
@@ -1965,7 +1957,7 @@ describe('Authentication', () => {
             affiliation: 'Digital Services',
             unscopedAffiliation: 'OAE Team',
             // eslint-disable-next-line camelcase
-            remote_user: 'simon' + _.random(10000),
+            remote_user: 'simon' + _.random(10_000),
 
             // Use an invalid email. This should not be stored against the user
             displayname: 'Simon',
@@ -2016,7 +2008,7 @@ describe('Authentication', () => {
 
               _initiateShibbolethAuthFlow('/content/bla', (tenantRestContext, spRestContext) => {
                 const attributes = {
-                  'shib-session-id': _.random(10000),
+                  'shib-session-id': _.random(10_000),
                   'persistent-id':
                     'https://idp.example.com/shibboleth#https://sp.example.com/shibboleth#' +
                     Math.random(),
@@ -2024,7 +2016,7 @@ describe('Authentication', () => {
                   affiliation: 'Digital Services',
                   unscopedAffiliation: 'OAE Team',
                   // eslint-disable-next-line camelcase
-                  remote_user: 'simon' + _.random(10000),
+                  remote_user: 'simon' + _.random(10_000),
                   displayname: 'Simon',
                   email
                 };
@@ -2140,9 +2132,7 @@ describe('Authentication', () => {
                                                                   .host,
                                                                 'simon@baz.com',
                                                                 'domain_not_allowed',
-                                                                () => {
-                                                                  return done();
-                                                                }
+                                                                () => done()
                                                               );
                                                             }
                                                           );

@@ -66,9 +66,7 @@ function initGoogleAuth() {
 
     // Ensure we can do simple string comparisons by filtering empty domains and trimming out spaces
     domains = _.chain(domains)
-      .map((domain) => {
-        return domain.trim().toLowerCase();
-      })
+      .map((domain) => domain.trim().toLowerCase())
       .compact()
       .value();
 

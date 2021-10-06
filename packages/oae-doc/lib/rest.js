@@ -31,7 +31,7 @@ import { getModuleDocumentation, getModules } from './api.js';
  * @HttpResponse             400          Invalid or missing module type. Accepted values are "backend" and "frontend"
  */
 const _getDocModulesByType = function (request, response) {
-  getModules(request.params.type, function (error, modules) {
+  getModules(request.params.type, (error, modules) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -39,6 +39,7 @@ const _getDocModulesByType = function (request, response) {
     response.status(200).send(modules);
   });
 };
+
 OAE.tenantRouter.on('get', '/api/doc/:type', _getDocModulesByType);
 OAE.globalAdminRouter.on('get', '/api/doc/:type', _getDocModulesByType);
 
@@ -59,7 +60,7 @@ OAE.globalAdminRouter.on('get', '/api/doc/:type', _getDocModulesByType);
  * @HttpResponse             404          No documentation for this module was found
  */
 const _getDocModule = function (request, response) {
-  getModuleDocumentation(request.params.module, request.params.type, function (error, docs) {
+  getModuleDocumentation(request.params.module, request.params.type, (error, docs) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -83,12 +84,12 @@ OAE.globalAdminRouter.on('get', '/api/doc/:type/:module', _getDocModule);
  * @Return      {object}                  Swagger resource listing, @see https://github.com/wordnik/swagger-spec/blob/master/versions/1.2.md#51-resource-listing
  * @HttpResponse             200          Swagger resource listing available
  */
-OAE.tenantRouter.on('get', '/api/swagger', function (request, response) {
-  return response.status(200).send(Swagger.getResources(request.ctx));
-});
-OAE.globalAdminRouter.on('get', '/api/swagger', function (request, response) {
-  return response.status(200).send(Swagger.getResources(request.ctx));
-});
+OAE.tenantRouter.on('get', '/api/swagger', (request, response) =>
+  response.status(200).send(Swagger.getResources(request.ctx))
+);
+OAE.globalAdminRouter.on('get', '/api/swagger', (request, response) =>
+  response.status(200).send(Swagger.getResources(request.ctx))
+);
 
 /**
  * @REST getSwaggerId
@@ -103,9 +104,9 @@ OAE.globalAdminRouter.on('get', '/api/swagger', function (request, response) {
  * @Return      {object}                  Swagger API declaration, @see https://github.com/wordnik/swagger-spec/blob/master/versions/1.2.md#52-api-declaration
  * @HttpResponse             200          Swagger api declaration available
  */
-OAE.tenantRouter.on('get', '/api/swagger/:id', function (request, response) {
-  return response.status(200).send(Swagger.getApi(request.ctx, request.params.id));
-});
-OAE.globalAdminRouter.on('get', '/api/swagger/:id', function (request, response) {
-  return response.status(200).send(Swagger.getApi(request.ctx, request.params.id));
-});
+OAE.tenantRouter.on('get', '/api/swagger/:id', (request, response) =>
+  response.status(200).send(Swagger.getApi(request.ctx, request.params.id))
+);
+OAE.globalAdminRouter.on('get', '/api/swagger/:id', (request, response) =>
+  response.status(200).send(Swagger.getApi(request.ctx, request.params.id))
+);

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { stat as doesFileExist, readFile } from 'fs';
+import { stat as doesFileExist, readFile } from 'node:fs';
 import _ from 'underscore';
 import dox from 'dox';
 
@@ -21,10 +21,11 @@ import { getFileListForFolder } from 'oae-util/lib/io.js';
 import * as modules from 'oae-util/lib/modules.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { unless, isNotEmpty } = validator;
 import isIn from 'validator/lib/isIn.js';
 
 import { logger } from 'oae-logger';
+
+const { unless, isNotEmpty } = validator;
 
 const log = logger('oae-doc');
 
@@ -43,9 +44,9 @@ const cachedDocs = {
  */
 const initializeDocs = function (uiConfig, callback) {
   // Initialize the front-end documentation
-  _initializeFrontendDocs(uiConfig, (err) => {
-    if (err) {
-      return callback(err);
+  _initializeFrontendDocs(uiConfig, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Initialize the back-end documentation
@@ -70,16 +71,16 @@ const _initializeFrontendDocs = function (uiConfig, callback) {
   // for generating documentation. If the `original` folder does not exist, we assume that we are not running on an
   // optimized build and use the source files in the provided base UI directory.
   const originalDir = baseDir + '/../original';
-  doesFileExist(originalDir, (err, exists) => {
+  doesFileExist(originalDir, (error, exists) => {
     baseDir = exists ? originalDir : baseDir;
 
     // Only parse the API files. We don't parse any other UI files yet.
     const dir = baseDir + '/shared/oae/api';
     const exclude = ['oae.api.js', 'oae.bootstrap.js', 'oae.core.js'];
 
-    _parseDocs(dir, exclude, (err, docs) => {
-      if (err) {
-        return callback(err);
+    _parseDocs(dir, exclude, (error, docs) => {
+      if (error) {
+        return callback(error);
       }
 
       cachedDocs.frontend = docs;
@@ -106,9 +107,9 @@ const _initializeBackendDocs = function (backendModules, callback) {
   // Shift off a module to parse its docs
   const module = backendModules.shift();
   const dir = OaeUtil.getNodeModulesDir() + module + '/lib';
-  _parseDocs(dir, null, (err, docs) => {
-    if (err) {
-      return callback(err);
+  _parseDocs(dir, null, (error, docs) => {
+    if (error) {
+      return callback(error);
     }
 
     // Cache the doc info in memory and recurse
@@ -130,9 +131,9 @@ const _initializeBackendDocs = function (backendModules, callback) {
  */
 const _parseDocs = function (dir, exclude, callback) {
   // Get all of the files in the provided base directory
-  getFileListForFolder(dir, (err, fileNames) => {
-    if (err) {
-      log().warn({ err, dir }, 'Failed getting file list to parse dox documentation.');
+  getFileListForFolder(dir, (error, fileNames) => {
+    if (error) {
+      log().warn({ err: error, dir }, 'Failed getting file list to parse dox documentation.');
       return callback({ code: 404, msg: 'No documentation for this module was found' });
     }
 
@@ -145,10 +146,10 @@ const _parseDocs = function (dir, exclude, callback) {
     _.each(fileNames, (fileName) => {
       (function (fileName) {
         // Read each of the files in the provided directory
-        readFile(dir + '/' + fileName, 'utf8', (err, data) => {
+        readFile(dir + '/' + fileName, 'utf8', (error, data) => {
           done++;
-          if (err) {
-            log().error({ err }, 'Failed reading ' + dir + '/' + fileName);
+          if (error) {
+            log().error({ err: error }, 'Failed reading ' + dir + '/' + fileName);
           } else {
             // Parse the JSDocs using Dox
             try {
@@ -166,7 +167,7 @@ const _parseDocs = function (dir, exclude, callback) {
           }
 
           if (done === fileNames.length) {
-            return callback(err, doc);
+            return callback(error, doc);
           }
         });
       })(fileName);

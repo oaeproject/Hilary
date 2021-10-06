@@ -28,9 +28,9 @@ const updateCounter = new Counter();
  * For method parameter descriptions, @see RestAPI.Config#updateConfig
  */
 const updateConfigAndWait = function (restCtx, tenantAlias, configUpdate, callback) {
-  Config.updateConfig(restCtx, tenantAlias, configUpdate, (err) => {
-    if (err) {
-      return callback(err);
+  Config.updateConfig(restCtx, tenantAlias, configUpdate, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return whenConfigUpdated(callback);
@@ -45,9 +45,9 @@ const updateConfigAndWait = function (restCtx, tenantAlias, configUpdate, callba
  * For method parameter descriptions, @see RestAPI.Config#clearConfig
  */
 const clearConfigAndWait = function (restCtx, tenantAlias, configFields, callback) {
-  Config.clearConfig(restCtx, tenantAlias, configFields, (err) => {
-    if (err) {
-      return callback(err);
+  Config.clearConfig(restCtx, tenantAlias, configFields, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return whenConfigUpdated(callback);

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import { indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
 import _ from 'underscore';
 
@@ -25,6 +25,12 @@ import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
 
 import { Validator as validator } from 'oae-util/lib/validator.js';
+import { isPast } from 'date-fns';
+import isInt from 'validator/lib/isInt.js';
+import isIn from 'validator/lib/isIn.js';
+import * as MessageBoxModel from './model.js';
+import { MessageBoxConstants } from './constants.js';
+
 const {
   validateInCase: bothCheck,
   isANumber,
@@ -35,11 +41,6 @@ const {
   isNotNull,
   toInt
 } = validator;
-import { isPast } from 'date-fns';
-import isInt from 'validator/lib/isInt.js';
-import isIn from 'validator/lib/isIn.js';
-import * as MessageBoxModel from './model.js';
-import { MessageBoxConstants } from './constants.js';
 
 const log = logger('oae-messagebox-api');
 
@@ -102,9 +103,7 @@ const replaceLinks = function (body = '') {
         let lines = preMatchBody.split('\n');
         lines = lines.slice(lastParaLine, -1);
         // Check that all lines in this block start with 4 spaces
-        const allLinesStartWith4Spaces = _.every(lines, (line) => {
-          return line.slice(0, 4) === '    ';
-        });
+        const allLinesStartWith4Spaces = _.every(lines, (line) => line.slice(0, 4) === '    ');
         inBlockQuote = _.isEmpty(lines) || allLinesStartWith4Spaces;
       }
     }
@@ -439,7 +438,7 @@ const getMessages = function (messageBoxId, createdTimestamps, options, callback
       msg: 'A messageBoxId must be specified.'
     })(messageBoxId);
 
-    createdTimestamps.forEach((timestamp) => {
+    for (const timestamp of createdTimestamps) {
       unless(isNotNull, {
         code: 400,
         msg: 'A timestamp cannot be null.'
@@ -454,15 +453,13 @@ const getMessages = function (messageBoxId, createdTimestamps, options, callback
         code: 400,
         msg: 'A timestamp cannot be in the future.'
       })(new Date(Number.parseInt(timestamp, 10)));
-    });
+    }
   } catch (error) {
     return callback(error);
   }
 
   // Convert messagebox + createdTimestamps into the compound key containing the two
-  const messageIds = _.map(createdTimestamps, (created) => {
-    return _createMessageId(messageBoxId, created);
-  });
+  const messageIds = _.map(createdTimestamps, (created) => _createMessageId(messageBoxId, created));
 
   // Delegate to getMessagesById to fetch by the actual message ids
   getMessagesById(messageIds, { scrubDeleted: options.scrubDeleted }, callback);
@@ -666,9 +663,7 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
       }
 
       // Extract the contributor ids as the results
-      const recentContributions = _.map(rows, (row) => {
-        return row.get('contributorId');
-      });
+      const recentContributions = _.map(rows, (row) => row.get('contributorId'));
 
       return callback(null, recentContributions);
     }
@@ -855,9 +850,7 @@ const _getThreadKeysFromMessageBox = function (messageBoxId, start, limit, callb
         return callback(error);
       }
 
-      const threadKeys = _.map(rows, (row) => {
-        return row.get('threadKey');
-      });
+      const threadKeys = _.map(rows, (row) => row.get('threadKey'));
 
       return callback(null, threadKeys, nextToken);
     }

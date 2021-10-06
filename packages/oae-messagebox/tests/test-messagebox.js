@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 import ShortId from 'shortid';
 
 import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';

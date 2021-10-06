@@ -27,8 +27,7 @@
  * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 
-/* eslint-disable unicorn/filename-case, camelcase */
-export const discussion_message_body = {
+export const discussionMessageBody = {
   type: 'text',
   store: 'false',
   index: 'true',

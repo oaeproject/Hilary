@@ -18,7 +18,7 @@ import _ from 'underscore';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as discussionMessageBody from './search/schema/resourceMessagesSchema.js';
+import * as discussionMessageBody from './search/schema/resource-messages-schema.js';
 
 /**
  * Register and create a message search document name and schema that is a child of resource documents. Registering
@@ -71,17 +71,18 @@ const createAllMessageSearchDocuments = function (name, resourceId, messageBoxId
  */
 const createMessageSearchDocuments = function (name, resourceId, messages) {
   return _.chain(messages)
-    .filter((message) => {
-      // Do not convert deleted messages into search documents
-      return !message.deleted;
-    })
-    .map((message) => {
+    .filter(
+      (message) =>
+        // Do not convert deleted messages into search documents
+        !message.deleted
+    )
+    .map((message) =>
       // Here we'll be looking for `discussion_message_body` because that's the default export in `resourceMessagesSchema.js`
-      return SearchUtil.createChildSearchDocument(name, resourceId, {
+      SearchUtil.createChildSearchDocument(name, resourceId, {
         id: message.id,
         discussion_message_body: message.body // eslint-disable-line camelcase
-      });
-    })
+      })
+    )
     .value();
 };
 

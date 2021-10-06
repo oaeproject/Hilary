@@ -1686,7 +1686,7 @@ describe('Meeting Jitsi', () => {
             assert.notExists(error);
 
             // Add a comment
-            const body = TestsUtil.generateRandomText(10000);
+            const body = TestsUtil.generateRandomText(10_000);
             const replyTo = null;
 
             RestAPI.MeetingsJitsi.createComment(

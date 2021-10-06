@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 

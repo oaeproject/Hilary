@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import * as ActivityAPI from 'oae-activity/lib/api.js';
@@ -73,9 +73,7 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, 
   // Get the extra members
   const extraMembers = _.chain(memberChangeInfo.changes)
     .keys()
-    .filter((member) => {
-      return member !== ctx.user().id;
-    })
+    .filter((member) => member !== ctx.user().id)
     .value();
 
   // If we only added 1 extra user or group, we set the target to that entity
@@ -446,9 +444,9 @@ const _meetingTransformer = function (ctx, activityEntities, callback) {
  */
 const _meetingMessageTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       const { meetingId } = entity;
       const resource = AuthzUtil.getResourceFromId(meetingId);
@@ -460,8 +458,9 @@ const _meetingMessageTransformer = function (ctx, activityEntities, callback) {
         profilePath,
         urlFormat
       );
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -490,14 +489,15 @@ const _meetingInternalTransformer = function (ctx, activityEntities, callback) {
  */
 const _meetingMessageInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] =
         MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -563,9 +563,9 @@ ActivityAPI.registerActivityEntityType('meeting-jitsi-message', {
 /*
  * Register an association that presents the meeting
  */
-ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*
  * Register an association that presents the members of a meeting categorized by role
@@ -587,7 +587,7 @@ ActivityAPI.registerActivityEntityAssociation('meeting-jitsi', 'members', (assoc
       return callback(error);
     }
 
-    return callback(null, _.flatten(_.values(membersByRole)));
+    return callback(null, _.values(membersByRole).flat());
   });
 });
 
@@ -618,6 +618,6 @@ ActivityAPI.registerActivityEntityAssociation(
 /*!
  * Register an association that presents the meeting for a meeting-message entity
  */
-ActivityAPI.registerActivityEntityAssociation('meeting-jitsi-message', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity.meetingId]);
-});
+ActivityAPI.registerActivityEntityAssociation('meeting-jitsi-message', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity.meetingId])
+);

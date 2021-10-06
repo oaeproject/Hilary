@@ -15,7 +15,9 @@
 
 import { logger } from 'oae-logger';
 import * as MeetingSearch from './search.js';
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
 import * as library from './library.js';
 
 const log = logger('oae-jitsi-init');

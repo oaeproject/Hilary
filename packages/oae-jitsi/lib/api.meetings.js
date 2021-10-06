@@ -16,6 +16,14 @@ import { logger } from 'oae-logger';
 
 import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
+import isIn from 'validator/lib/isIn.js';
+import isInt from 'validator/lib/isInt.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+
+import { MeetingsConstants } from './constants.js';
+import * as MeetingsDAO from './internal/dao.js';
+
 const {
   validateInCase: bothCheck,
   isDefined,
@@ -34,13 +42,6 @@ const {
   isLongString,
   isOneOrGreater
 } = validator;
-import { compose, equals, length, and, forEachObjIndexed } from 'ramda';
-import isIn from 'validator/lib/isIn.js';
-import isInt from 'validator/lib/isInt.js';
-import { AuthzConstants } from 'oae-authz/lib/constants.js';
-
-import { MeetingsConstants } from './constants.js';
-import * as MeetingsDAO from './internal/dao.js';
 
 const Config = setUpConfig('oae-jitsi');
 
@@ -319,12 +320,10 @@ const getMeetingMembers = function (ctx, meetingId, start, limit, callback) {
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, (memberRole) => {
-          return {
-            profile: memberProfiles[memberRole.id],
-            role: memberRole.role
-          };
-        });
+        const memberList = _.map(memberRoles, (memberRole) => ({
+          profile: memberProfiles[memberRole.id],
+          role: memberRole.role
+        }));
 
         return callback(null, memberList, nextToken);
       });
@@ -629,9 +628,7 @@ const getMessages = function (ctx, meetingId, start, limit, callback) {
         return callback(error);
       }
 
-      let userIds = _.map(messages, (message) => {
-        return message.createdBy;
-      });
+      let userIds = _.map(messages, (message) => message.createdBy);
 
       // Remove falsey and duplicate userIds
       userIds = _.uniq(_.compact(userIds));

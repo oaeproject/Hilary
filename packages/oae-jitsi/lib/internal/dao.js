@@ -103,9 +103,7 @@ const getMeetingsById = function (meetingIds, callback) {
       });
 
     // Order the meetings according to the array of meetings ids
-    const orderedMeetings = _.map(meetingIds, (meetingId) => {
-      return meetings[meetingId];
-    });
+    const orderedMeetings = _.map(meetingIds, (meetingId) => meetings[meetingId]);
 
     return callback(null, orderedMeetings);
   });

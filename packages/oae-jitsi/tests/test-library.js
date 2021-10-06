@@ -221,9 +221,7 @@ describe('Meeting libraries', () => {
     it('should only send the public stream of public users for an anonymous user', (callback) => {
       checkLibrary(asCambridgeAnonymousUser, users.public.user.user.id, true, [users.public.publicMeeting], () => {
         checkLibrary(asCambridgeAnonymousUser, users.loggedin.user.user.id, false, [], () => {
-          checkLibrary(asCambridgeAnonymousUser, users.private.user.user.id, false, [], () => {
-            return callback();
-          });
+          checkLibrary(asCambridgeAnonymousUser, users.private.user.user.id, false, [], () => callback());
         });
       });
     });
@@ -245,9 +243,7 @@ describe('Meeting libraries', () => {
               true,
               [users.loggedin.publicMeeting, users.loggedin.loggedinMeeting],
               () => {
-                checkLibrary(anotherUser.restContext, users.private.user.user.id, false, [], () => {
-                  return callback();
-                });
+                checkLibrary(anotherUser.restContext, users.private.user.user.id, false, [], () => callback());
               }
             );
           }
@@ -262,9 +258,7 @@ describe('Meeting libraries', () => {
 
         checkLibrary(otherTenantUser.restContext, users.public.user.user.id, true, [users.public.publicMeeting], () => {
           checkLibrary(otherTenantUser.restContext, users.loggedin.user.user.id, false, [], () => {
-            checkLibrary(otherTenantUser.restContext, users.private.user.user.id, false, [], () => {
-              return callback();
-            });
+            checkLibrary(otherTenantUser.restContext, users.private.user.user.id, false, [], () => callback());
           });
         });
       });
@@ -288,9 +282,7 @@ describe('Meeting libraries', () => {
                 users.public.user.user.id,
                 true,
                 [users.public.privateMeeting, users.public.loggedinMeeting, users.public.publicMeeting],
-                () => {
-                  return callback();
-                }
+                () => callback()
               );
             }
           );
@@ -408,9 +400,7 @@ describe('Meeting libraries', () => {
     it('should only send the public stream of public groups for an anonymous user', (callback) => {
       checkLibrary(asCambridgeAnonymousUser, groups.public.group.id, true, [groups.public.publicMeeting], () => {
         checkLibrary(asCambridgeAnonymousUser, groups.loggedin.group.id, false, [], () => {
-          checkLibrary(asCambridgeAnonymousUser, groups.private.group.id, false, [], () => {
-            return callback();
-          });
+          checkLibrary(asCambridgeAnonymousUser, groups.private.group.id, false, [], () => callback());
         });
       });
     });
@@ -432,9 +422,7 @@ describe('Meeting libraries', () => {
               true,
               [groups.loggedin.publicMeeting, groups.loggedin.loggedinMeeting],
               () => {
-                checkLibrary(anotherUser.restContext, groups.private.group.id, false, [], () => {
-                  return callback();
-                });
+                checkLibrary(anotherUser.restContext, groups.private.group.id, false, [], () => callback());
               }
             );
           }
@@ -449,9 +437,7 @@ describe('Meeting libraries', () => {
 
         checkLibrary(anotherTenantUser.restContext, groups.public.group.id, true, [groups.public.publicMeeting], () => {
           checkLibrary(anotherTenantUser.restContext, groups.loggedin.group.id, false, [], () => {
-            checkLibrary(anotherTenantUser.restContext, groups.private.group.id, false, [], () => {
-              return callback();
-            });
+            checkLibrary(anotherTenantUser.restContext, groups.private.group.id, false, [], () => callback());
           });
         });
       });
@@ -475,9 +461,7 @@ describe('Meeting libraries', () => {
                 groups.private.group.id,
                 true,
                 [groups.private.publicMeeting, groups.private.loggedinMeeting, groups.private.privateMeeting],
-                () => {
-                  return callback();
-                }
+                () => callback()
               );
             }
           );

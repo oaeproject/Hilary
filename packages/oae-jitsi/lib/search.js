@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
@@ -38,9 +38,7 @@ const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
     ['meeting-jitsi'],
-    (resources, callback) => {
-      return _produceMeetingMessageDocuments(resources.slice(), callback);
-    },
+    (resources, callback) => _produceMeetingMessageDocuments([...resources], callback),
     callback
   );
 };
@@ -297,13 +295,9 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, m
 /**
  * When a meeting message is deleted, we must delete the child message document
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (ctx, message, meeting /* deleteType */) => {
-  return MessageBoxSearch.deleteMessageSearchDocument(
-    MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
-    meeting.id,
-    message
-  );
-});
+MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (ctx, message, meeting /* deleteType */) =>
+  MessageBoxSearch.deleteMessageSearchDocument(MeetingsConstants.search.MAPPING_MEETING_MESSAGE, meeting.id, message)
+);
 
 /// //////////////////////
 // REINDEX ALL HANDLER //

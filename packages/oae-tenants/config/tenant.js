@@ -66,16 +66,16 @@ const widths = [
  * @return {Object}                                 The created landing page block
  * @api private
  */
-const _createBlock = function (opts) {
-  opts = opts || {};
+const _createBlock = function (options) {
+  options = options || {};
 
-  const type = opts.type || 'empty';
-  const horizontalAlign = opts.horizontalAlign || 'center';
-  const verticalAlign = opts.verticalAlign || 'middle';
-  const xs = opts.xs || '12';
-  const sm = opts.sm || '12';
-  const md = opts.md || '12';
-  const lg = opts.lg || '12';
+  const type = options.type || 'empty';
+  const horizontalAlign = options.horizontalAlign || 'center';
+  const verticalAlign = options.verticalAlign || 'middle';
+  const xs = options.xs || '12';
+  const sm = options.sm || '12';
+  const md = options.md || '12';
+  const lg = options.lg || '12';
 
   return {
     name: 'Block values',
@@ -117,7 +117,7 @@ const _createBlock = function (opts) {
       sm: new Fields.List('SM Block width', 'Block width at small resolution', sm, widths, { suppress: true }),
       md: new Fields.List('MD Block width', 'Block width at medium resolution', md, widths, { suppress: true }),
       lg: new Fields.List('LG Block width', 'Block width at large resolution', lg, widths, { suppress: true }),
-      minHeight: new Fields.Text('Block minimum height', 'Minimum height for the block in px', opts.minHeight, {
+      minHeight: new Fields.Text('Block minimum height', 'Minimum height for the block in px', options.minHeight, {
         suppress: true
       }),
       horizontalAlign: new Fields.List(
@@ -160,23 +160,23 @@ const _createBlock = function (opts) {
         ],
         { suppress: true }
       ),
-      bgColor: new Fields.Text('Block background color', 'Background color for the block', opts.bgColor, {
+      bgColor: new Fields.Text('Block background color', 'Background color for the block', options.bgColor, {
         suppress: true
       }),
-      titleColor: new Fields.Text('Block title color', 'Title color for the block', opts.titleColor, {
+      titleColor: new Fields.Text('Block title color', 'Title color for the block', options.titleColor, {
         suppress: true
       }),
-      textColor: new Fields.Text('Block text color', 'Text color for the block', opts.textColor, { suppress: true }),
-      text: new Fields.InternationalizableText('Block text', 'Text content for the block', opts.text, {
+      textColor: new Fields.Text('Block text color', 'Text color for the block', options.textColor, { suppress: true }),
+      text: new Fields.InternationalizableText('Block text', 'Text content for the block', options.text, {
         suppress: true
       }),
-      icon: new Fields.Text('Block icon', 'Icon for the block', opts.icon, { suppress: true }),
-      imgUrl: new Fields.Text('Image URL', 'Image URL', opts.imgUrl, { suppress: true }),
-      videoUrl: new Fields.Text('Video URL', 'Video URL', opts.videoUrl, { suppress: true }),
+      icon: new Fields.Text('Block icon', 'Icon for the block', options.icon, { suppress: true }),
+      imgUrl: new Fields.Text('Image URL', 'Image URL', options.imgUrl, { suppress: true }),
+      videoUrl: new Fields.Text('Video URL', 'Video URL', options.videoUrl, { suppress: true }),
       videoPlaceholder: new Fields.Text(
         'Video Placeholder Image',
         'URL for video placeholder image',
-        opts.videoPlaceholder,
+        options.videoPlaceholder,
         { suppress: true }
       )
     }

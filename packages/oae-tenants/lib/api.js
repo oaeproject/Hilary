@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import { logger } from 'oae-logger';
 
 import _ from 'underscore';
@@ -30,25 +30,6 @@ import * as OAE from 'oae-util/lib/oae.js';
 import { getNumberParam, castToBoolean } from 'oae-util/lib/util.js';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const {
-  unless,
-  isString,
-  isGlobalAdministratorUser,
-  isNotEmpty,
-  notContains,
-  isDifferent,
-  isHost,
-  isNil,
-  isIso3166Country,
-  isObject,
-  isBoolean,
-  isNotNull,
-  getNestedObject,
-  isISO31661Alpha2,
-  validateInCase: bothCheck,
-  isArrayNotEmpty,
-  isArray
-} = validator;
 import {
   join,
   forEach,
@@ -85,12 +66,32 @@ import {
   when
 } from 'ramda';
 import isIn from 'validator/lib/isIn.js';
-import TenantEmailDomainIndex from './internal/emailDomainIndex.js';
-import TenantIndex from './internal/tenantIndex.js';
+import TenantEmailDomainIndex from './internal/email-domain-index.js';
+import TenantIndex from './internal/tenant-index.js';
 import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsUtil from './util.js';
-const { isPrivate } = TenantsUtil;
 import { Tenant } from './model.js';
+
+const {
+  unless,
+  isString,
+  isGlobalAdministratorUser,
+  isNotEmpty,
+  notContains,
+  isDifferent,
+  isHost,
+  isNil,
+  isIso3166Country,
+  isObject,
+  isBoolean,
+  isNotNull,
+  getNestedObject,
+  isISO31661Alpha2,
+  validateInCase: bothCheck,
+  isArrayNotEmpty,
+  isArray
+} = validator;
+const { isPrivate } = TenantsUtil;
 
 const TenantsConfig = setUpConfig('oae-tenants');
 const log = logger('oae-tenants');
@@ -174,9 +175,7 @@ Pubsub.emitter.on('oae-tenants', (message) => {
  * Listen for configuration update events. If a tenant is made public or private, we need to update
  * their cached status in the tenantsNotInteractable cache
  */
-eventEmitter.on('update', (alias) => {
-  return _updateCachedTenant(alias);
-});
+eventEmitter.on('update', (alias) => _updateCachedTenant(alias));
 
 /**
  * Initialize the middleware that will put the tenant object onto the request and cache all of the registered
@@ -533,9 +532,7 @@ const _updateCachedTenant = function (tenantAlias, callback) {
     )(tenant);
 
     // Insert at the correct location in the sorted list
-    let index = findIndex((tenant) => {
-      return tenant.alias === tenantAlias;
-    }, tenantsSorted);
+    let index = findIndex((tenant) => tenant.alias === tenantAlias, tenantsSorted);
 
     const notFound = equals(-1);
     ifElse(
@@ -855,23 +852,24 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
       msg: 'You must provide at least one alias to enable or disable'
     })(aliases);
 
-    aliases.forEach((alias) => {
+    for (const alias of aliases) {
       unless(compose(isObject, getTenant), {
         code: 404,
         msg: format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
       })(alias);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
 
   // Store the "active" flag in cassandra
-  const queries = map((alias) => {
-    return {
+  const queries = map(
+    (alias) => ({
       query: 'UPDATE "Tenant" SET "active" = ? WHERE "alias" = ?',
       parameters: [not(disabled), alias]
-    };
-  }, aliases);
+    }),
+    aliases
+  );
 
   runBatchQuery(queries, (error) => {
     if (error) return callback(error);

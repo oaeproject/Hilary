@@ -36,8 +36,8 @@ import * as TenantNetworksAPI from 'oae-tenants/lib/api.networks.js';
  * @HttpResponse                    200         Tenant networks available
  * @HttpResponse                    401         Must be a global administrator user to view tenant networks
  */
-OAE.globalAdminRouter.on('get', '/api/tenantNetworks', function (request, response) {
-  TenantNetworksAPI.getTenantNetworks(request.ctx, function (error, tenantNetworks) {
+OAE.globalAdminRouter.on('get', '/api/tenantNetworks', (request, response) => {
+  TenantNetworksAPI.getTenantNetworks(request.ctx, (error, tenantNetworks) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -60,8 +60,8 @@ OAE.globalAdminRouter.on('get', '/api/tenantNetworks', function (request, respon
  * @HttpResponse                        400             A tenant network must contain a display name
  * @HttpResponse                        401             Must be a global administrator user to create a tenant network
  */
-OAE.globalAdminRouter.on('post', '/api/tenantNetwork/create', function (request, response) {
-  TenantNetworksAPI.createTenantNetwork(request.ctx, request.body.displayName, function (error, tenantNetwork) {
+OAE.globalAdminRouter.on('post', '/api/tenantNetwork/create', (request, response) => {
+  TenantNetworksAPI.createTenantNetwork(request.ctx, request.body.displayName, (error, tenantNetwork) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -86,12 +86,12 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/create', function (request,
  * @HttpResponse                        400             Must specify a tenant network id
  * @HttpResponse                        401             Must be a global administrator user to update a tenant network
  */
-OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id', (request, response) => {
   TenantNetworksAPI.updateTenantNetwork(
     request.ctx,
     request.params.id,
     request.body.displayName,
-    function (error, tenantNetwork) {
+    (error, tenantNetwork) => {
       if (error) {
         return response.status(error.code).send(error.msg);
       }
@@ -114,8 +114,8 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id', function (request, re
  * @HttpResponse                        400     Must specify a tenant network id
  * @HttpResponse                        401     Must be a global administrator user to delete a tenant network
  */
-OAE.globalAdminRouter.on('delete', '/api/tenantNetwork/:id', function (request, response) {
-  TenantNetworksAPI.deleteTenantNetwork(request.ctx, request.params.id, function (error) {
+OAE.globalAdminRouter.on('delete', '/api/tenantNetwork/:id', (request, response) => {
+  TenantNetworksAPI.deleteTenantNetwork(request.ctx, request.params.id, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -142,9 +142,9 @@ OAE.globalAdminRouter.on('delete', '/api/tenantNetwork/:id', function (request, 
  * @HttpResponse                            400         Tenant with alias ... does not exist
  * @HttpResponse                            401         Must be a global administrator user to update a tenant network
  */
-OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/addTenants', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/addTenants', (request, response) => {
   const tenantAliases = _.isString(request.body.alias) ? [request.body.alias] : request.body.alias;
-  TenantNetworksAPI.addTenantAliases(request.ctx, request.params.id, tenantAliases, function (error) {
+  TenantNetworksAPI.addTenantAliases(request.ctx, request.params.id, tenantAliases, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -170,9 +170,9 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/addTenants', function (
  * @HttpResponse                            400         Must specify at least one tenant alias to remove
  * @HttpResponse                            401         Must be a global administrator user to update a tenant network
  */
-OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/removeTenants', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/removeTenants', (request, response) => {
   const tenantAliases = _.isString(request.body.alias) ? [request.body.alias] : request.body.alias;
-  TenantNetworksAPI.removeTenantAliases(request.ctx, request.params.id, tenantAliases, function (error) {
+  TenantNetworksAPI.removeTenantAliases(request.ctx, request.params.id, tenantAliases, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -209,7 +209,7 @@ OAE.globalAdminRouter.on('post', '/api/tenantNetwork/:id/removeTenants', functio
  * @HttpResponse                    400             The tenant alias should not contain a colon
  * @HttpResponse                    400             The tenant alias should not contain a space
  */
-OAE.globalAdminRouter.on('post', '/api/tenant/create', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenant/create', (request, response) => {
   const options = _.oaeExtendDefined({}, _.pick(request.body, 'countryCode'));
   options.emailDomains = OaeUtil.toArray(request.body.emailDomains);
   TenantsAPI.createTenant(
@@ -218,7 +218,7 @@ OAE.globalAdminRouter.on('post', '/api/tenant/create', function (request, respon
     request.body.displayName,
     request.body.host,
     options,
-    function (error, tenant) {
+    (error, tenant) => {
       if (error) {
         return response.status(error.code).send(error.msg);
       }
@@ -239,7 +239,7 @@ OAE.globalAdminRouter.on('post', '/api/tenant/create', function (request, respon
  * @Return      {Tenants}                       All available tenants
  * @HttpResponse                200             Tenants available
  */
-OAE.globalAdminRouter.on('get', '/api/tenants', function (request, response) {
+OAE.globalAdminRouter.on('get', '/api/tenants', (request, response) => {
   response.status(200).send(TenantsAPI.getTenants());
 });
 
@@ -255,7 +255,7 @@ OAE.globalAdminRouter.on('get', '/api/tenants', function (request, response) {
  * @QueryParam  {string}        emails          The emails to match tenants on
  * @HttpResponse                200             The tenants for each email address
  */
-OAE.tenantRouter.on('get', '/api/tenantsByEmail', function (request, response) {
+OAE.tenantRouter.on('get', '/api/tenantsByEmail', (request, response) => {
   const emails = OaeUtil.toArray(request.query.emails);
   if (_.isEmpty(emails)) {
     return response.status(400).send('Missing emails parameter');
@@ -296,7 +296,7 @@ OAE.tenantRouter.on('get', '/api/tenant', _getCurrentTenant);
  * @HttpResponse                   200          Requested tenant available
  * @HttpResponse                   404          There is no tenant with alias ...
  */
-OAE.globalAdminRouter.on('get', '/api/tenant/:alias', function (request, response) {
+OAE.globalAdminRouter.on('get', '/api/tenant/:alias', (request, response) => {
   const tenant = TenantsAPI.getTenant(request.params.alias);
   if (!tenant) {
     return response.status(404).send('There is no tenant with alias ' + request.params.alias);
@@ -328,13 +328,13 @@ OAE.globalAdminRouter.on('get', '/api/tenant/:alias', function (request, respons
  * @HttpResponse                    401             Unauthorized users cannot update tenants
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be updated
  */
-OAE.tenantRouter.on('post', '/api/tenant', function (request, response) {
+OAE.tenantRouter.on('post', '/api/tenant', (request, response) => {
   const update = _.oaeExtendDefined({}, _.pick(request.body, 'displayName', 'host', 'countryCode'));
   if (_.has(request.body, 'emailDomains')) {
     update.emailDomains = OaeUtil.toArray(request.body.emailDomains);
   }
 
-  TenantsAPI.updateTenant(request.ctx, request.ctx.tenant().alias, update, function (error) {
+  TenantsAPI.updateTenant(request.ctx, request.ctx.tenant().alias, update, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -358,9 +358,9 @@ OAE.tenantRouter.on('post', '/api/tenant', function (request, response) {
  * @HttpResponse                    401             You must be a global admin user to enable or disable a tenant
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be enabled or disabled
  */
-OAE.globalAdminRouter.on('post', '/api/tenant/start', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenant/start', (request, response) => {
   // Sets the tenant to be ENABLED by passing in 'false'
-  TenantsAPI.disableTenants(request.ctx, request.body.aliases, false, function (error) {
+  TenantsAPI.disableTenants(request.ctx, request.body.aliases, false, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -384,9 +384,9 @@ OAE.globalAdminRouter.on('post', '/api/tenant/start', function (request, respons
  * @HttpResponse                    401             You must be a global admin user to enable or disable a tenant
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be enabled or disabled
  */
-OAE.globalAdminRouter.on('post', '/api/tenant/stop', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenant/stop', (request, response) => {
   // Sets the tenant to be disabled by passing in 'true'
-  TenantsAPI.disableTenants(request.ctx, request.body.aliases, true, function (error) {
+  TenantsAPI.disableTenants(request.ctx, request.body.aliases, true, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -419,13 +419,13 @@ OAE.globalAdminRouter.on('post', '/api/tenant/stop', function (request, response
  * @HttpResponse                    401             Unauthorized users cannot update tenants
  * @HttpResponse                    404             Tenant with alias ... does not exist and cannot be updated
  */
-OAE.globalAdminRouter.on('post', '/api/tenant/:alias', function (request, response) {
+OAE.globalAdminRouter.on('post', '/api/tenant/:alias', (request, response) => {
   const update = _.oaeExtendDefined({}, _.pick(request.body, 'displayName', 'host', 'countryCode'));
   if (_.has(request.body, 'emailDomains')) {
     update.emailDomains = OaeUtil.toArray(request.body.emailDomains);
   }
 
-  TenantsAPI.updateTenant(request.ctx, request.params.alias, update, function (error) {
+  TenantsAPI.updateTenant(request.ctx, request.params.alias, update, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -449,7 +449,7 @@ OAE.globalAdminRouter.on('post', '/api/tenant/:alias', function (request, respon
  * @Return      {LandingPageBlock[]}                The configured landing page
  * @HttpResponse                200                 The landing page information
  */
-OAE.tenantRouter.on('get', '/api/tenant/landingPage', function (request, response) {
+OAE.tenantRouter.on('get', '/api/tenant/landingPage', (request, response) => {
   const landingPage = TenantsAPI.getLandingPage(request.ctx);
   return response.status(200).send(landingPage);
 });

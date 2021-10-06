@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import { split, gt, length, ifElse, __, compose, pick, forEachObjIndexed } from 'ramda';
 import lunr from 'lunr';
 
 const greaterThanOne = gt(__, 1);
-const isTwoOrMoreWords = words => compose(greaterThanOne, length)(words);
+const isTwoOrMoreWords = (words) => compose(greaterThanOne, length)(words);
 
 /**
  * Represents an index where tenants can be indexed and then later full-text searched
  *
  * @param  {Tenant[]}   tenants     The tenants that should be indexed
  */
-const TenantIndex = function(tenants) {
+const TenantIndex = function (tenants) {
   // need to keep track of all indexed tenants to regenerate index whenever we want
   const lunrIndex = _createIndex(tenants);
 
@@ -51,8 +50,8 @@ const TenantIndex = function(tenants) {
        */
       const useAndWithBoth = ifElse(
         isTwoOrMoreWords,
-        word => word.join(' +'),
-        word => `${word}*`
+        (word) => word.join(' +'),
+        (word) => `${word}*`
       );
 
       const enhancedQuery = compose(useAndWithBoth, split('-'))(query);
@@ -68,16 +67,16 @@ const TenantIndex = function(tenants) {
  * @return {lunr.Index}             The lunr index loaded with the tenants
  * @api private
  */
-const _createIndex = function(tenants) {
-  // Create an index that ids its documents by an "alias" field, so we can uniquely update
-  // tenants by alias
-  const lunrIndex = lunr(function() {
+const _createIndex = function (tenants) {
+  /**
+   * Create an index that ids its documents by an "alias" field,
+   * so we can uniquely update tenants by alias
+   */
+  const lunrIndex = lunr(function () {
     this.ref('alias');
     this.field('alias');
     this.field('host');
     this.field('displayName');
-
-    const that = this;
 
     /**
      * We need to make sure we replace the '-' before we index
@@ -85,19 +84,10 @@ const _createIndex = function(tenants) {
      * See https://lunrjs.com/guides/searching.html#term-presence for details
      */
 
-    forEachObjIndexed(eachDoc => {
+    forEachObjIndexed((eachDoc) => {
       eachDoc = _tenantToDocument(eachDoc);
-      that.add(eachDoc);
+      this.add(eachDoc);
     }, tenants);
-
-    /*
-    _.chain(tenants)
-    .map(_tenantToDocument)
-    .each(doc => {
-      that.add(doc);
-    })
-    .value();
-   */
   });
   return lunrIndex;
 };
@@ -109,7 +99,6 @@ const _createIndex = function(tenants) {
  * @return {Object}             The lunr document that represents the tenant
  * @api private
  */
-const _tenantToDocument = tenant => pick(['alias', 'host', 'displayName'], tenant);
-// _.pick(tenant, 'alias', 'host', 'displayName');
+const _tenantToDocument = (tenant) => pick(['alias', 'host', 'displayName'], tenant);
 
 export default TenantIndex;

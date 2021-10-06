@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import _ from 'underscore';
 
 /**
@@ -39,7 +38,7 @@ import _ from 'underscore';
  *    value. Once set, all subsequent attempts to set a domain that is a suffix or descendant of the
  *    domain will result in a conflict
  */
-const EmailDomainIndex = function() {
+const EmailDomainIndex = function () {
   const index = {};
 
   /*!
@@ -49,13 +48,13 @@ const EmailDomainIndex = function() {
    * @param  {String}     emailDomain     The email domain for which to find descendant values
    * @return {String[]}                   The values (not a domain, the value that was set to the email domain) associated descendants of the specified domain
    */
-  const _find = function(emailDomain) {
+  const _find = function (emailDomain) {
     if (!emailDomain) {
       return [];
     }
 
     let chain = _.chain(index);
-    _.each(_split(emailDomain), part => {
+    _.each(_split(emailDomain), (part) => {
       chain = chain.oaeGet(part);
     });
     return _findStringLeaves(chain.value());
@@ -68,7 +67,7 @@ const EmailDomainIndex = function() {
    * @param  {String}     emailDomain     The email domain to use as the key
    * @return {String}                     If specified, indicates that there was a conflict. The value will be one of potentially many string values that the domain conflicted with. If `false`y, it indicates that setting the value was successful and there were no conflicts
    */
-  const _set = function(alias, emailDomain) {
+  const _set = function (alias, emailDomain) {
     if (!emailDomain) {
       return;
     }
@@ -83,7 +82,7 @@ const EmailDomainIndex = function() {
     // instead return the conflict value
     let segment = index;
     const parts = _split(emailDomain);
-    _.each(parts.slice(0, -1), part => {
+    _.each(parts.slice(0, -1), (part) => {
       if (_.isString(segment)) {
         // If we already found a leaf node, bail. This is a conflict
         return;
@@ -115,14 +114,14 @@ const EmailDomainIndex = function() {
   /*!
    * @see EmailDomainIndex.match
    */
-  const _match = function(emailDomain) {
+  const _match = function (emailDomain) {
     if (!emailDomain) {
       return null;
     }
 
     // Walk up the domain tree until we find a string leaf
     let result = index;
-    _.each(_split(emailDomain), part => {
+    _.each(_split(emailDomain), (part) => {
       if (_.isString(result)) {
         // If the result is a tenant alias string, we have found a tenant
         return;
@@ -142,7 +141,7 @@ const EmailDomainIndex = function() {
   /*!
    * @see EmailDomainIndex.conflict
    */
-  const _conflict = function(alias, emailDomain) {
+  const _conflict = function (alias, emailDomain) {
     // If there is an existing match for this email domain that is not this tenant alias, we
     // return with the alias that it conflicts with. We cannot proceed with the update
     const match = _match(emailDomain);
@@ -166,14 +165,14 @@ const EmailDomainIndex = function() {
    *
    * @param  {String}     oldEmailDomain  The email domain to remove from the index
    */
-  const _delete = function(oldEmailDomain) {
+  const _delete = function (oldEmailDomain) {
     if (!oldEmailDomain) {
       return;
     }
 
     const parts = _split(oldEmailDomain);
     let segment = index;
-    _.each(parts.slice(0, -1), part => {
+    _.each(parts.slice(0, -1), (part) => {
       if (!segment) {
         return;
       }
@@ -262,22 +261,22 @@ const EmailDomainIndex = function() {
  * @param  {Object}     obj     The index node to search
  * @api private
  */
-const _findStringLeaves = function(obj, _leaves) {
+const _findStringLeaves = function (object, _leaves) {
   _leaves = _leaves || [];
-  if (!obj) {
+  if (!object) {
     // If we've reached the end of the search, return the aggregated `_leaves`
     return _leaves;
   }
 
-  if (_.isString(obj)) {
+  if (_.isString(object)) {
     // If we have arrived at a leaf, aggregate the leaf node and return the array
-    _leaves.push(obj);
+    _leaves.push(object);
     return _leaves;
   }
 
   // We have an object / index segment. Recursively search it for all leaf nodes
-  _.each(obj, val => {
-    _findStringLeaves(val, _leaves);
+  _.each(object, (value) => {
+    _findStringLeaves(value, _leaves);
   });
 
   // Return all the aggregated string leaf nodes
@@ -291,12 +290,12 @@ const _findStringLeaves = function(obj, _leaves) {
  * @return {String}             The string lower cased. If the string was falsey, will be returned verbatim
  * @api private
  */
-const _toLowerCase = function(str) {
-  if (str) {
-    return str.toLowerCase();
+const _toLowerCase = function (string_) {
+  if (string_) {
+    return string_.toLowerCase();
   }
 
-  return str;
+  return string_;
 };
 
 /**
@@ -307,7 +306,7 @@ const _toLowerCase = function(str) {
  * @return {String[]}                   The domain ports ordered, ordered top-down
  * @api private
  */
-const _split = function(emailDomain) {
+const _split = function (emailDomain) {
   return emailDomain.split('.').reverse();
 };
 

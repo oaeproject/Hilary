@@ -169,7 +169,7 @@ describe('Tenant Landing Pages', () => {
                     assert.notExists(error_);
 
                     // Get the landing page information with the Hindi user
-                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, function (error, landingPage) {
+                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, (error, landingPage) => {
                       assert.notExists(error);
 
                       // Verify the default text was returned

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import { format } from 'util';
+import assert from 'node:assert';
+import { format } from 'node:util';
 import ShortId from 'shortid';
 import Counter from 'oae-util/lib/counter.js';
 import { generateRandomText } from 'oae-tests';
@@ -79,9 +79,7 @@ const createTenantAndWait = function (globalAdminRestCtx, alias, displayName, ho
     }
 
     // Wait until all current config events have fired until calling back
-    whenTenantChangePropagated(() => {
-      return callback(null, tenant);
-    });
+    whenTenantChangePropagated(() => callback(null, tenant));
   });
 };
 

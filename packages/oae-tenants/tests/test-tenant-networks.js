@@ -1013,7 +1013,7 @@ describe('Tenant Networks', () => {
 
       // Push in a replacement callback that only calls the methodCallback if the invalidate has also
       // happened
-      methodArgs.push(function (...args) {
+      methodArgs.push((...args) => {
         // Record what the arguments were of the method callback, and log the fact that the method
         // has called back
         callbackArguments = args;
@@ -1122,10 +1122,10 @@ describe('Tenant Networks', () => {
               assert.notExists(error);
             });
 
-            TenantNetworksDAO.emitter.once('revalidate', () => {
+            TenantNetworksDAO.emitter.once('revalidate', () =>
               // The cache was revalidated. Good!
-              return callback();
-            });
+              callback()
+            );
           });
         });
       }

@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsAPI from './api.js';
+
+const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isArrayNotEmpty } = validator;
 
 /**
  * Create a tenant network
@@ -181,12 +182,12 @@ const addTenantAliases = function (ctx, tenantNetworkId, tenantAliases, callback
       msg: 'Must specify at least one tenant alias to add'
     })(tenantAliases);
 
-    tenantAliases.forEach((tenantAlias) => {
+    for (const tenantAlias of tenantAliases) {
       unless(isObject, {
         code: 400,
         msg: format('Tenant with alias "%s" does not exist', tenantAlias)
       })(TenantsAPI.getTenant(tenantAlias));
-    });
+    }
   } catch (error) {
     return callback(error);
   }

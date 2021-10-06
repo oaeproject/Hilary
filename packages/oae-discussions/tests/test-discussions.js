@@ -13,15 +13,11 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { compose, not, values, filter, equals, pluck, contains, forEach, pathSatisfies } from 'ramda';
 
@@ -31,6 +27,9 @@ import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
 import * as DiscussionsTestsUtil from 'oae-discussions/lib/test/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Discussions', () => {
   let asCambridgeAnonymousUser = null;
@@ -3259,7 +3258,7 @@ describe('Discussions', () => {
                           assert.ok(!message);
 
                           // Test a body that is longer than the maximum allowed size
-                          const body = TestsUtil.generateRandomText(10000);
+                          const body = TestsUtil.generateRandomText(10_000);
                           RestAPI.Discussions.createMessage(
                             user1.restContext,
                             discussion.id,
@@ -4289,17 +4288,16 @@ describe('Discussions', () => {
                 publicTenant.loggedinUser,
                 publicTenant.publicUser,
                 publicTenant.loggedinDiscussion,
-                () => {
+                () =>
                   // Ensure permissions for deleting a message of a private discussion
-                  return _assertDeleteMessagePermissions(
+                  _assertDeleteMessagePermissions(
                     publicTenant,
                     publicTenant.privateUser,
                     publicTenant.loggedinUser,
                     publicTenant.publicUser,
                     publicTenant.privateDiscussion,
                     callback
-                  );
-                }
+                  )
               );
             }
           );

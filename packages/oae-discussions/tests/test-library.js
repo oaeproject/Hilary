@@ -41,11 +41,7 @@ describe('Discussion libraries', () => {
         // Make sure only the expected items are returned.
         assert.strictEqual(items.results.length, expectedItems.length);
         _.each(expectedItems, (expectedDiscussion) => {
-          assert.ok(
-            _.filter(items.results, (discussion) => {
-              return discussion.id === expectedDiscussion.id;
-            })
-          );
+          assert.ok(_.filter(items.results, (discussion) => discussion.id === expectedDiscussion.id));
         });
       } else {
         assert.strictEqual(error.code, 401);

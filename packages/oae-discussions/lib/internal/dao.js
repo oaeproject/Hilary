@@ -143,9 +143,7 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
 
   // If `fields` was specified, we select only the fields specified. Otherwise we select all (i.e., *)
   if (fields) {
-    const columns = _.map(fields, (field) => {
-      return format('"%s"', field);
-    });
+    const columns = _.map(fields, (field) => format('"%s"', field));
 
     query = format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
   } else {
@@ -168,9 +166,7 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
       });
 
     // Order the discussions according to the array of discussion ids
-    const orderedDiscussions = _.map(discussionIds, (discussionId) => {
-      return discussions[discussionId];
-    });
+    const orderedDiscussions = _.map(discussionIds, (discussionId) => discussions[discussionId]);
 
     return callback(null, orderedDiscussions);
   });

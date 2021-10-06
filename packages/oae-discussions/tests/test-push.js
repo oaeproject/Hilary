@@ -98,7 +98,7 @@ describe('Discussion Push', () => {
                               client.subscribe(
                                 discussion.id,
                                 'activity',
-                                { expires: Date.now() + 10000, signature: 'foo' },
+                                { expires: Date.now() + 10_000, signature: 'foo' },
                                 null,
                                 (error_) => {
                                   assert.strictEqual(error_.code, 401);

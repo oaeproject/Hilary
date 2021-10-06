@@ -59,9 +59,7 @@ const setupMultiTenantPrivacyEntities = function (callback) {
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
         _setupTenant(privateTenant, () => {
-          _setupTenant(privateTenant1, () => {
-            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-          });
+          _setupTenant(privateTenant1, () => callback(publicTenant, publicTenant1, privateTenant, privateTenant1));
         });
       });
     });
@@ -96,9 +94,9 @@ const _setupTenant = function (tenant, callback) {
 const _createMultiPrivacyDiscussions = function (restCtx, callback) {
   _createDiscussionWithVisibility(restCtx, 'public', (publicDiscussion) => {
     _createDiscussionWithVisibility(restCtx, 'loggedin', (loggedinDiscussion) => {
-      _createDiscussionWithVisibility(restCtx, 'private', (privateDiscussion) => {
-        return callback(publicDiscussion, loggedinDiscussion, privateDiscussion);
-      });
+      _createDiscussionWithVisibility(restCtx, 'private', (privateDiscussion) =>
+        callback(publicDiscussion, loggedinDiscussion, privateDiscussion)
+      );
     });
   });
 };
@@ -122,8 +120,8 @@ const _createDiscussionWithVisibility = function (restCtx, visibility, callback)
     visibility,
     null,
     null,
-    (err, discussion) => {
-      assert.ok(!err);
+    (error, discussion) => {
+      assert.ok(!error);
       return callback(discussion);
     }
   );
@@ -159,8 +157,8 @@ const assertCreateDiscussionSucceeds = function (
       visibility,
       managers,
       members,
-      (err, discussion) => {
-        assert.ok(!err, JSON.stringify(err));
+      (error, discussion) => {
+        assert.ok(!error, JSON.stringify(error));
         assert.strictEqual(discussion.displayName, displayName);
         assert.strictEqual(discussion.description, description);
         assert.strictEqual(discussion.visibility, visibility);
@@ -225,9 +223,9 @@ const assertCreateDiscussionFails = function (
     visibility,
     managers,
     members,
-    (err, discussion) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
+    (error, discussion) => {
+      assert.ok(error);
+      assert.strictEqual(error.code, httpCode);
       assert.ok(!discussion);
       return callback();
     }
@@ -244,9 +242,9 @@ const assertCreateDiscussionFails = function (
  * @throws {AssertionError}                 Thrown if any assertions fail
  */
 const assertGetDiscussionFails = function (restContext, discussionId, httpCode, callback) {
-  RestAPI.Discussions.getDiscussion(restContext, discussionId, (err, discussion) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+  RestAPI.Discussions.getDiscussion(restContext, discussionId, (error, discussion) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     assert.ok(!discussion);
     return callback();
   });
@@ -262,8 +260,8 @@ const assertGetDiscussionFails = function (restContext, discussionId, httpCode, 
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
 const assertDeleteDiscussionSucceeds = function (restContext, discussionId, callback) {
-  RestAPI.Discussions.deleteDiscussion(restContext, discussionId, (err) => {
-    assert.ok(!err);
+  RestAPI.Discussions.deleteDiscussion(restContext, discussionId, (error) => {
+    assert.ok(!error);
 
     // Ensure the discussion now gets a 404
     return assertGetDiscussionFails(restContext, discussionId, 404, callback);
@@ -281,14 +279,12 @@ const assertDeleteDiscussionSucceeds = function (restContext, discussionId, call
  * @throws {AssertionError}                         Thrown if the request fails
  */
 const assertUpdateDiscussionSucceeds = function (restContext, discussionId, updates, callback) {
-  RestAPI.Discussions.updateDiscussion(restContext, discussionId, updates, (err, discussion) => {
-    assert.ok(!err);
+  RestAPI.Discussions.updateDiscussion(restContext, discussionId, updates, (error, discussion) => {
+    assert.ok(!error);
 
     // Wait for library and search to be udpated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
-      SearchTestUtil.whenIndexingComplete(() => {
-        return callback(discussion);
-      });
+      SearchTestUtil.whenIndexingComplete(() => callback(discussion));
     });
   });
 };
@@ -328,8 +324,8 @@ const assertShareDiscussionSucceeds = function (
       });
 
       // Perform the discussion share
-      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (err) => {
-        assert.ok(!err);
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (error) => {
+        assert.ok(!error);
 
         // Ensure the members and invitations had the expected updates
         AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
@@ -381,9 +377,9 @@ const assertShareDiscussionFails = function (
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Perform the discussion share
-      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (err) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         const delta = {};
 
@@ -433,8 +429,8 @@ const assertUpdateDiscussionMembersSucceeds = function (
     AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (err) => {
-        assert.ok(!err);
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (error) => {
+        assert.ok(!error);
         // Wait for library and search to be updated before continuing
         LibraryAPI.Index.whenUpdatesComplete(() => {
           SearchTestUtil.whenIndexingComplete(() => {
@@ -489,9 +485,9 @@ const assertUpdateDiscussionMembersFails = function (
     AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (err) => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         // Wait for library and search to be udpated before continuing
         LibraryAPI.Index.whenUpdatesComplete(() => {
@@ -535,28 +531,42 @@ const assertUpdateDiscussionMembersFails = function (
  * @param  {Object[][]}     callback.responses  The raw response objects for each page request that was made to get the discussion members library
  * @throws {AssertionError}                     Thrown if an error occurrs while paging through the discussion members library
  */
-const getAllDiscussionMembers = function (restContext, discussionId, opts, callback, _members, _responses, _nextToken) {
+const getAllDiscussionMembers = function (
+  restContext,
+  discussionId,
+  options,
+  callback,
+  _members,
+  _responses,
+  _nextToken
+) {
   _members = _members || [];
   _responses = _responses || [];
   if (_nextToken === null) {
     return callback(_members, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
-  RestAPI.Discussions.getDiscussionMembers(restContext, discussionId, _nextToken, opts.batchSize, (err, result) => {
-    assert.ok(!err);
-    _responses.push(result);
-    return getAllDiscussionMembers(
-      restContext,
-      discussionId,
-      opts,
-      callback,
-      _.union(_members, result.results),
-      _responses,
-      result.nextToken
-    );
-  });
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
+  RestAPI.Discussions.getDiscussionMembers(
+    restContext,
+    discussionId,
+    _nextToken,
+    options.batchSize,
+    (error, result) => {
+      assert.ok(!error);
+      _responses.push(result);
+      return getAllDiscussionMembers(
+        restContext,
+        discussionId,
+        options,
+        callback,
+        _.union(_members, result.results),
+        _responses,
+        result.nextToken
+      );
+    }
+  );
 };
 
 /**
@@ -573,7 +583,7 @@ const getAllDiscussionMembers = function (restContext, discussionId, opts, callb
 const assertGetAllDiscussionsLibrarySucceeds = function (
   restContext,
   principalId,
-  opts,
+  options,
   callback,
   _discussions,
   _responses,
@@ -585,18 +595,18 @@ const assertGetAllDiscussionsLibrarySucceeds = function (
     return callback(_discussions, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
   assertGetDiscussionsLibrarySucceeds(
     restContext,
     principalId,
-    { start: _nextToken, limit: opts.batchSize },
+    { start: _nextToken, limit: options.batchSize },
     (result) => {
       _responses.push(result);
       return assertGetAllDiscussionsLibrarySucceeds(
         restContext,
         principalId,
-        opts,
+        options,
         callback,
         _.union(_discussions, result.results),
         _responses,
@@ -617,10 +627,10 @@ const assertGetAllDiscussionsLibrarySucceeds = function (
  * @param  {Function}       callback            Standard callback function
  * @param  {ContentLibrary} callback.result     The discussion library result
  */
-const assertGetDiscussionsLibrarySucceeds = function (restContext, principalId, opts, callback) {
-  opts = opts || {};
-  RestAPI.Discussions.getDiscussionsLibrary(restContext, principalId, opts.start, opts.limit, (err, result) => {
-    assert.ok(!err);
+const assertGetDiscussionsLibrarySucceeds = function (restContext, principalId, options, callback) {
+  options = options || {};
+  RestAPI.Discussions.getDiscussionsLibrary(restContext, principalId, options.start, options.limit, (error, result) => {
+    assert.ok(!error);
     return callback(result);
   });
 };

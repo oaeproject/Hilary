@@ -474,9 +474,9 @@ const _transformPersistentDiscussionActivityEntity = function (ctx, entity) {
  */
 const _discussionMessageTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       const { discussionId } = entity;
       const resource = AuthzUtil.getResourceFromId(discussionId);
@@ -488,8 +488,9 @@ const _discussionMessageTransformer = function (ctx, activityEntities, callback)
         profilePath,
         urlFormat
       );
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -499,14 +500,15 @@ const _discussionMessageTransformer = function (ctx, activityEntities, callback)
  */
 const _discussionMessageInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] =
         MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -539,9 +541,9 @@ ActivityAPI.registerActivityEntityType('discussion-message', {
 /*!
  * Register an association that presents the discussion
  */
-ActivityAPI.registerActivityEntityAssociation('discussion', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('discussion', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*!
  * Register an association that presents the members of a discussion categorized by role
@@ -559,7 +561,7 @@ ActivityAPI.registerActivityEntityAssociation('discussion', 'members', (associat
       return callback(error);
     }
 
-    return callback(null, _.flatten(_.values(membersByRole)));
+    return callback(null, _.values(membersByRole).flat());
   });
 });
 
@@ -590,6 +592,6 @@ ActivityAPI.registerActivityEntityAssociation(
 /*!
  * Register an association that presents the discussion for a discussion-message entity
  */
-ActivityAPI.registerActivityEntityAssociation('discussion-message', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity.discussionId]);
-});
+ActivityAPI.registerActivityEntityAssociation('discussion-message', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity.discussionId])
+);

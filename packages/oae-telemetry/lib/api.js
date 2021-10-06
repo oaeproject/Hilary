@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { callbackify, format } from 'util';
+import { callbackify, format } from 'node:util';
+import process from 'node:process';
 import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
@@ -64,9 +65,7 @@ const init = (_telemetryConfig, callback) => {
   });
 };
 
-const importPublisher = async (publisherUrl) => {
-  return await import(publisherUrl);
-};
+const importPublisher = (publisherUrl) => import(publisherUrl);
 
 /**
  * Post-initialization for Telemetry API
@@ -486,7 +485,7 @@ const _applyTelemetryConfig = function (_telemetryConfig) {
   telemetryConfig = _.extend({}, _telemetryConfig);
   telemetryConfig.enabled = telemetryConfig.enabled === true;
   telemetryConfig.publishInterval = OaeUtil.getNumberParam(telemetryConfig.publishInterval, 30, 1);
-  telemetryConfig.resetInterval = OaeUtil.getNumberParam(telemetryConfig.resetInterval, 86400, 1);
+  telemetryConfig.resetInterval = OaeUtil.getNumberParam(telemetryConfig.resetInterval, 86_400, 1);
   telemetryConfig.publisher = telemetryConfig.publisher || 'console';
 };
 

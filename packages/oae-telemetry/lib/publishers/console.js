@@ -22,14 +22,14 @@ const log = logger('telemetry-console');
 /**
  * Starts monitoring redis and logs the telemetry data on the console.
  */
-const init = function() {};
+const init = function () {};
 
 /**
  * Publishes the given telemetry data to the console.
  *
  * @param  {Object}     data    The telemetry data to publish in the format: `module -> name -> value`
  */
-const publish = function(data) {
+const publish = function (data) {
   _.each(data, (nameValue, module) => {
     _.each(nameValue, (value, name) => {
       if (Array.isArray(value)) {
@@ -51,12 +51,12 @@ const publish = function(data) {
  * @return {String}         The padded string.
  * @api private
  */
-const _padString = function(str, char, length) {
-  while (str.length < length) {
-    str += char;
+const _padString = function (string_, char, length) {
+  while (string_.length < length) {
+    string_ += char;
   }
 
-  return str;
+  return string_;
 };
 
 export { publish, init };

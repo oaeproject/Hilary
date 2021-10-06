@@ -19,13 +19,14 @@ import { ContentConstants } from 'oae-content/lib/constants.js';
 import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
 import { SearchConstants } from 'oae-search/lib/constants.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { isResourceId, unless } = validator;
 
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as SearchAPI from 'oae-search';
 import * as SearchUtil from 'oae-search/lib/util.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as LibraryAPI from 'oae-library';
+
+const { isResourceId, unless } = validator;
 
 /**
  * Register a search that searches through a user or group library.
@@ -57,39 +58,39 @@ export const registerLibrarySearch = function (searchName, resourceTypes, option
   options.searches = options.searches || {};
   options.getLibraryOwner = options.getLibraryOwner || PrincipalsDAO.getPrincipal;
 
-  SearchAPI.registerSearch(searchName, (ctx, opts, callback) => {
+  SearchAPI.registerSearch(searchName, (ctx, options_, callback) => {
     // Sanitize the custom search options
-    opts = opts || {};
-    opts.libraryOwnerId = opts.pathParams[0];
-    opts.limit = OaeUtil.getNumberParam(opts.limit, 12, 1, 25);
+    options_ = options_ || {};
+    options_.libraryOwnerId = options_.pathParams[0];
+    options_.limit = OaeUtil.getNumberParam(options_.limit, 12, 1, 25);
 
     try {
       unless(isResourceId, {
         code: 400,
         msg: 'Must specificy an id of a library to search'
-      })(opts.libraryOwnerId);
+      })(options_.libraryOwnerId);
     } catch (error) {
       return callback(error);
     }
 
-    options.getLibraryOwner(opts.libraryOwnerId, (err, libraryOwner) => {
-      if (err) {
-        return callback(err);
+    options.getLibraryOwner(options_.libraryOwnerId, (error, libraryOwner) => {
+      if (error) {
+        return callback(error);
       }
 
       if (libraryOwner.deleted) {
         return callback({ code: 404, msg: 'The library was not found' });
       }
 
-      opts.libraryIndexedId = libraryOwner.indexedId || opts.libraryOwnerId;
+      options_.libraryIndexedId = libraryOwner.indexedId || options_.libraryOwnerId;
 
       LibraryAPI.Authz.resolveTargetLibraryAccess(
         ctx,
-        opts.libraryIndexedId,
+        options_.libraryIndexedId,
         libraryOwner,
-        (err, canAccess, visibility) => {
-          if (err) {
-            return callback(err);
+        (error, canAccess, visibility) => {
+          if (error) {
+            return callback(error);
           }
 
           if (!canAccess) {
@@ -103,7 +104,7 @@ export const registerLibrarySearch = function (searchName, resourceTypes, option
             bool: {
               should: [
                 // Search on basic metadata properties such as display name or description
-                SearchUtil.createQueryStringQuery(opts.q)
+                SearchUtil.createQueryStringQuery(options_.q)
               ],
               // eslint-disable-next-line camelcase
               minimum_should_match: 1
@@ -120,14 +121,13 @@ export const registerLibrarySearch = function (searchName, resourceTypes, option
                */
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_COMMENT,
-                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
+                SearchUtil.createQueryStringQuery(options_.q, ['discussion_message_body']),
                 'max'
-              )
-            );
-            query.bool.should.push(
+              ),
+
               SearchUtil.createHasChildQuery(
                 ContentConstants.search.MAPPING_CONTENT_BODY,
-                SearchUtil.createQueryStringQuery(opts.q, ['content_body']),
+                SearchUtil.createQueryStringQuery(options_.q, ['content_body']),
                 'max',
                 2
               )
@@ -138,7 +138,7 @@ export const registerLibrarySearch = function (searchName, resourceTypes, option
             query.bool.should.push(
               SearchUtil.createHasChildQuery(
                 DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-                SearchUtil.createQueryStringQuery(opts.q, ['discussion_message_body']),
+                SearchUtil.createQueryStringQuery(options_.q, ['discussion_message_body']),
                 'max'
               )
             );
@@ -147,12 +147,12 @@ export const registerLibrarySearch = function (searchName, resourceTypes, option
           const filterFunction = is(Function, options.searches[visibility])
             ? options.searches[visibility]
             : _defaultLibraryFilter(resourceTypes, visibility, options.association);
-          filterFunction(ctx, libraryOwner, opts, (err, filter) => {
-            if (err) {
-              return callback(err);
+          filterFunction(ctx, libraryOwner, options_, (error, filter) => {
+            if (error) {
+              return callback(error);
             }
 
-            return callback(null, SearchUtil.createQuery(query, filter, opts));
+            return callback(null, SearchUtil.createQuery(query, filter, options_));
           });
         }
       );
@@ -178,14 +178,14 @@ const _defaultLibraryFilter = function (resourceTypes, visibility, association) 
     field: 'direct_members'
   };
 
-  return function (ctx, libraryOwner, opts, callback) {
+  return function (ctx, libraryOwner, options, callback) {
     // Only look for resources that are in the user's library
     const baseFilter = SearchUtil.filterAnd(
       SearchUtil.filterTerm('type', SearchConstants.search.MAPPING_RESOURCE),
       SearchUtil.filterTerms('resourceType', resourceTypes),
       SearchUtil.createHasChildQuery(
         association.name,
-        SearchUtil.filterTerms(association.field, [opts.libraryIndexedId])
+        SearchUtil.filterTerms(association.field, [options.libraryIndexedId])
       )
     );
 

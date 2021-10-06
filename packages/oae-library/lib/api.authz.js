@@ -56,9 +56,9 @@ const resolveTargetLibraryAccess = function (ctx, libraryId, libraryOwner, callb
 
   // We only need to know "high role" and "low role" for this, so the `rolesPriority` we use is
   // rather arbitrary
-  AuthzAPI.resolveImplicitRole(ctx.user(), libraryOwner, rolesPriority, (err, implicitRole) => {
-    if (err) {
-      return callback(err);
+  AuthzAPI.resolveImplicitRole(ctx.user(), libraryOwner, rolesPriority, (error, implicitRole) => {
+    if (error) {
+      return callback(error);
     }
 
     if (implicitRole === roleHigh) {
@@ -71,9 +71,9 @@ const resolveTargetLibraryAccess = function (ctx, libraryId, libraryOwner, callb
     // duplicating logic among them. This consolidated set of business logic should cover all
     // cases
     const needsExplicitCheck = !AuthzUtil.isUserId(libraryId) && ctx.user();
-    const innerCallback = function (err, hasAnyRole) {
-      if (err) {
-        return callback(err);
+    const innerCallback = function (error, hasAnyRole) {
+      if (error) {
+        return callback(error);
       }
 
       if (hasAnyRole) {

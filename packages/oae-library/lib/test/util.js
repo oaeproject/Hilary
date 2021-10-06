@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
@@ -28,12 +28,10 @@ import * as LibraryAPI from 'oae-library';
  * @param  {Function}   callback    Standard callback function
  * @throws {AssertionError}         Thrown if the the library was not previously fresh or if there is an issue purging it
  */
-const assertPurgeFreshLibraries = function(indexName, libraryId, callback) {
+const assertPurgeFreshLibraries = function (indexName, libraryId, callback) {
   // Wait to ensure there are no pending library updates which could impact the purging while it
   // is in progress
-  LibraryAPI.Index.whenUpdatesComplete(() => {
-    return _assertPurgeFreshLibraries(indexName, libraryId.slice(), callback);
-  });
+  LibraryAPI.Index.whenUpdatesComplete(() => _assertPurgeFreshLibraries(indexName, [...libraryId], callback));
 };
 
 /**
@@ -45,9 +43,9 @@ const assertPurgeFreshLibraries = function(indexName, libraryId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @throws {AssertionError}                 Thrown if the library could not be checked or it was stale
  */
-const assertNotStale = function(indexName, libraryId, visibility, callback) {
-  LibraryAPI.Index.isStale(indexName, libraryId, visibility, (err, isStale) => {
-    assert.ok(!err);
+const assertNotStale = function (indexName, libraryId, visibility, callback) {
+  LibraryAPI.Index.isStale(indexName, libraryId, visibility, (error, isStale) => {
+    assert.ok(!error);
     assert.ok(!isStale);
     return callback();
   });
@@ -67,20 +65,20 @@ const assertNotStale = function(indexName, libraryId, visibility, callback) {
  * @throws {AssertionError}         Thrown if the the library was not previously fresh or if there is an issue purging it
  * @api private
  */
-const _assertPurgeFreshLibraries = function(indexName, libraryIds, callback) {
+const _assertPurgeFreshLibraries = function (indexName, libraryIds, callback) {
   if (_.isEmpty(libraryIds)) {
     return callback();
   }
 
   // Purge the libraries
   const libraryId = libraryIds.pop();
-  LibraryAPI.Index.isStale(indexName, libraryId, 'private', (err, isStale) => {
-    assert.ok(!err);
+  LibraryAPI.Index.isStale(indexName, libraryId, 'private', (error, isStale) => {
+    assert.ok(!error);
     assert.strictEqual(isStale, false);
-    LibraryAPI.Index.purge(indexName, libraryId, err => {
-      assert.ok(!err);
-      LibraryAPI.Index.isStale(indexName, libraryId, 'private', (err, isStale) => {
-        assert.ok(!err);
+    LibraryAPI.Index.purge(indexName, libraryId, (error) => {
+      assert.ok(!error);
+      LibraryAPI.Index.isStale(indexName, libraryId, 'private', (error, isStale) => {
+        assert.ok(!error);
         assert.strictEqual(isStale, true);
         return _assertPurgeFreshLibraries(indexName, libraryIds, callback);
       });

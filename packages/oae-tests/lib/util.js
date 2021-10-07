@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
+import path from 'node:path';
+import stream from 'node:stream';
+import { format } from 'node:util';
+import process from 'node:process';
 import { assert } from 'chai';
-import stream from 'stream';
-import { format } from 'util';
 
 import async from 'async';
 import _ from 'underscore';
@@ -40,7 +41,6 @@ import {
   equals
 } from 'ramda';
 
-import { testingContext } from './context.js';
 import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import * as Cassandra from 'oae-util/lib/cassandra.js';
@@ -67,6 +67,7 @@ import { User } from 'oae-principals/lib/model.js';
 
 import { logger } from 'oae-logger';
 import { config } from '../../../config.js';
+import { testingContext } from './context.js';
 
 let migrationRunner;
 (async function () {
@@ -339,9 +340,7 @@ const generateTestUsers = (restCtx, numberOfUsers, ...args) => {
   numberOfUsers = atLeastOne(numberOfUsers);
 
   if (isZero(numberOfUsers)) {
-    whenIndexingComplete(() => {
-      return callback(null, createdUsers);
-    });
+    whenIndexingComplete(() => callback(null, createdUsers));
   } else {
     generateSingleTestUser(restCtx, (error, user) => {
       if (error) return callback(error);
@@ -419,9 +418,7 @@ const generateTestGroups = (restContext, numberOfGroups, ...args) => {
   const createdGroups = compose(defaultTo([]), head, dropLast(1))(args);
 
   if (isZero(numberOfGroups)) {
-    whenIndexingComplete(() => {
-      return callback(null, createdGroups);
-    });
+    whenIndexingComplete(() => callback(null, createdGroups));
   } else {
     generateSingleTestGroup(restContext, (error, group) => {
       if (error) return callback(error);
@@ -862,9 +859,7 @@ const setupMultiTenantPrivacyEntities = function (callback) {
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
         _setupTenant(privateTenant, () => {
-          _setupTenant(privateTenant1, () => {
-            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-          });
+          _setupTenant(privateTenant1, () => callback(publicTenant, publicTenant1, privateTenant, privateTenant1));
         });
       });
     });
@@ -973,9 +968,7 @@ const _setupTenant = function (tenant, callback) {
 const _createMultiPrivacyUsers = function (tenant, callback) {
   _createUserWithVisibility(tenant, PUBLIC, (publicUser) => {
     _createUserWithVisibility(tenant, LOGGEDIN, (loggedinUser) => {
-      _createUserWithVisibility(tenant, PRIVATE, (privateUser) => {
-        return callback(publicUser, loggedinUser, privateUser);
-      });
+      _createUserWithVisibility(tenant, PRIVATE, (privateUser) => callback(publicUser, loggedinUser, privateUser));
     });
   });
 };
@@ -1223,8 +1216,8 @@ const createInitialTestConfig = async function () {
     mergedConfig.mq.purgeQueuesOnStartup = true;
 
     // In order to speed up some of the tests and to avoid mocha timeouts, we reduce the default time outs
-    mergedConfig.previews.office.timeout = 30000;
-    mergedConfig.previews.screenShotting.timeout = 30000;
+    mergedConfig.previews.office.timeout = 30_000;
+    mergedConfig.previews.screenShotting.timeout = 30_000;
 
     mergedConfig.search.index.name = 'oaetest';
     // eslint-disable-next-line camelcase
@@ -1269,7 +1262,7 @@ const createInitialTestConfig = async function () {
     return mergedConfig;
   }
 
-  return await loadConfig();
+  return loadConfig();
 };
 
 /**

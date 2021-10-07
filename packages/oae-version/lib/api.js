@@ -14,14 +14,12 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
-import fs from 'fs';
+import path, { dirname } from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
 import { nth, reduce, gt as greaterThan, head, last } from 'ramda';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

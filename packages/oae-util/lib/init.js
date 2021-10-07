@@ -32,9 +32,7 @@ export const init = function (config, callback) {
   bootCassandra(config, () => {
     bootRedis(config, () => {
       bootPubSub(config, () => {
-        bootMQ(config, () => {
-          return callback();
-        });
+        bootMQ(config, () => callback());
       });
     });
   });

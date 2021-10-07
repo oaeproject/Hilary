@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-import { stat } from 'fs';
+import process from 'node:process';
+import fs, { stat } from 'node:fs';
 
-import { promisify, callbackify } from 'util';
-import { readFile } from 'fs/promises';
-import Path from 'path';
-import fs from 'fs';
-import _, { reject } from 'underscore';
+import { promisify, callbackify } from 'node:util';
+import { readFile } from 'node:fs/promises';
+import Path from 'node:path';
+import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
-import * as IO from './io.js';
-import { compose, map, prop, sortBy } from 'ramda';
+import { reduce, compose, map, prop, sortBy } from 'ramda';
 
 import ora from 'ora';
+import * as IO from './io.js';
 
 const log = logger('oae-modules');
 
@@ -75,9 +75,10 @@ const bootstrapModules = function (config, callback) {
  *     .then(console.log.bind(console))
  */
 const serial = (funcs) =>
-  funcs.reduce(
+  reduce(
     (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
-    Promise.resolve([])
+    Promise.resolve([]),
+    funcs
   );
 
 /**
@@ -100,8 +101,8 @@ const bootstrapModulesInit = function (modules, config) {
     modules.map((moduleName) => {
       const moduleInitPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_INIT_FILE);
 
-      return () => {
-        return new Promise((resolve, reject) => {
+      return () =>
+        new Promise((resolve, reject) => {
           spinner = ora({
             text: `Loading ${moduleName}...`
           }).start();
@@ -111,36 +112,31 @@ const bootstrapModulesInit = function (modules, config) {
               if (stat.isFile()) {
                 // ES6 modules cannot have an export default as a function, so init it exported instead
                 import(process.cwd() + '/node_modules/' + moduleName + MODULE_INIT_FILE)
-                  .then((pkg) => {
-                    return promisify(pkg.init)(config);
-                  })
+                  .then((pkg) => promisify(pkg.init)(config))
                   .then(() => {
                     spinner.succeed(`Loaded module ${moduleName}`);
                     resolve();
                   })
-                  .catch((e) => {
+                  .catch((error) => {
                     spinner.fail(`Failed to load module ${moduleName}`);
-                    reject(e);
+                    reject(error);
                   });
               }
             })
-            .catch((e) => {
+            .catch((_error) => {
               // There's no init method, skipping
               spinner.succeed(`Loaded module ${moduleName}`);
               resolve();
-            })
-            .finally(() => {});
+            });
         });
-      };
     })
   )
-    .catch((e) => {
-      // TODO I guess this does nothing
-      reject(e);
+    .catch((error) => {
+      spinner.fail(`Something went wrong when loading modules sequentially!`);
+      log().error(error);
     })
     .finally(() => {
       spinner.stop();
-      return;
     });
 };
 
@@ -160,8 +156,8 @@ const bootstrapModulesRest = function (modules) {
     modules.map((moduleName) => {
       const moduleRestPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_REST_FILE);
 
-      return () => {
-        return new Promise((resolve, reject) => {
+      return () =>
+        new Promise((resolve, reject) => {
           spinner = ora({
             text: `Loading routes for ${moduleName}...`
           }).start();
@@ -170,36 +166,31 @@ const bootstrapModulesRest = function (modules) {
               if (stat.isFile()) {
                 log().info('REST services for %s have been registered', moduleName);
                 import(process.cwd() + '/node_modules/' + moduleName + MODULE_REST_FILE)
-                  .then((pkg) => {
+                  .then((_restModule) => {
                     spinner.succeed(`Loaded routes for module ${moduleName}`);
                     resolve();
                   })
-                  .catch((e) => {
+                  .catch((error) => {
                     spinner.fail(`Failed to load routes for module ${moduleName}`);
-                    reject(e);
+                    reject(error);
                   });
               }
             })
-            .catch((e) => {
+            .catch((_error) => {
               // There's no rest module, skipping
               spinner.succeed(`Loaded routes for module ${moduleName}`);
               resolve();
-            })
-            .finally(() => {});
+            });
         });
-      };
     })
   )
-    .catch((e) => {
-      reject(e);
+    .catch((error) => {
+      spinner.fail(`Something went wrong when loading REST modules sequentially!`);
+      log().error(error);
     })
     .finally(() => {
       spinner.stop();
-      return;
     });
-  // TODO: Eventually we'll cleanup all swagger stuff in OAE
-  // Swagger document all modules
-  // return Swagger.documentModule(module, complete);
 };
 
 /**
@@ -214,33 +205,30 @@ const bootstrapModulesRest = function (modules) {
  */
 const initAvailableModules = function () {
   return promisify(IO.getFileListForFolder)(OaeUtil.getNodeModulesDir())
-    .then((modules) => {
-      return modules.filter((each) => each.startsWith('oae-'));
-    })
-    .then((modules) => {
-      return Promise.all(
-        modules.map((each) => {
-          return new Promise((resolve, reject) => {
-            readFile(Path.join(process.cwd(), 'node_modules', each, 'package.json'), 'utf8')
-              .then((data) => {
-                return JSON.parse(data);
-              })
-              .then((pkg) => {
-                if (pkg.oae && pkg.oae.priority) {
-                  // Found a priority in package.json at oae.priority
-                  resolve({ module: pkg.name, priority: pkg.oae.priority });
-                } else {
-                  // No priority found, it goes in last
-                  resolve({ module: pkg.name, priority: Number.MAX_VALUE });
-                }
-              })
-              .catch((e) => {
-                reject(e);
-              });
-          });
-        })
-      );
-    })
+    .then((modules) => modules.filter((each) => each.startsWith('oae-')))
+    .then((modules) =>
+      Promise.all(
+        modules.map(
+          (each) =>
+            new Promise((resolve, reject) => {
+              readFile(Path.join(process.cwd(), 'node_modules', each, 'package.json'), 'utf8')
+                .then((data) => JSON.parse(data))
+                .then((pkg) => {
+                  if (pkg.oae && pkg.oae.priority) {
+                    // Found a priority in package.json at oae.priority
+                    resolve({ module: pkg.name, priority: pkg.oae.priority });
+                  } else {
+                    // No priority found, it goes in last
+                    resolve({ module: pkg.name, priority: Number.MAX_VALUE });
+                  }
+                })
+                .catch((error) => {
+                  reject(error);
+                });
+            })
+        )
+      )
+    )
     .then((result) => {
       // Order by the startup priority
       const sortByPriority = sortBy(prop('priority'));
@@ -280,7 +268,7 @@ const initAvailableModules = function () {
  * @return {String[]}   Returns an Array of strings representing the names of the available modules
  */
 const getAvailableModules = function () {
-  return cachedAvailableModules.slice(0);
+  return [...cachedAvailableModules];
 };
 
 export { initAvailableModules, getAvailableModules, bootstrapModules };

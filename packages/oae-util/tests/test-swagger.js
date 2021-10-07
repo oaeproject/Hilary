@@ -13,21 +13,20 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
+import path, { dirname } from 'node:path';
+
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import { format } from 'util';
-import path from 'path';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { keys, equals, indexBy, prop, forEach, find, propSatisfies, not, pluck, has, contains } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as Swagger from '../lib/swagger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Swagger', () => {
   let asAnonymousUserOnLocalhost = null;

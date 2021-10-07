@@ -25,8 +25,7 @@
  * @param  {String}     [defaultValue]      The value this parameter will take if no value is passed
  * @return {QueryParameter}                 A swagger QueryParameter
  */
-/* eslint-disable unicorn/filename-case */
-const query = function(name, description, dataType, required, allowMultiple, allowableValues, defaultValue) {
+const query = function (name, description, dataType, required, allowMultiple, allowableValues, defaultValue) {
   return {
     paramType: 'query',
     name,
@@ -49,7 +48,7 @@ const query = function(name, description, dataType, required, allowMultiple, all
  * @param  {String}     [defaultValue]      The value this parameter will take if no value is passed
  * @return {PathParameter}                  A swagger PathParameter
  */
-const path = function(name, description, dataType, allowableValues, defaultValue) {
+const path = function (name, description, dataType, allowableValues, defaultValue) {
   return {
     paramType: 'path',
     name,
@@ -71,7 +70,7 @@ const path = function(name, description, dataType, allowableValues, defaultValue
  * @param  {String}     [defaultValue]      The value this parameter will take if no value is passed
  * @return {BodyParameter}                  A swagger BodyParameter
  */
-const body = function(name, description, dataType, defaultValue) {
+const body = function (name, description, dataType, defaultValue) {
   return {
     paramType: 'body',
     name,
@@ -94,7 +93,7 @@ const body = function(name, description, dataType, defaultValue) {
  * @param  {String}     [defaultValue]      The value this parameter will take if no value is passed
  * @return {FormParameter}                  A swagger FormParameter
  */
-const form = function(name, description, dataType, required, allowableValues, defaultValue) {
+const form = function (name, description, dataType, required, allowableValues, defaultValue) {
   return {
     paramType: 'form',
     name,
@@ -116,7 +115,7 @@ const form = function(name, description, dataType, required, allowableValues, de
  * @param  {Boolean}    [required]          Whether this parameter is required. Defaults to `false`
  * @return {HeaderParameter}                A swagger HeaderParameter
  */
-const header = function(name, description, dataType, required) {
+const header = function (name, description, dataType, required) {
   return {
     paramType: 'header',
     name,

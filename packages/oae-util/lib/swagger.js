@@ -13,15 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
+
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import OaeEmitter from 'oae-util/lib/emitter.js';
-
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 import { logger } from 'oae-logger';
 
@@ -31,10 +28,13 @@ import readdirp from 'readdirp';
 import * as restjsdoc from 'restjsdoc/lib/restjsdoc.js';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
 import { equals, forEachObjIndexed } from 'ramda';
 import isIn from 'validator/lib/isIn.js';
-import * as SwaggerParamTypes from './swaggerParamTypes.js';
+import * as SwaggerParamTypes from './swagger-param-types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const { validateInCase: bothCheck, isNotEmpty, notContains, unless } = validator;
 
 const log = logger('oae-swagger');
 
@@ -161,11 +161,7 @@ const register = function (filePath, callback) {
            */
           if (property.type !== unArray) {
             property.type = 'array';
-            if (_.contains(Constants.primitives, unArray)) {
-              property.items = { type: unArray };
-            } else {
-              property.items = { $ref: unArray };
-            }
+            property.items = _.contains(Constants.primitives, unArray) ? { type: unArray } : { $ref: unArray };
           }
 
           if (property.validValues) {
@@ -358,7 +354,7 @@ const _appendToApi = function (rootResource, api, spec) {
  * @api private
  */
 const _convertRJDArrayDefToSwagger = function (def) {
-  if (def.match(/\[]$/)) {
+  if (/\[]$/.test(def)) {
     def = format('List[%s]', def.slice(0, -2));
   }
 
@@ -386,9 +382,7 @@ const _constructSwaggerValue = function (array) {
 const getResources = function (ctx) {
   const resources = _getSwaggerResources(ctx);
   const paths = _.keys(resources).sort();
-  const apis = _.map(paths, (key) => {
-    return { path: '/' + key };
-  });
+  const apis = _.map(paths, (key) => ({ path: '/' + key }));
   const swaggerResources = {
     apiVersion: Constants.apiVersion,
     swaggerVersion: Constants.swaggerVersion,

@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
 import shell from 'shelljs';
 import { head, equals } from 'ramda';
 

@@ -23,8 +23,8 @@ import * as MQ from 'oae-util/lib/mq.js';
  * @param  {Function} callback  Standard callback function
  */
 const getQueueLength = (queueName, callback) => {
-  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, count) => {
-    if (err) return callback(err);
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (error, count) => {
+    if (error) return callback(error);
 
     return callback(null, count);
   });
@@ -41,8 +41,8 @@ const getQueueLength = (queueName, callback) => {
  * @returns {Function}              Returns the execution of the handler function when counter equals zero
  */
 const whenTasksEmpty = function (queueName, done) {
-  isQueueEmpty(queueName, (err, isEmpty) => {
-    if (err) return done(err);
+  isQueueEmpty(queueName, (error, isEmpty) => {
+    if (error) return done(error);
     if (isEmpty) return done();
 
     setTimeout(whenTasksEmpty, 100, queueName, done);
@@ -71,8 +71,8 @@ const whenBothTasksEmpty = (queueName, done) => {
  * @param  {Function} done     Standar callback function
  */
 const isQueueEmpty = (queueName, done) => {
-  MQ.staticConnections.THE_CHECKER.llen(queueName, (err, stillQueued) => {
-    if (err) done(err);
+  MQ.staticConnections.THE_CHECKER.llen(queueName, (error, stillQueued) => {
+    if (error) done(error);
     return done(null, stillQueued === 0);
   });
 };

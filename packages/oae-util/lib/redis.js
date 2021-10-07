@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
@@ -71,10 +72,9 @@ const createClient = function (_config, callback) {
 
       return null;
     },
-    reconnectOnError: () => {
+    reconnectOnError: () =>
       // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
-      return true;
-    }
+      true
   };
 
   const redisClient = Redis.createClient(connectionOptions);
@@ -138,9 +138,7 @@ const flush = function (callback) {
  * @param {Function} done Standard callback function
  */
 const reconnect = (connection, done) => {
-  connection.connect(() => {
-    return done();
-  });
+  connection.connect(() => done());
 };
 
 /**

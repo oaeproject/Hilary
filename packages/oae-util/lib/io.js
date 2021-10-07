@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 
 import { logger } from 'oae-logger';
 
@@ -28,9 +28,9 @@ const log = logger('IO');
  * @param  {Object}      callback.err       An error that occurred, if any
  * @param  {String[]}    callback.files     Array containing all of the file and foldernames that exist inside of the given folder
  */
-const getFileListForFolder = function(foldername, callback) {
-  fs.stat(foldername, (err, stat) => {
-    if (err) {
+const getFileListForFolder = function (foldername, callback) {
+  fs.stat(foldername, (error, stat) => {
+    if (error) {
       return callback(null, []);
     }
 
@@ -38,9 +38,9 @@ const getFileListForFolder = function(foldername, callback) {
       return callback(null, []);
     }
 
-    fs.readdir(foldername, (err, files) => {
-      if (err) {
-        return callback(err);
+    fs.readdir(foldername, (error, files) => {
+      if (error) {
+        return callback(error);
       }
 
       const finalFiles = [];
@@ -63,22 +63,22 @@ const getFileListForFolder = function(foldername, callback) {
  * @param  {Function} callback      Standard callback function
  * @param  {Object}   callback.err  An error that occurred, if any
  */
-const copyFile = function(source, dest, callback) {
+const copyFile = function (source, dest, callback) {
   const ins = fs.createReadStream(source);
   const outs = fs.createWriteStream(dest);
   // Clean up if there's an error reading the source file
-  ins.once('error', err => {
+  ins.once('error', (error) => {
     destroyStream(outs);
-    log().error({ err }, "Wasn't able to copy the file %s to %s.", source, dest);
-    callback({ code: 500, msg: err });
+    log().error({ err: error }, "Wasn't able to copy the file %s to %s.", source, dest);
+    callback({ code: 500, msg: error });
   });
   // Clean up if there's an error writing the destination file
-  outs.once('error', err => {
+  outs.once('error', (error) => {
     ins.removeAllListeners('error');
     outs.removeAllListeners('close');
     ins.destroy();
-    log().error({ err }, "Wasn't able to copy the file %s to %s.", source, dest);
-    callback({ code: 500, msg: err });
+    log().error({ err: error }, "Wasn't able to copy the file %s to %s.", source, dest);
+    callback({ code: 500, msg: error });
   });
   outs.once('close', () => {
     callback(null);
@@ -95,19 +95,19 @@ const copyFile = function(source, dest, callback) {
  * @param  {Function} callback      Standard callback function
  * @param  {Object}   callback.err  An error that occurred, if any
  */
-const moveFile = function(source, dest, callback) {
-  fs.rename(source, dest, err => {
-    if (err) {
+const moveFile = function (source, dest, callback) {
+  fs.rename(source, dest, (error) => {
+    if (error) {
       // The `EXDEV` error will be thrown when a file is being moved across partitions
       // In that case, we copy and delete the file instead of moving it
-      if (err.code !== 'EXDEV') {
-        log().error({ err }, "Wasn't able to rename the file  %s to %s.", source, dest);
-        return callback({ code: 500, msg: err });
+      if (error.code !== 'EXDEV') {
+        log().error({ err: error }, "Wasn't able to rename the file  %s to %s.", source, dest);
+        return callback({ code: 500, msg: error });
       }
 
-      copyFile(source, dest, err => {
-        if (err) {
-          return callback({ code: 500, msg: err });
+      copyFile(source, dest, (error) => {
+        if (error) {
+          return callback({ code: 500, msg: error });
         }
 
         fs.unlink(source, callback);
@@ -123,7 +123,7 @@ const moveFile = function(source, dest, callback) {
  *
  * @param  {Stream}  stream  The stream to destroy
  */
-const destroyStream = function(stream) {
+const destroyStream = function (stream) {
   stream.removeAllListeners('error');
   stream.removeAllListeners('close');
   stream.destroy();
@@ -140,16 +140,16 @@ const destroyStream = function(stream) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Boolean}    callback.exists     Whether the path points to an existing file or directory
  */
-const exists = function(path, callback) {
-  fs.open(path, 'r', err => {
-    if (err) {
-      if (err.code === 'ENOENT') {
+const exists = function (path, callback) {
+  fs.open(path, 'r', (error) => {
+    if (error) {
+      if (error.code === 'ENOENT') {
         return callback(null, false);
       }
 
       log().error(
         {
-          err,
+          err: error,
           path
         },
         'Unable to check whether a file or folder exists'

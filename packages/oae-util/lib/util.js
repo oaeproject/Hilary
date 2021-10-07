@@ -13,7 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import {
   values,
   isEmpty,
@@ -33,8 +36,14 @@ import {
   isNil
 } from 'ramda';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+/**
+ * GLOBAL UTILS
+ */
+
+// Include some global utilities and extensions (e.g., underscore mixins). See the directory
+// `oae-util/lib/internal/globals` for all the global definitions
+// eslint-disable-next-line  no-unused-vars
+import * as globals from './internal/globals.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,15 +53,6 @@ const isObject = is(Object);
 const toInt = curry(parseInt)(__, 10);
 const equalsZero = equals(0);
 const isDefined = Boolean;
-
-/**
- * GLOBAL UTILS
- */
-
-// Include some global utilities and extensions (e.g., underscore mixins). See the directory
-// `oae-util/lib/internal/globals` for all the global definitions
-// eslint-disable-next-line  no-unused-vars
-import * as globals from './internal/globals.js';
 
 /**
  * OAEUTIL UTILS

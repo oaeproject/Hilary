@@ -22,6 +22,7 @@ import * as TestsUtil from 'oae-tests/lib/util.js';
 import { logger } from 'oae-logger';
 
 import { is, forEach, map, head, keys, range } from 'ramda';
+
 const isArray = is(Array);
 const isObject = is(Object);
 
@@ -717,14 +718,16 @@ describe('Utilities', () => {
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
           const someLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm'];
-          const batch = map((columnName) => {
-            return Cassandra.constructUpsertCQL(
-              'VerifyPagedColumnQueryStartAndEnd',
-              ['keyId', 'columnName'],
-              ['key', columnName],
-              { value: '1' }
-            );
-          }, someLetters);
+          const batch = map(
+            (columnName) =>
+              Cassandra.constructUpsertCQL(
+                'VerifyPagedColumnQueryStartAndEnd',
+                ['keyId', 'columnName'],
+                ['key', columnName],
+                { value: '1' }
+              ),
+            someLetters
+          );
 
           Cassandra.runBatchQuery(batch, (error_) => {
             assert.notExists(error_);
@@ -839,11 +842,10 @@ describe('Utilities', () => {
 
           // Need to at least have values beyond 'k' to avoid we overlook 'keyId'
           const batch = map(
-            (columnName) => {
-              return Cassandra.constructUpsertCQL('VerifyCassandra6330', ['keyId', 'column'], ['key', columnName], {
+            (columnName) =>
+              Cassandra.constructUpsertCQL('VerifyCassandra6330', ['keyId', 'column'], ['key', columnName], {
                 value: '1'
-              });
-            },
+              }),
             ['a', 'b', 'c', 'd', 'e']
           );
 
@@ -881,11 +883,10 @@ describe('Utilities', () => {
           assert.notExists(error);
 
           const batch = map(
-            (columnName) => {
-              return Cassandra.constructUpsertCQL('VerifyCassandra7052', ['keyId', 'column'], ['key', columnName], {
+            (columnName) =>
+              Cassandra.constructUpsertCQL('VerifyCassandra7052', ['keyId', 'column'], ['key', columnName], {
                 value: '1'
-              });
-            },
+              }),
             ['a', 'b', 'c', 'd', 'e']
           );
 

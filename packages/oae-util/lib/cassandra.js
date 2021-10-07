@@ -13,18 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+import _ from 'underscore';
+import { not, equals, map, isEmpty, mergeAll, forEachObjIndexed, pipe, isNil } from 'ramda';
 
 import * as cassandra from 'cassandra-driver';
+
 // eslint-disable-next-line no-unused-vars
 import * as OAE from 'oae-util/lib/oae.js';
-
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
 import * as OaeUtil from 'oae-util/lib/util.js';
 
 const { Row, dataTypes } = cassandra.types;
-import _ from 'underscore';
+const differs = pipe(equals, not);
+const isNotNil = pipe(isNil, not);
+const isNotEmpty = pipe(isEmpty, not);
 
 let log = null;
 let Telemetry = null;
@@ -197,7 +201,7 @@ const columnFamilyExists = function (name, callback) {
         return callback(error);
       }
 
-      return callback(null, !_.isEmpty(rows));
+      return callback(null, isNotEmpty(rows));
     }
   );
 };
@@ -243,7 +247,7 @@ const dropColumnFamily = function (name, callback) {
  */
 const dropColumnFamilies = function (families, callback) {
   callback = callback || function () {};
-  _dropColumnFamilies(families.slice(), callback);
+  _dropColumnFamilies(families, callback);
 };
 
 /**
@@ -256,7 +260,7 @@ const dropColumnFamilies = function (families, callback) {
  * @api private
  */
 const _dropColumnFamilies = function (families, callback) {
-  if (_.isEmpty(families)) {
+  if (isEmpty(families)) {
     return callback();
   }
 
@@ -313,7 +317,7 @@ const createColumnFamily = function (name, cql, callback) {
  */
 const createColumnFamilies = function (families, callback) {
   callback = callback || function () {};
-  const keys = _.keys(families).slice();
+  const keys = _.keys(families);
   _createColumnFamilies(keys, families, callback);
 };
 
@@ -327,7 +331,7 @@ const createColumnFamilies = function (families, callback) {
  * @api private
  */
 const _createColumnFamilies = function (keys, families, callback) {
-  if (_.isEmpty(keys)) {
+  if (isEmpty(keys)) {
     return callback();
   }
 
@@ -403,20 +407,25 @@ const runAutoPagedQuery = function (query, parameters, callback) {
 const runBatchQuery = function (queries, callback) {
   callback = callback || function () {};
 
-  if (_.isEmpty(queries)) {
+  if (isEmpty(queries)) {
     return callback();
   }
 
   Telemetry.incr('write.count', queries.length);
 
-  queries = _.map(queries, (eachQueryElement) => {
-    return { query: eachQueryElement.query, params: eachQueryElement.parameters };
-  });
+  queries = map(
+    (eachQueryElement) =>
+      mergeAll([
+        {
+          query: eachQueryElement.query
+        },
+        { params: eachQueryElement.parameters }
+      ]),
+    queries
+  );
 
   client.batch(queries, { prepare: true }, (error, result) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     return callback(null, result.rows);
   });
@@ -487,7 +496,7 @@ const runPagedQuery = function (
       return callback(error);
     }
 
-    if (_.isEmpty(rows)) {
+    if (isEmpty(rows)) {
       return callback(null, [], null, false);
     }
 
@@ -674,7 +683,7 @@ const _iterateAll = function (
       return callback(error);
     }
 
-    if (_.isEmpty(rows)) {
+    if (isEmpty(rows)) {
       // Notify the caller that we've finished
       return callback();
     }
@@ -692,9 +701,7 @@ const _iterateAll = function (
             newRowContent.push({
               key: eachKey,
               value: row.get(eachKey),
-              column: _.find(columns, (eachItem) => {
-                return eachItem.name === eachKey;
-              })
+              column: _.find(columns, (eachItem) => equals(eachItem.name, eachKey))
             });
           }
         });
@@ -773,15 +780,18 @@ const _buildIterateAllQuery = function (columnNames, columnFamily, keyColumnName
  * @param  {Row}       row     The cassandra Row to convert to a hash
  * @return {Object}            Return an Object, keyed by the column name, with values being the column value.
  */
+
 const rowToHash = function (row) {
   const result = {};
-  row.forEach((value, name) => {
-    // We filter out null and undefined values, as Cassandra will return these when a query term has not matched
-    // against an existing column
-    if (value !== null && value !== undefined) {
+  forEachObjIndexed((value, name) => {
+    /**
+     * We filter out null and undefined values,
+     * as Cassandra will return these when a query term has not matched against an existing column
+     */
+    if (isNotNil(value) && differs(value, undefined)) {
       result[name] = value;
     }
-  });
+  }, row);
   return result;
 };
 
@@ -883,7 +893,7 @@ const executeQuery = function (query, parameters, callback) {
   }
 
   // Copy the parameters if they were specified so we can log on them if there is an error
-  const logParameters = parameters ? parameters.slice(0) : null;
+  const logParameters = parameters ? parameters : null;
 
   client.execute(query, parameters, { prepare: true }, (error, resultSet) => {
     if (error) {

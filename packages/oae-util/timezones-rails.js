@@ -1,4 +1,4 @@
-export default {
+const timezones = {
   'International Date Line West': 'Pacific/Midway',
   'Midway Island': 'Pacific/Midway',
   'American Samoa': 'Pacific/Pago_Pago',
@@ -144,3 +144,5 @@ export default {
   'Tokelau Is.': 'Pacific/Fakaofo',
   Samoa: 'Pacific/Apia'
 };
+
+export default timezones;

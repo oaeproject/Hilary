@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
 import tz from 'timezone-js';
 import railsTimezone from 'rails-timezone';
 
 import RailsMappings from 'oae-util/timezones-rails.js';
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 tz.timezone.loadingScheme = tz.timezone.loadingSchemes.MANUAL_LOAD;
-tz.timezone.transport = function (opts) {
-  return fs.readFileSync(opts.url, 'utf8');
+tz.timezone.transport = function (options) {
+  return fs.readFileSync(options.url, 'utf8');
 };
 
 tz.timezone.loadZoneJSONData(path.join(__dirname, '../timezones.json'), true);
@@ -151,9 +149,7 @@ const _getMostSimilarZone = function (orig, candidates) {
  */
 const _getRelevantZoneInfo = function (zone) {
   const zoneInfo = { zone: _.last(tz.timezone.zones[zone]) };
-  zoneInfo.rules = _.filter(tz.timezone.rules[zoneInfo.zone[1]], (rule) => {
-    return rule[1] === 'max';
-  });
+  zoneInfo.rules = _.filter(tz.timezone.rules[zoneInfo.zone[1]], (rule) => rule[1] === 'max');
 
   _.each(zoneInfo.rules, (rule, index) => {
     // Cut out just the rule entries we care about
@@ -163,7 +159,7 @@ const _getRelevantZoneInfo = function (zone) {
   });
 
   // Flatten the rules to simplify comparison
-  zoneInfo.rules = _.flatten(zoneInfo.rules);
+  zoneInfo.rules = zoneInfo.rules.flat();
   return zoneInfo;
 };
 

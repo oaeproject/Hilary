@@ -14,8 +14,9 @@
  */
 
 import pkg from 'he';
-const { encode } = pkg;
 import { curry, __, isNil, ifElse } from 'ramda';
+
+const { encode } = pkg;
 
 const ENCODE_OPTIONS = {};
 const EMPTY_STRING = '';

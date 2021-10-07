@@ -14,6 +14,7 @@
  */
 
 /* eslint-disable import/no-mutable-exports */
+import process from 'node:process';
 import { logger } from 'oae-logger';
 import * as Modules from './modules.js';
 import OaeEmitter from './emitter.js';
@@ -23,8 +24,8 @@ import * as Shutdown from './internal/shutdown.js';
 
 const log = logger();
 
-const SHUTDOWN_GRACE_TIME_MILLIS = 60000;
-const PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS = 15000;
+const SHUTDOWN_GRACE_TIME_MILLIS = 60_000;
+const PRESHUTDOWN_DEFAULT_TIMEOUT_MILLIS = 15_000;
 
 /**
  *  Configuration variables

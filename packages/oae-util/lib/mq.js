@@ -14,6 +14,7 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import _ from 'underscore';
 
 import { EventEmitter } from 'oae-emitter';
@@ -23,6 +24,7 @@ import * as Redis from './redis.js';
 import OaeEmitter from './emitter.js';
 import * as OAE from './oae.js';
 import { Validator as validator } from './validator.js';
+
 const { unless, isNotEmpty, isNotNull, isJSON } = validator;
 
 const log = logger('mq');
@@ -235,9 +237,9 @@ const listenForMessages = (queueSubscriber, queueName, taskHandler) => {
 
     if (queuedMessage) {
       handleMessage(queuedMessage, queueName, taskHandler, () => {
-        removeMessageFromQueue(getProcessingQueueFor(queueName), queuedMessage, () => {
-          return listenForMessages(queueSubscriber, queueName, taskHandler);
-        });
+        removeMessageFromQueue(getProcessingQueueFor(queueName), queuedMessage, () =>
+          listenForMessages(queueSubscriber, queueName, taskHandler)
+        );
       });
     }
   });
@@ -386,9 +388,7 @@ const unsubscribe = (queueName, callback) => {
  */
 const disconnectConnectionAndWait = (queueName, done) => {
   // Waiting for the brpoplpush to break and stop worker recursiveness
-  emitter.once(`stoppedListeningTo:${queueName}`, () => {
-    return done();
-  });
+  emitter.once(`stoppedListeningTo:${queueName}`, () => done());
 
   // Disconnect this connection and flag it
   const subscribedClient = subscribers[queueName];
@@ -401,9 +401,7 @@ const disconnectConnectionAndWait = (queueName, done) => {
  * @param  {String}   queueName The redis list we (un)subscribe to
  * @return {Boolean}            Whether the connection is open or closed
  */
-const isConnectionActive = (queueName) => {
-  return subscribers[queueName] && subscribers[queueName].status !== 'end';
-};
+const isConnectionActive = (queueName) => subscribers[queueName] && subscribers[queueName].status !== 'end';
 
 /**
  * Gets the map-like object where we keep track of which queues are bound and which aren't
@@ -450,9 +448,7 @@ const submit = (queueName, message, callback) => {
 
   const queueIsBound = queueBindings[queueName];
   if (queueIsBound) {
-    staticConnections.THE_PUBLISHER.lpush(queueName, message, (error) => {
-      return callback(error);
-    });
+    staticConnections.THE_PUBLISHER.lpush(queueName, message, (error) => callback(error));
   } else {
     return callback();
   }
@@ -465,12 +461,12 @@ const submit = (queueName, message, callback) => {
  * @function getAllConnectedClients
  * @return {Array} An Array with all the active redis connections
  */
-const getAllActiveClients = () => {
-  return _.values(subscribers)
-    .concat(staticConnections.THE_PURGER)
-    .concat(staticConnections.THE_CHECKER)
-    .concat(staticConnections.THE_PUBLISHER);
-};
+const getAllActiveClients = () => [
+  ..._.values(subscribers),
+  staticConnections.THE_PURGER,
+  staticConnections.THE_CHECKER,
+  staticConnections.THE_PUBLISHER
+];
 
 /**
  * Purge a queue.
@@ -513,9 +509,7 @@ const purgeQueues = (allQueues, done) => {
 
   const nextQueueToPurge = allQueues.pop();
   purgeQueue(nextQueueToPurge, () => {
-    purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => {
-      return purgeQueues(allQueues, done);
-    });
+    purgeQueue(getProcessingQueueFor(nextQueueToPurge), () => purgeQueues(allQueues, done));
   });
 };
 
@@ -605,9 +599,7 @@ const getOrCreateSubscriberForQueue = (queueName, callback) => {
  * @param  {String} queueName The queue name which we want the corresponding redelivery queue for
  * @return {String} The redelivery queue name
  */
-const getRedeliveryQueueFor = (queueName) => {
-  return `${queueName}-redelivery`;
-};
+const getRedeliveryQueueFor = (queueName) => `${queueName}-redelivery`;
 
 /**
  * Utility function for getting the name of the corresponding processiing queue
@@ -617,9 +609,7 @@ const getRedeliveryQueueFor = (queueName) => {
  * @param  {String} queueName The queue name which we want the corresponding processing queue for
  * @return {String} The processing queue name
  */
-const getProcessingQueueFor = (queueName) => {
-  return `${queueName}-processing`;
-};
+const getProcessingQueueFor = (queueName) => `${queueName}-processing`;
 
 export {
   emitter,

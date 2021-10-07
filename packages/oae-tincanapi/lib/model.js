@@ -22,7 +22,7 @@
  * @param  {Object}     object          TinCan API Object information
  * @return {Statement}                  TinCan API Statement containing the body for the request to TinCan
  */
-export const TinCanStatement = function(actor, verb, object) {
+export const TinCanStatement = function (actor, verb, object) {
   const that = {};
   that.actor = actor;
   that.verb = verb;
@@ -38,7 +38,7 @@ export const TinCanStatement = function(actor, verb, object) {
  * @param  {String}  homePage           The link to the user's profile
  * @return {Actor}                      TinCan API Actor model containing information about the actor
  */
-export const TinCanActor = function(displayName, homePage) {
+export const TinCanActor = function (displayName, homePage) {
   const that = {};
   that.name = displayName;
   that.objectType = 'Agent';
@@ -58,7 +58,7 @@ export const TinCanActor = function(displayName, homePage) {
  * @param  {String}  description        The description of the activity object
  * @return {Object}                     TinCan API Object model containing information about the object
  */
-export const TinCanObject = function(id, displayName, description) {
+export const TinCanObject = function (id, displayName, description) {
   const that = {};
   that.id = id;
   that.objectType = 'Activity';
@@ -82,7 +82,7 @@ export const TinCanObject = function(id, displayName, description) {
  * @param  {String}  display            The display name of the verb
  * @return {Verb}                       TinCan API Verb model containing information about the verb
  */
-export const TinCanVerb = function(id, display) {
+export const TinCanVerb = function (id, display) {
   const that = {};
   that.id = id;
   that.display = {

@@ -90,9 +90,7 @@ describe('TinCanAPI', () => {
   /**
    * Close the tin can api mock LRS
    */
-  after((callback) => {
-    return server.close(callback);
-  });
+  after((callback) => server.close(callback));
 
   /**
    * Test that verifies that TinCan API statements are sent to a configurable LRS.

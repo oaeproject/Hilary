@@ -48,7 +48,6 @@
     "dompurify": "^2.0.8",
     "dox": "^0.9.0",
     "ent": "^2.2.0",
-    "esm": "^3.2.25",
     "ethercalc-client": "github:oaeproject/ethercalc-client#es-modules",
     "etherpad-lite-client": "^0.8.0",
     "express": "^4.17.1",
@@ -131,18 +130,19 @@
   },
   "scripts": {
     "test": "mocha packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
-    "test-module": "mocha packages/oae-tests/runner/before-tests.js \"$@\"",
-    "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
-    "ci:test-module": "nyc mocha -r esm --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js \"$@\"",
+    "test-module": "mocha packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
+    "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
+    "ci:test-module": "nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
     "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov npm run test",
     "test-update-coverage": "nyc --reporter=lcov npm run test && cat ./coverage/lcov.info | codacy-coverage",
     "migrate": "node migrate.js",
     "start": "node app.js | npx bunyan",
-    "server": "npx pm2 startOrReload process.json --only Hilary",
-    "servers": "npx pm2 startOrReload process.json",
+    "serve": "npx pm2 startOrReload process.json --only Hilary",
+    "serve-all": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
-    "lint": "node_modules/.bin/xo --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "node_modules/.bin/xo --prettier --quiet \"$@\""
+    "lint": "npx xo --quiet --prettier 'packages/**/*.js'",
+    "lint-module": "npx xo --quiet --prettier 'packages/$npm_config_module/**/*.js'",
+    "fix-module": "npx xo --fix 'packages/$npm_config_module/**/*.js'"
   },
   "nyc": {
     "include": "packages/**/*",
@@ -161,21 +161,24 @@
     ],
     "ignores": [
       "node_modules",
-      "**/processors/file/domstubs.js"
+      "**/processors/file/domstubs.js",
+      "packages/restjsdoc",
+      "packages/oae-email/emailTemplates"
     ],
     "rules": {
-      "node/prefer-promises/fs": "off",
+      "import/extensions": "off",
       "import/no-extraneous-dependencies": "off",
-      "promise/prefer-await-to-then": "off",
+      "import/no-unresolved": "off",
       "capitalized-comments": "off",
-      "max-params": "off",
       "max-nested-callbacks": "off",
-      "prettier/prettier": "error",
+      "max-params": "off",
       "no-use-before-define": "off",
       "no-warning-comments": "off",
+      "node/prefer-promises/fs": "off",
+      "node/no-unsupported-features/es-syntax": "off",
       "prefer-named-capture-group": "off",
-      "import/no-unresolved": "off",
-      "import/extensions": "off"
+      "promise/prefer-await-to-then": "off",
+      "prettier/prettier": "error"
     },
     "env": [
       "mocha"

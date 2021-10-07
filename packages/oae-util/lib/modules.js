@@ -23,11 +23,12 @@ import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
-import { reduce, compose, map, prop, sortBy } from 'ramda';
+import { compose, map, prop, sortBy } from 'ramda';
 
 import ora from 'ora';
 import * as IO from './io.js';
 
+const { getNodeModulesDir, serial } = OaeUtil;
 const log = logger('oae-modules');
 
 // Variable that will be used to cache the available modules
@@ -66,21 +67,6 @@ const bootstrapModules = function (config, callback) {
   });
 };
 
-/*
- * Executes Promises sequentially.
- * @param {funcs} An array of funcs that return promises.
- * @example
- * const urls = ['/url1', '/url2', '/url3']
- * serial(urls.map(url => () => $.ajax(url)))
- *     .then(console.log.bind(console))
- */
-const serial = (funcs) =>
-  reduce(
-    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
-    Promise.resolve([]),
-    funcs
-  );
-
 /**
  * Initialize all of the modules.
  * This will take care of CF creation, etc. This needs to happen asynchronously
@@ -99,7 +85,7 @@ const bootstrapModulesInit = function (modules, config) {
 
   return serial(
     modules.map((moduleName) => {
-      const moduleInitPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_INIT_FILE);
+      const moduleInitPath = Path.join(getNodeModulesDir(), moduleName, MODULE_INIT_FILE);
 
       return () =>
         new Promise((resolve, reject) => {
@@ -154,7 +140,7 @@ const bootstrapModulesRest = function (modules) {
 
   return serial(
     modules.map((moduleName) => {
-      const moduleRestPath = Path.join(OaeUtil.getNodeModulesDir(), moduleName, MODULE_REST_FILE);
+      const moduleRestPath = Path.join(getNodeModulesDir(), moduleName, MODULE_REST_FILE);
 
       return () =>
         new Promise((resolve, reject) => {
@@ -204,7 +190,7 @@ const bootstrapModulesRest = function (modules) {
  * @param  {String[]}   callback.finalModules   Array of strings representing the names of the available modules
  */
 const initAvailableModules = function () {
-  return promisify(IO.getFileListForFolder)(OaeUtil.getNodeModulesDir())
+  return promisify(IO.getFileListForFolder)(getNodeModulesDir())
     .then((modules) => modules.filter((each) => each.startsWith('oae-')))
     .then((modules) =>
       Promise.all(

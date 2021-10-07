@@ -31,6 +31,7 @@ import {
   __,
   curry,
   either,
+  reduce,
   equals,
   defaultTo,
   isNil
@@ -180,7 +181,23 @@ const toArray = (input) => {
   return flatten([input]);
 };
 
+/*
+ * Executes Promises sequentially.
+ * @param {funcs} An array of funcs that return promises.
+ * @example
+ * const urls = ['/url1', '/url2', '/url3']
+ * serial(urls.map(url => () => $.ajax(url)))
+ *     .then(console.log.bind(console))
+ */
+const serial = (funcs) =>
+  reduce(
+    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+    Promise.resolve([]),
+    funcs
+  );
+
 export {
+  serial,
   castToBoolean,
   getNumberParameter as getNumberParam,
   isUnspecified,

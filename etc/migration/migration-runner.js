@@ -15,22 +15,20 @@
 
 /* eslint-disable node/no-unsupported-features/es-syntax */
 
-import { createKeyspace } from 'oae-util/lib/cassandra.js';
-import { config } from '../../config.js';
-import ora from 'ora';
+import fs from 'node:fs';
+import path from 'node:path';
+import { callbackify, promisify } from 'node:util';
+import process from 'node:process';
 
-import fs from 'fs';
-import path from 'path';
-import { callbackify, promisify } from 'util';
-import PrettyStream from 'bunyan-prettystream';
+import ora from 'ora';
+import { createKeyspace } from 'oae-util/lib/cassandra.js';
 import * as LogAPI from 'oae-logger';
 
-import { eachSeries } from 'async';
+import { reduce } from 'ramda';
+import { config } from '../../config.js';
+import { serial } from 'oae-util/lib/util.js';
 
 const _createLogger = function (config) {
-  const prettyLog = new PrettyStream();
-  prettyLog.pipe(process.stdout);
-  config.log.streams[0].stream = prettyLog;
   LogAPI.refreshLogConfiguration(config.log);
   return LogAPI.logger();
 };
@@ -47,6 +45,10 @@ const MIGRATION_FILE = 'migration.js';
 const lookForMigrations = async function (allModules) {
   const migrationsToRun = [];
 
+  const spinner = ora({
+    text: `Looking for migrations...`
+  }).start();
+
   for (const eachModule of allModules) {
     if (eachModule.startsWith('oae-')) {
       const migrationFilePath = path.join(PACKAGES_FOLDER, eachModule, LIB_FOLDER, MIGRATION_FILE);
@@ -56,36 +58,19 @@ const lookForMigrations = async function (allModules) {
 
         if (migrateFileExists.isFile()) {
           migrationsToRun.push({ name: eachModule, file: migrationFilePath });
+          spinner.info(`Stacked migrations for ${eachModule}`);
         }
       } catch {
-        // log().warn('Skipping ' + eachModule);
+        spinner.info(`No migrations found for ${eachModule}`);
       }
     }
   }
 
+  spinner.stop();
   return migrationsToRun;
 };
 
-const sequentiallyRunMigrations = (migrations, callback) => {
-  eachSeries(
-    migrations,
-    (eachMigration, done) => {
-      log().info(`Updating schema for ${eachMigration.name}`);
-      eachMigration.func(done);
-    },
-    (error) => {
-      if (error) {
-        log().error({ err: error }, 'Error running migration.');
-        callback(error);
-      }
-
-      callback();
-    }
-  );
-};
-
 const runMigrations = function (dbConfig, callback) {
-  // await promiseToRunMigrations(dbConfig);
   callbackify(promiseToRunMigrations)(dbConfig, (error, result) => {
     if (error) return callback(error);
 
@@ -94,7 +79,9 @@ const runMigrations = function (dbConfig, callback) {
 };
 
 const promiseToRunMigrations = function (dbConfig) {
-  log().info('Running migrations for keyspace ' + dbConfig.keyspace + '...');
+  const spinner = ora({
+    text: 'Running migrations for keyspace ' + dbConfig.keyspace + '...'
+  }).start();
   const data = {};
 
   return readFolderContents(PACKAGES_FOLDER)
@@ -105,48 +92,40 @@ const promiseToRunMigrations = function (dbConfig) {
     .then((allMigrationsToRun) => {
       data.allMigrationsToRun = allMigrationsToRun;
     })
-    .then(() => {
-      return import(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js'));
-    })
+    .then(() => import(path.join(PACKAGES_FOLDER, 'oae-util', LIB_FOLDER, 'cassandra.js')))
     .then((cassandraModule) => {
+      spinner.succeed(`Loaded cassandra driver`);
       const initCassandra = promisify(cassandraModule.init);
       return initCassandra(dbConfig);
     })
+    .then(() => bootstrapMigrations(data.allMigrationsToRun))
     .then(() => {
-      return bootstrapMigrations(data.allMigrationsToRun);
-    })
-    .then(() => {
-      log().info('Migrations completed. Creating etherpad keyspace next.');
+      spinner.succeed('Migrations completed.');
 
       const createEtherpadKeyspace = promisify(createKeyspace);
       return createEtherpadKeyspace('etherpad');
     })
     .then(() => {
-      log().info('Etherpad keyspace created.');
+      spinner.succeed('Etherpad keyspace created.');
+      spinner.info('All set!');
     })
-    .catch((e) => {
-      // TODO log something here
-      console.log(e);
+    .catch((error) => {
+      spinner.fail('Error running migrations!');
+      log().error(error);
     })
     .finally(() => {
-      log().info('All set. Exiting...');
+      spinner.info('Exiting...');
+      spinner.stop();
     });
 };
 
 const bootstrapMigrations = (migrations) => {
   let spinner;
 
-  function serial(funcs) {
-    return funcs.reduce(
-      (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
-      Promise.resolve([])
-    );
-  }
-
   return serial(
-    migrations.map((eachMigration) => {
-      return () => {
-        return new Promise((resolve, reject) => {
+    migrations.map(
+      (eachMigration) => () =>
+        new Promise((resolve, reject) => {
           spinner = ora({
             text: `Running migrations for module ${eachMigration.name}...`
           }).start();
@@ -154,31 +133,27 @@ const bootstrapMigrations = (migrations) => {
           promisify(fs.stat)(eachMigration.file).then((stat) => {
             if (stat.isFile()) {
               import(eachMigration.file)
-                .then((eachModule) => {
-                  return promisify(eachModule.ensureSchema)();
-                })
-                .then((x) => {
+                .then((eachModule) => promisify(eachModule.ensureSchema)())
+                .then((loadedSchema) => {
                   spinner.succeed(`Schema updated for module ${eachMigration.name}`);
-                  resolve(x);
+                  resolve(loadedSchema);
                 })
-                .catch((e) => {
+                .catch((error) => {
                   spinner.fail(`Failed to update schema for module ${eachMigration.name}`);
-                  reject(e);
+                  log().error(error);
+                  reject(error);
                 });
             }
           });
         })
-          .catch((e) => {
+          .catch((_error) => {
             // there's no migration method, skipping
-            spinner.succeed(`No schema found for module ${eachModule}`);
-            resolve();
+            spinner.info(`No schema found for module ${eachMigration}`);
           })
           .finally(() => {
             spinner.stop();
-            return;
-          });
-      };
-    })
+          })
+    )
   );
 };
 

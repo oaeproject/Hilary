@@ -28,9 +28,10 @@ import * as OaeUtil from 'oae-util/lib/util.js';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-import { reduce, pipe, defaultTo, mergeDeepRight } from 'ramda';
+import { pipe, defaultTo, mergeDeepRight } from 'ramda';
 
 const log = logger('oae-config');
+const { getNodeModulesDir, serial } = OaeUtil;
 
 // Will be used to cache the global OAE config
 let config = null;
@@ -308,23 +309,6 @@ const updateTenantConfig = function (tenantAlias, callback) {
 };
 
 /**
- * TODO this is redundant with modules.js !!! fix this
- *
- * Executes Promises sequentially.
- * @param {funcs} An array of funcs that return promises.
- * @example
- * const urls = ['/url1', '/url2', '/url3']
- * serial(urls.map(url => () => $.ajax(url)))
- *     .then(console.log.bind(console))
- */
-const serial = (funcs) =>
-  reduce(
-    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
-    Promise.resolve([]),
-    funcs
-  );
-
-/**
  * Cache all of the module config descriptors. First of all, all of the available modules are retrieved
  * and modules that don't have a configuration file in the config directory are filtered out. Every file
  * in the /config directory of a module is read and will be added to the globally cached schema object.
@@ -341,7 +325,7 @@ const _cacheSchema = function () {
 
   return serial(
     modules.map((moduleName) => {
-      const dir = OaeUtil.getNodeModulesDir() + moduleName + '/config/';
+      const dir = getNodeModulesDir() + moduleName + '/config/';
 
       return () =>
         new Promise((resolve, reject) => {

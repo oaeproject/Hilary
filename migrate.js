@@ -14,10 +14,12 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import optimist from 'optimist';
+import { not, compose, equals } from 'ramda';
+
 import { promiseToRunMigrations } from './etc/migration/migration-runner.js';
 import { config } from './config.js';
-import { not, compose, equals } from 'ramda';
 
 const isNotTrue = compose(not, equals(true));
 const dbConfig = config.cassandra;

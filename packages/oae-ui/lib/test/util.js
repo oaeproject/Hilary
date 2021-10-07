@@ -41,13 +41,13 @@ const updateSkinAndWait = function (restCtx, tenantAlias, skinConfig, callback) 
    *
    * @param  {Object}     err     An error that occured in either request
    */
-  const _callback = function (err) {
+  const _callback = function (error) {
     if (calledBack) {
       // Already called back, do nothing
-    } else if (err) {
+    } else if (error) {
       // Received an error from either rest endpoint or skin parse, throw the error
       calledBack = true;
-      return callback(err);
+      return callback(error);
     } else if (requestReturned && skinFileParsed) {
       // Call the callback with the arguments from the web request
       calledBack = true;
@@ -60,11 +60,11 @@ const updateSkinAndWait = function (restCtx, tenantAlias, skinConfig, callback) 
     configUpdate['oae-ui/skin/variables/' + key] = value;
   });
   ConfigTestUtil.updateConfigAndWait(restCtx, tenantAlias, configUpdate, (...args) => {
-    const err = _.first(args);
-    if (err) {
+    const error = _.first(args);
+    if (error) {
       // Remove this listener, since it may not be invoked and "leak" due to this error
       UIAPI.emitter.removeListener('skinParsed', _updateListener);
-      return _callback(err);
+      return _callback(error);
     }
 
     responseArgs = args;

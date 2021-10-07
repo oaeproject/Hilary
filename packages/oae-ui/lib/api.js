@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { callbackify, format } from 'util';
+import fs from 'node:fs';
+import process from 'node:process';
+import path from 'node:path';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import $ from 'cheerio';
 
@@ -101,7 +102,7 @@ const init = function (_uiDirectory, _hashes, callback) {
   hashes = _hashes;
 
   // Load all the globalize cultures
-  import('globalize/lib/cultures/globalize.cultures.js').then((globalize) => {
+  import('globalize/lib/cultures/globalize.cultures.js').then((_globalize) => {
     // Cache all of the widget manifest files
     cacheWidgetManifests(() => {
       // Monitor the UI repository for changes and refresh the cache.
@@ -216,7 +217,7 @@ const cacheWidgetManifests = function (done) {
   )
     .on('data', (entry) => {
       // Extract the widget id from the path
-      const widgetId = entry.path.split(path.sep).splice(1, 1).join();
+      const widgetId = entry.path.split(path.sep).splice(1, 1).join(',');
       const parentDir = entry.path.split(path.sep).splice(0, 2).join(path.sep);
 
       try {
@@ -298,7 +299,7 @@ const getStaticBatch = function (files, callback) {
   }
 
   const results = {};
-  files.forEach((file) => {
+  for (const file of files) {
     getStaticFile(file, (error, data) => {
       if (error) {
         results[file] = null;
@@ -311,7 +312,7 @@ const getStaticBatch = function (files, callback) {
         callback(null, results);
       }
     });
-  });
+  }
 };
 
 /**
@@ -886,7 +887,7 @@ const uploadLogoFile = function (ctx, file, tenantAlias, callback) {
   }
 
   const extension = file.name.split('.').pop();
-  if (!extension.match(/(gif|jpe?g|png)$/i)) {
+  if (!/(gif|jpe?g|png)$/i.test(extension)) {
     return callback({ code: 500, msg: 'File has an invalid mime type' });
   }
 
@@ -958,9 +959,7 @@ const translate = function (string, locale, variables) {
 const _cacheI18nKeys = function (callback) {
   _cacheI18nKeysInDirectory(
     '/shared/oae/bundles',
-    (entry) => {
-      return entry;
-    },
+    (entry) => entry,
     (error) => {
       if (error) return callback(error);
 
@@ -1159,9 +1158,7 @@ const renderTemplate = function (template, data, locale = 'en_US') {
        */
       getMimetypeDescription(resourceSubType, mimeType) {
         // const descriptor = await _getMimeTypeDescriptor();
-        return _getMimeTypeDescriptor().then((descriptor) => {
-          return descriptor.getDescription(resourceSubType, mimeType);
-        });
+        return _getMimeTypeDescriptor().then((descriptor) => descriptor.getDescription(resourceSubType, mimeType));
       }
     },
 
@@ -1419,11 +1416,9 @@ const getIso3166CountryInfo = function (callback) {
  */
 const _getMimeTypeDescriptor = async function () {
   await _uiRequire('/shared/oae/js/mimetypes.js')
-    .then((file) => {
-      return file;
-    })
-    .catch((e) => {
-      // TODO log here
+    .then((file) => file)
+    .catch((error) => {
+      log().error(error);
     });
 };
 
@@ -1438,12 +1433,10 @@ const _uiRequire = function (path) {
   path = uiDirectory + getHashedPath(path);
 
   return import(path)
-    .then((pkg) => {
-      return pkg;
-    })
-    .catch((e) => {
+    .then((pkg) => pkg)
+    .catch((error) => {
       // TODO log here
-      throw e;
+      throw error;
     });
 };
 

@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { realpathSync } from 'fs';
+import process from 'node:process';
+import { realpathSync } from 'node:fs';
+import { callbackify } from 'node:util';
 import { logger } from 'oae-logger';
 import * as UIAPI from './api.js';
-import { callbackify } from 'util';
 
 const log = logger('oae-ui-init');
 
@@ -43,13 +44,10 @@ export const init = function (config, callback) {
   });
 };
 
-const _importHashes = (path) => {
-  return import(path)
-    .then((hashes) => {
-      return hashes;
-    })
-    .catch((e) => {
+const _importHashes = (path) =>
+  import(path)
+    .then((hashes) => hashes)
+    .catch((error) => {
       // TODO log here
-      throw e;
+      throw error;
     });
-};

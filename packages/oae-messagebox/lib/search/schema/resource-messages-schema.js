@@ -27,7 +27,8 @@
  * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 
-export const discussionMessageBody = {
+// eslint-disable-next-line camelcase
+export const discussion_message_body = {
   type: 'text',
   store: 'false',
   index: 'true',

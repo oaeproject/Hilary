@@ -19,7 +19,7 @@
  *
  * To run this as a standalone app on the terminal, do as follows:
  * 1 npm install chalk (it's a dev dependency so it might not have been installed)
- * 2 node -r esm redismon.js
+ * 2 node redismon.js
  */
 import Redis from 'ioredis';
 import _ from 'underscore';
@@ -28,7 +28,7 @@ import chalk from 'chalk';
 const { log, clear } = console;
 const TIMEOUT = 1000;
 
-import { config } from './config';
+import { config } from './config.js';
 const connection = new Redis(config.redis);
 
 const queues = {
@@ -82,7 +82,7 @@ const showResults = async () => {
   }, TIMEOUT);
 };
 
-const printKeys = async allKeys => {
+const printKeys = async (allKeys) => {
   if (allKeys.length === 0) {
     return;
   }
@@ -92,13 +92,13 @@ const printKeys = async allKeys => {
   return printKeys(allKeys);
 };
 
-const printSomeKey = async someKey => {
+const printSomeKey = async (someKey) => {
   log(chalk.magenta(`\n   ${someKey}`));
   const allKeyQs = queues[someKey].slice(0);
   await printAllQs(allKeyQs);
 };
 
-const printAllQs = async allQs => {
+const printAllQs = async (allQs) => {
   if (allQs.length === 0) return;
 
   const someQueue = allQs.shift();
@@ -106,8 +106,8 @@ const printAllQs = async allQs => {
   return printAllQs(allQs);
 };
 
-const printSomeQ = async someQ => {
-  await connection.llen(someQ).then(count => {
+const printSomeQ = async (someQ) => {
+  await connection.llen(someQ).then((count) => {
     const qName = someQ.split('/');
 
     let displayCount = chalk.greenBright;

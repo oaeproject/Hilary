@@ -57,7 +57,7 @@ npm run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs
 
 ## Running tests
 
-To run tests just make sure you have installed all dependencies (check wiki page on how to set up a dev environment) and run `npm run test`. To run tests on a specific module, just append its path as follows: `npm run test-module packages/oae-principals/tests`.
+To run tests just make sure you have installed all dependencies (check wiki page on how to set up a dev environment) and run `npm run test`. To run tests on a specific module, just append its path as follows: `npm run test-module --module=oae-principals`.
 
 ## Get in touch
 

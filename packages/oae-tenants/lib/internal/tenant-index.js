@@ -101,4 +101,4 @@ const _createIndex = function (tenants) {
  */
 const _tenantToDocument = (tenant) => pick(['alias', 'host', 'displayName'], tenant);
 
-export default TenantIndex;
+export { TenantIndex as default };

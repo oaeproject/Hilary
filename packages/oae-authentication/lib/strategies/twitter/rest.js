@@ -62,4 +62,4 @@ OAE.tenantRouter.on('get', '/api/auth/twitter/callback', (request, response, nex
   AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
-export default OAE;
+export { OAE as default };

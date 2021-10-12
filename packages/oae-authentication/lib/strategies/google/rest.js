@@ -83,4 +83,4 @@ OAE.tenantRouter.on('get', '/api/auth/google/callback', (request, response, next
   AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
-export default OAE;
+export { OAE as default };

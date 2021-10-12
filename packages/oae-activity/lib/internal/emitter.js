@@ -18,4 +18,4 @@ import * as EmitterAPI from 'oae-emitter';
 // A singleton emitter for activities, so all internal APIs may produce and consume events
 const emitter = new EmitterAPI.EventEmitter();
 
-export default emitter;
+export { emitter as default };

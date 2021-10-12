@@ -29,7 +29,7 @@ import OaeEmitter from 'oae-util/lib/emitter.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import PrincipalsAPI from 'oae-principals';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
-import * as TenantsAPI from 'oae-tenants';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
@@ -62,27 +62,29 @@ let globalTenantAlias = null;
 // Holds the strategies for each tenant
 const strategies = {};
 
-// When a tenant is created, configure the default authentication strategies
-TenantsAPI.emitter.on('created', (tenant) => {
-  // Waiting for AuthenticationAPI to boot and register the authentication strategies first
-  // before we can use them
-  refreshStrategies(tenant);
-});
+function setListeners() {
+  // When a tenant is created, configure the default authentication strategies
+  TenantsAPI.emitter.on('created', (tenant) => {
+    // Waiting for AuthenticationAPI to boot and register the authentication strategies first
+    // before we can use them
+    refreshStrategies(tenant);
+  });
 
-// When a tenant starts up, configure its authentication strategies
-TenantsAPI.emitter.on('start', (tenant) => {
-  refreshStrategies(tenant);
-});
+  // When a tenant starts up, configure its authentication strategies
+  TenantsAPI.emitter.on('start', (tenant) => {
+    refreshStrategies(tenant);
+  });
 
-// When a tenant is refreshed, refresh its authentication strategies
-TenantsAPI.emitter.on('refresh', (tenant) => {
-  refreshStrategies(tenant);
-});
+  // When a tenant is refreshed, refresh its authentication strategies
+  TenantsAPI.emitter.on('refresh', (tenant) => {
+    refreshStrategies(tenant);
+  });
 
-// When the server has started up, we enable all the strategies for all the tenants
-OaeEmitter.on('ready', () => {
-  _refreshAllTenantStrategies();
-});
+  // When the server has started up, we enable all the strategies for all the tenants
+  OaeEmitter.on('ready', () => {
+    _refreshAllTenantStrategies();
+  });
+}
 
 /**
  * Refresh the tenant authentication strategies when the configuration for a tenant has been updated.
@@ -133,6 +135,7 @@ const AuthenticationAPI = emitter;
  */
 const init = function (_globalTenantAlias) {
   globalTenantAlias = _globalTenantAlias;
+  setListeners();
 };
 
 /// /////////////////////
@@ -1548,5 +1551,6 @@ export {
   getUserLoginIds,
   registerStrategy,
   refreshStrategies,
-  logout
+  logout,
+  setListeners
 };

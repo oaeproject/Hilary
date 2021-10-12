@@ -181,4 +181,4 @@ function initCasAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.CAS, strategy);
 }
 
-export default initCasAuth;
+export { initCasAuth as default };

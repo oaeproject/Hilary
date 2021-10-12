@@ -63,4 +63,4 @@ OAE.tenantRouter.on('get', '/api/auth/cas/callback', (request, response, next) =
   AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
-export default OAE;
+export { OAE as default };

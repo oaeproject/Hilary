@@ -173,4 +173,4 @@ OAE.globalAdminRouter.on(
  */
 OAE.tenantRouter.on('get', '/api/auth/exists/:username', _handleLocalUsernameExists);
 
-export default OAE;
+export { OAE as default };

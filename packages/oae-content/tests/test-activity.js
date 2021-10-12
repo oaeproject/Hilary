@@ -77,7 +77,6 @@ const {
 const { collectAndFetchAllEmails } = EmailTestsUtil;
 
 const {
-  objectifySearchParams,
   generateTestUsers,
   generateTestUserId,
   generateTestGroups,
@@ -1348,7 +1347,7 @@ describe('Content Activity', () => {
                                         asGeorgiaTechAnonymousUser,
                                         signedDownloadUrl.pathname,
                                         'GET',
-                                        objectifySearchParams(signedDownloadUrl.searchParams),
+                                        Object.fromEntries(signedDownloadUrl.searchParams),
                                         (error, body, response) => {
                                           assert.notExists(error);
                                           assert.strictEqual(response.statusCode, 204);
@@ -1358,7 +1357,7 @@ describe('Content Activity', () => {
                                             asGeorgiaTechAnonymousUser,
                                             signedDownloadUrl.pathname,
                                             'GET',
-                                            objectifySearchParams(signedDownloadUrl.searchParams),
+                                            Object.fromEntries(signedDownloadUrl.searchParams),
                                             (error, body, response) => {
                                               assert.notExists(error);
                                               assert.strictEqual(response.statusCode, 204);
@@ -1378,7 +1377,7 @@ describe('Content Activity', () => {
                                                 asGeorgiaTechAnonymousUser,
                                                 signedDownloadUrl.pathname,
                                                 'GET',
-                                                objectifySearchParams(signedDownloadUrl.searchParams),
+                                                Object.fromEntries(signedDownloadUrl.searchParams),
                                                 (error, body, response) => {
                                                   assert.notExists(error);
                                                   assert.strictEqual(response.statusCode, 204);
@@ -1388,7 +1387,7 @@ describe('Content Activity', () => {
                                                     asGeorgiaTechAnonymousUser,
                                                     signedDownloadUrl.pathname,
                                                     'GET',
-                                                    objectifySearchParams(signedDownloadUrl.searchParams),
+                                                    Object.fromEntries(signedDownloadUrl.searchParams),
                                                     (error, body, response) => {
                                                       assert.notExists(error);
                                                       assert.strictEqual(response.statusCode, 204);

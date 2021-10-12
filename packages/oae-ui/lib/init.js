@@ -21,7 +21,7 @@ import * as UIAPI from './api.js';
 
 const log = logger('oae-ui-init');
 
-export const init = function (config, callback) {
+export function init(config, callback) {
   const uiDirectory = realpathSync(config.ui.path);
   // The hashes.json file can be found in the root folder of the optimized build folder
   const hashesPath = uiDirectory + '/hashes.json';
@@ -42,7 +42,7 @@ export const init = function (config, callback) {
     log().trace({ hashes }, 'Initializing with hash mappings');
     UIAPI.init(uiDirectory, hashes, callback);
   });
-};
+}
 
 const _importHashes = (path) =>
   import(path)

@@ -145,4 +145,4 @@ const timezones = {
   Samoa: 'Pacific/Apia'
 };
 
-export default timezones;
+export { timezones as default };

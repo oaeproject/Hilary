@@ -437,7 +437,7 @@ describe('Preview processor', () => {
       restContext,
       '/api/download/signed',
       'GET',
-      TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+      Object.fromEntries(parsedUrl.searchParams),
       (error, body, response) => {
         assert.notExists(error);
         assert.strictEqual(response.statusCode, 200);

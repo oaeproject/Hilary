@@ -292,4 +292,4 @@ OAE.tenantRouter.on('delete', '/api/auth/oauth/clients/:userId/:clientId', (requ
   });
 });
 
-export default OAE;
+export { OAE as default };

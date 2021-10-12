@@ -142,4 +142,4 @@ const _mapToFile = function (value) {
   };
 };
 
-export default multipart;
+export { multipart as default };

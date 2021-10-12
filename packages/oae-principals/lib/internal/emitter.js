@@ -15,4 +15,6 @@
 
 import * as EmitterAPI from 'oae-emitter';
 
-export default new EmitterAPI.EventEmitter();
+const emitter = new EmitterAPI.EventEmitter();
+
+export { emitter as default };

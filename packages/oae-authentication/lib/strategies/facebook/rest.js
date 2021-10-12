@@ -63,4 +63,4 @@ OAE.tenantRouter.on('get', '/api/auth/facebook/callback', (request, response, ne
   AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
-export default OAE;
+export { OAE as default };

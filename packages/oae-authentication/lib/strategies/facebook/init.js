@@ -103,4 +103,4 @@ function initFacebookAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.FACEBOOK, strategy);
 }
 
-export default initFacebookAuth;
+export { initFacebookAuth as default };

@@ -63,7 +63,7 @@ const defaultToEmptyObject = defaultTo({});
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-export const init = function (callback) {
+export function init(callback) {
   const contentBodyChildSearchDocumentOptions = {
     resourceTypes: ['content'],
     schema: contentBodySchema,
@@ -88,7 +88,7 @@ export const init = function (callback) {
       );
     }
   );
-};
+}
 
 /**
  * Indexing tasks

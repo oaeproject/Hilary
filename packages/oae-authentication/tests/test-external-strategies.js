@@ -1063,7 +1063,7 @@ describe('Authentication', () => {
 
           RestAPI.Authentication.shibbolethSPRedirect(
             spRestContext,
-            TestsUtil.objectifySearchParams(location.searchParams),
+            Object.fromEntries(location.searchParams),
             (error, body, response) => {
               assert.notExists(error);
               assert.strictEqual(response.statusCode, 302);
@@ -1130,7 +1130,7 @@ describe('Authentication', () => {
           // We arrive back at our tenant
           RestAPI.Authentication.shibbolethTenantCallback(
             tenantRestContext,
-            TestsUtil.objectifySearchParams(location.searchParams),
+            Object.fromEntries(location.searchParams),
             (error, body, response) => {
               assert.notExists(error);
 

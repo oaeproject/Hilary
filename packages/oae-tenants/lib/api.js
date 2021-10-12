@@ -23,7 +23,7 @@ import async from 'async';
 import { setUpConfig, eventEmitter } from 'oae-config';
 // We have to require the UI api inline, as this would otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
-import * as UserAPI from 'oae-principals/lib/api.user.js';
+import { deleteOrRestoreUsersByTenancy } from 'oae-principals/lib/api.user.js';
 import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
 import * as OAE from 'oae-util/lib/oae.js';
@@ -185,7 +185,7 @@ eventEmitter.on('update', (alias) => _updateCachedTenant(alias));
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
  */
-const init = function (_serverConfig, callback) {
+function init(_serverConfig, callback) {
   // Cache the server configuration
   serverConfig = _serverConfig;
 
@@ -240,7 +240,7 @@ const init = function (_serverConfig, callback) {
     const GUEST_TENANT = 'Guest tenant';
     _createTenant(guestTenantAlias, GUEST_TENANT, guestTenantHost, null, callback);
   });
-};
+}
 
 /**
  * Get a list of all available tenants from cache. The global admin tenant will be excluded from the resulting tenant list
@@ -882,7 +882,7 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
       aliases,
       (eachAlias, transformed) => {
         // Disable or restore users from those tenancies too
-        UserAPI.deleteOrRestoreUsersByTenancy(ctx, eachAlias, disabled, (error) => {
+        deleteOrRestoreUsersByTenancy(ctx, eachAlias, disabled, (error) => {
           if (error) {
             transformed(error);
           } else {

@@ -97,8 +97,6 @@ function initOAuthAuth() {
   });
 }
 
-export default initOAuthAuth;
-
 /**
  * Find an OAuth access token in the HTTP request.
  *
@@ -114,3 +112,5 @@ const _hasAccessToken = function (request) {
       BEARER_REGEX.test(request.headers.authorization))
   );
 };
+
+export { initOAuthAuth as default };

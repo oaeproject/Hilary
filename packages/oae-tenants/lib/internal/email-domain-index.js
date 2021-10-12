@@ -310,4 +310,4 @@ const _split = function (emailDomain) {
   return emailDomain.split('.').reverse();
 };
 
-export default EmailDomainIndex;
+export { EmailDomainIndex as default };

@@ -112,4 +112,4 @@ function initLDAPAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.LDAP, strategy);
 }
 
-export default initLDAPAuth;
+export { initLDAPAuth as default };

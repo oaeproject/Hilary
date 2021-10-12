@@ -24,7 +24,6 @@ import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { getOrCreateUser } from 'oae-authentication';
-import { objectifySearchParams } from 'oae-tests';
 
 const log = logger('oae-authentication');
 
@@ -445,7 +444,7 @@ const _getRequestInvitationInfo = function (request) {
   const redirectUrl = validateRedirectUrl(request.cookies.redirectUrl);
   const parsedRedirectUrl = new URL(redirectUrl, 'http://localhost');
   return _.pick(
-    objectifySearchParams(parsedRedirectUrl.searchParams),
+    Object.fromEntries(parsedRedirectUrl.searchParams),
     'invitationToken',
     'invitationEmail'
   );

@@ -32,6 +32,5 @@ import * as Discussions from './api.discussions.js';
  * * `updatedDiscussionMembers(ctx, discussion, memberUpdates, newMemberIds, updatedMemberIds, removedMemberIds)`: The members and/or managers for a discussion have been altered.
  */
 const DiscussionsAPI = new EmitterAPI.EventEmitter();
-export default DiscussionsAPI;
 
-export { Discussions };
+export { DiscussionsAPI as default, Discussions };

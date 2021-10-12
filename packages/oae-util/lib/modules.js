@@ -19,11 +19,10 @@ import fs, { stat } from 'node:fs';
 import { promisify, callbackify } from 'node:util';
 import { readFile } from 'node:fs/promises';
 import Path from 'node:path';
-import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
-import { compose, map, prop, sortBy } from 'ramda';
+import { isEmpty, keys, compose, map, prop, sortBy } from 'ramda';
 
 import ora from 'ora';
 import * as IO from './io.js';
@@ -51,7 +50,7 @@ const bootstrapModules = function (config, callback) {
   callbackify(initAvailableModules)((error, modules) => {
     if (error) return callback(error);
 
-    if (_.isEmpty(modules)) {
+    if (isEmpty(keys(modules))) {
       return callback(new Error('No modules to install, or error aggregating modules.'));
     }
 

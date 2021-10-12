@@ -53,4 +53,4 @@ OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (reques
   response.status(200).send(request.ctx.user())
 );
 
-export default OAE;
+export { OAE as default };

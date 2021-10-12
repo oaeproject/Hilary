@@ -142,4 +142,4 @@ function initGoogleAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.GOOGLE, strategy);
 }
 
-export default initGoogleAuth;
+export { initGoogleAuth as default };

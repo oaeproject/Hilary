@@ -39,4 +39,4 @@ function initSignedAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SIGNED, strategy);
 }
 
-export default initSignedAuth;
+export { initSignedAuth as default };

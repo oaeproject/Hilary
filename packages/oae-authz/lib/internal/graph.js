@@ -179,4 +179,4 @@ AuthzGraph.prototype._traverse = function (
   return _nodes;
 };
 
-export default AuthzGraph;
+export { AuthzGraph as default };

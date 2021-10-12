@@ -494,7 +494,7 @@ describe('Principals Activity', () => {
                                 asGeorgiaTechAnonymousUser,
                                 signedDownloadUrl.pathname,
                                 'GET',
-                                TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                Object.fromEntries(signedDownloadUrl.searchParams),
                                 (error, body, response) => {
                                   assert.notExists(error);
                                   assert.strictEqual(response.statusCode, 204);
@@ -504,7 +504,7 @@ describe('Principals Activity', () => {
                                     asGeorgiaTechAnonymousUser,
                                     signedDownloadUrl.pathname,
                                     'GET',
-                                    TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                    Object.fromEntries(signedDownloadUrl.searchParams),
                                     (error, body, response) => {
                                       assert.notExists(error);
                                       assert.strictEqual(response.statusCode, 204);
@@ -521,7 +521,7 @@ describe('Principals Activity', () => {
                                         asGeorgiaTechAnonymousUser,
                                         signedDownloadUrl.pathname,
                                         'GET',
-                                        TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                        Object.fromEntries(signedDownloadUrl.searchParams),
                                         (error, body, response) => {
                                           assert.notExists(error);
                                           assert.strictEqual(response.statusCode, 204);
@@ -531,7 +531,7 @@ describe('Principals Activity', () => {
                                             asGeorgiaTechAnonymousUser,
                                             signedDownloadUrl.pathname,
                                             'GET',
-                                            TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                            Object.fromEntries(signedDownloadUrl.searchParams),
                                             (error, body, response) => {
                                               assert.notExists(error);
                                               assert.strictEqual(response.statusCode, 204);

@@ -65,8 +65,7 @@ const {
   createGlobalAdminRestContext,
   generateTestUserId,
   generateTestEmailAddress,
-  generateTestUsers,
-  objectifySearchParams
+  generateTestUsers
 } = TestsUtil;
 
 const {
@@ -651,7 +650,7 @@ describe('Content', () => {
           asBranden,
           '/api/download/signed',
           'GET',
-          objectifySearchParams(parsedUrl.searchParams),
+          Object.fromEntries(parsedUrl.searchParams),
           (error, body, response) => {
             assert.notExists(error);
             assert.strictEqual(response.statusCode, 204);
@@ -661,7 +660,7 @@ describe('Content', () => {
               asSimon,
               '/api/download/signed',
               'GET',
-              TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+              Object.fromEntries(parsedUrl.searchParams),
               (error /* , body, response */) => {
                 assert.notExists(error);
 
@@ -670,7 +669,7 @@ describe('Content', () => {
                   asGlobalAdmin,
                   '/api/download/signed',
                   'GET',
-                  objectifySearchParams(parsedUrl.searchParams),
+                  Object.fromEntries(parsedUrl.searchParams),
                   (error /* , body, response */) => {
                     assert.notExists(error);
 
@@ -679,7 +678,7 @@ describe('Content', () => {
                       asCambridgeAnonymousUser,
                       '/api/download/signed',
                       'GET',
-                      objectifySearchParams(parsedUrl.searchParams),
+                      Object.fromEntries(parsedUrl.searchParams),
                       (error /* , body, response */) => {
                         assert.notExists(error);
 
@@ -688,7 +687,7 @@ describe('Content', () => {
                           asBranden,
                           '/api/download/signed',
                           'GET',
-                          omit(['uri'], objectifySearchParams(parsedUrl.searchParams)),
+                          omit(['uri'], Object.fromEntries(parsedUrl.searchParams)),
                           (error /* , body, request */) => {
                             assert.strictEqual(error.code, 401);
 
@@ -698,7 +697,7 @@ describe('Content', () => {
                               '/api/download/signed',
                               'GET',
                               mergeAll([
-                                objectifySearchParams(parsedUrl.searchParams),
+                                Object.fromEntries(parsedUrl.searchParams),
                                 {
                                   uri: 'blahblahblah'
                                 }
@@ -711,7 +710,7 @@ describe('Content', () => {
                                   asBranden,
                                   '/api/download/signed',
                                   'GET',
-                                  omit(['signature'], objectifySearchParams(parsedUrl.searchParams)),
+                                  omit(['signature'], Object.fromEntries(parsedUrl.searchParams)),
                                   (error /* , body, request */) => {
                                     assert.strictEqual(error.code, 401);
 
@@ -721,7 +720,7 @@ describe('Content', () => {
                                       '/api/download/signed',
                                       'GET',
                                       mergeAll([
-                                        objectifySearchParams(parsedUrl.searchParams),
+                                        Object.fromEntries(parsedUrl.searchParams),
                                         {
                                           signature: 'ATTACK LOL!!'
                                         }
@@ -734,7 +733,7 @@ describe('Content', () => {
                                           asBranden,
                                           '/api/download/signed',
                                           'GET',
-                                          omit(['expires'], objectifySearchParams(parsedUrl.searchParams)),
+                                          omit(['expires'], Object.fromEntries(parsedUrl.searchParams)),
                                           (error /* , body, request */) => {
                                             assert.strictEqual(error.code, 401);
 
@@ -744,7 +743,7 @@ describe('Content', () => {
                                               '/api/download/signed',
                                               'GET',
                                               mergeAll([
-                                                objectifySearchParams(parsedUrl.searchParams),
+                                                Object.fromEntries(parsedUrl.searchParams),
                                                 {
                                                   expires: 2_345_678_901
                                                 }
@@ -760,7 +759,7 @@ describe('Content', () => {
                                                   asBranden,
                                                   '/api/download/signed',
                                                   'GET',
-                                                  objectifySearchParams(parsedUrl.searchParams),
+                                                  Object.fromEntries(parsedUrl.searchParams),
                                                   (error /* , body, response * */) => {
                                                     assert.strictEqual(error.code, 401);
                                                     return callback();

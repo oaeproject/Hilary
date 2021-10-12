@@ -38,8 +38,7 @@ const {
   generateRandomText,
   createGlobalAdminRestContext,
   createTenantRestContext,
-  createTenantAdminRestContext,
-  objectifySearchParams
+  createTenantAdminRestContext
 } = TestsUtil;
 const { loginOnTenant } = RestAPI.Admin;
 const { getMe } = RestAPI.User;
@@ -769,7 +768,7 @@ describe('File previews', () => {
       restContext,
       '/api/download/signed',
       'GET',
-      objectifySearchParams(parsedUrl.searchParams),
+      Object.fromEntries(parsedUrl.searchParams),
       (error, body, response) => {
         assert.notExists(error);
         assert.strictEqual(response.statusCode, 204);

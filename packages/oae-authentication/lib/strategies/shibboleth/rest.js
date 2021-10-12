@@ -197,4 +197,4 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (request, response, 
   });
 });
 
-export default OAE;
+export { OAE as default };

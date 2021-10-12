@@ -67,8 +67,6 @@ function searchDeleted(ctx, options, callback) {
   });
 }
 
-export default searchDeleted;
-
 /**
  * Resolve the scope for the search based on who is performing it and how they specified the scope
  *
@@ -85,3 +83,5 @@ const _resolveScope = function (ctx, scope) {
 
   return user.tenant.alias;
 };
+
+export { searchDeleted as default };

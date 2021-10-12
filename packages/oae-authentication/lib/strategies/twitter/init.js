@@ -109,4 +109,4 @@ function initTwitterAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.TWITTER, strategy);
 }
 
-export default initTwitterAuth;
+export { initTwitterAuth as default };

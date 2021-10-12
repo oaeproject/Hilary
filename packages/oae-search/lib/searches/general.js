@@ -71,8 +71,6 @@ function searchGeneral(ctx, options, callback) {
   return _search(ctx, options, callback);
 }
 
-export default searchGeneral;
-
 /**
  * Perform the search that searches a 'q' analyzed field on documents, scoping it by user access. This is delegated from the
  * `module.exports` function for convenience, as it will access the members array only if necessary.
@@ -246,3 +244,5 @@ const _needsFilterByExplicitAccess = function (ctx, options) {
 const _includesResourceType = function (options, resourceType) {
   return options.searchAllResourceTypes || includes(resourceType, options.resourceTypes);
 };
+
+export { searchGeneral as default };

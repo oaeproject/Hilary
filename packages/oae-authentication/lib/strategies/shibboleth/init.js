@@ -217,8 +217,6 @@ function initShibbAuth(config) {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SHIBBOLETH, strategy);
 }
 
-export default initShibbAuth;
-
 /**
  * Get the value from the attribute that best matches a configured priority list
  *
@@ -246,3 +244,5 @@ const _getBestAttributeValue = function (tenantAlias, configKey, headers, defaul
   const value = headers[attribute] || defaultValue;
   return value;
 };
+
+export { initShibbAuth as default };

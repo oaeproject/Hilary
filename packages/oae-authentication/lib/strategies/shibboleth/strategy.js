@@ -119,4 +119,4 @@ Strategy.prototype.authenticate = function (request) {
 /**
  * Expose `Strategy`
  */
-export default Strategy;
+export { Strategy as default };

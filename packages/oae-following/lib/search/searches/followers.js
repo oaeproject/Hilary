@@ -64,8 +64,6 @@ function searchFollowers(ctx, options, callback) {
   });
 }
 
-export default searchFollowers;
-
 /**
  * Perform the search that searches a user's followers list
  *
@@ -92,3 +90,5 @@ const _search = function (ctx, options, callback) {
   // Wrap the query and filter into the top-level Query DSL "query" object and return it
   return callback(null, SearchUtil.createQuery(query, filter, options));
 };
+
+export { searchFollowers as default };

@@ -126,4 +126,4 @@ OAE.tenantRouter.on('post', '/api/auth/signed', (request, response, next) => {
   );
 });
 
-export default OAE;
+export { OAE as default };

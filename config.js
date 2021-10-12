@@ -16,6 +16,7 @@
 /* eslint-disable camelcase */
 import Path from 'node:path';
 import bunyan from 'bunyan';
+import process from 'node:process';
 
 const config = {};
 const LOCALHOST = 'localhost';
@@ -41,7 +42,7 @@ config.cassandra = {
   keyspace: 'oae',
   user: '',
   pass: '',
-  timeout: 3000,
+  timeout: 30_000,
   replication: 1,
   readTimeout: 0,
   strategyClass: 'SimpleStrategy',
@@ -164,7 +165,7 @@ config.log = {
 config.telemetry = {
   enabled: false,
   publishInterval: 30,
-  resetInterval: 86400,
+  resetInterval: 86_400,
   publisher: 'console',
   circonus: {
     url: 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here'
@@ -291,13 +292,13 @@ config.previews = {
   office: {
     /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
     binary: 'soffice',
-    timeout: 120000
+    timeout: 120_000
   },
   pdfPreview: {
     viewportScale: '1.6'
   },
   screenShotting: {
-    timeout: 30000,
+    timeout: 30_000,
     viewport: {
       width: 640 * 3,
       height: 480 * 3,

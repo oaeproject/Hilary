@@ -50,9 +50,26 @@ cp ep-settings.json etherpad/settings.json
 cp ep-package.json etherpad/src/package.json
 cp ep-root-package.json etherpad/package.json
 ./prepare-etherpad.sh
-cd 3akai-ux && npm install
+cd 3akai-ux && npm install && cd ..
 npm i
 npm run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs
+```
+
+## Github Codespaces
+
+In order to set up OAE on Codespaces, you need to follow the same steps as above. However, every time you re-create a codespace, you'll just need to re-run the services as follows:
+
+```
+docker-compose up -d oae-cassandra oae-elasticsearch oae-redis oae-nginx
+npm run migrate
+npx pm2 startOrReload process.json --only Ethercalc
+npx pm2 startOrReload process.json --only Etherpad
+
+# if you want to run tests
+npm run test
+
+# if you want to run the backend
+npm run serve
 ```
 
 ## Running tests

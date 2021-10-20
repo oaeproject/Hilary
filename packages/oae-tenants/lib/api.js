@@ -71,6 +71,7 @@ import TenantIndex from './internal/tenant-index.js';
 import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsUtil from './util.js';
 import { Tenant } from './model.js';
+import { setListeners } from 'oae-authentication';
 
 const {
   unless,
@@ -153,6 +154,7 @@ const returnEmptyArray = () => [];
  * * `stop(tenant)`: A request has been received to "stop" a tenant
  */
 const TenantsAPI = new EmitterAPI.EventEmitter();
+setListeners();
 
 /*!
  * Listen for cluster wide requests involving tenants

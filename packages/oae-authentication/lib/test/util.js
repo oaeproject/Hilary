@@ -170,7 +170,7 @@ const assertFacebookLoginSucceeds = function (tenantHost, options, callback) {
         key: 'redirectUrl',
         value: encodeURIComponent(options.redirectUrl)
       });
-      restContext.cookieJar.setCookie(cookie.toString(), 'http://localhost:2000/');
+      restContext.cookieJar.setCookie(cookie.toString(), 'http://localhost:3000/');
     }
 
     RestAPI.Authentication.facebookCallback(

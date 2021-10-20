@@ -800,7 +800,7 @@ describe('Users', () => {
                   assert.strictEqual(createdUser2.locale, 'es_ES');
 
                   // Create a user with no locale, but using an Accept-Language header
-                  const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                  const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                     hostHeader: global.oaeTests.tenants.cam.host,
                     additionalHeaders: { 'Accept-Language': 'en-us' }
                   });
@@ -876,7 +876,7 @@ describe('Users', () => {
      * locale in the me feed
      */
     it('verify anonymous locale', (callback) => {
-      const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+      const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
         hostHeader: global.oaeTests.tenants.cam.host,
         additionalHeaders: { 'Accept-Language': 'en-us' }
       });
@@ -886,7 +886,7 @@ describe('Users', () => {
         assert.strictEqual(meData.locale, 'en_US');
 
         // This guy prefers US English but will take Spanish if that's all we have
-        const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+        const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
           hostHeader: global.oaeTests.tenants.cam.host,
           additionalHeaders: { 'Accept-Language': 'es-es;q=0.5, en-us' }
         });
@@ -896,7 +896,7 @@ describe('Users', () => {
           assert.strictEqual(meData.locale, 'en_US');
 
           // If you just say a language without specifying the country we'll give you some form of that language
-          const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+          const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
             hostHeader: global.oaeTests.tenants.cam.host,
             additionalHeaders: { 'Accept-Language': 'en' }
           });
@@ -907,7 +907,7 @@ describe('Users', () => {
 
             // Make sure polyglots serve the most preferred language
             // @see https://github.com/oaeproject/Hilary/pull/862
-            const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+            const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
               hostHeader: global.oaeTests.tenants.cam.host,
               additionalHeaders: {
                 'Accept-Language':
@@ -921,7 +921,7 @@ describe('Users', () => {
 
               // If the user only speaks a language that we don't support, the me object will indicate
               // that the user has no language preference
-              const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+              const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                 hostHeader: global.oaeTests.tenants.cam.host,
                 additionalHeaders: { 'Accept-Language': 'qq-ZZ' }
               });
@@ -932,7 +932,7 @@ describe('Users', () => {
 
                 // If the user only speaks languages that we don't support, the me object will indicate
                 // that the user has no language preference
-                const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                   hostHeader: global.oaeTests.tenants.cam.host,
                   additionalHeaders: { 'Accept-Language': 'qq-ZZ, zz-ZZ;q=0.50, qq-QQ;q=0.30' }
                 });

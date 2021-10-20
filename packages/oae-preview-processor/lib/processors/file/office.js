@@ -16,7 +16,7 @@
 import { exec } from 'node:child_process';
 import fs from 'node:fs';
 import Path, { dirname } from 'node:path';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
@@ -125,7 +125,7 @@ const generatePreviews = function (ctx, contentObject, callback) {
       }
 
       // Let the PDF API handle the actual splitting.
-      PDFProcessor.previewPDF(ctx, path, callback);
+      callbackify(PDFProcessor.previewPDF)(ctx, path, () => callback());
     });
   });
 };

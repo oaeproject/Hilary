@@ -220,7 +220,7 @@ const setUpTenants = function (callback) {
   testingContext.oaeTests = { coco: 'xixi ' };
 
   // Create the Global Tenant admin context to authenticate with
-  global.oaeTests.tenants.global = new Tenant('admin', 'Global tenant', 'localhost:2000', {
+  global.oaeTests.tenants.global = new Tenant('admin', 'Global tenant', 'localhost:3000', {
     isGlobalAdminServer: true
   });
   const globalAdminRestContext = createGlobalAdminRestContext();
@@ -248,7 +248,7 @@ const setUpTenants = function (callback) {
           global.oaeTests.tenants.gt = tenant;
 
           /**
-           * Create a tenant with a hostname set to 'localhost:2001' (ie: the host/port
+           * Create a tenant with a hostname set to 'localhost:3001' (ie: the host/port
            * combination where the server is running on). This allows tests to use
            * the cross tenant sign authentication
            */
@@ -256,7 +256,7 @@ const setUpTenants = function (callback) {
             globalAdminRestContext,
             'localhost',
             'Tenant with a hostname set to localhost',
-            'localhost:2001',
+            'localhost:3001',
             null,
             (error, tenant) => {
               assert.notExists(error);
@@ -618,7 +618,7 @@ const generateTestEmailAddress = (seed = 'email', domain = 'oae-email.com') =>
  * @return {RestContext}                     Rest Context object that represents the anonymous or logged in user user on the provided tenant
  */
 const createTenantRestContext = function (host, username, password) {
-  return new RestContext('http://localhost:2001', {
+  return new RestContext('http://localhost:3001', {
     username,
     userPassword: password,
     hostHeader: host
@@ -644,7 +644,7 @@ const createTenantAdminRestContext = function (host) {
  * @return {RestContext}                     Rest Context object that represents the anonymous or logged in user on the global admin server
  */
 const createGlobalRestContext = function (username, password) {
-  return new RestContext('http://localhost:2000', {
+  return new RestContext('http://localhost:3000', {
     username,
     userPassword: password
   });
@@ -1242,7 +1242,7 @@ const createInitialTestConfig = async function () {
 
     mergedConfig.servers.serverInternalAddress = null;
     mergedConfig.servers.globalAdminAlias = 'admin';
-    mergedConfig.servers.globalAdminHost = 'localhost:2000';
+    mergedConfig.servers.globalAdminHost = 'localhost:3000';
     mergedConfig.servers.guestTenantAlias = 'guest';
     mergedConfig.servers.guestTenantHost = 'guest.oae.com';
     mergedConfig.servers.useHttps = false;

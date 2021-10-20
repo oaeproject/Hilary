@@ -540,7 +540,7 @@ describe('Terms and Conditions', () => {
 
                       // Create an anonymous request context that sends an `Accept-Language: en_CA` header
                       // to verify that is picked up if no other options are present
-                      const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                      const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                         hostHeader: global.oaeTests.tenants.cam.host,
                         additionalHeaders: { 'Accept-Language': 'en-gb' }
                       });

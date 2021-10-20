@@ -266,18 +266,18 @@ const exporting = {
 
 const exported_symbols = Object.keys(exporting);
 
-const setStubs = function (namespace) {
+function setStubs(namespace) {
   exported_symbols.forEach((key) => {
     // Console.assert(!(key in namespace), 'property should not be set: ' + key);
     namespace[key] = exporting[key];
   });
-};
+}
 
-const unsetStubs = function (namespace) {
+function unsetStubs(namespace) {
   exported_symbols.forEach((key) => {
     // Console.assert(key in namespace, 'property should be set: ' + key);
     delete namespace[key];
   });
-};
+}
 
 export { document, Image, setStubs, unsetStubs };

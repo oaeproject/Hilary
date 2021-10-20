@@ -351,7 +351,7 @@ describe('Authentication', () => {
       _enableStrategy(
         'google',
         (done) => {
-          // Sanity check that Google is requesting authentication for localhost:2001
+          // Sanity check that Google is requesting authentication for localhost:3001
           let restContext = TestsUtil.createTenantRestContext(
             global.oaeTests.tenants.localhost.host
           );
@@ -362,7 +362,7 @@ describe('Authentication', () => {
             // Assert a redirect
             assert.strictEqual(response.statusCode, 302);
 
-            // Assert we're redirecting with the localhost:2001 hostname
+            // Assert we're redirecting with the localhost:3001 hostname
             let redirectUri = format(
               'http://%s/api/auth/google/callback',
               global.oaeTests.tenants.localhost.host
@@ -371,7 +371,7 @@ describe('Authentication', () => {
             assert.strictEqual(parsedUrl.searchParams.get('redirect_uri'), redirectUri);
 
             // Update the localhost tenant (and ensure that it's truly different, otherwise this test is useless)
-            const tenantUpdate = { host: '127.0.0.1:2001' };
+            const tenantUpdate = { host: '127.0.0.1:3001' };
             assert.notStrictEqual(tenantUpdate.host, global.oaeTests.tenants.localhost.host);
             RestAPI.Tenants.updateTenant(
               globalAdminRestContext,
@@ -615,7 +615,7 @@ describe('Authentication', () => {
           assert.ok(casLocation.search);
           assert.strictEqual(
             casLocation.searchParams.get('service'),
-            'http://localhost:2001/api/auth/cas/callback'
+            'http://localhost:3001/api/auth/cas/callback'
           );
 
           // Configure the login path
@@ -638,7 +638,7 @@ describe('Authentication', () => {
                 assert.ok(casLocation.search);
                 assert.strictEqual(
                   casLocation.searchParams.get('service'),
-                  'http://localhost:2001/api/auth/cas/callback'
+                  'http://localhost:3001/api/auth/cas/callback'
                 );
                 return callback();
               });
@@ -1523,7 +1523,7 @@ describe('Authentication', () => {
               key: 'shibboleth',
               value: 's:camtest.fakedsignature'
             });
-            spRestContext.cookieJar.setCookie(fakeCookie.toString(), 'http://localhost:2000/');
+            spRestContext.cookieJar.setCookie(fakeCookie.toString(), 'http://localhost:3000/');
             const attributes = {};
             RestAPI.Authentication.shibbolethSPCallback(
               spRestContext,

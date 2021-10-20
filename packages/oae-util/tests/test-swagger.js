@@ -81,7 +81,7 @@ describe('Swagger', () => {
             assert.notExists(error);
             assert.ok(data.apiVersion);
             assert.ok(data.swaggerVersion);
-            assert.strictEqual(data.basePath, 'http://localhost:2001/api');
+            assert.strictEqual(data.basePath, 'http://localhost:3001/api');
             assert.strictEqual(data.resourcePath, id + '/');
             assert.isArray(data.apis);
             assert.isObject(data.models);

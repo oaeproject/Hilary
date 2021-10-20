@@ -562,7 +562,7 @@ describe('Tenants', () => {
         assert.strictEqual(tenant.alias, 'admin');
 
         // Get the global admin tenant by host name
-        const globalAdminTenant = TenantsAPI.getTenantByHost('localhost:2000');
+        const globalAdminTenant = TenantsAPI.getTenantByHost('localhost:3000');
         assert.ok(globalAdminTenant);
         assert.isTrue(globalAdminTenant.isGlobalAdminServer);
         assert.strictEqual(globalAdminTenant.alias, 'admin');
@@ -604,7 +604,7 @@ describe('Tenants', () => {
       assert.ok(tenant);
       assert.strictEqual(tenant.alias, 'admin');
       assert.strictEqual(tenant.displayName, 'Global admin server');
-      assert.strictEqual(tenant.host, 'localhost:2000');
+      assert.strictEqual(tenant.host, 'localhost:3000');
       assert.strictEqual(tenant.isGlobalAdminServer, true);
 
       // Get non-existing tenant
@@ -633,11 +633,11 @@ describe('Tenants', () => {
       assert.strictEqual(tenant.host, 'gt.oae.com');
 
       // Get the global admin tenant
-      tenant = TenantsAPI.getTenantByHost('localhost:2000');
+      tenant = TenantsAPI.getTenantByHost('localhost:3000');
       assert.ok(tenant);
       assert.strictEqual(tenant.alias, 'admin');
       assert.strictEqual(tenant.displayName, 'Global admin server');
-      assert.strictEqual(tenant.host, 'localhost:2000');
+      assert.strictEqual(tenant.host, 'localhost:3000');
       assert.strictEqual(tenant.isGlobalAdminServer, true);
 
       // Get non-existing tenant

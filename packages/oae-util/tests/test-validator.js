@@ -501,7 +501,7 @@ describe('Utilities', () => {
       }
 
       try {
-        isHost('localhost:2000:');
+        isHost('localhost:3000:');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, error_.msg);
@@ -511,7 +511,7 @@ describe('Utilities', () => {
       // A set of valid hosts
       isHost('www.google.com');
       isHost('unity.ac');
-      isHost('localhost:2000');
+      isHost('localhost:3000');
       isHost('trailing.dots.are.valid.too.');
       return callback();
     });

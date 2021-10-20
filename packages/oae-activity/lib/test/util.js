@@ -354,7 +354,7 @@ const getPushClient = function (callback) {
   const messageCallbacks = {};
 
   // Set up a websocket connection to the localhost tenant
-  const socket = new SockJS('http://localhost:2001/api/push');
+  const socket = new SockJS('http://localhost:3001/api/push');
 
   socket.addEventListener('error', (error) => {
     assert.fail(error, null, 'Did not expect an error on the websocket');

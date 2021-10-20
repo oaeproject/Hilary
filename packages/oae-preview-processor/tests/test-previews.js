@@ -531,7 +531,7 @@ describe('Preview processor', () => {
         const stream = fs.createWriteStream(temporaryFile.path);
         request({
           jar: restCtx.cookieJar,
-          url: 'http://localhost:2001' + content.previews.thumbnailUrl,
+          url: 'http://localhost:3001' + content.previews.thumbnailUrl,
           headers: {
             host: restCtx.hostHeader,
             referer: '/'
@@ -876,7 +876,7 @@ describe('Preview processor', () => {
         assert.strictEqual(content.previews.thumbnailUrl.indexOf('/api/download/signed'), 0);
         _verifySignedUriDownload(restCtx, content.previews.thumbnailUrl, () => {
           // Assert that URLs that are not available on HTTPs get marked as such
-          _createContentAndWait('link', 'http://localhost:2000', null, (restCtx, content) => {
+          _createContentAndWait('link', 'http://localhost:3000', null, (restCtx, content) => {
             assert.strictEqual(content.previews.status, 'done');
             assert.strictEqual(content.previews.httpsAccessible, false);
 
@@ -2813,7 +2813,7 @@ describe('Preview processor', () => {
        */
       it('verify remote files can be downloaded', (callback) => {
         const temporaryFile = Tempfile.createTempFile();
-        downloadRemoteFile('http://localhost:2000/api/me', temporaryFile.path, (error, path) => {
+        downloadRemoteFile('http://localhost:3000/api/me', temporaryFile.path, (error, path) => {
           assert.notExists(error);
           fs.readFile(path, 'utf8', (error, data) => {
             assert.notExists(error);

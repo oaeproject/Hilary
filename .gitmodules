@@ -4,9 +4,6 @@
 [submodule "packages/oae-rest"]
 	path = packages/oae-rest
 	url = https://github.com/oaeproject/oae-rest
-[submodule "packages/restjsdoc"]
-	path = packages/restjsdoc
-	url = https://github.com/oaeproject/restjsdoc
 [submodule "ethercalc"]
 	path = ethercalc
 	url = https://github.com/oaeproject/ethercalc

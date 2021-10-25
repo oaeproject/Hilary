@@ -81,13 +81,6 @@ describe('Git information', () => {
       assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
       assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
 
-      // restjsdoc submodule
-      submoduleName = 'restjsdoc';
-      submodulePath = submodules.get(submoduleName).get(PATH);
-      assert.strictEqual(submodulePath.size, 1);
-      assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
-      assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
-
       return callback();
     });
   }

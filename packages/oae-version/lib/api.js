@@ -69,11 +69,6 @@ const getVersion = async function (repoPath = hilaryDirectory, repoInformation =
     {
       filepaths: ['3akai-ux/package.json'],
       filter: (f) => f.match(/^3akai-ux\/package\.json$/)
-    },
-
-    {
-      filepaths: ['packages/restjsdoc'],
-      filter: (f) => f.match(/^packages\/restjsdoc\/package.json$/)
     }
   ];
   const submodules = {
@@ -87,12 +82,6 @@ const getVersion = async function (repoPath = hilaryDirectory, repoInformation =
       path: await git.statusMatrix({
         ...submodulePath,
         ...nth(1, submoduleFilters)
-      })
-    },
-    restjsdoc: {
-      path: await git.statusMatrix({
-        ...submodulePath,
-        ...nth(-1, submoduleFilters)
       })
     }
   };

@@ -64,7 +64,7 @@ describe('Git information', () => {
 
       const submodules = hilaryInfo.get('submodules');
       assert.isObject(submodules);
-      assert.strictEqual(submodules.size, 3);
+      assert.strictEqual(submodules.size, 2);
 
       // oae-rest submodule
       let submoduleName = 'oae-rest';

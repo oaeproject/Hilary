@@ -80,13 +80,13 @@ config.redis = {
 config.servers = {
   globalAdminAlias: 'admin',
   globalAdminHost: 'admin.oae.com',
-  globalAdminPort: 2000,
+  globalAdminPort: 3000,
   guestTenantAlias: 'guest',
   guestTenantHost: 'guest.oae.com',
   shibbolethSPHost: 'shib-sp.oae.com',
   /* if on mac osx change next line to 0.0.0.0 */
   serverInternalAddress: null,
-  tenantPort: 2001,
+  tenantPort: 3001,
   useHttps: false,
   strictHttps: true
 };

@@ -62,8 +62,7 @@ In order to set up OAE on Codespaces, you need to follow the same steps as above
 ```
 docker-compose up -d oae-cassandra oae-elasticsearch oae-redis oae-nginx
 npm run migrate
-npx pm2 startOrReload process.json --only Ethercalc
-npx pm2 startOrReload process.json --only Etherpad
+npx pm2 startOrReload process.json --only "Ethercalc, Etherpad"
 
 # if you want to run tests
 npm run test

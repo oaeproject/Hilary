@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import { assert } from 'chai';
 import _ from 'underscore';
 import * as EmitterAPI from 'oae-emitter';
@@ -31,11 +32,11 @@ describe('EventEmitter', () => {
 
       let results = [];
 
-      emitter.on('a', function (...args) {
+      emitter.on('a', (...args) => {
         results = union(results, args);
       });
 
-      emitter.on('b', function (...args) {
+      emitter.on('b', (...args) => {
         results = union(results, args);
       });
 
@@ -127,9 +128,7 @@ describe('EventEmitter', () => {
             {},
             [],
             () => {},
-            () => {
-              return new EventEmitter().emit('a', callback);
-            }
+            () => new EventEmitter().emit('a', callback)
           );
         });
       });
@@ -152,9 +151,7 @@ describe('EventEmitter', () => {
             {},
             [],
             () => {},
-            () => {
-              return new EventEmitter().emit('a', callback);
-            }
+            () => new EventEmitter().emit('a', callback)
           );
         });
       });
@@ -167,13 +164,9 @@ describe('EventEmitter', () => {
     it('verify callback is invoked with only "when" handlers', (callback) => {
       const emitter = new EventEmitter();
 
-      emitter.when('a', (arg0, arg1, arg2, done) => {
-        return done();
-      });
+      emitter.when('a', (arg0, arg1, arg2, done) => done());
 
-      emitter.when('b', (arg0, arg1, arg2, done) => {
-        return done();
-      });
+      emitter.when('b', (arg0, arg1, arg2, done) => done());
 
       new EventEmitter().emit('a', 'blah', 'blah', 'blah', () => {
         new EventEmitter().emit('a', 5, 4, 3, () => {
@@ -182,9 +175,7 @@ describe('EventEmitter', () => {
             {},
             [],
             () => {},
-            () => {
-              return new EventEmitter().emit('a', null, undefined, false, callback);
-            }
+            () => new EventEmitter().emit('a', null, undefined, false, callback)
           );
         });
       });
@@ -252,9 +243,7 @@ describe('EventEmitter', () => {
       });
 
       emitter.when('a', (done) => {
-        process.nextTick(() => {
-          return done('a1');
-        });
+        process.nextTick(() => done('a1'));
       });
 
       emitter.when('a', (done) => {
@@ -265,9 +254,7 @@ describe('EventEmitter', () => {
       });
 
       emitter.when('a', (done) => {
-        process.nextTick(() => {
-          return done('a2');
-        });
+        process.nextTick(() => done('a2'));
       });
 
       emitter.when('a', (done) => {

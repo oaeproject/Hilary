@@ -13,21 +13,26 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { filter, map, prop, last, equals, not, compose, head } from 'ramda';
 
-import * as LocalStorage from 'oae-content/lib/backends/local';
-import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import { assert } from 'chai';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import * as LocalStorage from 'oae-content/lib/backends/local.js';
+import * as RestAPI from 'oae-rest';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PRIVATE = 'private';
 const PUBLIC = 'public';
@@ -116,13 +121,11 @@ describe('Profile pictures', () => {
    * Returns an object that can be used to crop out a rectangle
    * @api private
    */
-  const _createSelectedArea = (x, y, width) => {
-    return {
-      x,
-      y,
-      width
-    };
-  };
+  const _createSelectedArea = (x, y, width) => ({
+    x,
+    y,
+    width
+  });
 
   /**
    * Given a picture URL, parse the backend URI from the query string
@@ -373,7 +376,7 @@ describe('Profile pictures', () => {
     _createUser((ctx) => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, (error) => {
         assert.notExists(error);
-        _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 10, 20000), 500, callback);
+        _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 10, 20_000), 500, callback);
       });
     });
   });
@@ -385,8 +388,8 @@ describe('Profile pictures', () => {
     _createUser((ctx) => {
       RestAPI.User.uploadPicture(ctx, ctx.user.id, _getPictureStream, null, (error) => {
         assert.notExists(error);
-        _verifyCropping(ctx, ctx.user, _createSelectedArea(20000, 10, 100), 500, () => {
-          _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 200000, 100), 500, callback);
+        _verifyCropping(ctx, ctx.user, _createSelectedArea(20_000, 10, 100), 500, () => {
+          _verifyCropping(ctx, ctx.user, _createSelectedArea(10, 200_000, 100), 500, callback);
         });
       });
     });
@@ -430,25 +433,34 @@ describe('Profile pictures', () => {
                       assert.strictEqual(response.statusCode, 204);
 
                       // Now try downloading it with some invalid parameters
-                      RestAPI.User.downloadPicture(contexts.simon.restContext, 'invalid-user-id', 'small', (
-                        error /* , body, response */
-                      ) => {
-                        assert.strictEqual(error.code, 400);
-                        RestAPI.User.downloadPicture(contexts.simon.restContext, contexts.simon.user.id, null, (
-                          error /* , body, response */
-                        ) => {
+                      RestAPI.User.downloadPicture(
+                        contexts.simon.restContext,
+                        'invalid-user-id',
+                        'small',
+                        (error /* , body, response */) => {
                           assert.strictEqual(error.code, 400);
+                          RestAPI.User.downloadPicture(
+                            contexts.simon.restContext,
+                            contexts.simon.user.id,
+                            null,
+                            (error /* , body, response */) => {
+                              assert.strictEqual(error.code, 400);
 
-                          // Nicolaas has no picture, this should result in a 404
-                          RestAPI.User.downloadPicture(contexts.simon.restContext, contexts.nicolaas.user.id, 'small', (
-                            error /* , body, response */
-                          ) => {
-                            assert.strictEqual(error.code, 404);
+                              // Nicolaas has no picture, this should result in a 404
+                              RestAPI.User.downloadPicture(
+                                contexts.simon.restContext,
+                                contexts.nicolaas.user.id,
+                                'small',
+                                (error /* , body, response */) => {
+                                  assert.strictEqual(error.code, 404);
 
-                            return callback();
-                          });
-                        });
-                      });
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
                     }
                   );
                 }
@@ -1012,9 +1024,9 @@ describe('Profile pictures', () => {
                                   publicUser.user.id,
                                   loggedInUser.user.id,
                                   privateUser.user.id,
-                                  () => {
+                                  () =>
                                     // The private user can see everyone's thumbnail
-                                    return _verifySearchThumbnails(
+                                    _verifySearchThumbnails(
                                       privateUser.restContext,
                                       group.id,
                                       true,
@@ -1024,8 +1036,7 @@ describe('Profile pictures', () => {
                                       loggedInUser.user.id,
                                       privateUser.user.id,
                                       callback
-                                    );
-                                  }
+                                    )
                                 );
                               }
                             );

@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import { format } from 'util';
+import assert from 'node:assert';
+import { format } from 'node:util';
 import ShortId from 'shortid';
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import { generateRandomText } from 'oae-tests';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsAPI from 'oae-tenants';
+import { emitter } from 'oae-tenants/lib/api.js';
 
 // Keep track of the asynchronous operations that are still pending in the Tenants API
 const asyncOperationsCounter = new Counter();
-TenantsAPI.emitter.on('preCache', asyncOperationsCounter.incr);
-TenantsAPI.emitter.on('cached', asyncOperationsCounter.decr);
+emitter.on('preCache', asyncOperationsCounter.incr);
+emitter.on('cached', asyncOperationsCounter.decr);
 
 /**
  * Execute `callback` once a tenant change has propagated through the system. This is useful to
@@ -79,9 +79,7 @@ const createTenantAndWait = function (globalAdminRestCtx, alias, displayName, ho
     }
 
     // Wait until all current config events have fired until calling back
-    whenTenantChangePropagated(() => {
-      return callback(null, tenant);
-    });
+    whenTenantChangePropagated(() => callback(null, tenant));
   });
 };
 

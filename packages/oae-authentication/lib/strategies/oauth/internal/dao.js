@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as AccessTokens from './dao.accesstokens';
-import * as Clients from './dao.clients';
+import * as AccessTokens from './dao.accesstokens.js';
+import * as Clients from './dao.clients.js';
 
 export { AccessTokens, Clients };

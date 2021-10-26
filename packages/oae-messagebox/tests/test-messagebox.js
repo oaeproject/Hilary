@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 import ShortId from 'shortid';
 
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
 
 import { isNil, prop, find, equals, not, forEachObjIndexed } from 'ramda';
@@ -235,75 +235,100 @@ describe('Messagebox', () => {
 
         const messageBoxId = format('msg-box-test-%s', ShortId.generate());
 
-        createMessage(messageBoxId, 'u:camtest:foo', format('URL: %s more', httpUrl), NO_OPTS, (
-          error /* , message */
-        ) => {
-          assert.notExists(error);
-
-          // Verify the link was replaced
-          getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+        createMessage(
+          messageBoxId,
+          'u:camtest:foo',
+          format('URL: %s more', httpUrl),
+          NO_OPTS,
+          (error /* , message */) => {
             assert.notExists(error);
-            verifyMessage(messages[0].id, format('URL: %s more', markdownPath), null, messages);
 
-            // Verify multiple links
-            createMessage(messageBoxId, 'u:camtest:foo', format('URLs: %s %s', httpUrl, httpUrl), NO_OPTS, (
-              error /* , message */
-            ) => {
+            // Verify the link was replaced
+            getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
               assert.notExists(error);
+              verifyMessage(messages[0].id, format('URL: %s more', markdownPath), null, messages);
 
-              // Verify the link was replaced
-              getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
-                assert.notExists(error);
-                verifyMessage(messages[0].id, format('URLs: %s %s', markdownPath, markdownPath), null, messages);
+              // Verify multiple links
+              createMessage(
+                messageBoxId,
+                'u:camtest:foo',
+                format('URLs: %s %s', httpUrl, httpUrl),
+                NO_OPTS,
+                (error /* , message */) => {
+                  assert.notExists(error);
 
-                // Verify multiple markdown links
-                createMessage(
-                  messageBoxId,
-                  'u:camtest:foo',
-                  format('URLs: %s%s', markdownHttpUrl, markdownHttpUrl),
-                  NO_OPTS,
-                  (error /* , message */) => {
+                  // Verify the link was replaced
+                  getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
                     assert.notExists(error);
+                    verifyMessage(messages[0].id, format('URLs: %s %s', markdownPath, markdownPath), null, messages);
 
-                    // Verify the link was replaced
-                    getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
-                      assert.notExists(error);
-                      verifyMessage(messages[0].id, format('URLs: %s%s', markdownPath, markdownPath), null, messages);
-
-                      // Verify that quoted links aren't replaced
-                      const quotedMarkdown = format(
-                        '`%s` ` text %s`\n    %s\n\n    %s\n    text %s',
-                        httpsUrl,
-                        httpsUrl,
-                        httpsUrl,
-                        httpsUrl,
-                        httpsUrl
-                      );
-
-                      createMessage(messageBoxId, 'u:camtest:foo', quotedMarkdown, NO_OPTS, (error /* , message */) => {
+                    // Verify multiple markdown links
+                    createMessage(
+                      messageBoxId,
+                      'u:camtest:foo',
+                      format('URLs: %s%s', markdownHttpUrl, markdownHttpUrl),
+                      NO_OPTS,
+                      (error /* , message */) => {
                         assert.notExists(error);
+
+                        // Verify the link was replaced
                         getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
                           assert.notExists(error);
-                          const quotedExpected = format(
+                          verifyMessage(
+                            messages[0].id,
+                            format('URLs: %s%s', markdownPath, markdownPath),
+                            null,
+                            messages
+                          );
+
+                          // Verify that quoted links aren't replaced
+                          const quotedMarkdown = format(
                             '`%s` ` text %s`\n    %s\n\n    %s\n    text %s',
                             httpsUrl,
                             httpsUrl,
-                            markdownPath,
+                            httpsUrl,
                             httpsUrl,
                             httpsUrl
                           );
-                          verifyMessage(messages[0].id, quotedExpected, null, messages);
 
-                          return callback();
+                          createMessage(
+                            messageBoxId,
+                            'u:camtest:foo',
+                            quotedMarkdown,
+                            NO_OPTS,
+                            (error /* , message */) => {
+                              assert.notExists(error);
+                              getMessagesFromMessageBox(
+                                messageBoxId,
+                                NO_START,
+                                NO_LIMIT,
+                                NO_OPTS,
+                                (error, messages) => {
+                                  assert.notExists(error);
+                                  const quotedExpected = format(
+                                    '`%s` ` text %s`\n    %s\n\n    %s\n    text %s',
+                                    httpsUrl,
+                                    httpsUrl,
+                                    markdownPath,
+                                    httpsUrl,
+                                    httpsUrl
+                                  );
+                                  verifyMessage(messages[0].id, quotedExpected, null, messages);
+
+                                  return callback();
+                                }
+                              );
+                            }
+                          );
                         });
-                      });
-                    });
-                  }
-                );
-              });
+                      }
+                    );
+                  });
+                }
+              );
             });
-          });
-        });
+          }
+        );
       });
     });
 
@@ -314,53 +339,57 @@ describe('Messagebox', () => {
       const url = '/path/-Z9+&@#%=~_|!:,.;/file?query=parameter#hash';
       const messageBoxId = format('msg-box-test-%s', ShortId.generate());
 
-      createMessage(messageBoxId, 'u:camtest:foo', '[URL](http://cambridge.oae.com' + url + ') more text', NO_OPTS, (
-        error /* , message */
-      ) => {
-        assert.notExists(error);
-
-        // Verify the link was replaced
-        getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+      createMessage(
+        messageBoxId,
+        'u:camtest:foo',
+        '[URL](http://cambridge.oae.com' + url + ') more text',
+        NO_OPTS,
+        (error /* , message */) => {
           assert.notExists(error);
-          verifyMessage(messages[0].id, '[URL](' + url + ') more text', null, messages);
 
-          // Verify a link of the form [http://cambridge.oae.com/foo/bar](http://cambridge.oae.com/foo/bar)
-          createMessage(
-            messageBoxId,
-            'u:camtest:foo',
-            'URL: [http://cambridge.oae.com' + url + '](http://cambridge.oae.com' + url + ') more text',
-            NO_OPTS,
-            (error /* , message */) => {
-              assert.notExists(error);
+          // Verify the link was replaced
+          getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+            assert.notExists(error);
+            verifyMessage(messages[0].id, '[URL](' + url + ') more text', null, messages);
 
-              // Verify the link was replaced
-              getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+            // Verify a link of the form [http://cambridge.oae.com/foo/bar](http://cambridge.oae.com/foo/bar)
+            createMessage(
+              messageBoxId,
+              'u:camtest:foo',
+              'URL: [http://cambridge.oae.com' + url + '](http://cambridge.oae.com' + url + ') more text',
+              NO_OPTS,
+              (error /* , message */) => {
                 assert.notExists(error);
-                verifyMessage(messages[0].id, 'URL: [' + url + '](' + url + ') more text', null, messages);
 
-                // Verify a link of the form [http://cambridge.oae.com/foo/bar](/foo/bar)
-                createMessage(
-                  messageBoxId,
-                  'u:camtest:foo',
-                  'URL: [http://cambridge.oae.com' + url + '](' + url + ') more text',
-                  NO_OPTS,
-                  (error /* , message */) => {
-                    assert.notExists(error);
+                // Verify the link was replaced
+                getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+                  assert.notExists(error);
+                  verifyMessage(messages[0].id, 'URL: [' + url + '](' + url + ') more text', null, messages);
 
-                    // Verify the link was replaced
-                    getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+                  // Verify a link of the form [http://cambridge.oae.com/foo/bar](/foo/bar)
+                  createMessage(
+                    messageBoxId,
+                    'u:camtest:foo',
+                    'URL: [http://cambridge.oae.com' + url + '](' + url + ') more text',
+                    NO_OPTS,
+                    (error /* , message */) => {
                       assert.notExists(error);
-                      verifyMessage(messages[0].id, 'URL: [' + url + '](' + url + ') more text', null, messages);
 
-                      return callback();
-                    });
-                  }
-                );
-              });
-            }
-          );
-        });
-      });
+                      // Verify the link was replaced
+                      getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+                        assert.notExists(error);
+                        verifyMessage(messages[0].id, 'URL: [' + url + '](' + url + ') more text', null, messages);
+
+                        return callback();
+                      });
+                    }
+                  );
+                });
+              }
+            );
+          });
+        }
+      );
     });
 
     /**
@@ -370,39 +399,43 @@ describe('Messagebox', () => {
       const messageBoxId = format('msg-box-test-%s', ShortId.generate());
 
       // First check that you cannot reply to a non-existant message.
-      createMessage(messageBoxId, 'u:camtest:foo', BODY, { replyToCreated: Date.now() - 1000 }, (
-        error /* , message */
-      ) => {
-        assert.strictEqual(error.code, 400);
+      createMessage(
+        messageBoxId,
+        'u:camtest:foo',
+        BODY,
+        { replyToCreated: Date.now() - 1000 },
+        (error /* , message */) => {
+          assert.strictEqual(error.code, 400);
 
-        setTimeout(createMessage, 10, messageBoxId, 'u:camtest:foo', BODY, {}, (error, message) => {
-          assert.notExists(error);
-          assert.ok(message);
+          setTimeout(createMessage, 10, messageBoxId, 'u:camtest:foo', BODY, {}, (error, message) => {
+            assert.notExists(error);
+            assert.ok(message);
 
-          setTimeout(
-            createMessage,
-            10,
-            messageBoxId,
-            'u:camtest:foo',
-            BODY,
-            { replyToCreated: message.created },
-            (error, reply) => {
-              assert.notExists(error);
-              assert.ok(reply);
-              assert.strictEqual(reply.replyTo, message.created);
-
-              // Sanity check: retrieve them back
-              getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+            setTimeout(
+              createMessage,
+              10,
+              messageBoxId,
+              'u:camtest:foo',
+              BODY,
+              { replyToCreated: message.created },
+              (error, reply) => {
                 assert.notExists(error);
-                verifyMessage(message.id, BODY, null, messages);
-                verifyMessage(reply.id, BODY, message.created, messages);
+                assert.ok(reply);
+                assert.strictEqual(reply.replyTo, message.created);
 
-                return callback();
-              });
-            }
-          );
-        });
-      });
+                // Sanity check: retrieve them back
+                getMessagesFromMessageBox(messageBoxId, NO_START, NO_LIMIT, NO_OPTS, (error, messages) => {
+                  assert.notExists(error);
+                  verifyMessage(message.id, BODY, null, messages);
+                  verifyMessage(reply.id, BODY, message.created, messages);
+
+                  return callback();
+                });
+              }
+            );
+          });
+        }
+      );
     });
   });
 

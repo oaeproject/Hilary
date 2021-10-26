@@ -12,22 +12,27 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
-import * as MQTestUtil from 'oae-util/lib/test/mq-util';
-import * as PreviewAPI from 'oae-preview-processor/lib/api';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util';
+import { fileURLToPath } from 'node:url';
+import { assert } from 'chai';
+
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch.js';
+import * as MQTestUtil from 'oae-util/lib/test/mq-util.js';
+import * as PreviewAPI from 'oae-preview-processor/lib/api.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PreviewTestUtil from 'oae-preview-processor/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as SearchAPI from 'oae-search';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import { not, propSatisfies, equals, find } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const GENERAL = 'general';
 const RESOURCE = 'resource';

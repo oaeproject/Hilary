@@ -1,4 +1,4 @@
-import { runQuery, createColumnFamilies } from 'oae-util/lib/cassandra';
+import { runQuery, createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the all of the principal-related schemas are created. If they already exist, this method will not
@@ -8,7 +8,7 @@ import { runQuery, createColumnFamilies } from 'oae-util/lib/cassandra';
  * @param  {Object}      callback.err   An error that occurred, if any
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   // Both user and group information will be stored inside of the Principals CF
   createColumnFamilies(
     {
@@ -38,9 +38,7 @@ const ensureSchema = function(callback) {
         'CREATE TABLE "DataArchive" ("archiveId" text, "principalId" text, "resourceId" text, "deletionDate" text, PRIMARY KEY ("archiveId", "principalId"))'
     },
     () => {
-      runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => {
-        return callback();
-      });
+      runQuery('CREATE INDEX IF NOT EXISTS ON "Principals" ("tenantAlias")', [], () => callback());
     }
   );
 };

@@ -13,7 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import {
   values,
   isEmpty,
@@ -28,16 +31,11 @@ import {
   __,
   curry,
   either,
+  reduce,
   equals,
   defaultTo,
   isNil
 } from 'ramda';
-
-// Auxiliary functions
-const isObject = is(Object);
-const toInt = curry(parseInt)(__, 10);
-const equalsZero = equals(0);
-const isDefined = Boolean;
 
 /**
  * GLOBAL UTILS
@@ -47,6 +45,15 @@ const isDefined = Boolean;
 // `oae-util/lib/internal/globals` for all the global definitions
 // eslint-disable-next-line  no-unused-vars
 import * as globals from './internal/globals.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Auxiliary functions
+const isObject = is(Object);
+const toInt = curry(parseInt)(__, 10);
+const equalsZero = equals(0);
+const isDefined = Boolean;
 
 /**
  * OAEUTIL UTILS
@@ -174,7 +181,23 @@ const toArray = (input) => {
   return flatten([input]);
 };
 
+/*
+ * Executes Promises sequentially.
+ * @param {funcs} An array of funcs that return promises.
+ * @example
+ * const urls = ['/url1', '/url2', '/url3']
+ * serial(urls.map(url => () => $.ajax(url)))
+ *     .then(console.log.bind(console))
+ */
+const serial = (funcs) =>
+  reduce(
+    (promise, func) => promise.then((result) => func().then(Array.prototype.concat.bind(result))),
+    Promise.resolve([]),
+    funcs
+  );
+
 export {
+  serial,
   castToBoolean,
   getNumberParameter as getNumberParam,
   isUnspecified,

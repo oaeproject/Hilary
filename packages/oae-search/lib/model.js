@@ -30,7 +30,7 @@
  * @param  {Object[]}      results     An array of documents that were returned from the search
  * @return {SearchResult}              An object that represents this search result
  */
-const SearchResult = function(total, results) {
+const SearchResult = function (total, results) {
   const that = {};
   that.total = total;
   that.results = results;

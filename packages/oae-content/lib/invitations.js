@@ -16,16 +16,16 @@
 import _ from 'underscore';
 import { pipe, keys, filter } from 'ramda';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { Context } from 'oae-context';
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 
 import * as ContentAPI from 'oae-content';
-import { ContentConstants } from 'oae-content/lib/constants';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 
 import { logger } from 'oae-logger';
 
@@ -81,6 +81,7 @@ ResourceActions.emitter.when(
     });
   }
 );
+
 /*!
  * When content is deleted, delete all its invitations as well
  */

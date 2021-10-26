@@ -15,8 +15,8 @@
 
 import { assert } from 'chai';
 import { length, head, equals, forEach, isEmpty, nth, compose, not } from 'ramda';
-import { Content } from 'oae-content/lib/model';
-import { FilterGenerator } from 'oae-preview-processor/lib/filters';
+import { Content } from 'oae-content/lib/model.js';
+import { FilterGenerator } from 'oae-preview-processor/lib/filters.js';
 
 const isNotEmpty = compose(not, isEmpty);
 const isFalse = (x) => equals(false, x);
@@ -28,12 +28,12 @@ describe('Preview processor - filters', () => {
    * (A = 5 days ago against F, B = 4 days ago, etc)
    */
   const times = {
-    A: 1378396474099,
-    B: 1378482876661,
-    C: 1378569279923,
-    D: 1378655682036,
-    E: 1378742084186,
-    F: 1378828613052
+    A: 1_378_396_474_099,
+    B: 1_378_482_876_661,
+    C: 1_378_569_279_923,
+    D: 1_378_655_682_036,
+    E: 1_378_742_084_186,
+    F: 1_378_828_613_052
   };
 
   /**

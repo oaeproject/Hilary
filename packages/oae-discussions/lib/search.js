@@ -15,18 +15,17 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
+import { isEmpty, pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
 import * as DiscussionsDAO from './internal/dao.js';
 import DiscussionsAPI from './api.js';
 import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-search');
-
-import { isEmpty, pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
 
 const defaultToEmptyObject = defaultTo({});
 const getResourceId = prop('resourceId');
@@ -44,9 +43,7 @@ const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
     ['discussion'],
-    (resources, callback) => {
-      return _produceDiscussionMessageDocuments(resources.slice(), callback);
-    },
+    (resources, callback) => _produceDiscussionMessageDocuments([...resources], callback),
     callback
   );
 };
@@ -116,13 +113,13 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
 /*!
  * When a discussion message is deleted, we must delete the child message document
  */
-DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, message, discussion, _) => {
-  return MessageBoxSearch.deleteMessageSearchDocument(
+DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, message, discussion, _) =>
+  MessageBoxSearch.deleteMessageSearchDocument(
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
     discussion.id,
     message
-  );
-});
+  )
+);
 
 /**
  * Document producers

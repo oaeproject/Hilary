@@ -13,18 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import { stat as doesFileExist, readFile } from 'fs';
+import { stat as doesFileExist, readFile } from 'node:fs';
 import _ from 'underscore';
 import dox from 'dox';
 
-import { getFileListForFolder } from 'oae-util/lib/io';
-import * as modules from 'oae-util/lib/modules';
-import * as OaeUtil from 'oae-util/lib/util';
-import { Validator as validator } from 'oae-util/lib/validator';
-const { unless, isNotEmpty } = validator;
-import isIn from 'validator/lib/isIn';
+import { getFileListForFolder } from 'oae-util/lib/io.js';
+import * as modules from 'oae-util/lib/modules.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+import isIn from 'validator/lib/isIn.js';
 
 import { logger } from 'oae-logger';
+
+const { unless, isNotEmpty } = validator;
 
 const log = logger('oae-doc');
 
@@ -41,11 +42,11 @@ const cachedDocs = {
  * @param  {Object}     uiConfig         JSON object containing UI configuration values, like the path to the UI directory
  * @param  {Function}   callback         Standard callback function
  */
-const initializeDocs = function(uiConfig, callback) {
+const initializeDocs = function (uiConfig, callback) {
   // Initialize the front-end documentation
-  _initializeFrontendDocs(uiConfig, err => {
-    if (err) {
-      return callback(err);
+  _initializeFrontendDocs(uiConfig, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Initialize the back-end documentation
@@ -62,7 +63,7 @@ const initializeDocs = function(uiConfig, callback) {
  * @param  {Object}     callback.err     An error that occurred, if any
  * @api private
  */
-const _initializeFrontendDocs = function(uiConfig, callback) {
+const _initializeFrontendDocs = function (uiConfig, callback) {
   let baseDir = uiConfig.path;
   // When we are running with an optimized UI build, we cannot use these files for documentation parsing as all of the
   // JSDocs will be stripped out of these files. However, in that case an `original` folder should exist as a sibling
@@ -70,16 +71,16 @@ const _initializeFrontendDocs = function(uiConfig, callback) {
   // for generating documentation. If the `original` folder does not exist, we assume that we are not running on an
   // optimized build and use the source files in the provided base UI directory.
   const originalDir = baseDir + '/../original';
-  doesFileExist(originalDir, (err, exists) => {
+  doesFileExist(originalDir, (error, exists) => {
     baseDir = exists ? originalDir : baseDir;
 
     // Only parse the API files. We don't parse any other UI files yet.
     const dir = baseDir + '/shared/oae/api';
     const exclude = ['oae.api.js', 'oae.bootstrap.js', 'oae.core.js'];
 
-    _parseDocs(dir, exclude, (err, docs) => {
-      if (err) {
-        return callback(err);
+    _parseDocs(dir, exclude, (error, docs) => {
+      if (error) {
+        return callback(error);
       }
 
       cachedDocs.frontend = docs;
@@ -98,7 +99,7 @@ const _initializeFrontendDocs = function(uiConfig, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _initializeBackendDocs = function(backendModules, callback) {
+const _initializeBackendDocs = function (backendModules, callback) {
   if (_.isEmpty(backendModules)) {
     return callback();
   }
@@ -106,9 +107,9 @@ const _initializeBackendDocs = function(backendModules, callback) {
   // Shift off a module to parse its docs
   const module = backendModules.shift();
   const dir = OaeUtil.getNodeModulesDir() + module + '/lib';
-  _parseDocs(dir, null, (err, docs) => {
-    if (err) {
-      return callback(err);
+  _parseDocs(dir, null, (error, docs) => {
+    if (error) {
+      return callback(error);
     }
 
     // Cache the doc info in memory and recurse
@@ -128,11 +129,11 @@ const _initializeBackendDocs = function(backendModules, callback) {
  * @param  {Object}     [callback.docs] JSON Object where the keys are the file names and the values are the parsed JSDocs
  * @api private
  */
-const _parseDocs = function(dir, exclude, callback) {
+const _parseDocs = function (dir, exclude, callback) {
   // Get all of the files in the provided base directory
-  getFileListForFolder(dir, (err, fileNames) => {
-    if (err) {
-      log().warn({ err, dir }, 'Failed getting file list to parse dox documentation.');
+  getFileListForFolder(dir, (error, fileNames) => {
+    if (error) {
+      log().warn({ err: error, dir }, 'Failed getting file list to parse dox documentation.');
       return callback({ code: 404, msg: 'No documentation for this module was found' });
     }
 
@@ -142,13 +143,13 @@ const _parseDocs = function(dir, exclude, callback) {
     let done = 0;
     const doc = {};
 
-    _.each(fileNames, fileName => {
-      (function(fileName) {
+    _.each(fileNames, (fileName) => {
+      (function (fileName) {
         // Read each of the files in the provided directory
-        readFile(dir + '/' + fileName, 'utf8', (err, data) => {
+        readFile(dir + '/' + fileName, 'utf8', (error, data) => {
           done++;
-          if (err) {
-            log().error({ err }, 'Failed reading ' + dir + '/' + fileName);
+          if (error) {
+            log().error({ err: error }, 'Failed reading ' + dir + '/' + fileName);
           } else {
             // Parse the JSDocs using Dox
             try {
@@ -166,7 +167,7 @@ const _parseDocs = function(dir, exclude, callback) {
           }
 
           if (done === fileNames.length) {
-            return callback(err, doc);
+            return callback(error, doc);
           }
         });
       })(fileName);
@@ -187,8 +188,8 @@ const _parseDocs = function(dir, exclude, callback) {
  * @return {String[]}                       The returned filtered array of filenames
  * @api private
  */
-const _filterFiles = function(fileNames, exclude) {
-  return _.filter(fileNames, fileName => {
+const _filterFiles = function (fileNames, exclude) {
+  return _.filter(fileNames, (fileName) => {
     if (fileName.includes('.js') && _.indexOf(exclude, fileName) === -1) {
       return true;
     }
@@ -205,7 +206,7 @@ const _filterFiles = function(fileNames, exclude) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String[]}   callback.modules    The list of available modules for the provided type
  */
-const getModules = function(type, callback) {
+const getModules = function (type, callback) {
   if (!cachedDocs[type]) {
     return callback({
       code: 400,
@@ -225,7 +226,7 @@ const getModules = function(type, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Object}     callback.doc    The parsed Dox documentation for the requested module
  */
-const getModuleDocumentation = function(moduleId, type, callback) {
+const getModuleDocumentation = function (moduleId, type, callback) {
   try {
     unless(isNotEmpty, {
       code: 400,

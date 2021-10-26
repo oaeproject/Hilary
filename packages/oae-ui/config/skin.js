@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { Text } from 'oae-config/lib/fields';
+import { Text } from 'oae-config/lib/fields.js';
 
 export const title = 'OAE UI Module';
 export const skin = {

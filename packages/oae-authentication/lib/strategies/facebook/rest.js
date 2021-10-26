@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 /**
  * @REST postAuthFacebook
@@ -63,4 +63,4 @@ OAE.tenantRouter.on('get', '/api/auth/facebook/callback', (request, response, ne
   AuthenticationUtil.handleExternalCallback(strategyId, request, response, next);
 });
 
-export default OAE;
+export { OAE as default };

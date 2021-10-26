@@ -13,11 +13,16 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import { promisify } from 'node:util';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 
 import { logger } from 'oae-logger';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const log = logger('oae-preview-processor');
 
@@ -25,19 +30,19 @@ const launchOptions = {
   args: ['--disable-dev-shm-usage']
 };
 
-const setHTTPHeadersIfAny = async function(page, customHeaders) {
+const setHTTPHeadersIfAny = async function (page, customHeaders) {
   if (customHeaders) {
     await page.setExtraHTTPHeaders(customHeaders);
   }
 };
 
-const setViewportIfAny = async function(page, viewport) {
+const setViewportIfAny = async function (page, viewport) {
   if (viewport) {
     await page.setViewport(viewport);
   }
 };
 
-const setContentIfFile = async function(page, url) {
+const setContentIfFile = async function (page, url) {
   const isFile = url.startsWith('file://');
   if (isFile) {
     const htmlContent = fs.readFileSync(url.slice(7), { encoding: 'utf-8' });
@@ -45,7 +50,7 @@ const setContentIfFile = async function(page, url) {
   }
 };
 
-const navigateToPageIfUrl = async function(page, url) {
+const navigateToPageIfUrl = async function (page, url) {
   const isUrl = url.startsWith('http');
   if (isUrl) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -63,51 +68,44 @@ const navigateToPageIfUrl = async function(page, url) {
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error that occurred, if any
  */
-const getPuppeteerImage = function(url, imgPath, options, callback) {
+const getPuppeteerImage = async function (url, imgPath, options) {
   log().trace({ url, imgPath }, 'Generating image for an url.');
 
-  (async () => {
-    const browser = await puppeteer.launch({ ...launchOptions, ...options });
-    const page = await browser.newPage();
+  const browser = await puppeteer.launch({ ...launchOptions, ...options });
+  const page = await browser.newPage();
 
-    let isAttachment = false;
-    page.on('response', response => {
-      const contentDispositionHeader = response._headers['content-disposition'];
-      if (contentDispositionHeader && contentDispositionHeader.startsWith(`attachment;`)) {
-        isAttachment = true;
-      } else {
-        isAttachment = false;
-      }
-    });
+  let isAttachment = false;
+  page.on('response', (response) => {
+    const contentDispositionHeader = response._headers['content-disposition'];
+    isAttachment = Boolean(contentDispositionHeader && contentDispositionHeader.startsWith(`attachment;`));
+  });
 
-    try {
-      await setHTTPHeadersIfAny(page, options.customHeaders);
-      await setViewportIfAny(page, options.viewport);
-      await setContentIfFile(page, url);
-      await navigateToPageIfUrl(page, url);
+  try {
+    await setHTTPHeadersIfAny(page, options.customHeaders);
+    await setViewportIfAny(page, options.viewport);
+    await setContentIfFile(page, url);
+    await navigateToPageIfUrl(page, url);
 
-      await page.screenshot({ path: imgPath });
-    } catch (error) {
-      if (isAttachment) {
-        // Set image path to be blank in the case of attachment
-        // webshot would write that file before, but not puppeteer
-        log().trace({ url, imgPath }, 'Generating image for an url that is in fact an attachment.');
-        const blankPng = path.resolve(__dirname, '../../static/link/blank.png');
-        fs.copyFile(blankPng, imgPath, err => {
-          if (err) {
-            log().error({ err }, 'Could not copy blank screenshot file after realising file url is an attachment.');
-            return callback({ code: 500, msg: err.message });
-          }
-        });
-      } else {
-        log().error({ err: error }, 'Could not generate a screenshot.');
-        return callback({ code: 500, msg: error });
-      }
-    } finally {
-      await browser.close();
-      callback(null);
+    await page.screenshot({ path: imgPath });
+  } catch (error) {
+    if (isAttachment) {
+      /**
+       * Set image path to be blank in the case of attachment
+       * webshot would write that file before, but not puppeteer
+       */
+      log().trace({ url, imgPath }, 'Generating image for an url that is in fact an attachment.');
+      const blankPng = path.resolve(__dirname, '../../static/link/blank.png');
+      await promisify(fs.copyFile)(blankPng, imgPath).catch((error) => {
+        log().error({ err: error }, 'Could not copy blank screenshot file after realising file url is an attachment.');
+        return { code: 500, msg: error };
+      });
+    } else {
+      log().error({ err: error }, 'Could not generate a screenshot.');
+      return { code: 500, msg: error };
     }
-  })();
+  } finally {
+    await browser.close();
+  }
 };
 
 export { getPuppeteerImage as getImage };

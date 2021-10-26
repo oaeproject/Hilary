@@ -14,24 +14,25 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as Redis from 'oae-util/lib/redis';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as Redis from 'oae-util/lib/redis.js';
 
-import { Group, User } from 'oae-principals/lib/model';
-import { Validator as validator } from 'oae-authz/lib/validator';
-const { unless, toBoolean, isPrincipalId, isArrayEmpty } = validator;
+import { Group, User } from 'oae-principals/lib/model.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 
-import { LoginId } from 'oae-authentication/lib/model';
+import { LoginId } from 'oae-authentication/lib/model.js';
 import { PrincipalsConstants } from '../constants.js';
+
+const { unless, toBoolean, isPrincipalId, isArrayEmpty } = validator;
 
 const log = logger('principals-dao');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -465,9 +466,7 @@ const getUserIdsByEmails = function (emails, callback) {
     const userIdsByEmail = _.chain(rows)
       .map(Cassandra.rowToHash)
       .groupBy('email')
-      .mapObject((principalIdEmailHashes) => {
-        return _.pluck(principalIdEmailHashes, 'principalId');
-      })
+      .mapObject((principalIdEmailHashes) => _.pluck(principalIdEmailHashes, 'principalId'))
       .value();
     return callback(null, userIdsByEmail);
   });
@@ -504,19 +503,17 @@ const setEmailAddress = function (user, email, callback) {
 
   // The token is correct, change the email address
   const principalsUpdate = { email };
-  queries.push(Cassandra.constructUpsertCQL('Principals', 'principalId', user.id, principalsUpdate));
-
-  // Remove the token
-  queries.push({
-    query: 'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?',
-    parameters: [user.id]
-  });
-
-  // Create the mapping for the new email address
-  queries.push({
-    query: 'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)',
-    parameters: [email, user.id]
-  });
+  queries.push(
+    Cassandra.constructUpsertCQL('Principals', 'principalId', user.id, principalsUpdate),
+    {
+      query: 'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?',
+      parameters: [user.id]
+    },
+    {
+      query: 'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)',
+      parameters: [email, user.id]
+    }
+  );
 
   // Remove the old mapping, if any
   if (user.email && user.email !== email) {
@@ -640,14 +637,16 @@ const _updatePrincipal = function (principalId, profileFields, callback) {
 
     // If the user's email address needs to be updated, we remove the old one from the mapping
     if (isEmailAddressUpdate) {
-      queries.push({
-        query: 'DELETE FROM "PrincipalsByEmail" WHERE "email" = ? AND "principalId" = ?',
-        parameters: [oldEmail, principalId]
-      });
-      queries.push({
-        query: 'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)',
-        parameters: [profileFields.email, principalId]
-      });
+      queries.push(
+        {
+          query: 'DELETE FROM "PrincipalsByEmail" WHERE "email" = ? AND "principalId" = ?',
+          parameters: [oldEmail, principalId]
+        },
+        {
+          query: 'INSERT INTO "PrincipalsByEmail" ("email", "principalId") VALUES (?, ?)',
+          parameters: [profileFields.email, principalId]
+        }
+      );
     }
 
     // Execute the queries
@@ -937,7 +936,7 @@ const _timestampToMillis = function (object, key) {
  * @return {String[]}   An array of fields that are not allowed to be set by a call to `updatePrincipal`
  */
 const getRestrictedFields = function () {
-  return RESTRICTED_FIELDS.slice();
+  return [...RESTRICTED_FIELDS];
 };
 
 /**
@@ -1139,9 +1138,7 @@ const getJoinGroupRequests = function (groupId, callback) {
       return callback();
     }
 
-    const users = _.map(rows, (row) => {
-      return Cassandra.rowToHash(row);
-    });
+    const users = _.map(rows, (row) => Cassandra.rowToHash(row));
 
     return callback(null, users);
   });
@@ -1161,19 +1158,15 @@ const fullyDeletePrincipal = function (user, login, callback) {
   const loginId = new LoginId(user.tenant.alias, AuthenticationConstants.providers.LOCAL, login.local);
 
   // Delete user from table Principals
-  queries.push({ query: 'DELETE FROM "Principals" where "principalId" = ?', parameters: [user.id] });
-
-  // Delete user from table PrincipalsEmailToken
-  queries.push({ query: 'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?', parameters: [user.id] });
-
-  // Delete user from table PrincipalsByEmail
-  queries.push({
-    query: 'DELETE FROM "PrincipalsByEmail" where "email" = ? AND "principalId" = ?',
-    parameters: [user.email, user.id]
-  });
-
-  // Delete user from table AuthenticationUserLoginId
-  queries.push({ query: 'DELETE FROM "AuthenticationUserLoginId" WHERE "userId" = ?', parameters: [user.id] });
+  queries.push(
+    { query: 'DELETE FROM "Principals" where "principalId" = ?', parameters: [user.id] },
+    { query: 'DELETE FROM "PrincipalsEmailToken" WHERE "principalId" = ?', parameters: [user.id] },
+    {
+      query: 'DELETE FROM "PrincipalsByEmail" where "email" = ? AND "principalId" = ?',
+      parameters: [user.email, user.id]
+    },
+    { query: 'DELETE FROM "AuthenticationUserLoginId" WHERE "userId" = ?', parameters: [user.id] }
+  );
 
   // Delete user from table AuthenticationLoginId
   if (loginId && loginId.tenantAlias && loginId.provider && loginId.externalId) {
@@ -1257,7 +1250,7 @@ const getDataFromArchive = function (archiveId, principalId, callback) {
  * @param  [User]           callback.users      The list of users for the given tenancy
  */
 const addDataToArchive = function (archiveId, principalId, resourceId, date, callback) {
-  const stringResource = resourceId.join();
+  const stringResource = resourceId.join(',');
 
   Cassandra.runQuery(
     'INSERT INTO "DataArchive" ("archiveId", "principalId", "resourceId", "deletionDate") VALUES (?, ?, ?, ?)',
@@ -1322,9 +1315,7 @@ const getExpiredUser = function (actualDate, callback) {
 
     const users = _.chain(rows)
       .map(Cassandra.rowToHash)
-      .filter((user) => {
-        return new Date(user.deletionDate) < actualDate;
-      })
+      .filter((user) => new Date(user.deletionDate) < actualDate)
       .value();
     return callback(null, users);
   });

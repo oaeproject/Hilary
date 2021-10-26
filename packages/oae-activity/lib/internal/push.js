@@ -13,19 +13,26 @@
  * permissions and limitations under the License.
  */
 
-import ActivityEmitter from 'oae-activity/lib/internal/emitter';
+import ActivityEmitter from 'oae-activity/lib/internal/emitter.js';
 
 import _ from 'underscore';
 import clone from 'clone';
 
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
-import * as Pubsub from 'oae-util/lib/pubsub';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as Signature from 'oae-util/lib/signature';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsAPI from 'oae-tenants';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { compose, equals, not, path } from 'ramda';
+
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
+import * as ActivityTransformer from 'oae-activity/lib/internal/transformer.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
+
 const {
   validateInCase: bothCheck,
   getNestedObject,
@@ -36,12 +43,6 @@ const {
   isNotNull,
   isANumber
 } = validator;
-import { compose, equals, not, path } from 'ramda';
-
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
-import * as ActivityTransformer from 'oae-activity/lib/internal/transformer';
-import * as ActivityUtil from 'oae-activity/lib/util';
 
 const log = logger('oae-activity-push');
 const Telemetry = telemetry('push');
@@ -158,7 +159,7 @@ const AUTHENTICATION_TIMEOUT = 5000;
  * @param  {Function} callback      Standard callback function
  * @param  {Object}   callback.err  An error that occurred, if any
  */
-const init = function(callback) {
+const init = function (callback) {
   /**
    * Nothing to do here since we moved to Redis pubsub
    * We basically create a redis channel for every `activityStreamId`
@@ -175,7 +176,7 @@ const init = function(callback) {
  *
  * @param  {Socket}     socket  A WebSocket connection
  */
-const registerConnection = function(socket) {
+const registerConnection = function (socket) {
   log().trace({ sid: socket.id }, 'Got a new websocket connection');
 
   // Hold state about the registered websocket connection
@@ -218,13 +219,13 @@ const registerConnection = function(socket) {
    *
    * @param  {Object}     msg     The message the client sent us
    */
-  socket.on('data', msg => {
+  socket.on('data', (message_) => {
     let message = null;
     try {
       // Deserialize the incoming message (Sock.JS only supports strings)
-      message = JSON.parse(msg);
+      message = JSON.parse(message_);
     } catch (error) {
-      log().error({ msg, err: error }, 'Ignoring malformed message');
+      log().error({ msg: message_, err: error }, 'Ignoring malformed message');
       _writeResponse(connectionInfo, 0, { code: 400, msg: 'Malformed message' });
       socket.close();
 
@@ -232,11 +233,11 @@ const registerConnection = function(socket) {
       return;
     }
 
-    log().trace({ sid: socket.id, request: msg }, 'Received websocket request');
+    log().trace({ sid: socket.id, request: message_ }, 'Received websocket request');
 
     // We require an id for all incoming messages
     if (!message.id) {
-      log().error({ msg }, 'Missing id on the message');
+      log().error({ msg: message_ }, 'Missing id on the message');
       _writeResponse(connectionInfo, 0, { code: 400, msg: 'Missing id on the message' });
       return socket.close();
     }
@@ -278,7 +279,7 @@ const registerConnection = function(socket) {
     }
 
     const start = Date.now();
-    _.each(connectionInfo.streams, stream => {
+    _.each(connectionInfo.streams, (stream) => {
       if (!connectionInfosPerStream[stream]) {
         // Seems unlikely, but it's better to be safe
         log().warn(
@@ -343,7 +344,7 @@ const registerConnection = function(socket) {
  * @return {Function}                   Returns a function which writes to a socket
  * @api private
  */
-const _authenticate = function(connectionInfo, message) {
+const _authenticate = function (connectionInfo, message) {
   const { socket } = connectionInfo;
   const data = message.payload;
   if (!data) {
@@ -354,7 +355,7 @@ const _authenticate = function(connectionInfo, message) {
     return socket.close();
   }
 
-  const handleError = error => {
+  const handleError = (error) => {
     _writeResponse(connectionInfo, message.id, error);
     log().error({ err: error }, 'Invalid auth frame');
     return socket.close();
@@ -399,13 +400,10 @@ const _authenticate = function(connectionInfo, message) {
   }
 
   // Get the full user object so we can build a context with which to authenticate to the signing utility
-  PrincipalsDAO.getPrincipal(data.userId, (err, user) => {
-    if (err) {
-      _writeResponse(connectionInfo, message.id, err);
-      log().error(
-        { err, userId: data.userId, sid: socket.id },
-        'Error trying to get the principal object'
-      );
+  PrincipalsDAO.getPrincipal(data.userId, (error, user) => {
+    if (error) {
+      _writeResponse(connectionInfo, message.id, error);
+      log().error({ err: error, userId: data.userId, sid: socket.id }, 'Error trying to get the principal object');
       return socket.close();
     }
 
@@ -422,10 +420,7 @@ const _authenticate = function(connectionInfo, message) {
       )
     ) {
       _writeResponse(connectionInfo, message.id, { code: 401, msg: 'Invalid signature' });
-      log().error(
-        { userId: data.userId, sid: socket.id },
-        'Incoming authentication signature was invalid'
-      );
+      log().error({ userId: data.userId, sid: socket.id }, 'Incoming authentication signature was invalid');
       return socket.close();
     }
 
@@ -451,7 +446,7 @@ const _authenticate = function(connectionInfo, message) {
  * @return {Function}                   Returns a function which writes to a socket
  * @api private
  */
-const _subscribe = function(connectionInfo, message) {
+const _subscribe = function (connectionInfo, message) {
   const { socket } = connectionInfo;
   const data = message.payload;
   if (!data || !data.stream || !data.stream.resourceId || !data.stream.streamType) {
@@ -463,11 +458,7 @@ const _subscribe = function(connectionInfo, message) {
 
   // If a format is specified, ensure that it is one that we support
   const formatIsInvalid =
-    data.format &&
-    !_.chain(ActivityConstants.transformerTypes)
-      .values()
-      .contains(data.format)
-      .value();
+    data.format && !_.chain(ActivityConstants.transformerTypes).values().contains(data.format).value();
   if (formatIsInvalid) {
     return _writeResponse(connectionInfo, message.id, {
       code: 400,
@@ -482,33 +473,26 @@ const _subscribe = function(connectionInfo, message) {
   }
 
   // Perform authorization
-  authzHandler(connectionInfo.ctx, data.stream.resourceId, data.token, err => {
-    if (err) {
-      return _writeResponse(connectionInfo, message.id, err);
+  authzHandler(connectionInfo.ctx, data.stream.resourceId, data.token, (error) => {
+    if (error) {
+      return _writeResponse(connectionInfo, message.id, error);
     }
 
-    const activityStreamId = ActivityUtil.createActivityStreamId(
-      data.stream.resourceId,
-      data.stream.streamType
-    );
+    const activityStreamId = ActivityUtil.createActivityStreamId(data.stream.resourceId, data.stream.streamType);
     log().trace({ sid: socket.id, activityStreamId }, 'Registering socket for stream');
 
     /*!
      * Finishes up the subscription process and  writes a response to the client
      */
-    const finish = function() {
+    const finish = function () {
       // Remember the desired transformer for this stream on this socket
       const transformerType = data.format || ActivityConstants.transformerTypes.INTERNAL;
       connectionInfo.transformerTypes = connectionInfo.transformerTypes || {};
-      connectionInfo.transformerTypes[activityStreamId] =
-        connectionInfo.transformerTypes[activityStreamId] || [];
+      connectionInfo.transformerTypes[activityStreamId] = connectionInfo.transformerTypes[activityStreamId] || [];
       connectionInfo.transformerTypes[activityStreamId].push(transformerType);
 
       // Acknowledge a succesful subscription
-      log().trace(
-        { sid: socket.id, activityStreamId, format: transformerType },
-        'Registered a client for a stream'
-      );
+      log().trace({ sid: socket.id, activityStreamId, format: transformerType }, 'Registered a client for a stream');
       return _writeResponse(connectionInfo, message.id);
     };
 
@@ -519,14 +503,12 @@ const _subscribe = function(connectionInfo, message) {
     }
 
     Pubsub.emitter.removeAllListeners(activityStreamId);
-    Pubsub.emitter.on(activityStreamId, message => {
+    Pubsub.emitter.on(activityStreamId, (message) => {
       message = JSON.parse(message);
 
       return _handlePushActivity(message, () => {
         const activity = message.activities[0]['oae:activityType'];
-        log().info(
-          'Finished processing a ' + activity + ' push notification on channel ' + activityStreamId
-        );
+        log().info('Finished processing a ' + activity + ' push notification on channel ' + activityStreamId);
       });
     });
 
@@ -548,7 +530,7 @@ const _subscribe = function(connectionInfo, message) {
  * @return {Function}                       The authorization function or null if the activity stream has no authorization handler
  * @api private
  */
-const _getAuthorizationHandler = function(activityStreamId) {
+const _getAuthorizationHandler = function (activityStreamId) {
   const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(activityStreamId);
   if (!streamOptions || !streamOptions.authorizationHandler) {
     return null;
@@ -567,24 +549,24 @@ const _getAuthorizationHandler = function(activityStreamId) {
  * @param  {String}     error.msg       A message explaining the error
  * @api private
  */
-const _writeResponse = function(connectionInfo, id, error) {
+const _writeResponse = function (connectionInfo, id, error) {
   const { socket } = connectionInfo;
-  const msg = {};
-  msg.replyTo = id;
+  const message = {};
+  message.replyTo = id;
   if (error) {
-    msg.error = error;
+    message.error = error;
   }
 
   log().trace(
     {
       sid: socket.id,
       messageId: id,
-      response: msg
+      response: message
     },
     'Writing response to websocket connection'
   );
 
-  socket.write(JSON.stringify(msg));
+  socket.write(JSON.stringify(message));
 };
 
 /// ///////////////////////////
@@ -602,7 +584,7 @@ const _writeResponse = function(connectionInfo, id, error) {
  * @param  {Activity[]}     routedActivity.activities   The actual activity objects
  * @api private
  */
-const _push = function(activityStreamId, routedActivity) {
+const _push = function (activityStreamId, routedActivity) {
   routedActivity = JSON.stringify(routedActivity);
 
   /**
@@ -622,44 +604,39 @@ const _push = function(activityStreamId, routedActivity) {
  * @param  {Function}      callback    Standard callback function
  * @api private
  */
-const _handlePushActivity = function(data, callback) {
+const _handlePushActivity = function (data, callback) {
   const activityStreamId = ActivityUtil.createActivityStreamId(data.resourceId, data.streamType);
 
   let todo = 0;
 
   // Iterate over the sockets that are interested in this stream, transform the activity and send it down the socket
-  _.each(connectionInfosPerStream[activityStreamId], connectionInfo => {
+  _.each(connectionInfosPerStream[activityStreamId], (connectionInfo) => {
     const { socket } = connectionInfo;
-    _.each(connectionInfo.transformerTypes[activityStreamId], transformerType => {
+    _.each(connectionInfo.transformerTypes[activityStreamId], (transformerType) => {
       todo++;
       // Because we're sending these activities to possible multiple sockets/users we'll need to clone and transform it for each socket
       const activities = clone(data.activities);
-      ActivityTransformer.transformActivities(
-        connectionInfo.ctx,
-        activities,
-        transformerType,
-        err => {
-          if (err) {
-            return log().error({ err }, 'Could not transform event');
-          }
-
-          const msgData = {
-            resourceId: data.resourceId,
-            streamType: data.streamType,
-            activities,
-            format: transformerType,
-            numNewActivities: data.numNewActivities
-          };
-          log().trace({ data: msgData, sid: socket.id }, 'Pushing message to socket');
-          const msg = JSON.stringify(msgData);
-          socket.write(msg);
-
-          todo--;
-          if (todo === 0) {
-            callback();
-          }
+      ActivityTransformer.transformActivities(connectionInfo.ctx, activities, transformerType, (error) => {
+        if (error) {
+          return log().error({ err: error }, 'Could not transform event');
         }
-      );
+
+        const messageData = {
+          resourceId: data.resourceId,
+          streamType: data.streamType,
+          activities,
+          format: transformerType,
+          numNewActivities: data.numNewActivities
+        };
+        log().trace({ data: messageData, sid: socket.id }, 'Pushing message to socket');
+        const message = JSON.stringify(messageData);
+        socket.write(message);
+
+        todo--;
+        if (todo === 0) {
+          callback();
+        }
+      });
     });
   });
 };
@@ -671,7 +648,7 @@ const _handlePushActivity = function(data, callback) {
 /*!
  * Send routed activities to the push queue
  */
-ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities => {
+ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, (routedActivities) => {
   // Iterate over each target resource
   _.each(routedActivities, (streamTypeActivities, resourceId) => {
     // For each resource, there could be a number of stream types to which it was routed (e.g., activity and notification)
@@ -679,10 +656,7 @@ ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities 
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the routing phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      const notAggregation = compose(not, equals)(
-        path(['push', 'delivery', 'phase'], streamOptions),
-        'aggregation'
-      );
+      const notAggregation = compose(not, equals)(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
 
       if (notAggregation) {
         // We are configured to emit in the routing phase, so we push the activity back to the client
@@ -700,7 +674,7 @@ ActivityEmitter.on(ActivityConstants.events.ROUTED_ACTIVITIES, routedActivities 
 /*!
  * Send aggregated activities to the push queue
  */
-ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActivities => {
+ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, (deliveredActivities) => {
   // Iterate over each target resource
   _.each(deliveredActivities, (streamTypeActivities, resourceId) => {
     // For each resource, there could be a number of stream types to which it was routed (e.g., activity and notification)
@@ -708,10 +682,7 @@ ActivityEmitter.on(ActivityConstants.events.DELIVERED_ACTIVITIES, deliveredActiv
       // Get the activity stream configuration for this stream type and determine if we should send a push notification
       // in the aggregation phase
       const streamOptions = ActivityRegistry.getRegisteredActivityStreamType(streamType);
-      const itIsAggregation = equals(
-        path(['push', 'delivery', 'phase'], streamOptions),
-        'aggregation'
-      );
+      const itIsAggregation = equals(path(['push', 'delivery', 'phase'], streamOptions), 'aggregation');
       if (itIsAggregation) {
         // We are configured to emit in the aggregation phase, so we push the activity back to the client
         const data = {

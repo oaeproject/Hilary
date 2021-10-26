@@ -18,16 +18,16 @@ import DiscussionsAPI from 'oae-discussions';
 import { pipe, filter, keys, isEmpty } from 'ramda';
 import _ from 'underscore';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
 
 import { Context } from 'oae-context';
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
 
 import { logger } from 'oae-logger';
 

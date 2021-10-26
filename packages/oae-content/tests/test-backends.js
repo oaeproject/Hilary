@@ -16,9 +16,9 @@
 import { assert } from 'chai';
 import { forEach, nth, head, last, length } from 'ramda';
 
-import * as BackendsUtil from 'oae-content/lib/backends/util';
-import * as LocalBackend from 'oae-content/lib/backends/local';
-import * as RemoteBackend from 'oae-content/lib/backends/remote';
+import * as BackendsUtil from 'oae-content/lib/backends/util.js';
+import * as LocalBackend from 'oae-content/lib/backends/local.js';
+import * as RemoteBackend from 'oae-content/lib/backends/remote.js';
 
 const { get, store, remove, getDownloadStrategy } = RemoteBackend;
 const { generateUri } = BackendsUtil;

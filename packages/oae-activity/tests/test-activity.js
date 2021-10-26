@@ -13,22 +13,22 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-import-assign */
+import { format } from 'node:util';
+import process from 'node:process';
 import { assert } from 'chai';
-import { format } from 'util';
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
-import { Context } from 'oae-context/lib/api';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
+import { Context } from 'oae-context/lib/api.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityDAO from 'oae-activity/lib/internal/dao';
-import * as ActivityRegistry from 'oae-activity/lib/internal/registry';
-import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityDAO from 'oae-activity/lib/internal/dao.js';
+import * as ActivityRegistry from 'oae-activity/lib/internal/registry.js';
+import { ActivitySeed, ActivitySeedResource, AssociationsSession } from 'oae-activity/lib/model.js';
 
-import * as ActivityTestUtil from 'oae-activity/lib/test/util';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityTestUtil from 'oae-activity/lib/test/util.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import {
   mergeRight,
   isEmpty,
@@ -87,7 +87,7 @@ describe('Activity', () => {
 
   after((callback) => {
     // Always restore the getAggregateStatus function
-    ActivityDAO.getAggregateStatus = activityDaoGetAggregateStatusFn;
+    process.env.TEST_ALTERNATE_AGGREGATION = 'false';
 
     // Ensure activities are set back to enabled in case of test failures
     ConfigTestsUtil.updateConfigAndWait(
@@ -213,8 +213,8 @@ describe('Activity', () => {
       let retrievedObjectEntities = [];
       let retrievedTargetEntities = [];
       forEach((activity) => {
-        retrievedObjectEntities = retrievedObjectEntities.concat(_getEntities(activity, 'object'));
-        retrievedTargetEntities = retrievedTargetEntities.concat(_getEntities(activity, 'target'));
+        retrievedObjectEntities = [...retrievedObjectEntities, ..._getEntities(activity, 'object')];
+        retrievedTargetEntities = [...retrievedTargetEntities, ..._getEntities(activity, 'target')];
       }, shareActivities);
 
       // Only retain the unique entity ids and sort them for easier comparison
@@ -674,19 +674,32 @@ describe('Activity', () => {
             const persistentEntityId = persistentEntity['oae:id'];
             assert.strictEqual(persistentEntity.objectType, testResourceType);
 
-            if (persistentEntityId === testResourceId) {
-              hadActor = true;
-              assert.strictEqual(persistentEntity['oae:id'], testResourceId);
-              assert.lengthOf(keys(persistentEntity), 2);
-            } else if (persistentEntityId === testResourceId2) {
-              hadObject = true;
-              assert.strictEqual(persistentEntity['oae:id'], testResourceId2);
-              assert.lengthOf(keys(persistentEntity), 3);
-              assert.strictEqual(persistentEntity.testData, 'Testing');
-            } else if (persistentEntityId === testResourceId3) {
-              hadTarget = true;
-              assert.strictEqual(persistentEntity['oae:id'], testResourceId3);
-              assert.lengthOf(keys(persistentEntity), 2);
+            switch (persistentEntityId) {
+              case testResourceId: {
+                hadActor = true;
+                assert.strictEqual(persistentEntity['oae:id'], testResourceId);
+                assert.lengthOf(keys(persistentEntity), 2);
+
+                break;
+              }
+
+              case testResourceId2: {
+                hadObject = true;
+                assert.strictEqual(persistentEntity['oae:id'], testResourceId2);
+                assert.lengthOf(keys(persistentEntity), 3);
+                assert.strictEqual(persistentEntity.testData, 'Testing');
+
+                break;
+              }
+
+              case testResourceId3: {
+                hadTarget = true;
+                assert.strictEqual(persistentEntity['oae:id'], testResourceId3);
+                assert.lengthOf(keys(persistentEntity), 2);
+
+                break;
+              }
+              // No default
             }
 
             propagationCallback(null, [{ type: 'all' }]);
@@ -1468,11 +1481,10 @@ describe('Activity', () => {
         ActivityAPI.registerActivityEntityAssociation(
           testEntityType,
           'members',
-          (associationsCtx, entity, associationsCallback) => {
+          (associationsCtx, entity, associationsCallback) =>
             // Hardcode the public member as an association. This means that the default propagation will only recognize that member as a
             // recipient that has access, therefore the content-create activity invoked with an entity of this type should go to only them
-            return associationsCallback(null, [publicTenant0.publicUser.user.id]);
-          }
+            associationsCallback(null, [publicTenant0.publicUser.user.id])
         );
 
         const followers = [publicTenant0.privateUser, publicTenant1.publicUser];
@@ -1550,19 +1562,15 @@ describe('Activity', () => {
 
         // Register a couple of associations for a fake entity type that produces simple routes
         const testEntityType = TestsUtil.generateTestUserId();
-        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'all', (associationsCtx, entity, callback) => {
-          return callback(null, [nico.user.id, branden.user.id, simon.user.id]);
-        });
-        ActivityAPI.registerActivityEntityAssociation(
-          testEntityType,
-          'branden',
-          (associationsCtx, entity, callback) => {
-            return callback(null, [branden.user.id]);
-          }
+        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'all', (associationsCtx, entity, callback) =>
+          callback(null, [nico.user.id, branden.user.id, simon.user.id])
         );
-        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'simon', (associationsCtx, entity, callback) => {
-          return callback(null, [simon.user.id]);
-        });
+        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'branden', (associationsCtx, entity, callback) =>
+          callback(null, [branden.user.id])
+        );
+        ActivityAPI.registerActivityEntityAssociation(testEntityType, 'simon', (associationsCtx, entity, callback) =>
+          callback(null, [simon.user.id])
+        );
 
         // Register a fake activity that should route to all users except for Branden
         // `^simon` has been added first in the set of associations to assert that exclusions are processed
@@ -1760,9 +1768,7 @@ describe('Activity', () => {
                                                 publicTenant0.loggedinUser.user.id,
                                                 publicTenant0.publicUser.user.id
                                               ],
-                                              () => {
-                                                return callback();
-                                              }
+                                              () => callback()
                                             );
                                           }
                                         );
@@ -1888,9 +1894,7 @@ describe('Activity', () => {
                                                 publicTenant0.publicUser.user.id,
                                                 publicTenant0.loggedinUser.user.id
                                               ],
-                                              () => {
-                                                return callback();
-                                              }
+                                              () => callback()
                                             );
                                           }
                                         );
@@ -1993,9 +1997,7 @@ describe('Activity', () => {
                                             publicTenant0.publicUser.user.id,
                                             publicTenant0.loggedinUser.user.id
                                           ],
-                                          () => {
-                                            return callback();
-                                          }
+                                          () => callback()
                                         );
                                       }
                                     );
@@ -2110,9 +2112,7 @@ describe('Activity', () => {
                                                 publicTenant0.publicGroup.discussions.private.id
                                               ],
                                               [publicTenant0.publicGroup.id],
-                                              () => {
-                                                return callback();
-                                              }
+                                              () => callback()
                                             );
                                           }
                                         );
@@ -2295,9 +2295,7 @@ describe('Activity', () => {
                                                                           .private.id
                                                                       ],
                                                                       [publicTenant0.loggedinJoinableGroup.id],
-                                                                      () => {
-                                                                        return callback();
-                                                                      }
+                                                                      () => callback()
                                                                     );
                                                                   }
                                                                 );
@@ -2452,9 +2450,7 @@ describe('Activity', () => {
                                                                   .private.id
                                                               ],
                                                               [publicTenant0.privateNotJoinableGroup.id],
-                                                              () => {
-                                                                return callback();
-                                                              }
+                                                              () => callback()
                                                             );
                                                           }
                                                         );
@@ -2894,17 +2890,13 @@ describe('Activity', () => {
           const { 0: jack } = users;
 
           // Mock an error each time a content-create activity is attempted to be delivered for jack's feed
-          ActivityDAO.getAggregateStatus = function (allAggregateKeys, callback) {
+          process.env.TEST_ALTERNATE_AGGREGATION = 'true';
+          global.alternateAggregateStatus = function (allAggregateKeys, callback) {
             const brokenAggregateKeyPrefix = format('content-create#%s#activity', jack.user.id);
-            const brokenAggregateKeys = filter(
-              compose(equals(0), indexOf(brokenAggregateKeyPrefix)),
-              /**
-            aggregateKey => {
-              return aggregateKey.indexOf(brokenAggregateKeyPrefix) === 0;
-            }
-            */
-              allAggregateKeys
-            );
+            const brokenAggregateKeys = filter(compose(equals(0), indexOf(brokenAggregateKeyPrefix)), allAggregateKeys);
+
+            // Let's avoid the infinite loop by resetting the env variable
+            process.env.TEST_ALTERNATE_AGGREGATION = 'false';
 
             if (isEmpty(brokenAggregateKeys)) {
               // If there is no broken aggregate key in this set, simply pass up to the regular function
@@ -3178,13 +3170,13 @@ describe('Activity', () => {
                             let hasB = false;
                             entity = activityStream.items[1].object;
                             assert.ok(entity['oae:collection']);
-                            entity['oae:collection'].forEach((collectedEntity) => {
+                            for (const collectedEntity of entity['oae:collection']) {
                               if (collectedEntity['oae:id'] === linkA.id) {
                                 hasA = true;
                               } else if (collectedEntity['oae:id'] === linkB.id) {
                                 hasB = true;
                               }
-                            });
+                            }
 
                             assert.ok(hasA);
                             assert.ok(hasB);

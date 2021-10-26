@@ -13,23 +13,28 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
-import Path from 'path';
+import fs from 'node:fs';
+import { format } from 'node:util';
+import Path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
 import { find, head, path, forEach, values, reject, isNil, map, last } from 'ramda';
 
+import { assert } from 'chai';
+
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as FoldersContentLibrary from 'oae-folders/lib/internal/contentLibrary';
-import * as FoldersFolderLibrary from 'oae-folders/lib/internal/foldersLibrary';
-import * as FoldersLibrary from 'oae-folders/lib/library';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import * as FoldersContentLibrary from 'oae-folders/lib/internal/content-library.js';
+import * as FoldersFolderLibrary from 'oae-folders/lib/internal/folders-library.js';
+import * as FoldersLibrary from 'oae-folders/lib/library.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const PUBLIC = 'public';
 const PRIVATE = 'private';
@@ -216,7 +221,7 @@ describe('Folders', () => {
               400,
               () => {
                 const longDescription = TestsUtil.generateRandomText(833);
-                assert.ok(longDescription.length > 10000);
+                assert.ok(longDescription.length > 10_000);
 
                 // Ensure description must be less than 10000 characters
                 FoldersTestUtil.assertCreateFolderFails(
@@ -324,9 +329,7 @@ describe('Folders', () => {
                                                           'private',
                                                           [stuartf],
                                                           [sathomas],
-                                                          () => {
-                                                            return callback();
-                                                          }
+                                                          () => callback()
                                                         );
                                                       }
                                                     );
@@ -359,308 +362,306 @@ describe('Folders', () => {
      * Test that verifies the authorization of creating a folder and associating it with users
      */
     it('verify folder creation authorization', (callback) => {
-      FoldersTestUtil.setupMultiTenantPrivacyEntities((
-        publicTenant,
-        publicTenant1,
-        privateTenant /* , privateTenant1 */
-      ) => {
-        // Ensure an anonymous user cannot create a folder
-        FoldersTestUtil.assertCreateFolderFails(
-          asCambridgeAnonymousUser,
-          'test',
-          'test',
-          'private',
-          null,
-          null,
-          401,
-          () => {
-            // Ensure a user cannot create a folder with a private user from the same tenant as a viewer
-            FoldersTestUtil.assertCreateFolderSucceeds(
-              publicTenant.loggedinUser.restContext,
-              'test',
-              'test',
-              'private',
-              [publicTenant.publicUser],
-              null,
-              () => {
-                FoldersTestUtil.assertCreateFolderSucceeds(
-                  publicTenant.publicUser.restContext,
-                  'test',
-                  'test',
-                  'private',
-                  [publicTenant.loggedinUser],
-                  null,
-                  () => {
-                    FoldersTestUtil.assertCreateFolderFails(
-                      publicTenant.publicUser.restContext,
-                      'test',
-                      'test',
-                      'private',
-                      [publicTenant.privateUser.user.id],
-                      null,
-                      401,
-                      () => {
-                        // Ensure a user cannot create a folder with a loggedin or private user from another tenant as a viewer
-                        FoldersTestUtil.assertCreateFolderSucceeds(
-                          publicTenant.publicUser.restContext,
-                          'test',
-                          'test',
-                          'private',
-                          [publicTenant1.publicUser],
-                          null,
-                          () => {
-                            FoldersTestUtil.assertCreateFolderFails(
-                              publicTenant.publicUser.restContext,
-                              'test',
-                              'test',
-                              'private',
-                              [publicTenant1.loggedinUser.user.id],
-                              null,
-                              401,
-                              () => {
-                                FoldersTestUtil.assertCreateFolderFails(
-                                  publicTenant.publicUser.restContext,
-                                  'test',
-                                  'test',
-                                  'private',
-                                  [publicTenant1.privateUser.user.id],
-                                  null,
-                                  401,
-                                  () => {
-                                    // Ensure a user cannot create a folder with any user from a private tenant as a viewer
-                                    FoldersTestUtil.assertCreateFolderFails(
-                                      publicTenant.publicUser.restContext,
-                                      'test',
-                                      'test',
-                                      'private',
-                                      [privateTenant.publicUser.user.id],
-                                      null,
-                                      401,
-                                      () => {
-                                        FoldersTestUtil.assertCreateFolderFails(
-                                          publicTenant.publicUser.restContext,
-                                          'test',
-                                          'test',
-                                          'private',
-                                          [privateTenant.loggedinUser.user.id],
-                                          null,
-                                          401,
-                                          () => {
-                                            FoldersTestUtil.assertCreateFolderFails(
-                                              publicTenant.publicUser.restContext,
-                                              'test',
-                                              'test',
-                                              'private',
-                                              [privateTenant.privateUser.user.id],
-                                              null,
-                                              401,
-                                              () => {
-                                                // Ensure a user from a private tenant cannot create a folder with any outside user
-                                                FoldersTestUtil.assertCreateFolderFails(
-                                                  privateTenant.publicUser.restContext,
-                                                  'test',
-                                                  'test',
-                                                  'private',
-                                                  [publicTenant.publicUser.user.id],
-                                                  null,
-                                                  401,
-                                                  () => {
-                                                    FoldersTestUtil.assertCreateFolderFails(
-                                                      privateTenant.publicUser.restContext,
-                                                      'test',
-                                                      'test',
-                                                      'private',
-                                                      [publicTenant.loggedinUser.user.id],
-                                                      null,
-                                                      401,
-                                                      () => {
-                                                        FoldersTestUtil.assertCreateFolderFails(
-                                                          privateTenant.publicUser.restContext,
-                                                          'test',
-                                                          'test',
-                                                          'private',
-                                                          [publicTenant.privateUser.user.id],
-                                                          null,
-                                                          401,
-                                                          () => {
-                                                            // Ensure an admin can create a folder with a private user from the same tenant as a viewer
-                                                            FoldersTestUtil.assertCreateFolderSucceeds(
-                                                              publicTenant.adminRestContext,
-                                                              'test',
-                                                              'test',
-                                                              'private',
-                                                              [publicTenant.publicUser],
-                                                              null,
-                                                              () => {
-                                                                FoldersTestUtil.assertCreateFolderSucceeds(
-                                                                  publicTenant.adminRestContext,
-                                                                  'test',
-                                                                  'test',
-                                                                  'private',
-                                                                  [publicTenant.loggedinUser],
-                                                                  null,
-                                                                  () => {
-                                                                    FoldersTestUtil.assertCreateFolderSucceeds(
-                                                                      publicTenant.adminRestContext,
-                                                                      'test',
-                                                                      'test',
-                                                                      'private',
-                                                                      [publicTenant.privateUser],
-                                                                      null,
-                                                                      () => {
-                                                                        // Ensure an admin cannot create a folder with a loggedin or private user from another tenant as a viewer
-                                                                        FoldersTestUtil.assertCreateFolderSucceeds(
-                                                                          publicTenant.adminRestContext,
-                                                                          'test',
-                                                                          'test',
-                                                                          'private',
-                                                                          [publicTenant1.publicUser],
-                                                                          null,
-                                                                          () => {
-                                                                            FoldersTestUtil.assertCreateFolderFails(
-                                                                              publicTenant.adminRestContext,
-                                                                              'test',
-                                                                              'test',
-                                                                              'private',
-                                                                              [publicTenant1.loggedinUser.user.id],
-                                                                              null,
-                                                                              401,
-                                                                              () => {
-                                                                                FoldersTestUtil.assertCreateFolderFails(
-                                                                                  publicTenant.adminRestContext,
-                                                                                  'test',
-                                                                                  'test',
-                                                                                  'private',
-                                                                                  [publicTenant1.privateUser.user.id],
-                                                                                  null,
-                                                                                  401,
-                                                                                  () => {
-                                                                                    // Ensure an admin cannot create a folder with any user from a private tenant as a viewer
-                                                                                    FoldersTestUtil.assertCreateFolderFails(
-                                                                                      publicTenant.adminRestContext,
-                                                                                      'test',
-                                                                                      'test',
-                                                                                      'private',
-                                                                                      [
-                                                                                        privateTenant.publicUser.user.id
-                                                                                      ],
-                                                                                      null,
-                                                                                      401,
-                                                                                      () => {
-                                                                                        FoldersTestUtil.assertCreateFolderFails(
-                                                                                          publicTenant.adminRestContext,
-                                                                                          'test',
-                                                                                          'test',
-                                                                                          'private',
-                                                                                          [
-                                                                                            privateTenant.loggedinUser
-                                                                                              .user.id
-                                                                                          ],
-                                                                                          null,
-                                                                                          401,
-                                                                                          () => {
-                                                                                            FoldersTestUtil.assertCreateFolderFails(
-                                                                                              publicTenant.adminRestContext,
-                                                                                              'test',
-                                                                                              'test',
-                                                                                              'private',
-                                                                                              [
-                                                                                                privateTenant
-                                                                                                  .privateUser.user.id
-                                                                                              ],
-                                                                                              null,
-                                                                                              401,
-                                                                                              () => {
-                                                                                                // Ensure an admin from a private tenant cannot create a folder with any outside user
-                                                                                                FoldersTestUtil.assertCreateFolderFails(
-                                                                                                  privateTenant.adminRestContext,
-                                                                                                  'test',
-                                                                                                  'test',
-                                                                                                  'private',
-                                                                                                  [
-                                                                                                    publicTenant
-                                                                                                      .publicUser.user
-                                                                                                      .id
-                                                                                                  ],
-                                                                                                  null,
-                                                                                                  401,
-                                                                                                  () => {
-                                                                                                    FoldersTestUtil.assertCreateFolderFails(
-                                                                                                      privateTenant.adminRestContext,
-                                                                                                      'test',
-                                                                                                      'test',
-                                                                                                      'private',
-                                                                                                      [
-                                                                                                        publicTenant
-                                                                                                          .loggedinUser
-                                                                                                          .user.id
-                                                                                                      ],
-                                                                                                      null,
-                                                                                                      401,
-                                                                                                      () => {
-                                                                                                        return FoldersTestUtil.assertCreateFolderFails(
-                                                                                                          privateTenant.adminRestContext,
-                                                                                                          'test',
-                                                                                                          'test',
-                                                                                                          'private',
-                                                                                                          [
-                                                                                                            publicTenant
-                                                                                                              .privateUser
-                                                                                                              .user.id
-                                                                                                          ],
-                                                                                                          null,
-                                                                                                          401,
-                                                                                                          callback
-                                                                                                        );
-                                                                                                      }
-                                                                                                    );
-                                                                                                  }
-                                                                                                );
-                                                                                              }
-                                                                                            );
-                                                                                          }
-                                                                                        );
-                                                                                      }
-                                                                                    );
-                                                                                  }
-                                                                                );
-                                                                              }
-                                                                            );
-                                                                          }
-                                                                        );
-                                                                      }
-                                                                    );
-                                                                  }
-                                                                );
-                                                              }
-                                                            );
-                                                          }
-                                                        );
-                                                      }
-                                                    );
-                                                  }
-                                                );
-                                              }
-                                            );
-                                          }
-                                        );
-                                      }
-                                    );
-                                  }
-                                );
-                              }
-                            );
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
+      FoldersTestUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant, publicTenant1, privateTenant /* , privateTenant1 */) => {
+          // Ensure an anonymous user cannot create a folder
+          FoldersTestUtil.assertCreateFolderFails(
+            asCambridgeAnonymousUser,
+            'test',
+            'test',
+            'private',
+            null,
+            null,
+            401,
+            () => {
+              // Ensure a user cannot create a folder with a private user from the same tenant as a viewer
+              FoldersTestUtil.assertCreateFolderSucceeds(
+                publicTenant.loggedinUser.restContext,
+                'test',
+                'test',
+                'private',
+                [publicTenant.publicUser],
+                null,
+                () => {
+                  FoldersTestUtil.assertCreateFolderSucceeds(
+                    publicTenant.publicUser.restContext,
+                    'test',
+                    'test',
+                    'private',
+                    [publicTenant.loggedinUser],
+                    null,
+                    () => {
+                      FoldersTestUtil.assertCreateFolderFails(
+                        publicTenant.publicUser.restContext,
+                        'test',
+                        'test',
+                        'private',
+                        [publicTenant.privateUser.user.id],
+                        null,
+                        401,
+                        () => {
+                          // Ensure a user cannot create a folder with a loggedin or private user from another tenant as a viewer
+                          FoldersTestUtil.assertCreateFolderSucceeds(
+                            publicTenant.publicUser.restContext,
+                            'test',
+                            'test',
+                            'private',
+                            [publicTenant1.publicUser],
+                            null,
+                            () => {
+                              FoldersTestUtil.assertCreateFolderFails(
+                                publicTenant.publicUser.restContext,
+                                'test',
+                                'test',
+                                'private',
+                                [publicTenant1.loggedinUser.user.id],
+                                null,
+                                401,
+                                () => {
+                                  FoldersTestUtil.assertCreateFolderFails(
+                                    publicTenant.publicUser.restContext,
+                                    'test',
+                                    'test',
+                                    'private',
+                                    [publicTenant1.privateUser.user.id],
+                                    null,
+                                    401,
+                                    () => {
+                                      // Ensure a user cannot create a folder with any user from a private tenant as a viewer
+                                      FoldersTestUtil.assertCreateFolderFails(
+                                        publicTenant.publicUser.restContext,
+                                        'test',
+                                        'test',
+                                        'private',
+                                        [privateTenant.publicUser.user.id],
+                                        null,
+                                        401,
+                                        () => {
+                                          FoldersTestUtil.assertCreateFolderFails(
+                                            publicTenant.publicUser.restContext,
+                                            'test',
+                                            'test',
+                                            'private',
+                                            [privateTenant.loggedinUser.user.id],
+                                            null,
+                                            401,
+                                            () => {
+                                              FoldersTestUtil.assertCreateFolderFails(
+                                                publicTenant.publicUser.restContext,
+                                                'test',
+                                                'test',
+                                                'private',
+                                                [privateTenant.privateUser.user.id],
+                                                null,
+                                                401,
+                                                () => {
+                                                  // Ensure a user from a private tenant cannot create a folder with any outside user
+                                                  FoldersTestUtil.assertCreateFolderFails(
+                                                    privateTenant.publicUser.restContext,
+                                                    'test',
+                                                    'test',
+                                                    'private',
+                                                    [publicTenant.publicUser.user.id],
+                                                    null,
+                                                    401,
+                                                    () => {
+                                                      FoldersTestUtil.assertCreateFolderFails(
+                                                        privateTenant.publicUser.restContext,
+                                                        'test',
+                                                        'test',
+                                                        'private',
+                                                        [publicTenant.loggedinUser.user.id],
+                                                        null,
+                                                        401,
+                                                        () => {
+                                                          FoldersTestUtil.assertCreateFolderFails(
+                                                            privateTenant.publicUser.restContext,
+                                                            'test',
+                                                            'test',
+                                                            'private',
+                                                            [publicTenant.privateUser.user.id],
+                                                            null,
+                                                            401,
+                                                            () => {
+                                                              // Ensure an admin can create a folder with a private user from the same tenant as a viewer
+                                                              FoldersTestUtil.assertCreateFolderSucceeds(
+                                                                publicTenant.adminRestContext,
+                                                                'test',
+                                                                'test',
+                                                                'private',
+                                                                [publicTenant.publicUser],
+                                                                null,
+                                                                () => {
+                                                                  FoldersTestUtil.assertCreateFolderSucceeds(
+                                                                    publicTenant.adminRestContext,
+                                                                    'test',
+                                                                    'test',
+                                                                    'private',
+                                                                    [publicTenant.loggedinUser],
+                                                                    null,
+                                                                    () => {
+                                                                      FoldersTestUtil.assertCreateFolderSucceeds(
+                                                                        publicTenant.adminRestContext,
+                                                                        'test',
+                                                                        'test',
+                                                                        'private',
+                                                                        [publicTenant.privateUser],
+                                                                        null,
+                                                                        () => {
+                                                                          // Ensure an admin cannot create a folder with a loggedin or private user from another tenant as a viewer
+                                                                          FoldersTestUtil.assertCreateFolderSucceeds(
+                                                                            publicTenant.adminRestContext,
+                                                                            'test',
+                                                                            'test',
+                                                                            'private',
+                                                                            [publicTenant1.publicUser],
+                                                                            null,
+                                                                            () => {
+                                                                              FoldersTestUtil.assertCreateFolderFails(
+                                                                                publicTenant.adminRestContext,
+                                                                                'test',
+                                                                                'test',
+                                                                                'private',
+                                                                                [publicTenant1.loggedinUser.user.id],
+                                                                                null,
+                                                                                401,
+                                                                                () => {
+                                                                                  FoldersTestUtil.assertCreateFolderFails(
+                                                                                    publicTenant.adminRestContext,
+                                                                                    'test',
+                                                                                    'test',
+                                                                                    'private',
+                                                                                    [publicTenant1.privateUser.user.id],
+                                                                                    null,
+                                                                                    401,
+                                                                                    () => {
+                                                                                      // Ensure an admin cannot create a folder with any user from a private tenant as a viewer
+                                                                                      FoldersTestUtil.assertCreateFolderFails(
+                                                                                        publicTenant.adminRestContext,
+                                                                                        'test',
+                                                                                        'test',
+                                                                                        'private',
+                                                                                        [
+                                                                                          privateTenant.publicUser.user
+                                                                                            .id
+                                                                                        ],
+                                                                                        null,
+                                                                                        401,
+                                                                                        () => {
+                                                                                          FoldersTestUtil.assertCreateFolderFails(
+                                                                                            publicTenant.adminRestContext,
+                                                                                            'test',
+                                                                                            'test',
+                                                                                            'private',
+                                                                                            [
+                                                                                              privateTenant.loggedinUser
+                                                                                                .user.id
+                                                                                            ],
+                                                                                            null,
+                                                                                            401,
+                                                                                            () => {
+                                                                                              FoldersTestUtil.assertCreateFolderFails(
+                                                                                                publicTenant.adminRestContext,
+                                                                                                'test',
+                                                                                                'test',
+                                                                                                'private',
+                                                                                                [
+                                                                                                  privateTenant
+                                                                                                    .privateUser.user.id
+                                                                                                ],
+                                                                                                null,
+                                                                                                401,
+                                                                                                () => {
+                                                                                                  // Ensure an admin from a private tenant cannot create a folder with any outside user
+                                                                                                  FoldersTestUtil.assertCreateFolderFails(
+                                                                                                    privateTenant.adminRestContext,
+                                                                                                    'test',
+                                                                                                    'test',
+                                                                                                    'private',
+                                                                                                    [
+                                                                                                      publicTenant
+                                                                                                        .publicUser.user
+                                                                                                        .id
+                                                                                                    ],
+                                                                                                    null,
+                                                                                                    401,
+                                                                                                    () => {
+                                                                                                      FoldersTestUtil.assertCreateFolderFails(
+                                                                                                        privateTenant.adminRestContext,
+                                                                                                        'test',
+                                                                                                        'test',
+                                                                                                        'private',
+                                                                                                        [
+                                                                                                          publicTenant
+                                                                                                            .loggedinUser
+                                                                                                            .user.id
+                                                                                                        ],
+                                                                                                        null,
+                                                                                                        401,
+                                                                                                        () =>
+                                                                                                          FoldersTestUtil.assertCreateFolderFails(
+                                                                                                            privateTenant.adminRestContext,
+                                                                                                            'test',
+                                                                                                            'test',
+                                                                                                            'private',
+                                                                                                            [
+                                                                                                              publicTenant
+                                                                                                                .privateUser
+                                                                                                                .user.id
+                                                                                                            ],
+                                                                                                            null,
+                                                                                                            401,
+                                                                                                            callback
+                                                                                                          )
+                                                                                                      );
+                                                                                                    }
+                                                                                                  );
+                                                                                                }
+                                                                                              );
+                                                                                            }
+                                                                                          );
+                                                                                        }
+                                                                                      );
+                                                                                    }
+                                                                                  );
+                                                                                }
+                                                                              );
+                                                                            }
+                                                                          );
+                                                                        }
+                                                                      );
+                                                                    }
+                                                                  );
+                                                                }
+                                                              );
+                                                            }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     });
 
     /**
@@ -721,9 +722,7 @@ describe('Folders', () => {
 
         FoldersTestUtil.getAllFolderMembers(user.restContext, folder.id, null, (members) => {
           if (expectedManager) {
-            const member = _.find(members, (member) => {
-              return member.profile.id === user.user.id && member.role === 'manager';
-            });
+            const member = _.find(members, (member) => member.profile.id === user.user.id && member.role === 'manager');
             assert.ok(member);
           }
 
@@ -789,9 +788,9 @@ describe('Folders', () => {
                                         createAndVerifyManager(stuart, [nicoGroup1.group.id], null, true, () => {
                                           // Stuart is an indirect manager of group 4, he should not be made
                                           // a manager of the folder as he can manage nicoGroup4 (indirectly)
-                                          createAndVerifyManager(stuart, [nicoGroup4.group.id], null, false, () => {
-                                            return callback();
-                                          });
+                                          createAndVerifyManager(stuart, [nicoGroup4.group.id], null, false, () =>
+                                            callback()
+                                          );
                                         });
                                       }
                                     );
@@ -1306,9 +1305,7 @@ describe('Folders', () => {
                                     nico.restContext,
                                     folder.id,
                                     [simonsLink.id, nicosLink.id],
-                                    () => {
-                                      return callback();
-                                    }
+                                    () => callback()
                                   );
                                 });
                               });
@@ -1343,9 +1340,7 @@ describe('Folders', () => {
             // Ensure fetching using a non-existing id results in a 404
             FoldersTestUtil.assertGetFolderFails(mrvisser.restContext, 'x:oaetest:nonexistingid', 404, () => {
               // Sanity check getting an existing folder
-              FoldersTestUtil.assertGetFolderSucceeds(mrvisser.restContext, folder.id, () => {
-                return callback();
-              });
+              FoldersTestUtil.assertGetFolderSucceeds(mrvisser.restContext, folder.id, () => callback());
             });
           });
         });
@@ -1420,9 +1415,7 @@ describe('Folders', () => {
                                                     FoldersTestUtil.assertGetFolderSucceeds(
                                                       publicTenant.publicUser.restContext,
                                                       publicTenant1.privateFolder.id,
-                                                      () => {
-                                                        return callback();
-                                                      }
+                                                      () => callback()
                                                     );
                                                   }
                                                 );
@@ -1769,7 +1762,7 @@ describe('Folders', () => {
         // Generate a test folder
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, (folder) => {
           // Generate 15 links that can be added to the folder
-          ContentTestUtil.generateTestLinks(simong.restContext, 15, function (...args) {
+          ContentTestUtil.generateTestLinks(simong.restContext, 15, (...args) => {
             const contentIds = _.pluck(args, 'id');
 
             // Add the content to the folder
@@ -1799,13 +1792,13 @@ describe('Folders', () => {
         // Generate a test folder
         FoldersTestUtil.generateTestFolders(simong.restContext, 1, (folder) => {
           // Both users generate some content
-          ContentTestUtil.generateTestLinks(simong.restContext, 15, function (...args) {
+          ContentTestUtil.generateTestLinks(simong.restContext, 15, (...args) => {
             const simonsContentIds = _.pluck(args, 'id');
-            ContentTestUtil.generateTestLinks(nico.restContext, 15, function (...args) {
+            ContentTestUtil.generateTestLinks(nico.restContext, 15, (...args) => {
               const nicosContentIds = _.pluck(args, 'id');
 
               // Add all the content items to the folder
-              const allContentIds = simonsContentIds.concat(nicosContentIds);
+              const allContentIds = [...simonsContentIds, ...nicosContentIds];
               FoldersTestUtil.assertAddContentItemsToFolderSucceeds(
                 simong.restContext,
                 folder.id,
@@ -1869,9 +1862,7 @@ describe('Folders', () => {
                     FoldersTestUtil.assertGetFolderSucceeds(
                       publicTenant.privateUser.restContext,
                       publicTenant.privateFolder.id,
-                      () => {
-                        return callback();
-                      }
+                      () => callback()
                     );
                   }
                 );
@@ -1965,16 +1956,15 @@ describe('Folders', () => {
                                 folder.id,
                                 ['g:oaetest:nonexistingid'],
                                 400,
-                                () => {
+                                () =>
                                   // Sanity check we can share with the base input
-                                  return FoldersTestUtil.assertShareFolderSucceeds(
+                                  FoldersTestUtil.assertShareFolderSucceeds(
                                     asCambridgeTenantAdmin,
                                     asCambridgeTenantAdmin,
                                     folder.id,
                                     [mrvisser],
                                     callback
-                                  );
-                                }
+                                  )
                               );
                             }
                           );
@@ -2007,16 +1997,15 @@ describe('Folders', () => {
             folder.id,
             [simong.user.id],
             401,
-            () => {
+            () =>
               // Sanity check mrvisser can share with Simong
-              return FoldersTestUtil.assertShareFolderSucceeds(
+              FoldersTestUtil.assertShareFolderSucceeds(
                 asCambridgeTenantAdmin,
                 mrvisser.restContext,
                 folder.id,
                 [simong],
                 callback
-              );
-            }
+              )
           );
         });
       });
@@ -2089,16 +2078,15 @@ describe('Folders', () => {
                                           publicTenant.loggedinFolder.id,
                                           [privateTenant.loggedinUser.user.id],
                                           401,
-                                          () => {
-                                            return FoldersTestUtil.assertShareFolderFails(
+                                          () =>
+                                            FoldersTestUtil.assertShareFolderFails(
                                               publicTenant.adminRestContext,
                                               publicTenant.publicUser.restContext,
                                               publicTenant.loggedinFolder.id,
                                               [privateTenant.privateUser.user.id],
                                               401,
                                               callback
-                                            );
-                                          }
+                                            )
                                         );
                                       }
                                     );
@@ -2137,16 +2125,15 @@ describe('Folders', () => {
               publicTenant.loggedinFolder.id,
               [publicTenant.publicUser.user.id],
               401,
-              () => {
-                return FoldersTestUtil.assertShareFolderFails(
+              () =>
+                FoldersTestUtil.assertShareFolderFails(
                   publicTenant.adminRestContext,
                   publicTenant1.publicUser.restContext,
                   publicTenant.privateFolder.id,
                   [publicTenant.publicUser.user.id],
                   401,
                   callback
-                );
-              }
+                )
             );
           }
         );
@@ -2225,16 +2212,15 @@ describe('Folders', () => {
                                               publicTenant.privateFolder.id,
                                               [privateTenant.loggedinUser.user.id],
                                               401,
-                                              () => {
-                                                return FoldersTestUtil.assertShareFolderFails(
+                                              () =>
+                                                FoldersTestUtil.assertShareFolderFails(
                                                   publicTenant.adminRestContext,
                                                   publicTenant.publicUser.restContext,
                                                   publicTenant.privateFolder.id,
                                                   [privateTenant.privateUser.user.id],
                                                   401,
                                                   callback
-                                                );
-                                              }
+                                                )
                                             );
                                           }
                                         );
@@ -2321,16 +2307,15 @@ describe('Folders', () => {
                                           publicTenant.privateFolder.id,
                                           [privateTenant.loggedinUser.user.id],
                                           401,
-                                          () => {
-                                            return FoldersTestUtil.assertShareFolderFails(
+                                          () =>
+                                            FoldersTestUtil.assertShareFolderFails(
                                               publicTenant.adminRestContext,
                                               publicTenant.adminRestContext,
                                               publicTenant.privateFolder.id,
                                               [privateTenant.privateUser.user.id],
                                               401,
                                               callback
-                                            );
-                                          }
+                                            )
                                         );
                                       }
                                     );
@@ -2378,15 +2363,14 @@ describe('Folders', () => {
             asCambridgeTenantAdmin,
             folder.id,
             memberUpdates,
-            () => {
+            () =>
               // Ensure all the users have been set
-              return FoldersTestUtil.assertFullFolderMembersEquals(
+              FoldersTestUtil.assertFullFolderMembersEquals(
                 mrvisser.restContext,
                 folder.id,
                 expectedMembership,
                 callback
-              );
-            }
+              )
           );
         });
       });
@@ -2602,9 +2586,7 @@ describe('Folders', () => {
                                                                                           publicTenant.privateFolder.id,
                                                                                           null,
                                                                                           null,
-                                                                                          () => {
-                                                                                            return callback();
-                                                                                          }
+                                                                                          () => callback()
                                                                                         );
                                                                                       }
                                                                                     );
@@ -2851,17 +2833,16 @@ describe('Folders', () => {
                                 bert.restContext,
                                 folder.id,
                                 _memberUpdate(mrvisser),
-                                () => {
+                                () =>
                                   // Ensure mrvisser can no longer update the permissions
-                                  return FoldersTestUtil.assertUpdateFolderMembersFails(
+                                  FoldersTestUtil.assertUpdateFolderMembersFails(
                                     bert.restContext,
                                     mrvisser.restContext,
                                     folder.id,
                                     _memberUpdate(bert.user.id, 'manager'),
                                     401,
                                     callback
-                                  );
-                                }
+                                  )
                               );
                             });
                           }
@@ -2915,17 +2896,16 @@ describe('Folders', () => {
                 mrvisser.restContext,
                 folder.id,
                 memberUpdateInfos,
-                () => {
+                () =>
                   // Ensure bert cannot remove himself as that would now result in no manager
-                  return FoldersTestUtil.assertUpdateFolderMembersFails(
+                  FoldersTestUtil.assertUpdateFolderMembersFails(
                     bert.restContext,
                     bert.restContext,
                     folder.id,
                     _memberUpdate(bert.user.id, false),
                     400,
                     callback
-                  );
-                }
+                  )
               );
             }
           );
@@ -2948,17 +2928,16 @@ describe('Folders', () => {
             mrvisser.restContext,
             folder.id,
             _memberUpdate(bert),
-            () => {
+            () =>
               // Ensure Bert can't promote himself to manager
-              return FoldersTestUtil.assertUpdateFolderMembersFails(
+              FoldersTestUtil.assertUpdateFolderMembersFails(
                 mrvisser.restContext,
                 bert.restContext,
                 folder.id,
                 _memberUpdate(bert.user.id, 'manager'),
                 401,
                 callback
-              );
-            }
+              )
           );
         });
       });
@@ -3027,16 +3006,15 @@ describe('Folders', () => {
                                     folder.id,
                                     { 'g:oaetest:nonexistingid': 'viewer' },
                                     400,
-                                    () => {
+                                    () =>
                                       // Sanity check the base input works
-                                      return FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+                                      FoldersTestUtil.assertUpdateFolderMembersSucceeds(
                                         mrvisser.restContext,
                                         mrvisser.restContext,
                                         folder.id,
                                         _memberUpdate(bert),
                                         callback
-                                      );
-                                    }
+                                      )
                                   );
                                 }
                               );
@@ -3071,16 +3049,15 @@ describe('Folders', () => {
             folder.id,
             _memberUpdate(bert.user.id),
             401,
-            () => {
+            () =>
               // Sanity check mrvisser can perform the same share
-              return FoldersTestUtil.assertUpdateFolderMembersSucceeds(
+              FoldersTestUtil.assertUpdateFolderMembersSucceeds(
                 mrvisser.restContext,
                 mrvisser.restContext,
                 folder.id,
                 _memberUpdate(bert),
                 callback
-              );
-            }
+              )
           );
         });
       });
@@ -3141,16 +3118,15 @@ describe('Folders', () => {
                                     publicTenant.loggedinFolder.id,
                                     _memberUpdate(privateTenant.loggedinUser.user.id),
                                     401,
-                                    () => {
-                                      return FoldersTestUtil.assertUpdateFolderMembersFails(
+                                    () =>
+                                      FoldersTestUtil.assertUpdateFolderMembersFails(
                                         publicTenant.adminRestContext,
                                         publicTenant.adminRestContext,
                                         publicTenant.loggedinFolder.id,
                                         _memberUpdate(privateTenant.privateUser.user.id),
                                         401,
                                         callback
-                                      );
-                                    }
+                                      )
                                   );
                                 }
                               );
@@ -3244,16 +3220,15 @@ describe('Folders', () => {
                                               publicTenant.publicFolder.id,
                                               _memberUpdate(privateTenant.loggedinUser.user.id),
                                               401,
-                                              () => {
-                                                return FoldersTestUtil.assertUpdateFolderMembersFails(
+                                              () =>
+                                                FoldersTestUtil.assertUpdateFolderMembersFails(
                                                   publicTenant.publicUser.restContext,
                                                   publicTenant.publicUser.restContext,
                                                   publicTenant.publicFolder.id,
                                                   _memberUpdate(privateTenant.privateUser.user.id),
                                                   401,
                                                   callback
-                                                );
-                                              }
+                                                )
                                             );
                                           }
                                         );
@@ -3303,7 +3278,7 @@ describe('Folders', () => {
                     const loggedinFolderIds = _.pluck([loggedinFolder1, loggedinFolder2, loggedinFolder3], 'id');
                     const privateFolderIds = _.pluck([privateFolder1, privateFolder2, privateFolder3], 'id');
 
-                    const expectedPublicFoldersLibraryIds = publicFolderIds.slice();
+                    const expectedPublicFoldersLibraryIds = [...publicFolderIds];
                     const expectedLoggedinFoldersLibraryIds = _.union(publicFolderIds, loggedinFolderIds);
                     const expectedPrivateFoldersLibraryIds = _.chain(publicFolderIds)
                       .union(loggedinFolderIds)
@@ -3344,16 +3319,15 @@ describe('Folders', () => {
                                       publicTenant.publicUser.user.id,
                                       expectedPublicFoldersLibraryIds,
                                       false,
-                                      () => {
+                                      () =>
                                         // Ensure anonymous user gets the public library
-                                        return FoldersTestUtil.assertFullFoldersLibraryEquals(
+                                        FoldersTestUtil.assertFullFoldersLibraryEquals(
                                           publicTenant.anonymousRestContext,
                                           publicTenant.publicUser.user.id,
                                           expectedPublicFoldersLibraryIds,
                                           false,
                                           callback
-                                        );
-                                      }
+                                        )
                                     );
                                   }
                                 );
@@ -3413,9 +3387,7 @@ describe('Folders', () => {
                               publicTenant.publicUser.user.id,
                               null,
                               null,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -3474,9 +3446,7 @@ describe('Folders', () => {
                               null,
                               null,
                               401,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -3536,9 +3506,7 @@ describe('Folders', () => {
                               null,
                               null,
                               401,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -4413,9 +4381,7 @@ describe('Folders', () => {
                                                                                 publicTenant.publicFolder.id,
                                                                                 [privateTenant.privateContent.id],
                                                                                 401,
-                                                                                () => {
-                                                                                  return callback();
-                                                                                }
+                                                                                () => callback()
                                                                               );
                                                                             }
                                                                           );
@@ -4600,9 +4566,7 @@ describe('Folders', () => {
                                                                                                   .privateContent.id
                                                                                               ],
                                                                                               401,
-                                                                                              () => {
-                                                                                                return callback();
-                                                                                              }
+                                                                                              () => callback()
                                                                                             );
                                                                                           }
                                                                                         );
@@ -4851,15 +4815,15 @@ describe('Folders', () => {
               assert.notExists(error);
 
               // Ensure Mrvisser can add the item to his folder
-              FoldersTestUtil.assertAddContentItemsToFolderSucceeds(mrvisser.restContext, folder.id, [link.id], () => {
+              FoldersTestUtil.assertAddContentItemsToFolderSucceeds(mrvisser.restContext, folder.id, [link.id], () =>
                 // Ensure Mrvisser can remove the item from his folder
-                return FoldersTestUtil.assertRemoveContentItemsFromFolderSucceeds(
+                FoldersTestUtil.assertRemoveContentItemsFromFolderSucceeds(
                   mrvisser.restContext,
                   folder.id,
                   [link.id],
                   callback
-                );
-              });
+                )
+              );
             }
           );
         });
@@ -4956,15 +4920,18 @@ describe('Folders', () => {
                                     [link1.id, link2.id],
                                     () => {
                                       // Ensure that the other 3 items are still there
-                                      FoldersTestUtil.getAllFolderContentItems(mrvisser.restContext, folder.id, null, (
-                                        contentItems /* , responses */
-                                      ) => {
-                                        assert.lengthOf(contentItems, 3);
-                                        assert.ok(_.findWhere(contentItems, { id: link3.id }));
-                                        assert.ok(_.findWhere(contentItems, { id: link4.id }));
-                                        assert.ok(_.findWhere(contentItems, { id: link5.id }));
-                                        return callback();
-                                      });
+                                      FoldersTestUtil.getAllFolderContentItems(
+                                        mrvisser.restContext,
+                                        folder.id,
+                                        null,
+                                        (contentItems /* , responses */) => {
+                                          assert.lengthOf(contentItems, 3);
+                                          assert.ok(_.findWhere(contentItems, { id: link3.id }));
+                                          assert.ok(_.findWhere(contentItems, { id: link4.id }));
+                                          assert.ok(_.findWhere(contentItems, { id: link5.id }));
+                                          return callback();
+                                        }
+                                      );
                                     }
                                   );
                                 }
@@ -5202,9 +5169,7 @@ describe('Folders', () => {
             null,
             null,
             404,
-            () => {
-              return callback();
-            }
+            () => callback()
           );
         }
       );
@@ -5291,11 +5256,11 @@ describe('Folders', () => {
         const { 0: mrvisser } = users;
 
         // Create a few folders that a content item will be added to
-        FoldersTestUtil.generateTestFolders(mrvisser.restContext, 3, function (...args) {
+        FoldersTestUtil.generateTestFolders(mrvisser.restContext, 3, (...args) => {
           const folderIds = _.pluck(args, 'id');
 
           // Create a few groups that will be added as a member of the content item
-          TestsUtil.generateTestGroups(mrvisser.restContext, 3, function (...args) {
+          TestsUtil.generateTestGroups(mrvisser.restContext, 3, (...args) => {
             assert.ok(!head(args));
 
             const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
@@ -5446,9 +5411,7 @@ describe('Folders', () => {
                                                                                 simong.restContext,
                                                                                 publicTenant.publicFolder.id,
                                                                                 [link.id],
-                                                                                () => {
-                                                                                  return callback();
-                                                                                }
+                                                                                () => callback()
                                                                               );
                                                                             }
                                                                           );

@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import * as FoldersSearch from './search.js';
-
-// Register activity, library, previews and search functionality
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
 import * as library from './library.js';
+// eslint-disable-next-line no-unused-vars
 import * as previews from './previews.js';
+// eslint-disable-next-line no-unused-vars
 import * as invitations from './invitations.js';
 
 export function init(config, callback) {

@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 /**
  * Set up 2 public tenants and 2 private tenants, each with a public, loggedin, private set of users and
@@ -52,16 +52,14 @@ import * as TestsUtil from 'oae-tests/lib/util';
  * @param  {Function}   Invoked when all the entities are set up
  * @throws {Error}      An assertion error is thrown if something does not get created properly
  */
-const setupMultiTenantPrivacyEntities = function(callback) {
+const setupMultiTenantPrivacyEntities = function (callback) {
   // Create the tenants and users
   TestsUtil.setupMultiTenantPrivacyEntities((publicTenant, publicTenant1, privateTenant, privateTenant1) => {
     // Create the discussions.
     _setupTenant(publicTenant, () => {
       _setupTenant(publicTenant1, () => {
         _setupTenant(privateTenant, () => {
-          _setupTenant(privateTenant1, () => {
-            return callback(publicTenant, publicTenant1, privateTenant, privateTenant1);
-          });
+          _setupTenant(privateTenant1, () => callback(publicTenant, publicTenant1, privateTenant, privateTenant1));
         });
       });
     });
@@ -76,7 +74,7 @@ const setupMultiTenantPrivacyEntities = function(callback) {
  * @throws {Error}                      An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _setupTenant = function(tenant, callback) {
+const _setupTenant = function (tenant, callback) {
   _createMultiPrivacyDiscussions(tenant.adminRestContext, (publicDiscussion, loggedinDiscussion, privateDiscussion) => {
     tenant.publicDiscussion = publicDiscussion;
     tenant.loggedinDiscussion = loggedinDiscussion;
@@ -93,12 +91,12 @@ const _setupTenant = function(tenant, callback) {
  * @throws {Error}                          An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createMultiPrivacyDiscussions = function(restCtx, callback) {
-  _createDiscussionWithVisibility(restCtx, 'public', publicDiscussion => {
-    _createDiscussionWithVisibility(restCtx, 'loggedin', loggedinDiscussion => {
-      _createDiscussionWithVisibility(restCtx, 'private', privateDiscussion => {
-        return callback(publicDiscussion, loggedinDiscussion, privateDiscussion);
-      });
+const _createMultiPrivacyDiscussions = function (restCtx, callback) {
+  _createDiscussionWithVisibility(restCtx, 'public', (publicDiscussion) => {
+    _createDiscussionWithVisibility(restCtx, 'loggedin', (loggedinDiscussion) => {
+      _createDiscussionWithVisibility(restCtx, 'private', (privateDiscussion) =>
+        callback(publicDiscussion, loggedinDiscussion, privateDiscussion)
+      );
     });
   });
 };
@@ -113,7 +111,7 @@ const _createMultiPrivacyDiscussions = function(restCtx, callback) {
  * @throws {Error}                              An assertion error is thrown if something does not get created properly
  * @api private
  */
-const _createDiscussionWithVisibility = function(restCtx, visibility, callback) {
+const _createDiscussionWithVisibility = function (restCtx, visibility, callback) {
   const randomId = TestsUtil.generateTestUserId(visibility);
   RestAPI.Discussions.createDiscussion(
     restCtx,
@@ -122,8 +120,8 @@ const _createDiscussionWithVisibility = function(restCtx, visibility, callback) 
     visibility,
     null,
     null,
-    (err, discussion) => {
-      assert.ok(!err);
+    (error, discussion) => {
+      assert.ok(!error);
       return callback(discussion);
     }
   );
@@ -142,7 +140,7 @@ const _createDiscussionWithVisibility = function(restCtx, visibility, callback) 
  * @param  {Content}        callback.discussion     The created discussion
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertCreateDiscussionSucceeds = function(
+const assertCreateDiscussionSucceeds = function (
   restContext,
   displayName,
   description,
@@ -151,7 +149,7 @@ const assertCreateDiscussionSucceeds = function(
   members,
   callback
 ) {
-  PrincipalsTestUtil.assertGetMeSucceeds(restContext, me => {
+  PrincipalsTestUtil.assertGetMeSucceeds(restContext, (me) => {
     RestAPI.Discussions.createDiscussion(
       restContext,
       displayName,
@@ -159,8 +157,8 @@ const assertCreateDiscussionSucceeds = function(
       visibility,
       managers,
       members,
-      (err, discussion) => {
-        assert.ok(!err, JSON.stringify(err));
+      (error, discussion) => {
+        assert.ok(!error, JSON.stringify(error));
         assert.strictEqual(discussion.displayName, displayName);
         assert.strictEqual(discussion.description, description);
         assert.strictEqual(discussion.visibility, visibility);
@@ -169,19 +167,19 @@ const assertCreateDiscussionSucceeds = function(
         const roleChanges = {};
         roleChanges[me.id] = 'manager';
 
-        _.each(managers, id => {
+        _.each(managers, (id) => {
           roleChanges[id] = 'manager';
         });
 
-        _.each(members, id => {
+        _.each(members, (id) => {
           roleChanges[id] = 'member';
         });
 
         // Ensure the members have the expected roles
-        getAllDiscussionMembers(restContext, discussion.id, null, result => {
+        getAllDiscussionMembers(restContext, discussion.id, null, (result) => {
           AuthzTestUtil.assertMemberRolesEquals({}, roleChanges, AuthzTestUtil.getMemberRolesFromResults(result));
 
-          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'discussion', discussion.id, result => {
+          AuthzTestUtil.assertGetInvitationsSucceeds(restContext, 'discussion', discussion.id, (result) => {
             AuthzTestUtil.assertEmailRolesEquals(
               {},
               roleChanges,
@@ -208,7 +206,7 @@ const assertCreateDiscussionSucceeds = function(
  * @param  {Function}       callback                Invoked when the create discussion request fails
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertCreateDiscussionFails = function(
+const assertCreateDiscussionFails = function (
   restContext,
   displayName,
   description,
@@ -225,9 +223,9 @@ const assertCreateDiscussionFails = function(
     visibility,
     managers,
     members,
-    (err, discussion) => {
-      assert.ok(err);
-      assert.strictEqual(err.code, httpCode);
+    (error, discussion) => {
+      assert.ok(error);
+      assert.strictEqual(error.code, httpCode);
       assert.ok(!discussion);
       return callback();
     }
@@ -243,10 +241,10 @@ const assertCreateDiscussionFails = function(
  * @param  {Function}       callback        Invoked when the request fails as expected
  * @throws {AssertionError}                 Thrown if any assertions fail
  */
-const assertGetDiscussionFails = function(restContext, discussionId, httpCode, callback) {
-  RestAPI.Discussions.getDiscussion(restContext, discussionId, (err, discussion) => {
-    assert.ok(err);
-    assert.strictEqual(err.code, httpCode);
+const assertGetDiscussionFails = function (restContext, discussionId, httpCode, callback) {
+  RestAPI.Discussions.getDiscussion(restContext, discussionId, (error, discussion) => {
+    assert.ok(error);
+    assert.strictEqual(error.code, httpCode);
     assert.ok(!discussion);
     return callback();
   });
@@ -261,9 +259,9 @@ const assertGetDiscussionFails = function(restContext, discussionId, httpCode, c
  * @param  {Discussion}     callback.discussion     The discussion that was fetched
  * @throws {AssertionError}                         Thrown if any assertions fail
  */
-const assertDeleteDiscussionSucceeds = function(restContext, discussionId, callback) {
-  RestAPI.Discussions.deleteDiscussion(restContext, discussionId, err => {
-    assert.ok(!err);
+const assertDeleteDiscussionSucceeds = function (restContext, discussionId, callback) {
+  RestAPI.Discussions.deleteDiscussion(restContext, discussionId, (error) => {
+    assert.ok(!error);
 
     // Ensure the discussion now gets a 404
     return assertGetDiscussionFails(restContext, discussionId, 404, callback);
@@ -280,15 +278,13 @@ const assertDeleteDiscussionSucceeds = function(restContext, discussionId, callb
  * @param  {Discussion}     callback.discussion     The updated discussion
  * @throws {AssertionError}                         Thrown if the request fails
  */
-const assertUpdateDiscussionSucceeds = function(restContext, discussionId, updates, callback) {
-  RestAPI.Discussions.updateDiscussion(restContext, discussionId, updates, (err, discussion) => {
-    assert.ok(!err);
+const assertUpdateDiscussionSucceeds = function (restContext, discussionId, updates, callback) {
+  RestAPI.Discussions.updateDiscussion(restContext, discussionId, updates, (error, discussion) => {
+    assert.ok(!error);
 
     // Wait for library and search to be udpated before continuing
     LibraryAPI.Index.whenUpdatesComplete(() => {
-      SearchTestUtil.whenIndexingComplete(() => {
-        return callback(discussion);
-      });
+      SearchTestUtil.whenIndexingComplete(() => callback(discussion));
     });
   });
 };
@@ -304,7 +300,7 @@ const assertUpdateDiscussionSucceeds = function(restContext, discussionId, updat
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error verifying that the discussion is successfully shared
  */
-const assertShareDiscussionSucceeds = function(
+const assertShareDiscussionSucceeds = function (
   managerRestContext,
   actorRestContext,
   discussionId,
@@ -312,34 +308,34 @@ const assertShareDiscussionSucceeds = function(
   callback
 ) {
   // Get the discussion members before sharing
-  getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
+  getAllDiscussionMembers(managerRestContext, discussionId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Build a role update object that represents the change that should occur in the share
       // operation
       const roleChange = {};
-      _.each(targetIds, targetId => {
+      _.each(targetIds, (targetId) => {
         if (!memberRolesBefore[targetId] && !emailRolesBefore[targetId]) {
           roleChange[targetId] = 'member';
         }
       });
 
       // Perform the discussion share
-      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
-        assert.ok(!err);
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (error) => {
+        assert.ok(!error);
 
         // Ensure the members and invitations had the expected updates
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             roleChange,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+          getAllDiscussionMembers(managerRestContext, discussionId, null, (membersAfterUpdate) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               roleChange,
@@ -365,7 +361,7 @@ const assertShareDiscussionSucceeds = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error ensuring that the request fails in the specified manner
  */
-const assertShareDiscussionFails = function(
+const assertShareDiscussionFails = function (
   managerRestContext,
   actorRestContext,
   discussionId,
@@ -374,28 +370,28 @@ const assertShareDiscussionFails = function(
   callback
 ) {
   // Get the discussion members before sharing
-  getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
+  getAllDiscussionMembers(managerRestContext, discussionId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
       // Perform the discussion share
-      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Discussions.shareDiscussion(actorRestContext, discussionId, targetIds, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         const delta = {};
 
         // Ensure the members and invitations had the expected updates
-        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+        AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
           AuthzTestUtil.assertEmailRolesEquals(
             emailRolesBefore,
             delta,
             AuthzTestUtil.getEmailRolesFromResults(result.results)
           );
 
-          getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+          getAllDiscussionMembers(managerRestContext, discussionId, null, (membersAfterUpdate) => {
             AuthzTestUtil.assertMemberRolesEquals(
               memberRolesBefore,
               delta,
@@ -419,7 +415,7 @@ const assertShareDiscussionFails = function(
  * @param  {Function}       callback        Invoked when the members have been successfully updated
  * @throws {AssertionError}                 Thrown if the request fails
  */
-const assertUpdateDiscussionMembersSucceeds = function(
+const assertUpdateDiscussionMembersSucceeds = function (
   managerRestContext,
   actorRestContext,
   discussionId,
@@ -427,26 +423,26 @@ const assertUpdateDiscussionMembersSucceeds = function(
   callback
 ) {
   // Get the discussion members before sharing
-  getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
+  getAllDiscussionMembers(managerRestContext, discussionId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, err => {
-        assert.ok(!err);
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (error) => {
+        assert.ok(!error);
         // Wait for library and search to be updated before continuing
         LibraryAPI.Index.whenUpdatesComplete(() => {
           SearchTestUtil.whenIndexingComplete(() => {
             // Ensure the members and invitations had the expected updates
-            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
               AuthzTestUtil.assertEmailRolesEquals(
                 emailRolesBefore,
                 updates,
                 AuthzTestUtil.getEmailRolesFromResults(result.results)
               );
 
-              getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+              getAllDiscussionMembers(managerRestContext, discussionId, null, (membersAfterUpdate) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   updates,
@@ -474,7 +470,7 @@ const assertUpdateDiscussionMembersSucceeds = function(
  * @param  {Function}       callback            Standard callback function
  * @throws {AssertionError}                     Thrown if there is an error ensuring that the request fails in the specified manner
  */
-const assertUpdateDiscussionMembersFails = function(
+const assertUpdateDiscussionMembersFails = function (
   managerRestContext,
   actorRestContext,
   discussionId,
@@ -483,15 +479,15 @@ const assertUpdateDiscussionMembersFails = function(
   callback
 ) {
   // Get the discussion members before sharing
-  getAllDiscussionMembers(managerRestContext, discussionId, null, result => {
+  getAllDiscussionMembers(managerRestContext, discussionId, null, (result) => {
     const memberRolesBefore = AuthzTestUtil.getMemberRolesFromResults(result);
 
-    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+    AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
       const emailRolesBefore = AuthzTestUtil.getEmailRolesFromResults(result.results);
 
-      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, err => {
-        assert.ok(err);
-        assert.strictEqual(err.code, httpCode);
+      RestAPI.Discussions.updateDiscussionMembers(actorRestContext, discussionId, updates, (error) => {
+        assert.ok(error);
+        assert.strictEqual(error.code, httpCode);
 
         // Wait for library and search to be udpated before continuing
         LibraryAPI.Index.whenUpdatesComplete(() => {
@@ -499,14 +495,14 @@ const assertUpdateDiscussionMembersFails = function(
             const delta = {};
 
             // Ensure the members and invitations had the expected updates
-            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, result => {
+            AuthzTestUtil.assertGetInvitationsSucceeds(managerRestContext, 'discussion', discussionId, (result) => {
               AuthzTestUtil.assertEmailRolesEquals(
                 emailRolesBefore,
                 delta,
                 AuthzTestUtil.getEmailRolesFromResults(result.results)
               );
 
-              getAllDiscussionMembers(managerRestContext, discussionId, null, membersAfterUpdate => {
+              getAllDiscussionMembers(managerRestContext, discussionId, null, (membersAfterUpdate) => {
                 AuthzTestUtil.assertMemberRolesEquals(
                   memberRolesBefore,
                   delta,
@@ -535,28 +531,42 @@ const assertUpdateDiscussionMembersFails = function(
  * @param  {Object[][]}     callback.responses  The raw response objects for each page request that was made to get the discussion members library
  * @throws {AssertionError}                     Thrown if an error occurrs while paging through the discussion members library
  */
-const getAllDiscussionMembers = function(restContext, discussionId, opts, callback, _members, _responses, _nextToken) {
+const getAllDiscussionMembers = function (
+  restContext,
+  discussionId,
+  options,
+  callback,
+  _members,
+  _responses,
+  _nextToken
+) {
   _members = _members || [];
   _responses = _responses || [];
   if (_nextToken === null) {
     return callback(_members, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
-  RestAPI.Discussions.getDiscussionMembers(restContext, discussionId, _nextToken, opts.batchSize, (err, result) => {
-    assert.ok(!err);
-    _responses.push(result);
-    return getAllDiscussionMembers(
-      restContext,
-      discussionId,
-      opts,
-      callback,
-      _.union(_members, result.results),
-      _responses,
-      result.nextToken
-    );
-  });
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
+  RestAPI.Discussions.getDiscussionMembers(
+    restContext,
+    discussionId,
+    _nextToken,
+    options.batchSize,
+    (error, result) => {
+      assert.ok(!error);
+      _responses.push(result);
+      return getAllDiscussionMembers(
+        restContext,
+        discussionId,
+        options,
+        callback,
+        _.union(_members, result.results),
+        _responses,
+        result.nextToken
+      );
+    }
+  );
 };
 
 /**
@@ -570,10 +580,10 @@ const getAllDiscussionMembers = function(restContext, discussionId, opts, callba
  * @param  {Object[]}       callback.discussion     The array of discussion in the library
  * @param  {Object[][]}     callback.responses      The raw response objects for each page request that was made to get the discussion library
  */
-const assertGetAllDiscussionsLibrarySucceeds = function(
+const assertGetAllDiscussionsLibrarySucceeds = function (
   restContext,
   principalId,
-  opts,
+  options,
   callback,
   _discussions,
   _responses,
@@ -585,18 +595,18 @@ const assertGetAllDiscussionsLibrarySucceeds = function(
     return callback(_discussions, _responses);
   }
 
-  opts = opts || {};
-  opts.batchSize = opts.batchSize || 25;
+  options = options || {};
+  options.batchSize = options.batchSize || 25;
   assertGetDiscussionsLibrarySucceeds(
     restContext,
     principalId,
-    { start: _nextToken, limit: opts.batchSize },
-    result => {
+    { start: _nextToken, limit: options.batchSize },
+    (result) => {
       _responses.push(result);
       return assertGetAllDiscussionsLibrarySucceeds(
         restContext,
         principalId,
-        opts,
+        options,
         callback,
         _.union(_discussions, result.results),
         _responses,
@@ -617,10 +627,10 @@ const assertGetAllDiscussionsLibrarySucceeds = function(
  * @param  {Function}       callback            Standard callback function
  * @param  {ContentLibrary} callback.result     The discussion library result
  */
-const assertGetDiscussionsLibrarySucceeds = function(restContext, principalId, opts, callback) {
-  opts = opts || {};
-  RestAPI.Discussions.getDiscussionsLibrary(restContext, principalId, opts.start, opts.limit, (err, result) => {
-    assert.ok(!err);
+const assertGetDiscussionsLibrarySucceeds = function (restContext, principalId, options, callback) {
+  options = options || {};
+  RestAPI.Discussions.getDiscussionsLibrary(restContext, principalId, options.start, options.limit, (error, result) => {
+    assert.ok(!error);
     return callback(result);
   });
 };

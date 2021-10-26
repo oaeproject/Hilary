@@ -14,20 +14,20 @@
  */
 
 /**
- * Create the schema for a document that indexes content body information. This document is intended to be a child document,
- * whose parent is the central content document. This relationship allows for a content body index to be updated without
- * having to re-index anything else about the content
+ * Create the schema for a document that indexes resource followers information (i.e., ids of resources that are following the parent
+ * resource). This document is intended to be a child document, whose parent is the central resource document. This relationship allows
+ * for a resource's followers to be updated without having to re-index any other aspects of associations of the parent resource document
+ * (e.g., memberships index) document.
  *
- * @return {Object}     schema          The contentBody child document schema
- *         {String}     schema.body     A free-text string representing the body of the content
+ * @return {Object}     schema              The resource followers schema object
+ *         {String[]}   schema.followers    A multi-value field that holds the resource ids by which the parent resource is being followed
  *
  * Check https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
  * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
-/* eslint-disable unicorn/filename-case */
-export const body = {
-  type: 'text',
+
+export const followers = {
+  type: 'keyword',
   store: 'false',
-  index: 'true',
-  analyzer: 'text_content'
+  index: 'true'
 };

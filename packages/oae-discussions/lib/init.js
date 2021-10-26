@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
 import * as DiscussionsSearch from './search.js';
 
+// eslint-disable-next-line no-unused-vars
+import * as library from './library.js';
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
+import * as invitations from './invitations.js';
+
 export function init(config, callback) {
-  // Register the library functionality
-  const library = require('./library');
-
-  // Register the activity functionality
-  const activity = require('./activity');
-
-  // Register the invitations functionality
-  const invitations = require('./invitations');
-
   return DiscussionsSearch.init(callback);
 }

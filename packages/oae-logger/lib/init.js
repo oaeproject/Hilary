@@ -15,8 +15,8 @@
 
 import { refreshLogConfiguration } from 'oae-logger';
 
-export const init = function(config, callback) {
+export function init(config, callback) {
   refreshLogConfiguration(config.log);
 
   return callback();
-};
+}

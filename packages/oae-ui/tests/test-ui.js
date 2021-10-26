@@ -13,18 +13,25 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import { format } from 'node:util';
+import path, { dirname } from 'node:path';
+
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
-import path from 'path';
 
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import * as UIAPI from 'oae-ui';
-import { UIConstants } from 'oae-ui/lib/constants';
-import * as UITestUtil from 'oae-ui/lib/test/util';
+import { UIConstants } from 'oae-ui/lib/constants.js';
+import * as UITestUtil from 'oae-ui/lib/test/util.js';
+
+import { equals, forEach, nth, keys } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const { getUIDirectory, init, translate } = UIAPI;
 const { updateSkinAndWait } = UITestUtil;
@@ -38,8 +45,6 @@ const {
   generateTestUsers
 } = TestsUtil;
 const { getLogo, getSkinVariables, getSkin, getWidgetManifests, uploadLogo, getStaticBatch } = RestAPI.UI;
-
-import { equals, forEach, nth, keys } from 'ramda';
 
 describe('UI', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user to the cambridge tenant

@@ -14,17 +14,16 @@
  */
 
 import Redlock from 'redlock';
-import * as Redis from './redis.js';
 
 import { logger } from 'oae-logger';
 
 import { compose } from 'ramda';
-import isInt from 'validator/lib/isInt';
-import { Validator as validator } from './validator.js';
+import isInt from 'validator/lib/isInt.js';
 import { config } from '../../../config.js';
+import { Validator as validator } from './validator.js';
+import * as Redis from './redis.js';
 
 const { unless, isDefined, isNotNull } = validator;
-const log = logger('oae-util-locking');
 
 let locker;
 
@@ -69,6 +68,7 @@ const init = (done) => {
  * @returns {Function}                 Returns a callback
  */
 const acquire = function (lockKey, expiresIn, callback) {
+  const log = logger('oae-util-locking');
   try {
     unless(isDefined, {
       code: 400,
@@ -110,6 +110,8 @@ const acquire = function (lockKey, expiresIn, callback) {
  * @returns {Function}                      Returns a callback
  */
 const release = function (lock, callback) {
+  const log = logger('oae-util-locking');
+
   try {
     unless(isNotNull, {
       code: 400,

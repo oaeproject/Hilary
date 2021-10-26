@@ -14,8 +14,7 @@
  */
 
 import { assert } from 'chai';
-
-import * as tz from 'oae-util/lib/tz';
+import * as tz from 'oae-util/lib/tz.js';
 
 describe('TZ', () => {
   describe('#getTimeZoneFromRails()', () => {

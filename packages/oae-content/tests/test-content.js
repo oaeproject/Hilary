@@ -13,26 +13,28 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-import { format } from 'util';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { format } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import temp from 'temp';
 
+import { assert } from 'chai';
+
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { Context } from 'oae-context';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as TenantsAPI from 'oae-tenants/lib/api';
-import * as MQ from 'oae-util/lib/mq';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
+import * as MQ from 'oae-util/lib/mq.js';
 import * as TestsUtil from 'oae-tests';
 import * as ContentAPI from 'oae-content';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import {
   filter,
   omit,
@@ -53,6 +55,9 @@ import {
   mergeAll
 } from 'ramda';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const {
   createTenantRestContext,
   generateRandomText,
@@ -60,8 +65,7 @@ const {
   createGlobalAdminRestContext,
   generateTestUserId,
   generateTestEmailAddress,
-  generateTestUsers,
-  objectifySearchParams
+  generateTestUsers
 } = TestsUtil;
 
 const {
@@ -646,7 +650,7 @@ describe('Content', () => {
           asBranden,
           '/api/download/signed',
           'GET',
-          objectifySearchParams(parsedUrl.searchParams),
+          Object.fromEntries(parsedUrl.searchParams),
           (error, body, response) => {
             assert.notExists(error);
             assert.strictEqual(response.statusCode, 204);
@@ -656,7 +660,7 @@ describe('Content', () => {
               asSimon,
               '/api/download/signed',
               'GET',
-              TestsUtil.objectifySearchParams(parsedUrl.searchParams),
+              Object.fromEntries(parsedUrl.searchParams),
               (error /* , body, response */) => {
                 assert.notExists(error);
 
@@ -665,7 +669,7 @@ describe('Content', () => {
                   asGlobalAdmin,
                   '/api/download/signed',
                   'GET',
-                  objectifySearchParams(parsedUrl.searchParams),
+                  Object.fromEntries(parsedUrl.searchParams),
                   (error /* , body, response */) => {
                     assert.notExists(error);
 
@@ -674,7 +678,7 @@ describe('Content', () => {
                       asCambridgeAnonymousUser,
                       '/api/download/signed',
                       'GET',
-                      objectifySearchParams(parsedUrl.searchParams),
+                      Object.fromEntries(parsedUrl.searchParams),
                       (error /* , body, response */) => {
                         assert.notExists(error);
 
@@ -683,7 +687,7 @@ describe('Content', () => {
                           asBranden,
                           '/api/download/signed',
                           'GET',
-                          omit(['uri'], objectifySearchParams(parsedUrl.searchParams)),
+                          omit(['uri'], Object.fromEntries(parsedUrl.searchParams)),
                           (error /* , body, request */) => {
                             assert.strictEqual(error.code, 401);
 
@@ -693,7 +697,7 @@ describe('Content', () => {
                               '/api/download/signed',
                               'GET',
                               mergeAll([
-                                objectifySearchParams(parsedUrl.searchParams),
+                                Object.fromEntries(parsedUrl.searchParams),
                                 {
                                   uri: 'blahblahblah'
                                 }
@@ -706,7 +710,7 @@ describe('Content', () => {
                                   asBranden,
                                   '/api/download/signed',
                                   'GET',
-                                  omit(['signature'], objectifySearchParams(parsedUrl.searchParams)),
+                                  omit(['signature'], Object.fromEntries(parsedUrl.searchParams)),
                                   (error /* , body, request */) => {
                                     assert.strictEqual(error.code, 401);
 
@@ -716,7 +720,7 @@ describe('Content', () => {
                                       '/api/download/signed',
                                       'GET',
                                       mergeAll([
-                                        objectifySearchParams(parsedUrl.searchParams),
+                                        Object.fromEntries(parsedUrl.searchParams),
                                         {
                                           signature: 'ATTACK LOL!!'
                                         }
@@ -729,7 +733,7 @@ describe('Content', () => {
                                           asBranden,
                                           '/api/download/signed',
                                           'GET',
-                                          omit(['expires'], objectifySearchParams(parsedUrl.searchParams)),
+                                          omit(['expires'], Object.fromEntries(parsedUrl.searchParams)),
                                           (error /* , body, request */) => {
                                             assert.strictEqual(error.code, 401);
 
@@ -739,9 +743,9 @@ describe('Content', () => {
                                               '/api/download/signed',
                                               'GET',
                                               mergeAll([
-                                                objectifySearchParams(parsedUrl.searchParams),
+                                                Object.fromEntries(parsedUrl.searchParams),
                                                 {
-                                                  expires: 2345678901
+                                                  expires: 2_345_678_901
                                                 }
                                               ]),
                                               (error /* , body, request */) => {
@@ -755,7 +759,7 @@ describe('Content', () => {
                                                   asBranden,
                                                   '/api/download/signed',
                                                   'GET',
-                                                  objectifySearchParams(parsedUrl.searchParams),
+                                                  Object.fromEntries(parsedUrl.searchParams),
                                                   (error /* , body, response * */) => {
                                                     assert.strictEqual(error.code, 401);
                                                     return callback();
@@ -1998,7 +2002,7 @@ describe('Content', () => {
                                 assert.isEmpty(comments.results);
 
                                 // Create a comment that is larger than the allowed maximum size
-                                const commentBody = generateRandomText(10000);
+                                const commentBody = generateRandomText(10_000);
                                 createComment(asBert, contentObject.id, commentBody, null, (error, comment) => {
                                   assert.ok(error);
                                   assert.strictEqual(error.code, 400);
@@ -3702,36 +3706,42 @@ describe('Content', () => {
             assert.notExists(error);
             assert.ok(contentObject.id);
 
-            updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (
-              error /* , updatedContentObj */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 400);
+            updateContent(
+              asHomer,
+              contentObject.id,
+              { link: 'http://www.google.com' },
+              (error /* , updatedContentObj */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 400);
 
-              createCollabDoc(
-                asHomer,
-                'Test Content 1',
-                'Test content description 1',
-                PUBLIC,
-                NO_MANAGERS,
-                NO_EDITORS,
-                NO_VIEWERS,
-                NO_FOLDERS,
-                (error, contentObject) => {
-                  assert.notExists(error);
-                  assert.ok(contentObject);
+                createCollabDoc(
+                  asHomer,
+                  'Test Content 1',
+                  'Test content description 1',
+                  PUBLIC,
+                  NO_MANAGERS,
+                  NO_EDITORS,
+                  NO_VIEWERS,
+                  NO_FOLDERS,
+                  (error, contentObject) => {
+                    assert.notExists(error);
+                    assert.ok(contentObject);
 
-                  updateContent(asHomer, contentObject.id, { link: 'http://www.google.com' }, (
-                    error /* , updatedContentObj */
-                  ) => {
-                    assert.ok(error);
-                    assert.strictEqual(error.code, 400);
+                    updateContent(
+                      asHomer,
+                      contentObject.id,
+                      { link: 'http://www.google.com' },
+                      (error /* , updatedContentObj */) => {
+                        assert.ok(error);
+                        assert.strictEqual(error.code, 400);
 
-                    callback();
-                  });
-                }
-              );
-            });
+                        callback();
+                      }
+                    );
+                  }
+                );
+              }
+            );
           }
         );
       });
@@ -4562,9 +4572,9 @@ describe('Content', () => {
             const permissions = {};
             permissions[stuart.user.id] = VIEWER;
 
-            return assertUpdateContentMembersSucceeds(asNico, asNico, contentObject.id, permissions, () => {
-              return callback(contentObject);
-            });
+            return assertUpdateContentMembersSucceeds(asNico, asNico, contentObject.id, permissions, () =>
+              callback(contentObject)
+            );
           });
         }
       );
@@ -4696,9 +4706,7 @@ describe('Content', () => {
                 permissions[stuart.user.id] = VIEWER;
                 permissions['u:cam:non-existing-user'] = VIEWER;
 
-                assertUpdateContentMembersFails(asNico, asNico, contentObject.id, permissions, 400, () => {
-                  return callback();
-                });
+                assertUpdateContentMembersFails(asNico, asNico, contentObject.id, permissions, 400, () => callback());
               });
             });
           }
@@ -5154,9 +5162,9 @@ describe('Content', () => {
           (content) => {
             // Set the roles of the content item
             const roleChanges = fromPairs([[format('%s:%s', targetUser.user.email, targetUser.user.id), MANAGER]]);
-            assertUpdateContentMembersSucceeds(asCreatingUser, asCreatingUser, content.id, roleChanges, () => {
-              return callback();
-            });
+            assertUpdateContentMembersSucceeds(asCreatingUser, asCreatingUser, content.id, roleChanges, () =>
+              callback()
+            );
           }
         );
       });
@@ -5225,9 +5233,7 @@ describe('Content', () => {
                             asCreatingUser,
                             content.id,
                             roleChanges,
-                            () => {
-                              return callback();
-                            }
+                            () => callback()
                           );
                         });
                       }
@@ -5278,9 +5284,7 @@ describe('Content', () => {
             true,
             true,
             true,
-            () => {
-              return callback(contentObject);
-            }
+            () => callback(contentObject)
           );
         }
       );

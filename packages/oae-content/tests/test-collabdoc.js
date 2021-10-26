@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 import ShortId from 'shortid';
 import { not, keys, equals } from 'ramda';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 
 const { searchAll } = SearchTestsUtil;
 const {
@@ -174,7 +174,7 @@ describe('Collaborative documents', () => {
     );
     assert.notStrictEqual(hostA, hostB);
 
-    const total = 10000;
+    const total = 10_000;
     const counts = {};
     for (let i = 0; i < total; i++) {
       const id = format('c:cam:%s', ShortId.generate());

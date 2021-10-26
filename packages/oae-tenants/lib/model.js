@@ -26,26 +26,26 @@
  * @param  {Boolean}    [opts.isGlobalAdminServer]  Whether or not the tenant is the global admin tenant. Default: `false`
  * @param  {Boolean}    [opts.isGuestTenant]        Whether or not the tenant is the tenant configured as the "guest" tenant. Default: `false`
  */
-const Tenant = function(alias, displayName, host, opts) {
-  opts = opts || {};
+const Tenant = function (alias, displayName, host, options) {
+  options = options || {};
 
   const that = {};
 
   that.alias = alias;
   that.displayName = displayName;
   that.host = host;
-  that.emailDomains = opts.emailDomains || [];
-  that.countryCode = opts.countryCode;
-  that.active = opts.active !== false;
-  that.isGlobalAdminServer = opts.isGlobalAdminServer === true;
-  that.isGuestTenant = opts.isGuestTenant === true;
+  that.emailDomains = options.emailDomains || [];
+  that.countryCode = options.countryCode;
+  that.active = options.active !== false;
+  that.isGlobalAdminServer = options.isGlobalAdminServer === true;
+  that.isGuestTenant = options.isGuestTenant === true;
 
   /**
    * Creates and returns a compact representation of the Tenant object.
    *
    * @return {Object} A compact representation of the Tenant object.
    */
-  that.compact = function() {
+  that.compact = function () {
     const compact = {
       alias: that.alias,
       displayName: that.displayName,
@@ -70,7 +70,7 @@ const Tenant = function(alias, displayName, host, opts) {
  * @param  {String}         displayName     The display name of the tenant network
  * @return {TenantNetwork}                  The tenant network object
  */
-const TenantNetwork = function(id, displayName) {
+const TenantNetwork = function (id, displayName) {
   const that = {};
 
   that.id = id;

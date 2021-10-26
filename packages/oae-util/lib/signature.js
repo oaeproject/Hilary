@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
-import { format } from 'util';
+import crypto from 'node:crypto';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
 
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 const log = logger('signature');
 

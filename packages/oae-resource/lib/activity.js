@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Post the "accept invitation" activity for the given context and target resource
@@ -25,7 +25,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
  * @param  {Resource}   resource        The resource to which the user in context accepted an invitation
  * @param  {User}       inviterUser     The user who performed the invitation
  */
-const postInvitationAcceptActivity = function(ctx, resource, inviterUser) {
+const postInvitationAcceptActivity = function (ctx, resource, inviterUser) {
   const millis = Date.now();
   // eslint-disable-next-line new-cap
   const actorResource = new ActivityModel.ActivitySeedResource.fromResource(ctx.user());

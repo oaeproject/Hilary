@@ -17,21 +17,28 @@ import _ from 'underscore';
 import DiscussionsAPI from 'oae-discussions';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as Signature from 'oae-util/lib/signature';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { MessageBoxConstants } from 'oae-messagebox/lib/constants';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { MessageBoxConstants } from 'oae-messagebox/lib/constants.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+import isIn from 'validator/lib/isIn.js';
+import isInt from 'validator/lib/isInt.js';
+
+import { equals, forEachObjIndexed } from 'ramda';
+import * as DiscussionsDAO from './internal/dao.js';
+import { DiscussionsConstants } from './constants.js';
+
 const {
   isValidRoleChange,
   unless,
@@ -47,12 +54,6 @@ const {
   validateInCase: bothCheck,
   isLongString
 } = validator;
-import isIn from 'validator/lib/isIn';
-import isInt from 'validator/lib/isInt';
-
-import { equals, forEachObjIndexed } from 'ramda';
-import * as DiscussionsDAO from './internal/dao.js';
-import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-api');
 
@@ -565,12 +566,10 @@ const getDiscussionMembers = function (ctx, discussionId, start, limit, callback
         }
 
         // Merge the member profiles and roles into a single object
-        const memberList = _.map(memberRoles, (memberRole) => {
-          return {
-            profile: memberProfiles[memberRole.id],
-            role: memberRole.role
-          };
-        });
+        const memberList = _.map(memberRoles, (memberRole) => ({
+          profile: memberProfiles[memberRole.id],
+          role: memberRole.role
+        }));
 
         return callback(null, memberList, nextToken);
       });
@@ -1059,9 +1058,7 @@ const getMessages = function (ctx, discussionId, start, limit, callback) {
         return callback(error);
       }
 
-      let userIds = _.map(messages, (message) => {
-        return message.createdBy;
-      });
+      let userIds = _.map(messages, (message) => message.createdBy);
 
       // Remove falsey and duplicate userIds
       userIds = _.uniq(_.compact(userIds));

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as tz from 'oae-util/lib/tz';
+import * as tz from 'oae-util/lib/tz.js';
 import {
   defaultTo,
   trim,
@@ -161,12 +161,12 @@ const isNotNull = (value) => both(isDefined, compose(not, isEmpty))(value);
  * func(null, Error); // throws an error
  * ```
  */
-const unless = (validation, error) => {
-  return (...args) => {
+const unless =
+  (validation, error) =>
+  (...args) => {
     const validationFails = compose(not, validation)(...args);
     if (validationFails) throw error;
   };
-};
 
 /**
  * @function validateInCase
@@ -175,7 +175,10 @@ const unless = (validation, error) => {
  * @param  {Array} ...args        Extra arguments for validation
  * @return {Boolean}              Result of validation if condition is true, otherwise return true (no error thrown)
  */
-const validateInCase = (condition, validation) => (value, ...args) => (condition ? validation(value, ...args) : true);
+const validateInCase =
+  (condition, validation) =>
+  (value, ...args) =>
+    condition ? validation(value, ...args) : true;
 
 /**
  * @function getNestedObject
@@ -189,9 +192,8 @@ const validateInCase = (condition, validation) => (value, ...args) => (condition
  * func(['something']); // returns 'true'
  * ```
  */
-const getNestedObject = (nestedObject) => {
-  return reduce((object, key) => (object && object[key] !== 'undefined' ? object[key] : undefined), nestedObject);
-};
+const getNestedObject = (nestedObject) =>
+  reduce((object, key) => (object && object[key] !== 'undefined' ? object[key] : undefined), nestedObject);
 
 /**
  * Check whether or not a context represents a logged in user
@@ -422,7 +424,7 @@ const isShortString = (value = '') => both(_isString, _isItLengthy({ min: 1, max
  * isMediumString(string); // true
  * ```
  */
-const isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 10000 }))(value);
+const isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, max: 10_000 }))(value);
 
 /**
  * Checks whether the string that was passed in the `check` method is a long string.
@@ -441,7 +443,7 @@ const isMediumString = (value = '') => both(_isString, _isItLengthy({ min: 1, ma
  * isLongString(string); // true
  * ```
  */
-const isLongString = (value) => both(_isString, _isItLengthy({ min: 1, max: 100000 }))(value);
+const isLongString = (value) => both(_isString, _isItLengthy({ min: 1, max: 100_000 }))(value);
 
 /**
  * Checks whether the string is a valid host
@@ -456,12 +458,11 @@ const isLongString = (value) => both(_isString, _isItLengthy({ min: 1, max: 1000
  * istHost(string); // true
  * ```
  */
-const isHost = (hostString) => {
-  return both(isShortString, (string) =>
+const isHost = (hostString) =>
+  both(isShortString, (string) =>
     // eslint-disable-next-line camelcase
     isURL(string, { allow_trailing_dot: true, require_tld: false })
   )(hostString);
-};
 
 /**
  * Checks whether the string is a valid iso-3166 country code

@@ -13,20 +13,26 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import Path from 'path';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
+import { fileURLToPath } from 'node:url';
+import Path, { dirname } from 'node:path';
+
+import { callbackify } from 'node:util';
+import fs from 'node:fs';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
 import _ from 'underscore';
 import cheerio from 'cheerio';
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 import { logger } from 'oae-logger';
 
-import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer';
+import * as puppeteerHelper from 'oae-preview-processor/lib/internal/puppeteer.js';
 
-import * as ImageUtil from 'oae-util/lib/image';
-import * as IO from 'oae-util/lib/io';
+import * as ImageUtil from 'oae-util/lib/image.js';
+import * as IO from 'oae-util/lib/io.js';
 import * as RestAPI from 'oae-rest';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const log = logger('oae-preview-processor');
 
@@ -45,7 +51,7 @@ const screenShottingOptions = {
  * @param  {Function}   callback                            Standard callback function
  * @param  {Object}     callback.err                        An error that occurred, if any
  */
-const init = function(_config, callback) {
+const init = function (_config, callback) {
   _config = _config || {};
 
   screenShottingOptions.timeout = OaeUtil.getNumberParam(_config.screenShotting.timeout, screenShottingOptions.timeout);
@@ -71,8 +77,8 @@ const FILE_URI = 'file://';
 /**
  * @borrows Interface.test as CollabDocProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
-  if (isResourceACollabDoc(contentObj.resourceSubType) || isResourceACollabSheet(contentObj.resourceSubType)) {
+const test = function (ctx, contentObject, callback) {
+  if (isResourceACollabDoc(contentObject.resourceSubType) || isResourceACollabSheet(contentObject.resourceSubType)) {
     callback(null, 10);
   } else {
     callback(null, -1);
@@ -82,12 +88,12 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as CollabDocProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   // Do a check to see if this document has been published yet.
   // If there is more then 1 revision it has been published.
-  RestAPI.Content.getRevisions(ctx.tenantRestContext, contentObj.id, null, 2, (err, revisions) => {
-    if (err) {
-      return callback(err);
+  RestAPI.Content.getRevisions(ctx.tenantRestContext, contentObject.id, null, 2, (error, revisions) => {
+    if (error) {
+      return callback(error);
     }
 
     if (revisions.results.length === 1) {
@@ -97,23 +103,23 @@ const generatePreviews = function(ctx, contentObj, callback) {
     }
 
     // Store whether this document is a collaborative document or spreadsheet
-    const type = contentObj.resourceSubType;
-    const html = isResourceACollabDoc(contentObj.resourceSubType) ? 'etherpadHtml' : 'ethercalcHtml';
+    const type = contentObject.resourceSubType;
+    const html = isResourceACollabDoc(contentObject.resourceSubType) ? 'etherpadHtml' : 'ethercalcHtml';
 
     // Write the HTML to an HTML file, so a screenshot can be generated as the preview
-    _writeCollabHtml(ctx, contentObj.latestRevision[html], type, function(err, collabFilePath) {
-      if (err) {
-        return callback(err);
+    _writeCollabHtml(ctx, contentObject.latestRevision[html], type, (error, collabFilePath) => {
+      if (error) {
+        return callback(error);
       }
 
       // Generate a screenshot that is suitable to display in the activity feed.
       const collabFileUri = FILE_URI + collabFilePath;
       const imgPath = Path.join(ctx.baseDir, '/wide.png');
 
-      puppeteerHelper.getImage(collabFileUri, imgPath, screenShottingOptions, err => {
-        if (err) {
-          log().error({ err, contentId: ctx.contentId }, 'Could not generate an image');
-          return callback(err);
+      callbackify(puppeteerHelper.getImage)(collabFileUri, imgPath, screenShottingOptions, (error) => {
+        if (error) {
+          log().error({ err: error, contentId: ctx.contentId }, 'Could not generate an image');
+          return callback(error);
         }
 
         ctx.addPreview(imgPath, 'wide');
@@ -135,19 +141,19 @@ const generatePreviews = function(ctx, contentObj, callback) {
               height: PreviewConstants.SIZES.IMAGE.THUMBNAIL
             }
           ],
-          (err, files) => {
-            if (err) {
-              log().error({ err }, 'Could not crop the image');
-              return callback(err);
+          (error, files) => {
+            if (error) {
+              log().error({ err: error }, 'Could not crop the image');
+              return callback(error);
             }
 
             // Move the files to the thumbnail path
             const key = PreviewConstants.SIZES.IMAGE.THUMBNAIL + 'x' + PreviewConstants.SIZES.IMAGE.THUMBNAIL;
             const thumbnailPath = Path.join(ctx.baseDir, '/thumbnail.png');
 
-            IO.moveFile(files[key].path, thumbnailPath, err => {
-              if (err) {
-                return callback(err);
+            IO.moveFile(files[key].path, thumbnailPath, (error) => {
+              if (error) {
+                return callback(error);
               }
 
               ctx.setThumbnail(thumbnailPath);
@@ -171,21 +177,24 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @param  {String}     callback.path   The path the file has been written to
  * @api private
  */
-const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
-  _getWrappedCollabHtml(ctx, collabHtml, (err, wrappedHtml) => {
-    if (err) return callback(err);
+const _writeCollabHtml = function (ctx, collabHtml, type, callback) {
+  _getWrappedCollabHtml(ctx, collabHtml, (error, wrappedHtml) => {
+    if (error) return callback(error);
 
     // make sure the dir exists
-    fs.mkdir(ctx.baseDir, { recursive: true }, err => {
-      if (err) return callback(err);
+    fs.mkdir(ctx.baseDir, { recursive: true }, (error) => {
+      if (error) return callback(error);
 
       // Write the resulting HTML to a temporary file on disk
       const collabFilePath = isResourceACollabDoc(type)
         ? Path.join(ctx.baseDir, '/etherpad.html')
         : Path.join(ctx.baseDir, '/ethercalc.html');
-      fs.writeFile(collabFilePath, wrappedHtml, err => {
-        if (err) {
-          log().error({ err, contentId: ctx.contentId }, 'Could not write the collaborative file preview HTML to disk');
+      fs.writeFile(collabFilePath, wrappedHtml, (error) => {
+        if (error) {
+          log().error(
+            { err: error, contentId: ctx.contentId },
+            'Could not write the collaborative file preview HTML to disk'
+          );
           return callback({ code: 500, msg: 'Could not write the collaborative file preview HTML to disk' });
         }
 
@@ -205,7 +214,7 @@ const _writeCollabHtml = function(ctx, collabHtml, type, callback) {
  * @param  {String}     callback.html   Resulting wrapped HTML
  * @api private
  */
-const _getWrappedCollabHtml = function(ctx, collabHtml, callback) {
+const _getWrappedCollabHtml = function (ctx, collabHtml, callback) {
   let htmlFragment = null;
   // Extract the body from the HTML fragment
   try {
@@ -230,9 +239,12 @@ const _getWrappedCollabHtml = function(ctx, collabHtml, callback) {
   if (wrapperHtml) {
     callback(null, _.template(wrapperHtml)(templateData));
   } else {
-    fs.readFile(HTML_FILE, 'utf8', (err, content) => {
-      if (err) {
-        log().error({ err, contentId: ctx.contentId }, 'Could not read the collaborative file preview wrapper HTML');
+    fs.readFile(HTML_FILE, 'utf8', (error, content) => {
+      if (error) {
+        log().error(
+          { err: error, contentId: ctx.contentId },
+          'Could not read the collaborative file preview wrapper HTML'
+        );
         return callback({ code: 500, msg: 'Could not read the collaborative file preview wrapper HTML' });
       }
 

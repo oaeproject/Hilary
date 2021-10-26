@@ -14,13 +14,13 @@
  */
 
 import { assert } from 'chai';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
 import { Context } from 'oae-context';
-import { User } from 'oae-principals/lib/model';
+import { User } from 'oae-principals/lib/model.js';
 
 import { equals, length, keys } from 'ramda';
 

@@ -15,13 +15,13 @@
 
 import _ from 'underscore';
 
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-import { Invitation } from 'oae-authz/lib/invitations/model';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
 
 /**
  * Get all the invitations for the specified resource
@@ -32,20 +32,23 @@ import { Invitation } from 'oae-authz/lib/invitations/model';
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Invitation[]}   callback.invitations    The invitations for the resource
  */
-const getAllInvitations = function(ctx, resource, callback) {
-  AuthzPermissions.canManage(ctx, resource, err => {
-    if (err) {
-      return callback(err);
+const getAllInvitations = function (ctx, resource, callback) {
+  AuthzPermissions.canManage(ctx, resource, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const resourceAuthzId = AuthzUtil.getAuthzId(resource);
-    AuthzInvitationsDAO.getAllInvitationsByResourceId(resourceAuthzId, (err, invitationHashes) => {
-      if (err) {
-        return callback(err);
-      }
+    AuthzInvitationsDAO.getAllInvitationsByResourceId(
+      resourceAuthzId,
+      (error, invitationHashes) => {
+        if (error) {
+          return callback(error);
+        }
 
-      return _invitationsFromHashes(ctx, resource, invitationHashes, callback);
-    });
+        return _invitationsFromHashes(ctx, resource, invitationHashes, callback);
+      }
+    );
   });
 };
 
@@ -60,17 +63,14 @@ const getAllInvitations = function(ctx, resource, callback) {
  * @param  {Invitation[]}   callback.invitations    The invitations for the resource
  * @api private
  */
-const _invitationsFromHashes = function(ctx, resource, invitationHashes, callback) {
-  const inviterUserIds = _.chain(invitationHashes)
-    .pluck('inviterUserId')
-    .uniq()
-    .value();
-  PrincipalsUtil.getPrincipals(ctx, inviterUserIds, (err, principalsById) => {
-    if (err) {
-      return callback(err);
+const _invitationsFromHashes = function (ctx, resource, invitationHashes, callback) {
+  const inviterUserIds = _.chain(invitationHashes).pluck('inviterUserId').uniq().value();
+  PrincipalsUtil.getPrincipals(ctx, inviterUserIds, (error, principalsById) => {
+    if (error) {
+      return callback(error);
     }
 
-    const invitations = _.map(invitationHashes, invitationHash => {
+    const invitations = _.map(invitationHashes, (invitationHash) => {
       const inviterUser = principalsById[invitationHash.inviterUserId];
       return new Invitation(resource, invitationHash.email, inviterUser, invitationHash.role);
     });

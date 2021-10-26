@@ -14,19 +14,18 @@
  */
 
 /* eslint-disable camelcase */
-import { format } from 'util';
+import { format } from 'node:util';
 
 import { logger } from 'oae-logger';
 import * as AuthzAPI from 'oae-authz';
-import * as OaeUtil from 'oae-util/lib/util';
-const { invokeIfNecessary } = OaeUtil;
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import * as SearchModel from 'oae-search/lib/model';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import * as SearchModel from 'oae-search/lib/model.js';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import {
   mergeDeepWith,
   mergeDeepRight,
@@ -52,6 +51,8 @@ import {
   is,
   head
 } from 'ramda';
+
+const { invokeIfNecessary } = OaeUtil;
 
 const { isObject, unless } = validator;
 const { defaultToEmptyArray, defaultToEmptyObject } = validator;
@@ -249,9 +250,7 @@ const transformSearchResults = function (ctx, transformers, results, callback) {
         const orderedDocs = values(transformedDocs);
 
         // Reorder the docs using the ordering hash that was recorded before transformation
-        orderedDocs.sort((one, other) => {
-          return docIdOrdering[one.id] - docIdOrdering[other.id];
-        });
+        orderedDocs.sort((one, other) => docIdOrdering[one.id] - docIdOrdering[other.id]);
 
         return callback(null, new SearchModel.SearchResult(resultsTotalCount, orderedDocs));
       }
@@ -262,18 +261,17 @@ const transformSearchResults = function (ctx, transformers, results, callback) {
    * Execute all transformers asynchronously from one another. `_monitorTransformers`
    * will keep track of their completion
    */
-  keys(docsByType).forEach((type) => {
+  for (const type of keys(docsByType)) {
     transformers[type](
       ctx,
       docsByType[type],
-      ((resourceType) => {
+      ((resourceType) =>
         // We need to pass the resource type of this iteration on to the monitor
-        return function (error, docs) {
+        function (error, docs) {
           _monitorTransformers(error, resourceType, docs);
-        };
-      })(type)
+        })(type)
     );
-  });
+  }
 };
 
 /**
@@ -375,8 +373,7 @@ const createBulkIndexOperations = function (docs) {
     // These meta attributes have been promoted and shouldn't be on the core doc anymore
     delete doc.id;
 
-    cmds.push(meta);
-    cmds.push(doc);
+    cmds.push(meta, doc);
   }, docs);
 
   return cmds;
@@ -966,9 +963,7 @@ const sanitizeSearchParameters = (options) => {
 /**
  * Make sure to filter by resources (array)
  */
-const filterByResource = (resourcesToFilterBy) => {
-  return { filter: [{ terms: { resourceType: resourcesToFilterBy } }] };
-};
+const filterByResource = (resourcesToFilterBy) => ({ filter: [{ terms: { resourceType: resourcesToFilterBy } }] });
 
 /**
  * Filter by interacting tenants to include in query
@@ -998,9 +993,7 @@ const filterByInteractingTenants = (tenantAlias) => {
 /**
  * Return a query for exact match for email
  */
-const buildQueryForEmail = (email) => {
-  return { must: { term: { email } } };
-};
+const buildQueryForEmail = (email) => ({ must: { term: { email } } });
 
 export {
   filterByResource,

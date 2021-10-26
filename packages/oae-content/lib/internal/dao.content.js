@@ -13,26 +13,26 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
   isResourceALink,
   isResourceAFile
-} from 'oae-content/lib/backends/util';
+} from 'oae-content/lib/backends/util.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { Content } from 'oae-content/lib/model';
-import { ContentConstants } from 'oae-content/lib/constants';
-import * as RevisionsDAO from './dao.revisions';
+import { Content } from 'oae-content/lib/model.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import * as RevisionsDAO from './dao.revisions.js';
 
 const log = logger('content-dao');
 
@@ -106,9 +106,7 @@ const getMultipleContentItems = function (contentIds, fields, callback) {
     });
 
     // Assemble content items into the order provided by the original contentIds array
-    const contentItems = _.map(contentIds, (contentId) => {
-      return contentItemsById[contentId];
-    });
+    const contentItems = _.map(contentIds, (contentId) => contentItemsById[contentId]);
 
     return callback(null, contentItems);
   });
@@ -123,7 +121,7 @@ const getMultipleContentItems = function (contentIds, fields, callback) {
  * @param  {Object[]}       callback.members    An array of hashes, where the 'id' property of the hash is the principal id, and the 'role' property of the hash is the role of the principal.
  */
 const getAllContentMembers = function (contentId, callback) {
-  AuthzAPI.getAuthzMembers(contentId, null, 10000, callback);
+  AuthzAPI.getAuthzMembers(contentId, null, 10_000, callback);
 };
 
 /// ////////////
@@ -457,13 +455,11 @@ const _updateContentLibraries = function (contentObject, oldLastModified, newLas
     if (!oldLastModified) {
       // We are creating a new content item. We only care about who is getting added, so
       // insert it into the library index for all members
-      const insertEntries = _.map(memberIds, (memberId) => {
-        return {
-          id: memberId,
-          rank: newLastModified,
-          resource: contentObject
-        };
-      });
+      const insertEntries = _.map(memberIds, (memberId) => ({
+        id: memberId,
+        rank: newLastModified,
+        resource: contentObject
+      }));
       return LibraryAPI.Index.insert(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, insertEntries, callback);
     }
 
@@ -471,24 +467,20 @@ const _updateContentLibraries = function (contentObject, oldLastModified, newLas
     // entries
     const updateEntries = _.chain(memberIds)
       .difference(removedMembers)
-      .map((memberId) => {
-        return {
-          id: memberId,
-          newRank: newLastModified,
-          oldRank: oldLastModified,
-          resource: contentObject
-        };
-      })
+      .map((memberId) => ({
+        id: memberId,
+        newRank: newLastModified,
+        oldRank: oldLastModified,
+        resource: contentObject
+      }))
       .value();
 
     // Collect any library index remove operations from the member ids that are being removed
-    const removeEntries = _.map(removedMembers, (removedMemberId) => {
-      return {
-        id: removedMemberId,
-        rank: oldLastModified,
-        resource: contentObject
-      };
-    });
+    const removeEntries = _.map(removedMembers, (removedMemberId) => ({
+      id: removedMemberId,
+      rank: oldLastModified,
+      resource: contentObject
+    }));
 
     // Apply the index updates, if any
     OaeUtil.invokeIfNecessary(
@@ -546,7 +538,7 @@ const _rowToContent = function (row) {
   );
   if (isResourceAFile(contentObject.resourceSubType)) {
     contentObject.filename = hash.filename;
-    contentObject.size = hash.size ? Number.parseInt(hash.size, 10) : 0;
+    contentObject.size = hash.size > 0 ? Number.parseInt(hash.size, 10) : 0;
     contentObject.mime = hash.mime;
   } else if (isResourceALink(contentObject.resourceSubType)) {
     contentObject.link = hash.link;

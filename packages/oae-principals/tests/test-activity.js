@@ -13,20 +13,24 @@
  * permissions and limitations under the License.
  */
 
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
 import * as TestsUtil from 'oae-tests';
 
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 import { forEach, not, and } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const NO_VIEWERS = [];
 const NO_FOLDERS = [];
@@ -110,7 +114,7 @@ describe('Principals Activity', () => {
 
         const { 0: doer, 1: jack } = users;
 
-        // Create the 4 groups that will form a cycle
+        // Create the 4 groups that will form a cyclema
         RestAPI.Group.createGroup(doer.restContext, group1Alias, group1Alias, PUBLIC, 'no', [], [], (error, group1) => {
           assert.notExists(error);
 
@@ -405,6 +409,7 @@ describe('Principals Activity', () => {
                         const permissionChanges = {};
                         permissionChanges[publicUser.user.id] = 'manager';
                         permissionChanges[privateUser.user.id] = 'manager';
+
                         RestAPI.Group.setGroupMembers(asCambridgeTenantAdmin, group.id, permissionChanges, (error_) => {
                           assert.notExists(error_);
 
@@ -489,7 +494,7 @@ describe('Principals Activity', () => {
                                 asGeorgiaTechAnonymousUser,
                                 signedDownloadUrl.pathname,
                                 'GET',
-                                TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                Object.fromEntries(signedDownloadUrl.searchParams),
                                 (error, body, response) => {
                                   assert.notExists(error);
                                   assert.strictEqual(response.statusCode, 204);
@@ -499,7 +504,7 @@ describe('Principals Activity', () => {
                                     asGeorgiaTechAnonymousUser,
                                     signedDownloadUrl.pathname,
                                     'GET',
-                                    TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                    Object.fromEntries(signedDownloadUrl.searchParams),
                                     (error, body, response) => {
                                       assert.notExists(error);
                                       assert.strictEqual(response.statusCode, 204);
@@ -516,7 +521,7 @@ describe('Principals Activity', () => {
                                         asGeorgiaTechAnonymousUser,
                                         signedDownloadUrl.pathname,
                                         'GET',
-                                        TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                        Object.fromEntries(signedDownloadUrl.searchParams),
                                         (error, body, response) => {
                                           assert.notExists(error);
                                           assert.strictEqual(response.statusCode, 204);
@@ -526,7 +531,7 @@ describe('Principals Activity', () => {
                                             asGeorgiaTechAnonymousUser,
                                             signedDownloadUrl.pathname,
                                             'GET',
-                                            TestsUtil.objectifySearchParams(signedDownloadUrl.searchParams),
+                                            Object.fromEntries(signedDownloadUrl.searchParams),
                                             (error, body, response) => {
                                               assert.notExists(error);
                                               assert.strictEqual(response.statusCode, 204);
@@ -654,48 +659,60 @@ describe('Principals Activity', () => {
             assert.notExists(error_);
 
             // The Vissmeister creates a private group
-            RestAPI.Group.createGroup(branden.restContext, 'Private Group', null, 'private', 'no', [], [], (
-              error /* , privateGroup */
-            ) => {
-              assert.notExists(error);
-
-              // Ensure only the 2 following activities are in Nico's feed as he does not have access to the private group
-              ActivityTestsUtil.collectAndGetActivityStream(nico.restContext, nico.user.id, null, (error, response) => {
+            RestAPI.Group.createGroup(
+              branden.restContext,
+              'Private Group',
+              null,
+              'private',
+              'no',
+              [],
+              [],
+              (error /* , privateGroup */) => {
                 assert.notExists(error);
-                assert.strictEqual(response.items.length, 2);
-                assert.strictEqual(response.items[0]['oae:activityType'], 'following-follow');
-                assert.strictEqual(response.items[1]['oae:activityType'], 'following-follow');
 
-                // The Vissmeister creates a public group
-                RestAPI.Group.createGroup(
-                  branden.restContext,
-                  'Public Group',
+                // Ensure only the 2 following activities are in Nico's feed as he does not have access to the private group
+                ActivityTestsUtil.collectAndGetActivityStream(
+                  nico.restContext,
+                  nico.user.id,
                   null,
-                  PUBLIC,
-                  'no',
-                  [],
-                  [],
-                  (error, publicGroup) => {
+                  (error, response) => {
                     assert.notExists(error);
+                    assert.strictEqual(response.items.length, 2);
+                    assert.strictEqual(response.items[0]['oae:activityType'], 'following-follow');
+                    assert.strictEqual(response.items[1]['oae:activityType'], 'following-follow');
 
-                    // Ensure the group creation activity has been delivered
-                    ActivityTestsUtil.collectAndGetActivityStream(
-                      nico.restContext,
-                      nico.user.id,
+                    // The Vissmeister creates a public group
+                    RestAPI.Group.createGroup(
+                      branden.restContext,
+                      'Public Group',
                       null,
-                      (error, response) => {
+                      PUBLIC,
+                      'no',
+                      [],
+                      [],
+                      (error, publicGroup) => {
                         assert.notExists(error);
-                        assert.strictEqual(response.items.length, 3);
-                        assert.strictEqual(response.items[0]['oae:activityType'], 'group-create');
-                        assert.strictEqual(response.items[0].object['oae:id'], publicGroup.id);
 
-                        return callback();
+                        // Ensure the group creation activity has been delivered
+                        ActivityTestsUtil.collectAndGetActivityStream(
+                          nico.restContext,
+                          nico.user.id,
+                          null,
+                          (error, response) => {
+                            assert.notExists(error);
+                            assert.strictEqual(response.items.length, 3);
+                            assert.strictEqual(response.items[0]['oae:activityType'], 'group-create');
+                            assert.strictEqual(response.items[0].object['oae:id'], publicGroup.id);
+
+                            return callback();
+                          }
+                        );
                       }
                     );
                   }
                 );
-              });
-            });
+              }
+            );
           });
         });
       });

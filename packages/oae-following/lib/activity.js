@@ -15,19 +15,15 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as FollowingDAO from 'oae-following/lib/internal/dao';
-import * as FollowingAPI from 'oae-following';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
+import * as FollowingAPI from 'oae-following/lib/api.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { FollowingConstants } from 'oae-following/lib/constants';
-
-/// ///////////////////
-// FOLLOWING-FOLLOW //
-/// ///////////////////
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
 
 ActivityAPI.registerActivityType(FollowingConstants.activity.ACTIVITY_FOLLOW, {
   groupBy: [
@@ -78,10 +74,6 @@ FollowingAPI.emitter.on(FollowingConstants.events.FOLLOW, (ctx, followingUser, f
   ActivityAPI.postActivity(ctx, activitySeed);
 });
 
-/// ///////////////////////////////
-// ACTIVITY ENTITY ASSOCIATIONS //
-/// ///////////////////////////////
-
 /*!
  * Register a user association that presents all the followers of a user
  */
@@ -96,16 +88,17 @@ ActivityAPI.registerActivityEntityAssociation('user', 'followers', (associations
     return callback(null, []);
   }
 
-  FollowingDAO.getFollowers(userId, null, 10000, (err, followers) => {
-    if (err) {
-      return callback(err);
+  FollowingDAO.getFollowers(userId, null, 10_000, (error, followers) => {
+    if (error) {
+      return callback(error);
     }
 
     if (userVisibility === AuthzConstants.visibility.LOGGEDIN) {
       // If the user is loggedin, only associate the user to followers that are within their tenant
-      followers = _.filter(followers, follower => {
-        return userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias;
-      });
+      followers = _.filter(
+        followers,
+        (follower) => userTenantAlias === AuthzUtil.getPrincipalFromId(follower).tenantAlias
+      );
     }
 
     return callback(null, followers);

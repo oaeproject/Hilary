@@ -23,7 +23,7 @@ import $ from 'cheerio';
  * @param  {String}     baseUrl     The base url that can be used to prefix relative urls
  * @return {String}                 The absolute link prefixed with the base url
  */
-const ensureAbsoluteLink = function(link, baseUrl) {
+const ensureAbsoluteLink = function (link, baseUrl) {
   // If the link is empty or null, we return the empty string. This can happen when
   // we try to link a private user (private users are scrubbed and have no profile path)
   if (!link) {
@@ -49,9 +49,9 @@ const ensureAbsoluteLink = function(link, baseUrl) {
  * @param  {String}     baseUrl     The base url that can be used to prefix relative urls
  * @return {String}                 The html in which each link is absolute
  */
-const ensureAbsoluteLinks = function(str, baseUrl) {
-  const html = $('<div>' + str + '</div>');
-  html.find('a').each(function() {
+const ensureAbsoluteLinks = function (string_, baseUrl) {
+  const html = $('<div>' + string_ + '</div>');
+  html.find('a').each(function () {
     let link = $(this).attr('href');
     link = ensureAbsoluteLink(link, baseUrl);
     $(this).attr('href', link);

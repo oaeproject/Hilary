@@ -16,10 +16,12 @@
 import { assert } from 'chai';
 
 import { Context } from 'oae-context';
-import { SearchConstants } from 'oae-search/lib/constants';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
+
+import { compose, prop, last, path, head, nth, of } from 'ramda';
 
 const { createGlobalAdminContext } = TestsUtil;
 
@@ -38,8 +40,6 @@ const {
   getSortDirParam,
   createQuery
 } = SearchUtil;
-
-import { compose, prop, last, path, head, nth, of } from 'ramda';
 
 const TYPE = 'type';
 const SCORE_TYPE = 'scoreType';

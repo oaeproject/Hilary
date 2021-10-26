@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as Signature from 'oae-util/lib/signature';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+
 const { unless, isGlobalAdministratorUser, isNotEmpty, isLoggedInUser, isUserId } = validator;
 
 const TIME_1_MINUTE_IN_SECONDS = 60;
@@ -54,8 +55,7 @@ const getSignedTenantAuthenticationRequest = function (ctx, tenantAlias, callbac
   if (ctx.imposter()) {
     return callback({
       code: 401,
-      msg:
-        'You cannot create a signed authentication token to a tenant while impostering another user'
+      msg: 'You cannot create a signed authentication token to a tenant while impostering another user'
     });
   }
 

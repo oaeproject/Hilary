@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import Counter from 'oae-util/lib/counter';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import Counter from 'oae-util/lib/counter.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as LibraryAuthz from './api.authz';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as LibraryAuthz from './api.authz.js';
 import * as LibraryRegistry from './internal/registry.js';
 
 const log = logger('library-index');
@@ -139,15 +139,13 @@ const insert = function (indexName, entries, callback) {
 
   updateCounter.incr();
 
-  const indexEntries = _.map(entries, (entry) => {
-    return {
-      libraryId: entry.id,
-      rank: entry.rank,
-      resourceId: entry.resource.id,
-      value: entry.value,
-      visibility: LibraryAuthz.resolveLibraryBucketVisibility(entry.id, entry.resource)
-    };
-  });
+  const indexEntries = _.map(entries, (entry) => ({
+    libraryId: entry.id,
+    rank: entry.rank,
+    resourceId: entry.resource.id,
+    value: entry.value,
+    visibility: LibraryAuthz.resolveLibraryBucketVisibility(entry.id, entry.resource)
+  }));
 
   _insert(indexName, indexEntries, (error) => {
     updateCounter.decr();
@@ -364,12 +362,10 @@ const list = function (indexName, libraryId, visibility, options, callback) {
       if (!_.isEmpty(rankedResourceIdsToDelete)) {
         // There were duplicates, delete them asynchronously
         const bucketKey = _createBucketKey(indexName, libraryId, visibility);
-        const deleteQueries = _.map(rankedResourceIdsToDelete, (rankedResourceId) => {
-          return {
-            query: 'DELETE FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" = ?',
-            parameters: [bucketKey, rankedResourceId]
-          };
-        });
+        const deleteQueries = _.map(rankedResourceIdsToDelete, (rankedResourceId) => ({
+          query: 'DELETE FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" = ?',
+          parameters: [bucketKey, rankedResourceId]
+        }));
 
         log().warn(
           {
@@ -399,12 +395,10 @@ const list = function (indexName, libraryId, visibility, options, callback) {
  */
 const purge = function (indexName, libraryId, callback) {
   // Build the queries that will purge all the index buckets to start fresh
-  const purgeIndexQueries = _.map(visibilityMasks, (mask, visibility) => {
-    return {
-      query: 'DELETE FROM "LibraryIndex" WHERE "bucketKey" = ?',
-      parameters: [_createBucketKey(indexName, libraryId, visibility)]
-    };
-  });
+  const purgeIndexQueries = _.map(visibilityMasks, (mask, visibility) => ({
+    query: 'DELETE FROM "LibraryIndex" WHERE "bucketKey" = ?',
+    parameters: [_createBucketKey(indexName, libraryId, visibility)]
+  }));
 
   log().trace({ indexName, libraryId }, 'Purging library index');
 
@@ -621,15 +615,13 @@ const _build = function (indexName, libraryId, callback, _nextToken) {
 
     nextToken = nextToken || null;
 
-    const indexEntries = _.map(entries, (entry) => {
-      return {
-        libraryId,
-        rank: entry.rank,
-        resourceId: entry.resource.id,
-        value: entry.value,
-        visibility: LibraryAuthz.resolveLibraryBucketVisibility(libraryId, entry.resource)
-      };
-    });
+    const indexEntries = _.map(entries, (entry) => ({
+      libraryId,
+      rank: entry.rank,
+      resourceId: entry.resource.id,
+      value: entry.value,
+      visibility: LibraryAuthz.resolveLibraryBucketVisibility(libraryId, entry.resource)
+    }));
 
     // Insert all the index entries
     _insert(indexName, indexEntries, (error_) => {
@@ -711,13 +703,9 @@ const _insert = function (indexName, indexEntries, callback) {
  * @api private
  */
 const _isStaleLibraryIndex = function (start, limit, rows) {
-  const slugHighColumn = _.find(rows, (row) => {
-    return row.get('rankedResourceId') === SLUG_HIGH;
-  });
+  const slugHighColumn = _.find(rows, (row) => row.get('rankedResourceId') === SLUG_HIGH);
 
-  const slugLowColumn = _.find(rows, (row) => {
-    return row.get('rankedResourceId') === SLUG_LOW;
-  });
+  const slugLowColumn = _.find(rows, (row) => row.get('rankedResourceId') === SLUG_LOW);
 
   if (!start && !slugHighColumn) {
     // If we didn't supply a start parameter and did not get the upper bound limiter, we need to

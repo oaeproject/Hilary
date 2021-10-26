@@ -57,10 +57,8 @@ _.mixin({
     _.chain(args)
       .toArray()
       // Group the array of arguments into pairs: [[key0, val0], [key1, val1], ...]
-      .groupBy((arg, i) => {
-        return Math.floor(i / 2);
-      })
-      .each(keyAndValue => {
+      .groupBy((arg, i) => Math.floor(i / 2))
+      .each((keyAndValue) => {
         result[keyAndValue[0]] = keyAndValue[1];
       });
     return result;
@@ -81,12 +79,12 @@ _.mixin({
    * @param  {Object}     f.value     The value of the current entry
    * @return {Object}                 The object with its keys mapped
    */
-  oaeMapKeys(obj, f) {
-    const mappedObj = {};
-    _.each(obj, (value, key) => {
-      mappedObj[f(key, value)] = value;
+  oaeMapKeys(object, f) {
+    const mappedObject = {};
+    _.each(object, (value, key) => {
+      mappedObject[f(key, value)] = value;
     });
-    return mappedObj;
+    return mappedObject;
   },
 
   /**
@@ -126,9 +124,7 @@ _.mixin({
   oaeExtendDefined(source, extendWith) {
     return _.extend(
       source,
-      _.omit(extendWith, value => {
-        return value === undefined;
-      })
+      _.omit(extendWith, (value) => value === undefined)
     );
   }
 });

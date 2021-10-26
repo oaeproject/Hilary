@@ -17,8 +17,8 @@ import slideshare from 'slideshare';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');
@@ -34,16 +34,16 @@ let apiUrl = 'https://www.slideshare.net/api/2/';
  *
  * @param  {String}     _apiUrl     Defines the URL (including protocol and path) where the SlideShare REST API can be reached
  */
-const setApiURL = function(_apiUrl) {
+const setApiURL = function (_apiUrl) {
   apiUrl = _apiUrl;
 };
 
 /**
  * @borrows Interface.test as SlideShareProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   // Don't bother with non-link content items
-  if (contentObj.resourceSubType !== 'link') {
+  if (contentObject.resourceSubType !== 'link') {
     return callback(null, -1);
   }
 
@@ -54,7 +54,7 @@ const test = function(ctx, contentObj, callback) {
   }
 
   // Check if they are SlideShare URLs
-  if (SLIDES_REGEX.test(contentObj.link)) {
+  if (SLIDES_REGEX.test(contentObject.link)) {
     return callback(null, 10);
   }
 
@@ -64,14 +64,14 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as SlideShareProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   const config = _getConfig();
 
   // eslint-disable-next-line new-cap
   const ss = new slideshare(config.apiKey, config.sharedSecret);
   // eslint-disable-next-line camelcase
   ss.api_url = apiUrl;
-  ss.getSlideshowByURL(contentObj.link, response => {
+  ss.getSlideshowByURL(contentObject.link, (response) => {
     if (!response || response.SlideShareServiceError) {
       log().error({ err: response.SlideShareServiceError }, 'Failed to interact with the SlideShare API');
       return callback({ code: 500, msg: 'Failed to interact with the SlideShare API' });
@@ -89,24 +89,24 @@ const generatePreviews = function(ctx, contentObj, callback) {
     // will only be overridden with the title retrieved from SlideShare when the content item's display name has not been set
     // by the user (i.e. the SlideShare URL is used as the displayName). The description retrieved from SlideShare will only be
     // set on the content item when the content item has no description
-    const opts = {};
+    const options = {};
     if (result.Title && result.Title.length > 0) {
-      opts.displayName = result.Title[0];
+      options.displayName = result.Title[0];
     }
 
     if (result.Description && result.Description.length > 0) {
-      opts.description = result.Description[0];
+      options.description = result.Description[0];
     }
 
     // Download the thumbnail
-    const imageUrl = 'http:' + result.ThumbnailURL[0];
+    const imageUrl = result.ThumbnailURL[0];
     const path = ctx.baseDir + '/slideshare.jpg';
-    PreviewUtil.downloadRemoteFile(imageUrl, path, (err, path) => {
-      if (err) {
-        return callback(err);
+    PreviewUtil.downloadRemoteFile(imageUrl, path, (error, path) => {
+      if (error) {
+        return callback(error);
       }
 
-      LinkProcessorUtil.generatePreviewsFromImage(ctx, path, opts, callback);
+      LinkProcessorUtil.generatePreviewsFromImage(ctx, path, options, callback);
     });
   });
 };
@@ -117,7 +117,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @return {Object}     The apiKey and sharedSecret from the Admin UI
  * @api private
  */
-const _getConfig = function() {
+const _getConfig = function () {
   return {
     apiKey: PreviewConfig.getValue('admin', 'slideshare', 'apikey'),
     sharedSecret: PreviewConfig.getValue('admin', 'slideshare', 'sharedsecret')

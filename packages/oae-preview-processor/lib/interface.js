@@ -25,7 +25,7 @@
  * @param  {Object}             callback.err    An error that occurred, if any
  * @param  {Number}             callback.score  A number that expresses how well suited this PP is to handle this piece of content. A negative number means this PP isn't able to deal with this piece of content. All default OAE processors return a number in the range [0, 10].
  */
-const test = function(ctx, contentObj, callback) {};
+const test = function (ctx, contentObject, callback) {};
 
 /**
  * Generates the actual preview images.
@@ -37,6 +37,6 @@ const test = function(ctx, contentObj, callback) {};
  * @param  {Object}             callback.err        An error that occurred, if any
  * @param  {Boolean}            callback.ignored    If this flag is set to true, the content object's preview status will be marked as ignored.
  */
-const generatePreviews = function(ctx, contentObj, callback) {};
+const generatePreviews = function (ctx, contentObject, callback) {};
 
 export { generatePreviews, test };

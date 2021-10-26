@@ -259,21 +259,25 @@ Image.prototype = {
   }
 };
 
-exports.document = document;
-exports.Image = Image;
-
-const exported_symbols = Object.keys(exports);
-
-exports.setStubs = function(namespace) {
-  exported_symbols.forEach(key => {
-    // Console.assert(!(key in namespace), 'property should not be set: ' + key);
-    namespace[key] = exports[key];
-  });
+const exporting = {
+  document,
+  Image
 };
 
-exports.unsetStubs = function(namespace) {
-  exported_symbols.forEach(key => {
+const exported_symbols = Object.keys(exporting);
+
+function setStubs(namespace) {
+  exported_symbols.forEach((key) => {
+    // Console.assert(!(key in namespace), 'property should not be set: ' + key);
+    namespace[key] = exporting[key];
+  });
+}
+
+function unsetStubs(namespace) {
+  exported_symbols.forEach((key) => {
     // Console.assert(key in namespace, 'property should be set: ' + key);
     delete namespace[key];
   });
-};
+}
+
+export { document, Image, setStubs, unsetStubs };

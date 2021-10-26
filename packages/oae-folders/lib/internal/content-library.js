@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
@@ -77,7 +76,7 @@ const insert = function (folder, contentItems, callback) {
       }
     };
 
-  _insert(folder, contentItems.slice(), callback);
+  _insert(folder, [...contentItems], callback);
 };
 
 /**
@@ -105,7 +104,7 @@ const remove = function (folder, contentItems, callback) {
       }
     };
 
-  _remove(folder, contentItems.slice(), callback);
+  _remove(folder, [...contentItems], callback);
 };
 
 /**
@@ -136,13 +135,11 @@ const _insert = function (folder, contentItems, callback) {
     return callback();
   }
 
-  const entries = _.map(contentItems, (contentItem) => {
-    return {
-      id: folder.groupId,
-      rank: contentItem.lastModified,
-      resource: contentItem
-    };
-  });
+  const entries = _.map(contentItems, (contentItem) => ({
+    id: folder.groupId,
+    rank: contentItem.lastModified,
+    resource: contentItem
+  }));
 
   // Insert the items into the library index
   LibraryAPI.Index.insert(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, entries, callback);
@@ -164,13 +161,11 @@ const _remove = function (folder, contentItems, callback) {
     return callback();
   }
 
-  const entries = _.map(contentItems, (contentItem) => {
-    return {
-      id: folder.groupId,
-      rank: contentItem.lastModified,
-      resource: contentItem
-    };
-  });
+  const entries = _.map(contentItems, (contentItem) => ({
+    id: folder.groupId,
+    rank: contentItem.lastModified,
+    resource: contentItem
+  }));
 
   // Remove the items from the library index
   LibraryAPI.Index.remove(FoldersConstants.library.CONTENT_LIBRARY_INDEX_NAME, entries, callback);

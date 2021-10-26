@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 const log = logger('oae-activity-config');
 
@@ -45,7 +45,7 @@ let config = {};
  *
  * @param  {Object}    [config]    The configuration options with which to refresh. See the `config.activity` object in the base `./config.js` for more information
  */
-const refreshConfiguration = function(_config) {
+const refreshConfiguration = function (_config) {
   _config = _config || {};
   _config.mail = _config.mail || {};
   _config.mail.daily = _config.mail.daily || {};
@@ -58,31 +58,19 @@ const refreshConfiguration = function(_config) {
       _config.numberOfProcessingBuckets,
       DEFAULT_NUMBER_OF_PROCESSING_BUCKETS
     ),
-    aggregateIdleExpiry: OaeUtil.getNumberParam(
-      _config.aggregateIdleExpiry,
-      DEFAULT_AGGREGATE_IDLE_EXPIRY
-    ),
-    aggregateMaxExpiry: OaeUtil.getNumberParam(
-      _config.aggregateMaxExpiry,
-      DEFAULT_AGGREGATE_MAX_EXPIRY
-    ),
+    aggregateIdleExpiry: OaeUtil.getNumberParam(_config.aggregateIdleExpiry, DEFAULT_AGGREGATE_IDLE_EXPIRY),
+    aggregateMaxExpiry: OaeUtil.getNumberParam(_config.aggregateMaxExpiry, DEFAULT_AGGREGATE_MAX_EXPIRY),
     collectionExpiry: OaeUtil.getNumberParam(_config.collectionExpiry, DEFAULT_COLLECTION_EXPIRY),
     maxConcurrentCollections: OaeUtil.getNumberParam(
       _config.maxConcurrentCollections,
       DEFAULT_MAX_CONCURRENT_COLLECTIONS
     ),
-    maxConcurrentRouters: OaeUtil.getNumberParam(
-      _config.maxConcurrentRouters,
-      DEFAULT_MAX_CONCURRENT_ROUTERS
-    ),
+    maxConcurrentRouters: OaeUtil.getNumberParam(_config.maxConcurrentRouters, DEFAULT_MAX_CONCURRENT_ROUTERS),
     collectionPollingFrequency: OaeUtil.getNumberParam(
       _config.collectionPollingFrequency,
       DEFAULT_COLLECTION_POLLING_FREQUENCY
     ),
-    collectionBatchSize: OaeUtil.getNumberParam(
-      _config.collectionBatchSize,
-      DEFAULT_COLLECTION_BATCH_SIZE
-    ),
+    collectionBatchSize: OaeUtil.getNumberParam(_config.collectionBatchSize, DEFAULT_COLLECTION_BATCH_SIZE),
     mail: {
       pollingFrequency: OaeUtil.getNumberParam(
         _config.mail.pollingFrequency,
@@ -120,7 +108,7 @@ const refreshConfiguration = function(_config) {
 /**
  * @return {Object} the activities configuration.
  */
-const getConfig = function() {
+const getConfig = function () {
   return config;
 };
 

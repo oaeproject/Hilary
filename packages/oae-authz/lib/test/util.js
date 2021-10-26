@@ -14,20 +14,20 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
 /**
  * Delete the given resource by its id and ensure it completes successfully
@@ -80,10 +80,10 @@ const assertAcceptInvitationForEmailSucceeds = function (restContext, email, cal
     assert.ok(!error);
 
     const token = emailTokens[email];
-    assertAcceptInvitationSucceeds(restContext, token, (result, invitations) => {
+    assertAcceptInvitationSucceeds(restContext, token, (result, invitations) =>
       // Be swell and give the token to the caller so they can try and re-use it if they dare
-      return callback(result, invitations, token);
-    });
+      callback(result, invitations, token)
+    );
   });
 };
 
@@ -118,10 +118,10 @@ const assertAcceptInvitationSucceeds = function (restContext, token, callback) {
 
             // Ensure libraries and search have time to finish indexing
             LibraryAPI.Index.whenUpdatesComplete(() => {
-              SearchTestUtil.whenIndexingComplete(() => {
+              SearchTestUtil.whenIndexingComplete(() =>
                 // Respond with the invitations
-                return callback(result, invitationsBefore);
-              });
+                callback(result, invitationsBefore)
+              );
             });
           });
         });
@@ -303,16 +303,14 @@ const assertAuthzMembersGraphIdsEqual = function (resourceIds, expectedIds, call
     assert.ok(!error);
 
     const actualIds = _.chain(resourceIds)
-      .map((resourceId) => {
+      .map((resourceId) =>
         // Ensure all the ids are sorted since there is no contract for traversal order
-        return _.pluck(graph.traverseIn(resourceId), 'id').sort();
-      })
+        _.pluck(graph.traverseIn(resourceId), 'id').sort()
+      )
       .value();
 
     // Ensure all the ids are sorted since there is no contract for traversal order
-    expectedIds = _.map(expectedIds, (ids) => {
-      return ids.slice().sort();
-    });
+    expectedIds = _.map(expectedIds, (ids) => [...ids].sort());
 
     assert.deepStrictEqual(actualIds, expectedIds);
     return callback(graph);
@@ -333,7 +331,7 @@ const assertPrincipalMembershipsGraphIdsEqual = function (principalId, expectedI
     assert.ok(!error);
     assert.deepStrictEqual(
       _.pluck(graph.traverseOut(principalId), 'id').sort(),
-      expectedIds.slice().sort()
+      [...expectedIds].sort()
     );
     return callback(graph);
   });
@@ -379,9 +377,7 @@ const assertEmailRolesEquals = function (before, delta, after) {
   const emails = _.chain(delta)
     .keys()
     .map(AuthzUtil.parseShareTarget)
-    .filter((target) => {
-      return !target.principalId;
-    })
+    .filter((target) => !target.principalId)
     .pluck('email')
     .value();
   delta = _.chain(delta).oaeMapKeys(_toLowerCase).pick(emails).value();
@@ -400,9 +396,7 @@ const assertCreateMembershipsGraphSucceeds = function (graph, callback, _ops) {
   if (!_ops) {
     _ops = _.chain(graph.getNodes())
       .pluck('id')
-      .filter((parentId) => {
-        return !_.isEmpty(graph.getInEdgesOf(parentId));
-      })
+      .filter((parentId) => !_.isEmpty(graph.getInEdgesOf(parentId)))
       .map((parentId) => {
         const roles = {};
         _.each(graph.getInEdgesOf(parentId), (edge) => {

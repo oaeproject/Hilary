@@ -15,28 +15,32 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as RestUtil from 'oae-rest/lib/util';
-import * as MQ from 'oae-util/lib/mq';
+import * as RestUtil from 'oae-rest/lib/util.js';
+import * as MQ from 'oae-util/lib/mq.js';
 
 import { telemetry } from 'oae-telemetry';
 
 // OAE Processors
-import * as ImagesProcessor from 'oae-preview-processor/lib/processors/file/images';
-import * as OfficeProcessor from 'oae-preview-processor/lib/processors/file/office';
-import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf';
-import * as DefaultLinkProcessor from 'oae-preview-processor/lib/processors/link/default';
-import * as FlickrLinkProcessor from 'oae-preview-processor/lib/processors/link/flickr';
-import * as SlideShareLinkProcessor from 'oae-preview-processor/lib/processors/link/slideshare';
-import * as VimeoLinkProcessor from 'oae-preview-processor/lib/processors/link/vimeo';
-import * as YoutubeLinkProcessor from 'oae-preview-processor/lib/processors/link/youtube';
-import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collabdoc/collabdoc';
-import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder';
+import * as ImagesProcessor from 'oae-preview-processor/lib/processors/file/images.js';
+import * as OfficeProcessor from 'oae-preview-processor/lib/processors/file/office.js';
+import * as PDFProcessor from 'oae-preview-processor/lib/processors/file/pdf.js';
+import * as DefaultLinkProcessor from 'oae-preview-processor/lib/processors/link/default.js';
+import * as FlickrLinkProcessor from 'oae-preview-processor/lib/processors/link/flickr.js';
+import * as SlideShareLinkProcessor from 'oae-preview-processor/lib/processors/link/slideshare.js';
+import * as VimeoLinkProcessor from 'oae-preview-processor/lib/processors/link/vimeo.js';
+import * as YoutubeLinkProcessor from 'oae-preview-processor/lib/processors/link/youtube.js';
+import * as CollabDocProcessor from 'oae-preview-processor/lib/processors/collabdoc/collabdoc.js';
+import * as FolderProcessor from 'oae-preview-processor/lib/processors/folder/index.js';
 
 import { logger } from 'oae-logger';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+import PreviewConstants from './constants.js';
+import { FilterGenerator } from './filters.js';
+import { PreviewContext } from './model.js';
+
 const {
   unless,
   isNotEmpty,
@@ -50,9 +54,6 @@ const {
   isNotNull,
   isLoggedInUser
 } = validator;
-import PreviewConstants from './constants.js';
-import { FilterGenerator } from './filters.js';
-import { PreviewContext } from './model.js';
 
 const log = logger('oae-preview-processor');
 const Telemetry = telemetry('preview-processor');
@@ -672,9 +673,7 @@ const _handleRegeneratePreviewsTask = function (data, callback) {
     }
 
     // We need to filter by revisions
-    const contentIds = _.map(filteredContent, (contentObject) => {
-      return contentObject.contentId;
-    });
+    const contentIds = _.map(filteredContent, (contentObject) => contentObject.contentId);
     ContentDAO.Revisions.getAllRevisionsForContent(contentIds, (error, revisionsByContent) => {
       if (error) {
         log().error({ err: error }, 'Error trying to retrieve revisions for content');

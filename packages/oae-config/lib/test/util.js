@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import Counter from 'oae-util/lib/counter';
+import Counter from 'oae-util/lib/counter.js';
 import { Config } from 'oae-rest';
 import * as ConfigAPI from 'oae-config';
 
@@ -27,10 +27,10 @@ const updateCounter = new Counter();
  *
  * For method parameter descriptions, @see RestAPI.Config#updateConfig
  */
-const updateConfigAndWait = function(restCtx, tenantAlias, configUpdate, callback) {
-  Config.updateConfig(restCtx, tenantAlias, configUpdate, err => {
-    if (err) {
-      return callback(err);
+const updateConfigAndWait = function (restCtx, tenantAlias, configUpdate, callback) {
+  Config.updateConfig(restCtx, tenantAlias, configUpdate, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return whenConfigUpdated(callback);
@@ -44,10 +44,10 @@ const updateConfigAndWait = function(restCtx, tenantAlias, configUpdate, callbac
  *
  * For method parameter descriptions, @see RestAPI.Config#clearConfig
  */
-const clearConfigAndWait = function(restCtx, tenantAlias, configFields, callback) {
-  Config.clearConfig(restCtx, tenantAlias, configFields, err => {
-    if (err) {
-      return callback(err);
+const clearConfigAndWait = function (restCtx, tenantAlias, configFields, callback) {
+  Config.clearConfig(restCtx, tenantAlias, configFields, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     return whenConfigUpdated(callback);
@@ -59,14 +59,14 @@ const clearConfigAndWait = function(restCtx, tenantAlias, configFields, callback
  *
  * @param  {Function}   callback    Standard callback function
  */
-const whenConfigUpdated = function(callback) {
+const whenConfigUpdated = function (callback) {
   updateCounter.whenZero(callback);
 };
 
 /**
  * Increment the number of config updates are currently in the process of updating
  */
-const _incrementUpdateCount = function() {
+const _incrementUpdateCount = function () {
   updateCounter.incr();
 };
 
@@ -75,7 +75,7 @@ const _incrementUpdateCount = function() {
  * reaches 0 as a result of this decrement, the `updated` event will be fired to invoke functions
  * that are waiting for the server's config to be fully updated.
  */
-const _decrementUpdateCount = function() {
+const _decrementUpdateCount = function () {
   updateCounter.decr();
 };
 

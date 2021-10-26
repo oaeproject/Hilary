@@ -13,13 +13,12 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
+import * as FollowingSearch from 'oae-following/lib/search.js';
 
-import * as FollowingSearch from 'oae-following/lib/search';
-
-// Bind some plugins
-import * as activity from 'oae-following/lib/activity';
-import * as principals from 'oae-following/lib/principals';
+// eslint-disable-next-line no-unused-vars
+import * as activity from './activity.js';
+// eslint-disable-next-line no-unused-vars
+import * as principals from './principals.js';
 
 export function init(config, callback) {
   return FollowingSearch.init(callback);

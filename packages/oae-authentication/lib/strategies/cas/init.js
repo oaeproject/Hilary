@@ -15,11 +15,11 @@
 
 import * as ConfigAPI from 'oae-config';
 import { logger } from 'oae-logger';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 import passport from 'passport-cas';
 
@@ -181,4 +181,4 @@ function initCasAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.CAS, strategy);
 }
 
-export default initCasAuth;
+export { initCasAuth as default };

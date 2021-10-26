@@ -18,11 +18,11 @@ import DiscussionsAPI from 'oae-discussions';
 import _ from 'underscore';
 import * as AuthzAPI from 'oae-authz';
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import * as DiscussionsDAO from 'oae-discussions/lib/internal/dao.js';
 
 const log = logger('oae-discussions');
 
@@ -35,9 +35,9 @@ const LIBRARY_UPDATE_THRESHOLD_SECONDS = 3600;
 LibraryAPI.Index.registerLibraryIndex(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the discussion ids ('d') to which the library owner is directly associated in this batch of paged resources
-    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, (err, roles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'd', start, limit, (error, roles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // We just need the ids, not the roles
@@ -46,17 +46,15 @@ LibraryAPI.Index.registerLibraryIndex(DiscussionsConstants.library.DISCUSSIONS_L
       DiscussionsDAO.getDiscussionsById(
         ids,
         ['id', 'tenantAlias', 'visibility', 'lastModified'],
-        (err, discussions) => {
-          if (err) {
-            return callback(err);
+        (error, discussions) => {
+          if (error) {
+            return callback(error);
           }
 
           // Convert all the discussions into the light-weight library items that describe how its placed in a library index
           const resources = _.chain(discussions)
             .compact()
-            .map(discussion => {
-              return { rank: discussion.lastModified, resource: discussion };
-            })
+            .map((discussion) => ({ rank: discussion.lastModified, resource: discussion }))
             .value();
 
           return callback(null, resources, nextToken);
@@ -76,11 +74,11 @@ LibraryAPI.Search.registerLibrarySearch('discussion-library', ['discussion']);
  */
 DiscussionsAPI.when(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussion, memberChangeInfo, callback) => {
   const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  _insertLibrary(addedMemberIds, discussion, err => {
-    if (err) {
+  _insertLibrary(addedMemberIds, discussion, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           discussionId: discussion.id,
           memberIds: addedMemberIds
         },
@@ -98,11 +96,11 @@ DiscussionsAPI.when(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discus
  */
 DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, updatedDiscussion, oldDiscussion) => {
   // Get all the member ids, we will update their discussion libraries
-  _getAllMemberIds(updatedDiscussion.id, (err, memberIds) => {
-    if (err) {
+  _getAllMemberIds(updatedDiscussion.id, (error, memberIds) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           discussionId: updatedDiscussion.id,
           memberIds
         },
@@ -120,11 +118,11 @@ DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, updatedD
  */
 DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion, removedMemberIds, callback) => {
   // Remove the discussion from all libraries
-  _removeLibrary(removedMemberIds, discussion, err => {
-    if (err) {
+  _removeLibrary(removedMemberIds, discussion, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           discussionId: discussion.id
         },
         'An error occurred while removing a deleted discussion from all discussion libraries'
@@ -141,7 +139,7 @@ DiscussionsAPI.when(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discus
  */
 DiscussionsAPI.when(
   DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS,
-  (ctx, discussion, memberChangeInfo, opts, callback) => {
+  (ctx, discussion, memberChangeInfo, options, callback) => {
     const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
     const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
     const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
@@ -149,11 +147,11 @@ DiscussionsAPI.when(
     const oldLastModified = discussion.lastModified;
 
     // Asynchronously remove from the library of removed members before we touch the discussion to update the lastModified
-    _removeLibrary(removedMemberIds, discussion, err => {
-      if (err) {
+    _removeLibrary(removedMemberIds, discussion, (error) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             principalIds: removedMemberIds,
             discussionId: discussion.id
           },
@@ -167,11 +165,11 @@ DiscussionsAPI.when(
 
       // Only touch the discussion and update its profile if it is within the update duration threshold
       const touchDiscussion = _testDiscussionUpdateThreshold(discussion);
-      OaeUtil.invokeIfNecessary(touchDiscussion, _touch, discussion, (err, touchedDiscussion) => {
-        if (err) {
+      OaeUtil.invokeIfNecessary(touchDiscussion, _touch, discussion, (error, touchedDiscussion) => {
+        if (error) {
           log().warn(
             {
-              err,
+              err: error,
               discussionId: discussion.id
             },
             'Error touching the discussion while adding members. Ignoring.'
@@ -181,11 +179,11 @@ DiscussionsAPI.when(
         discussion = touchedDiscussion || discussion;
 
         // Always insert the discussion into the added user libraries
-        _insertLibrary(addedMemberIds, discussion, err => {
-          if (err) {
+        _insertLibrary(addedMemberIds, discussion, (error) => {
+          if (error) {
             log().warn(
               {
-                err,
+                err: error,
                 principalIds: addedMemberIds,
                 discussionIds: discussion.id
               },
@@ -198,21 +196,18 @@ DiscussionsAPI.when(
           // we use the `touchedDiscussion` object because even if `touchDiscussion` was true,
           // we could have failed to touch the discussion, in which case we would not want to
           // update the discussion in libraries
-          const libraryUpdateIds = _.chain(memberChangeInfo.roles.before)
-            .keys()
-            .difference(removedMemberIds)
-            .value();
+          const libraryUpdateIds = _.chain(memberChangeInfo.roles.before).keys().difference(removedMemberIds).value();
           OaeUtil.invokeIfNecessary(
             touchedDiscussion,
             _updateLibrary,
             libraryUpdateIds,
             discussion,
             oldLastModified,
-            err => {
-              if (err) {
+            (error) => {
+              if (error) {
                 log().warn(
                   {
-                    err,
+                    err: error,
                     principalIds: libraryUpdateIds,
                     discussionId: discussion.id
                   },
@@ -241,12 +236,12 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
   }
 
   // Try and get the principals whose libraries will be updated
-  _getAllMemberIds(discussion.id, (err, memberIds) => {
-    if (err) {
+  _getAllMemberIds(discussion.id, (error, memberIds) => {
+    if (error) {
       // If we can't get the members, don't so that we don't risk
       return log().warn(
         {
-          err,
+          err: error,
           discussionId: discussion.id,
           memberIds
         },
@@ -255,12 +250,12 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
     }
 
     // Update the lastModified of the discussion
-    _touch(discussion, (err, updatedDiscussion) => {
-      if (err) {
+    _touch(discussion, (error, updatedDiscussion) => {
+      if (error) {
         // If we get an error touching the discussion, we simply won't update the libraries. Better luck next time.
         return log().warn(
           {
-            err,
+            err: error,
             discussionId: discussion.id,
             memberIds
           },
@@ -282,7 +277,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
  * @param  {Discussion} [callback.discussion]   The discussion object with the new lastModified date. If not specified, then the discussion was not updated due to rate-limiting.
  * @api private
  */
-const _touch = function(discussion, callback) {
+const _touch = function (discussion, callback) {
   DiscussionsDAO.updateDiscussion(discussion, { lastModified: Date.now() }, callback);
 };
 
@@ -293,7 +288,7 @@ const _touch = function(discussion, callback) {
  * @return {Boolean}                   `true` if the discussion was last updated beyond the threshold and `_touch` will be effective. `false` otherwise.
  * @api private
  */
-const _testDiscussionUpdateThreshold = function(discussion) {
+const _testDiscussionUpdateThreshold = function (discussion) {
   return !discussion.lastModified || Date.now() - discussion.lastModified > LIBRARY_UPDATE_THRESHOLD_SECONDS * 1000;
 };
 
@@ -306,10 +301,10 @@ const _testDiscussionUpdateThreshold = function(discussion) {
  * @param  {String[]}   callback.memberIds  The member ids associated to the discussion
  * @api private
  */
-const _getAllMemberIds = function(discussionId, callback) {
-  AuthzAPI.getAllAuthzMembers(discussionId, (err, memberIdRoles) => {
-    if (err) {
-      return callback(err);
+const _getAllMemberIds = function (discussionId, callback) {
+  AuthzAPI.getAllAuthzMembers(discussionId, (error, memberIdRoles) => {
+    if (error) {
+      return callback(error);
     }
 
     // Flatten the members hash into just an array of ids
@@ -326,14 +321,14 @@ const _getAllMemberIds = function(discussionId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _insertLibrary = function(principalIds, discussion, callback) {
+const _insertLibrary = function (principalIds, discussion, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             discussionId: discussion.id
           },
@@ -346,13 +341,11 @@ const _insertLibrary = function(principalIds, discussion, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      rank: discussion.lastModified,
-      resource: discussion
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: discussion.lastModified,
+    resource: discussion
+  }));
 
   LibraryAPI.Index.insert(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -367,14 +360,14 @@ const _insertLibrary = function(principalIds, discussion, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _updateLibrary = function(principalIds, discussion, oldLastModified, callback) {
+const _updateLibrary = function (principalIds, discussion, oldLastModified, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             discussionId: discussion.id
           },
@@ -388,14 +381,12 @@ const _updateLibrary = function(principalIds, discussion, oldLastModified, callb
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      oldRank: oldLastModified,
-      newRank: discussion.lastModified,
-      resource: discussion
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    oldRank: oldLastModified,
+    newRank: discussion.lastModified,
+    resource: discussion
+  }));
 
   LibraryAPI.Index.update(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -409,14 +400,14 @@ const _updateLibrary = function(principalIds, discussion, oldLastModified, callb
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _removeLibrary = function(principalIds, discussion, callback) {
+const _removeLibrary = function (principalIds, discussion, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             discussionId: discussion.id
           },
@@ -429,13 +420,11 @@ const _removeLibrary = function(principalIds, discussion, callback) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      rank: discussion.lastModified,
-      resource: discussion
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: discussion.lastModified,
+    resource: discussion
+  }));
 
   LibraryAPI.Index.remove(DiscussionsConstants.library.DISCUSSIONS_LIBRARY_INDEX_NAME, entries, callback);
 };

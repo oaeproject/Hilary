@@ -15,11 +15,12 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import { Validator as validator } from 'oae-util/lib/validator';
-const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 
 import * as OAuthDAO from './internal/dao.js';
+
+const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 
 /// //////////
 // Clients //

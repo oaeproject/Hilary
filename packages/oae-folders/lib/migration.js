@@ -1,4 +1,4 @@
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the all of the folders schemas are created. If they already exist, this method will not do anything
@@ -7,7 +7,9 @@ import * as Cassandra from 'oae-util/lib/cassandra';
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
+  // log().info(`Updating schema for folders`);
+
   Cassandra.createColumnFamilies(
     {
       Folders:

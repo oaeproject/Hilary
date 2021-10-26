@@ -13,31 +13,25 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
-import * as Fields from 'oae-config/lib/fields';
-import * as TZ from 'oae-util/lib/tz';
+import * as Fields from 'oae-config/lib/fields.js';
+import * as TZ from 'oae-util/lib/tz.js';
 
 // Get an object that we can pass in the config List field as the set of options that should be
 // presented to the user. We add in the offset in the displayname of each element
 const timezoneConfigValues = _.chain(TZ.getZones())
-  .map((timezone, id) => {
-    return _.extend({}, timezone, { id });
-  })
+  .map((timezone, id) => _.extend({}, timezone, { id }))
 
   // Secondary sort on the timezone id (e.g., Europe/Istanbul)
-  .sortBy(timezone => {
-    return timezone.id;
-  })
+  .sortBy((timezone) => timezone.id)
 
   // Primary sort on the offset
-  .sortBy(timezone => {
-    return -1 * timezone.offset;
-  })
+  .sortBy((timezone) => -1 * timezone.offset)
 
   // Convert it into name/value pairs for the UI
-  .map(timezone => {
+  .map((timezone) => {
     const offsetHours = Math.abs(Math.floor(timezone.offset));
     const offsetMinutes = Math.abs((timezone.offset % 1) * 60);
 

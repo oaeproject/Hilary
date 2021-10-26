@@ -17,13 +17,14 @@
 import _ from 'underscore';
 import { includes, isEmpty } from 'ramda';
 
-import { ContentConstants } from 'oae-content/lib/constants';
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import { SearchConstants } from 'oae-search/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
 
-import * as OaeUtil from 'oae-util/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
+
 const {
   filterCreatedBy,
   createHasChildQuery,
@@ -69,8 +70,6 @@ function searchGeneral(ctx, options, callback) {
 
   return _search(ctx, options, callback);
 }
-
-export default searchGeneral;
 
 /**
  * Perform the search that searches a 'q' analyzed field on documents, scoping it by user access. This is delegated from the
@@ -167,10 +166,9 @@ const _createQuery = function (ctx, options) {
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         createQueryStringQuery(options.q, ['discussion_message_body']),
         'max'
-      )
-    );
-    // If the content_body matches that should be boosted over a comment match
-    query.bool.should.push(
+      ),
+
+      // If the content_body matches that should be boosted over a comment match
       createHasChildQuery(
         ContentConstants.search.MAPPING_CONTENT_BODY,
         createQueryStringQuery(options.q, ['content_body']),
@@ -246,3 +244,5 @@ const _needsFilterByExplicitAccess = function (ctx, options) {
 const _includesResourceType = function (options, resourceType) {
   return options.searchAllResourceTypes || includes(resourceType, options.resourceTypes);
 };
+
+export { searchGeneral as default };

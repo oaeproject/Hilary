@@ -14,7 +14,7 @@
  */
 
 import _ from 'underscore';
-import * as Redis from 'oae-util/lib/redis';
+import * as Redis from 'oae-util/lib/redis.js';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-ethercalc');
@@ -28,12 +28,12 @@ const log = logger('oae-ethercalc');
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Boolean}    callback.edit       Has this OAE user made edits to this content item?
  */
-const hasUserEditedSpreadsheet = function(contentId, userId, callback) {
+const hasUserEditedSpreadsheet = function (contentId, userId, callback) {
   const key = _getEditMappingKey(contentId);
   const client = Redis.getClient();
-  client.exists(key, function(err, exists) {
-    if (err) {
-      log().error({ err, contentId, userId }, 'Failed to check whether user has edited Ethercalc spreadsheet');
+  client.exists(key, (error, exists) => {
+    if (error) {
+      log().error({ err: error, contentId, userId }, 'Failed to check whether user has edited Ethercalc spreadsheet');
       return callback({
         code: 500,
         msg: 'Failed to check whether user has edited Ethercalc spreadsheet'
@@ -41,9 +41,9 @@ const hasUserEditedSpreadsheet = function(contentId, userId, callback) {
     }
 
     if (exists) {
-      client.lrange(key, 0, -1, function(err, replies) {
-        if (err) {
-          log().error({ err, contentId, userId }, 'Failed to fetch editors for Ethercalc spreadsheet');
+      client.lrange(key, 0, -1, (error, replies) => {
+        if (error) {
+          log().error({ err: error, contentId, userId }, 'Failed to fetch editors for Ethercalc spreadsheet');
           return callback({
             code: 500,
             msg: 'Failed to fetch editors for Ethercalc spreadsheet'
@@ -52,11 +52,11 @@ const hasUserEditedSpreadsheet = function(contentId, userId, callback) {
 
         if (_.contains(replies, userId)) {
           // Let's take out the references to this user's edits since we're sending out a notification
-          client.lrem(key, 0, userId, function(err) {
-            if (err) {
+          client.lrem(key, 0, userId, (error) => {
+            if (error) {
               log().error(
                 {
-                  err,
+                  err: error,
                   contentId,
                   userId
                 },
@@ -91,11 +91,11 @@ const hasUserEditedSpreadsheet = function(contentId, userId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const setEditedBy = function(contentId, userId, callback) {
+const setEditedBy = function (contentId, userId, callback) {
   const key = _getEditMappingKey(contentId);
-  Redis.getClient().rpush(key, userId, function(err) {
-    if (err) {
-      log().error({ err, contentId, userId }, 'Failed to store Ethercalc user edits');
+  Redis.getClient().rpush(key, userId, (error) => {
+    if (error) {
+      log().error({ err: error, contentId, userId }, 'Failed to store Ethercalc user edits');
       return callback({
         code: 500,
         msg: 'Failed to store Ethercalc user edits'
@@ -113,7 +113,7 @@ const setEditedBy = function(contentId, userId, callback) {
  * @return {String}                         The Redis key used to map the Ethercalc author to the corresponding OAE user ID
  * @api private
  */
-const _getEditMappingKey = function(contentId) {
+const _getEditMappingKey = function (contentId) {
   return `ethercalc:edits:${contentId}`;
 };
 

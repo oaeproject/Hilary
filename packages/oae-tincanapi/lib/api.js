@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import ActivityEmitter from 'oae-activity/lib/internal/emitter';
+import ActivityEmitter from 'oae-activity/lib/internal/emitter.js';
 
 import _ from 'underscore';
 import request from 'request';
 import { logger } from 'oae-logger';
 import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import { setUpConfig } from 'oae-config';
 import { TinCanAPIConstants } from './constants.js';
 
@@ -114,20 +114,46 @@ const _processActivities = function (routedActivities) {
 const _mapVerb = function (oaeVerb) {
   let verb = null;
 
-  if (oaeVerb === ActivityConstants.verbs.ADD) {
-    verb = TinCanAPIConstants.verbs.ADDED;
-  } else if (oaeVerb === ActivityConstants.verbs.CREATE) {
-    verb = TinCanAPIConstants.verbs.CREATED;
-  } else if (oaeVerb === ActivityConstants.verbs.JOIN) {
-    verb = TinCanAPIConstants.verbs.JOINED;
-  } else if (oaeVerb === ActivityConstants.verbs.POST) {
-    verb = TinCanAPIConstants.verbs.POSTED;
-  } else if (oaeVerb === ActivityConstants.verbs.SHARE) {
-    verb = TinCanAPIConstants.verbs.SHARED;
-  } else if (oaeVerb === ActivityConstants.verbs.UPDATE) {
-    verb = TinCanAPIConstants.verbs.UPDATED;
-  } else {
-    verb = TinCanAPIConstants.verbs.DEFAULT;
+  switch (oaeVerb) {
+    case ActivityConstants.verbs.ADD: {
+      verb = TinCanAPIConstants.verbs.ADDED;
+
+      break;
+    }
+
+    case ActivityConstants.verbs.CREATE: {
+      verb = TinCanAPIConstants.verbs.CREATED;
+
+      break;
+    }
+
+    case ActivityConstants.verbs.JOIN: {
+      verb = TinCanAPIConstants.verbs.JOINED;
+
+      break;
+    }
+
+    case ActivityConstants.verbs.POST: {
+      verb = TinCanAPIConstants.verbs.POSTED;
+
+      break;
+    }
+
+    case ActivityConstants.verbs.SHARE: {
+      verb = TinCanAPIConstants.verbs.SHARED;
+
+      break;
+    }
+
+    case ActivityConstants.verbs.UPDATE: {
+      verb = TinCanAPIConstants.verbs.UPDATED;
+
+      break;
+    }
+
+    default: {
+      verb = TinCanAPIConstants.verbs.DEFAULT;
+    }
   }
 
   return new TinCanModel.TinCanVerb(verb.id, verb.display);

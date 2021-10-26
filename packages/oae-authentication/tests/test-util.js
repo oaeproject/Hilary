@@ -15,7 +15,7 @@
 
 import { assert } from 'chai';
 import { keys } from 'ramda';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 describe('Authentication - util', () => {
   describe('#setProfileParameter', () => {

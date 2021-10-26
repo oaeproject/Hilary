@@ -16,12 +16,12 @@
 import _ from 'underscore';
 import * as AuthzAPI from 'oae-authz';
 import * as LibraryAPI from 'oae-library';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as ContentAPI from 'oae-content';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as ContentMembersLibrary from 'oae-content/lib/internal/membersLibrary';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as ContentMembersLibrary from 'oae-content/lib/internal/membersLibrary.js';
 
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 import { logger } from 'oae-logger';
 
 const log = logger('oae-content-library');
@@ -32,9 +32,9 @@ const log = logger('oae-content-library');
 LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.CONTENT_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the content ids ('c') to which the library owner is directly associated in this batch of paged resources
-    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'c', start, limit, (err, roles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'c', start, limit, (error, roles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       // We just need the ids, not the roles
@@ -44,17 +44,15 @@ LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.CONTENT_LIBRARY_I
       ContentDAO.Content.getMultipleContentItems(
         ids,
         ['contentId', 'tenantAlias', 'visibility', 'lastModified'],
-        (err, contentItems) => {
-          if (err) {
-            return callback(err);
+        (error, contentItems) => {
+          if (error) {
+            return callback(error);
           }
 
           // Map the content items to light-weight resources with just the properties needed to populate the library index
           const resources = _.chain(contentItems)
             .compact()
-            .map(content => {
-              return { rank: content.lastModified, resource: content };
-            })
+            .map((content) => ({ rank: content.lastModified, resource: content }))
             .value();
 
           return callback(null, resources, nextToken);
@@ -69,20 +67,18 @@ LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.CONTENT_LIBRARY_I
  */
 LibraryAPI.Index.registerLibraryIndex(ContentConstants.library.MEMBERS_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
-    AuthzAPI.getAuthzMembers(libraryId, start, limit, (err, memberInfos, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getAuthzMembers(libraryId, start, limit, (error, memberInfos, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       const ids = _.pluck(memberInfos, 'id');
-      PrincipalsDAO.getPrincipals(ids, ['principalId', 'tenantAlias', 'visibility'], (err, memberProfiles) => {
-        if (err) {
-          return callback(err);
+      PrincipalsDAO.getPrincipals(ids, ['principalId', 'tenantAlias', 'visibility'], (error, memberProfiles) => {
+        if (error) {
+          return callback(error);
         }
 
-        const resources = _.map(memberProfiles, memberProfile => {
-          return { resource: memberProfile };
-        });
+        const resources = _.map(memberProfiles, (memberProfile) => ({ resource: memberProfile }));
 
         return callback(null, resources, nextToken);
       });
@@ -102,13 +98,13 @@ ContentAPI.emitter.when(
   ContentConstants.events.CREATED_CONTENT,
   (ctx, content, revision, memberChangeInfo, folders, callback) => {
     // Add this content item to all member content libraries
-    ContentDAO.Content.updateContentLibraries(content, [], err => {
-      if (err) {
+    ContentDAO.Content.updateContentLibraries(content, [], (error) => {
+      if (error) {
         // If there was an error updating libraries here, the permissions were still changed, so
         // we should not return an error. Just log it
         log().warn(
           {
-            err,
+            err: error,
             contentId: content.id,
             memberIds: _.keys(memberChangeInfo.changes)
           },
@@ -126,18 +122,18 @@ ContentAPI.emitter.when(
  */
 ContentAPI.emitter.when(
   ContentConstants.events.UPDATED_CONTENT_MEMBERS,
-  (ctx, content, memberChangeInfo, opts, callback) => {
+  (ctx, content, memberChangeInfo, options, callback) => {
     const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
 
     // Update the content rank in the libraries of those who now have the content item in them,
     // while removing it from those who are having it removed
-    ContentDAO.Content.updateContentLibraries(content, removedMemberIds, (err, newContent) => {
-      if (err) {
+    ContentDAO.Content.updateContentLibraries(content, removedMemberIds, (error, newContent) => {
+      if (error) {
         // If there was an error updating libraries here, the permissions were still changed, so
         // we should not return an error. Just log it
         log().warn(
           {
-            err,
+            err: error,
             contentId: content.id,
             removedMemberIds
           },
@@ -160,16 +156,16 @@ ContentAPI.emitter.when(
  * @param  {Function}   callback            Invoked when the libraries are updated. Errors are logged and swallowed at this point since library updates are secondary updates to the roles that have already been successfully updated
  * @api private
  */
-const _updateContentMembersLibrary = function(content, memberChangeInfo, callback) {
+const _updateContentMembersLibrary = function (content, memberChangeInfo, callback) {
   const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
 
   // If setting the content permissions results in any new members, we should insert them into
   // the content members library
-  ContentMembersLibrary.insert(content, memberChangeInfo.members.added, err => {
-    if (err) {
+  ContentMembersLibrary.insert(content, memberChangeInfo.members.added, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           contentId: content.id,
           principalIds: _.pluck(memberChangeInfo.members.added, 'id')
         },
@@ -179,11 +175,11 @@ const _updateContentMembersLibrary = function(content, memberChangeInfo, callbac
 
     // If setting the content permissions results in removing members from the content item,
     // we should remove them from the content members library
-    ContentMembersLibrary.remove(content, removedMemberIds, err => {
-      if (err) {
+    ContentMembersLibrary.remove(content, removedMemberIds, (error) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             contentId: content.id,
             principalIds: removedMemberIds
           },

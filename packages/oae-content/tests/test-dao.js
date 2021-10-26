@@ -13,14 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { equals, keys, forEach } from 'ramda';
 
-import * as ContentDAO from 'oae-content/lib/internal/dao';
+import { assert } from 'chai';
+
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const { iterateAll } = ContentDAO.Content;
 const { createFile, updateFileBody } = RestAPI.Content;

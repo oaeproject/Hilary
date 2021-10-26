@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
-import path from 'path';
+import { format } from 'node:util';
+import path from 'node:path';
 import _ from 'underscore';
 import request from 'request';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const VIMEO_REGEX = /^http(s)?:\/\/(www\.)?vimeo\.com\/(\d+)(\/.*)?$/;
 

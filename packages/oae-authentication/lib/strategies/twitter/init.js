@@ -19,8 +19,8 @@ import * as ConfigAPI from 'oae-config';
 import { logger } from 'oae-logger';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 const TwitterStrategy = twitterPassport.Strategy;
 
@@ -109,4 +109,4 @@ function initTwitterAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.TWITTER, strategy);
 }
 
-export default initTwitterAuth;
+export { initTwitterAuth as default };

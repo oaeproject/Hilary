@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import Path from 'path';
-const { basename, extname } = Path;
+import fs from 'node:fs';
+import Path from 'node:path';
 import sharp from 'sharp';
 
 import temp from 'temp';
@@ -23,7 +22,9 @@ import { concat, contains, equals, defaultTo, compose, not, pipe, isEmpty, when 
 
 import { logger } from 'oae-logger';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+
+const { basename, extname } = Path;
 const {
   unless,
   validateInCase: bothCheck,

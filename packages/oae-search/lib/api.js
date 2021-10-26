@@ -13,32 +13,34 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import { callbackify } from 'node:util';
 import { logger } from 'oae-logger';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import _ from 'underscore';
 
 import R from 'ramda';
-const { keys, not, map, mergeAll, has, head, gt, length, equals, defaultTo, forEach, assoc } = R;
 
-import { Validator as validator } from 'oae-util/lib/validator';
-const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
+import { Validator as validator } from 'oae-util/lib/validator.js';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import { SearchResult } from 'oae-search/lib/model';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { SearchResult } from 'oae-search/lib/model.js';
 
-const { transformSearchResults } = SearchUtil;
+import * as MQ from 'oae-util/lib/mq.js';
 
-import * as MQ from 'oae-util/lib/mq';
+import { DiscussionsConstants } from 'oae-discussions/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import { FollowingConstants } from 'oae-following/lib/constants.js';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 import * as client from './internal/elasticsearch.js';
 
-import { DiscussionsConstants } from 'oae-discussions/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import { FollowingConstants } from 'oae-following/lib/constants';
-import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+const { keys, not, map, mergeAll, has, head, gt, length, equals, defaultTo, forEach, assoc } = R;
+const { isEmpty, unless, isNotEmpty, isArray, isObject, isArrayNotEmpty } = validator;
+
+const { transformSearchResults } = SearchUtil;
 
 const resourceChildren = [
   DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
@@ -302,16 +304,16 @@ const refreshSearchConfiguration = function (searchConfig, callback) {
   if (processIndexJobs && !boundIndexWorkers) {
     boundIndexWorkers = true;
     MQ.subscribe(SearchConstants.mq.TASK_INDEX_DOCUMENT, _handleIndexDocumentTask, () => {
-      MQ.subscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, _handleDeleteDocumentTask, () => {
-        return MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleReindexAllTask, callback);
-      });
+      MQ.subscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, _handleDeleteDocumentTask, () =>
+        MQ.subscribe(SearchConstants.mq.TASK_REINDEX_ALL, _handleReindexAllTask, callback)
+      );
     });
   } else if (!processIndexJobs && boundIndexWorkers) {
     boundIndexWorkers = false;
     MQ.unsubscribe(SearchConstants.mq.TASK_INDEX_DOCUMENT, () => {
-      MQ.unsubscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
-        return MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, callback);
-      });
+      MQ.unsubscribe(SearchConstants.mq.TASK_DELETE_DOCUMENT, () =>
+        MQ.unsubscribe(SearchConstants.mq.TASK_REINDEX_ALL, callback)
+      );
     });
   } else {
     // If we get here, there was no state change in handling indexing, so we don't need to do anything.
@@ -456,9 +458,9 @@ const postIndexTask = function (resourceType, resources, index, callback) {
     message = '"resources" parameter must be an array with one or more entries';
     unless(isArrayNotEmpty, { code, msg: message })(resources);
     message = 'Each index resource must have an id';
-    resources.forEach((resource) => {
+    for (const resource of resources) {
       unless(isNotEmpty, { code, msg: message })(resource.id);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
@@ -530,6 +532,13 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
   }
 };
 
+const importSchema = (schemaPath) =>
+  import(schemaPath)
+    .then((module) => module)
+    .catch((error) => {
+      throw error;
+    });
+
 /**
  * Ensure the OAE search schema is created.
  *
@@ -539,10 +548,14 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
  */
 const _ensureSearchSchema = (names, callback) => {
   if (!names) {
-    return client.putMapping(require('./schema/resourceSchema'), null, (error) => {
+    return callbackify(importSchema)('./schema/resource-schema.js', (error, resourceSchema) => {
       if (error) return callback(error);
 
-      return _ensureSearchSchema(keys(childSearchDocuments), callback);
+      return client.putMapping(resourceSchema, null, (error) => {
+        if (error) return callback(error);
+
+        return _ensureSearchSchema(keys(childSearchDocuments), callback);
+      });
     });
   }
 

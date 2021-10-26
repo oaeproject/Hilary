@@ -18,19 +18,22 @@ import _ from 'underscore';
 import { logger } from 'oae-logger';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzModel from 'oae-authz/lib/model';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzModel from 'oae-authz/lib/model.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as ResourceActivity from 'oae-resource/lib/activity';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as ResourceActivity from 'oae-resource/lib/activity.js';
 
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
+import { __, curry, forEachObjIndexed } from 'ramda';
+
 const {
   unless,
   isLoggedInUser,
@@ -43,8 +46,6 @@ const {
   isNotEmpty,
   isValidRoleChange
 } = validator;
-import { ResourceConstants } from 'oae-resource/lib/constants';
-import { __, curry, forEachObjIndexed } from 'ramda';
 
 const log = logger('oae-resource-actions');
 
@@ -78,18 +79,18 @@ const create = function (ctx, roles, createFn, callback) {
 
     // Ensure all member ids are valid members
     const memberIds = _.keys(roles);
-    memberIds.forEach((memberId) => {
+    for (const memberId of memberIds) {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(memberId);
-    });
+    }
 
     // Ensure there is at least one manager member in the list of roles
-    const firstManagerRole = _.find(roles, (role, memberId) => {
-      return AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER;
-    });
+    const firstManagerRole = _.find(
+      roles,
+      (role, memberId) => AuthzUtil.isPrincipalId(memberId) && role === AuthzConstants.role.MANAGER
+    );
 
     unless(isValidRole, {
       code: 400,
@@ -188,11 +189,10 @@ const share = function (ctx, resource, targetIds, role, callback) {
       resourceId = resource.id;
     }
 
-    targetIds.forEach((targetId) => {
+    for (const targetId of targetIds) {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(targetId);
 
       const targetIsNotItself = curry(isDifferent)(String(targetId), __);
@@ -205,7 +205,7 @@ const share = function (ctx, resource, targetIds, role, callback) {
         code: 400,
         msg: 'You cannot share a resource with itself'
       })(resourceId);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
@@ -281,8 +281,7 @@ const setRoles = function (ctx, resource, roles, callback) {
     forEachObjIndexed((role, memberId) => {
       unless(isValidShareTarget, {
         code: 400,
-        msg:
-          'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
+        msg: 'Members must be either an email, a principal id, or an email combined with a user id separated by a ":" (e.g., me@myemail.com:u:oae:abc123)'
       })(memberId);
 
       const memberIsNotItself = curry(isDifferent)(String(memberId), __);
@@ -480,9 +479,7 @@ const acceptInvitation = function (ctx, token, callback) {
 
             const fullResources = _.chain(results)
               .flatten()
-              .filter((resource) => {
-                return !resource.deleted;
-              })
+              .filter((resource) => !resource.deleted)
               .value();
             const fullResourcesByAuthzId = _.indexBy(fullResources, AuthzUtil.getAuthzId);
 
@@ -502,17 +499,9 @@ const acceptInvitation = function (ctx, token, callback) {
 
             // Provide only the base resource properties for the user accepting the
             // invitation
-            const baseResources = _.map(fullResources, (resource) => {
-              return _.pick(resource, [
-                'id',
-                'tenant',
-                'resourceType',
-                'displayName',
-                'visibility',
-                'joinable',
-                'profilePath'
-              ]);
-            });
+            const baseResources = _.map(fullResources, (resource) =>
+              _.pick(resource, ['id', 'tenant', 'resourceType', 'displayName', 'visibility', 'joinable', 'profilePath'])
+            );
 
             return callback(null, email, baseResources);
           }
@@ -586,10 +575,10 @@ const _acceptInvitation = function (ctx, token, callback) {
         }
 
         const membersById = _.object([[ctx.user().id, ctx.user()]]);
-        const memberChangeInfosByResourceId = _.mapObject(idChangeInfosByResourceId, (idChangeInfo) => {
+        const memberChangeInfosByResourceId = _.mapObject(idChangeInfosByResourceId, (idChangeInfo) =>
           // Map the id change infos into member change infos
-          return AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, membersById);
-        });
+          AuthzModel.MemberChangeInfo.fromIdChangeInfo(idChangeInfo, membersById)
+        );
 
         // Remove all invitations for the email
         AuthzInvitationsDAO.deleteInvitationsByEmail(email, (error_) => {
@@ -739,9 +728,7 @@ const _applyAllMemberChanges = function (memberRolesByResourceId, callback) {
   const idChangeInfosByResourceId = {};
   const _done = _.chain(memberRolesByResourceId)
     .size()
-    .after(() => {
-      return callback(null, idChangeInfosByResourceId);
-    })
+    .after(() => callback(null, idChangeInfosByResourceId))
     .value();
 
   _.each(memberRolesByResourceId, (memberRoles, resourceId) => {
@@ -856,9 +843,7 @@ const _emitInvited = function (ctx, resource, emailRoles, emailTokens, callback)
   }
 
   // Get a list of full invitation objects that describe the invitations
-  const invitations = _.map(emailRoles, (role, email) => {
-    return new Invitation(resource, email, ctx.user(), role);
-  });
+  const invitations = _.map(emailRoles, (role, email) => new Invitation(resource, email, ctx.user(), role));
 
   // Emit the invitations that were sent along with the email tokens that can be used to accept
   // them

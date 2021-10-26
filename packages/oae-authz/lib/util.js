@@ -16,9 +16,9 @@
 import { pipe, pluck, filter } from 'ramda';
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzModel from 'oae-authz/lib/model';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzModel from 'oae-authz/lib/model.js';
 
 /**
  * Construct a resource based on the given id.
@@ -222,9 +222,7 @@ const filterDeletedIds = function (ids, callback) {
 
     return callback(
       null,
-      _.filter(ids, (id) => {
-        return !deletedIds[id];
-      })
+      _.filter(ids, (id) => !deletedIds[id])
     );
   });
 };

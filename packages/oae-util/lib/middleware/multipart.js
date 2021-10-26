@@ -15,23 +15,26 @@
 
 import _ from 'underscore';
 import multiparty from 'multiparty';
-
 import { logger } from 'oae-logger';
 
 const log = logger('oae-util-multipart');
 
 /**
- * Get the multipart file upload request parser middleware for Express. The middleware only has an effect if it
- * is of Content-Type "multipart/form-data". Once run, the request will contain the following properties:
+ * Get the multipart file upload request parser middleware for Express.
+ * The middleware only has an effect if it is of Content-Type "multipart/form-data".
+ * Once run, the request will contain the following properties:
  *
  *  * `req.body`  - The simple key-value fields that were part of the request, similar to a query string
- *  * `req.files` - Any file uploads that were included in the request body. The key will be the name of the
- *                  field that holds the file object. The file object has the keys:
+ *  * `req.files` - Any file uploads that were included in the request body.
+ *                  The key will be the name of the field that holds the file object.
+ *
+ * The file object has the keys:
  *
  *      * `req.files[key].name`   - The original filename (String) of the uploaded file (e.g., foo.docx)
  *      * `req.files[key].size`   - The size (Number) of the file in bytes
- *      * `req.files[key].path`   - The location on disk where the file is stored. You can use `fs.rename()`
- *                                  to relocate it to the appropriate location after processing
+ *      * `req.files[key].path`   - The location on disk where the file is stored.
+ *                                  You can use `fs.rename()` to relocate it to the appropriate
+ *                                  location after processing
  *
  * @param  {Object}     [formOptions]               The form options for the multiparty form parser object
  * @param  {String}     [formOptions.uploadDir]     The temporary directory to use to store the uploaded file
@@ -108,8 +111,6 @@ function multipart(formOptions) {
   };
 }
 
-export default multipart;
-
 /**
  * Multiparty always supplies its values as arrays. To be consistent with other request parsers,
  * if the array is of length 1, we extract the inner string value.
@@ -140,3 +141,5 @@ const _mapToFile = function (value) {
     path: value.path
   };
 };
+
+export { multipart as default };

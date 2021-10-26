@@ -14,14 +14,14 @@
  * the group will not be a part of indirect cache
  */
 
-import { createColumnFamilies } from 'oae-util/lib/cassandra';
+import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
  * @param  {Function}         callback       Standard callback function
  * @param  {Object}           callback.err   An error that occurred, if any
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   createColumnFamilies(
     {
       // Deleted schema

@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as FollowingAPI from 'oae-following';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as FollowingAPI from 'oae-following/lib/api.js';
 
 /**
  * @REST getFollowingUserIdFollowers

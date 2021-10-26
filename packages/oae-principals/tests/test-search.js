@@ -17,10 +17,10 @@ import _ from 'underscore';
 
 import { keys, find, propSatisfies, equals } from 'ramda';
 
-import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch';
+import * as ElasticSearch from 'oae-search/lib/internal/elasticsearch.js';
 import * as RestAPI from 'oae-rest';
 import * as SearchAPI from 'oae-search';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 describe('Search', () => {

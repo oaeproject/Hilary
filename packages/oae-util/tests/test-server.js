@@ -13,17 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
-
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pluck, forEach } from 'ramda';
 
-import * as OaeServer from 'oae-util/lib/server';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import { assert } from 'chai';
+
+import * as OaeServer from 'oae-util/lib/server.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as RestUtil from 'oae-rest/lib/util';
+import * as RestUtil from 'oae-rest/lib/util.js';
 import * as TestsUtil from 'oae-tests';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('OAE Server', () => {
   // Rest context for the cam admin

@@ -13,19 +13,20 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import { assert } from 'chai';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import * as ConfigAPI from 'oae-config';
 
+import { filter, equals, forEach, keys } from 'ramda';
+
 const { clearConfigAndWait, updateConfigAndWait } = ConfigTestUtil;
 const { getSchema, getTenantConfig } = RestAPI.Config;
-
-import { filter, equals, forEach, keys } from 'ramda';
 
 const { setUpConfig } = ConfigAPI;
 const { generateTestTenantAlias, generateTestTenantHost } = TenantsTestUtil;
@@ -93,7 +94,7 @@ describe('Configuration', () => {
       'oae-content/storage/backend',
       'oae-email/general/fromAddress',
       'oae-email/general/fromName',
-      'oae-google-analytics/google-analytics/globalEnabled',
+      'oae-google-analytics/googleAnalytics/globalEnabled',
       'oae-principals/group/visibility',
       'oae-principals/recaptcha/privateKey',
       'oae-principals/recaptcha/publicKey',
@@ -1139,7 +1140,7 @@ describe('Configuration', () => {
                                                       asCambridgeTenantAdmin,
                                                       null,
                                                       {
-                                                        'oae-google-analytics/google-analytics/globalEnabled': '1'
+                                                        'oae-google-analytics/googleAnalytics/globalEnabled': '1'
                                                       },
                                                       (error_) => {
                                                         assert.ok(error_);
@@ -1152,7 +1153,7 @@ describe('Configuration', () => {
                                                           (error, config) => {
                                                             assert.notExists(error);
                                                             assert.strictEqual(
-                                                              config['oae-google-analytics']['google-analytics']
+                                                              config['oae-google-analytics'].googleAnalytics
                                                                 .globalEnabled,
                                                               false
                                                             );
@@ -1162,7 +1163,7 @@ describe('Configuration', () => {
                                                               asGlobalAdmin,
                                                               null,
                                                               {
-                                                                'oae-google-analytics/google-analytics/globalEnabled':
+                                                                'oae-google-analytics/googleAnalytics/globalEnabled':
                                                                   '1'
                                                               },
                                                               (error_) => {
@@ -1175,20 +1176,22 @@ describe('Configuration', () => {
                                                                   (error, config) => {
                                                                     assert.notExists(error);
                                                                     assert.strictEqual(
-                                                                      config['oae-google-analytics']['google-analytics']
+                                                                      config['oae-google-analytics'].googleAnalytics
                                                                         .globalEnabled,
                                                                       true
                                                                     );
 
                                                                     // Verify getting tenant configuration through the global server needs a valid ID
-                                                                    getTenantConfig(asGlobalAdmin, ' ', (
-                                                                      error__ /* , config */
-                                                                    ) => {
-                                                                      assert.ok(error__);
-                                                                      assert.strictEqual(error__.code, 400);
+                                                                    getTenantConfig(
+                                                                      asGlobalAdmin,
+                                                                      ' ',
+                                                                      (error__ /* , config */) => {
+                                                                        assert.ok(error__);
+                                                                        assert.strictEqual(error__.code, 400);
 
-                                                                      return callback();
-                                                                    });
+                                                                        return callback();
+                                                                      }
+                                                                    );
                                                                   }
                                                                 );
                                                               }
@@ -1412,9 +1415,10 @@ describe('Configuration', () => {
         }, schema['oae-principals'].group.elements.visibility.list);
 
         // Assert that there is a value 'private' in the list
-        const privateValues = filter((option) => {
-          return equals(option.value, 'private');
-        }, schema['oae-principals'].group.elements.visibility.list);
+        const privateValues = filter(
+          (option) => equals(option.value, 'private'),
+          schema['oae-principals'].group.elements.visibility.list
+        );
         assert.lengthOf(privateValues, 1);
 
         // Set a value for a list config field
@@ -1465,9 +1469,10 @@ describe('Configuration', () => {
         }, schema['oae-content'].storage.elements.backend.group);
 
         // Assert that there is a value 'amazons3' in the set
-        const amazons3Values = filter((option) => {
-          return equals(option.value, 'amazons3');
-        }, schema['oae-content'].storage.elements.backend.group);
+        const amazons3Values = filter(
+          (option) => equals(option.value, 'amazons3'),
+          schema['oae-content'].storage.elements.backend.group
+        );
         assert.lengthOf(amazons3Values, 1);
 
         // Update one of the values

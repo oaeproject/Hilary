@@ -14,11 +14,15 @@
  * permissions and limitations under the License.
  */
 
-import path from 'path';
-import fs from 'fs';
+import path, { dirname } from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
 import { nth, reduce, gt as greaterThan, head, last } from 'ramda';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // A variable that will hold the path to the UI directory
 const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
@@ -65,11 +69,6 @@ const getVersion = async function (repoPath = hilaryDirectory, repoInformation =
     {
       filepaths: ['3akai-ux/package.json'],
       filter: (f) => f.match(/^3akai-ux\/package\.json$/)
-    },
-
-    {
-      filepaths: ['packages/restjsdoc'],
-      filter: (f) => f.match(/^packages\/restjsdoc\/package.json$/)
     }
   ];
   const submodules = {
@@ -83,12 +82,6 @@ const getVersion = async function (repoPath = hilaryDirectory, repoInformation =
       path: await git.statusMatrix({
         ...submodulePath,
         ...nth(1, submoduleFilters)
-      })
-    },
-    restjsdoc: {
-      path: await git.statusMatrix({
-        ...submodulePath,
-        ...nth(-1, submoduleFilters)
       })
     }
   };

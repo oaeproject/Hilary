@@ -75,7 +75,7 @@
  * - Avoid using keyword fields for full-text search. Use the text field type instead.
  */
 
-/* eslint-disable unicorn/filename-case, camelcase */
+/* eslint-disable camelcase */
 const schema = {
   id: {
     type: 'keyword',

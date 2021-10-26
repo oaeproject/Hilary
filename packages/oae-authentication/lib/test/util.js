@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
-import { format } from 'util';
+import assert from 'node:assert';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import nock from 'nock';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Cookie } from 'tough-cookie';
 import * as RestAPI from 'oae-rest';
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 
 /**
  * Assert that the authentication config can be updated and the authentication strategies get refreshed
@@ -170,7 +170,7 @@ const assertFacebookLoginSucceeds = function (tenantHost, options, callback) {
         key: 'redirectUrl',
         value: encodeURIComponent(options.redirectUrl)
       });
-      restContext.cookieJar.setCookie(cookie.toString(), 'http://localhost:2000/');
+      restContext.cookieJar.setCookie(cookie.toString(), 'http://localhost:3000/');
     }
 
     RestAPI.Authentication.facebookCallback(
@@ -255,7 +255,7 @@ const _mockFacebookResponse = function (options) {
     .get('/v2.0/me')
     .query({ fields: 'id,name,picture,email' })
     .reply(200, {
-      id: _.random(100000),
+      id: _.random(100_000),
       name: 'I am super great',
       email: options.email
     });
@@ -271,7 +271,7 @@ const _mockGoogleResponse = function (email) {
   const nock = _nock();
 
   // Mock the "get access token" request in the OAuth2 cycle
-  const accessToken = format('google_%s', _.random(10000));
+  const accessToken = format('google_%s', _.random(10_000));
   nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, {
     // eslint-disable-next-line camelcase
     access_token: accessToken,
@@ -287,16 +287,15 @@ const _mockGoogleResponse = function (email) {
     emails: [],
     urls: [{ value: 'http://www.youtube.com/user/abc123', type: 'otherProfile', label: 'ABC 123' }],
     objectType: 'person',
-    id: _.random(100000),
+    id: _.random(100_000),
     displayName: 'Foo Bar',
     name: {
       familyName: 'Bar',
       givenName: 'Foo'
     },
-    url: 'https://plus.google.com/' + _.random(10000000),
+    url: 'https://plus.google.com/' + _.random(10_000_000),
     image: {
-      url:
-        'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
+      url: 'https://lh5.googleusercontent.com/-wfVubfsOBV0/AAAAAAAAAAI/AAAAAAAAAGQ/rEb5FmsQuiA/photo.jpg?sz=50',
       isDefault: false
     },
     isPlusUser: true,

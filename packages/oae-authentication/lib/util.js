@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
-import { format } from 'util';
+import crypto from 'node:crypto';
+import { format } from 'node:util';
 import _ from 'underscore';
 import cookieParser from 'cookie-parser';
 import cookieSession from 'cookie-session';
@@ -22,9 +22,8 @@ import MobileDetect from 'mobile-detect';
 import passport from 'passport';
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { getOrCreateUser } from 'oae-authentication';
-import { objectifySearchParams } from 'oae-tests';
 
 const log = logger('oae-authentication');
 
@@ -445,7 +444,7 @@ const _getRequestInvitationInfo = function (request) {
   const redirectUrl = validateRedirectUrl(request.cookies.redirectUrl);
   const parsedRedirectUrl = new URL(redirectUrl, 'http://localhost');
   return _.pick(
-    objectifySearchParams(parsedRedirectUrl.searchParams),
+    Object.fromEntries(parsedRedirectUrl.searchParams),
     'invitationToken',
     'invitationEmail'
   );

@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import _ from 'underscore';
 import cheerio from 'cheerio';
 import ShortId from 'shortid';
 import SockJS from 'sockjs-client';
 
 import * as EmitterAPI from 'oae-emitter';
-import * as MqTestsUtil from 'oae-util/lib/test/mq-util';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as MqTestsUtil from 'oae-util/lib/test/mq-util.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as RestAPI from 'oae-rest';
 
-import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator';
-import * as ActivityAPI from 'oae-activity';
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Refresh the activity module's configuration, keeping in mind default test configuration. This is
@@ -41,7 +41,8 @@ const refreshConfiguration = function (config, callback) {
   config = _.extend(
     {
       collectionPollingFrequency: -1,
-      numberOfProcessingBuckets: 1
+      numberOfProcessingBuckets: 1,
+      maxConcurrentCollections: 1
     },
     config
   );
@@ -125,9 +126,7 @@ const assertGetActivityStreamFails = function (restCtx, resourceId, options, cod
 const markNotificationsAsRead = function (restContext, callback) {
   let result = null;
 
-  ActivityAPI.emitter.once(ActivityConstants.events.RESET_AGGREGATION, () => {
-    return callback(result);
-  });
+  ActivityAPI.emitter.once(ActivityConstants.events.RESET_AGGREGATION, () => callback(result));
 
   RestAPI.Activity.markNotificationsRead(restContext, (error, _result) => {
     assert.ok(!error);
@@ -355,7 +354,7 @@ const getPushClient = function (callback) {
   const messageCallbacks = {};
 
   // Set up a websocket connection to the localhost tenant
-  const socket = new SockJS('http://localhost:2001/api/push');
+  const socket = new SockJS('http://localhost:3001/api/push');
 
   socket.addEventListener('error', (error) => {
     assert.fail(error, null, 'Did not expect an error on the websocket');
@@ -396,9 +395,9 @@ const getPushClient = function (callback) {
     }
   });
 
-  socket.onclose = function () {
+  socket.addEventListener('close', () => {
     client.emit('close');
-  };
+  });
 
   /**
    * Returns the raw socket. This allows you to send custom messages
@@ -474,9 +473,9 @@ const getPushClient = function (callback) {
    */
   client.close = function (callback) {
     callback = callback || function () {};
-    socket.onclose = function () {
+    socket.addEventListener('close', () => {
       callback();
-    };
+    });
 
     socket.close();
   };

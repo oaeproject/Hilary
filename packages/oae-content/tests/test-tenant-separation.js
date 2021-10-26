@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as ContentTestUtil from 'oae-content/lib/test/util';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 
 import { pathSatisfies, is, map, prop, last, propSatisfies, equals, find } from 'ramda';
 
@@ -1014,9 +1014,7 @@ describe('Content', () => {
                               privateTenantA.privateUser.restContext,
                               false,
                               401,
-                              () => {
-                                return callback();
-                              }
+                              () => callback()
                             );
                           }
                         );
@@ -1145,9 +1143,7 @@ describe('Content', () => {
                                                       privateTenantA.privateUser.restContext,
                                                       true,
                                                       401,
-                                                      () => {
-                                                        return callback();
-                                                      }
+                                                      () => callback()
                                                     );
                                                   }
                                                 );
@@ -1380,7 +1376,7 @@ describe('Content', () => {
       setupMultiTenantPrivacyEntities((publicTenantA, publicTenantB, privateTenantA /* , privateTenantB */) => {
         const asAdminToPublicTenantB = publicTenantB.adminRestContext;
         // Create some more users as we can only share it with a target user once.
-        generateTestGroups(asAdminToPublicTenantB, 3, function (...args) {
+        generateTestGroups(asAdminToPublicTenantB, 3, (...args) => {
           const groups = map(prop('group'), last(args));
 
           // In all these cases, the target user should see the content item in his library

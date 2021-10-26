@@ -16,8 +16,8 @@
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
 import * as FoldersDAO from './internal/dao.js';
 
@@ -34,14 +34,14 @@ const log = logger('folders-authz');
  * @param  {Object}     callback.err                        An error that occurred, if any
  * @param  {String[]}   [callback.invalidContentIds]        If there was a permission issue against a target content items, the invalid content ids will be in this array
  */
-const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
+const canAddItemsToFolder = function (ctx, folder, contentItems, callback) {
   // Anonymous users can never add something to a folder
   if (!ctx.user()) {
     return callback({ code: 401, msg: 'You must be authenticated to add items to a folder' });
   }
 
   // A user must be able to manage a folder to add items to it
-  AuthzPermissions.canManage(ctx, folder, error => {
+  AuthzPermissions.canManage(ctx, folder, (error) => {
     if (error) {
       return callback(error);
     }
@@ -51,7 +51,7 @@ const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
     // item to extend its access to others (e.g., add the private item to a folder, then share
     // the folder with someone else). This is intentional as it is a necessary feature for
     // folders to be usable
-    AuthzPermissions.canInteract(ctx, contentItems, error => {
+    AuthzPermissions.canInteract(ctx, contentItems, (error) => {
       if (error) {
         error.invalidContentIds = _.keys(error.invalidResources);
         return callback(error);
@@ -70,8 +70,8 @@ const canAddItemsToFolder = function(ctx, folder, contentItems, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Folder[]}   callback.folders    The folders that contain the content item
  */
-const getFoldersForContent = function(contentId, callback) {
-  AuthzAPI.getAuthzMembers(contentId, null, 10000, (error, members) => {
+const getFoldersForContent = function (contentId, callback) {
+  AuthzAPI.getAuthzMembers(contentId, null, 10_000, (error, members) => {
     if (error) {
       log().error({ err: error, contentId }, 'Unable to get the members of a piece of content');
       return callback(error);
@@ -91,7 +91,7 @@ const getFoldersForContent = function(contentId, callback) {
  * @param  {Object}         callback.err            An error object, if any
  * @param  {String[]}       callback.contentIds     The ids of the content items that are in the folder
  */
-const getContentInFolder = function(folder, callback) {
+const getContentInFolder = function (folder, callback) {
   // Get the content items in this folder from the canonical source
   AuthzAPI.getAllRolesForPrincipalAndResourceType(folder.groupId, 'c', (error, roles) => {
     if (error) {

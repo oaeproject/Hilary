@@ -17,12 +17,13 @@
 
 import { reject, isNil, pluck, path, mergeAll } from 'ramda';
 
-import * as OaeUtil from 'oae-util/lib/util';
-import * as SearchUtil from 'oae-search/lib/util';
-const { filterByResource, filterByInteractingTenants, buildQueryForEmail } = SearchUtil;
-import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
 
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+
+const { filterByResource, filterByInteractingTenants, buildQueryForEmail } = SearchUtil;
 const { isEmail, isLoggedInUser, unless } = validator;
 
 const MUST = 'must';
@@ -46,10 +47,10 @@ const collectMustNotConditions = pluck(MUST_NOT);
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {SearchResult}   callback.results    An object that represents the results of the query
  */
-const queryBuilder = function(ctx, opts, callback) {
+const queryBuilder = function (ctx, options, callback) {
   // Sanitize custom search options
-  opts = opts || {};
-  opts.limit = OaeUtil.getNumberParam(opts.limit, 10, 1, 25);
+  options = options || {};
+  options.limit = OaeUtil.getNumberParam(options.limit, 10, 1, 25);
 
   try {
     unless(isLoggedInUser, {
@@ -57,7 +58,7 @@ const queryBuilder = function(ctx, opts, callback) {
       msg: 'Only authenticated users can use email search'
     })(ctx);
 
-    const query = opts.q || '';
+    const query = options.q || '';
     unless(isEmail, {
       code: 400,
       msg: 'An invalid email address has been specified'
@@ -67,7 +68,7 @@ const queryBuilder = function(ctx, opts, callback) {
   }
 
   // Ensure the email address being searched is lower case so it is case insensitive
-  const email = opts.q.toLowerCase();
+  const email = options.q.toLowerCase();
 
   /**
    * When searching for users by email, we can ignore profile visibility in lieu of an email
@@ -79,7 +80,7 @@ const queryBuilder = function(ctx, opts, callback) {
   /**
    *  aux functions
    */
-  const getTenantAlias = ctx => path(['tenant', 'alias'], ctx.user());
+  const getTenantAlias = (ctx) => path(['tenant', 'alias'], ctx.user());
 
   const musts = {
     must: outWithFalsy(
@@ -114,8 +115,8 @@ const queryBuilder = function(ctx, opts, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.results    An object that represents the results of the query
  */
-const postProcessor = function(ctx, opts, results, callback) {
-  results.tenant = TenantsAPI.getTenantByEmail(opts.q);
+const postProcessor = function (ctx, options, results, callback) {
+  results.tenant = TenantsAPI.getTenantByEmail(options.q);
   return callback(null, results);
 };
 

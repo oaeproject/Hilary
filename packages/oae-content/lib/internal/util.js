@@ -13,19 +13,26 @@
  * permissions and limitations under the License.
  */
 
-import querystring from 'querystring';
-import { format } from 'util';
+import querystring from 'node:querystring';
+import { format } from 'node:util';
 import { setUpConfig } from 'oae-config';
 import _ from 'underscore';
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 
 import { logger } from 'oae-logger';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityModel from 'oae-activity/lib/model';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as Signature from 'oae-util/lib/signature';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as Signature from 'oae-util/lib/signature.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+
+import * as amazonS3 from '../backends/amazons3.js';
+import * as localDirStorage from '../backends/local.js';
+import * as remoteDirStorage from '../backends/remote.js';
+import * as testStorage from '../backends/test.js';
+
+const availableBackends = { local: localDirStorage, amazon: amazonS3, remote: remoteDirStorage, test: testStorage };
 
 const ContentConfig = setUpConfig('oae-content');
 
@@ -58,7 +65,8 @@ const getStorageBackend = function (ctx, uri) {
   }
 
   try {
-    return require('oae-content/lib/backends/' + backendName);
+    // return require('oae-content/lib/backends/' + backendName);
+    return availableBackends[backendName];
   } catch (error) {
     log(ctx).error({ err: error }, "Couldn't load the backend %s", backendName);
     throw new Error('Could not find storage back-end ' + backendName);

@@ -16,7 +16,7 @@
 import { assert } from 'chai';
 import { not } from 'ramda';
 
-import * as TestsUtil from 'oae-tests/lib/util';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 import * as LibraryAPI from 'oae-library';
 
 const { generateRandomText } = TestsUtil;

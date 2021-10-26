@@ -14,22 +14,22 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzDelete from 'oae-authz/lib/delete';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as SearchUtil from 'oae-search/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { SearchConstants } from 'oae-search/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
 import { logger } from 'oae-logger';
 
@@ -63,13 +63,11 @@ LibraryAPI.Index.registerLibraryIndex(PrincipalsConstants.library.MEMBERSHIPS_IN
 
           // Map the groups to library entry items with just the properties needed to populate
           // the library index
-          const resources = _.map(groups, (group) => {
-            return {
-              rank: group.lastModified,
-              resource: group,
-              value: groupIdRoles[group.id]
-            };
-          });
+          const resources = _.map(groups, (group) => ({
+            rank: group.lastModified,
+            resource: group,
+            value: groupIdRoles[group.id]
+          }));
 
           return callback(null, resources);
         }
@@ -184,9 +182,7 @@ const _getAllGroupMembershipsFromAuthz = function (principalId, callback) {
       // Delete all groups from the graph that did not have a path to the principal
       _.chain(graph.getNodes())
         .pluck('id')
-        .filter((nodeId) => {
-          return !_.contains(membershipIds, nodeId);
-        })
+        .filter((nodeId) => !_.contains(membershipIds, nodeId))
         .each((nodeId) => {
           graph.removeNode(nodeId);
         });
@@ -347,7 +343,7 @@ const _touchMembershipLibraries = function (group, oldLastModified, memberChange
 
     // Create a set of groups that holds the group we changed and all its parents
     const changedGroup = _.extend({}, group, { oldLastModified });
-    const groups = ancestorGroups.concat(changedGroup);
+    const groups = [...ancestorGroups, changedGroup];
 
     // Insert the group (and its ancestors) into the membership libraries of the new members
     _insertMembershipsLibraries(groups, addedMemberIds, (error, explodedInsertedPrincipals) => {
@@ -398,18 +394,16 @@ const _insertMembershipsLibraries = function (groups, addedMemberIds, callback) 
     }
 
     // The principals for which the groups will be inserted in their libraries
-    const principalIds = allChildren.concat(addedMemberIds);
+    const principalIds = [...allChildren, ...addedMemberIds];
 
     const entries = _.chain(groups)
-      .map((group) => {
-        return _.map(principalIds, (principalId) => {
-          return {
-            id: principalId,
-            rank: group.lastModified,
-            resource: group
-          };
-        });
-      })
+      .map((group) =>
+        _.map(principalIds, (principalId) => ({
+          id: principalId,
+          rank: group.lastModified,
+          resource: group
+        }))
+      )
       .flatten()
       .value();
 
@@ -440,15 +434,13 @@ const _updateMembershipsLibraries = function (group, excludePrincipalIds, callba
     }
 
     // The principals for which the groups will be updated in their libraries
-    const principalIdsToUpdate = allChildren.concat(group.id);
-    const entries = _.map(principalIdsToUpdate, (principalId) => {
-      return {
-        id: principalId,
-        oldRank: group.oldLastModified,
-        newRank: group.lastModified,
-        resource: group
-      };
-    });
+    const principalIdsToUpdate = [...allChildren, group.id];
+    const entries = _.map(principalIdsToUpdate, (principalId) => ({
+      id: principalId,
+      oldRank: group.oldLastModified,
+      newRank: group.lastModified,
+      resource: group
+    }));
 
     // Update all the groups in the libraries of the updated members (and their children)
     LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERSHIPS_INDEX_NAME, entries, (error_) => {
@@ -487,19 +479,17 @@ const _removeMembershipsLibraries = function (removedMemberIds, groups, callback
     }
 
     // The principals for which to remove the groups from their libraries
-    const principalIds = allChildren.concat(removedMemberIds);
+    const principalIds = [...allChildren, ...removedMemberIds];
 
     // Gather all index removal entries to persist
     const entries = _.chain(groups)
-      .map((group) => {
-        return _.map(principalIds, (principalId) => {
-          return {
-            id: principalId,
-            rank: group.oldLastModified || group.lastModified,
-            resource: group
-          };
-        });
-      })
+      .map((group) =>
+        _.map(principalIds, (principalId) => ({
+          id: principalId,
+          rank: group.oldLastModified || group.lastModified,
+          resource: group
+        }))
+      )
       .flatten()
       .value();
 
@@ -578,7 +568,7 @@ const _getAllGroupChildren = function (principalIds, excludePrincipals, callback
   const groupId = _groupsToExplode.shift();
 
   // Get all of the members of the group, so they can be invalidated
-  AuthzAPI.getAuthzMembers(groupId, null, 10000, (error, members) => {
+  AuthzAPI.getAuthzMembers(groupId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }

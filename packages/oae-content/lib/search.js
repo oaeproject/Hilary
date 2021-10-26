@@ -13,32 +13,21 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import fs from 'node:fs';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
-import * as MessageBoxSearch from 'oae-messagebox/lib/search';
+import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
-const { getTenant } = TenantsAPI;
 
 import * as ContentAPI from 'oae-content';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import { ContentConstants } from 'oae-content/lib/constants';
-import * as contentBodySchema from './search/schema/contentBodySchema.js';
-
-const log = logger('content-search');
-
-const getResourceId = prop('resourceId');
-const getTenantAlias = prop('tenantAlias');
-const { getSignedDownloadUrl } = ContentUtil;
-const { getResourceFromId } = AuthzUtil;
-
-const defaultToEmptyObject = defaultTo({});
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 
 import {
   prop,
@@ -56,18 +45,30 @@ import {
   mapObjIndexed
 } from 'ramda';
 
+import * as contentBodySchema from './search/schema/content-body-schema.js';
+
+const { getTenant } = TenantsAPI;
+const log = logger('content-search');
+
+const getResourceId = prop('resourceId');
+const getTenantAlias = prop('tenantAlias');
+const { getSignedDownloadUrl } = ContentUtil;
+const { getResourceFromId } = AuthzUtil;
+
+const defaultToEmptyObject = defaultTo({});
+
 /**
  * Initializes the child search documents for the Content module
  *
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-export const init = function (callback) {
+export function init(callback) {
   const contentBodyChildSearchDocumentOptions = {
     resourceTypes: ['content'],
     schema: contentBodySchema,
     producer(resources, callback) {
-      return _produceContentBodyDocuments(resources.slice(), callback);
+      return _produceContentBodyDocuments([...resources], callback);
     }
   };
 
@@ -82,14 +83,12 @@ export const init = function (callback) {
       return MessageBoxSearch.registerMessageSearchDocument(
         ContentConstants.search.MAPPING_CONTENT_COMMENT,
         ['content'],
-        (resources, callback) => {
-          return _produceContentCommentDocuments(resources.slice(), callback);
-        },
+        (resources, callback) => _produceContentCommentDocuments([...resources], callback),
         callback
       );
     }
   );
-};
+}
 
 /**
  * Indexing tasks
@@ -201,13 +200,9 @@ ContentAPI.emitter.on(ContentConstants.events.CREATED_COMMENT, (ctx, comment, co
 /*!
  * when a comment is deleted on a content item, we must delete the child message document
  */
-ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, content) => {
-  return MessageBoxSearch.deleteMessageSearchDocument(
-    ContentConstants.search.MAPPING_CONTENT_COMMENT,
-    content.id,
-    comment
-  );
-});
+ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, content) =>
+  MessageBoxSearch.deleteMessageSearchDocument(ContentConstants.search.MAPPING_CONTENT_COMMENT, content.id, comment)
+);
 
 /**
  * Document producers

@@ -15,8 +15,9 @@
 
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import { Validator as validator } from 'oae-util/lib/validator';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+
 const { unless, isResourceId } = validator;
 
 /// ////////////
@@ -31,24 +32,28 @@ const { unless, isResourceId } = validator;
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object[]}   callback.previews   The preview objects.
  */
-const getContentPreviews = function(revisionId, callback) {
-  Cassandra.runQuery('SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?', [revisionId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getContentPreviews = function (revisionId, callback) {
+  Cassandra.runQuery(
+    'SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?',
+    [revisionId],
+    (error, rows) => {
+      if (error) {
+        return callback(error);
+      }
+
+      const previews = _.map(rows, (row) => {
+        row = Cassandra.rowToHash(row);
+        row.value = row.value.split('#');
+        return {
+          size: row.value[0],
+          uri: row.value[1],
+          filename: row.name
+        };
+      });
+
+      return callback(null, previews);
     }
-
-    const previews = _.map(rows, row => {
-      row = Cassandra.rowToHash(row);
-      row.value = row.value.split('#');
-      return {
-        size: row.value[0],
-        uri: row.value[1],
-        filename: row.name
-      };
-    });
-
-    return callback(null, previews);
-  });
+  );
 };
 
 /**
@@ -60,13 +65,13 @@ const getContentPreviews = function(revisionId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.preview    The preview object.
  */
-const getContentPreview = function(revisionId, previewItem, callback) {
+const getContentPreview = function (revisionId, previewItem, callback) {
   Cassandra.runQuery(
     'SELECT "value" FROM "PreviewItems" WHERE "revisionId" = ? AND "name" = ?',
     [revisionId, previewItem],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       if (_.isEmpty(rows)) {
@@ -93,7 +98,7 @@ const getContentPreview = function(revisionId, previewItem, callback) {
  * @param  {Object}   callback.err          An error that occurred, if any
  * @param  {Object}   callback.previews     Object where each key is a revision id and the value is another object with the thumbnailUri and wideUri.
  */
-const getPreviewUris = function(revisionIds, callback) {
+const getPreviewUris = function (revisionIds, callback) {
   revisionIds = _.uniq(revisionIds);
   if (_.isEmpty(revisionIds)) {
     return callback(null, {});
@@ -102,13 +107,13 @@ const getPreviewUris = function(revisionIds, callback) {
   Cassandra.runQuery(
     'SELECT "revisionId", "thumbnailUri", "wideUri" FROM "Revisions" WHERE "revisionId" IN ?',
     [revisionIds],
-    (err, rows) => {
-      if (err) {
-        return callback(err);
+    (error, rows) => {
+      if (error) {
+        return callback(error);
       }
 
       const previews = {};
-      rows.forEach(row => {
+      for (const row of rows) {
         const revisionId = row.get('revisionId');
         previews[revisionId] = {};
 
@@ -121,7 +126,7 @@ const getPreviewUris = function(revisionIds, callback) {
         if (wideUri) {
           previews[revisionId].wideUri = wideUri;
         }
-      });
+      }
 
       return callback(null, previews);
     }
@@ -149,8 +154,8 @@ const getPreviewUris = function(revisionIds, callback) {
  * @param  {Function}    callback        Standard callback function
  * @param  {Object}      callback.err    An error that occurred, if any
  */
-const storeMetadata = function(
-  contentObj,
+const storeMetadata = function (
+  contentObject,
   revisionId,
   status,
   thumbnailUri,
@@ -163,7 +168,7 @@ const storeMetadata = function(
   const queries = [];
 
   // 1. Remove the old previews
-  if (contentObj.previews.total && contentObj.previews.total > 0) {
+  if (contentObject.previews.total && contentObject.previews.total > 0) {
     deleteQuery = {
       query: 'DELETE FROM "PreviewItems" WHERE "revisionId" = ?',
       parameters: [revisionId]
@@ -190,11 +195,11 @@ const storeMetadata = function(
 
   // Pass in data second, in case previewMetadata contains a status or thumbnailUri key
   let previews = _.extend({}, previewMetadata, data);
-  contentObj.previews = previews;
+  contentObject.previews = previews;
 
   previews = JSON.stringify(previews);
   const contentUpdate = _.extend({}, contentMetadata, { previews });
-  queries.push(Cassandra.constructUpsertCQL('Content', 'contentId', contentObj.id, contentUpdate));
+  queries.push(Cassandra.constructUpsertCQL('Content', 'contentId', contentObject.id, contentUpdate));
 
   // 4. Store the previews object on the revision
   const revisionUpdate = {
@@ -217,9 +222,9 @@ const storeMetadata = function(
   queries.push(Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, revisionUpdate));
 
   // First delete the existing previews
-  _runQueryIfSpecified(deleteQuery, err => {
-    if (err) {
-      return callback(err);
+  _runQueryIfSpecified(deleteQuery, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     // Add the specified preview items
@@ -236,7 +241,7 @@ const storeMetadata = function(
  * @param  {Object}     callback.err        An error that occurred, if any
  * @api private
  */
-const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
+const copyPreviewItems = function (fromRevisionId, toRevisionId, callback) {
   try {
     unless(isResourceId, {
       code: 400,
@@ -252,9 +257,9 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
   }
 
   // Select all the rows from the source revision preview items, then insert them into the destination revision preview items
-  Cassandra.runQuery('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (err, rows) => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -262,7 +267,7 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
     }
 
     // Copy the content over to the target revision id
-    const queries = _.map(rows, row => {
+    const queries = _.map(rows, (row) => {
       row = Cassandra.rowToHash(row);
       return {
         query: 'INSERT INTO "PreviewItems" ("revisionId", "name", "value") VALUES (?, ?, ?)',
@@ -282,7 +287,7 @@ const copyPreviewItems = function(fromRevisionId, toRevisionId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _runQueryIfSpecified = function(query, callback) {
+const _runQueryIfSpecified = function (query, callback) {
   if (!query) {
     return callback();
   }
@@ -300,20 +305,15 @@ const _runQueryIfSpecified = function(query, callback) {
  * @api private
  */
 // eslint-disable-next-line no-unused-vars
-const _getUriInFileData = function(fileData, size) {
+const _getUriInFileData = function (fileData, size) {
   // eslint-disable-next-line no-unused-vars
-  const file = _.find(fileData, (val, filename) => {
-    return val.indexOf(size + '#') === 0;
-  });
+  const file = _.find(fileData, (value, filename) => value.indexOf(size + '#') === 0);
   if (file) {
     // Get the uri out of the wide file data string.
     // file data is of the form '<size>#<uri>'.
     // Rather than doing file.split('#')[1], slice of the name and return the rest of string
     // to prevent not getting the full URI if it would ever contain a '#'.
-    return file
-      .split('#')
-      .slice(1)
-      .join('#');
+    return file.split('#').slice(1).join('#');
   }
 
   return null;

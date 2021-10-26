@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import * as querystring from 'querystring';
+import * as querystring from 'node:querystring';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
   isResourceAFile,
   isResourceALink
-} from 'oae-content/lib/backends/util';
+} from 'oae-content/lib/backends/util.js';
 
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 import * as ContentAPI from './api.js';
 import { ContentConstants } from './constants.js';
@@ -1127,44 +1127,54 @@ const _handleDownload = function (response, downloadInfo, expiresMax) {
   const downloadStrategy = downloadInfo.strategy;
 
   // A 204 suggest that the LB (nginx, apache, lighthttpd, ..) will be handling the download via the x-sendfile mechanism
-  if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_INTERNAL) {
-    // Nginx internal download
-    response.setHeader('X-Accel-Redirect', downloadStrategy.target);
+  switch (downloadStrategy.strategy) {
+    case ContentConstants.backend.DOWNLOAD_STRATEGY_INTERNAL: {
+      // Nginx internal download
+      response.setHeader('X-Accel-Redirect', downloadStrategy.target);
 
-    // Apache internal download
-    response.setHeader('X-Sendfile', downloadStrategy.target);
+      // Apache internal download
+      response.setHeader('X-Sendfile', downloadStrategy.target);
 
-    // Lighthttpd internal download
-    response.setHeader('X-LIGHTTPD-send-file', downloadStrategy.target);
+      // Lighthttpd internal download
+      response.setHeader('X-LIGHTTPD-send-file', downloadStrategy.target);
 
-    if (expiresMax) {
-      // Add the cache headers manually as some webservers are not
-      // able to deal with setting cache headers and internal redirects
-      // @see https://github.com/oaeproject/Hilary/issues/995
-      response.setHeader('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT');
-      response.setHeader('Cache-Control', 'max-age=315360000');
+      if (expiresMax) {
+        // Add the cache headers manually as some webservers are not
+        // able to deal with setting cache headers and internal redirects
+        // @see https://github.com/oaeproject/Hilary/issues/995
+        response.setHeader('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT');
+        response.setHeader('Cache-Control', 'max-age=315360000');
+      }
+
+      response.setHeader(
+        'Content-Disposition',
+        'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"'
+      );
+      response.status(204).send(downloadStrategy.target);
+
+      // A redirect strategy will invoke a redirect to the target
+
+      break;
     }
 
-    response.setHeader(
-      'Content-Disposition',
-      'attachment; filename="' + querystring.escape(downloadInfo.filename) + '"'
-    );
-    response.status(204).send(downloadStrategy.target);
+    case ContentConstants.backend.DOWNLOAD_STRATEGY_REDIRECT: {
+      // We can't guarantee that the backend won't want to update some details about the target over time. e.g., update some tracking
+      // variables over time for analytics or additional security. Therefore, we do a temporary redirect (302)
+      response.setHeader('Location', downloadStrategy.target);
+      return response.status(302).end();
 
-    // A redirect strategy will invoke a redirect to the target
-  } else if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_REDIRECT) {
-    // We can't guarantee that the backend won't want to update some details about the target over time. e.g., update some tracking
-    // variables over time for analytics or additional security. Therefore, we do a temporary redirect (302)
-    response.setHeader('Location', downloadStrategy.target);
-    return response.status(302).end();
+      // The app server will send the file to the client. This should *NOT* be used in production and is only really here for easier unit
+      // testing purposes
+    }
 
-    // The app server will send the file to the client. This should *NOT* be used in production and is only really here for easier unit
-    // testing purposes
-  } else if (downloadStrategy.strategy === ContentConstants.backend.DOWNLOAD_STRATEGY_TEST) {
-    return response.download(downloadStrategy.target);
+    case ContentConstants.backend.DOWNLOAD_STRATEGY_TEST: {
+      return response.download(downloadStrategy.target);
 
-    // In all other cases we respond with a 404
-  } else {
-    response.status(404).end();
+      // In all other cases we respond with a 404
+    }
+
+    default: {
+      response.status(404).end();
+    }
   }
 };

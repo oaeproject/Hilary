@@ -13,21 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import * as VersionAPI from 'oae-version';
 
 import oauth from 'oauth-sign';
 import ShortId from 'shortid';
 
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
 import PrincipalsApi from 'oae-principals';
-import { Validator as validator } from 'oae-authz/lib/validator';
-const { isGroupId, unless, isNotEmpty } = validator;
+import { Validator as validator } from 'oae-authz/lib/validator.js';
 
 import * as LtiDAO from './internal/dao.js';
 import { LtiToolLaunchParams, LtiLaunchParams } from './model.js';
+
+const { isGroupId, unless, isNotEmpty } = validator;
 
 const log = logger('oae-lti');
 

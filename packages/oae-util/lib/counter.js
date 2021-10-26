@@ -97,4 +97,4 @@ const Counter = function () {
   return that;
 };
 
-export default Counter;
+export { Counter as default };

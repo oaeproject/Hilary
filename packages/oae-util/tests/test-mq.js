@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as MQ from 'oae-util/lib/mq';
-import { whenTasksEmpty as waitUntilProcessed, getQueueLength } from 'oae-util/lib/test/mq-util';
+import * as MQ from 'oae-util/lib/mq.js';
+import { whenTasksEmpty as waitUntilProcessed, getQueueLength } from 'oae-util/lib/test/mq-util.js';
 import { config } from '../../../config.js';
 
 describe('MQ', () => {
@@ -44,9 +44,9 @@ describe('MQ', () => {
       MQ.staticConnections.THE_CHECKER,
       MQ.staticConnections.THE_PUBLISHER
     ]);
-    const connectionsToCheck = _.filter(MQ.getAllConnectedClients(), (eachClient) => {
-      return connectionNames.has(eachClient.queueName);
-    });
+    const connectionsToCheck = _.filter(MQ.getAllConnectedClients(), (eachClient) =>
+      connectionNames.has(eachClient.queueName)
+    );
 
     assertAllClientsAreDisconnected(connectionsToCheck, () => {
       MQ.init(config.mq, (error) => {
@@ -85,7 +85,7 @@ describe('MQ', () => {
       // otherwise it won't submit to a queue that hasn't been subscribed
       MQ.subscribe(testQueue, increment, (error) => {
         assert.isNotOk(error);
-        const allTasks = new Array(10).fill({ foo: 'bar' });
+        const allTasks = Array.from({ length: 10 }).fill({ foo: 'bar' });
         submitTasksToQueue(testQueue, allTasks, (error) => {
           assert.isNotOk(error);
 
@@ -133,8 +133,8 @@ describe('MQ', () => {
 
       const testQueueA = 'testQueueA-' + Date.now();
       const testQueueB = 'testQueueB-' + Date.now();
-      const allTasksForQueueA = new Array(10).fill({ queue: 'a' });
-      const allTasksForQueueB = new Array(10).fill({ queue: 'b' });
+      const allTasksForQueueA = Array.from({ length: 10 }).fill({ queue: 'a' });
+      const allTasksForQueueB = Array.from({ length: 10 }).fill({ queue: 'b' });
 
       const bothQueues = [`${testQueueA}-redelivery`, `${testQueueB}-redelivery`];
 
@@ -351,11 +351,11 @@ describe('MQ', () => {
       let counter = 0;
       const queueName = format('testQueue-%s', ShortId.generate());
 
-      const allTasks = new Array(NUMBER_OF_TASKS).fill(null).map(() => {
-        return { msg: `Practice ${counter++} times makes perfect` };
-      });
+      const allTasks = Array.from({ length: NUMBER_OF_TASKS })
+        .fill(null)
+        .map(() => ({ msg: `Practice ${counter++} times makes perfect` }));
       // we'll soon shift/pop the array, so let's keep a clone for later
-      const allMessages = allTasks.slice(0);
+      const allMessages = [...allTasks];
 
       counter = 0;
       const taskHandler = (message, done) => {
@@ -443,9 +443,7 @@ const submitTasksToQueue = (queueName, tasks, done) => {
   if (tasks.length === 0) return done();
 
   const poppedTask = tasks.shift();
-  MQ.submit(queueName, JSON.stringify(poppedTask), () => {
-    return submitTasksToQueue(queueName, tasks, done);
-  });
+  MQ.submit(queueName, JSON.stringify(poppedTask), () => submitTasksToQueue(queueName, tasks, done));
 };
 
 /**

@@ -20,8 +20,8 @@ import passport from 'passport';
 
 import { logger } from 'oae-logger';
 
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeServer from 'oae-util/lib/server';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeServer from 'oae-util/lib/server.js';
 
 import * as OAuthDAO from './internal/dao.js';
 import * as OAuthAPI from './api.js';
@@ -292,4 +292,4 @@ OAE.tenantRouter.on('delete', '/api/auth/oauth/clients/:userId/:clientId', (requ
   });
 });
 
-export default OAE;
+export { OAE as default };

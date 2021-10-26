@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
@@ -26,7 +27,7 @@ let shuttingDown = false;
  * Register a handler that is invoked when the application process has been "killed" (SIGTERM).
  * @see OAE#registerPreShutdownHandler
  */
-const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
+const registerPreShutdownHandler = function (name, maxTimeMillis, handler) {
   preShutdownHandlers[name] = { maxTimeMillis, handler };
 };
 
@@ -40,7 +41,7 @@ const registerPreShutdownHandler = function(name, maxTimeMillis, handler) {
  * @param  {Number}     defaultPreShutdownTimeoutMillis     Each handler has an opportunity to register themselves with a timeout. If one registers without a timeout, this value is put in its place.
  * @param  {Number}     graceTimeoutMillis                  Maximum amount of time to wait for an app server to complete all processing before exiting the process
  */
-const shutdown = function(defaultPreShutdownTimeoutMillis, graceTimeoutMillis) {
+const shutdown = function (defaultPreShutdownTimeoutMillis, graceTimeoutMillis) {
   if (!shuttingDown) {
     shuttingDown = true;
     log().info('Received shutdown signal, server is shutting down.');
@@ -67,10 +68,10 @@ const shutdown = function(defaultPreShutdownTimeoutMillis, graceTimeoutMillis) {
  * @param  {Function}   callback                Standard callback function
  * @api private
  */
-const _preShutdown = function(defaultTimeoutMillis, callback) {
+const _preShutdown = function (defaultTimeoutMillis, callback) {
   const todo = _.keys(preShutdownHandlers).length;
   let done = 0;
-  _.each(preShutdownHandlers, handlerInfo => {
+  _.each(preShutdownHandlers, (handlerInfo) => {
     let timeoutHandle = null;
     let complete = false;
 
@@ -78,7 +79,7 @@ const _preShutdown = function(defaultTimeoutMillis, callback) {
      * Keeps track of which pre-shutdown hooks have completed, including those that may have
      * timed out. Invokes the callback when all handlers have been accounted for.
      */
-    const _monitorPreShutdown = function() {
+    const _monitorPreShutdown = function () {
       if (!complete) {
         complete = true;
         clearTimeout(timeoutHandle);
@@ -100,7 +101,7 @@ const _preShutdown = function(defaultTimeoutMillis, callback) {
  * Exit the process VIA `process.exit`.
  * @api private
  */
-const _exit = function() {
+const _exit = function () {
   log().info('Exiting.');
   // eslint-disable-next-line unicorn/no-process-exit
   process.exit();

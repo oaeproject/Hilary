@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
+import process from 'node:process';
 import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
-const log = logger('oae-redis');
 import { equals, not } from 'ramda';
 
 let client = null;
@@ -29,9 +29,9 @@ const retryTimeout = 5;
  * @param  {Object}   redisConfig     The redis configuration object
  * @param  {Function} callback          Standard callback function
  */
-const init = function(redisConfig, callback) {
-  createClient(redisConfig, (err, _client) => {
-    if (err) return callback(err);
+const init = function (redisConfig, callback) {
+  createClient(redisConfig, (error, _client) => {
+    if (error) return callback(error);
 
     client = _client;
     return callback(null, client);
@@ -45,7 +45,8 @@ const init = function(redisConfig, callback) {
  * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
-const createClient = function(_config, callback) {
+const createClient = function (_config, callback) {
+  const log = logger('oae-redis');
   const onTestingEnvironment = equals('true', process.env.OAE_TESTS_RUNNING);
   const notOnTestingEnvironment = not(onTestingEnvironment);
 
@@ -71,10 +72,9 @@ const createClient = function(_config, callback) {
 
       return null;
     },
-    reconnectOnError: () => {
+    reconnectOnError: () =>
       // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
-      return true;
-    }
+      true
   };
 
   const redisClient = Redis.createClient(connectionOptions);
@@ -117,15 +117,15 @@ const getClient = () => client;
  * @param  {Function} callback       Standard callback function
  * @param  {Object}   callback.err   An error that occurred, if any
  */
-const flush = function(callback) {
-  const done = err => {
-    if (err) return callback({ code: 500, msg: err });
+const flush = function (callback) {
+  const done = (error) => {
+    if (error) return callback({ code: 500, msg: error });
 
     return callback();
   };
 
   if (client) {
-    client.flushdb(done);
+    client.flushall(done);
   } else {
     done('Unable to flush redis. Try initializing it first.');
   }
@@ -138,9 +138,7 @@ const flush = function(callback) {
  * @param {Function} done Standard callback function
  */
 const reconnect = (connection, done) => {
-  connection.connect(() => {
-    return done();
-  });
+  connection.connect(() => done());
 };
 
 /**

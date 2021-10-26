@@ -16,10 +16,10 @@
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 import * as resourceMembersSchema from './search/schema/resourceMembersSchema.js';
 import * as resourceMembershipsSchema from './search/schema/resourceMembershipsSchema.js';
 
@@ -34,7 +34,7 @@ const init = function (callback) {
     resourceTypes: ['content', 'discussion', 'group'],
     schema: resourceMembersSchema,
     producer(resources, callback) {
-      return _produceResourceMembersDocuments(resources.slice(), callback);
+      return _produceResourceMembersDocuments([...resources], callback);
     }
   };
 
@@ -42,7 +42,7 @@ const init = function (callback) {
     resourceTypes: ['group', 'user'],
     schema: resourceMembershipsSchema,
     producer(resources, callback) {
-      return _produceResourceMembershipsDocuments(resources.slice(), callback);
+      return _produceResourceMembershipsDocuments([...resources], callback);
     }
   };
 
@@ -178,7 +178,7 @@ const _getMemberIds = function (resource, callback) {
     return callback(null, resource.memberIds);
   }
 
-  AuthzAPI.getAuthzMembers(resource.id, null, 10000, (error, memberIdRoles) => {
+  AuthzAPI.getAuthzMembers(resource.id, null, 10_000, (error, memberIdRoles) => {
     if (error) {
       return callback(error);
     }

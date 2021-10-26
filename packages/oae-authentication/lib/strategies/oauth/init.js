@@ -16,10 +16,10 @@
 import passportBearer from 'passport-http-bearer';
 import passport from 'passport';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
-import * as OAE from 'oae-util/lib/oae';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import { telemetry } from 'oae-telemetry';
 
 import * as OAuthDAO from './internal/dao.js';
@@ -97,8 +97,6 @@ function initOAuthAuth() {
   });
 }
 
-export default initOAuthAuth;
-
 /**
  * Find an OAuth access token in the HTTP request.
  *
@@ -114,3 +112,5 @@ const _hasAccessToken = function (request) {
       BEARER_REGEX.test(request.headers.authorization))
   );
 };
+
+export { initOAuthAuth as default };

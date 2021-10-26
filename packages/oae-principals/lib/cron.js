@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-import * as _ from 'underscore';
-import eachSeries from 'async/eachSeries';
+import _ from 'underscore';
+import eachSeries from 'async/eachSeries.js';
 import { CronJob } from 'cron';
 
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
-import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
 import * as PrincipalsDAO from './internal/dao.js';
 
 const log = logger('oae-principals');
@@ -46,11 +46,11 @@ const programUserDeletionTask = function (globalContext, callback) {
    */
   const job = new CronJob(
     '00 00 00 * * 6', // '0 */2 * * * *',
-    function () {
+    () => {
       const actualDate = new Date();
 
       // Get list of pricipals which must be deleted
-      PrincipalsDAO.getExpiredUser(actualDate, function (error, principalsToDelete) {
+      PrincipalsDAO.getExpiredUser(actualDate, (error, principalsToDelete) => {
         if (error) return callback(error);
 
         if (_.isEmpty(principalsToDelete)) return;

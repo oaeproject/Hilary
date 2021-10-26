@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport-google-oauth';
 
@@ -21,8 +21,8 @@ import * as ConfigAPI from 'oae-config';
 import { logger } from 'oae-logger';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 const GoogleStrategy = passport.OAuth2Strategy;
 const log = logger('oae-authentication');
@@ -66,9 +66,7 @@ function initGoogleAuth() {
 
     // Ensure we can do simple string comparisons by filtering empty domains and trimming out spaces
     domains = _.chain(domains)
-      .map((domain) => {
-        return domain.trim().toLowerCase();
-      })
+      .map((domain) => domain.trim().toLowerCase())
       .compact()
       .value();
 
@@ -144,4 +142,4 @@ function initGoogleAuth() {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.GOOGLE, strategy);
 }
 
-export default initGoogleAuth;
+export { initGoogleAuth as default };

@@ -20,7 +20,7 @@
  * @return {Boolean}                    `true` if the strategy should be enabled, `false` otherwise.
  */
 // eslint-disable-next-line no-unused-vars
-const shouldBeEnabled = function(tenantAlias) {};
+const shouldBeEnabled = function (tenantAlias) {};
 
 /**
  * Get the Passport Strategy.
@@ -29,6 +29,6 @@ const shouldBeEnabled = function(tenantAlias) {};
  * @return {PassportStrategy}           A passport strategy.
  */
 // eslint-disable-next-line no-unused-vars
-const getPassportStrategy = function(tenant) {};
+const getPassportStrategy = function (tenant) {};
 
 export { shouldBeEnabled, getPassportStrategy };

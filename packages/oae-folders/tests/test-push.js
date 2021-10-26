@@ -16,13 +16,13 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 
 const PUBLIC = 'public';
 const PRIVATE = 'private';
@@ -100,7 +100,7 @@ describe('Folders - Push', () => {
                               client.subscribe(
                                 folder.id,
                                 'activity',
-                                { expires: Date.now() + 10000, signature: 'foo' },
+                                { expires: Date.now() + 10_000, signature: 'foo' },
                                 null,
                                 (error_) => {
                                   assert.strictEqual(error_.code, 401);
@@ -214,9 +214,7 @@ describe('Folders - Push', () => {
       });
     };
 
-    const isMessageFromFolderCreation = (message) => {
-      return _.last(message.activities).verb === 'create';
-    };
+    const isMessageFromFolderCreation = (message) => _.last(message.activities).verb === 'create';
 
     /**
      * Test that verifies an update gets pushed out
@@ -224,11 +222,14 @@ describe('Folders - Push', () => {
     it('verify updates trigger a push notification', (callback) => {
       setupFixture((contexts, folder, client) => {
         // Trigger an update
-        RestAPI.Folders.updateFolder(contexts.branden.restContext, folder.id, { displayName: 'Laaike whatevs' }, (
-          error /* , data */
-        ) => {
-          assert.notExists(error);
-        });
+        RestAPI.Folders.updateFolder(
+          contexts.branden.restContext,
+          folder.id,
+          { displayName: 'Laaike whatevs' },
+          (error /* , data */) => {
+            assert.notExists(error);
+          }
+        );
 
         client.on('message', (message) => {
           ActivityTestsUtil.assertActivity(

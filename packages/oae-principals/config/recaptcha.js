@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import * as Fields from 'oae-config/lib/fields';
+import process from 'node:process';
+import * as Fields from 'oae-config/lib/fields.js';
 
 export const title = 'OAE Principals Module';
 export const recaptcha = {

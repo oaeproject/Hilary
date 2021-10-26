@@ -13,39 +13,33 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
-import { format } from 'util';
+import { format } from 'node:util';
 
 import * as AuthenticationAPI from 'oae-authentication';
 import * as TenantsAPI from 'oae-tenants';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { Context } from 'oae-context';
-import { User } from 'oae-principals/lib/model';
+import { User } from 'oae-principals/lib/model.js';
 
-// Initialize activity capabilities
-import * as activity from 'oae-principals/lib/activity';
-
-// Initialize search capabilities
-import * as search from 'oae-principals/lib/search';
-
-// Initialize invitations capabilities
-import * as invitations from 'oae-principals/lib/invitations';
-
-// Initialize members and memberships library capabilities
-import * as members from 'oae-principals/lib/libraries/members';
-
-import * as memberships from 'oae-principals/lib/libraries/memberships';
-
-// Initialize principals delete capabilities
-import * as deleted from 'oae-principals/lib/delete';
+// eslint-disable-next-line no-unused-vars
+import * as activity from 'oae-principals/lib/activity.js';
+// eslint-disable-next-line no-unused-vars
+import * as search from 'oae-principals/lib/search.js';
+// eslint-disable-next-line no-unused-vars
+import * as invitations from 'oae-principals/lib/invitations.js';
+// eslint-disable-next-line no-unused-vars
+import * as members from 'oae-principals/lib/libraries/members.js';
+// eslint-disable-next-line no-unused-vars
+import * as memberships from 'oae-principals/lib/libraries/memberships.js';
+// eslint-disable-next-line no-unused-vars
+import * as deleted from 'oae-principals/lib/delete.js';
 import * as Cron from './cron.js';
 
 let globalContext = {};
 
 export function init(config, callback) {
-  _ensureGlobalAdmin(config, function (error) {
+  _ensureGlobalAdmin(config, (error) => {
     if (error) return callback(error);
 
     return Cron.programUserDeletionTask(globalContext, callback);

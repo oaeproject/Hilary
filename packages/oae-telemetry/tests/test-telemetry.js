@@ -18,11 +18,11 @@ import * as RestAPI from 'oae-rest';
 import * as TelemetryAPI from 'oae-telemetry';
 import * as TestsUtil from 'oae-tests';
 
+import { mergeAll } from 'ramda';
+
 const { generateTestUsers } = TestsUtil;
 const { getTelemetryData: requestTelemetryData } = RestAPI.Telemetry;
 const { getTelemetryData, reset, init } = TelemetryAPI;
-
-import { mergeAll } from 'ramda';
 
 describe('Telemetry', () => {
   /*!
@@ -30,9 +30,7 @@ describe('Telemetry', () => {
    *
    * @param  {Object}     config  The configuration object with which to create an enabled telemetry config
    */
-  const _createConfig = (config = {}) => {
-    return mergeAll([{ enabled: true }, config]);
-  };
+  const _createConfig = (config = {}) => mergeAll([{ enabled: true }, config]);
 
   let Telemetry = null;
 

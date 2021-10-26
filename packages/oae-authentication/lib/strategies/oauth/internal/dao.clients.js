@@ -16,7 +16,7 @@
 /* eslint-disable unicorn/no-array-callback-reference */
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 import { Client } from '../model.js';
 
@@ -132,9 +132,7 @@ const getClientsByUser = function (userId, callback) {
         return callback(error);
       }
 
-      const clientIds = _.map(rows, (row) => {
-        return row.get('clientId');
-      });
+      const clientIds = _.map(rows, (row) => row.get('clientId'));
 
       _getClientsByIds(clientIds, callback);
     }
@@ -162,9 +160,7 @@ const _getClientsByIds = function (clientIds, callback) {
 
     const clients = _.chain(rows)
       .map(Cassandra.rowToHash)
-      .map((hash) => {
-        return new Client(hash.id, hash.displayName, hash.secret, hash.userId);
-      })
+      .map((hash) => new Client(hash.id, hash.displayName, hash.secret, hash.userId))
       .value();
 
     return callback(null, clients);

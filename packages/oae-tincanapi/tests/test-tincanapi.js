@@ -15,11 +15,11 @@
 
 import { assert } from 'chai';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
 
 import { and, forEachObjIndexed } from 'ramda';
 
@@ -90,9 +90,7 @@ describe('TinCanAPI', () => {
   /**
    * Close the tin can api mock LRS
    */
-  after((callback) => {
-    return server.close(callback);
-  });
+  after((callback) => server.close(callback));
 
   /**
    * Test that verifies that TinCan API statements are sent to a configurable LRS.

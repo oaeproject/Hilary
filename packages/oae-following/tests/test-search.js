@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as FollowingTestsUtil from 'oae-following/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as FollowingTestsUtil from 'oae-following/lib/test/util.js';
 
 let globalAdminOnTenantRestContext = null;
 let camAnonymousRestContext = null;

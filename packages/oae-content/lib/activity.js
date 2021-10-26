@@ -15,17 +15,17 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityUtil from 'oae-activity/lib/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as MessageBoxUtil from 'oae-messagebox/lib/util';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as ContentAPI from 'oae-content';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
 import * as Etherpad from './internal/etherpad.js';
 import * as ContentUtil from './internal/util.js';
 import * as ContentDAO from './internal/dao.js';
@@ -33,7 +33,6 @@ import * as ContentDAO from './internal/dao.js';
 /**
  * Content create
  */
-
 ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_CREATE, {
   groupBy: [{ actor: true, target: true }],
   streams: {
@@ -74,9 +73,7 @@ ContentAPI.emitter.on(
     // Get the extra members
     const extraMembers = _.chain(memberChangeInfo.changes)
       .keys()
-      .filter((member) => {
-        return member !== ctx.user().id;
-      })
+      .filter((member) => member !== ctx.user().id)
       .value();
 
     // If we only added 1 extra user or group, we set the target to that entity
@@ -616,13 +613,12 @@ const _contentInternalTransformer = function (ctx, activityEntities, callback) {
         transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
         _.each(entities, (entity, entityId) => {
           // Transform the persistent entity with its up-to-date preview status
-          transformedActivityEntities[activityId][
-            entityId
-          ] = ContentUtil.transformPersistentContentActivityEntityToInternal(
-            ctx,
-            entity,
-            previews[entity.content.latestRevisionId]
-          );
+          transformedActivityEntities[activityId][entityId] =
+            ContentUtil.transformPersistentContentActivityEntityToInternal(
+              ctx,
+              entity,
+              previews[entity.content.latestRevisionId]
+            );
         });
       });
 
@@ -637,9 +633,9 @@ const _contentInternalTransformer = function (ctx, activityEntities, callback) {
  */
 const _contentCommentTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       const contentId = entity.message.messageBoxId;
       const contentResource = AuthzUtil.getResourceFromId(contentId);
@@ -651,8 +647,8 @@ const _contentCommentTransformer = function (ctx, activityEntities, callback) {
         profilePath,
         urlFormat
       );
-    });
-  });
+    }
+  }
 
   return callback(null, transformedActivityEntities);
 };
@@ -663,15 +659,14 @@ const _contentCommentTransformer = function (ctx, activityEntities, callback) {
  */
 const _contentCommentInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach((activityId) => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach((entityId) => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
-    });
-  });
+      transformedActivityEntities[activityId][entityId] =
+        MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
+    }
+  }
 
   return callback(null, transformedActivityEntities);
 };
@@ -705,9 +700,9 @@ ActivityAPI.registerActivityEntityType('content-comment', {
 /*!
  * Register an association that presents the content item
  */
-ActivityAPI.registerActivityEntityAssociation('content', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('content', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*!
  * Register an association that presents the members of a content item categorized by role
@@ -725,7 +720,7 @@ ActivityAPI.registerActivityEntityAssociation('content', 'members', (association
       return callback(error);
     }
 
-    return callback(null, _.flatten(_.values(membersByRole)));
+    return callback(null, _.values(membersByRole).flat());
   });
 });
 
@@ -781,6 +776,6 @@ ActivityAPI.registerActivityEntityAssociation(
 /*!
  * Register an association that presents the content item for a content-comment entity
  */
-ActivityAPI.registerActivityEntityAssociation('content-comment', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity.contentId]);
-});
+ActivityAPI.registerActivityEntityAssociation('content-comment', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity.contentId])
+);

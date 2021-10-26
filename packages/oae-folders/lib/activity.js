@@ -15,27 +15,23 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityUtil from 'oae-activity/lib/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as MessageBoxUtil from 'oae-messagebox/lib/util';
-import PreviewConstants from 'oae-preview-processor/lib/constants';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as MessageBoxUtil from 'oae-messagebox/lib/util.js';
+import PreviewConstants from 'oae-preview-processor/lib/constants.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import * as FoldersAPI from 'oae-folders';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { ContentConstants } from 'oae-content/lib/constants';
-import { FoldersConstants } from 'oae-folders/lib/constants';
-
-/// ////////////////
-// FOLDER-CREATE //
-/// ////////////////
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { ContentConstants } from 'oae-content/lib/constants.js';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
 
 ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_CREATE, {
   groupBy: [{ actor: true, target: true }],
@@ -71,10 +67,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.CREATED_FOLDER, (ctx, folder, memb
   let targetResource = null;
 
   // Get the extra members
-  const extraMembers = _.chain(memberChangeInfo.members.added)
-    .pluck('id')
-    .without(ctx.user().id)
-    .value();
+  const extraMembers = _.chain(memberChangeInfo.members.added).pluck('id').without(ctx.user().id).value();
 
   // If we only added 1 extra user or group, we set the target to that entity
   if (extraMembers.length === 1) {
@@ -136,7 +129,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.ADDED_CONTENT_ITEMS, (ctx, actionC
     const targetResource = new ActivityModel.ActivitySeedResource('folder', folder.id, {
       folder
     });
-    _.each(contentItems, content => {
+    _.each(contentItems, (content) => {
       const objectResource = new ActivityModel.ActivitySeedResource('content', content.id, {
         content
       });
@@ -214,11 +207,10 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER, (ctx, oldFolder, u
   });
 
   let activityType = null;
-  if (updatedFolder.visibility === oldFolder.visibility) {
-    activityType = FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE;
-  } else {
-    activityType = FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_VISIBILITY;
-  }
+  activityType =
+    updatedFolder.visibility === oldFolder.visibility
+      ? FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE
+      : FoldersConstants.activity.ACTIVITY_FOLDER_UPDATE_VISIBILITY;
 
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
@@ -346,8 +338,8 @@ ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_UPDAT
   }
 });
 
-FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, folder, memberChangeInfo, opts) => {
-  if (opts.invitation) {
+FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, folder, memberChangeInfo, options) => {
+  if (options.invitation) {
     // If this member update came from an invitation, we bypass adding activity as there is a
     // dedicated activity for that
     return;
@@ -364,7 +356,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, fold
 
   // When a user is added, it is considered either a folder-share or a folder-add-to-library
   // activity, depending on whether the added user is the current user in context
-  _.each(addedMemberIds, memberId => {
+  _.each(addedMemberIds, (memberId) => {
     if (memberId === ctx.user().id) {
       // Users can't "share" with themselves, they actually "add it to their library"
       ActivityAPI.postActivity(
@@ -396,7 +388,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, fold
   });
 
   // When a user's role is updated, we fire a "folder-update-member-role" activity
-  _.each(updatedMemberIds, memberId => {
+  _.each(updatedMemberIds, (memberId) => {
     const principalResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const principalResource = new ActivityModel.ActivitySeedResource(principalResourceType, memberId);
     ActivityAPI.postActivity(
@@ -421,7 +413,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, fold
  * Produces a persistent 'folder' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _folderProducer = function(resource, callback) {
+const _folderProducer = function (resource, callback) {
   const folder = resource.resourceData && resource.resourceData.folder ? resource.resourceData.folder : null;
 
   // If the folder was fired with the resource, use it instead of fetching
@@ -429,9 +421,9 @@ const _folderProducer = function(resource, callback) {
     return callback(null, _createPersistentFolderActivityEntity(folder));
   }
 
-  FoldersDAO.getFolder(resource.resourceId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(resource.resourceId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, _createPersistentFolderActivityEntity(folder));
@@ -442,7 +434,7 @@ const _folderProducer = function(resource, callback) {
  * Transform the folder persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _folderTransformer = function(ctx, activityEntities, callback) {
+const _folderTransformer = function (ctx, activityEntities, callback) {
   // Collect all the folder ids so we can fetch their preview data
   let folderIds = [];
   // eslint-disable-next-line no-unused-vars
@@ -455,9 +447,9 @@ const _folderTransformer = function(ctx, activityEntities, callback) {
   folderIds = _.uniq(folderIds);
 
   // Grab the latest folder objects
-  FoldersDAO.getFoldersByIds(folderIds, (err, folders) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFoldersByIds(folderIds, (error, folders) => {
+    if (error) {
+      return callback(error);
     }
 
     const foldersById = _.indexBy(folders, 'id');
@@ -481,16 +473,16 @@ const _folderTransformer = function(ctx, activityEntities, callback) {
  * Produces a persistent activity entity that represents a comment that was posted
  * @see ActivityAPI#registerActivityEntityType
  */
-const _folderCommentProducer = function(resource, callback) {
+const _folderCommentProducer = function (resource, callback) {
   const { message, folderId } = resource.resourceData;
-  FoldersDAO.getFolder(folderId, (err, folder) => {
-    if (err) {
-      return callback(err);
+  FoldersDAO.getFolder(folderId, (error, folder) => {
+    if (error) {
+      return callback(error);
     }
 
-    MessageBoxUtil.createPersistentMessageActivityEntity(message, (err, entity) => {
-      if (err) {
-        return callback(err);
+    MessageBoxUtil.createPersistentMessageActivityEntity(message, (error, entity) => {
+      if (error) {
+        return callback(error);
       }
 
       // Store the folder id and visibility on the entity as these are required for routing the activities
@@ -506,11 +498,11 @@ const _folderCommentProducer = function(resource, callback) {
  * Transform the persisted comment activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _folderCommentTransformer = function(ctx, activityEntities, callback) {
+const _folderCommentTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       const { folderId } = entity;
       const resource = AuthzUtil.getResourceFromId(folderId);
@@ -522,8 +514,9 @@ const _folderCommentTransformer = function(ctx, activityEntities, callback) {
         profilePath,
         urlFormat
       );
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -531,17 +524,17 @@ const _folderCommentTransformer = function(ctx, activityEntities, callback) {
  * Transform the persisted comment activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _folderCommentInternalTransformer = function(ctx, activityEntities, callback) {
+const _folderCommentInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
-    });
-  });
+      transformedActivityEntities[activityId][entityId] =
+        MessageBoxUtil.transformPersistentMessageActivityEntityToInternal(ctx, entity.message);
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -574,9 +567,9 @@ ActivityAPI.registerActivityEntityType('folder-comment', {
 /*!
  * Register an association that presents the folder
  */
-ActivityAPI.registerActivityEntityAssociation('folder', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('folder', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*!
  * Register an association that presents the members of a folder categorized by role
@@ -589,12 +582,12 @@ ActivityAPI.registerActivityEntityAssociation('folder', 'members-by-role', (asso
  * Register an association that presents all the indirect members of a folder
  */
 ActivityAPI.registerActivityEntityAssociation('folder', 'members', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
-    return callback(null, _.flatten(_.values(membersByRole)));
+    return callback(null, _.values(membersByRole).flat());
   });
 });
 
@@ -602,9 +595,9 @@ ActivityAPI.registerActivityEntityAssociation('folder', 'members', (associations
  * Register an association that presents all the managers of a content item
  */
 ActivityAPI.registerActivityEntityAssociation('folder', 'managers', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, membersByRole[AuthzConstants.role.MANAGER]);
@@ -621,9 +614,9 @@ ActivityAPI.registerActivityEntityAssociation('folder', 'message-contributors', 
 /*!
  * Register an association that presents the folder for a folder-comment entity
  */
-ActivityAPI.registerActivityEntityAssociation('folder-comment', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity.folderId]);
-});
+ActivityAPI.registerActivityEntityAssociation('folder-comment', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity.folderId])
+);
 
 /**
  * Create the persistent folder entity that can be transformed into an activity entity for the UI.
@@ -632,10 +625,10 @@ ActivityAPI.registerActivityEntityAssociation('folder-comment', 'self', (associa
  * @return {Object}                 An object containing the entity data that can be transformed into a UI folder activity entity
  * @api private
  */
-const _createPersistentFolderActivityEntity = function(folder) {
-  const opts = { folder };
-  opts[FoldersConstants.activity.PROP_OAE_GROUP_ID] = folder.groupId;
-  return new ActivityModel.ActivityEntity('folder', folder.id, folder.visibility, opts);
+const _createPersistentFolderActivityEntity = function (folder) {
+  const options = { folder };
+  options[FoldersConstants.activity.PROP_OAE_GROUP_ID] = folder.groupId;
+  return new ActivityModel.ActivityEntity('folder', folder.id, folder.visibility, options);
 };
 
 /**
@@ -648,7 +641,7 @@ const _createPersistentFolderActivityEntity = function(folder) {
  * @param  {Object}             foldersById         A set of folders keyed against their folder id
  * @return {ActivityEntity}                         The activity entity that represents the given folder
  */
-const _transformPersistentFolderActivityEntity = function(ctx, entity, foldersById) {
+const _transformPersistentFolderActivityEntity = function (ctx, entity, foldersById) {
   // Grab the folder from the `foldersById` hash as it would contain the updated
   // previews object. If it can't be found (because it has been deleted) we fall
   // back to the folder that was provided in the activity
@@ -659,18 +652,18 @@ const _transformPersistentFolderActivityEntity = function(ctx, entity, foldersBy
   const baseUrl = TenantsUtil.getBaseUrl(tenant);
   const globalId = baseUrl + '/api/folder/' + folder.id;
   const profileUrl = baseUrl + folder.profilePath;
-  const opts = {
+  const options = {
     displayName: folder.displayName,
     url: profileUrl,
     ext: {}
   };
-  opts.ext[ActivityConstants.properties.OAE_ID] = folder.id;
-  opts.ext[ActivityConstants.properties.OAE_VISIBILITY] = folder.visibility;
-  opts.ext[ActivityConstants.properties.OAE_PROFILEPATH] = folder.profilePath;
+  options.ext[ActivityConstants.properties.OAE_ID] = folder.id;
+  options.ext[ActivityConstants.properties.OAE_VISIBILITY] = folder.visibility;
+  options.ext[ActivityConstants.properties.OAE_PROFILEPATH] = folder.profilePath;
 
   if (folder.previews && folder.previews.thumbnailUri) {
     const thumbnailUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.thumbnailUri, -1);
-    opts.image = new ActivityModel.ActivityMediaLink(
+    options.image = new ActivityModel.ActivityMediaLink(
       thumbnailUrl,
       PreviewConstants.SIZES.IMAGE.THUMBNAIL,
       PreviewConstants.SIZES.IMAGE.THUMBNAIL
@@ -679,12 +672,12 @@ const _transformPersistentFolderActivityEntity = function(ctx, entity, foldersBy
 
   if (folder.previews && folder.previews.wideUri) {
     const wideUrl = ContentUtil.getSignedDownloadUrl(ctx, folder.previews.wideUri, -1);
-    opts.ext[ContentConstants.activity.PROP_OAE_WIDE_IMAGE] = new ActivityModel.ActivityMediaLink(
+    options.ext[ContentConstants.activity.PROP_OAE_WIDE_IMAGE] = new ActivityModel.ActivityMediaLink(
       wideUrl,
       PreviewConstants.SIZES.IMAGE.WIDE_WIDTH,
       PreviewConstants.SIZES.IMAGE.WIDE_HEIGHT
     );
   }
 
-  return new ActivityModel.ActivityEntity('folder', globalId, folder.visibility, opts);
+  return new ActivityModel.ActivityEntity('folder', globalId, folder.visibility, options);
 };

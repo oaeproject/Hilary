@@ -13,29 +13,31 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 import _ from 'underscore';
 import async from 'async';
 import shortId from 'shortid';
 import { addMonths } from 'date-fns';
 
-import * as ActivityAPI from 'oae-activity';
+import * as UIAPI from 'oae-ui/lib/api.js';
+import * as AuthenticationAPI from 'oae-authentication/lib/api.js';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitationDAO from 'oae-authz/lib/invitations/dao';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzDelete from 'oae-authz/lib/delete';
+import * as AuthzInvitationDAO from 'oae-authz/lib/invitations/dao.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzDelete from 'oae-authz/lib/delete.js';
 import * as ContentAPI from 'oae-content';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as DiscussionAPI from 'oae-discussions/lib/api.discussions';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as DiscussionAPI from 'oae-discussions/lib/api.discussions.js';
 import * as EmailAPI from 'oae-email';
 import * as FolderAPI from 'oae-folders';
-import * as FollowingAPI from 'oae-following';
+import * as FollowingAPI from 'oae-following/lib/api.js';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { setUpConfig } from 'oae-config';
 import { logger } from 'oae-logger';
-import * as GroupAPI from './api.group';
-import * as PrincipalsAPI from './api.user';
+import * as GroupAPI from './api.group.js';
+import * as PrincipalsAPI from './api.user.js';
 import { PrincipalsConstants } from './constants.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import PrincipalsEmitter from './internal/emitter.js';
@@ -123,13 +125,19 @@ const transferPermissionsToCloneUser = (ctx, user, cloneUsers, callback) => {
   async.eachSeries(
     RESOURCE_TYPES,
     (resourceType, done) => {
-      _transferResourcePermissions(ctx, user, cloneUsers, listEmail, listOfIdElementToBeTransferred, resourceType, (
-        error /* ListEmail, listOfIdElementToBeTransferred */
-      ) => {
-        if (error) return done(error);
+      _transferResourcePermissions(
+        ctx,
+        user,
+        cloneUsers,
+        listEmail,
+        listOfIdElementToBeTransferred,
+        resourceType,
+        (error /* ListEmail, listOfIdElementToBeTransferred */) => {
+          if (error) return done(error);
 
-        return done();
-      });
+          return done();
+        }
+      );
     },
     () => {
       _addToArchive(cloneUsers.archiveId, user, listOfIdElementToBeTransferred, (error) => {
@@ -177,9 +185,7 @@ const _addMemberToList = (list, resource, memberList, action, callback) => {
         return done();
       });
     },
-    () => {
-      return callback(null, list);
-    }
+    () => callback(null, list)
   );
 };
 
@@ -279,7 +285,7 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
             user,
             month,
             baseUrl: TenantsUtil.getBaseUrl(ctx.tenant()),
-            skinVariables: require('oae-ui').getTenantSkinVariables(ctx.tenant().alias),
+            skinVariables: UIAPI.getTenantSkinVariables(ctx.tenant().alias),
             token,
             archiveEmail: cloneUser.email
           };
@@ -293,9 +299,7 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
           return done();
         });
       },
-      () => {
-        return callback(null, listEmail);
-      }
+      () => callback(null, listEmail)
     );
   });
 };
@@ -362,9 +366,10 @@ const _transferResourcePermissions = (
                     });
                   });
                 } else {
-                  const hasAnotherManager = _.find(newMemberList, (member) => {
-                    return member.role === AuthzConstants.role.MANAGER;
-                  });
+                  const hasAnotherManager = _.find(
+                    newMemberList,
+                    (member) => member.role === AuthzConstants.role.MANAGER
+                  );
 
                   // If there is another manager on the resource, send a notification email
                   if (hasAnotherManager) {
@@ -420,25 +425,27 @@ const _transferResourcePermissions = (
                 }
               } else {
                 // We will just notify the members that the user will remove his account
-                _addMemberToList(listElementByMember, eachLibraryItem, newMemberList, false, (
-                  error /* ListElementByMember */
-                ) => {
-                  if (error) return callback(error);
+                _addMemberToList(
+                  listElementByMember,
+                  eachLibraryItem,
+                  newMemberList,
+                  false,
+                  (error /* ListElementByMember */) => {
+                    if (error) return callback(error);
 
-                  _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
-                    if (error_) return callback(error_);
+                    _removeFromLibrary(ctx, user.id, eachLibraryItem, resourceType, (error_) => {
+                      if (error_) return callback(error_);
 
-                    done();
-                  });
-                });
+                      done();
+                    });
+                  }
+                );
               }
             });
           });
         });
       },
-      () => {
-        return callback(null, listElementByMember, listOfIdElementToBeTransferred);
-      }
+      () => callback(null, listElementByMember, listOfIdElementToBeTransferred)
     );
   });
 };
@@ -453,14 +460,11 @@ const _transferResourcePermissions = (
  * @param  {Object}     callback.newMemberList      Array of user without the deleted user
  * @api private
  */
-const _removeUserFromMemberList = (memberList, userId, callback) => {
-  return callback(
+const _removeUserFromMemberList = (memberList, userId, callback) =>
+  callback(
     null,
-    _.reject(memberList, (element) => {
-      return element.profile.id === userId;
-    })
+    _.reject(memberList, (element) => element.profile.id === userId)
   );
-};
 
 /**
  * Add elements to archive
@@ -482,9 +486,7 @@ const _addToArchive = (cloneUserId, principalToEliminate, elementId, callback) =
   }
 
   // Return list of ids after removing duplicate elements
-  const duplicationRemoved = elementId.filter((element, index, self) => {
-    return index === self.indexOf(element);
-  });
+  const duplicationRemoved = elementId.filter((element, index, self) => index === self.indexOf(element));
 
   const monthsUntilDeletion = PrincipalsConfig.getValue(principalToEliminate.tenant.alias, 'user', DELETE);
   const deletionDate = addMonths(new Date(), Number.parseInt(monthsUntilDeletion, 10));
@@ -876,7 +878,7 @@ const eliminateUser = (ctx, user, alias, callback) => {
           }
 
           // Get the login to delete the user form the table AuthenticationLoginId
-          require('oae-authentication').getUserLoginIds(ctx, user.id, (error, login) => {
+          AuthenticationAPI.getUserLoginIds(ctx, user.id, (error, login) => {
             if (error) return callback(error);
 
             // Set (or re-Set) the principal as deleted in the authz index
@@ -985,13 +987,9 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
 
             const doesResourceHaveManagers =
               _.chain(memberIdRoles)
-                .reject((each) => {
-                  return each.id === archiveId;
-                })
+                .reject((each) => each.id === archiveId)
                 .pluck('role')
-                .filter((role) => {
-                  return role === AuthzConstants.role.MANAGER;
-                })
+                .filter((role) => role === AuthzConstants.role.MANAGER)
                 .value().length > 0;
 
             // Lets erase only if there are no new managers in the meantime
@@ -1033,9 +1031,7 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
         });
       }
     },
-    () => {
-      return callback();
-    }
+    () => callback()
   );
 };
 

@@ -16,15 +16,15 @@
 import { assert } from 'chai';
 import _ from 'underscore';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import * as ActivityTestsUtil from 'oae-activity/lib/test/util';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 
-import { FoldersConstants } from 'oae-folders/lib/constants';
-import * as FoldersDAO from 'oae-folders/lib/internal/dao';
-import * as FoldersTestUtil from 'oae-folders/lib/test/util';
+import { FoldersConstants } from 'oae-folders/lib/constants.js';
+import * as FoldersDAO from 'oae-folders/lib/internal/dao.js';
+import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 
 const PUBLIC = 'public';
 const NO_MANAGERS = [];
@@ -1022,9 +1022,7 @@ describe('Folders - Activity', () => {
                                                 stephen.restContext,
                                                 stephen.user.id,
                                                 FoldersConstants.activity.ACTIVITY_FOLDER_COMMENT,
-                                                () => {
-                                                  return callback();
-                                                }
+                                                () => callback()
                                               );
                                             }
                                           );
@@ -1144,9 +1142,10 @@ describe('Folders - Activity', () => {
                           assert.strictEqual(entity.object.objectType, 'collection');
                           assert.ok(entity.object['oae:collection']);
                           assert.strictEqual(entity.object['oae:collection'].length, 2);
-                          const originalMessage = _.find(entity.object['oae:collection'], (activityMessage) => {
-                            return activityMessage['oae:id'] === message.id;
-                          });
+                          const originalMessage = _.find(
+                            entity.object['oae:collection'],
+                            (activityMessage) => activityMessage['oae:id'] === message.id
+                          );
                           assert.ok(originalMessage);
                           assert.strictEqual(originalMessage['oae:id'], message.id);
                           assert.strictEqual(originalMessage.content, message.body);
@@ -1154,9 +1153,10 @@ describe('Folders - Activity', () => {
                           assert.strictEqual(originalMessage['oae:tenant'].alias, global.oaeTests.tenants.cam.alias);
 
                           // Assert the reply contains all the correct information
-                          const reply = _.find(entity.object['oae:collection'], (activityMessage) => {
-                            return activityMessage['oae:id'] === nicosMessage.id;
-                          });
+                          const reply = _.find(
+                            entity.object['oae:collection'],
+                            (activityMessage) => activityMessage['oae:id'] === nicosMessage.id
+                          );
                           assert.ok(reply);
                           assert.strictEqual(reply['oae:id'], nicosMessage.id);
                           assert.strictEqual(reply['oae:messageBoxId'], nicosMessage.messageBoxId);
@@ -1170,9 +1170,10 @@ describe('Folders - Activity', () => {
 
                           // Verify both actors are present
                           assert.strictEqual(entity.actor.objectType, 'collection');
-                          const simonEntity = _.find(entity.actor['oae:collection'], (userEntity) => {
-                            return userEntity['oae:id'] === simong.user.id;
-                          });
+                          const simonEntity = _.find(
+                            entity.actor['oae:collection'],
+                            (userEntity) => userEntity['oae:id'] === simong.user.id
+                          );
                           assert.ok(simonEntity);
                           assert.strictEqual(simonEntity['oae:id'], simong.user.id);
                           assert.strictEqual(
@@ -1183,9 +1184,10 @@ describe('Folders - Activity', () => {
                               AuthzUtil.getResourceFromId(simong.user.id).resourceId
                           );
 
-                          const nicoEntity = _.find(entity.actor['oae:collection'], (userEntity) => {
-                            return userEntity['oae:id'] === nico.user.id;
-                          });
+                          const nicoEntity = _.find(
+                            entity.actor['oae:collection'],
+                            (userEntity) => userEntity['oae:id'] === nico.user.id
+                          );
                           assert.ok(nicoEntity);
                           assert.strictEqual(nicoEntity['oae:id'], nico.user.id);
                           assert.strictEqual(
@@ -1424,12 +1426,12 @@ describe('Folders - Activity', () => {
                                   assert.notExists(error);
 
                                   // Get the add-to-folder activities
-                                  const addToFolderActivities = _.filter(data.items, (activity) => {
-                                    return (
+                                  const addToFolderActivities = _.filter(
+                                    data.items,
+                                    (activity) =>
                                       activity['oae:activityType'] ===
                                       FoldersConstants.activity.ACTIVITY_FOLDER_ADD_TO_FOLDER
-                                    );
-                                  });
+                                  );
 
                                   // We should have 2 activities as we added content to 2 folders
                                   assert.strictEqual(addToFolderActivities.length, 2);
@@ -1690,9 +1692,7 @@ describe('Folders - Activity', () => {
                                                 simong.user.id,
                                                 link.id,
                                                 null,
-                                                () => {
-                                                  return callback();
-                                                }
+                                                () => callback()
                                               );
                                             }
                                           );

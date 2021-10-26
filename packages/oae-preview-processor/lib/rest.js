@@ -16,7 +16,7 @@
 import request from 'request';
 import { compose, nth, split, defaultTo, startsWith, forEachObjIndexed } from 'ramda';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
 import * as PreviewProcessorAPI from 'oae-preview-processor';
 
@@ -26,7 +26,7 @@ const HTTP_GET = 'get';
 // Auxiliary functions
 const isContentFilter = startsWith('content_');
 const isRevisionFilter = startsWith('revision_');
-const defaultToEmptyObject = x => defaultTo({}, x);
+const defaultToEmptyObject = (x) => defaultTo({}, x);
 const first = nth(1);
 
 /**
@@ -67,8 +67,8 @@ OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpReque
     }
   }, httpRequest.body);
 
-  PreviewProcessorAPI.reprocessPreviews(httpRequest.ctx, filters, err => {
-    if (err) return httpResponse.status(err.code).send(err.msg);
+  PreviewProcessorAPI.reprocessPreviews(httpRequest.ctx, filters, (error) => {
+    if (error) return httpResponse.status(error.code).send(error.msg);
 
     httpResponse.status(200).end();
   });
@@ -81,13 +81,13 @@ OAE.globalAdminRouter.on(HTTP_POST, '/api/content/reprocessPreviews', (httpReque
  * @param  {Response}   The express response
  * @api private
  */
-const _handleReprocessPreview = function(httpRequest, httpResponse) {
+const _handleReprocessPreview = function (httpRequest, httpResponse) {
   PreviewProcessorAPI.reprocessPreview(
     httpRequest.ctx,
     httpRequest.params.contentId,
     httpRequest.params.revisionId,
-    err => {
-      if (err) return httpResponse.status(err.code).send(err.msg);
+    (error) => {
+      if (error) return httpResponse.status(error.code).send(error.msg);
 
       httpResponse.status(200).end();
     }
@@ -137,8 +137,8 @@ OAE.tenantRouter.on(
 OAE.tenantRouter.on(HTTP_GET, '/api/longurl/expand', async (httpRequest, httpResponse) => {
   const url = decodeURIComponent(httpRequest.query.url);
 
-  request({ url, followRedirect: false }, (err, redirectResponse) => {
-    if (err) return console.error(err);
+  request({ url, followRedirect: false }, (error, redirectResponse) => {
+    if (error) return console.error(error);
 
     const unshortenedUrl = redirectResponse.headers.location;
     const data = {

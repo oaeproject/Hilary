@@ -15,36 +15,41 @@
 
 /* eslint-disable no-unused-vars */
 /* eslint-disable unicorn/no-array-callback-reference */
-import assert from 'assert';
-import fs from 'fs';
-import { format } from 'util';
-import path from 'path';
+import assert from 'node:assert';
+import fs from 'node:fs';
+import { format } from 'node:util';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
+import { pipe, append, pluck } from 'ramda';
 
 import * as AuthzAPI from 'oae-authz';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ConfigTestsUtil from 'oae-config/lib/test/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ConfigTestsUtil from 'oae-config/lib/test/util.js';
 import * as EmailAPI from 'oae-email';
 import * as LibraryAPI from 'oae-library';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestUtil from 'oae-search/lib/test/util';
-import * as TestsUtil from 'oae-tests/lib/util';
-import * as AuthzTestUtil from 'oae-authz/lib/test/util';
+import * as SearchTestUtil from 'oae-search/lib/test/util.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
+import * as AuthzTestUtil from 'oae-authz/lib/test/util.js';
 
-import * as ContentTestUtil from 'oae-content/lib/test/util';
-import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util';
-import * as FolderTestUtil from 'oae-folders/lib/test/util';
-import * as FollowingDAO from 'oae-following/lib/internal/dao';
-import * as GroupAPI from 'oae-principals/lib/api.group';
-import * as MeetingAPI from 'oae-jitsi/lib/api.meetings';
-import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion';
+import * as ContentTestUtil from 'oae-content/lib/test/util.js';
+import * as DiscussionsTestUtil from 'oae-discussions/lib/test/util.js';
+import * as FolderTestUtil from 'oae-folders/lib/test/util.js';
+import * as FollowingDAO from 'oae-following/lib/internal/dao.js';
+import * as GroupAPI from 'oae-principals/lib/api.group.js';
+import * as MeetingAPI from 'oae-jitsi/lib/api.meetings.js';
+import * as DefinitiveDeletionAPI from 'oae-principals/lib/definitive-deletion.js';
 
 import { emitter } from 'oae-principals';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
-import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
+import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Import a batch of users from a CSV file. This function is a test utility function that wraps the REST API call and listens
@@ -606,7 +611,7 @@ const assertUpdateGroupsSucceeds = function (
   _groupIdsToUpdate,
   _updatedGroups
 ) {
-  _groupIdsToUpdate = _groupIdsToUpdate || groupIds.slice();
+  _groupIdsToUpdate = _groupIdsToUpdate || [...groupIds];
   _updatedGroups = _updatedGroups || {};
   if (_.isEmpty(_groupIdsToUpdate)) {
     return callback(_updatedGroups);
@@ -701,9 +706,7 @@ const assertCreateUserSucceeds = function (restContext, parameters, callback) {
     let token = null;
 
     // Wait until both the request is done and the email has been delivered
-    const done = _.after(2, () => {
-      return callback(user, token);
-    });
+    const done = _.after(2, () => callback(user, token));
 
     // Create the user account
     RestAPI.User.createUser(
@@ -779,7 +782,7 @@ const assertUpdateUsersSucceeds = function (
   _updatedUsers,
   _userTokens
 ) {
-  _userIdsToUpdate = _userIdsToUpdate || userIds.slice();
+  _userIdsToUpdate = _userIdsToUpdate || [...userIds];
   _updatedUsers = _updatedUsers || {};
   _userTokens = _userTokens || {};
   if (_.isEmpty(_userIdsToUpdate)) {
@@ -830,9 +833,7 @@ const assertUpdateUserSucceeds = function (restCtx, userId, update, callback) {
 
       let updatedUser = null;
       let token = null;
-      const done = _.after(2, () => {
-        return callback(updatedUser, token);
-      });
+      const done = _.after(2, () => callback(updatedUser, token));
 
       // Update the user profile
       RestAPI.User.updateUser(restCtx, userId, update, (error_) => {
@@ -900,15 +901,15 @@ const assertUpdateUserFails = function (restCtx, userId, update, httpCode, callb
  * @throws {AssertionError}                 Thrown if any of the assertions fail
  */
 const assertUploadUserPicturesSucceeds = function (restCtx, userIds, options, callback, _userIdsToUpdate) {
-  _userIdsToUpdate = _userIdsToUpdate || userIds.slice();
+  _userIdsToUpdate = _userIdsToUpdate || [...userIds];
   if (_.isEmpty(_userIdsToUpdate)) {
     return callback();
   }
 
   const userId = _userIdsToUpdate.shift();
-  assertUploadUserPictureSucceeds(restCtx, userId, options, () => {
-    return assertUploadUserPicturesSucceeds(restCtx, userIds, options, callback, _userIdsToUpdate);
-  });
+  assertUploadUserPictureSucceeds(restCtx, userId, options, () =>
+    assertUploadUserPicturesSucceeds(restCtx, userIds, options, callback, _userIdsToUpdate)
+  );
 };
 
 /**
@@ -947,9 +948,7 @@ const assertUploadUserPictureSucceeds = function (restCtx, userId, options, call
 
         // Ensure search and libraries update before continuing
         SearchTestUtil.whenIndexingComplete(() => {
-          LibraryAPI.Index.whenUpdatesComplete(() => {
-            return callback(userAfterUpdate);
-          });
+          LibraryAPI.Index.whenUpdatesComplete(() => callback(userAfterUpdate));
         });
       });
     }
@@ -991,9 +990,7 @@ const assertUploadGroupPictureSucceeds = function (restCtx, groupId, options, ca
 
         // Ensure search and libraries update before continuing
         SearchTestUtil.whenIndexingComplete(() => {
-          LibraryAPI.Index.whenUpdatesComplete(() => {
-            return callback(groupAfterUpdate);
-          });
+          LibraryAPI.Index.whenUpdatesComplete(() => callback(groupAfterUpdate));
         });
       });
     }
@@ -1109,12 +1106,12 @@ const assertJoinGroupSucceeds = function (managerRestCtx, userRestCtx, groupId, 
       // Get the group members. We will want to make sure the user in context gets added to
       // the list of members by adding them into the expected list of members
       assertGetAllMembersLibrarySucceeds(managerRestCtx, groupId, null, (membersBefore) => {
-        const expectedMemberIds = _.chain(membersBefore).pluck('profile').pluck('id').value().concat(me.id);
+        const expectedMemberIds = pipe(pluck('profile'), pluck('id'), append(me.id))(membersBefore);
 
         // Get the memberships. We will want to make sure the group gets added to the user's
         // membership library by adding it to the expected list of memberships
         assertGetAllMembershipsLibrarySucceeds(userRestCtx, me.id, null, (membershipsBefore) => {
-          const expectedMembershipIds = _.chain(membershipsBefore).pluck('id').value().concat(groupId);
+          const expectedMembershipIds = pipe(pluck('id'), append(groupId))(membershipsBefore);
 
           // Perform the actual join action, ensuring it reports successful
           RestAPI.Group.joinGroup(userRestCtx, groupId, (error) => {
@@ -1186,9 +1183,7 @@ const assertLeaveGroupSucceeds = function (managerRestCtx, userRestCtx, groupId,
         const expectedMemberIdsAfter = _.chain(membersBefore)
           .pluck('profile')
           .pluck('id')
-          .filter((memberBeforeId) => {
-            return memberBeforeId !== me.id;
-          })
+          .filter((memberBeforeId) => memberBeforeId !== me.id)
           .value();
 
         // Determine the expected memberships after leaving the group by removing the group from
@@ -1196,9 +1191,7 @@ const assertLeaveGroupSucceeds = function (managerRestCtx, userRestCtx, groupId,
         assertGetAllMembershipsLibrarySucceeds(userRestCtx, me.id, null, (membershipsBefore) => {
           const expectedMembershipIdsAfter = _.chain(membershipsBefore)
             .pluck('id')
-            .filter((membershipBeforeId) => {
-              return membershipBeforeId !== groupId;
-            })
+            .filter((membershipBeforeId) => membershipBeforeId !== groupId)
             .value();
 
           // Perform the actual leave action, ensuring it reports successful
@@ -1218,9 +1211,7 @@ const assertLeaveGroupSucceeds = function (managerRestCtx, userRestCtx, groupId,
                       managerRestCtx,
                       groupId,
                       { lastModified: groupBefore.lastModified },
-                      (groupAfter) => {
-                        return callback();
-                      }
+                      (groupAfter) => callback()
                     );
                   });
                 });
@@ -1251,9 +1242,9 @@ const assertMembershipsLibrariesEquals = function (restCtx, expectedMemberships,
   }
 
   const userId = _userIds.shift();
-  assertMembershipsLibraryEquals(restCtx, userId, expectedMemberships[userId], () => {
-    return assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _userIds);
-  });
+  assertMembershipsLibraryEquals(restCtx, userId, expectedMemberships[userId], () =>
+    assertMembershipsLibrariesEquals(restCtx, expectedMemberships, callback, _userIds)
+  );
 };
 
 /**
@@ -1268,7 +1259,7 @@ const assertMembershipsLibrariesEquals = function (restCtx, expectedMemberships,
 const assertMembershipsLibraryEquals = function (restCtx, userId, expectedMembershipIds, callback) {
   assertGetAllMembershipsLibrarySucceeds(restCtx, userId, null, (memberships) => {
     // Pluck out the membership ids, do not care about sorting
-    assert.deepStrictEqual(_.pluck(memberships, 'id').sort(), expectedMembershipIds.slice().sort());
+    assert.deepStrictEqual(_.pluck(memberships, 'id').sort(), [...expectedMembershipIds].sort());
     return callback();
   });
 };
@@ -1283,14 +1274,14 @@ const assertMembershipsLibraryEquals = function (restCtx, userId, expectedMember
  * @throws {AssertionError}                 Thrown if there is an issue getting any of the memberships or if they are not as expected
  */
 const assertMembershipsLibrariesContains = function (restCtx, userIds, containsIds, callback) {
-  userIds = userIds.slice();
+  userIds = [...userIds];
   if (_.isEmpty(userIds)) {
     return callback();
   }
 
-  assertMembershipsLibraryContains(restCtx, userIds.shift(), containsIds, () => {
-    return assertMembershipsLibrariesContains(restCtx, userIds, containsIds, callback);
-  });
+  assertMembershipsLibraryContains(restCtx, userIds.shift(), containsIds, () =>
+    assertMembershipsLibrariesContains(restCtx, userIds, containsIds, callback)
+  );
 };
 
 /**
@@ -1319,14 +1310,14 @@ const assertMembershipsLibraryContains = function (restCtx, userId, containsIds,
  * @throws {AssertionError}                 Thrown if there is an issue getting any of the memberships or if they are not as expected
  */
 const assertMembershipsLibrariesNotContains = function (restCtx, userIds, notContainsIds, callback) {
-  userIds = userIds.slice();
+  userIds = [...userIds];
   if (_.isEmpty(userIds)) {
     return callback();
   }
 
-  assertMembershipsLibraryNotContains(restCtx, userIds.shift(), notContainsIds, () => {
-    return assertMembershipsLibrariesNotContains(restCtx, userIds, notContainsIds, callback);
-  });
+  assertMembershipsLibraryNotContains(restCtx, userIds.shift(), notContainsIds, () =>
+    assertMembershipsLibrariesNotContains(restCtx, userIds, notContainsIds, callback)
+  );
 };
 
 /**
@@ -1377,10 +1368,10 @@ const assertRestoreGroupSucceeds = function (adminRestCtx, restorerRestCtx, grou
                 // the deleted field
                 assertGetGroupSucceeds(adminRestCtx, groupId, { deleted: undefined }, (groupAfterDelete) => {
                   // Ensure this also the case for the restorer
-                  assertGetGroupSucceeds(restorerRestCtx, groupId, { deleted: undefined }, (groupAfterDelete) => {
+                  assertGetGroupSucceeds(restorerRestCtx, groupId, { deleted: undefined }, (groupAfterDelete) =>
                     // Ensure the memberships libraries of the users now contains the group
-                    return assertMembershipsLibrariesContains(adminRestCtx, memberUserIds, [groupId], callback);
-                  });
+                    assertMembershipsLibrariesContains(adminRestCtx, memberUserIds, [groupId], callback)
+                  );
                 });
               });
             });
@@ -1462,15 +1453,15 @@ const assertRestoreUserFails = function (restCtx, userId, httpCode, callback) {
  * @throws {AssertionError}                     Thrown if there is an issue deleting the groups or any of the assertions fail
  */
 const assertDeleteGroupsSucceeds = function (adminRestCtx, deleterRestCtx, groupIds, callback, _groupIdsToDelete) {
-  _groupIdsToDelete = _groupIdsToDelete || groupIds.slice();
+  _groupIdsToDelete = _groupIdsToDelete || [...groupIds];
   if (_.isEmpty(_groupIdsToDelete)) {
     return callback();
   }
 
   const groupId = _groupIdsToDelete.shift();
-  assertDeleteGroupSucceeds(adminRestCtx, deleterRestCtx, groupId, () => {
-    return assertDeleteGroupsSucceeds(adminRestCtx, deleterRestCtx, groupIds, callback, _groupIdsToDelete);
-  });
+  assertDeleteGroupSucceeds(adminRestCtx, deleterRestCtx, groupId, () =>
+    assertDeleteGroupsSucceeds(adminRestCtx, deleterRestCtx, groupIds, callback, _groupIdsToDelete)
+  );
 };
 
 /**
@@ -1504,10 +1495,10 @@ const assertDeleteGroupSucceeds = function (adminRestCtx, deleterRestCtx, groupI
                 // Ensure the full group profile now gives us a 404 for the deleter
                 assertGetGroupFails(deleterRestCtx, groupId, 404, () => {
                   // Ensure the full group profile gives 404 for the admin as well
-                  assertGetGroupFails(adminRestCtx, groupId, 404, () => {
+                  assertGetGroupFails(adminRestCtx, groupId, 404, () =>
                     // Ensure each user member no longer has this group in their memberships
-                    return assertMembershipsLibrariesNotContains(adminRestCtx, memberUserIds, [groupId], callback);
-                  });
+                    assertMembershipsLibrariesNotContains(adminRestCtx, memberUserIds, [groupId], callback)
+                  );
                 });
               });
             });
@@ -1528,15 +1519,15 @@ const assertDeleteGroupSucceeds = function (adminRestCtx, deleterRestCtx, groupI
  * @throws {AssertionError}                     Thrown if there is an issue deleting the users or any of the assertions fail
  */
 const assertDeleteUsersSucceeds = function (adminRestCtx, deleterRestCtx, userIds, callback, _userIdsToDelete) {
-  _userIdsToDelete = _userIdsToDelete || userIds.slice();
+  _userIdsToDelete = _userIdsToDelete || [...userIds];
   if (_.isEmpty(_userIdsToDelete)) {
     return callback();
   }
 
   const userId = _userIdsToDelete.shift();
-  assertDeleteUserSucceeds(adminRestCtx, deleterRestCtx, userId, () => {
-    return assertDeleteUsersSucceeds(adminRestCtx, deleterRestCtx, userIds, callback, _userIdsToDelete);
-  });
+  assertDeleteUserSucceeds(adminRestCtx, deleterRestCtx, userId, () =>
+    assertDeleteUsersSucceeds(adminRestCtx, deleterRestCtx, userIds, callback, _userIdsToDelete)
+  );
 };
 
 /**
@@ -1725,7 +1716,7 @@ const assertGetAllMembersLibraryEquals = function (restCtx, groupId, expectedMem
   assertGetAllMembersLibrarySucceeds(restCtx, groupId, null, (members) => {
     // Pluck out the member ids, do not care about sorting
     const actualMemberIds = _.chain(members).pluck('profile').pluck('id').value().sort();
-    assert.deepStrictEqual(actualMemberIds, expectedMemberIds.slice().sort());
+    assert.deepStrictEqual(actualMemberIds, [...expectedMemberIds].sort());
     return callback(members);
   });
 };
@@ -1741,7 +1732,7 @@ const assertGetAllMembersLibraryEquals = function (restCtx, groupId, expectedMem
  * @param  {Object}         callback.memberships    An object keyed by userId, whose values are an array of memberships library entries for the user (as per `assertGetAllMembershipsLibrarySucceeds`)
  */
 const getAllMembershipsLibraries = function (restCtx, userIds, options, callback, _membershipsLibraries) {
-  userIds = userIds.slice();
+  userIds = [...userIds];
   _membershipsLibraries = _membershipsLibraries || {};
   if (_.isEmpty(userIds)) {
     return callback(_membershipsLibraries);
@@ -1858,9 +1849,9 @@ const assertVerifyEmailsSucceeds = function (userInfoTokens, callback) {
   const userInfoToken = userInfoTokens.pop();
   const { token, userInfo } = userInfoToken;
 
-  assertVerifyEmailSucceeds(userInfo.restContext, userInfo.user.id, token, () => {
-    return assertVerifyEmailsSucceeds(userInfoTokens, callback);
-  });
+  assertVerifyEmailSucceeds(userInfo.restContext, userInfo.user.id, token, () =>
+    assertVerifyEmailsSucceeds(userInfoTokens, callback)
+  );
 };
 
 /**
@@ -1955,9 +1946,7 @@ const assertResendEmailTokenSucceeds = function (restCtx, userId, callback) {
       assert.ok(!error);
 
       let token = null;
-      const done = _.after(2, () => {
-        return callback(token);
-      });
+      const done = _.after(2, () => callback(token));
 
       // Resend the token
       RestAPI.User.resendEmailToken(restCtx, userId, (error_) => {
@@ -2108,8 +2097,8 @@ const onceVerificationEmailSent = function (email, assertions, callback) {
       );
       assert.ok(message.text.match(/admin/));
     } else {
-      assert.ok(!message.html.match(/admin/));
-      assert.ok(!message.text.match(/admin/));
+      assert.ok(!/admin/.test(message.html));
+      assert.ok(!/admin/.test(message.text));
     }
 
     const tokenRegex = /\?verifyEmail=([\w-]{7,14})/;
@@ -2646,9 +2635,7 @@ const assertDoesNotFollow = function (followerId, followedId, callback) {
       return callback(error);
     }
 
-    const follower = _.find(followers, (follower) => {
-      return follower === followerId;
-    });
+    const follower = _.find(followers, (follower) => follower === followerId);
     assert.ok(!follower);
     return callback();
   });

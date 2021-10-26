@@ -15,14 +15,14 @@
 
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import { logger } from 'oae-logger';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 import * as ShibbolethAPI from './api.js';
 import ShibbolethStrategy from './strategy.js';
@@ -118,7 +118,7 @@ function initShibbAuth(config) {
 
         // Get a locale, if any
         const locale = _getBestAttributeValue(tenant.alias, 'mapLocale', headers, headers.locale);
-        if (locale && locale.match(/^[a-z]{2}_[A-Z]{2}$/)) {
+        if (locale && /^[a-z]{2}_[A-Z]{2}$/.test(locale)) {
           options.locale = locale;
         }
 
@@ -217,8 +217,6 @@ function initShibbAuth(config) {
   AuthenticationAPI.registerStrategy(AuthenticationConstants.providers.SHIBBOLETH, strategy);
 }
 
-export default initShibbAuth;
-
 /**
  * Get the value from the attribute that best matches a configured priority list
  *
@@ -238,10 +236,13 @@ const _getBestAttributeValue = function (tenantAlias, configKey, headers, defaul
   );
   priorityList = _.chain(priorityList.split(' ')).compact().uniq().value();
 
-  const attribute = _.find(priorityList, (attribute) => {
-    return headers[attribute] && headers[attribute] !== defaultValue;
-  });
+  const attribute = _.find(
+    priorityList,
+    (attribute) => headers[attribute] && headers[attribute] !== defaultValue
+  );
 
   const value = headers[attribute] || defaultValue;
   return value;
 };
+
+export { initShibbAuth as default };

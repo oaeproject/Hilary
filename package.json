@@ -1,13 +1,14 @@
 {
   "name": "hilary",
   "description": "Open Academic Environment (OAE) Back-end",
-  "version": "16.0.1",
+  "version": "16.0.4",
   "homepage": "http://www.oaeproject.org",
   "author": {
     "name": "The Apereo Foundation",
     "email": "oae@apereo.org"
   },
   "private": true,
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git://github.com/oaeproject/Hilary.git"
@@ -47,7 +48,6 @@
     "dompurify": "^2.0.8",
     "dox": "^0.9.0",
     "ent": "^2.2.0",
-    "esm": "3.2.20",
     "ethercalc-client": "github:oaeproject/ethercalc-client#master",
     "etherpad-lite-client": "^0.8.0",
     "express": "^4.17.1",
@@ -73,6 +73,7 @@
     "oauth-sign": "^0.9.0",
     "oauth2orize": "^1.11.0",
     "optimist": "^0.6.1",
+    "ora": "^6.0.0",
     "passport": "^0.4.1",
     "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
     "passport-facebook": "git://github.com/oaeproject/passport-facebook",
@@ -84,7 +85,7 @@
     "passport-oauth2-client-password": "^0.1.2",
     "passport-openid": "^0.4.0",
     "passport-twitter": "^1.0.4",
-    "pdfjs-dist": "2.1.266",
+    "pdfjs-dist": "2.10.377",
     "properties-parser": "^0.3.1",
     "puppeteer": "^3.0.2",
     "rails-timezone": "^1.0.0",
@@ -94,7 +95,7 @@
     "redlock": "4.0.0",
     "request": "2.88.2",
     "rimraf": "^3.0.2",
-    "sharp": "^0.25.2",
+    "sharp": "^0.29.1",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
     "sockjs": "^0.3.20",
@@ -113,6 +114,8 @@
   "devDependencies": {
     "chalk": "^3.0.0",
     "codacy-coverage": "^3.3.0",
+    "eslint": "^7.32.0",
+    "eslint-plugin-unicorn": "^36.0.0",
     "is-builtin-module": "^3.1.0",
     "mocha": "^8.3.0",
     "mocha-junit-reporter": "2.0.0",
@@ -123,22 +126,23 @@
     "pm2": "^4.3.0",
     "repl-promised": "^0.1.0",
     "shelljs": "^0.8.3",
-    "xo": "0.37.1"
+    "xo": "^0.44.0"
   },
   "scripts": {
-    "test": "mocha -r esm packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
-    "test-module": "mocha -r esm packages/oae-tests/runner/before-tests.js \"$@\"",
-    "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha -r esm 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
-    "ci:test-module": "nyc mocha -r esm --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js \"$@\"",
+    "test": "mocha packages/oae-tests/runner/before-tests.js packages/oae-*/tests",
+    "test-module": "mocha packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
+    "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
+    "ci:test-module": "nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
     "test-report-coverage": "nyc --reporter=html --reporter=text --reporter=lcov npm run test",
     "test-update-coverage": "nyc --reporter=lcov npm run test && cat ./coverage/lcov.info | codacy-coverage",
-    "migrate": "node -r esm migrate.js",
-    "start": "node -r esm app.js | npx bunyan",
-    "server": "npx pm2 startOrReload process.json --only Hilary",
-    "servers": "npx pm2 startOrReload process.json",
+    "migrate": "node migrate.js",
+    "start": "node app.js | npx bunyan",
+    "serve": "npx pm2 startOrReload process.json --only Hilary",
+    "serve-all": "npx pm2 startOrReload process.json",
     "logs": "npx pm2 logs --raw | npx bunyan",
-    "lint": "node_modules/.bin/xo --fix --prettier --quiet 'packages/**/*.js'",
-    "lint-module": "node_modules/.bin/xo --prettier --quiet --fix \"$@\""
+    "lint": "npx xo --quiet --prettier 'packages/**/*.js'",
+    "lint-module": "npx xo --quiet --prettier 'packages/$npm_config_module/**/*.js'",
+    "fix-module": "npx xo --fix 'packages/$npm_config_module/**/*.js'"
   },
   "nyc": {
     "include": "packages/**/*",
@@ -156,21 +160,25 @@
       "prettier"
     ],
     "ignores": [
-      "**/processors/file/domstubs.js"
+      "node_modules",
+      "**/processors/file/domstubs.js",
+      "packages/restjsdoc",
+      "packages/oae-email/emailTemplates"
     ],
     "rules": {
-      "node/prefer-promises/fs": "off",
+      "import/extensions": "off",
       "import/no-extraneous-dependencies": "off",
-      "promise/prefer-await-to-then": "off",
+      "import/no-unresolved": "off",
       "capitalized-comments": "off",
-      "max-params": "off",
       "max-nested-callbacks": "off",
-      "prettier/prettier": "error",
+      "max-params": "off",
       "no-use-before-define": "off",
       "no-warning-comments": "off",
+      "node/prefer-promises/fs": "off",
+      "node/no-unsupported-features/es-syntax": "off",
       "prefer-named-capture-group": "off",
-      "import/no-unresolved": "off",
-      "import/extensions": "off"
+      "promise/prefer-await-to-then": "off",
+      "prettier/prettier": "error"
     },
     "env": [
       "mocha"

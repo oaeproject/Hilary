@@ -14,14 +14,14 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { Revision } from 'oae-content/lib/model';
-import * as ContentPreviewsDAO from './dao.previews';
+import { Revision } from 'oae-content/lib/model.js';
+import * as ContentPreviewsDAO from './dao.previews.js';
 
 /// ////////////
 // Retrieval //
@@ -111,9 +111,7 @@ const getMultipleRevisions = function (revisionIds, options, callback) {
       let revisions = _.map(rows, _rowToRevision);
 
       // The above query doesn't respect the order of revisionIds, hence this DESC sort
-      revisions = _.sortBy(revisions, (eachRevision) => {
-        return eachRevision.created * -1;
-      });
+      revisions = _.sortBy(revisions, (eachRevision) => eachRevision.created * -1);
       return callback(null, revisions);
     }
   );

@@ -14,16 +14,16 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import clone from 'clone';
 import ShortId from 'shortid';
 
 import { logger } from 'oae-logger';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as Pubsub from 'oae-util/lib/pubsub';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
 
 import { TenantNetwork } from '../model.js';
 
@@ -238,14 +238,14 @@ const addTenantAliases = function (tenantNetworkId, tenantAliases, callback) {
     }
 
     // Map all tenant aliases into the queries necessary to insert them all into the tenant network tenants table
-    const queries = _.map(tenantAliases, (tenantAlias) => {
-      return Cassandra.constructUpsertCQL(
+    const queries = _.map(tenantAliases, (tenantAlias) =>
+      Cassandra.constructUpsertCQL(
         'TenantNetworkTenants',
         ['tenantNetworkId', 'tenantAlias'],
         [tenantNetworkId, tenantAlias],
         { value: '1' }
-      );
-    });
+      )
+    );
 
     Cassandra.runBatchQuery(queries, (error_) => {
       if (error_) {
@@ -296,12 +296,10 @@ const removeTenantAliases = function (tenantNetworkId, tenantAliases, callback) 
     }
 
     // Create and execute the delete queries
-    const queries = _.map(tenantAliases, (tenantAlias) => {
-      return {
-        query: 'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
-        parameters: [tenantNetworkId, tenantAlias]
-      };
-    });
+    const queries = _.map(tenantAliases, (tenantAlias) => ({
+      query: 'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
+      parameters: [tenantNetworkId, tenantAlias]
+    }));
     Cassandra.runBatchQuery(queries, (error_) => {
       if (error_) {
         return callback(error_);

@@ -16,16 +16,16 @@
 import _ from 'underscore';
 import { pipe, keys, filter, isEmpty } from 'ramda';
 
-import { Invitation } from 'oae-authz/lib/invitations/model';
-import { ResourceConstants } from 'oae-resource/lib/constants';
+import { Invitation } from 'oae-authz/lib/invitations/model.js';
+import { ResourceConstants } from 'oae-resource/lib/constants.js';
 import { Context } from 'oae-context';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
 import { logger } from 'oae-logger';
 
@@ -59,9 +59,7 @@ ResourceActions.emitter.when(
       // Filter out soft-deleted groups
       const groups = _.chain(groupsById)
         .values()
-        .filter((group) => {
-          return !group.deleted;
-        })
+        .filter((group) => !group.deleted)
         .value();
       if (_.isEmpty(groups)) {
         return callback();
@@ -117,9 +115,7 @@ const _touchAllGroups = function (groups, callback) {
   const updatedGroupsById = {};
   const _done = _.chain(groups)
     .size()
-    .after(() => {
-      return callback(updatedGroupsById);
-    })
+    .after(() => callback(updatedGroupsById))
     .value();
 
   _.each(groups, (group) => {

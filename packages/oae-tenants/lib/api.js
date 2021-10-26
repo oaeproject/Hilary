@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import { logger } from 'oae-logger';
 
 import _ from 'underscore';
@@ -23,32 +23,13 @@ import async from 'async';
 import { setUpConfig, eventEmitter } from 'oae-config';
 // We have to require the UI api inline, as this would otherwise lead to circular require calls
 import * as UIAPI from 'oae-ui';
-import * as UserAPI from 'oae-principals/lib/api.user';
-import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra';
+import { deleteOrRestoreUsersByTenancy } from 'oae-principals/lib/api.user.js';
+import { constructUpsertCQL, runAutoPagedQuery, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
-import * as OAE from 'oae-util/lib/oae';
-import { getNumberParam, castToBoolean } from 'oae-util/lib/util';
-import * as Pubsub from 'oae-util/lib/pubsub';
-import { Validator as validator } from 'oae-util/lib/validator';
-const {
-  unless,
-  isString,
-  isGlobalAdministratorUser,
-  isNotEmpty,
-  notContains,
-  isDifferent,
-  isHost,
-  isNil,
-  isIso3166Country,
-  isObject,
-  isBoolean,
-  isNotNull,
-  getNestedObject,
-  isISO31661Alpha2,
-  validateInCase: bothCheck,
-  isArrayNotEmpty,
-  isArray
-} = validator;
+import * as OAE from 'oae-util/lib/oae.js';
+import { getNumberParam, castToBoolean } from 'oae-util/lib/util.js';
+import * as Pubsub from 'oae-util/lib/pubsub.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import {
   join,
   forEach,
@@ -84,13 +65,34 @@ import {
   reject,
   when
 } from 'ramda';
-import isIn from 'validator/lib/isIn';
-import TenantEmailDomainIndex from './internal/emailDomainIndex.js';
-import TenantIndex from './internal/tenantIndex.js';
-import * as TenantNetworksDAO from './internal/dao.networks';
+import isIn from 'validator/lib/isIn.js';
+import { setListeners } from 'oae-authentication';
+import TenantEmailDomainIndex from './internal/email-domain-index.js';
+import TenantIndex from './internal/tenant-index.js';
+import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsUtil from './util.js';
-const { isPrivate } = TenantsUtil;
 import { Tenant } from './model.js';
+
+const {
+  unless,
+  isString,
+  isGlobalAdministratorUser,
+  isNotEmpty,
+  notContains,
+  isDifferent,
+  isHost,
+  isNil,
+  isIso3166Country,
+  isObject,
+  isBoolean,
+  isNotNull,
+  getNestedObject,
+  isISO31661Alpha2,
+  validateInCase: bothCheck,
+  isArrayNotEmpty,
+  isArray
+} = validator;
+const { isPrivate } = TenantsUtil;
 
 const TenantsConfig = setUpConfig('oae-tenants');
 const log = logger('oae-tenants');
@@ -152,6 +154,7 @@ const returnEmptyArray = () => [];
  * * `stop(tenant)`: A request has been received to "stop" a tenant
  */
 const TenantsAPI = new EmitterAPI.EventEmitter();
+setListeners();
 
 /*!
  * Listen for cluster wide requests involving tenants
@@ -174,9 +177,7 @@ Pubsub.emitter.on('oae-tenants', (message) => {
  * Listen for configuration update events. If a tenant is made public or private, we need to update
  * their cached status in the tenantsNotInteractable cache
  */
-eventEmitter.on('update', (alias) => {
-  return _updateCachedTenant(alias);
-});
+eventEmitter.on('update', (alias) => _updateCachedTenant(alias));
 
 /**
  * Initialize the middleware that will put the tenant object onto the request and cache all of the registered
@@ -186,7 +187,7 @@ eventEmitter.on('update', (alias) => {
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
  */
-const init = function (_serverConfig, callback) {
+function init(_serverConfig, callback) {
   // Cache the server configuration
   serverConfig = _serverConfig;
 
@@ -241,7 +242,7 @@ const init = function (_serverConfig, callback) {
     const GUEST_TENANT = 'Guest tenant';
     _createTenant(guestTenantAlias, GUEST_TENANT, guestTenantHost, null, callback);
   });
-};
+}
 
 /**
  * Get a list of all available tenants from cache. The global admin tenant will be excluded from the resulting tenant list
@@ -533,9 +534,7 @@ const _updateCachedTenant = function (tenantAlias, callback) {
     )(tenant);
 
     // Insert at the correct location in the sorted list
-    let index = findIndex((tenant) => {
-      return tenant.alias === tenantAlias;
-    }, tenantsSorted);
+    let index = findIndex((tenant) => tenant.alias === tenantAlias, tenantsSorted);
 
     const notFound = equals(-1);
     ifElse(
@@ -855,23 +854,24 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
       msg: 'You must provide at least one alias to enable or disable'
     })(aliases);
 
-    aliases.forEach((alias) => {
+    for (const alias of aliases) {
       unless(compose(isObject, getTenant), {
         code: 404,
         msg: format('Tenant with alias "%s" does not exist and cannot be enabled or disabled', alias)
       })(alias);
-    });
+    }
   } catch (error) {
     return callback(error);
   }
 
   // Store the "active" flag in cassandra
-  const queries = map((alias) => {
-    return {
+  const queries = map(
+    (alias) => ({
       query: 'UPDATE "Tenant" SET "active" = ? WHERE "alias" = ?',
       parameters: [not(disabled), alias]
-    };
-  }, aliases);
+    }),
+    aliases
+  );
 
   runBatchQuery(queries, (error) => {
     if (error) return callback(error);
@@ -884,7 +884,7 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
       aliases,
       (eachAlias, transformed) => {
         // Disable or restore users from those tenancies too
-        UserAPI.deleteOrRestoreUsersByTenancy(ctx, eachAlias, disabled, (error) => {
+        deleteOrRestoreUsersByTenancy(ctx, eachAlias, disabled, (error) => {
           if (error) {
             transformed(error);
           } else {

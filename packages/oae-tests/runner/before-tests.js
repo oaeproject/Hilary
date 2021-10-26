@@ -13,32 +13,37 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-undef */
-
-import * as TestsUtil from 'oae-tests/lib/util';
+import process from 'node:process';
+import { callbackify } from 'node:util';
+import { createInitialTestConfig, setUpBeforeTests, cleanUpAfterTests } from 'oae-tests/lib/util.js';
 import { logger } from 'oae-logger';
 import nock from 'nock';
-import { flush } from 'oae-util/lib/redis';
-import * as MQ from 'oae-util/lib/mq';
+import { flush } from 'oae-util/lib/redis.js';
+import * as MQ from 'oae-util/lib/mq.js';
+import { pipe, equals, not } from 'ramda';
 
 const log = logger('before-tests');
-
-// eslint-disable-next-line no-unused-vars
-const { argv } = require('optimist')
-  .usage('Run the Hilary tests.\nUsage: $0')
-  .alias('m', 'module')
-  .describe('m', 'Only run a specific module. Just specify the module name.');
+const isNotFalse = pipe(equals('false'), not);
 
 // Set our bootstrapping log level before loading other modules that will use logging
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
 
+// TODO experimental !!!!!!!!!!!!!!!!!!!!!
+// Enabling ES6 support and defining global variables
+/*
+(function (globals) {
+  'use strict';
+  globals.oaeTests = {};
+})((1, eval)('this'));
+*/
+
 /**
  * Determine whether or not we should drop the keyspace before the test. In cases
  * where we want to set up the schema by another means (e.g., to test unit tests
- *  over migrations), it is handy to use a schema that was pre-arranged for the test
+ * over migrations), it is handy to use a schema that was pre-arranged for the test
  */
-const dropKeyspaceBeforeTest = process.env.OAE_TEST_DROP_KEYSPACE_BEFORE !== 'false';
+const dropKeyspaceBeforeTest = isNotFalse(process.env.OAE_TEST_DROP_KEYSPACE_BEFORE);
 
 // First set up the keyspace and all of the column families required for all of the different OAE modules
 before((callback) => {
@@ -46,15 +51,16 @@ before((callback) => {
   process.env.OAE_TESTS_RUNNING = 'true';
 
   // Create the configuration for the test
-  const config = TestsUtil.createInitialTestConfig();
+  callbackify(createInitialTestConfig)((error, config) => {
+    if (error) return callback(error);
+    setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
+      flush((error) => {
+        if (error) {
+          log().warn('Not able to flush redis');
+        }
 
-  TestsUtil.setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
-    flush((error) => {
-      if (error) {
-        log().warn('Not able to flush redis');
-      }
-
-      return callback();
+        return callback();
+      });
     });
   });
 });
@@ -82,5 +88,5 @@ afterEach(function (callback) {
 after((callback) => {
   // Unset an env var for running tests once they are over
   process.env.OAE_TESTS_RUNNING = '';
-  TestsUtil.cleanUpAfterTests(callback);
+  cleanUpAfterTests(callback);
 });

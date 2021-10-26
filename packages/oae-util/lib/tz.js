@@ -13,20 +13,24 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
 import tz from 'timezone-js';
 import railsTimezone from 'rails-timezone';
 
-import RailsMappings from 'oae-util/timezones-rails.json';
+import RailsMappings from 'oae-util/timezones-rails.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 tz.timezone.loadingScheme = tz.timezone.loadingSchemes.MANUAL_LOAD;
-tz.timezone.transport = function(opts) {
-  return fs.readFileSync(opts.url, 'utf8');
+tz.timezone.transport = function (options) {
+  return fs.readFileSync(options.url, 'utf8');
 };
 
-tz.timezone.loadZoneJSONData(path.join(__dirname, '/../timezones.json'), true);
+tz.timezone.loadZoneJSONData(path.join(__dirname, '../timezones.json'), true);
 
 /**
  * Given a ruby-on-rails supported timezone name, map it to a TZInfo identifier supported by OAE.
@@ -34,7 +38,7 @@ tz.timezone.loadZoneJSONData(path.join(__dirname, '/../timezones.json'), true);
  * @param  {String}    zone   The rails timezone to map
  * @return {String}           The TZInfo identifier that represents the associated rails timezone
  */
-const getTimezoneFromRails = function(zone) {
+const getTimezoneFromRails = function (zone) {
   return railsTimezone.from(zone);
 };
 
@@ -44,7 +48,7 @@ const getTimezoneFromRails = function(zone) {
  * @param  {String}    zone   The TZInfo timezone to map
  * @return {String}           The associated rails timezone
  */
-const getClosestSupportedTimezone = function(zone) {
+const getClosestSupportedTimezone = function (zone) {
   // If no zone was passed in just return Etc/UTC
   if (!zone) {
     return 'Etc/UTC';
@@ -61,7 +65,7 @@ const getClosestSupportedTimezone = function(zone) {
   try {
     // Collect all of the supported timezones per timezone offset
     const railsOffsets = {};
-    _.each(RailsMappings, value => {
+    _.each(RailsMappings, (value) => {
       const mappingDate = new tz.Date(value);
       const mappingOffset = mappingDate.getTimezoneOffset();
       if (railsOffsets[mappingOffset]) {
@@ -104,14 +108,14 @@ const getClosestSupportedTimezone = function(zone) {
  * @return {String}                        The name of the most similar timezone
  * @api private
  */
-const _getMostSimilarZone = function(orig, candidates) {
+const _getMostSimilarZone = function (orig, candidates) {
   if (candidates.length === 1) {
     return candidates[0];
   }
 
   let highScore = { score: 0, zones: [] };
   const origZoneInfo = _getRelevantZoneInfo(orig);
-  _.each(candidates, candidate => {
+  _.each(candidates, (candidate) => {
     const candidateZoneInfo = _getRelevantZoneInfo(candidate);
     let score = 0;
 
@@ -143,11 +147,9 @@ const _getMostSimilarZone = function(orig, candidates) {
  * @return {Object}                 An object containing zone and rules representing the start and end of DST
  * @api private
  */
-const _getRelevantZoneInfo = function(zone) {
+const _getRelevantZoneInfo = function (zone) {
   const zoneInfo = { zone: _.last(tz.timezone.zones[zone]) };
-  zoneInfo.rules = _.filter(tz.timezone.rules[zoneInfo.zone[1]], rule => {
-    return rule[1] === 'max';
-  });
+  zoneInfo.rules = _.filter(tz.timezone.rules[zoneInfo.zone[1]], (rule) => rule[1] === 'max');
 
   _.each(zoneInfo.rules, (rule, index) => {
     // Cut out just the rule entries we care about
@@ -157,7 +159,7 @@ const _getRelevantZoneInfo = function(zone) {
   });
 
   // Flatten the rules to simplify comparison
-  zoneInfo.rules = _.flatten(zoneInfo.rules);
+  zoneInfo.rules = zoneInfo.rules.flat();
   return zoneInfo;
 };
 
@@ -166,7 +168,7 @@ const _getRelevantZoneInfo = function(zone) {
  *
  * @return {Object}        A map of all the available rails timezones and their offsets from UTC
  */
-const getZones = function() {
+const getZones = function () {
   const railsZones = {};
   _.each(RailsMappings, (value, key) => {
     const mappingDate = new tz.Date(value);

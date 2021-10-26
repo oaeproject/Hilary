@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as Fields from 'oae-config/lib/fields';
+import * as Fields from 'oae-config/lib/fields.js';
 
 const PUBLIC = 'public';
 const PRIVATE = 'private';

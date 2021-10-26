@@ -15,10 +15,10 @@
 
 import { assert } from 'chai';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 
 describe('Tenant Landing Pages', () => {
   // Rest context that can be used every time we need to make a request as an anonymous user
@@ -29,7 +29,7 @@ describe('Tenant Landing Pages', () => {
   /**
    * Function that will fill up the anonymous and the tenant admin context
    */
-  before(callback => {
+  before((callback) => {
     // Fill up anonymous rest context
     anonymousCamRestContext = TestsUtil.createTenantRestContext(global.oaeTests.tenants.cam.host);
     // Fill up the global admin rest context
@@ -40,8 +40,8 @@ describe('Tenant Landing Pages', () => {
   /**
    * Test that verifies that attributes are returned
    */
-  it('verify the attributes are returned', callback => {
-    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+  it('verify the attributes are returned', (callback) => {
+    TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
       // Clear the default landing page
       TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
         // Configure all the attributes for the first block
@@ -100,8 +100,8 @@ describe('Tenant Landing Pages', () => {
   /**
    * Test that verifies that only non-empty blocks are returned
    */
-  it('verify empty blocks are not returned', callback => {
-    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+  it('verify empty blocks are not returned', (callback) => {
+    TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
       // Clear the default landing page
       TenantsTestUtil.clearTenantLandingPage(tenant.adminRestContext, () => {
         // Configure 1 block on the the tenant's landing page
@@ -127,8 +127,8 @@ describe('Tenant Landing Pages', () => {
   /**
    * Test that verifies that text attributes are internationalizable
    */
-  it('verify that text attributes are internationalizable', callback => {
-    TestsUtil.setupMultiTenantPrivacyEntities(tenant => {
+  it('verify that text attributes are internationalizable', (callback) => {
+    TestsUtil.setupMultiTenantPrivacyEntities((tenant) => {
       // Configure the tenant's landing page
       const configUpdate = {};
       configUpdate['oae-tenants/block_1/type'] = 'text';
@@ -147,7 +147,7 @@ describe('Tenant Landing Pages', () => {
             assert.notExists(error);
             const { 0: frenchUser, 1: defaultUser, 2: hindiUser } = users;
             // Set a user's locale to French
-            RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, error_ => {
+            RestAPI.User.updateUser(frenchUser.restContext, frenchUser.user.id, { locale: 'fr_FR' }, (error_) => {
               assert.notExists(error_);
 
               // Get the landing page information with the French user
@@ -165,11 +165,11 @@ describe('Tenant Landing Pages', () => {
                   assert.strictEqual(landingPage[0].text, 'default text');
 
                   // Set a user's locale to Hindi
-                  RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, error_ => {
+                  RestAPI.User.updateUser(hindiUser.restContext, hindiUser.user.id, { locale: 'hi_IN' }, (error_) => {
                     assert.notExists(error_);
 
                     // Get the landing page information with the Hindi user
-                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, function(error, landingPage) {
+                    RestAPI.Tenants.getLandingPage(hindiUser.restContext, (error, landingPage) => {
                       assert.notExists(error);
 
                       // Verify the default text was returned
@@ -189,7 +189,7 @@ describe('Tenant Landing Pages', () => {
   /**
    * Test that verifies that blocks are not returned in the config
    */
-  it('verify that blocks are not returned in the config', callback => {
+  it('verify that blocks are not returned in the config', (callback) => {
     RestAPI.Config.getTenantConfig(anonymousCamRestContext, null, (error, config) => {
       assert.notExists(error);
       for (let i = 1; i <= 12; i++) {

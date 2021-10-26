@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import { logger } from 'oae-logger';
-import * as Redis from 'oae-util/lib/redis';
+import * as Redis from 'oae-util/lib/redis.js';
 
 const log = logger('content-dao-etherpad');
 

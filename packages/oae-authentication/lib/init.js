@@ -13,16 +13,16 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import passport from 'passport';
 import { Context } from 'oae-context';
-import * as OAE from 'oae-util/lib/oae';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
 import initCas from './strategies/cas/init.js';
 import initFacebook from './strategies/facebook/init.js';
 import initGoogle from './strategies/google/init.js';
 import initLDAP from './strategies/ldap/init.js';
-import initLocal from './strategies/local/init.js';
+import { initLocalAuth } from './strategies/local/init.js';
 import initOAuth from './strategies/oauth/init.js';
 import initShibb from './strategies/shibboleth/init.js';
 import initSigned from './strategies/signed/init.js';
@@ -46,7 +46,7 @@ export function init(config, callback) {
   initFacebook(config);
   initGoogle(config);
   initLDAP(config);
-  initLocal(config);
+  initLocalAuth(config);
   initOAuth(config);
   initShibb(config);
   initSigned(config);
@@ -82,8 +82,9 @@ const contextMiddleware = function (request, response, next) {
     // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
     // removed on or after the minor or major release after this fix has been released
     if (request.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(request.oaeAuthInfo.strategyId)
-        .strategyName;
+      authenticationStrategy = AuthenticationUtil.parseStrategyId(
+        request.oaeAuthInfo.strategyId
+      ).strategyName;
     }
   }
 
@@ -217,7 +218,6 @@ const setupPassportSerializers = function (cookieSecret) {
  * @api private
  */
 const _encryptCookieData = function (cookieData, cookieSecret) {
-  // eslint-disable-next-line node/no-deprecated-api
   const cipher = crypto.createCipher('aes-256-cbc', cookieSecret);
   return cipher.update(cookieData, 'utf8', 'base64') + cipher.final('base64');
 };
@@ -231,7 +231,6 @@ const _encryptCookieData = function (cookieData, cookieSecret) {
  * @api private
  */
 const _decryptCookieData = function (encryptedData, cookieSecret) {
-  // eslint-disable-next-line node/no-deprecated-api
   const decipher = crypto.createDecipher('aes-256-cbc', cookieSecret);
   return decipher.update(encryptedData, 'base64', 'utf8') + decipher.final('utf8');
 };

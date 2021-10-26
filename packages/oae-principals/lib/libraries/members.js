@@ -13,19 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import { format } from 'node:util';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsDelete from 'oae-principals/lib/delete';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsDelete from 'oae-principals/lib/delete.js';
 
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 import { logger } from 'oae-logger';
 
@@ -61,9 +61,7 @@ const list = function (group, visibility, options, callback) {
         return callback(error);
       }
 
-      const memberEntries = _.map(entries, (entry) => {
-        return { id: entry.resourceId, role: entry.value };
-      });
+      const memberEntries = _.map(entries, (entry) => ({ id: entry.resourceId, role: entry.value }));
 
       return callback(null, memberEntries, nextToken);
     }
@@ -154,15 +152,13 @@ const _updatePrincipalInMembersLibraries = function (ctx, updatedPrincipal, oldP
         );
       }
 
-      const entries = _.map(allRoles, (groupRole) => {
-        return {
-          id: groupRole.id,
-          oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
-          newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
-          resource: updatedPrincipal,
-          value: groupRole.role
-        };
-      });
+      const entries = _.map(allRoles, (groupRole) => ({
+        id: groupRole.id,
+        oldRank: _getMembersLibraryRank(groupRole.id, oldPrincipal, groupRole.role),
+        newRank: _getMembersLibraryRank(groupRole.id, updatedPrincipal, groupRole.role),
+        resource: updatedPrincipal,
+        value: groupRole.role
+      }));
 
       return LibraryAPI.Index.update(PrincipalsConstants.library.MEMBERS_INDEX_NAME, entries);
     }

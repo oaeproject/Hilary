@@ -13,11 +13,16 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
 
-import * as IO from 'oae-util/lib/io';
+import { fileURLToPath } from 'node:url';
+import { assert } from 'chai';
+
+import * as IO from 'oae-util/lib/io.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const datadir = path.join(__dirname, '/data/');
 

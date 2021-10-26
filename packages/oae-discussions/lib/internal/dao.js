@@ -14,17 +14,17 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
-import { Discussion } from 'oae-discussions/lib/model';
+import { Discussion } from 'oae-discussions/lib/model.js';
 
 const log = logger('discussions-dao');
 
@@ -143,9 +143,7 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
 
   // If `fields` was specified, we select only the fields specified. Otherwise we select all (i.e., *)
   if (fields) {
-    const columns = _.map(fields, (field) => {
-      return format('"%s"', field);
-    });
+    const columns = _.map(fields, (field) => format('"%s"', field));
 
     query = format('SELECT %s FROM "Discussions" WHERE "id" IN ?', columns.join(','));
   } else {
@@ -168,9 +166,7 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
       });
 
     // Order the discussions according to the array of discussion ids
-    const orderedDiscussions = _.map(discussionIds, (discussionId) => {
-      return discussions[discussionId];
-    });
+    const orderedDiscussions = _.map(discussionIds, (discussionId) => discussions[discussionId]);
 
     return callback(null, orderedDiscussions);
   });

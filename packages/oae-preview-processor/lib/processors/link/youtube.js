@@ -17,8 +17,8 @@ import Youtube from 'youtube-api';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
 
 const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');
@@ -29,9 +29,9 @@ const YOUTUBE_SHORT_REGEX = /^http(s)?:\/\/youtu.be\/(.+)/;
 /**
  * @borrows Interface.test as YoutubeProcessor.test
  */
-const test = function(ctx, contentObj, callback) {
+const test = function (ctx, contentObject, callback) {
   // Don't bother with non-link content items
-  if (contentObj.resourceSubType !== 'link') {
+  if (contentObject.resourceSubType !== 'link') {
     return callback(null, -1);
   }
 
@@ -42,7 +42,7 @@ const test = function(ctx, contentObj, callback) {
   }
 
   // Check if it's a Youtube URL
-  if (YOUTUBE_FULL_REGEX.test(contentObj.link) || YOUTUBE_SHORT_REGEX.test(contentObj.link)) {
+  if (YOUTUBE_FULL_REGEX.test(contentObject.link) || YOUTUBE_SHORT_REGEX.test(contentObject.link)) {
     return callback(null, 10);
   }
 
@@ -52,9 +52,9 @@ const test = function(ctx, contentObj, callback) {
 /**
  * @borrows Interface.generatePreviews as YoutubeProcessor.generatePreviews
  */
-const generatePreviews = function(ctx, contentObj, callback) {
+const generatePreviews = function (ctx, contentObject, callback) {
   // Get the movie identifier
-  const id = _getId(contentObj.link);
+  const id = _getId(contentObject.link);
 
   Youtube.authenticate({
     type: 'key',
@@ -62,16 +62,16 @@ const generatePreviews = function(ctx, contentObj, callback) {
   });
 
   // Get the metadata for this video
-  Youtube.videos.list({ part: 'snippet', id }, (err, data) => {
-    if (err) {
-      log().error({ err }, 'Could not talk to the youtube api.');
-      return callback({ code: 500, msg: err.message });
+  Youtube.videos.list({ part: 'snippet', id }, (error, data) => {
+    if (error) {
+      log().error({ err: error }, 'Could not talk to the youtube api.');
+      return callback({ code: 500, msg: error.message });
     }
 
     if (data && data.items && data.items[0] && data.items[0].snippet) {
       const { snippet } = data.items[0];
 
-      const opts = {
+      const options = {
         displayName: snippet.title,
         description: snippet.description
       };
@@ -80,12 +80,12 @@ const generatePreviews = function(ctx, contentObj, callback) {
       const thumbnail = snippet.thumbnails.maxres || snippet.thumbnails.default;
       const imageUrl = thumbnail.url;
       const path = ctx.baseDir + '/youtube.jpg';
-      PreviewUtil.downloadRemoteFile(imageUrl, path, (err, path) => {
-        if (err) {
-          return callback(err);
+      PreviewUtil.downloadRemoteFile(imageUrl, path, (error_, path) => {
+        if (error_) {
+          return callback(error_);
         }
 
-        LinkProcessorUtil.generatePreviewsFromImage(ctx, path, opts, callback);
+        LinkProcessorUtil.generatePreviewsFromImage(ctx, path, options, callback);
       });
     } else {
       return callback(false, true);
@@ -102,7 +102,7 @@ const generatePreviews = function(ctx, contentObj, callback) {
  * @return {String}             The movie identifier (or null)
  * @api private
  */
-const _getId = function(link) {
+const _getId = function (link) {
   const parsedUrl = new URL(link);
 
   // The full link has the ID in the `v` query parameter

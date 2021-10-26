@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import * as EmailAPI from 'oae-email';
-import * as EmailTestsUtil from 'oae-email/lib/test/util';
+import * as EmailTestsUtil from 'oae-email/lib/test/util.js';
 
 import { head, mergeLeft } from 'ramda';
 
@@ -29,12 +29,8 @@ const { createComment } = RestAPI.Content;
 const { collectAndFetchAllEmails } = EmailTestsUtil;
 const { createLink } = RestAPI.Content;
 const { updateConfigAndWait } = ConfigTestUtil;
-const {
-  generateTestUsers,
-  generateTestEmailAddress,
-  createTenantAdminRestContext,
-  createGlobalAdminRestContext
-} = TestsUtil;
+const { generateTestUsers, generateTestEmailAddress, createTenantAdminRestContext, createGlobalAdminRestContext } =
+  TestsUtil;
 const { init } = EmailAPI;
 const { sendEmail, clearEmailCollections } = EmailTestsUtil;
 
@@ -139,20 +135,25 @@ describe('Emails', () => {
                     assert.strictEqual(error.code, 500);
 
                     // Verify error with non-existent template id
-                    sendEmail(EMAIL_MODULE, 'TemplateDoesNotExist', johnDoeUser, NO_DATA, NO_OPTS, (
-                      error /* , message */
-                    ) => {
-                      assert.ok(error);
-                      assert.strictEqual(error.code, 500);
+                    sendEmail(
+                      EMAIL_MODULE,
+                      'TemplateDoesNotExist',
+                      johnDoeUser,
+                      NO_DATA,
+                      NO_OPTS,
+                      (error /* , message */) => {
+                        assert.ok(error);
+                        assert.strictEqual(error.code, 500);
 
-                      // Sanity check
-                      sendEmail(EMAIL_MODULE, TEST, johnDoeUser, NO_DATA, NO_OPTS, (error, message) => {
-                        assert.notExists(error);
-                        assert.ok(message);
+                        // Sanity check
+                        sendEmail(EMAIL_MODULE, TEST, johnDoeUser, NO_DATA, NO_OPTS, (error, message) => {
+                          assert.notExists(error);
+                          assert.ok(message);
 
-                        return callback();
-                      });
-                    });
+                          return callback();
+                        });
+                      }
+                    );
                   });
                 });
               });
@@ -929,35 +930,55 @@ describe('Emails', () => {
           // The user needs an email address
           johnDoe.user.email = generateTestEmailAddress();
 
-          sendEmail(EMAIL_MODULE, 'test', johnDoe.user, NO_DATA, { hash: generateUniqueHash() }, (
-            error /* , message */
-          ) => {
-            assert.notExists(error);
-
-            sendEmail(EMAIL_MODULE, TEST, johnDoe.user, null, { hash: generateUniqueHash() }, (
-              error /* , message */
-            ) => {
+          sendEmail(
+            EMAIL_MODULE,
+            'test',
+            johnDoe.user,
+            NO_DATA,
+            { hash: generateUniqueHash() },
+            (error /* , message */) => {
               assert.notExists(error);
 
-              sendEmail(EMAIL_MODULE, TEST, johnDoe.user, null, { hash: generateUniqueHash() }, (
-                error /* , message */
-              ) => {
-                assert.ok(error);
-                assert.strictEqual(error.code, 403);
+              sendEmail(
+                EMAIL_MODULE,
+                TEST,
+                johnDoe.user,
+                null,
+                { hash: generateUniqueHash() },
+                (error /* , message */) => {
+                  assert.notExists(error);
 
-                // If we wait longer than the throttle timespan, we should be able to send an e-mail to this user
-                setTimeout(() => {
-                  sendEmail(EMAIL_MODULE, TEST, johnDoe.user, null, { hash: generateUniqueHash() }, (
-                    error /* , message */
-                  ) => {
-                    assert.notExists(error);
+                  sendEmail(
+                    EMAIL_MODULE,
+                    TEST,
+                    johnDoe.user,
+                    null,
+                    { hash: generateUniqueHash() },
+                    (error /* , message */) => {
+                      assert.ok(error);
+                      assert.strictEqual(error.code, 403);
 
-                    return callback();
-                  });
-                }, 2250);
-              });
-            });
-          });
+                      // If we wait longer than the throttle timespan, we should be able to send an e-mail to this user
+                      setTimeout(() => {
+                        sendEmail(
+                          EMAIL_MODULE,
+                          TEST,
+                          johnDoe.user,
+                          null,
+                          { hash: generateUniqueHash() },
+                          (error /* , message */) => {
+                            assert.notExists(error);
+
+                            return callback();
+                          }
+                        );
+                      }, 2250);
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       });
     });

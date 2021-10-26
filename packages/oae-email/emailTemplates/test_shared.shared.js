@@ -13,14 +13,12 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
-
 /*!
  * Get the string `foo`
  *
  * @return {String}     Returns the string `foo`
  */
-const getFoo = function() {
+const getFoo = function () {
   return 'foo';
 };
 
@@ -29,7 +27,7 @@ const getFoo = function() {
  *
  * @return {String}     Returns the string `bar`
  */
-const getBar = function() {
+const getBar = function () {
   return 'bar';
 };
 

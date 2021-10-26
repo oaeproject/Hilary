@@ -27,7 +27,7 @@
  * and https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-params.html for more info
  */
 
-/* eslint-disable unicorn/filename-case, camelcase */
+// eslint-disable-next-line camelcase
 export const discussion_message_body = {
   type: 'text',
   store: 'false',

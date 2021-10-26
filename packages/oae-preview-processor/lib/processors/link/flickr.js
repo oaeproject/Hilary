@@ -13,14 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import request from 'request';
 
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
-import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util';
-import * as PreviewUtil from 'oae-preview-processor/lib/util';
+import * as LinkProcessorUtil from 'oae-preview-processor/lib/processors/link/util.js';
+import * as PreviewUtil from 'oae-preview-processor/lib/util.js';
+import { pipe, split, reverse, join } from 'ramda';
 
 const log = logger('oae-preview-processor');
 const PreviewConfig = setUpConfig('oae-preview-processor');
@@ -308,7 +309,8 @@ const _base58Decode = function (s) {
   const alphabet = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
 
   // Reverse the string
-  const reversed = s.split('').reverse().join('');
+  const reversed = pipe(split(''), reverse, join(''))(s);
+  // const reversed = s.split('').reverse().join('');
 
   // The following is an iterative process where for each character in the
   // reversed string we:

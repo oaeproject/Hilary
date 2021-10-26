@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable camelcase */
-import * as Fields from 'oae-config/lib/fields';
+import * as Fields from 'oae-config/lib/fields.js';
 
 const widths = [
   {
@@ -66,16 +66,16 @@ const widths = [
  * @return {Object}                                 The created landing page block
  * @api private
  */
-const _createBlock = function(opts) {
-  opts = opts || {};
+const _createBlock = function (options) {
+  options = options || {};
 
-  const type = opts.type || 'empty';
-  const horizontalAlign = opts.horizontalAlign || 'center';
-  const verticalAlign = opts.verticalAlign || 'middle';
-  const xs = opts.xs || '12';
-  const sm = opts.sm || '12';
-  const md = opts.md || '12';
-  const lg = opts.lg || '12';
+  const type = options.type || 'empty';
+  const horizontalAlign = options.horizontalAlign || 'center';
+  const verticalAlign = options.verticalAlign || 'middle';
+  const xs = options.xs || '12';
+  const sm = options.sm || '12';
+  const md = options.md || '12';
+  const lg = options.lg || '12';
 
   return {
     name: 'Block values',
@@ -117,7 +117,7 @@ const _createBlock = function(opts) {
       sm: new Fields.List('SM Block width', 'Block width at small resolution', sm, widths, { suppress: true }),
       md: new Fields.List('MD Block width', 'Block width at medium resolution', md, widths, { suppress: true }),
       lg: new Fields.List('LG Block width', 'Block width at large resolution', lg, widths, { suppress: true }),
-      minHeight: new Fields.Text('Block minimum height', 'Minimum height for the block in px', opts.minHeight, {
+      minHeight: new Fields.Text('Block minimum height', 'Minimum height for the block in px', options.minHeight, {
         suppress: true
       }),
       horizontalAlign: new Fields.List(
@@ -160,23 +160,23 @@ const _createBlock = function(opts) {
         ],
         { suppress: true }
       ),
-      bgColor: new Fields.Text('Block background color', 'Background color for the block', opts.bgColor, {
+      bgColor: new Fields.Text('Block background color', 'Background color for the block', options.bgColor, {
         suppress: true
       }),
-      titleColor: new Fields.Text('Block title color', 'Title color for the block', opts.titleColor, {
+      titleColor: new Fields.Text('Block title color', 'Title color for the block', options.titleColor, {
         suppress: true
       }),
-      textColor: new Fields.Text('Block text color', 'Text color for the block', opts.textColor, { suppress: true }),
-      text: new Fields.InternationalizableText('Block text', 'Text content for the block', opts.text, {
+      textColor: new Fields.Text('Block text color', 'Text color for the block', options.textColor, { suppress: true }),
+      text: new Fields.InternationalizableText('Block text', 'Text content for the block', options.text, {
         suppress: true
       }),
-      icon: new Fields.Text('Block icon', 'Icon for the block', opts.icon, { suppress: true }),
-      imgUrl: new Fields.Text('Image URL', 'Image URL', opts.imgUrl, { suppress: true }),
-      videoUrl: new Fields.Text('Video URL', 'Video URL', opts.videoUrl, { suppress: true }),
+      icon: new Fields.Text('Block icon', 'Icon for the block', options.icon, { suppress: true }),
+      imgUrl: new Fields.Text('Image URL', 'Image URL', options.imgUrl, { suppress: true }),
+      videoUrl: new Fields.Text('Video URL', 'Video URL', options.videoUrl, { suppress: true }),
       videoPlaceholder: new Fields.Text(
         'Video Placeholder Image',
         'URL for video placeholder image',
-        opts.videoPlaceholder,
+        options.videoPlaceholder,
         { suppress: true }
       )
     }
@@ -209,8 +209,7 @@ export const block_3 = _createBlock({
   lg: '4',
   titleColor: '#FFF',
   textColor: '#FFF',
-  text:
-    '# __MSG__SUPPORTING_ACADEMIC_COLLABORATION__\n __MSG__A_POWERFULL_NEW_WAY_FOR_STUDENTS_AND_FACULTY_TO_CREATE_KNOWLEDGE_COLLABORATE_AND_CONNECT_WITH_THE_WORLD__'
+  text: '# __MSG__SUPPORTING_ACADEMIC_COLLABORATION__\n __MSG__A_POWERFULL_NEW_WAY_FOR_STUDENTS_AND_FACULTY_TO_CREATE_KNOWLEDGE_COLLABORATE_AND_CONNECT_WITH_THE_WORLD__'
 });
 export const block_4 = _createBlock({
   type: 'iconText',
@@ -235,8 +234,7 @@ export const block_5 = _createBlock({
   bgColor: '#424242',
   titleColor: '#FFF',
   textColor: '#FFF',
-  text:
-    '#### __MSG__CHANNELS_OF_COMMUNICATION__\n __MSG__PARTICIPATING_IN_DISCUSSIONS_AND_FEEDBACK_WITHIN_PERSONALIZED_NETWORKS__',
+  text: '#### __MSG__CHANNELS_OF_COMMUNICATION__\n __MSG__PARTICIPATING_IN_DISCUSSIONS_AND_FEEDBACK_WITHIN_PERSONALIZED_NETWORKS__',
   icon: 'fa-comments'
 });
 export const block_6 = _createBlock({
@@ -249,8 +247,7 @@ export const block_6 = _createBlock({
   bgColor: '#f0EEEC',
   titleColor: '#424242',
   textColor: '#000',
-  text:
-    '#### __MSG__ACCESS_TO_CONTENT__\n __MSG__EXPANDED_ACCESS_TO_LEARNING_AND_RESEARCH_MATERIALS_BETTER_CONNECTS_LIBRARY_SERVICES__',
+  text: '#### __MSG__ACCESS_TO_CONTENT__\n __MSG__EXPANDED_ACCESS_TO_LEARNING_AND_RESEARCH_MATERIALS_BETTER_CONNECTS_LIBRARY_SERVICES__',
   icon: 'fa-cloud-download'
 });
 export const block_7 = _createBlock();

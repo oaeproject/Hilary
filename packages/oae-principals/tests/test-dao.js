@@ -14,8 +14,8 @@
  */
 
 import { assert } from 'chai';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import { forEach, length, keys } from 'ramda';

@@ -13,21 +13,16 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable no-unused-vars */
-
 import { logger } from 'oae-logger';
-
 import * as MeetingSearch from './search.js';
-// Register the activity functionality
+// eslint-disable-next-line no-unused-vars
 import * as activity from './activity.js';
-
-// Register the library functionality
+// eslint-disable-next-line no-unused-vars
 import * as library from './library.js';
 
 const log = logger('oae-jitsi-init');
 
 export function init(config, callback) {
   log().info('Initializing the oae-jitsi module');
-
   return MeetingSearch.init(callback);
 }

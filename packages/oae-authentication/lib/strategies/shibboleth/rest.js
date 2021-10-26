@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import passport from 'passport';
 
 import { logger } from 'oae-logger';
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 import * as ShibbolethAPI from './api.js';
 
 const log = logger('shibboleth');
@@ -197,4 +197,4 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/callback', (request, response, 
   });
 });
 
-export default OAE;
+export { OAE as default };

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
+import { format } from 'node:util';
 import { assert } from 'chai';
-import { format } from 'util';
 
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -170,15 +170,22 @@ describe('LTI tools', () => {
           const secret = 'secret';
           const key = '12345';
 
-          createLtiTool(asCambridgeTenantAdmin, group.id, '', secret, key, 'LTI tool title', null, (
-            error /* , toolObject */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 400);
-            assert.strictEqual(error.msg, 'You need to provide a launch URL for this LTI tool');
+          createLtiTool(
+            asCambridgeTenantAdmin,
+            group.id,
+            '',
+            secret,
+            key,
+            'LTI tool title',
+            null,
+            (error /* , toolObject */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 400);
+              assert.strictEqual(error.msg, 'You need to provide a launch URL for this LTI tool');
 
-            return callback();
-          });
+              return callback();
+            }
+          );
         }
       );
     });
@@ -201,15 +208,22 @@ describe('LTI tools', () => {
           const launchUrl = 'http://lti.launch.url';
           const key = '12345';
 
-          createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, null, key, 'LTI tool title', null, (
-            error /* , toolObject */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 400);
-            assert.strictEqual(error.msg, 'You need to provide an OAUTH secret for this LTI tool');
+          createLtiTool(
+            asCambridgeTenantAdmin,
+            group.id,
+            launchUrl,
+            null,
+            key,
+            'LTI tool title',
+            null,
+            (error /* , toolObject */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 400);
+              assert.strictEqual(error.msg, 'You need to provide an OAUTH secret for this LTI tool');
 
-            return callback();
-          });
+              return callback();
+            }
+          );
         }
       );
     });
@@ -232,15 +246,22 @@ describe('LTI tools', () => {
           const launchUrl = 'http://lti.launch.url';
           const secret = 'secret';
 
-          createLtiTool(asCambridgeTenantAdmin, group.id, launchUrl, secret, null, 'LTI tool title', null, (
-            error /* , toolObject */
-          ) => {
-            assert.ok(error);
-            assert.strictEqual(error.code, 400);
-            assert.strictEqual(error.msg, 'You need to provide an OAUTH consumer key for this LTI tool');
+          createLtiTool(
+            asCambridgeTenantAdmin,
+            group.id,
+            launchUrl,
+            secret,
+            null,
+            'LTI tool title',
+            null,
+            (error /* , toolObject */) => {
+              assert.ok(error);
+              assert.strictEqual(error.code, 400);
+              assert.strictEqual(error.msg, 'You need to provide an OAUTH consumer key for this LTI tool');
 
-            return callback();
-          });
+              return callback();
+            }
+          );
         }
       );
     });

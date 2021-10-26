@@ -26,19 +26,17 @@ import * as Tempfile from './tempfile.js';
 
 const log = logger('oae-cassandra');
 
-export const init = function (config, callback) {
+export function init(config, callback) {
   // Create Cassandra database.
   // TODO: Move Cassandra into its own oae-cassandra module with a high priority. All of the init(..) stuff then goes in its init.js
   bootCassandra(config, () => {
     bootRedis(config, () => {
       bootPubSub(config, () => {
-        bootMQ(config, () => {
-          return callback();
-        });
+        bootMQ(config, () => callback());
       });
     });
   });
-};
+}
 
 const bootCassandra = (config, callback) => {
   const retryCallback = function (error) {

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import http from 'http';
-import { format } from 'util';
+import http from 'node:http';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { nth, split, compose, not, indexOf, equals, either } from 'ramda';
 import bodyParser from 'body-parser';
@@ -77,8 +77,9 @@ const setupServer = function (port, _config) {
    *  * application/json
    *  * multipart (file uploads)
    *
-   * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests. This limit only
-   * applies to the *incoming request data*. If the client needs to send more than 250kb, it should consider
+   * A maximum limit of 250kb is imposed for `urlencoded` and `application/json` requests.
+   * This limit only applies to the *incoming request data*.
+   * If the client needs to send more than 250kb, it should consider
    * using a proper multipart form request.
    */
   app.use(bodyParser.urlencoded({ limit: '250kb', extended: true }));
@@ -158,7 +159,7 @@ const setupRouter = function (app) {
         }
       ];
 
-      app[route.method](route.route, handlers.concat(route.handler));
+      app[route.method](route.route, [...handlers, route.handler]);
     });
   };
 
@@ -321,9 +322,7 @@ const _abort = function (response, code, message) {
  */
 const _isSafePath = function (request) {
   const { path } = request;
-  const matchingPaths = _.filter(safePathPrefixes, (safePathPrefix) => {
-    return path.indexOf(safePathPrefix) === 0;
-  });
+  const matchingPaths = _.filter(safePathPrefixes, (safePathPrefix) => path.indexOf(safePathPrefix) === 0);
   return matchingPaths.length > 0;
 };
 

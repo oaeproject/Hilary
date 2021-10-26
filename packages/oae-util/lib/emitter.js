@@ -21,4 +21,4 @@ import * as EmitterAPI from 'oae-emitter';
  * * `ready` - Emitted when server start-up has completed and the application is ready to start accepting requests
  */
 const emitter = new EmitterAPI.EventEmitter();
-export default emitter;
+export { emitter as default };

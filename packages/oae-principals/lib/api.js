@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
+import { mergeAll } from 'ramda';
 
-import * as GroupAPI from './api.group';
-import * as PictureAPI from './api.picture';
-import * as TermsAndConditionsAPI from './api.termsAndConditions';
-import * as UserAPI from './api.user';
+import * as GroupAPI from './api.group.js';
+import * as PictureAPI from './api.picture.js';
+import * as TermsAndConditionsAPI from './api.terms-and-conditions.js';
+import * as UserAPI from './api.user.js';
 
 /**
  * ### Events
@@ -40,8 +40,10 @@ import * as UserAPI from './api.user';
  */
 import PrincipalsAPI from './internal/emitter.js';
 
-const allExports = {};
-// This file would become unmaintainable if all the logic would be placed here.
-// That's why we split them up in a couple of files of which the api logic gets exported.
-export default _.extend(allExports, GroupAPI, PictureAPI, TermsAndConditionsAPI, UserAPI);
-export { PrincipalsAPI as emitter };
+/**
+ * This file would become unmaintainable if all the logic would be placed here.
+ * That's why we split them up in a couple of files of which the api logic gets exported.
+ */
+const allExports = mergeAll([TermsAndConditionsAPI, GroupAPI, PictureAPI, UserAPI]);
+
+export { PrincipalsAPI as emitter, allExports as default };

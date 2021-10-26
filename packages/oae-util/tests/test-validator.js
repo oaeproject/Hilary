@@ -16,9 +16,10 @@
 import { assert } from 'chai';
 
 import { Context } from 'oae-context';
-import { Tenant } from 'oae-tenants/lib/model';
-import { User } from 'oae-principals/lib/model.user';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Tenant } from 'oae-tenants/lib/model.js';
+import { User } from 'oae-principals/lib/model.user.js';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+import * as TestsUtil from 'oae-tests/lib/util.js';
 
 const {
   isDefined,
@@ -58,7 +59,6 @@ const {
   defaultToEmptyObject,
   isNotEmpty
 } = validator;
-import * as TestsUtil from 'oae-tests/lib/util';
 
 describe('Utilities', () => {
   describe('Validator', () => {
@@ -380,7 +380,7 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isMediumString
      */
     it('verify isMediumString validation', (callback) => {
-      const bigString = TestsUtil.generateRandomText(10001);
+      const bigString = TestsUtil.generateRandomText(10_001);
       try {
         isMediumString(null);
       } catch (error) {
@@ -398,7 +398,7 @@ describe('Utilities', () => {
      * Test that verifies validation results for a variety of inputs to validator.isLongString
      */
     it('verify isLongString validation', (callback) => {
-      const bigString = TestsUtil.generateRandomText(100001);
+      const bigString = TestsUtil.generateRandomText(100_001);
       try {
         isLongString(null);
       } catch (error) {
@@ -501,7 +501,7 @@ describe('Utilities', () => {
       }
 
       try {
-        isHost('localhost:2000:');
+        isHost('localhost:3000:');
       } catch (error) {
         assert.ok(error);
         assert.strictEqual(error.msg, error_.msg);
@@ -511,7 +511,7 @@ describe('Utilities', () => {
       // A set of valid hosts
       isHost('www.google.com');
       isHost('unity.ac');
-      isHost('localhost:2000');
+      isHost('localhost:3000');
       isHost('trailing.dots.are.valid.too.');
       return callback();
     });

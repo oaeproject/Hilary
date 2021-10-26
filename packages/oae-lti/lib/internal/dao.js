@@ -15,8 +15,8 @@
 
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra';
-import { LtiTool } from 'oae-lti/lib/model';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { LtiTool } from 'oae-lti/lib/model.js';
 
 /**
  * Create an LTI tool
@@ -32,16 +32,16 @@ import { LtiTool } from 'oae-lti/lib/model';
  * @param  {Object}         callback.err           An error that occurred, if any
  * @param  {LtiTool}        callback.ltiTool       The LTI tool that was created
  */
-const createLtiTool = function(id, groupId, launchUrl, secret, consumerKey, displayName, description, callback) {
+const createLtiTool = function (id, groupId, launchUrl, secret, consumerKey, displayName, description, callback) {
   displayName = displayName || 'LTI tool';
   description = description || '';
 
   const query =
     'INSERT INTO "LtiTools" ("id", "groupId", "launchUrl", "secret", "oauthConsumerKey", "displayName", "description") VALUES (?, ?, ?, ?, ?, ?, ?)';
   const parameters = [id, groupId, launchUrl, secret, consumerKey, displayName, description];
-  Cassandra.runQuery(query, parameters, err => {
-    if (err) {
-      return callback(err);
+  Cassandra.runQuery(query, parameters, (error) => {
+    if (error) {
+      return callback(error);
     }
 
     const ltiTool = new LtiTool(id, groupId, launchUrl, secret, consumerKey, {
@@ -65,10 +65,10 @@ const createLtiTool = function(id, groupId, launchUrl, secret, consumerKey, disp
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {LtiTool}    callback.ltiTool    The request LTI tool object
  */
-const getLtiTool = function(id, groupId, callback) {
-  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ? AND "id" = ?', [groupId, id], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getLtiTool = function (id, groupId, callback) {
+  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ? AND "id" = ?', [groupId, id], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
     if (_.isEmpty(rows)) {
@@ -90,13 +90,13 @@ const getLtiTool = function(id, groupId, callback) {
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {LtiTool[]}      callback.ltiTools   The LtiTools that are identified by the given group.
  */
-const getLtiToolsByGroupId = function(groupId, callback) {
-  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ?', [groupId], (err, rows) => {
-    if (err) {
-      return callback(err);
+const getLtiToolsByGroupId = function (groupId, callback) {
+  Cassandra.runQuery('SELECT * FROM "LtiTools" WHERE "groupId" = ?', [groupId], (error, rows) => {
+    if (error) {
+      return callback(error);
     }
 
-    const tools = _.map(rows, row => {
+    const tools = _.map(rows, (row) => {
       const ltiTool = _rowToLtiTool(row);
 
       // Scrub out OAUTH parameters - they are only needed for tool launches
@@ -117,7 +117,7 @@ const getLtiToolsByGroupId = function(groupId, callback) {
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const deleteLtiTool = function(id, groupId, callback) {
+const deleteLtiTool = function (id, groupId, callback) {
   Cassandra.runQuery('DELETE FROM "LtiTools" WHERE "groupId" = ? AND "id" = ?', [groupId, id], callback);
 };
 
@@ -128,7 +128,7 @@ const deleteLtiTool = function(id, groupId, callback) {
  * @return {LtiTool}                      The LTI tool represented by the provided data
  * @api private
  */
-const _rowToLtiTool = function(row) {
+const _rowToLtiTool = function (row) {
   const hash = Cassandra.rowToHash(row);
   const tool = new LtiTool(hash.id, hash.groupId, hash.launchUrl, hash.secret, hash.oauthConsumerKey, {
     displayName: hash.displayName,

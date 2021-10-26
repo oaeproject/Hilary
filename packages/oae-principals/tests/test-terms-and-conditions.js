@@ -14,10 +14,10 @@
  */
 
 import { assert } from 'chai';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import { RestContext } from 'oae-rest/lib/model';
+import { RestContext } from 'oae-rest/lib/model.js';
 
 const PUBLIC = 'public';
 
@@ -105,59 +105,65 @@ describe('Terms and Conditions', () => {
           // Not passing in acceptedTC: true should result in a 400
           const username = TestsUtil.generateRandomText(5);
           const email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.cam.emailDomains[0]);
-          RestAPI.User.createUser(asCambridgeAnonymousUser, username, 'password', 'Test User', email, {}, (
-            error /* , userObj */
-          ) => {
-            assert.strictEqual(error.code, 400);
-            RestAPI.User.createUser(
-              asCambridgeAnonymousUser,
-              username,
-              'password',
-              'Test User',
-              email,
-              { acceptedTC: false },
-              (error /* , userObj */) => {
-                assert.strictEqual(error.code, 400);
-                RestAPI.User.createUser(
-                  asCambridgeAnonymousUser,
-                  username,
-                  'password',
-                  'Test User',
-                  email,
-                  { acceptedTC: 'wrong' },
-                  (error /* , userObj */) => {
-                    assert.strictEqual(error.code, 400);
+          RestAPI.User.createUser(
+            asCambridgeAnonymousUser,
+            username,
+            'password',
+            'Test User',
+            email,
+            {},
+            (error /* , userObj */) => {
+              assert.strictEqual(error.code, 400);
+              RestAPI.User.createUser(
+                asCambridgeAnonymousUser,
+                username,
+                'password',
+                'Test User',
+                email,
+                { acceptedTC: false },
+                (error /* , userObj */) => {
+                  assert.strictEqual(error.code, 400);
+                  RestAPI.User.createUser(
+                    asCambridgeAnonymousUser,
+                    username,
+                    'password',
+                    'Test User',
+                    email,
+                    { acceptedTC: 'wrong' },
+                    (error /* , userObj */) => {
+                      assert.strictEqual(error.code, 400);
 
-                    RestAPI.User.createUser(
-                      asCambridgeAnonymousUser,
-                      username,
-                      'password',
-                      'Test User',
-                      email,
-                      { acceptedTC: true },
-                      (error, userObject) => {
-                        assert.notExists(error);
-                        assert.strictEqual(typeof userObject.acceptedTC, 'number');
-                        assert.ok(userObject.acceptedTC <= Date.now());
-                        assert.strictEqual(userObject.needsToAcceptTC, false);
+                      RestAPI.User.createUser(
+                        asCambridgeAnonymousUser,
+                        username,
+                        'password',
+                        'Test User',
+                        email,
+                        { acceptedTC: true },
+                        (error, userObject) => {
+                          assert.notExists(error);
+                          assert.strictEqual(typeof userObject.acceptedTC, 'number');
+                          assert.ok(userObject.acceptedTC <= Date.now());
+                          assert.strictEqual(userObject.needsToAcceptTC, false);
 
-                        // Re-enable the reCaptcha checks
-                        ConfigTestUtil.updateConfigAndWait(
-                          asCambridgeTenantAdmin,
-                          null,
-                          { 'oae-principals/recaptcha/enabled': true },
-                          (error_) => {
-                            assert.notExists(error_);
-                            callback();
-                          }
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-          });
+                          // Re-enable the reCaptcha checks
+                          ConfigTestUtil.updateConfigAndWait(
+                            asCambridgeTenantAdmin,
+                            null,
+                            { 'oae-principals/recaptcha/enabled': true },
+                            (error_) => {
+                              assert.notExists(error_);
+                              callback();
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
         });
       }
     );
@@ -534,7 +540,7 @@ describe('Terms and Conditions', () => {
 
                       // Create an anonymous request context that sends an `Accept-Language: en_CA` header
                       // to verify that is picked up if no other options are present
-                      const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                      const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                         hostHeader: global.oaeTests.tenants.cam.host,
                         additionalHeaders: { 'Accept-Language': 'en-gb' }
                       });

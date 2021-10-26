@@ -1,6 +1,7 @@
 {
   "main": "./lib/oae.js",
   "name": "oae-util",
+  "type": "module",
   "oae": {
     "priority": 1
   },

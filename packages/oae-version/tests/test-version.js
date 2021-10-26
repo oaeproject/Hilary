@@ -17,7 +17,8 @@ import { assert } from 'chai';
 import { fromJS } from 'immutable';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
-import * as redis from 'oae-util/lib/redis';
+
+import * as redis from 'oae-util/lib/redis.js';
 
 const { getVersion } = RestAPI.Version;
 
@@ -63,7 +64,7 @@ describe('Git information', () => {
 
       const submodules = hilaryInfo.get('submodules');
       assert.isObject(submodules);
-      assert.strictEqual(submodules.size, 3);
+      assert.strictEqual(submodules.size, 2);
 
       // oae-rest submodule
       let submoduleName = 'oae-rest';
@@ -75,13 +76,6 @@ describe('Git information', () => {
 
       // 3akai-ux submodule
       submoduleName = '3akai-ux';
-      submodulePath = submodules.get(submoduleName).get(PATH);
-      assert.strictEqual(submodulePath.size, 1);
-      assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));
-      assert.ok(submodulePath.get(0).get(0).includes(submoduleName));
-
-      // restjsdoc submodule
-      submoduleName = 'restjsdoc';
       submodulePath = submodules.get(submoduleName).get(PATH);
       assert.strictEqual(submodulePath.size, 1);
       assert.ok(submodulePath.get(0).get(0).includes(PACKAGE_JSON));

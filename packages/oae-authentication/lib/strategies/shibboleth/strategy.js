@@ -13,7 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { inherits, format } from 'util';
+// TODO get rid of `inherits` and see this: https://nodejs.org/api/util.html#util_util_inherits_constructor_superconstructor
+import { inherits, format } from 'node:util';
 import passport from 'passport';
 
 /**
@@ -51,8 +52,6 @@ inherits(Strategy, passport.Strategy);
  * @api protected
  */
 Strategy.prototype.authenticate = function (request) {
-  const self = this;
-
   /*
    * If the user has authenticated through Shibboleth and is returning from the Identity Provider (IdP),
    * there should be a `shib-session-id` header in the request. If the user is indicating that he
@@ -64,9 +63,9 @@ Strategy.prototype.authenticate = function (request) {
   if (sessionId) {
     // Pass the request as the first argument to the verify function if
     // `passReqToCallback` was specified
-    let verifyFn = self.verify;
-    if (self._passReqToCallback) {
-      verifyFn = verifyFn.bind(self, request);
+    let verifyFn = this.verify;
+    if (this._passReqToCallback) {
+      verifyFn = verifyFn.bind(this, request);
     }
 
     /*
@@ -86,11 +85,11 @@ Strategy.prototype.authenticate = function (request) {
      */
     verifyFn(request.headers, (error, user) => {
       if (error) {
-        return self.error(new Error(error.msg));
+        return this.error(new Error(error.msg));
       }
 
       // We pass it on to passport so it can be stored in the express session object
-      return self.success(user);
+      return this.success(user);
     });
   } else {
     /*
@@ -109,15 +108,15 @@ Strategy.prototype.authenticate = function (request) {
       '/Shibboleth.sso/Login?target=%s',
       encodeURIComponent('/api/auth/shibboleth/sp/returned')
     );
-    if (self.options.idpEntityID) {
-      redirectUrl += format('&entityID=%s', encodeURIComponent(self.options.idpEntityID));
+    if (this.options.idpEntityID) {
+      redirectUrl += format('&entityID=%s', encodeURIComponent(this.options.idpEntityID));
     }
 
-    return self.redirect(redirectUrl);
+    return this.redirect(redirectUrl);
   }
 };
 
 /**
  * Expose `Strategy`
  */
-export default Strategy;
+export { Strategy as default };

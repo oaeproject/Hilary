@@ -14,7 +14,7 @@
  */
 
 import _ from 'underscore';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as UIAPI from 'oae-ui';
 
 /**
@@ -27,7 +27,7 @@ import * as UIAPI from 'oae-ui';
  * @param  {Object}         callback.err        An error that occurred, if any
  * @param  {Object}         callback.response   The response from the Config REST API.
  */
-const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
+const updateSkinAndWait = function (restCtx, tenantAlias, skinConfig, callback) {
   let calledBack = false;
   let requestReturned = false;
   let skinFileParsed = false;
@@ -41,13 +41,13 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
    *
    * @param  {Object}     err     An error that occured in either request
    */
-  const _callback = function(err) {
+  const _callback = function (error) {
     if (calledBack) {
       // Already called back, do nothing
-    } else if (err) {
+    } else if (error) {
       // Received an error from either rest endpoint or skin parse, throw the error
       calledBack = true;
-      return callback(err);
+      return callback(error);
     } else if (requestReturned && skinFileParsed) {
       // Call the callback with the arguments from the web request
       calledBack = true;
@@ -60,11 +60,11 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
     configUpdate['oae-ui/skin/variables/' + key] = value;
   });
   ConfigTestUtil.updateConfigAndWait(restCtx, tenantAlias, configUpdate, (...args) => {
-    const err = _.first(args);
-    if (err) {
+    const error = _.first(args);
+    if (error) {
       // Remove this listener, since it may not be invoked and "leak" due to this error
       UIAPI.emitter.removeListener('skinParsed', _updateListener);
-      return _callback(err);
+      return _callback(error);
     }
 
     responseArgs = args;
@@ -77,7 +77,7 @@ const updateSkinAndWait = function(restCtx, tenantAlias, skinConfig, callback) {
    *
    * @see UIAPI events for parameter description
    */
-  const _updateListener = function() {
+  const _updateListener = function () {
     skinFileParsed = true;
     return _callback();
   };

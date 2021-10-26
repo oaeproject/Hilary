@@ -13,25 +13,30 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { pluck, mergeRight, keys } from 'ramda';
+import { assert } from 'chai';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ConfigTestUtil from 'oae-config/lib/test/util';
-import * as EmailTestUtil from 'oae-email/lib/test/util';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
+import * as EmailTestUtil from 'oae-email/lib/test/util.js';
 import * as RestAPI from 'oae-rest';
-import * as TenantsTestUtil from 'oae-tenants/lib/test/util';
+import * as TenantsTestUtil from 'oae-tenants/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
-import * as PrincipalsTestUtil from 'oae-principals/lib/test/util';
+import * as PrincipalsTestUtil from 'oae-principals/lib/test/util.js';
 
-import { RestContext } from 'oae-rest/lib/model';
+import { RestContext } from 'oae-rest/lib/model.js';
 import { Context } from 'oae-context';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('Users', () => {
   // Rest contexts that can be used to make requests as different types of users
@@ -73,15 +78,11 @@ describe('Users', () => {
       });
 
       // Verify we can successfully register one with a function afterward
-      PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => {
-        return callback();
-      });
+      PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => callback());
 
       // Verify we cannot register a duplicate
       assert.throws(() => {
-        PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => {
-          return callback();
-        });
+        PrincipalsAPI.registerFullUserProfileDecorator(testId, (ctx, user, callback) => callback());
       });
 
       return callback();
@@ -98,24 +99,18 @@ describe('Users', () => {
       const testFalseNamespace = TestsUtil.generateRandomText();
       const testErrorNamespace = TestsUtil.generateRandomText();
 
-      PrincipalsAPI.registerFullUserProfileDecorator(testUndefinedNamespace, (ctx, user, callback) => {
-        return callback();
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testNullNamespace, (ctx, user, callback) => {
-        return callback(null, null);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testZeroNamespace, (ctx, user, callback) => {
-        return callback(null, 0);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testEmptyStringNamespace, (ctx, user, callback) => {
-        return callback(null, '');
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testFalseNamespace, (ctx, user, callback) => {
-        return callback(null, false);
-      });
-      PrincipalsAPI.registerFullUserProfileDecorator(testErrorNamespace, (ctx, user, callback) => {
-        return callback({ code: 500, msg: 'Expected' });
-      });
+      PrincipalsAPI.registerFullUserProfileDecorator(testUndefinedNamespace, (ctx, user, callback) => callback());
+      PrincipalsAPI.registerFullUserProfileDecorator(testNullNamespace, (ctx, user, callback) => callback(null, null));
+      PrincipalsAPI.registerFullUserProfileDecorator(testZeroNamespace, (ctx, user, callback) => callback(null, 0));
+      PrincipalsAPI.registerFullUserProfileDecorator(testEmptyStringNamespace, (ctx, user, callback) =>
+        callback(null, '')
+      );
+      PrincipalsAPI.registerFullUserProfileDecorator(testFalseNamespace, (ctx, user, callback) =>
+        callback(null, false)
+      );
+      PrincipalsAPI.registerFullUserProfileDecorator(testErrorNamespace, (ctx, user, callback) =>
+        callback({ code: 500, msg: 'Expected' })
+      );
 
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 1, (error, users) => {
         assert.notExists(error);
@@ -210,9 +205,7 @@ describe('Users', () => {
                         assert.ok(!token);
 
                         // Ensure no verification email was sent since we had a verification token
-                        EmailTestUtil.collectAndFetchAllEmails((/* messages */) => {
-                          return callback();
-                        });
+                        EmailTestUtil.collectAndFetchAllEmails((/* messages */) => callback());
                       }
                     );
                   });
@@ -448,9 +441,7 @@ describe('Users', () => {
 
                   // Only user accounts with an email that belongs to the configured email domain can be created
                   _verifyCreateUserWithEmailDomain(tenantHost, emailDomain1, () => {
-                    _verifyCreateUserWithEmailDomainFails(tenantHost, emailDomain2, () => {
-                      return callback();
-                    });
+                    _verifyCreateUserWithEmailDomainFails(tenantHost, emailDomain2, () => callback());
                   });
                 });
               });
@@ -490,9 +481,7 @@ describe('Users', () => {
             displayName: 'displayName',
             email: TestsUtil.generateTestEmailAddress(null, emailDomain)
           };
-          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => {
-            return callback();
-          });
+          PrincipalsTestUtil.assertCreateUserSucceeds(tenantAdminRestContext, parameters, () => callback());
         });
       });
     });
@@ -811,7 +800,7 @@ describe('Users', () => {
                   assert.strictEqual(createdUser2.locale, 'es_ES');
 
                   // Create a user with no locale, but using an Accept-Language header
-                  const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                  const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                     hostHeader: global.oaeTests.tenants.cam.host,
                     additionalHeaders: { 'Accept-Language': 'en-us' }
                   });
@@ -887,7 +876,7 @@ describe('Users', () => {
      * locale in the me feed
      */
     it('verify anonymous locale', (callback) => {
-      const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+      const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
         hostHeader: global.oaeTests.tenants.cam.host,
         additionalHeaders: { 'Accept-Language': 'en-us' }
       });
@@ -897,7 +886,7 @@ describe('Users', () => {
         assert.strictEqual(meData.locale, 'en_US');
 
         // This guy prefers US English but will take Spanish if that's all we have
-        const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+        const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
           hostHeader: global.oaeTests.tenants.cam.host,
           additionalHeaders: { 'Accept-Language': 'es-es;q=0.5, en-us' }
         });
@@ -907,7 +896,7 @@ describe('Users', () => {
           assert.strictEqual(meData.locale, 'en_US');
 
           // If you just say a language without specifying the country we'll give you some form of that language
-          const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+          const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
             hostHeader: global.oaeTests.tenants.cam.host,
             additionalHeaders: { 'Accept-Language': 'en' }
           });
@@ -918,7 +907,7 @@ describe('Users', () => {
 
             // Make sure polyglots serve the most preferred language
             // @see https://github.com/oaeproject/Hilary/pull/862
-            const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+            const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
               hostHeader: global.oaeTests.tenants.cam.host,
               additionalHeaders: {
                 'Accept-Language':
@@ -932,7 +921,7 @@ describe('Users', () => {
 
               // If the user only speaks a language that we don't support, the me object will indicate
               // that the user has no language preference
-              const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+              const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                 hostHeader: global.oaeTests.tenants.cam.host,
                 additionalHeaders: { 'Accept-Language': 'qq-ZZ' }
               });
@@ -943,7 +932,7 @@ describe('Users', () => {
 
                 // If the user only speaks languages that we don't support, the me object will indicate
                 // that the user has no language preference
-                const acceptLanguageRestContext = new RestContext('http://localhost:2001', {
+                const acceptLanguageRestContext = new RestContext('http://localhost:3001', {
                   hostHeader: global.oaeTests.tenants.cam.host,
                   additionalHeaders: { 'Accept-Language': 'qq-ZZ, zz-ZZ;q=0.50, qq-QQ;q=0.30' }
                 });
@@ -1016,35 +1005,47 @@ describe('Users', () => {
 
                       // Create user with displayName that is longer than the maximum allowed size
                       const longDisplayName = TestsUtil.generateRandomText(100);
-                      RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', longDisplayName, email, {}, (
-                        error /* , userObj */
-                      ) => {
-                        assert.ok(error);
-                        assert.strictEqual(error.code, 400);
-
-                        // Create a user with no email address
-                        RestAPI.User.createUser(asCambridgeTenantAdmin, userId, 'password', 'Test user', null, {}, (
-                          error /* , userObj */
-                        ) => {
+                      RestAPI.User.createUser(
+                        asCambridgeTenantAdmin,
+                        userId,
+                        'password',
+                        longDisplayName,
+                        email,
+                        {},
+                        (error /* , userObj */) => {
                           assert.ok(error);
                           assert.strictEqual(error.code, 400);
 
-                          // Create a user with an invalid email address
+                          // Create a user with no email address
                           RestAPI.User.createUser(
                             asCambridgeTenantAdmin,
                             userId,
                             'password',
                             'Test user',
-                            'not an email address',
+                            null,
                             {},
                             (error /* , userObj */) => {
                               assert.ok(error);
                               assert.strictEqual(error.code, 400);
-                              return callback();
+
+                              // Create a user with an invalid email address
+                              RestAPI.User.createUser(
+                                asCambridgeTenantAdmin,
+                                userId,
+                                'password',
+                                'Test user',
+                                'not an email address',
+                                {},
+                                (error /* , userObj */) => {
+                                  assert.ok(error);
+                                  assert.strictEqual(error.code, 400);
+                                  return callback();
+                                }
+                              );
                             }
                           );
-                        });
-                      });
+                        }
+                      );
                     }
                   );
                 }
@@ -2254,26 +2255,12 @@ describe('Users', () => {
      * Test that verifies the tenant data is returned in the me feed.
      */
     it('verify that the me feed returns a tenant object', (callback) => {
-      TestsUtil.setupMultiTenantPrivacyEntities((
-        publicTenant1,
-        publicTenant2,
-        privateTenant1 /* , privateTenant2 */
-      ) => {
-        // Verify it for a regular user
-        RestAPI.User.getMe(publicTenant1.publicUser.restContext, (error, meData) => {
-          assert.notExists(error);
-          assert.ok(!meData.anon);
-          assert.isObject(meData.tenant);
-          assert.lengthOf(keys(meData.tenant), 4);
-          assert.strictEqual(meData.tenant.displayName, publicTenant1.tenant.displayName);
-          assert.strictEqual(meData.tenant.alias, publicTenant1.tenant.alias);
-          assert.strictEqual(meData.tenant.isPrivate, false);
-          assert.deepStrictEqual(meData.tenant.emailDomains, publicTenant1.tenant.emailDomains);
-
-          // Verify it for an anonymous user
-          RestAPI.User.getMe(publicTenant1.anonymousRestContext, (error, meData) => {
+      TestsUtil.setupMultiTenantPrivacyEntities(
+        (publicTenant1, publicTenant2, privateTenant1 /* , privateTenant2 */) => {
+          // Verify it for a regular user
+          RestAPI.User.getMe(publicTenant1.publicUser.restContext, (error, meData) => {
             assert.notExists(error);
-            assert.ok(meData.anon);
+            assert.ok(!meData.anon);
             assert.isObject(meData.tenant);
             assert.lengthOf(keys(meData.tenant), 4);
             assert.strictEqual(meData.tenant.displayName, publicTenant1.tenant.displayName);
@@ -2281,21 +2268,21 @@ describe('Users', () => {
             assert.strictEqual(meData.tenant.isPrivate, false);
             assert.deepStrictEqual(meData.tenant.emailDomains, publicTenant1.tenant.emailDomains);
 
-            // Verify it for a user on a private tenant
-            RestAPI.User.getMe(privateTenant1.publicUser.restContext, (error, meData) => {
+            // Verify it for an anonymous user
+            RestAPI.User.getMe(publicTenant1.anonymousRestContext, (error, meData) => {
               assert.notExists(error);
-              assert.ok(!meData.anon);
+              assert.ok(meData.anon);
               assert.isObject(meData.tenant);
               assert.lengthOf(keys(meData.tenant), 4);
-              assert.strictEqual(meData.tenant.displayName, privateTenant1.tenant.displayName);
-              assert.strictEqual(meData.tenant.alias, privateTenant1.tenant.alias);
-              assert.strictEqual(meData.tenant.isPrivate, true);
-              assert.deepStrictEqual(meData.tenant.emailDomains, privateTenant1.tenant.emailDomains);
+              assert.strictEqual(meData.tenant.displayName, publicTenant1.tenant.displayName);
+              assert.strictEqual(meData.tenant.alias, publicTenant1.tenant.alias);
+              assert.strictEqual(meData.tenant.isPrivate, false);
+              assert.deepStrictEqual(meData.tenant.emailDomains, publicTenant1.tenant.emailDomains);
 
-              // Verify it for an anonymous user on a private tenant
-              RestAPI.User.getMe(privateTenant1.anonymousRestContext, (error, meData) => {
+              // Verify it for a user on a private tenant
+              RestAPI.User.getMe(privateTenant1.publicUser.restContext, (error, meData) => {
                 assert.notExists(error);
-                assert.ok(meData.anon);
+                assert.ok(!meData.anon);
                 assert.isObject(meData.tenant);
                 assert.lengthOf(keys(meData.tenant), 4);
                 assert.strictEqual(meData.tenant.displayName, privateTenant1.tenant.displayName);
@@ -2303,12 +2290,24 @@ describe('Users', () => {
                 assert.strictEqual(meData.tenant.isPrivate, true);
                 assert.deepStrictEqual(meData.tenant.emailDomains, privateTenant1.tenant.emailDomains);
 
-                return callback();
+                // Verify it for an anonymous user on a private tenant
+                RestAPI.User.getMe(privateTenant1.anonymousRestContext, (error, meData) => {
+                  assert.notExists(error);
+                  assert.ok(meData.anon);
+                  assert.isObject(meData.tenant);
+                  assert.lengthOf(keys(meData.tenant), 4);
+                  assert.strictEqual(meData.tenant.displayName, privateTenant1.tenant.displayName);
+                  assert.strictEqual(meData.tenant.alias, privateTenant1.tenant.alias);
+                  assert.strictEqual(meData.tenant.isPrivate, true);
+                  assert.deepStrictEqual(meData.tenant.emailDomains, privateTenant1.tenant.emailDomains);
+
+                  return callback();
+                });
               });
             });
           });
-        });
-      });
+        }
+      );
     });
 
     /**
@@ -2665,25 +2664,32 @@ describe('Users', () => {
             assert.ok(error);
             assert.strictEqual(error.code, 404);
             // Try and get users as a non-admin user
-            RestAPI.Admin.getAllUsersForTenant(asCambridgeAnonymousUser, global.oaeTests.tenants.gt.alias, (
-              error /* , users */
-            ) => {
-              assert.ok(error);
-              assert.strictEqual(error.code, 401);
-              // Try and get users for a tenant with no users
-              const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
-              const tenantHost = TenantsTestUtil.generateTestTenantHost();
-              TenantsTestUtil.createTenantAndWait(asGlobalAdmin, tenantAlias, 'Empty tenant', tenantHost, {}, (
-                error /* , tenant */
-              ) => {
-                assert.notExists(error);
-                RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, tenantAlias, (error, users) => {
-                  assert.notExists(error);
-                  assert.ok(users.length === 0);
-                  return callback();
-                });
-              });
-            });
+            RestAPI.Admin.getAllUsersForTenant(
+              asCambridgeAnonymousUser,
+              global.oaeTests.tenants.gt.alias,
+              (error /* , users */) => {
+                assert.ok(error);
+                assert.strictEqual(error.code, 401);
+                // Try and get users for a tenant with no users
+                const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
+                const tenantHost = TenantsTestUtil.generateTestTenantHost();
+                TenantsTestUtil.createTenantAndWait(
+                  asGlobalAdmin,
+                  tenantAlias,
+                  'Empty tenant',
+                  tenantHost,
+                  {},
+                  (error /* , tenant */) => {
+                    assert.notExists(error);
+                    RestAPI.Admin.getAllUsersForTenant(asGlobalAdmin, tenantAlias, (error, users) => {
+                      assert.notExists(error);
+                      assert.ok(users.length === 0);
+                      return callback();
+                    });
+                  }
+                );
+              }
+            );
           });
         });
       });
@@ -3341,14 +3347,24 @@ describe('Users', () => {
 
           // Create user B in GT tenant
           email = TestsUtil.generateTestEmailAddress(null, global.oaeTests.tenants.gt.emailDomains[0]);
-          RestAPI.User.createUser(asGeorgiaTechTenantAdmin, usernameB, 'password', 'Private User', email, {}, (
-            error /* , userB */
-          ) => {
-            assert.notExists(error);
-            const restCtxB = TestsUtil.createTenantRestContext(global.oaeTests.tenants.gt.host, usernameB, 'password');
+          RestAPI.User.createUser(
+            asGeorgiaTechTenantAdmin,
+            usernameB,
+            'password',
+            'Private User',
+            email,
+            {},
+            (error /* , userB */) => {
+              assert.notExists(error);
+              const restCtxB = TestsUtil.createTenantRestContext(
+                global.oaeTests.tenants.gt.host,
+                usernameB,
+                'password'
+              );
 
-            verifyProfilePermissions(restCtxB, userA.id, false, 'A user.', undefined, 'loggedin', callback);
-          });
+              verifyProfilePermissions(restCtxB, userA.id, false, 'A user.', undefined, 'loggedin', callback);
+            }
+          );
         }
       );
     });

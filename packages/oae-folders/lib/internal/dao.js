@@ -14,18 +14,18 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as ContentDAO from 'oae-content/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as ContentDAO from 'oae-content/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
-import { Folder } from 'oae-folders/lib/model';
+import { Folder } from 'oae-folders/lib/model.js';
 
 /**
  * Create a folder
@@ -89,9 +89,7 @@ const getFoldersByIds = function (folderIds, callback) {
     // Assemble the folders array, ensuring it is in the same order as the original ids
     const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
     const folders = _.chain(folderIds)
-      .map((folderId) => {
-        return foldersById[folderId];
-      })
+      .map((folderId) => foldersById[folderId])
       .compact()
       .value();
 
@@ -120,9 +118,7 @@ const getFoldersByGroupIds = function (groupIds, callback) {
     // Assemble the folder ids, ensuring the original ordering is maintained
     const folderIdsByGroupIds = _.chain(rows).map(Cassandra.rowToHash).indexBy('groupId').value();
     const folderIds = _.chain(groupIds)
-      .map((groupId) => {
-        return folderIdsByGroupIds[groupId];
-      })
+      .map((groupId) => folderIdsByGroupIds[groupId])
       .compact()
       .pluck('folderId')
       .value();

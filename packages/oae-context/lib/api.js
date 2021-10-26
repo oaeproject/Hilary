@@ -24,7 +24,7 @@ import * as TenantAPI from 'oae-tenants';
  * @param  {String}     locale                      The suggested locale for this user. The actual locale displayed however may be different based on tenant defaults and/or user preferences
  * @param  {User}       imposter                    The the current `user` is currently being impostered by an administrative user, this user object should be the imposter
  */
-const Context = function(tenant, user, authenticationStrategy, locale, imposter) {
+const Context = function (tenant, user, authenticationStrategy, locale, imposter) {
   const that = {};
 
   /**
@@ -32,7 +32,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    *
    * @return {Tenant}     The tenant associated to the current context
    */
-  that.tenant = function() {
+  that.tenant = function () {
     return tenant;
   };
 
@@ -41,7 +41,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    *
    * @return {User}   The user associated to the current context
    */
-  that.user = function() {
+  that.user = function () {
     return user;
   };
 
@@ -50,7 +50,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    *
    * @return {String}     The authentication strategy that was used to sign in
    */
-  that.authenticationStrategy = function() {
+  that.authenticationStrategy = function () {
     return authenticationStrategy;
   };
 
@@ -62,7 +62,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    * @param  {Boolean}    [loc.defaulted]     `true` if a fall-back locale was used, `false` otherwise
    * @return {String}                         The locale associated to the current execution context
    */
-  that.locale = function(loc) {
+  that.locale = function (loc) {
     // Only use the provided locale if it does not default to a fall-back
     if (loc && !loc.defaulted) {
       locale = String(loc);
@@ -76,7 +76,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    *
    * @return {String}     The resolved locale for a context. Falls back to `default` if no suitable locale was found
    */
-  that.resolvedLocale = function() {
+  that.resolvedLocale = function () {
     // 1. If the user is logged in, we check if he has set the locale value
     if (that.user() && that.user().locale) {
       return that.user().locale;
@@ -99,7 +99,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
    *
    * @return {User}   The user who is impostering the user in context
    */
-  that.imposter = function() {
+  that.imposter = function () {
     return imposter;
   };
 
@@ -112,7 +112,7 @@ const Context = function(tenant, user, authenticationStrategy, locale, imposter)
  * @param  {User}       user    The user for which to create a context
  * @return {Context}            The context that is authenticated with the given user on their tenant
  */
-Context.fromUser = function(user) {
+Context.fromUser = function (user) {
   return new Context(TenantAPI.getTenant(user.tenant.alias), user);
 };
 

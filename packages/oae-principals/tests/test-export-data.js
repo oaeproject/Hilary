@@ -13,10 +13,12 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import dateFormat from 'dateformat';
+
+import { assert } from 'chai';
 
 import { map, head, reverse, compose, split, join } from 'ramda';
 
@@ -27,12 +29,15 @@ import {
   assertCreateLinkSucceeds,
   createCollabsheet,
   editAndPublishCollabSheet
-} from 'oae-content/lib/test/util';
-import * as Etherpad from 'oae-content/lib/internal/etherpad';
+} from 'oae-content/lib/test/util.js';
+import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import PrincipalsAPI from 'oae-principals';
-import { getDefaultSnapshot } from 'oae-content/lib/internal/ethercalc';
+import { getDefaultSnapshot } from 'oae-content/lib/internal/ethercalc.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const TO_STRING = 'string';
 const SOME_NAME = 'name';
@@ -146,13 +151,9 @@ describe('Export data', () => {
 
         const { 0: brecke } = users;
 
-        brecke.restContext.tenant = () => {
-          return brecke.user.tenant;
-        };
+        brecke.restContext.tenant = () => brecke.user.tenant;
 
-        brecke.restContext.user = () => {
-          return brecke.user;
-        };
+        brecke.restContext.user = () => brecke.user;
 
         // Export personal data
         PrincipalsAPI.exportData(brecke.restContext, 'invalidUserId', 'personal-data', (error /* , zip */) => {
@@ -735,9 +736,9 @@ describe('Export data', () => {
             const spreadsheetContent = contentChunks[4];
 
             // Get ethercalc text and compare it
-            assert.strictEqual(contentInJSON[0].join(), _commafy(spreadsheetContent));
+            assert.strictEqual(contentInJSON[0].join(','), _commafy(spreadsheetContent));
             assert.strictEqual(textToCSV, _commafy(spreadsheetContent));
-            assert.strictEqual(textToCSV, contentInJSON[0].join());
+            assert.strictEqual(textToCSV, contentInJSON[0].join(','));
             return callback();
           });
         });

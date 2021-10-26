@@ -20,9 +20,9 @@ import { logger } from 'oae-logger';
 import * as AuthzAPI from 'oae-authz';
 import * as LibraryAPI from 'oae-library';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao';
+import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao.js';
 
-import { MeetingsConstants } from 'oae-jitsi/lib/constants';
+import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 const log = logger('meetings-jitsi-library');
 
@@ -32,24 +32,22 @@ const log = logger('meetings-jitsi-library');
 LibraryAPI.Index.registerLibraryIndex(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, {
   pageResources(libraryId, start, limit, callback) {
     // Query all the meeting ids ('m') to which the library owner is directly associated
-    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'm', start, limit, (err, roles, nextToken) => {
-      if (err) {
-        return callback(err);
+    AuthzAPI.getRolesForPrincipalAndResourceType(libraryId, 'm', start, limit, (error, roles, nextToken) => {
+      if (error) {
+        return callback(error);
       }
 
       const ids = _.pluck(roles, 'id');
 
-      MeetingsDAO.getMeetingsById(ids, (err, meetings) => {
-        if (err) {
-          return callback(err);
+      MeetingsDAO.getMeetingsById(ids, (error, meetings) => {
+        if (error) {
+          return callback(error);
         }
 
         // Convert all the meetings into the light-weight library items that describe how its placed in a library index
         const resources = _.chain(meetings)
           .compact()
-          .map(meeting => {
-            return { rank: meeting.lastModified, resource: meeting };
-          })
+          .map((meeting) => ({ rank: meeting.lastModified, resource: meeting }))
           .value();
 
         return callback(null, resources, nextToken);
@@ -68,11 +66,11 @@ LibraryAPI.Search.registerLibrarySearch('meeting-jitsi-library', ['meeting-jitsi
  */
 MeetingsAPI.emitter.when(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting, memberChangeInfo, callback) => {
   const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  _insertLibrary(addedMemberIds, meeting, err => {
-    if (err) {
+  _insertLibrary(addedMemberIds, meeting, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           meetingId: meeting.id,
           memberIds: addedMemberIds
         },
@@ -89,9 +87,9 @@ MeetingsAPI.emitter.when(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting
  */
 MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, updatedMeeting, oldMeeting) => {
   // Get all the member ids of the updated meeting
-  _getAllMemberIds(updatedMeeting.id, (err, memberIds) => {
-    if (err) {
-      return err;
+  _getAllMemberIds(updatedMeeting.id, (error, memberIds) => {
+    if (error) {
+      return error;
     }
 
     // Perform the libraries updates
@@ -104,11 +102,11 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, updatedMe
  */
 MeetingsAPI.emitter.when(MeetingsConstants.events.DELETED_MEETING, (ctx, meeting, removedMemberIds, callback) => {
   // Remove the meeting from all libraries
-  _removeFromLibrary(removedMemberIds, meeting, err => {
-    if (err) {
+  _removeFromLibrary(removedMemberIds, meeting, (error) => {
+    if (error) {
       log().warn(
         {
-          err,
+          err: error,
           meetingId: meeting.id,
           memberIds: removedMemberIds
         },
@@ -125,7 +123,7 @@ MeetingsAPI.emitter.when(MeetingsConstants.events.DELETED_MEETING, (ctx, meeting
  */
 MeetingsAPI.emitter.when(
   MeetingsConstants.events.UPDATED_MEETING_MEMBERS,
-  (ctx, meeting, memberChangeInfo, opts, callback) => {
+  (ctx, meeting, memberChangeInfo, options, callback) => {
     const oldLastModified = meeting.lastModified;
 
     const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
@@ -133,11 +131,11 @@ MeetingsAPI.emitter.when(
     const removedMemberIds = _.pluck(memberChangeInfo.members.removed, 'id');
 
     // Remove the meeting item from the removed members libraries
-    _removeFromLibrary(removedMemberIds, meeting, err => {
-      if (err) {
+    _removeFromLibrary(removedMemberIds, meeting, (error) => {
+      if (error) {
         log().warn(
           {
-            err,
+            err: error,
             principalIds: removedMemberIds,
             meetingId: meeting.id
           },
@@ -150,11 +148,11 @@ MeetingsAPI.emitter.when(
       }
 
       // Update the last modified time of the meeting
-      _touch(meeting, (err, touchedMeeting) => {
-        if (err) {
+      _touch(meeting, (error, touchedMeeting) => {
+        if (error) {
           log().warn(
             {
-              err,
+              err: error,
               principalIds: removedMemberIds,
               meetingId: meeting.id
             },
@@ -165,15 +163,12 @@ MeetingsAPI.emitter.when(
         meeting = touchedMeeting || meeting;
 
         // Update the meeting rank in the members libraries
-        const libraryUpdateIds = _.chain(memberChangeInfo.roles.before)
-          .keys()
-          .difference(removedMemberIds)
-          .value();
-        _updateLibrary(libraryUpdateIds, meeting, oldLastModified, err => {
-          if (err) {
+        const libraryUpdateIds = _.chain(memberChangeInfo.roles.before).keys().difference(removedMemberIds).value();
+        _updateLibrary(libraryUpdateIds, meeting, oldLastModified, (error) => {
+          if (error) {
             log().warn(
               {
-                err,
+                err: error,
                 principalIds: libraryUpdateIds,
                 meetingId: meeting.id
               },
@@ -182,11 +177,11 @@ MeetingsAPI.emitter.when(
           }
 
           // Add the meeting item to the added members libraries
-          _insertLibrary(addedMemberIds, meeting, err => {
-            if (err) {
+          _insertLibrary(addedMemberIds, meeting, (error) => {
+            if (error) {
               log().warn(
                 {
-                  err,
+                  err: error,
                   principalIds: addedMemberIds,
                   meetingIds: meeting.id
                 },
@@ -215,18 +210,16 @@ MeetingsAPI.emitter.when(
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _insertLibrary = function(principalIds, meeting, callback) {
+const _insertLibrary = function (principalIds, meeting, callback) {
   if (_.isEmpty(principalIds) || !meeting) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      rank: meeting.lastModified,
-      resource: meeting
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: meeting.lastModified,
+    resource: meeting
+  }));
 
   LibraryAPI.Index.insert(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -240,10 +233,10 @@ const _insertLibrary = function(principalIds, meeting, callback) {
  * @param  {String[]}   callback.memberIds  The member ids associated to the meeting
  * @api private
  */
-const _getAllMemberIds = function(meetingId, callback) {
-  AuthzAPI.getAllAuthzMembers(meetingId, (err, memberIdRoles) => {
-    if (err) {
-      return callback(err);
+const _getAllMemberIds = function (meetingId, callback) {
+  AuthzAPI.getAllAuthzMembers(meetingId, (error, memberIdRoles) => {
+    if (error) {
+      return callback(error);
     }
 
     // Return only the ids
@@ -261,14 +254,14 @@ const _getAllMemberIds = function(meetingId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _updateLibrary = function(principalIds, meeting, oldLastModified, callback) {
+const _updateLibrary = function (principalIds, meeting, oldLastModified, callback) {
   callback =
     callback ||
-    function(err) {
-      if (err) {
+    function (error) {
+      if (error) {
         log().error(
           {
-            err,
+            err: error,
             principalIds,
             meetingId: meeting.id
           },
@@ -281,14 +274,12 @@ const _updateLibrary = function(principalIds, meeting, oldLastModified, callback
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      oldRank: oldLastModified,
-      newRank: meeting.lastModified,
-      resource: meeting
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    oldRank: oldLastModified,
+    newRank: meeting.lastModified,
+    resource: meeting
+  }));
 
   LibraryAPI.Index.update(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -302,18 +293,16 @@ const _updateLibrary = function(principalIds, meeting, oldLastModified, callback
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _removeFromLibrary = function(principalIds, meeting, callback) {
+const _removeFromLibrary = function (principalIds, meeting, callback) {
   if (_.isEmpty(principalIds) || !meeting) {
     return callback();
   }
 
-  const entries = _.map(principalIds, principalId => {
-    return {
-      id: principalId,
-      rank: meeting.lastModified,
-      resource: meeting
-    };
-  });
+  const entries = _.map(principalIds, (principalId) => ({
+    id: principalId,
+    rank: meeting.lastModified,
+    resource: meeting
+  }));
 
   LibraryAPI.Index.remove(MeetingsConstants.library.MEETINGS_LIBRARY_INDEX_NAME, entries, callback);
 };
@@ -327,6 +316,6 @@ const _removeFromLibrary = function(principalIds, meeting, callback) {
  * @param  {Meeting}    [callback.meeting]   The meeting object with the new lastModified date. If not specified, then the meeting was not updated due to rate-limiting.
  * @api private
  */
-const _touch = function(meeting, callback) {
+const _touch = function (meeting, callback) {
   MeetingsDAO.updateMeeting(meeting, { lastModified: Date.now() }, callback);
 };

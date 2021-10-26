@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
 
 const ContentConstants = {};
 export { ContentConstants };

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 import {
   values,
   mergeAll,
@@ -35,12 +35,12 @@ import {
   head
 } from 'ramda';
 
-import { loginOnTenant } from 'oae-rest/lib/api.admin';
-import { createLink } from 'oae-rest/lib/api.content';
-import { createGroup } from 'oae-rest/lib/api.group';
-import { createDiscussion } from 'oae-rest/lib/api.discussions';
-import { flush } from 'oae-util/lib/redis';
-import { assertVerifyEmailsSucceeds, assertUpdateUsersSucceeds } from 'oae-principals/lib/test/util';
+import { loginOnTenant } from 'oae-rest/lib/api.admin.js';
+import { createLink } from 'oae-rest/lib/api.content.js';
+import { createGroup } from 'oae-rest/lib/api.group.js';
+import { createDiscussion } from 'oae-rest/lib/api.discussions.js';
+import { flush } from 'oae-util/lib/redis.js';
+import { assertVerifyEmailsSucceeds, assertUpdateUsersSucceeds } from 'oae-principals/lib/test/util.js';
 import {
   whenIndexingComplete,
   assertSearchContains,
@@ -48,7 +48,7 @@ import {
   assertSearchNotContains,
   assertSearchEquals,
   assertSearchFails
-} from 'oae-search/lib/test/util';
+} from 'oae-search/lib/test/util.js';
 import {
   generateTestUsers,
   createTenantRestContext,
@@ -56,7 +56,7 @@ import {
   createTenantAdminRestContext,
   setupMultiTenantPrivacyEntities
 } from 'oae-tests';
-import { assertCreateFolderSucceeds } from 'oae-folders/lib/test/util';
+import { assertCreateFolderSucceeds } from 'oae-folders/lib/test/util.js';
 
 const PUBLIC_USER = 'publicUser';
 const PRIVATE_USER = 'privateUser';
@@ -183,9 +183,7 @@ describe('Email Search', () => {
       assertSearchFails(asAnonymousUser, EMAIL, NO_PARAMS, { q: johnDoeEmail }, 401, () => {
         assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
           assertSearchEquals(asTenantAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-            assertSearchEquals(asGlobalAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-              return callback();
-            });
+            assertSearchEquals(asGlobalAdmin, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => callback());
           });
         });
       });
@@ -208,9 +206,7 @@ describe('Email Search', () => {
       assertSearchFails(asJohnDoe, EMAIL, NO_PARAMS, null, 400, () => {
         assertSearchFails(asJohnDoe, EMAIL, NO_PARAMS, { q: 'notanemail' }, 400, () => {
           // Sanity check user can perform an email search
-          assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => {
-            return callback();
-          });
+          assertSearchEquals(asJohnDoe, EMAIL, NO_PARAMS, { q: johnDoeEmail }, [johnDoeId], () => callback());
         });
       });
     });
@@ -370,15 +366,13 @@ describe('Email Search', () => {
       assertUpdateUsersSucceeds(asTenantAdmin, userIdsToUpdate, { email: getEmail(fonseca) }, (users, tokens) => {
         const userInfoTokens = compose(
           values,
-          map((eachUser) => {
-            return {
-              token: prop(getId(eachUser), tokens),
-              userInfo: {
-                restContext: getContext(prop(getId(eachUser), userInfos)),
-                user: prop(getId(eachUser), users)
-              }
-            };
-          })
+          map((eachUser) => ({
+            token: prop(getId(eachUser), tokens),
+            userInfo: {
+              restContext: getContext(prop(getId(eachUser), userInfos)),
+              user: prop(getId(eachUser), users)
+            }
+          }))
         )(users);
 
         assertVerifyEmailsSucceeds(userInfoTokens, () => {
@@ -450,9 +444,7 @@ describe('Email Search', () => {
                                   NO_PARAMS,
                                   { q: getEmail(fonseca) },
                                   allUserIds,
-                                  () => {
-                                    return callback();
-                                  }
+                                  () => callback()
                                 );
                               }
                             );

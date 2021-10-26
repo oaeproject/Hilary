@@ -1,4 +1,4 @@
-import * as Cassandra from 'oae-util/lib/cassandra';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the config schema is created.
@@ -7,7 +7,7 @@ import * as Cassandra from 'oae-util/lib/cassandra';
  * @param  {Function}   callback    Standard callback function
  * @api private
  */
-const ensureSchema = function(callback) {
+const ensureSchema = function (callback) {
   Cassandra.createColumnFamily(
     'Config',
     'CREATE TABLE "Config" ("tenantAlias" text, "configKey" text, "value" text, PRIMARY KEY ("tenantAlias", "configKey")) WITH COMPACT STORAGE',

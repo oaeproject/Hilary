@@ -13,26 +13,35 @@
  * permissions and limitations under the License.
  */
 
-import crypto from 'crypto';
-import { format } from 'util';
+import crypto from 'node:crypto';
+import { format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao';
-import * as Cassandra from 'oae-util/lib/cassandra';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
-import * as Locking from 'oae-util/lib/locking';
+import * as Locking from 'oae-util/lib/locking.js';
 import * as EmailAPI from 'oae-email';
-import OaeEmitter from 'oae-util/lib/emitter';
-import * as OaeUtil from 'oae-util/lib/util';
+import OaeEmitter from 'oae-util/lib/emitter.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import PrincipalsAPI from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+
+import { compose, and } from 'ramda';
+import isLength from 'validator/lib/isLength.js';
+import { getTenantSkinVariables } from 'oae-ui';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
+
+import { LoginId } from 'oae-authentication/lib/model.js';
+
 const {
   validateInCase: bothCheck,
   getNestedObject,
@@ -46,14 +55,6 @@ const {
   isNotEmpty
 } = validator;
 
-import { compose, and } from 'ramda';
-import isLength from 'validator/lib/isLength';
-import { getTenantSkinVariables } from 'oae-ui';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
-
-import { LoginId } from 'oae-authentication/lib/model';
-
 const log = logger('oae-authentication');
 
 let globalTenantAlias = null;
@@ -61,25 +62,29 @@ let globalTenantAlias = null;
 // Holds the strategies for each tenant
 const strategies = {};
 
-// When a tenant is created, configure the default authentication strategies
-TenantsAPI.emitter.on('created', (tenant) => {
-  refreshStrategies(tenant);
-});
+function setListeners() {
+  // When a tenant is created, configure the default authentication strategies
+  TenantsAPI.emitter.on('created', (tenant) => {
+    // Waiting for AuthenticationAPI to boot and register the authentication strategies first
+    // before we can use them
+    refreshStrategies(tenant);
+  });
 
-// When a tenant starts up, configure its authentication strategies
-TenantsAPI.emitter.on('start', (tenant) => {
-  refreshStrategies(tenant);
-});
+  // When a tenant starts up, configure its authentication strategies
+  TenantsAPI.emitter.on('start', (tenant) => {
+    refreshStrategies(tenant);
+  });
 
-// When a tenant is refreshed, refresh its authentication strategies
-TenantsAPI.emitter.on('refresh', (tenant) => {
-  refreshStrategies(tenant);
-});
+  // When a tenant is refreshed, refresh its authentication strategies
+  TenantsAPI.emitter.on('refresh', (tenant) => {
+    refreshStrategies(tenant);
+  });
 
-// When the server has started up, we enable all the strategies for all the tenants
-OaeEmitter.on('ready', () => {
-  _refreshAllTenantStrategies();
-});
+  // When the server has started up, we enable all the strategies for all the tenants
+  OaeEmitter.on('ready', () => {
+    _refreshAllTenantStrategies();
+  });
+}
 
 /**
  * Refresh the tenant authentication strategies when the configuration for a tenant has been updated.
@@ -130,6 +135,7 @@ const AuthenticationAPI = emitter;
  */
 const init = function (_globalTenantAlias) {
   globalTenantAlias = _globalTenantAlias;
+  setListeners();
 };
 
 /// /////////////////////
@@ -211,8 +217,7 @@ const getOrCreateGlobalAdminUser = function (
   try {
     unless(isLoggedInUser, {
       code: 401,
-      msg:
-        'You must be authenticated to the global admin tenant to create a global administrator user'
+      msg: 'You must be authenticated to the global admin tenant to create a global administrator user'
     })(ctx, globalTenantAlias);
 
     unless(isGlobalAdministratorUser, {
@@ -663,8 +668,7 @@ const _createUser = function (ctx, loginId, displayName, options, callback) {
     if (error) {
       return callback({
         code: 400,
-        msg:
-          'Failed to acquire lock probably because this login id already exists and is already associated to a user'
+        msg: 'Failed to acquire lock probably because this login id already exists and is already associated to a user'
       });
     }
 
@@ -689,9 +693,7 @@ const _createUser = function (ctx, loginId, displayName, options, callback) {
       // Create the user and immediately associate the login id
       PrincipalsAPI.createUser(ctx, loginId.tenantAlias, displayName, options, (error, user) => {
         if (error) {
-          Locking.release(lock, () => {
-            return callback(error);
-          });
+          Locking.release(lock, () => callback(error));
           return;
         }
 
@@ -1181,8 +1183,7 @@ const _associateLoginId = function (loginId, userId, callback) {
   );
   if (query) {
     const queries = [];
-    queries.push(query);
-    queries.push({
+    queries.push(query, {
       query:
         'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']
@@ -1437,7 +1438,8 @@ const registerStrategy = function (strategyName, strategy) {
 };
 
 /**
- * Refresh the known passport login strategies for a given tenant. This will be called for all registered tenants upon start-up
+ * Refresh the known passport login strategies for a given tenant.
+ * This will be called for all registered tenants upon start-up
  * and when new tenants are being started on the fly.
  *
  * @param  {Tenant} tenant  The tenant for which we want to refresh the authentication capabilities
@@ -1549,5 +1551,6 @@ export {
   getUserLoginIds,
   registerStrategy,
   refreshStrategies,
-  logout
+  logout,
+  setListeners
 };

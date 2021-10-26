@@ -16,9 +16,9 @@
 /* esling-disable no-unused-vars */
 import { assert } from 'chai';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as RestAPI from 'oae-rest';
-import * as SearchTestsUtil from 'oae-search/lib/test/util';
+import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
 import * as TestsUtil from 'oae-tests';
 
 import { find, equals, propSatisfies } from 'ramda';

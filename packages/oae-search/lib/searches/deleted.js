@@ -14,10 +14,11 @@
  */
 
 import { isEmpty } from 'ramda';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
-import { SearchConstants } from 'oae-search/lib/constants';
-import * as SearchUtil from 'oae-search/lib/util';
+import { SearchConstants } from 'oae-search/lib/constants.js';
+import * as SearchUtil from 'oae-search/lib/util.js';
+
 const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterScopeAndAccess } = SearchUtil;
 
 /**
@@ -66,8 +67,6 @@ function searchDeleted(ctx, options, callback) {
   });
 }
 
-export default searchDeleted;
-
 /**
  * Resolve the scope for the search based on who is performing it and how they specified the scope
  *
@@ -84,3 +83,5 @@ const _resolveScope = function (ctx, scope) {
 
   return user.tenant.alias;
 };
+
+export { searchDeleted as default };

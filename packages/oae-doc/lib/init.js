@@ -15,6 +15,6 @@
 
 import { initializeDocs } from './api.js';
 
-export const init = function (config, callback) {
+export function init(config, callback) {
   initializeDocs(config.ui, callback);
-};
+}

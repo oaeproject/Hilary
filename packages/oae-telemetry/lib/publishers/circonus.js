@@ -24,7 +24,7 @@ let circonusConfig = null;
 /**
  * Will push data into redis and publish histogram data to circonus via HTTPTrap
  */
-const init = function(telemetryConfig) {
+const init = function (telemetryConfig) {
   circonusConfig = telemetryConfig.circonus || {};
 };
 
@@ -33,7 +33,7 @@ const init = function(telemetryConfig) {
  *
  * @param  {Object}     data    The telemetry data to publish in the format: `module -> name -> value`
  */
-const publish = function(data) {
+const publish = function (data) {
   if (!data || _.isEmpty(data)) {
     return;
   }
@@ -59,7 +59,7 @@ const publish = function(data) {
 
   log().trace({ data: circonusData }, 'Publishing telemetry data to circonus');
 
-  const requestOpts = {
+  const requestOptions = {
     method: 'PUT',
     uri: circonusConfig.url,
     body: JSON.stringify(circonusData),
@@ -67,9 +67,9 @@ const publish = function(data) {
   };
 
   // Invoke the HTTP request to the circonus HTTP Trap
-  request(requestOpts, (err, response, body) => {
-    if (err) {
-      return log().warn({ err }, 'Error publishing telemetry data to circonus');
+  request(requestOptions, (error, response, body) => {
+    if (error) {
+      return log().warn({ err: error }, 'Error publishing telemetry data to circonus');
     }
 
     if (response.statusCode !== 200) {

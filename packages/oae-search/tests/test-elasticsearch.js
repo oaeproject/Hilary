@@ -13,22 +13,22 @@
  * permissions and limitations under the License.
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 
-import { generateTestElasticSearchName } from 'oae-tests/lib/util';
+import { generateTestElasticSearchName } from 'oae-tests/lib/util.js';
 import {
   putMapping,
   mappingExists,
   indexExists,
   createIndex,
   deleteIndex
-} from 'oae-search/lib/internal/elasticsearch';
+} from 'oae-search/lib/internal/elasticsearch.js';
 
 import { not, assoc } from 'ramda';
 
 const NO_OPTIONS = null;
 
-describe('ElasticSearch', function () {
+describe('ElasticSearch', () => {
   /**
    * Test that verifies the ability to create, verify (check "exists") and delete an ElasticSearch index
    */

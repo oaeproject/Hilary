@@ -13,14 +13,19 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
-import fs from 'fs';
-import Path from 'path';
+import fs from 'node:fs';
+import Path, { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+
+import { assert } from 'chai';
 
 import { gt, toUpper, __ } from 'ramda';
 
-import * as ImageUtil from 'oae-util/lib/image';
+import * as ImageUtil from 'oae-util/lib/image.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const greaterThanZero = gt(__, 0);
 
@@ -63,7 +68,7 @@ describe('Image', () => {
 
                 // Verify you can't crop outside the image
                 const path = Path.resolve(Path.join(__dirname, '/data/right.jpg'));
-                ImageUtil.cropImage(path, generateArea(10000, 10000, 10, 10), (error /* , file */) => {
+                ImageUtil.cropImage(path, generateArea(10_000, 10_000, 10, 10), (error /* , file */) => {
                   assert.strictEqual(error.code, 500);
 
                   // Sanity check

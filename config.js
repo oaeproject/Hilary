@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable camelcase, capitalized-comments */
-const Path = require('path');
-const bunyan = require('bunyan');
+/* eslint-disable camelcase */
+import Path from 'node:path';
+import bunyan from 'bunyan';
+import process from 'node:process';
 
 const config = {};
 const LOCALHOST = 'localhost';
@@ -41,8 +42,9 @@ config.cassandra = {
   keyspace: 'oae',
   user: '',
   pass: '',
-  timeout: 3000,
+  timeout: 30_000,
   replication: 1,
+  readTimeout: 0,
   strategyClass: 'SimpleStrategy',
   cqlVersion: '3.0.0'
 };
@@ -78,24 +80,24 @@ config.redis = {
 config.servers = {
   globalAdminAlias: 'admin',
   globalAdminHost: 'admin.oae.com',
-  globalAdminPort: 2000,
+  globalAdminPort: 3000,
   guestTenantAlias: 'guest',
   guestTenantHost: 'guest.oae.com',
   shibbolethSPHost: 'shib-sp.oae.com',
   /* if on mac osx change next line to 0.0.0.0 */
   serverInternalAddress: null,
-  tenantPort: 2001,
+  tenantPort: 3001,
   useHttps: false,
   strictHttps: true
 };
 
-let tmpDir =
-  process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
 /*
  * If you change `tmpDir` below, you also need to set the TMP environment variable
  * This is because that variable is needed in docker-compose.yml
  * Alternatively, you can just `export TMP=/your/temporary/directory` and remove both lines below
  */
+// const temporaryDir = Path.join(process.cwd(), 'tmp');
+let temporaryDir = process.env.TMP || process.env.TMPDIR || process.env.TEMP || Path.join(process.cwd(), 'tmp');
 
 /**
  * `config.files`
@@ -111,14 +113,14 @@ let tmpDir =
  * @param  {String}    limit                    The maximum file upload size, accepted formats look like "5mb", "200kb", "1gb". You should also adjust your front-end proxy (e.g., Nginx, Apache) to also handle files of this size
  */
 config.files = {
-  tmpDir,
-  uploadDir: Path.join(tmpDir, 'uploads'),
+  tmpDir: temporaryDir,
+  uploadDir: Path.join(temporaryDir, 'uploads'),
   cleaner: {
     enabled: true,
     interval: 2 * 60 * 60
   },
   limit: '4096mb',
-  localStorageDirectory: Path.join(tmpDir, 'files')
+  localStorageDirectory: Path.join(temporaryDir, 'files')
 };
 
 /**
@@ -163,7 +165,7 @@ config.log = {
 config.telemetry = {
   enabled: false,
   publishInterval: 30,
-  resetInterval: 86400,
+  resetInterval: 86_400,
   publisher: 'console',
   circonus: {
     url: 'https://trap.noit.circonus.net/module/httptrap/check-uuid/secret-here'
@@ -183,12 +185,10 @@ config.telemetry = {
  * @param  {Boolean}   [processIndexJobs]       Whether or not this node should act as an indexer. Only disable this if you have another dedicated set of machines performing index processing. Defaults to `true`.
  */
 config.search = {
-  hosts: [
-    {
-      host: LOCALHOST,
-      port: 9200
-    }
-  ],
+  /**
+   * The Elasticsearch endpoint to use. It can be a single string or an array of strings:
+   */
+  nodes: [`http://${LOCALHOST}:9200`],
   index: {
     name: 'oae',
     settings: {
@@ -220,7 +220,7 @@ config.search = {
         },
         tokenizer: {
           display_name_tokenizer: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: '2',
             max_gram: '10',
             token_chars: []
@@ -228,17 +228,17 @@ config.search = {
         },
         filter: {
           q_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 2,
             max_gram: 15
           },
           message_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 5,
             max_gram: 15
           },
           content_edgengram: {
-            type: 'edgeNGram',
+            type: 'edge_ngram',
             min_gram: 5,
             max_gram: 15
           }
@@ -253,7 +253,7 @@ config.search = {
 /**
  * `config.mq`
  *
- * Configuration namespace for the message queue (RabbitMQ).
+ * Configuration namespace for the message queue (Redis).
  *
  * @param  {Object}     connection              The connection description
  * @param  {String}     connection.host         The host for the connection
@@ -288,17 +288,17 @@ config.mq = {
  */
 config.previews = {
   enabled: true,
-  tmpDir: Path.join(tmpDir, 'previews'),
+  tmpDir: Path.join(temporaryDir, 'previews'),
   office: {
     /* if on mac osx change next line to '/Applications/LibreOffice.app/Contents/MacOS/soffice' */
     binary: 'soffice',
-    timeout: 120000
+    timeout: 120_000
   },
   pdfPreview: {
     viewportScale: '1.6'
   },
   screenShotting: {
-    timeout: 30000,
+    timeout: 30_000,
     viewport: {
       width: 640 * 3,
       height: 480 * 3,
@@ -393,7 +393,7 @@ config.activity = {
  * @param  {Object}     [smtpTransport]             The SMTP connection information for sending emails. This is the settings object that will be used by nodemailer to form an smtp connection: https://github.com/andris9/Nodemailer
  */
 config.email = {
-  debug: true,
+  debug: false,
   customEmailTemplatesDir: null,
   deduplicationInterval: 7 * 24 * 60 * 60, //  7 days
   throttling: {

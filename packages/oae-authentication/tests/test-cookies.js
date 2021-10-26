@@ -72,7 +72,7 @@ describe('Authentication', () => {
       _userAgentCookiesToGet,
       _userAgentCookies
     ) {
-      _userAgentCookiesToGet = _userAgentCookiesToGet || userAgents.slice();
+      _userAgentCookiesToGet = _userAgentCookiesToGet || [...userAgents];
       _userAgentCookies = _userAgentCookies || {};
 
       // If there are no more user agents to authenticate with, return with the cookies we have
@@ -192,83 +192,89 @@ describe('Authentication', () => {
         null,
         global.oaeTests.tenants.cam.emailDomains[0]
       );
-      RestAPI.User.createUser(camAdminRestContext, username, 'password', 'Test User', email, {}, (
-        error /* , createdUser */
-      ) => {
-        assert.notExists(error);
-        const userRestContext = TestsUtil.createTenantRestContext(
-          global.oaeTests.tenants.cam.host,
-          username,
-          'password'
-        );
+      RestAPI.User.createUser(
+        camAdminRestContext,
+        username,
+        'password',
+        'Test User',
+        email,
+        {},
+        (error /* , createdUser */) => {
+          assert.notExists(error);
+          const userRestContext = TestsUtil.createTenantRestContext(
+            global.oaeTests.tenants.cam.host,
+            username,
+            'password'
+          );
 
-        // Get all user agents for a user. When using a user tenant, mobile user-agents
-        // should result in a cookie that has a length expiry
-        _getCookiesForUserAgents(
-          userRestContext,
-          username,
-          'password',
-          allUserAgents,
-          (userAgentCookies) => {
-            assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
+          // Get all user agents for a user. When using a user tenant, mobile user-agents
+          // should result in a cookie that has a length expiry
+          _getCookiesForUserAgents(
+            userRestContext,
+            username,
+            'password',
+            allUserAgents,
+            (userAgentCookies) => {
+              assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
 
-            // Ensure each mobile user agent has a cookie with an explicit expiry time that
-            // is more than 29 days into the future
-            _.each(mobileUserAgents, (mobileUserAgent) => {
-              const cookies = userAgentCookies[mobileUserAgent];
+              // Ensure each mobile user agent has a cookie with an explicit expiry time that
+              // is more than 29 days into the future
+              _.each(mobileUserAgents, (mobileUserAgent) => {
+                const cookies = userAgentCookies[mobileUserAgent];
 
-              assert.strictEqual(cookies.length, 2);
-              _.each(cookies, (cookie) => {
-                // eslint-disable-next-line new-cap
-                assert.ok(_.isNumber(cookie.TTL()));
-                // eslint-disable-next-line new-cap
-                assert.ok(cookie.TTL() > 1000 * 60 * 60 * 24 * 29);
-                // eslint-disable-next-line new-cap
-                assert.notStrictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
-              });
-            });
-
-            // Ensure each non-mobile user agent has a cookie without an explicit expiry
-            // (i.e., browser session cookie)
-            _.each(nonMobileUserAgents, (nonMobileUserAgent) => {
-              const cookies = userAgentCookies[nonMobileUserAgent];
-
-              assert.strictEqual(cookies.length, 2);
-              _.each(cookies, (cookie) => {
-                // eslint-disable-next-line new-cap
-                assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
-              });
-            });
-
-            // Get all user agents for a global admin login. When using the global admin
-            // tenant, both mobile and non-mobile user-agents should not have an extended
-            // expiry
-            _getCookiesForUserAgents(
-              globalAdminRestContext,
-              'administrator',
-              'administrator',
-              allUserAgents,
-              (userAgentCookies) => {
-                assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
-
-                // Ensure all user agents have a cookie without an explicit expiry (i.e.,
-                // browser session cookie)
-                _.each(allUserAgents, (userAgent) => {
-                  const cookies = userAgentCookies[userAgent];
-
-                  assert.ok(!_.isEmpty(cookies));
-                  _.each(cookies, (cookie) => {
-                    // eslint-disable-next-line new-cap
-                    assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
-                  });
+                assert.strictEqual(cookies.length, 2);
+                _.each(cookies, (cookie) => {
+                  // eslint-disable-next-line new-cap
+                  assert.ok(_.isNumber(cookie.TTL()));
+                  // eslint-disable-next-line new-cap
+                  assert.ok(cookie.TTL() > 1000 * 60 * 60 * 24 * 29);
+                  // eslint-disable-next-line new-cap
+                  assert.notStrictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
                 });
+              });
 
-                return callback();
-              }
-            );
-          }
-        );
-      });
+              // Ensure each non-mobile user agent has a cookie without an explicit expiry
+              // (i.e., browser session cookie)
+              _.each(nonMobileUserAgents, (nonMobileUserAgent) => {
+                const cookies = userAgentCookies[nonMobileUserAgent];
+
+                assert.strictEqual(cookies.length, 2);
+                _.each(cookies, (cookie) => {
+                  // eslint-disable-next-line new-cap
+                  assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
+                });
+              });
+
+              // Get all user agents for a global admin login. When using the global admin
+              // tenant, both mobile and non-mobile user-agents should not have an extended
+              // expiry
+              _getCookiesForUserAgents(
+                globalAdminRestContext,
+                'administrator',
+                'administrator',
+                allUserAgents,
+                (userAgentCookies) => {
+                  assert.strictEqual(_.keys(userAgentCookies).length, allUserAgents.length);
+
+                  // Ensure all user agents have a cookie without an explicit expiry (i.e.,
+                  // browser session cookie)
+                  _.each(allUserAgents, (userAgent) => {
+                    const cookies = userAgentCookies[userAgent];
+
+                    assert.ok(!_.isEmpty(cookies));
+                    _.each(cookies, (cookie) => {
+                      // eslint-disable-next-line new-cap
+                      assert.strictEqual(cookie.TTL(), Number.POSITIVE_INFINITY);
+                    });
+                  });
+
+                  return callback();
+                }
+              );
+            }
+          );
+        }
+      );
     });
   });
 });

@@ -15,9 +15,9 @@
 
 import _ from 'underscore';
 
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 import * as FoldersAPI from 'oae-folders';
 
@@ -50,12 +50,12 @@ OAE.tenantRouter.on('post', '/api/folder', (request, response) => {
   const roles = {};
 
   // Apply the manager roles
-  _.each(managerIds, managerId => {
+  _.each(managerIds, (managerId) => {
     roles[managerId] = AuthzConstants.role.MANAGER;
   });
 
   // Apply the viewer roles
-  _.each(viewerIds, viewerId => {
+  _.each(viewerIds, (viewerId) => {
     roles[viewerId] = AuthzConstants.role.VIEWER;
   });
 
@@ -229,7 +229,7 @@ OAE.tenantRouter.on('delete', '/api/folder/:folderId', (request, response) => {
  */
 OAE.tenantRouter.on('post', '/api/folder/:folderId/share', (request, response) => {
   const viewers = OaeUtil.toArray(request.body.viewers);
-  FoldersAPI.shareFolder(request.ctx, request.params.folderId, viewers, error => {
+  FoldersAPI.shareFolder(request.ctx, request.params.folderId, viewers, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -261,7 +261,7 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/members', (request, response)
     permissionUpdates[key] = OaeUtil.castToBoolean(value);
   });
 
-  FoldersAPI.setFolderPermissions(request.ctx, request.params.folderId, permissionUpdates, error => {
+  FoldersAPI.setFolderPermissions(request.ctx, request.params.folderId, permissionUpdates, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -347,7 +347,7 @@ OAE.tenantRouter.on('get', '/api/folder/:folderId/invitations', (request, respon
  * @HttpResponse                        404                 No invitation for the specified email exists for the folder
  */
 OAE.tenantRouter.on('post', '/api/folder/:folderId/invitations/:email/resend', (request, response) => {
-  FoldersAPI.resendFolderInvitation(request.ctx, request.params.folderId, request.params.email, error => {
+  FoldersAPI.resendFolderInvitation(request.ctx, request.params.folderId, request.params.email, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -406,7 +406,7 @@ OAE.tenantRouter.on('get', '/api/folder/library/:principalId', (request, respons
  * @HttpResponse                    401                     You're not allowed to delete this folder from the principal's library
  */
 OAE.tenantRouter.on('delete', '/api/folder/library/:principalId/:folderId', (request, response) => {
-  FoldersAPI.removeFolderFromLibrary(request.ctx, request.params.principalId, request.params.folderId, error => {
+  FoldersAPI.removeFolderFromLibrary(request.ctx, request.params.principalId, request.params.folderId, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -435,7 +435,7 @@ OAE.tenantRouter.on('delete', '/api/folder/library/:principalId/:folderId', (req
  */
 OAE.tenantRouter.on('post', '/api/folder/:folderId/library', (request, response) => {
   const contentIds = OaeUtil.toArray(request.body.contentIds);
-  FoldersAPI.addContentItemsToFolder(request.ctx, request.params.folderId, contentIds, error => {
+  FoldersAPI.addContentItemsToFolder(request.ctx, request.params.folderId, contentIds, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }
@@ -463,7 +463,7 @@ OAE.tenantRouter.on('post', '/api/folder/:folderId/library', (request, response)
  */
 OAE.tenantRouter.on('delete', '/api/folder/:folderId/library', (request, response) => {
   const contentIds = OaeUtil.toArray(request.body.contentIds);
-  FoldersAPI.removeContentItemsFromFolder(request.ctx, request.params.folderId, contentIds, error => {
+  FoldersAPI.removeContentItemsFromFolder(request.ctx, request.params.folderId, contentIds, (error) => {
     if (error) {
       return response.status(error.code).send(error.msg);
     }

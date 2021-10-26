@@ -16,15 +16,15 @@
 import _ from 'underscore';
 import shortid from 'shortid';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
 
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as ContentUtil from 'oae-content/lib/internal/util';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import PrincipalsEmitter from 'oae-principals/lib/internal/emitter';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
+import * as TenantsUtil from 'oae-tenants/lib/util.js';
+import PrincipalsEmitter from 'oae-principals/lib/internal/emitter.js';
 import { User } from './model.js';
 import * as PrincipalsDAO from './internal/dao.js';
 

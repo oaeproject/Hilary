@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import _ from 'underscore';
 
 import * as EmitterAPI from 'oae-emitter';
@@ -54,7 +54,7 @@ const start = (directory, interval) => {
  *
  * @param  {String}     directory   The path to the directory for which the cleaning job should be stopped.
  */
-const stop = directory => {
+const stop = (directory) => {
   const isValid = compose(not, isNil);
   ifElse(
     isValid,
@@ -75,15 +75,13 @@ const stop = directory => {
  * @param  {String} directory   The path to the directory that should be cleaned.
  * @api private
  */
-const cleanDirectory = function(interval, directory) {
-  fs.readdir(directory, (err, files) => {
-    if (err) {
-      return log().error({ err, directory }, 'Could not list the files.');
+const cleanDirectory = function (interval, directory) {
+  fs.readdir(directory, (error, files) => {
+    if (error) {
+      return log().error({ err: error, directory }, 'Could not list the files.');
     }
 
-    const paths = _.map(files, file => {
-      return directory + '/' + file;
-    });
+    const paths = _.map(files, (file) => directory + '/' + file);
 
     const time = Date.now() - interval * 1000;
     checkFiles(paths, time, () => {
@@ -101,30 +99,30 @@ const cleanDirectory = function(interval, directory) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const checkFile = function(path, time, callback) {
-  fs.stat(path, (err, stats) => {
+const checkFile = function (path, time, callback) {
+  fs.stat(path, (error, stats) => {
     // We can ignore "no such file"-errors as this function intends to remove the file anyway.
     // These errors can ocurr when another method cleans up after themselves right between the cleaner doing a `fs.readdir` and `fs.stat`.
-    if (err && err.code === 'ENOENT') {
+    if (error && error.code === 'ENOENT') {
       // There is nothing further to do if the file has been removed
       return callback();
 
       // If we get an error that is not a "no such file"-error, something is probably wrong
     }
 
-    if (err) {
-      log().error({ err, path }, 'Could not get the metadata for a file.');
-      return callback(err);
+    if (error) {
+      log().error({ err: error, path }, 'Could not get the metadata for a file.');
+      return callback(error);
     }
 
     // Only try to unlink file resources that have expired
     if (stats && stats.isFile() && stats.atime.getTime() < time) {
       log().info({ path, lastModified: stats.atime.getTime(), expires: time }, 'Deleting expired temporary file.');
-      fs.unlink(path, err => {
+      fs.unlink(path, (error_) => {
         // Only report the error if it's not a "no such file"-error
-        if (err && err.code !== 'ENOENT') {
-          log().error({ err, path }, 'Could not delete an expired temporary file.');
-          return callback(err);
+        if (error_ && error_.code !== 'ENOENT') {
+          log().error({ err: error_, path }, 'Could not delete an expired temporary file.');
+          return callback(error_);
         }
 
         callback();
@@ -144,7 +142,7 @@ const checkFile = function(path, time, callback) {
  * @returns {Function}                   Returns a callback depending on logic
  * @api private
  */
-const checkFiles = function(paths, time, callback) {
+const checkFiles = function (paths, time, callback) {
   if (_.isEmpty(paths)) {
     return callback();
   }

@@ -1,12 +1,27 @@
+/*!
+ * Copyright 2014 Apereo Foundation (AF) Licensed under the
+ * Educational Community License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License. You may
+ * obtain a copy of the License at
+ *
+ *     http://opensource.org/licenses/ECL-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an "AS IS"
+ * BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+
 /* eslint-disable unicorn/no-array-callback-reference */
 
 import _ from 'underscore';
 import ShortId from 'shortid';
-import { Meeting } from 'oae-jitsi/lib/model';
+import { Meeting } from 'oae-jitsi/lib/model.js';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
-import * as Cassandra from 'oae-util/lib/cassandra';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
+import * as Cassandra from 'oae-util/lib/cassandra.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
 /**
@@ -88,9 +103,7 @@ const getMeetingsById = function (meetingIds, callback) {
       });
 
     // Order the meetings according to the array of meetings ids
-    const orderedMeetings = _.map(meetingIds, (meetingId) => {
-      return meetings[meetingId];
-    });
+    const orderedMeetings = _.map(meetingIds, (meetingId) => meetings[meetingId]);
 
     return callback(null, orderedMeetings);
   });

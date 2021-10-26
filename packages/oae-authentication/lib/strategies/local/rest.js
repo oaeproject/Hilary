@@ -15,11 +15,11 @@
 
 import passport from 'passport';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 /**
  * @REST postAuthLogin
@@ -173,4 +173,4 @@ OAE.globalAdminRouter.on(
  */
 OAE.tenantRouter.on('get', '/api/auth/exists/:username', _handleLocalUsernameExists);
 
-export default OAE;
+export { OAE as default };

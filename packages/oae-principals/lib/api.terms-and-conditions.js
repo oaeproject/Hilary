@@ -13,15 +13,15 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/filename-case */
 import { setUpConfig } from 'oae-config';
-import { Validator as validator } from 'oae-util/lib/validator';
-const { isUserId, unless, isLoggedInUser } = validator;
+import { Validator as validator } from 'oae-util/lib/validator.js';
 import { not } from 'ramda';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as PrincipalsDAO from './internal/dao.js';
 import * as PrincipalsUtil from './util.js';
+
+const { isUserId, unless, isLoggedInUser } = validator;
 
 const PrincipalsConfig = setUpConfig('oae-principals');
 

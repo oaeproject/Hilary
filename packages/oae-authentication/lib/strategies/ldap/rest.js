@@ -15,10 +15,10 @@
 
 import passport from 'passport';
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import * as AuthenticationUtil from 'oae-authentication/lib/util';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 /**
  * Log in using LDAP
@@ -48,9 +48,9 @@ const _handleLDAPAuthentication = function (request, response, next) {
  * @HttpResponse                200         The user succesfully logged in
  * @HttpResponse                401         Incorrect credentials were provided
  */
-OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (request, response) => {
+OAE.tenantRouter.on('post', '/api/auth/ldap', _handleLDAPAuthentication, (request, response) =>
   // This callback only gets called when we log in succesfully.
-  return response.status(200).send(request.ctx.user());
-});
+  response.status(200).send(request.ctx.user())
+);
 
-export default OAE;
+export { OAE as default };

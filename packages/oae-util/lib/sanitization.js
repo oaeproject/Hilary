@@ -13,8 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { encode } from 'he';
+import pkg from 'he';
 import { curry, __, isNil, ifElse } from 'ramda';
+
+const { encode } = pkg;
 
 const ENCODE_OPTIONS = {};
 const EMPTY_STRING = '';
@@ -27,7 +29,7 @@ const defaultEncode = curry(encode)(__, ENCODE_OPTIONS);
  * @param  {String}     value   The input string for which the HTML characters need to be escaped. If unspecified, the empty string will be returned
  * @return {String}             The input string after the HTML characters have been escaped
  */
-const encodeForHTML = value => ifElse(isNil, returnEmpty, defaultEncode)(value);
+const encodeForHTML = (value) => ifElse(isNil, returnEmpty, defaultEncode)(value);
 
 /**
  * Encode the given string such that it is safe to be used as an attribute to an HTML tag.
@@ -43,6 +45,6 @@ const encodeForHTMLAttribute = encodeForHTML;
  * @param  {String}     [value]         The user input string that should be sanitized. If this is not provided, an empty string will be returned
  * @return {String}                     The sanitized user input, ready to be used as a URL fragment
  */
-const encodeForURL = value => ifElse(isNil, returnEmpty, encodeURIComponent)(value);
+const encodeForURL = (value) => ifElse(isNil, returnEmpty, encodeURIComponent)(value);
 
 export { encodeForHTML, encodeForHTMLAttribute, encodeForURL };

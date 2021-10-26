@@ -13,16 +13,17 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
+import process from 'node:process';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthenticationAPI from 'oae-authentication';
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
 
 import { Recaptcha } from 'recaptcha';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import { LoginId } from 'oae-authentication/lib/model';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import { LoginId } from 'oae-authentication/lib/model.js';
 import PrincipalsAPI from './api.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');

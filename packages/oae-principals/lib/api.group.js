@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 import { pipe, map, find, both, forEachObjIndexed, equals } from 'ramda';
 import ShortId from 'shortid';
@@ -22,15 +22,25 @@ import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
 
 import * as AuthzAPI from 'oae-authz';
-import * as AuthzInvitations from 'oae-authz/lib/invitations';
-import * as AuthzPermissions from 'oae-authz/lib/permissions';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzInvitations from 'oae-authz/lib/invitations/index.js';
+import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as LibraryAPI from 'oae-library';
 import * as MessageBoxAPI from 'oae-messagebox';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as ResourceActions from 'oae-resource/lib/actions';
-import * as Signature from 'oae-util/lib/signature';
-import { Validator as validator } from 'oae-authz/lib/validator';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as ResourceActions from 'oae-resource/lib/actions.js';
+import * as Signature from 'oae-util/lib/signature.js';
+import { Validator as validator } from 'oae-authz/lib/validator.js';
+import isIn from 'validator/lib/isIn.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+
+import * as PrincipalsDAO from './internal/dao.js';
+import * as PrincipalsMembersLibrary from './libraries/members.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsUtil from './util.js';
+
+import { PrincipalsConstants } from './constants.js';
+
 const {
   isShortString,
   isMediumString,
@@ -43,15 +53,6 @@ const {
   isPrincipalId,
   isArrayNotEmpty
 } = validator;
-import isIn from 'validator/lib/isIn';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-
-import * as PrincipalsDAO from './internal/dao.js';
-import * as PrincipalsMembersLibrary from './libraries/members.js';
-import PrincipalsEmitter from './internal/emitter.js';
-import * as PrincipalsUtil from './util.js';
-
-import { PrincipalsConstants } from './constants.js';
 
 const log = logger('oae-principals');
 const Config = setUpConfig('oae-principals');
@@ -435,14 +436,12 @@ const _getMembershipsLibrary = function (ctx, principalId, visibility, start, li
 
         // Place the groups in the same order as `groupIds`
         const results = _.chain(groupIds)
-          .map((groupId) => {
-            return groupsHash[groupId];
-          })
+          .map((groupId) => groupsHash[groupId])
           .compact()
           .value();
 
         // Append the groups to the retrieved list
-        _items = _items.concat(results);
+        _items = [..._items, ...results];
 
         // If we don't have the required number of items yet and there is a next token,
         // we retrieve the next page
@@ -543,9 +542,7 @@ const _getRecentGroupsForUserId = function (ctx, principalId, limit, callback) {
       }
 
       const results = _.chain(groupIds)
-        .map((groupId) => {
-          return groups[groupId];
-        })
+        .map((groupId) => groups[groupId])
         .compact()
         .value();
 
@@ -886,7 +883,7 @@ const updateGroup = function (ctx, groupId, profileFields, callback) {
       msg: 'You should specify at least one field'
     })(fieldNames);
 
-    fieldNames.forEach((fieldName) => {
+    for (const fieldName of fieldNames) {
       const isField = (field) => equals(fieldName, field);
       unless(isIn, {
         code: 400,
@@ -914,7 +911,7 @@ const updateGroup = function (ctx, groupId, profileFields, callback) {
         code: 400,
         msg: 'A description can only be 10000 characters long'
       })(profileFields.description);
-    });
+    }
 
     unless(isLoggedInUser, {
       code: 401,
@@ -1107,9 +1104,7 @@ const canManageAny = function (ctx, principalIds, callback) {
    * If there is one, that is sufficient
    */
   const canAdminOne = pipe(
-    map((principalId) => {
-      return AuthzUtil.getResourceFromId(principalId).tenantAlias;
-    }),
+    map((principalId) => AuthzUtil.getResourceFromId(principalId).tenantAlias),
     find(ctx.user().isAdmin)
   )(principalIds);
   if (canAdminOne) {
@@ -1235,14 +1230,10 @@ const getJoinGroupRequests = function (ctx, filter, callback) {
       if (_.isEmpty(requests)) return callback();
 
       // Get only pending request
-      const users = _.filter(requests, (hash) => {
-        return hash.status === PrincipalsConstants.requestStatus.PENDING;
-      });
+      const users = _.filter(requests, (hash) => hash.status === PrincipalsConstants.requestStatus.PENDING);
 
       // Return principals
-      const userIds = _.map(users, (hash) => {
-        return hash.principalId;
-      });
+      const userIds = _.map(users, (hash) => hash.principalId);
 
       PrincipalsDAO.getPrincipals(userIds, null, (error, principals) => {
         if (error) return callback(error);

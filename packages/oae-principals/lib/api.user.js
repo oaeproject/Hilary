@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import fs from 'fs';
-import { format } from 'util';
+import fs from 'node:fs';
+import { format } from 'node:util';
 import _ from 'underscore';
 import async from 'async';
 import clone from 'clone';
@@ -23,26 +23,39 @@ import dateFormat from 'dateformat';
 import jszip from 'jszip';
 import ShortId from 'shortid';
 
-import { getJSON } from 'oae-content/lib/internal/ethercalc';
+import { getJSON } from 'oae-content/lib/internal/ethercalc.js';
 import { getTenantSkinVariables } from 'oae-ui';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 import {
   getContentLibraryItems,
   getComments as getCommentsForContent,
   getRevision as getContentRevision
 } from 'oae-content';
-import * as ContentUtil from 'oae-content/lib/internal/util';
+import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import * as DiscussionsAPI from 'oae-discussions';
 import * as EmailAPI from 'oae-email';
 import { logger } from 'oae-logger';
 import * as MeetingsAPI from 'oae-jitsi';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as TenantsAPI from 'oae-tenants';
-import * as TenantsUtil from 'oae-tenants/lib/util';
-import * as Signature from 'oae-util/lib/signature';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import { getTenant } from 'oae-tenants/lib/api.js';
+import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
-import { Validator as validator } from 'oae-util/lib/validator';
+import { Validator as validator } from 'oae-util/lib/validator.js';
+import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
+import isIn from 'validator/lib/isIn.js';
+import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion.js';
+import { getOrCreateUser } from '../../oae-authentication/lib/api.js';
+import { isPrivate, getBaseUrl } from '../../oae-tenants/lib/util.js';
+import * as PrincipalsDAO from './internal/dao.js';
+import PrincipalsEmitter from './internal/emitter.js';
+import * as PrincipalsTermsAndConditionsAPI from './api.terms-and-conditions.js';
+import * as PrincipalsUtil from './util.js';
+import { PrincipalsConstants } from './constants.js';
+import { User } from './model.js';
+
 const {
   unless,
   isShortString,
@@ -57,17 +70,6 @@ const {
   isArrayNotEmpty,
   isOneOrGreater
 } = validator;
-import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
-import isIn from 'validator/lib/isIn';
-import { AuthenticationConstants } from 'oae-authentication/lib/constants';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as UserDeletionUtil from 'oae-principals/lib/definitive-deletion';
-import * as PrincipalsDAO from './internal/dao.js';
-import PrincipalsEmitter from './internal/emitter.js';
-import * as PrincipalsTermsAndConditionsAPI from './api.termsAndConditions.js';
-import * as PrincipalsUtil from './util.js';
-import { PrincipalsConstants } from './constants.js';
-import { User } from './model.js';
 
 const log = logger('oae-principals');
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -113,7 +115,7 @@ const storeBinaryFile = (file, data, folder) =>
  * @param  {Object}     decorator.callback.err      An error that occurred during decoration, if any
  * @param  {Object}     decorator.callback.data     The decoration data to bind to the full user profile
  */
-const registerFullUserProfileDecorator = function (namespace, decorator) {
+function registerFullUserProfileDecorator(namespace, decorator) {
   if (fullUserProfileDecorators[namespace]) {
     throw new Error(
       format('Attempted to register duplicate full user profile decorator with namespace "%s"', namespace)
@@ -128,7 +130,7 @@ const registerFullUserProfileDecorator = function (namespace, decorator) {
   }
 
   fullUserProfileDecorators[namespace] = decorator;
-};
+}
 
 /**
  * Create a new user record on a tenant. If the optional `tenantAlias` is not specified, the user
@@ -153,7 +155,7 @@ const registerFullUserProfileDecorator = function (namespace, decorator) {
  * @param  {Object}    callback.err             An error that occurred, if any
  * @param  {User}      callback.createdUser     The created user
  */
-const createUser = function (ctx, tenantAlias, displayName, options, callback) {
+function createUser(ctx, tenantAlias, displayName, options, callback) {
   tenantAlias = tenantAlias || ctx.tenant().alias;
   options = options || {};
   callback =
@@ -186,9 +188,13 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
   }
 
   // Const isAdmin = ctx.user() && ctx.user().isAdmin(tenantAlias);
+  // TODO I did this but I shouldn't have to... check this further
+  // options.visibility = defaultTo('private', PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility'));
   options.visibility = options.visibility || PrincipalsConfig.getValue(tenantAlias, 'user', 'visibility');
   options.publicAlias = options.publicAlias || displayName;
   options.acceptedTC = options.acceptedTC || false;
+  // TODO I did this but I shouldn't have to... check this further
+  // options.emailPreference = defaultTo('weekly', PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference'));
   options.emailPreference =
     options.emailPreference || PrincipalsConfig.getValue(tenantAlias, 'user', 'emailPreference');
   options.isUserArchive = options.isUserArchive || null;
@@ -262,7 +268,7 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
   }
 
   return _createUser(ctx, user, options.email, callback);
-};
+}
 
 /**
  * Create a new user record. This assumes all validation has happened
@@ -275,7 +281,7 @@ const createUser = function (ctx, tenantAlias, displayName, options, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {User}       callback.createdUser        The created user
  */
-const _createUser = function (ctx, user, email, callback) {
+function _createUser(ctx, user, email, callback) {
   PrincipalsDAO.createUser(user, (error) => {
     if (error) return callback(error);
 
@@ -291,7 +297,7 @@ const _createUser = function (ctx, user, email, callback) {
       return callback(null, user);
     });
   });
-};
+}
 
 /**
  * Import users using a CSV file. The CSV file should be formatted in the following way:
@@ -320,12 +326,12 @@ const _createUser = function (ctx, user, email, callback) {
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
  */
-const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy, forceProfileUpdate, callback) {
+function importUsers(ctx, tenantAlias, userCSV, authenticationStrategy, forceProfileUpdate, callback) {
   tenantAlias = tenantAlias || ctx.user().tenant.alias;
   forceProfileUpdate = forceProfileUpdate || false;
   callback = callback || function () {};
 
-  const tenant = TenantsAPI.getTenant(tenantAlias);
+  const tenant = getTenant(tenantAlias);
 
   // Only global or tenant administrators should be able to import users
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
@@ -487,7 +493,7 @@ const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy,
           // If the user already exists but has a different displayName from the one
           // in the CSV file, we update it
           // TODO: Fix cross-dependency between the Authentication API and the Principals API
-          require('oae-authentication').getOrCreateUser(
+          getOrCreateUser(
             adminCtx,
             authenticationStrategy,
             externalId,
@@ -559,7 +565,7 @@ const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy,
         callback({ code: 500, msg: error.message });
       });
     });
-};
+}
 
 /**
  * Remove an uploaded user CSV file
@@ -569,7 +575,7 @@ const importUsers = function (ctx, tenantAlias, userCSV, authenticationStrategy,
  * @param  {Function}       callback                Standard callback function
  * @api private
  */
-const _cleanUpCSVFile = function (userCSV, callback) {
+function _cleanUpCSVFile(userCSV, callback) {
   if (userCSV && userCSV.path) {
     fs.stat(userCSV.path, (error, exists) => {
       if (exists) {
@@ -585,7 +591,7 @@ const _cleanUpCSVFile = function (userCSV, callback) {
   } else {
     callback();
   }
-};
+}
 
 /**
  * Update a user
@@ -597,7 +603,7 @@ const _cleanUpCSVFile = function (userCSV, callback) {
  * @param  {Object}         callback.err    An error that occurred, if any
  * @param  {User}           callback.user   The updated user
  */
-const updateUser = function (ctx, userId, profileFields, callback) {
+function updateUser(ctx, userId, profileFields, callback) {
   callback = callback || function () {};
   profileFields = profileFields || {};
 
@@ -708,7 +714,7 @@ const updateUser = function (ctx, userId, profileFields, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Update a user record in the database. This is an internal method that performs no validation.
@@ -722,7 +728,7 @@ const updateUser = function (ctx, userId, profileFields, callback) {
  * @param  {User}           callback.user   The updated user
  * @api private
  */
-const _updateUser = function (ctx, oldUser, profileFields, callback) {
+function _updateUser(ctx, oldUser, profileFields, callback) {
   PrincipalsDAO.updatePrincipal(oldUser.id, profileFields, (error) => {
     if (error) return callback(error);
 
@@ -732,7 +738,7 @@ const _updateUser = function (ctx, oldUser, profileFields, callback) {
 
     return callback(null, newUser);
   });
-};
+}
 
 /**
  * Determine if the user in context can delete the specified user
@@ -744,7 +750,7 @@ const _updateUser = function (ctx, oldUser, profileFields, callback) {
  * @param  {Boolean}    callback.canDelete  Indicates whether or not the current user can delete the specified user
  * @param  {User}       callback.user       The user that was fetched to perform the checks. Will not be specified if the authorization fails
  */
-const canDeleteUser = function (ctx, userId, callback) {
+function canDeleteUser(ctx, userId, callback) {
   if (!ctx.user()) {
     return callback(null, false);
   }
@@ -759,7 +765,7 @@ const canDeleteUser = function (ctx, userId, callback) {
 
     return callback(null, true, user);
   });
-};
+}
 
 /**
  * Delete a user
@@ -769,7 +775,7 @@ const canDeleteUser = function (ctx, userId, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
  */
-const deleteUser = function (ctx, userId, callback) {
+function deleteUser(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -787,18 +793,18 @@ const deleteUser = function (ctx, userId, callback) {
       return callback({ code: 401, msg: 'You are not authorized to delete this user' });
     }
 
-    PrincipalsDAO.getPrincipalSkipCache(userId, function (error, user) {
+    PrincipalsDAO.getPrincipalSkipCache(userId, (error, user) => {
       if (error) return callback(error);
 
       // Get and/or create archiveUser
-      UserDeletionUtil.fetchOrCloneFromUser(ctx, user, function (error, archiveUser) {
+      UserDeletionUtil.fetchOrCloneFromUser(ctx, user, (error, archiveUser) => {
         if (error) return callback(error);
 
         if (user.isUserArchive === 'true' || archiveUser.archiveId === user.id) {
           return callback({ code: 401, msg: "This user can't be deleted" });
         }
 
-        UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, function (error) {
+        UserDeletionUtil.transferUsersDataToCloneUser(ctx, user, archiveUser, (error) => {
           if (error) return callback(error);
 
           PrincipalsDAO.deletePrincipal(userId, (error_) => {
@@ -811,7 +817,7 @@ const deleteUser = function (ctx, userId, callback) {
       });
     });
   });
-};
+}
 
 /**
  *
@@ -825,7 +831,7 @@ const deleteUser = function (ctx, userId, callback) {
  * @param  {Object}     callback.err     An error that occured, if any
  * @param  {Object[]}   callback.users   An array of objects representing affected users
  */
-const deleteOrRestoreUsersByTenancy = function (ctx, tenantAlias, disableUsers, callback) {
+function deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disableUsers, callback) {
   getAllUsersForTenant(ctx, tenantAlias, (error, users) => {
     if (error) return callback(error);
 
@@ -843,7 +849,7 @@ const deleteOrRestoreUsersByTenancy = function (ctx, tenantAlias, disableUsers, 
       });
     }
   });
-};
+}
 
 /**
  * Get all users for a given tenant
@@ -855,9 +861,9 @@ const deleteOrRestoreUsersByTenancy = function (ctx, tenantAlias, disableUsers, 
  * @param  {Object[]}   callback.users          An array of users
  * @api private
  */
-const getAllUsersForTenant = function (ctx, tenantAlias, callback) {
+function getAllUsersForTenant(ctx, tenantAlias, callback) {
   tenantAlias = tenantAlias || ctx.user().tenant.alias;
-  const tenant = TenantsAPI.getTenant(tenantAlias);
+  const tenant = getTenant(tenantAlias);
 
   if (!ctx.user() || !ctx.user().isAdmin(tenantAlias)) {
     log().warn('A non-admin user tried to fetch all users for tenant %s', tenantAlias);
@@ -880,7 +886,7 @@ const getAllUsersForTenant = function (ctx, tenantAlias, callback) {
 
     return callback(null, users);
   });
-};
+}
 
 /**
  * Deletes users from the database, one by one
@@ -890,7 +896,7 @@ const getAllUsersForTenant = function (ctx, tenantAlias, callback) {
  * @param  {Function} afterDeleted      Invoked when all users have been deleted
  * @api private
  */
-const _deletePrincipals = function (usersToDelete, afterDeleted) {
+function _deletePrincipals(usersToDelete, afterDeleted) {
   async.mapSeries(
     usersToDelete,
     (eachUser, transformed) => {
@@ -903,7 +909,7 @@ const _deletePrincipals = function (usersToDelete, afterDeleted) {
       afterDeleted(null, results);
     }
   );
-};
+}
 
 /**
  *
@@ -914,7 +920,7 @@ const _deletePrincipals = function (usersToDelete, afterDeleted) {
  * @param  {Function} afterRestored     Invoked when all users have been restored
  * @api private
  */
-const _restorePrincipals = function (usersToRestore, afterRestored) {
+function _restorePrincipals(usersToRestore, afterRestored) {
   async.map(
     usersToRestore,
     (eachUser, transformed) => {
@@ -927,7 +933,7 @@ const _restorePrincipals = function (usersToRestore, afterRestored) {
       afterRestored(null, results);
     }
   );
-};
+}
 
 /**
  * Restore a user
@@ -937,7 +943,7 @@ const _restorePrincipals = function (usersToRestore, afterRestored) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
  */
-const restoreUser = function (ctx, userId, callback) {
+function restoreUser(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -962,7 +968,7 @@ const restoreUser = function (ctx, userId, callback) {
       return PrincipalsEmitter.emit(PrincipalsConstants.events.RESTORED_USER, ctx, user, callback);
     });
   });
-};
+}
 
 /**
  * Determine if the user in context can restore the specified user
@@ -974,7 +980,7 @@ const restoreUser = function (ctx, userId, callback) {
  * @param  {Boolean}    callback.canDelete  Indicates whether or not the current user can restore the specified user
  * @param  {User}       callback.user       The user that was fetched to perform the checks. Will not be specified if the authorization fails
  */
-const canRestoreUser = function (ctx, userId, callback) {
+function canRestoreUser(ctx, userId, callback) {
   if (!ctx.user()) {
     return callback(null, false);
   }
@@ -989,7 +995,7 @@ const canRestoreUser = function (ctx, userId, callback) {
 
     return callback(null, true, user);
   });
-};
+}
 
 /**
  * Get a user from the DB
@@ -1000,7 +1006,7 @@ const canRestoreUser = function (ctx, userId, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  * @param  {User}      callback.user   The user object
  */
-const getUser = function (ctx, userId, callback) {
+function getUser(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1011,7 +1017,7 @@ const getUser = function (ctx, userId, callback) {
   }
 
   PrincipalsUtil.getPrincipal(ctx, userId, callback);
-};
+}
 
 /**
  * Get the full user profile of a user. In addition to the basic profile, this also fetches the
@@ -1023,7 +1029,7 @@ const getUser = function (ctx, userId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {Object}     callback.user   The decorated user object
  */
-const getFullUserProfile = function (ctx, userId, callback) {
+function getFullUserProfile(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1096,7 +1102,7 @@ const getFullUserProfile = function (ctx, userId, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Get the me feed for the current user, if anonymous returns 'anon': true
@@ -1121,12 +1127,12 @@ const getFullUserProfile = function (ctx, userId, callback) {
  * @param  {Object}    callback.err   An error that occurred, if any
  * @param  {Object}    callback.data  The me feed for the current user
  */
-const getMe = function (ctx, callback) {
+function getMe(ctx, callback) {
   // Get the compact tenant object for the current tenant
   const tenant = ctx.tenant().compact();
 
   // Indicate whether the tenant is private or not
-  tenant.isPrivate = TenantsUtil.isPrivate(tenant.alias);
+  tenant.isPrivate = isPrivate(tenant.alias);
 
   // Handle the anonymous user
   if (!ctx.user()) {
@@ -1170,7 +1176,7 @@ const getMe = function (ctx, callback) {
 
     return callback(null, data);
   });
-};
+}
 
 /**
  * Set a flag that indicates whether a user is a tenant admin.
@@ -1182,7 +1188,7 @@ const getMe = function (ctx, callback) {
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
  */
-const setTenantAdmin = function (ctx, userId, isAdmin, callback) {
+function setTenantAdmin(ctx, userId, isAdmin, callback) {
   const user = AuthzUtil.getResourceFromId(userId);
   if (ctx.user() && ctx.user().isAdmin(user.tenantAlias)) {
     _setAdmin(ctx, 'admin:tenant', isAdmin, userId, callback);
@@ -1192,7 +1198,7 @@ const setTenantAdmin = function (ctx, userId, isAdmin, callback) {
       msg: 'You do not have sufficient rights to make someone an admin'
     });
   }
-};
+}
 
 /**
  * Set a flag that indicates whether a user is a global admin. The user in context must be a global
@@ -1204,13 +1210,13 @@ const setTenantAdmin = function (ctx, userId, isAdmin, callback) {
  * @param  {Function}  callback         Standard callback function
  * @param  {Object}    callback.err     An error that occurred, if any
  */
-const setGlobalAdmin = function (ctx, userId, isAdmin, callback) {
+function setGlobalAdmin(ctx, userId, isAdmin, callback) {
   if (ctx.user() && _.isFunction(ctx.user().isGlobalAdmin) && ctx.user().isGlobalAdmin()) {
     return _setAdmin(ctx, 'admin:global', isAdmin, userId, callback);
   }
 
   return callback({ code: 401, msg: 'You do not have sufficient rights to make someone an admin' });
-};
+}
 
 /**
  * Internal method that either promotes or demotes a user to or from being an admin. This method
@@ -1224,7 +1230,7 @@ const setGlobalAdmin = function (ctx, userId, isAdmin, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _setAdmin = function (ctx, adminType, isAdmin, principalId, callback) {
+function _setAdmin(ctx, adminType, isAdmin, principalId, callback) {
   if (!PrincipalsUtil.isUser(principalId)) {
     return callback({ code: 400, msg: 'The provided principalId is not a user' });
   }
@@ -1239,7 +1245,7 @@ const _setAdmin = function (ctx, adminType, isAdmin, principalId, callback) {
 
     return PrincipalsDAO.setAdmin(adminType, isAdmin, principalId, callback);
   });
-};
+}
 
 /**
  * Send an email token to a user that can be used to verify the user owns the email address
@@ -1252,7 +1258,7 @@ const _setAdmin = function (ctx, adminType, isAdmin, principalId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @api private
  */
-const _sendEmailToken = function (ctx, user, email, token, callback) {
+function _sendEmailToken(ctx, user, email, token, callback) {
   callback =
     callback ||
     function (error) {
@@ -1270,15 +1276,15 @@ const _sendEmailToken = function (ctx, user, email, token, callback) {
     // when sending an email token, we send in a patched user object
     const userToEmail = _.extend({}, user, { email });
 
-    const tenant = TenantsAPI.getTenant(user.tenant.alias);
-    const verificationUrl = TenantsUtil.getBaseUrl(tenant) + '/?verifyEmail=' + encodeURIComponent(token);
+    const tenant = getTenant(user.tenant.alias);
+    const verificationUrl = getBaseUrl(tenant) + '/?verifyEmail=' + encodeURIComponent(token);
 
     // Send an email to the specified e-mail address
     const data = {
       actor: ctx.user(),
       tenant: ctx.tenant(),
       user: userToEmail,
-      baseUrl: TenantsUtil.getBaseUrl(ctx.tenant()),
+      baseUrl: getBaseUrl(ctx.tenant()),
       skinVariables: getTenantSkinVariables(ctx.tenant().alias),
       token,
       verificationUrl
@@ -1291,7 +1297,7 @@ const _sendEmailToken = function (ctx, user, email, token, callback) {
 
     return callback();
   });
-};
+}
 
 /**
  * Resend an email token
@@ -1301,7 +1307,7 @@ const _sendEmailToken = function (ctx, user, email, token, callback) {
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
-const resendEmailToken = function (ctx, userId, callback) {
+function resendEmailToken(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1334,7 +1340,7 @@ const resendEmailToken = function (ctx, userId, callback) {
       return _sendEmailToken(ctx, user, email, persistedToken, callback);
     });
   });
-};
+}
 
 /**
  * Verify an email token
@@ -1346,7 +1352,7 @@ const resendEmailToken = function (ctx, userId, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {User}       callback.user   The updated user
  */
-const verifyEmail = function (ctx, userId, token, callback) {
+function verifyEmail(ctx, userId, token, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1399,7 +1405,7 @@ const verifyEmail = function (ctx, userId, token, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Check whether a user has a pending email token
@@ -1410,7 +1416,7 @@ const verifyEmail = function (ctx, userId, token, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String}     callback.email      The email address for which there is a token
  */
-const getEmailToken = function (ctx, userId, callback) {
+function getEmailToken(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1440,7 +1446,7 @@ const getEmailToken = function (ctx, userId, callback) {
 
     return callback(null, email);
   });
-};
+}
 
 /**
  * Delete a pending email token for a user
@@ -1451,7 +1457,7 @@ const getEmailToken = function (ctx, userId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {String}     callback.email      The email address for which there is a token
  */
-const deleteEmailToken = function (ctx, userId, callback) {
+function deleteEmailToken(ctx, userId, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1489,7 +1495,7 @@ const deleteEmailToken = function (ctx, userId, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Get data of a principal
@@ -1501,7 +1507,7 @@ const deleteEmailToken = function (ctx, userId, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Objetc}     callback.zipFile        Zip file containing all the data
  */
-const exportData = function (ctx, userId, exportType, callback) {
+function exportData(ctx, userId, exportType, callback) {
   try {
     unless(isUserId, {
       code: 400,
@@ -1560,7 +1566,7 @@ const exportData = function (ctx, userId, exportType, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Get profile picture
@@ -1571,7 +1577,7 @@ const exportData = function (ctx, userId, exportType, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Objetc}     callback.profilePicture     Object containing the profile picture's data
  */
-const _extractProfilePicture = function (ctx, principal, callback) {
+function _extractProfilePicture(ctx, principal, callback) {
   if (_.isEmpty(principal.picture)) {
     return callback();
   }
@@ -1585,7 +1591,7 @@ const _extractProfilePicture = function (ctx, principal, callback) {
   const profilePicture = { path: path + '/' + pathLargePicture[1], imageName };
 
   return callback(null, profilePicture);
-};
+}
 
 /**
  * Create an object containing the personal data of a user
@@ -1597,21 +1603,21 @@ const _extractProfilePicture = function (ctx, principal, callback) {
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Objetc}     callback.personalData       Object contain all the data
  */
-const _assemblePersonalData = function (personalDetails, profilePicture, data, callback) {
+function _assemblePersonalData(personalDetails, profilePicture, data, callback) {
   const personalData = { personalDetails, profilePicture };
 
   if (data) {
     const dataTypes = ['uploads', 'links', 'collabdocs', 'collabsheets', 'meetings', 'discussions'];
 
-    dataTypes.forEach((dataType) => {
+    for (const dataType of dataTypes) {
       if (data[dataType]) {
         personalData[dataType] = data[dataType];
       }
-    });
+    }
   }
 
   return callback(null, personalData);
-};
+}
 
 /**
  * Get content informations
@@ -1623,7 +1629,7 @@ const _assemblePersonalData = function (personalDetails, profilePicture, data, c
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Objetc}     callback.data           Object contain all the data
  */
-const collectDataToExport = function (ctx, userId, exportType, callback) {
+function collectDataToExport(ctx, userId, exportType, callback) {
   if (exportType === PrincipalsConstants.exportType.PERSONAL_DATA) {
     return callback();
   }
@@ -1634,15 +1640,11 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
 
     // Remove all content that was not created by the user
     if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-      contents = _.reject(contents, (content) => {
-        return content.createdBy !== userId;
-      });
+      contents = _.reject(contents, (content) => content.createdBy !== userId);
     }
 
     // Group all content by type
-    const contentsSplited = _.groupBy(contents, (content) => {
-      return content.resourceSubType;
-    });
+    const contentsSplited = _.groupBy(contents, (content) => content.resourceSubType);
 
     // Get uploaded files
     _getUploadedFiles(ctx, contentsSplited.file, (error, uploadData) => {
@@ -1664,9 +1666,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
               if (error) return callback(error);
 
               if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                meetings = _.reject(meetings, (meeting) => {
-                  return meeting.createdBy !== userId;
-                });
+                meetings = _.reject(meetings, (meeting) => meeting.createdBy !== userId);
               }
 
               // Convert meetings into txt file
@@ -1678,9 +1678,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
                   if (error) return callback(error);
 
                   if (exportType === PrincipalsConstants.exportType.CONTENT_DATA) {
-                    discussions = _.reject(discussions, (discussion) => {
-                      return discussion.createdBy !== userId;
-                    });
+                    discussions = _.reject(discussions, (discussion) => discussion.createdBy !== userId);
                   }
 
                   // Convert meetings into txt file
@@ -1704,7 +1702,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
       });
     });
   });
-};
+}
 
 /**
  * Get information about uploaded files
@@ -1715,7 +1713,7 @@ const collectDataToExport = function (ctx, userId, exportType, callback) {
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Objetc}     callback.uploadData     Object contain all the uploaded files' data
  */
-const _getUploadedFiles = function (ctx, uploadedFiles, callback) {
+function _getUploadedFiles(ctx, uploadedFiles, callback) {
   if (_.isEmpty(uploadedFiles)) {
     return callback();
   }
@@ -1751,7 +1749,7 @@ const _getUploadedFiles = function (ctx, uploadedFiles, callback) {
   });
 
   return callback(null, uploadData);
-};
+}
 
 const _collabsheetToCSV = function (ctx, collabsheets, callback) {
   if (_.isEmpty(collabsheets)) return callback();

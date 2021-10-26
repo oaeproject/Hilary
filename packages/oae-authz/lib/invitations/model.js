@@ -21,7 +21,7 @@
  * @param  {User}       inviterUser     The user who invited the email
  * @param  {String}     role            The role that was specified for the email
  */
-const Invitation = function(resource, email, inviterUser, role) {
+const Invitation = function (resource, email, inviterUser, role) {
   const that = {};
   that.resource = resource;
   that.email = email;
@@ -38,7 +38,7 @@ const Invitation = function(resource, email, inviterUser, role) {
  * @param  {User}       inviterUser     The full user object that the `hash.inviterUserId` references
  * @return {Invitation}                 The invitation
  */
-Invitation.fromHash = function(hash, resource, inviterUser) {
+Invitation.fromHash = function (hash, resource, inviterUser) {
   return new Invitation(resource, hash.email, inviterUser, hash.role);
 };
 

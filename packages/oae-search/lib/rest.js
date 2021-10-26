@@ -12,14 +12,14 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
-import * as OAE from 'oae-util/lib/oae';
-import * as OaeUtil from 'oae-util/lib/util';
-import * as TenantsAPI from 'oae-tenants/lib/api';
+import * as OAE from 'oae-util/lib/oae.js';
+import * as OaeUtil from 'oae-util/lib/util.js';
+import * as TenantsAPI from 'oae-tenants/lib/api.js';
 import * as SearchAPI from 'oae-search';
-import * as SearchUtil from 'oae-search/lib/util';
+import * as SearchUtil from 'oae-search/lib/util.js';
 
 const REGEX_SEARCH_ENDPOINT = /\/api\/search\/([^/]+)(\/.*)?/;
 

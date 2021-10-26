@@ -15,12 +15,12 @@
 
 import _ from 'underscore';
 
-import * as AuthzUtil from 'oae-authz/lib/util';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
 import { logger } from 'oae-logger';
 import * as TenantsAPI from 'oae-tenants';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityRegistry from './registry.js';
 
 const log = logger('oae-activity-push');
@@ -34,7 +34,7 @@ const log = logger('oae-activity-push');
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  */
-const transformActivities = function(ctx, activities, transformerType, callback) {
+const transformActivities = function (ctx, activities, transformerType, callback) {
   transformerType = transformerType || 'activitystreams';
 
   const activityEntitiesByObjectType = {};
@@ -42,25 +42,20 @@ const transformActivities = function(ctx, activities, transformerType, callback)
 
   // Collect and index all the entities to be transformed by objectType -> activityId -> entityId
   try {
-    activities.forEach(activity => {
+    for (const activity of activities) {
       const activityId = activity[ActivityConstants.properties.OAE_ACTIVITY_ID];
       _getActivityEntitiesByObjectType(activityId, activity.actor, activityEntitiesByObjectType);
       _getActivityEntitiesByObjectType(activityId, activity.object, activityEntitiesByObjectType);
       _getActivityEntitiesByObjectType(activityId, activity.target, activityEntitiesByObjectType);
-    });
+    }
   } catch (error) {
-    const logActivities = _.map(activities, activity => {
-      return {
-        actor: activity.actor.id,
-        object: activity.object.id,
-        target: activity.target.id
-      };
-    });
+    const logActivities = _.map(activities, (activity) => ({
+      actor: activity.actor.id,
+      object: activity.object.id,
+      target: activity.target.id
+    }));
 
-    log().error(
-      { error, activities: logActivities, user: ctx.user() },
-      'Failed to get activity entities'
-    );
+    log().error({ error, activities: logActivities, user: ctx.user() }, 'Failed to get activity entities');
     throw error;
   }
 
@@ -71,7 +66,7 @@ const transformActivities = function(ctx, activities, transformerType, callback)
   /*!
    * Handles the callback for when a set of entities for an object type have been transformed.
    */
-  const _handleTransform = function(error, objectType, transformedActivityEntities) {
+  const _handleTransform = function (error, objectType, transformedActivityEntities) {
     if (errorOccurred) {
       // Do nothing because we've already err'd
       return;
@@ -94,46 +89,34 @@ const transformActivities = function(ctx, activities, transformerType, callback)
 
   // Transform all entities of each object type and activity
   if (objectTypes.length > 0) {
-    objectTypes.forEach(objectType => {
+    for (const objectType of objectTypes) {
       const transformer = _getEntityTypeTransformer(objectType, transformerType);
-      transformer(
-        ctx,
-        activityEntitiesByObjectType[objectType],
-        (error, transformedActivityEntities) => {
-          if (error) {
-            return callback(error);
-          }
-
-          // Ensure all transformed entities have at least the objectType and the oae:id
-          _.keys(transformedActivityEntities).forEach(activityId => {
-            _.keys(transformedActivityEntities[activityId]).forEach(entityId => {
-              if (!transformedActivityEntities[activityId][entityId].objectType) {
-                transformedActivityEntities[activityId][entityId].objectType = objectType;
-              }
-
-              if (
-                !transformedActivityEntities[activityId][entityId][
-                  ActivityConstants.properties.OAE_ID
-                ]
-              ) {
-                transformedActivityEntities[activityId][entityId][
-                  ActivityConstants.properties.OAE_ID
-                ] = entityId;
-              }
-
-              // We only need the tenant information when transforming the entities into ActivityStrea.ms compliant entities
-              if (transformerType === ActivityConstants.transformerTypes.ACTIVITYSTREAMS) {
-                _addTenantInformationToActivityEntity(
-                  transformedActivityEntities[activityId][entityId]
-                );
-              }
-            });
-          });
-
-          return _handleTransform(error, objectType, transformedActivityEntities);
+      transformer(ctx, activityEntitiesByObjectType[objectType], (error, transformedActivityEntities) => {
+        if (error) {
+          return callback(error);
         }
-      );
-    });
+
+        // Ensure all transformed entities have at least the objectType and the oae:id
+        for (const activityId of _.keys(transformedActivityEntities)) {
+          for (const entityId of _.keys(transformedActivityEntities[activityId])) {
+            if (!transformedActivityEntities[activityId][entityId].objectType) {
+              transformedActivityEntities[activityId][entityId].objectType = objectType;
+            }
+
+            if (!transformedActivityEntities[activityId][entityId][ActivityConstants.properties.OAE_ID]) {
+              transformedActivityEntities[activityId][entityId][ActivityConstants.properties.OAE_ID] = entityId;
+            }
+
+            // We only need the tenant information when transforming the entities into ActivityStrea.ms compliant entities
+            if (transformerType === ActivityConstants.transformerTypes.ACTIVITYSTREAMS) {
+              _addTenantInformationToActivityEntity(transformedActivityEntities[activityId][entityId]);
+            }
+          }
+        }
+
+        return _handleTransform(error, objectType, transformedActivityEntities);
+      });
+    }
   } else {
     return callback();
   }
@@ -147,7 +130,7 @@ const transformActivities = function(ctx, activities, transformerType, callback)
  * @return {Function}                       The activity entity transformer
  * @api private
  */
-const _getEntityTypeTransformer = function(objectType, transformerType) {
+const _getEntityTypeTransformer = function (objectType, transformerType) {
   const activityEntityType = ActivityRegistry.getRegisteredActivityEntityTypes()[objectType] || {};
   const { transformer } = activityEntityType;
   if (_.isObject(transformer) && _.isFunction(transformer[transformerType])) {
@@ -208,28 +191,21 @@ const _getEntityTypeTransformer = function(objectType, transformerType) {
  * @param  {Object}    activityEntitiesByObjectType    An object of: objectType -> activityId -> entityId -> persistentEntity that holds the categorized entities of all the activities in a stream request
  * @api private
  */
-const _getActivityEntitiesByObjectType = function(
-  activityId,
-  entity,
-  activityEntitiesByObjectType
-) {
+const _getActivityEntitiesByObjectType = function (activityId, entity, activityEntitiesByObjectType) {
   if (entity && entity.objectType !== 'collection') {
     _collectStuff(activityEntitiesByObjectType, entity, activityId);
   } else if (entity) {
     // This is actually a collection of more entities. Iterate and collect them.
-    entity[ActivityConstants.properties.OAE_COLLECTION].forEach(eachEntity => {
+    for (const eachEntity of entity[ActivityConstants.properties.OAE_COLLECTION]) {
       _collectStuff(activityEntitiesByObjectType, eachEntity, activityId);
-    });
+    }
   }
 };
 
 const _collectStuff = (activityEntities, entity, activityId) => {
   activityEntities[entity.objectType] = activityEntities[entity.objectType] || {};
-  activityEntities[entity.objectType][activityId] =
-    activityEntities[entity.objectType][activityId] || {};
-  activityEntities[entity.objectType][activityId][
-    entity[ActivityConstants.properties.OAE_ID]
-  ] = entity;
+  activityEntities[entity.objectType][activityId] = activityEntities[entity.objectType][activityId] || {};
+  activityEntities[entity.objectType][activityId][entity[ActivityConstants.properties.OAE_ID]] = entity;
 };
 
 /**
@@ -240,25 +216,13 @@ const _collectStuff = (activityEntities, entity, activityId) => {
  * @param  {Object[]}  activities                                  A list of raw activities to be delivered in a stream. These activities are to be transformed by this method such that they may be delivered to the UI
  * @api private
  */
-const _transformActivities = function(transformedActivityEntitiesByObjectType, activities) {
-  activities.forEach(activity => {
+const _transformActivities = function (transformedActivityEntitiesByObjectType, activities) {
+  for (const activity of activities) {
     const activityId = activity[ActivityConstants.properties.OAE_ACTIVITY_ID];
-    activity.actor = _transformEntity(
-      transformedActivityEntitiesByObjectType,
-      activityId,
-      activity.actor
-    );
-    activity.object = _transformEntity(
-      transformedActivityEntitiesByObjectType,
-      activityId,
-      activity.object
-    );
-    activity.target = _transformEntity(
-      transformedActivityEntitiesByObjectType,
-      activityId,
-      activity.target
-    );
-  });
+    activity.actor = _transformEntity(transformedActivityEntitiesByObjectType, activityId, activity.actor);
+    activity.object = _transformEntity(transformedActivityEntitiesByObjectType, activityId, activity.object);
+    activity.target = _transformEntity(transformedActivityEntitiesByObjectType, activityId, activity.target);
+  }
 };
 
 /**
@@ -269,7 +233,7 @@ const _transformActivities = function(transformedActivityEntitiesByObjectType, a
  * @param  {Object}    entity                                      The persistent activity entity that should be transformed with the transformed entities object
  * @api private
  */
-const _transformEntity = function(transformedActivityEntitiesByObjectType, activityId, entity) {
+const _transformEntity = function (transformedActivityEntitiesByObjectType, activityId, entity) {
   if (!entity) {
     return entity;
   }
@@ -280,16 +244,13 @@ const _transformEntity = function(transformedActivityEntitiesByObjectType, activ
   }
 
   const transformedCollection = [];
-  entity[ActivityConstants.properties.OAE_COLLECTION].forEach(collectionEntity => {
-    const transformedEntity = _transformEntity(
-      transformedActivityEntitiesByObjectType,
-      activityId,
-      collectionEntity
-    );
+  for (const collectionEntity of entity[ActivityConstants.properties.OAE_COLLECTION]) {
+    const transformedEntity = _transformEntity(transformedActivityEntitiesByObjectType, activityId, collectionEntity);
     if (transformedEntity) {
       transformedCollection.push(transformedEntity);
     }
-  });
+  }
+
   entity[ActivityConstants.properties.OAE_COLLECTION] = transformedCollection;
   return entity;
 };
@@ -300,17 +261,13 @@ const _transformEntity = function(transformedActivityEntitiesByObjectType, activ
  * For more information on these parameters, please @see #registerActivityEntityTransformer
  * @api private
  */
-const _defaultActivityEntityTransformer = function(ctx, activityEntities, callback) {
+const _defaultActivityEntityTransformer = function (ctx, activityEntities, callback) {
   const transformedEntities = {};
   _.each(activityEntities, (entities, activityId) => {
     transformedEntities[activityId] = transformedEntities[activityId] || {};
     _.each(entities, (entity, entityKey) => {
       // Pick just the objectType and the oae:id of the entity for the transformed entity.
-      transformedEntities[activityId][entityKey] = _.pick(
-        entity,
-        'objectType',
-        ActivityConstants.properties.OAE_ID
-      );
+      transformedEntities[activityId][entityKey] = _.pick(entity, 'objectType', ActivityConstants.properties.OAE_ID);
     });
   });
 
@@ -324,13 +281,11 @@ const _defaultActivityEntityTransformer = function(ctx, activityEntities, callba
  * @param  {ActivityEntity}  [entity]  The entity or the collection of entities to add the tenant information to.
  * @api private
  */
-const _addTenantInformationToActivityEntity = function(entity) {
+const _addTenantInformationToActivityEntity = function (entity) {
   if (entity) {
     // If the entity is a single entity, apply the tenant information
     if (entity[ActivityConstants.properties.OAE_ID]) {
-      const { tenantAlias } = AuthzUtil.getResourceFromId(
-        entity[ActivityConstants.properties.OAE_ID]
-      );
+      const { tenantAlias } = AuthzUtil.getResourceFromId(entity[ActivityConstants.properties.OAE_ID]);
       const tenant = TenantsAPI.getTenant(tenantAlias);
       if (tenant) {
         entity[ActivityConstants.properties.OAE_TENANT] = tenant.compact();
@@ -338,10 +293,7 @@ const _addTenantInformationToActivityEntity = function(entity) {
 
       // If the entity is a collection of entities, iterate over each one and apply the tenant information
     } else if (entity[ActivityConstants.properties.OAE_COLLECTION]) {
-      _.each(
-        entity[ActivityConstants.properties.OAE_COLLECTION],
-        _addTenantInformationToActivityEntity
-      );
+      _.each(entity[ActivityConstants.properties.OAE_COLLECTION], _addTenantInformationToActivityEntity);
     }
   }
 };

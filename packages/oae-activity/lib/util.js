@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'util';
+import { format } from 'node:util';
 import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
-import { AuthzConstants } from 'oae-authz/lib/constants';
-import * as AuthzUtil from 'oae-authz/lib/util';
+import { AuthzConstants } from 'oae-authz/lib/constants.js';
+import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
  * Get a propagation specification that is standard for a resource. This effectively assumes that a resource does not get
@@ -38,7 +38,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
  * @param  {Object}     callback.err            An error that occurred, if any
  * @param  {Object[]}   callback.propagation    The array of propagation specs that will describe who has access to receive it in their feed
  */
-const getStandardResourcePropagation = function(resourceVisibility, resourceJoinable, callback) {
+const getStandardResourcePropagation = function (resourceVisibility, resourceJoinable, callback) {
   const propagation = [];
   if (resourceVisibility === AuthzConstants.visibility.PUBLIC) {
     propagation.push({ type: ActivityConstants.entityPropagation.ALL });
@@ -53,8 +53,7 @@ const getStandardResourcePropagation = function(resourceVisibility, resourceJoin
     // may have the opportunity to join it
   } else if (
     resourceVisibility === AuthzConstants.visibility.PRIVATE &&
-    (resourceJoinable === AuthzConstants.joinable.YES ||
-      resourceJoinable === AuthzConstants.joinable.REQUEST)
+    (resourceJoinable === AuthzConstants.joinable.YES || resourceJoinable === AuthzConstants.joinable.REQUEST)
   ) {
     propagation.push({ type: ActivityConstants.entityPropagation.TENANT });
   }
@@ -77,14 +76,12 @@ const getStandardResourcePropagation = function(resourceVisibility, resourceJoin
       type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
       objectType: 'target',
       association: 'self'
+    },
+    {
+      type: ActivityConstants.entityPropagation.ASSOCIATION,
+      association: 'members'
     }
   );
-
-  // Always allow routing to the members of the item whether it's loggedin or private
-  propagation.push({
-    type: ActivityConstants.entityPropagation.ASSOCIATION,
-    association: 'members'
-  });
   return callback(null, propagation);
 };
 
@@ -97,8 +94,8 @@ const getStandardResourcePropagation = function(resourceVisibility, resourceJoin
  * @param  {Object}    callback.err            An error that occurred, if any
  * @param  {Object}    callback.membersByRole  An object holding all the direct and indirect members of the given resource item. The key of the hash is the role, and the values are a list of strings that represent the principal ids of those members
  */
-const getAllAuthzMembersByRole = function(resourceId, callback) {
-  AuthzAPI.getAuthzMembers(resourceId, null, 10000, (error, members) => {
+const getAllAuthzMembersByRole = function (resourceId, callback) {
+  AuthzAPI.getAuthzMembers(resourceId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }
@@ -107,7 +104,7 @@ const getAllAuthzMembersByRole = function(resourceId, callback) {
     const groupMembersByRole = {};
 
     // Gather the direct membersByRole and aggregate the groupMembersByRole so we can get their descendants
-    _.each(members, member => {
+    _.each(members, (member) => {
       const { id } = member;
       const { role } = member;
       membersByRole[role] = membersByRole[role] || [];
@@ -145,7 +142,7 @@ const getAllAuthzMembersByRole = function(resourceId, callback) {
  * @param  {Object}    callback.membersByRole  An object containing all members categorized by their role. The key is the role, and the value is a list of principal ids that represent the members
  * @api private
  */
-const _getAllAuthzGroupMembersByRole = function(groupRoles, callback) {
+const _getAllAuthzGroupMembersByRole = function (groupRoles, callback) {
   const roles = _.keys(groupRoles);
   if (_.isEmpty(roles)) {
     return callback(null, {});
@@ -189,14 +186,14 @@ const _getAllAuthzGroupMembersByRole = function(groupRoles, callback) {
  * @param  {Object}    [aggregatedMembers] Internal parameter used for recursion to collect all visited members. Holds the same format as `callback.members`.
  * @api private
  */
-const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
+const _getAllAuthzMembers = function (groupIds, callback, aggregatedMembers) {
   aggregatedMembers = aggregatedMembers || {};
   if (_.isEmpty(groupIds)) {
     return callback(null, _.keys(aggregatedMembers));
   }
 
   const groupId = groupIds.shift();
-  AuthzAPI.getAuthzMembers(groupId, null, 10000, (error, members) => {
+  AuthzAPI.getAuthzMembers(groupId, null, 10_000, (error, members) => {
     if (error) {
       return callback(error);
     }
@@ -204,11 +201,7 @@ const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
     // Aggregate the memberIds
     for (const element of members) {
       const memberId = element.id;
-      if (
-        !aggregatedMembers[memberId] &&
-        AuthzUtil.isGroupId(memberId) &&
-        !_.contains(groupIds, memberId)
-      ) {
+      if (!aggregatedMembers[memberId] && AuthzUtil.isGroupId(memberId) && !_.contains(groupIds, memberId)) {
         // If this is a group and we have not aggregated it yet, add it to the groupIds
         groupIds.push(memberId);
       }
@@ -228,7 +221,7 @@ const _getAllAuthzMembers = function(groupIds, callback, aggregatedMembers) {
  * @param  {String}     activityStreamType  The type of the activity stream. ex: `activity` or `notification`
  * @return {String}                         The created activity stream id
  */
-const createActivityStreamId = function(resourceId, activityStreamType) {
+const createActivityStreamId = function (resourceId, activityStreamType) {
   return format('%s#%s', resourceId, activityStreamType);
 };
 
@@ -238,7 +231,7 @@ const createActivityStreamId = function(resourceId, activityStreamType) {
  * @param  {String}     activityStreamId    The activity stream ID to parse
  * @return {Object}                         An object containing the `resourceId` and the `streamType` for this activity stream ID
  */
-const parseActivityStreamId = function(activityStreamId) {
+const parseActivityStreamId = function (activityStreamId) {
   const parts = activityStreamId.split('#');
   return {
     resourceId: parts[0],
@@ -246,9 +239,4 @@ const parseActivityStreamId = function(activityStreamId) {
   };
 };
 
-export {
-  getStandardResourcePropagation,
-  getAllAuthzMembersByRole,
-  createActivityStreamId,
-  parseActivityStreamId
-};
+export { getStandardResourcePropagation, getAllAuthzMembersByRole, createActivityStreamId, parseActivityStreamId };

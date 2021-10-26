@@ -16,7 +16,7 @@
 import _ from 'underscore';
 import clone from 'clone';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /// /////////////
 // SEED MODEL //
@@ -31,7 +31,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants';
  * @param  {String}    resourceId      The ID of the resource
  * @param  {Object}    [resourceData]  A resourceType-specific blob of JSON data that provides more information needed to construct the Activity Object. For example, for a comment you may include the parent content object that you had at the time the comment was posted.
  */
-const ActivitySeedResource = function(resourceType, resourceId, resourceData) {
+const ActivitySeedResource = function (resourceType, resourceId, resourceData) {
   const that = {};
   that.resourceType = resourceType;
   that.resourceId = resourceId;
@@ -47,12 +47,8 @@ const ActivitySeedResource = function(resourceType, resourceId, resourceData) {
  * @param  {Resource}               resource    The resource from which to create the activity seed resource
  * @return {ActivitySeedResource}               The activity seed resource, as described in the summary
  */
-ActivitySeedResource.fromResource = function(resource) {
-  return new ActivitySeedResource(
-    resource.resourceType,
-    resource.id,
-    _.object([[resource.resourceType, resource]])
-  );
+ActivitySeedResource.fromResource = function (resource) {
+  return new ActivitySeedResource(resource.resourceType, resource.id, _.object([[resource.resourceType, resource]]));
 };
 
 /**
@@ -66,14 +62,7 @@ ActivitySeedResource.fromResource = function(resource) {
  * @param  {ActivitySeedResource}  [objectResource]    The Object on which the activity was performed
  * @param  {ActivitySeedResource}  [targetResource]    The Target resource of the activity, as recommended in the ActivityStrea.ms specification
  */
-const ActivitySeed = function(
-  activityType,
-  published,
-  verb,
-  actorResource,
-  objectResource,
-  targetResource
-) {
+const ActivitySeed = function (activityType, published, verb, actorResource, objectResource, targetResource) {
   const that = {};
   that.activityType = activityType;
   that.published = published;
@@ -106,7 +95,7 @@ const ActivitySeed = function(
  * @param  {Number}    [height]    The recommended height of the media item
  * @param  {Number}    [duration]  The length in seconds of the media item if it is time-based, such as audio or video
  */
-const ActivityMediaLink = function(url, width, height, duration) {
+const ActivityMediaLink = function (url, width, height, duration) {
   const that = {};
   that.url = url;
   that.width = width;
@@ -126,7 +115,7 @@ const ActivityMediaLink = function(url, width, height, duration) {
  * @param  {ActivityEntity}    [object]            The object Object on which the action was performed
  * @param  {ActivityEntity}    [target]            The target Object of the activity, as described in the ActivityStrea.ms specification
  */
-const Activity = function(oaeActivityType, oaeActivityId, verb, published, actor, object, target) {
+const Activity = function (oaeActivityType, oaeActivityId, verb, published, actor, object, target) {
   const that = {};
   that[ActivityConstants.properties.OAE_ACTIVITY_TYPE] = oaeActivityType;
   that[ActivityConstants.properties.OAE_ACTIVITY_ID] = oaeActivityId;
@@ -155,11 +144,11 @@ const Activity = function(oaeActivityType, oaeActivityId, verb, published, actor
  * @param  {Number}    [opts.created]      Time in millis since the epoch when the object was created
  * @param  {Object}    [opts.ext]          A hash of custom extension properties that will be overlayed onto the Object model
  */
-const ActivityEntity = function(objectType, id, visibility, opts) {
-  opts = opts || {};
-  const ext = opts.ext || {};
-  delete opts.ext;
-  return _.extend({}, ext, opts, { objectType, id, 'oae:visibility': visibility });
+const ActivityEntity = function (objectType, id, visibility, options) {
+  options = options || {};
+  const ext = options.ext || {};
+  delete options.ext;
+  return _.extend({}, ext, options, { objectType, id, 'oae:visibility': visibility });
 };
 
 /**
@@ -168,7 +157,7 @@ const ActivityEntity = function(objectType, id, visibility, opts) {
  * @param  {Activity[]}    activities  An array of activities to return
  * @param  {String}        nextToken   The value to provide when retrieving the next set of activities in the stream
  */
-const ActivityStream = function(activities, nextToken) {
+const ActivityStream = function (activities, nextToken) {
   return { items: activities, nextToken };
 };
 
@@ -204,7 +193,7 @@ const ActivityStream = function(activities, nextToken) {
  * @param  {Object}                 target                  The persistent target entity, as created by the entity producer
  * @return {AssociationsSession}                            The AssociationSession object that can be used to get the association context
  */
-const AssociationsSession = function(registeredAssociations, actor, object, target) {
+const AssociationsSession = function (registeredAssociations, actor, object, target) {
   // The associations session that will be returned as the result of this method
   const associationsSession = {};
 
@@ -241,7 +230,7 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
    * @param  {Object}     callback.err            An error that occurred, if any
    * @param  {Object}     callback.association    The association. Usually a list of strings indicating ids, however can really be any value. Note that it cannot be used for routing purposes if it does not return an array of strings
    */
-  associationsSession.getByEntityId = function(entityType, entityId, associationName, callback) {
+  associationsSession.getByEntityId = function (entityType, entityId, associationName, callback) {
     // If we have a cached entry, return it immediately
     const cachedAssociation =
       _associationsCache[entityType] &&
@@ -268,9 +257,9 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
     associationFunction(
       associationsSession.createAssociationsContext(entityType, entityId),
       entity,
-      (err, association) => {
-        if (err) {
-          return callback(err);
+      (error, association) => {
+        if (error) {
+          return callback(error);
         }
 
         if (!association) {
@@ -296,7 +285,7 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
    * @param  {String}             entityId    The id of the entity for which this association context was created
    * @return {AssociationContext}             The association context, with method `get` and `getByEntityId` to get entity associations
    */
-  associationsSession.createAssociationsContext = function(entityType, entityId) {
+  associationsSession.createAssociationsContext = function (entityType, entityId) {
     // The associations context that will be the return value of this method
     const associationsContext = {};
 
@@ -305,7 +294,7 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
      *
      * @return {AssociationsSession}    The parent associationsSession
      */
-    associationsContext.getSession = function() {
+    associationsContext.getSession = function () {
       return associationsSession;
     };
 
@@ -316,10 +305,8 @@ const AssociationsSession = function(registeredAssociations, actor, object, targ
      * @param  {Object}     callback.err            An error that occurred, if any
      * @param  {Object}     callback.association    The association. Usually a list of strings indicating ids, however can really be any value. Note that it cannot be used for routing purposes if it does not return an array of strings
      */
-    associationsContext.get = function(associationName, callback) {
-      return associationsContext
-        .getSession()
-        .getByEntityId(entityType, entityId, associationName, callback);
+    associationsContext.get = function (associationName, callback) {
+      return associationsContext.getSession().getByEntityId(entityType, entityId, associationName, callback);
     };
 
     return associationsContext;

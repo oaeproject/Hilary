@@ -15,18 +15,19 @@
 
 import _ from 'underscore';
 
-import * as ActivityAPI from 'oae-activity';
-import * as ActivityModel from 'oae-activity/lib/model';
-import * as ActivityUtil from 'oae-activity/lib/util';
+import * as ActivityAPI from 'oae-activity/lib/api.js';
+import * as ActivityModel from 'oae-activity/lib/model.js';
+import * as ActivityUtil from 'oae-activity/lib/util.js';
 import { emitter } from 'oae-principals';
-import * as PrincipalsDAO from 'oae-principals/lib/internal/dao';
-import * as PrincipalsUtil from 'oae-principals/lib/util';
+import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
+import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 
-import { ActivityConstants } from 'oae-activity/lib/constants';
-import { PrincipalsConstants } from 'oae-principals/lib/constants';
-/// ///////////////
-// GROUP-CREATE //
-/// ///////////////
+import { ActivityConstants } from 'oae-activity/lib/constants.js';
+import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
+
+/**
+ * Group-create
+ */
 
 /*!
  * Fire the 'group-create' activity when a new group is created.
@@ -91,11 +92,10 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP, (ctx, newGroup, oldGroup) =
 
   // If just update the group's visibility, we want to fire off a special "changed visibility" activity instead of the normal "group update"
   let activityType = null;
-  if (newGroup.visibility === oldGroup.visibility) {
-    activityType = PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE;
-  } else {
-    activityType = PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_VISIBILITY;
-  }
+  activityType =
+    newGroup.visibility === oldGroup.visibility
+      ? PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE
+      : PrincipalsConstants.activity.ACTIVITY_GROUP_UPDATE_VISIBILITY;
 
   const activitySeed = new ActivityModel.ActivitySeed(
     activityType,
@@ -231,8 +231,8 @@ ActivityAPI.registerActivityType(PrincipalsConstants.activity.ACTIVITY_REQUEST_T
 /*!
  * Fire the group-add-member or group-update-member-role activity when someone adds members to a group or updates user roles
  */
-emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGroup, memberChangeInfo, opts) => {
-  if (opts.invitation) {
+emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGroup, memberChangeInfo, options) => {
+  if (options.invitation) {
     // If this member update came from an invitation, we bypass adding activity as there is a
     // dedicated activity for that
     return;
@@ -248,7 +248,7 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGro
   const targetResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
 
   // Post "Add Member" activities for each new member
-  _.each(addedMemberIds, memberId => {
+  _.each(addedMemberIds, (memberId) => {
     const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
     const activitySeed = new ActivityModel.ActivitySeed(
@@ -263,7 +263,7 @@ emitter.on(PrincipalsConstants.events.UPDATED_GROUP_MEMBERS, (ctx, group, oldGro
   });
 
   // Post "Update member role" activities for each membership update
-  _.each(updatedMemberIds, memberId => {
+  _.each(updatedMemberIds, (memberId) => {
     const objectResourceType = PrincipalsUtil.isGroup(memberId) ? 'group' : 'user';
     const objectResource = new ActivityModel.ActivitySeedResource(objectResourceType, memberId);
     const activitySeed = new ActivityModel.ActivitySeed(
@@ -307,7 +307,7 @@ emitter.on(
  * Fire the request-group-join activity when someone wants to join a group
  */
 // eslint-disable-next-line no-unused-vars
-emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, function(ctx, group, oldGroup, memberChangeInfo) {
+emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP, (ctx, group, oldGroup, memberChangeInfo) => {
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, { user: ctx.user() });
   const objectResource = new ActivityModel.ActivitySeedResource('group', group.id, { group });
@@ -357,7 +357,7 @@ emitter.on(PrincipalsConstants.events.REQUEST_TO_JOIN_GROUP_REJECTED, (ctx, grou
  * Create the 'user' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userProducer = function(resource, callback) {
+const _userProducer = function (resource, callback) {
   const user = resource.resourceData ? resource.resourceData.user : null;
 
   // If the user was provided in the resource data, use it instead of fetching
@@ -366,9 +366,9 @@ const _userProducer = function(resource, callback) {
   }
 
   // We didn't have a user to work with, fetch it and produce the persistent entity
-  PrincipalsDAO.getPrincipal(resource.resourceId, (err, user) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(resource.resourceId, (error, user) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, PrincipalsUtil.createPersistentUserActivityEntity(user.id, user));
@@ -379,19 +379,20 @@ const _userProducer = function(resource, callback) {
  * Transform the user persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userTransformer = function(ctx, activityEntities, callback) {
+const _userTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentUserActivityEntity(
         ctx,
         entityId,
         entity.user
       );
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -399,17 +400,17 @@ const _userTransformer = function(ctx, activityEntities, callback) {
  * Transform the user persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _userInternalTransformer = function(ctx, activityEntities, callback) {
+const _userInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentUserActivityEntityToInternal(ctx, entityId, entity.user);
-    });
-  });
+      transformedActivityEntities[activityId][entityId] =
+        PrincipalsUtil.transformPersistentUserActivityEntityToInternal(ctx, entityId, entity.user);
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -417,7 +418,7 @@ const _userInternalTransformer = function(ctx, activityEntities, callback) {
  * Create the 'group' activity entity
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupProducer = function(resource, callback) {
+const _groupProducer = function (resource, callback) {
   const group = resource.resourceData ? resource.resourceData.group : null;
 
   // If the group was delivered with the resource, use it instead of fetching
@@ -426,9 +427,9 @@ const _groupProducer = function(resource, callback) {
   }
 
   // Only the group id was added to the resource, query the group
-  PrincipalsDAO.getPrincipal(resource.resourceId, (err, group) => {
-    if (err) {
-      return callback(err);
+  PrincipalsDAO.getPrincipal(resource.resourceId, (error, group) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, PrincipalsUtil.createPersistentGroupActivityEntity(group.id, group));
@@ -439,19 +440,20 @@ const _groupProducer = function(resource, callback) {
  * Transform the group persistent activity entities into UI-friendly ones
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupTransformer = function(ctx, activityEntities, callback) {
+const _groupTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
       transformedActivityEntities[activityId][entityId] = PrincipalsUtil.transformPersistentGroupActivityEntity(
         ctx,
         entityId,
         entity.group
       );
-    });
-  });
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -459,17 +461,17 @@ const _groupTransformer = function(ctx, activityEntities, callback) {
  * Transform the group persistent activity entities into their OAE profiles
  * @see ActivityAPI#registerActivityEntityType
  */
-const _groupInternalTransformer = function(ctx, activityEntities, callback) {
+const _groupInternalTransformer = function (ctx, activityEntities, callback) {
   const transformedActivityEntities = {};
-  _.keys(activityEntities).forEach(activityId => {
+  for (const activityId of _.keys(activityEntities)) {
     transformedActivityEntities[activityId] = transformedActivityEntities[activityId] || {};
-    _.keys(activityEntities[activityId]).forEach(entityId => {
+    for (const entityId of _.keys(activityEntities[activityId])) {
       const entity = activityEntities[activityId][entityId];
-      transformedActivityEntities[activityId][
-        entityId
-      ] = PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(ctx, entityId, entity.group);
-    });
-  });
+      transformedActivityEntities[activityId][entityId] =
+        PrincipalsUtil.transformPersistentGroupActivityEntityToInternal(ctx, entityId, entity.group);
+    }
+  }
+
   return callback(null, transformedActivityEntities);
 };
 
@@ -492,27 +494,31 @@ ActivityAPI.registerActivityEntityType('group', {
     internal: _groupInternalTransformer
   },
   propagation(associationsCtx, entity, callback) {
-    ActivityUtil.getStandardResourcePropagation(entity.group.visibility, entity.group.joinable, (err, propagation) => {
-      if (err) {
-        return callback(err);
-      }
-
-      // Groups also will allow managers of object and target entities of an activity know that they were interacted with
-      propagation.push(
-        {
-          type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
-          objectType: 'object',
-          association: 'managers'
-        },
-        {
-          type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
-          objectType: 'target',
-          association: 'managers'
+    ActivityUtil.getStandardResourcePropagation(
+      entity.group.visibility,
+      entity.group.joinable,
+      (error, propagation) => {
+        if (error) {
+          return callback(error);
         }
-      );
 
-      return callback(null, propagation);
-    });
+        // Groups also will allow managers of object and target entities of an activity know that they were interacted with
+        propagation.push(
+          {
+            type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
+            objectType: 'object',
+            association: 'managers'
+          },
+          {
+            type: ActivityConstants.entityPropagation.EXTERNAL_ASSOCIATION,
+            objectType: 'target',
+            association: 'managers'
+          }
+        );
+
+        return callback(null, propagation);
+      }
+    );
   }
 });
 
@@ -523,34 +529,34 @@ ActivityAPI.registerActivityEntityType('group', {
 /*!
  * Register a user association that presents the user themself
  */
-ActivityAPI.registerActivityEntityAssociation('user', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('user', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*!
  * Register a group association that presents the group itself
  */
-ActivityAPI.registerActivityEntityAssociation('group', 'self', (associationsCtx, entity, callback) => {
-  return callback(null, [entity[ActivityConstants.properties.OAE_ID]]);
-});
+ActivityAPI.registerActivityEntityAssociation('group', 'self', (associationsCtx, entity, callback) =>
+  callback(null, [entity[ActivityConstants.properties.OAE_ID]])
+);
 
 /*!
  * Register a group association that presents the indirect members of the group categorized by role
  */
-ActivityAPI.registerActivityEntityAssociation('group', 'members-by-role', (associationsCtx, entity, callback) => {
-  return ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback);
-});
+ActivityAPI.registerActivityEntityAssociation('group', 'members-by-role', (associationsCtx, entity, callback) =>
+  ActivityUtil.getAllAuthzMembersByRole(entity[ActivityConstants.properties.OAE_ID], callback)
+);
 
 /*!
  * Register a group association that presents all the indirect members of a group
  */
 ActivityAPI.registerActivityEntityAssociation('group', 'members', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
-    return callback(null, _.flatten(_.values(membersByRole)));
+    return callback(null, _.values(membersByRole).flat());
   });
 });
 
@@ -558,9 +564,9 @@ ActivityAPI.registerActivityEntityAssociation('group', 'members', (associationsC
  * Register a group association that presents all the managers of a group
  */
 ActivityAPI.registerActivityEntityAssociation('group', 'managers', (associationsCtx, entity, callback) => {
-  associationsCtx.get('members-by-role', (err, membersByRole) => {
-    if (err) {
-      return callback(err);
+  associationsCtx.get('members-by-role', (error, membersByRole) => {
+    if (error) {
+      return callback(error);
     }
 
     return callback(null, membersByRole.manager);

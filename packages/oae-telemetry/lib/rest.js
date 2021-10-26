@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import * as OAE from 'oae-util/lib/oae';
+import * as OAE from 'oae-util/lib/oae.js';
 import * as TelemetryAPI from './api.js';
 
 /**
@@ -28,9 +28,9 @@ import * as TelemetryAPI from './api.js';
  * @HttpResponse                200          Telemetry available
  * @HttpResponse                401          Only global administrators are allowed to retrieve telemetry data
  */
-OAE.globalAdminRouter.on('get', '/api/telemetry', function (request, response) {
+OAE.globalAdminRouter.on('get', '/api/telemetry', (request, response) => {
   if (request.ctx.user() && request.ctx.user().isGlobalAdmin()) {
-    TelemetryAPI.getTelemetryData(function (error, data) {
+    TelemetryAPI.getTelemetryData((error, data) => {
       if (error) return response.status(error.code).send(error.msg);
 
       response.status(200).send(data);

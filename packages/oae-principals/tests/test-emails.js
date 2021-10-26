@@ -378,7 +378,7 @@ describe('User emails', () => {
      * email address (e.g., Facebook), that they receive the email associated
      * with the invitation as a pre-verified email
      */
-    it('verify user accounts created following invitation with external login do not require email verification', (callback) => {
+    it.skip('verify user accounts created following invitation with external login do not require email verification', (callback) => {
       // Create a tenant and enable Facebook authentication on it
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();

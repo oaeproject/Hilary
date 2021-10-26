@@ -66,12 +66,12 @@ import {
   when
 } from 'ramda';
 import isIn from 'validator/lib/isIn.js';
+import { setListeners } from 'oae-authentication';
 import TenantEmailDomainIndex from './internal/email-domain-index.js';
 import TenantIndex from './internal/tenant-index.js';
 import * as TenantNetworksDAO from './internal/dao.networks.js';
 import * as TenantsUtil from './util.js';
 import { Tenant } from './model.js';
-import { setListeners } from 'oae-authentication';
 
 const {
   unless,

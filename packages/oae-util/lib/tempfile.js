@@ -37,10 +37,7 @@ const init = function (directory) {
  * @param  {Number} size The filesize of this temporary file in bytes.
  */
 const TemporaryFile = function (path, size) {
-  const that = {};
-  that.path = path;
-  that.size = size;
-  that.name = Path.basename(path);
+  const that = { path, size, name: Path.basename(path) };
 
   /**
    * Remove the temporary file.

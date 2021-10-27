@@ -249,11 +249,15 @@ const _mockFacebookResponse = function (options) {
 
   const nock = _nock();
 
-  nock('https://graph.facebook.com').post('/v2.0/oauth/access_token').reply(200);
+  const accessToken = format('facebook_%s', _.random(10_000));
+  nock('https://graph.facebook.com').post('/v2.0/oauth/access_token').reply(200, {
+    access_token: accessToken, // eslint-disable-line camelcase
+    refresh_token: 'foo' // eslint-disable-line camelcase
+  });
 
   nock('https://graph.facebook.com')
     .get('/v2.0/me')
-    .query({ fields: 'id,name,picture,email' })
+    .query({ fields: 'id,name,picture,email', access_token: /.+/i }) // eslint-disable-line camelcase
     .reply(200, {
       id: _.random(100_000),
       name: 'I am super great',

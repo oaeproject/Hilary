@@ -417,7 +417,7 @@ describe('Authentication', () => {
      * Test that verifies that non-authoritative strategies cannot create user accounts
      * with an email address that does not match the configured tenant email domain
      */
-    it.skip('verify non-authoritative strategies cannot create user accounts with an email address that does not match the configured email domain', (callback) => {
+    it('verify non-authoritative strategies cannot create user accounts with an email address that does not match the configured email domain', (callback) => {
       // Create a tenant and enable the external authentication strategies
       const tenantAlias = TenantsTestUtil.generateTestTenantAlias();
       const tenantHost = TenantsTestUtil.generateTestTenantHost();

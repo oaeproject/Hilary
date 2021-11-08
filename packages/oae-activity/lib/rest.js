@@ -177,7 +177,8 @@ const sockjsOptions = {
   log() {}
 };
 OAE.tenantServer.sockjs = sockjs.createServer(sockjsOptions);
-OAE.tenantServer.sockjs.installHandlers(OAE.tenantServer.httpServer, { prefix: '/api/push' });
+// TODO uncomment here please - just for testing!
+// OAE.tenantServer.sockjs.installHandlers(OAE.tenantServer.httpServer, { prefix: '/api/push' });
 
 /*!
  * Listen for new websocket connections

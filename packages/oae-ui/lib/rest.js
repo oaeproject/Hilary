@@ -14,9 +14,20 @@
  */
 
 import * as OAE from 'oae-util/lib/oae.js';
-import * as OaeUtil from 'oae-util/lib/util.js';
-
+import { defaultTo, concat, pipe, prop, of, when, is, not } from 'ramda';
 import * as UIAPI from './api.js';
+
+const QUERY = 'query';
+const FILES = 'files';
+const FILE_BATCH = 'files[]';
+
+const defaultToEmptyArray = defaultTo([]);
+const getQuery = prop(QUERY);
+const getFiles = prop(FILES);
+const getFileBatch = prop(FILE_BATCH);
+const toArray = when(pipe(is(Array), not), of);
+const getQueryFiles = pipe(getQuery, getFiles, defaultToEmptyArray, toArray);
+const getQueryFileBatch = pipe(getQuery, getFileBatch, defaultToEmptyArray, toArray);
 
 /**
  * @REST getUiWidgets
@@ -54,7 +65,8 @@ OAE.tenantRouter.on('get', '/api/ui/widgets', _getWidgetManifests);
  * @HttpResponse                400             The files parameter must be an array
  */
 const _getStaticBatch = function (request, response) {
-  const files = OaeUtil.toArray(request.query.files);
+  const addToFilesBatch = pipe(getQueryFileBatch, concat)(request);
+  const files = pipe(getQueryFiles, addToFilesBatch)(request);
 
   UIAPI.getStaticBatch(files, (error, results) => {
     if (error) {
@@ -86,7 +98,8 @@ const _getSkin = function (request, response) {
       return response.status(error.code).send(error.msg);
     }
 
-    response.set('Content-Type', 'text/css');
+    // response.set('Content-Type', 'text/css');
+    response.type('text/css;');
     return response.status(200).send(css);
   });
 };

@@ -13,20 +13,53 @@
  * permissions and limitations under the License.
  */
 
-import http from 'node:http';
-import { format } from 'node:util';
+// import http from 'node:http';
+import { fileURLToPath } from 'node:url';
 import _ from 'underscore';
-import { nth, split, compose, not, indexOf, equals, either } from 'ramda';
+import {
+  forEach,
+  last,
+  head,
+  prop,
+  nth,
+  split,
+  compose,
+  pipe,
+  is,
+  not,
+  indexOf,
+  equals,
+  either,
+  ifElse,
+  identity
+} from 'ramda';
+
+import fastifyPassport from 'fastify-passport';
+import fastifySecureSession from 'fastify-secure-session';
 import bodyParser from 'body-parser';
-import express from 'express';
+import Fastify from 'fastify';
+
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
+
+import fastifyMultipart from 'fastify-multipart';
+import fastifyFormbody from 'fastify-formbody';
+import CorsPlugin from 'fastify-cors';
+
+import ExpressPlugin from 'fastify-express';
 
 import { logger } from 'oae-logger';
 
 import * as TelemetryAPI from 'oae-telemetry';
+import { dirname } from 'node:path';
 import OaeEmitter from './emitter.js';
 
 import multipart from './middleware/multipart.js';
 import * as Shutdown from './internal/shutdown.js';
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const log = logger('oae-server');
 
@@ -37,6 +70,7 @@ const isValidReferer = compose(not, equals(0), indexOf(SLASH));
 
 const isGET = equals('GET');
 const isHEAD = equals('HEAD');
+const isArray = is(Array);
 
 // The main OAE config
 let config = null;
@@ -52,21 +86,42 @@ const safePathPrefixes = [];
  * @param  {Object}     config      JSON object containing configuration values for Cassandra, Redis, logging and telemetry
  * @return {Express}                The created express server
  */
-const setupServer = function (port, _config) {
+const setupServer = async function (port, _config) {
   // Cache the config
   config = _config;
 
-  // Create the express server
-  const app = express();
+  // eslint-disable-next-line new-cap
+  const app = Fastify({
+    logger: true
+  });
+
+  await app.register(ExpressPlugin);
+  await app.register(fastifyMultipart);
+  await app.register(fastifyFormbody);
+  app.register(CorsPlugin, { origin: true });
+
+  // app.register(fastifySecureSession, { key: readFileSync(path.join(__dirname, 'bajouras')) });
+  // initialize fastify-passport and connect it to the secure-session storage. Note: both of these plugins are mandatory.
+  app.register(fastifyPassport.initialize());
+  app.register(fastifyPassport.secureSession());
+
+  // TODOdebug
+  app.setErrorHandler(function (error, request, reply) {
+    // Log error
+    this.log.error(error);
+    // Send error response
+    reply.status(409).send({ ok: false });
+  });
 
   // Expose the HTTP server on the express app server so other modules can hook into it
-  app.httpServer = http.createServer(app);
+  // app.httpServer = http.createServer(app);
 
   // Start listening for requests
-  app.httpServer.listen(port);
+  // app.httpServer.listen(port);
+  // await app.listen(port);
 
   // Don't output pretty JSON,
-  app.set('json spaces', 0);
+  // app.set('json spaces', 0);
 
   _applyAvailabilityHandling(app.httpServer, app, port);
 
@@ -82,6 +137,7 @@ const setupServer = function (port, _config) {
    * If the client needs to send more than 250kb, it should consider
    * using a proper multipart form request.
    */
+  // TODO check these out with fastify: are they still needed?
   app.use(bodyParser.urlencoded({ limit: '250kb', extended: true }));
   app.use(bodyParser.json({ limit: '250kb' }));
   app.use(multipart(config.files));
@@ -93,11 +149,15 @@ const setupServer = function (port, _config) {
   });
 
   // Add CORS headers, cookies won't be passed in so all cross domain requests will be anonymous
+  // app.use(cors({ origin: true }));
+  // TODO make sure we can delete this!
+  /*
   app.use((request, response, next) => {
     response.header('Access-Control-Allow-Origin', '*');
     response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     return next();
   });
+  */
 
   return app;
 };
@@ -124,18 +184,21 @@ const setupRouter = function (app) {
    * @throws {Error}                                Error thrown when arguments aren't of the proper type
    */
   that.on = function (method, route, handler, telemetryUrl) {
-    const isRouteValid = _.isString(route) || _.isRegExp(route);
-    const isHandlerValid = _.isFunction(handler) || _.isArray(handler);
-    if (!_.isString(method)) {
-      throw new TypeError(
-        format('Invalid type for request method "%s" when binding route "%s" to OAE Router', method, route.toString())
-      );
-    } else if (!isRouteValid) {
-      throw new Error(format('Invalid route path "%s" while binding route to OAE Router', route.toString()));
-    } else if (!isHandlerValid) {
-      throw new Error(
-        format('Invalid method handler given for route "%s" while binding to OAE Router', route.toString())
-      );
+    const aintValidRoute = pipe(either(is(String), _.isRegExp), not)(route);
+    const aintValidHandler = pipe(either(is(Function), is(Array)), not)(handler);
+    const aintValidMethod = pipe(is(String), not)(method);
+
+    switch (true) {
+      case aintValidMethod:
+        throw new TypeError(
+          `Invalid type for request method ${method} when binding route ${route.toString()} to OAE Router`
+        );
+      case aintValidRoute:
+        throw new Error(`Invalid route path ${route.toString()} while binding route to OAE Router`);
+      case aintValidHandler:
+        throw new Error(`Invalid method handler given for route ${route.toString()} while binding to OAE Router`);
+      default:
+        break;
     }
 
     that.routes.push({
@@ -146,21 +209,53 @@ const setupRouter = function (app) {
     });
   };
 
+  function setupHandlers(route) {
+    const preHandler = [];
+    const telemetryCount = function (request, _response, next) {
+      request.telemetryUrl = route.telemetryUrl || route.route.replace(/:/, '');
+      next();
+    };
+
+    preHandler.push(telemetryCount);
+
+    const preValidation = [];
+    let { handler } = route;
+
+    if (isArray(handler)) {
+      preHandler.push(head(handler));
+      // preValidation.push(head(handler));
+      handler = last(handler);
+    }
+
+    // preValidation = ifElse(is(Array), head, identity)(preValidation);
+
+    return { preHandler, handler, preValidation };
+  }
+
+  function registerRoute(route) {
+    const { preHandler, handler, preValidation } = setupHandlers(route);
+
+    try {
+      app.log.info(`Registering route ${route.method.toUpperCase()} ${route.route}...`);
+      app.route({
+        method: route.method.toUpperCase(),
+        url: route.route,
+        handler,
+        preHandler,
+        preValidation
+      });
+    } catch (error) {
+      log().error(error);
+      // TODO debug
+      console.log({ error });
+    }
+  }
+
   /**
    * Bind all the routes, this should only be called once by the server initialization
    */
-  that.bind = function () {
-    _.each(that.routes, (route) => {
-      // Add a telemetry handler
-      const handlers = [
-        function (request, response, next) {
-          request.telemetryUrl = route.telemetryUrl || route.route.replace(/:/, '');
-          next();
-        }
-      ];
-
-      app[route.method](route.route, [...handlers, route.handler]);
-    });
+  that.registerRoutes = () => {
+    forEach(registerRoute, that.routes);
   };
 
   return that;
@@ -206,12 +301,14 @@ const postInitializeServer = function (app, router) {
    * More information about CSRF attacks: http://en.wikipedia.org/wiki/Cross-site_request_forgery
    */
   app.use((request, response, next) => {
-    // If earlier middleware determined that CSRF is not required, we can skip the check
-    if (request._checkCSRF === false) {
-      return next();
-    }
+    const aintSafeMethod = pipe(prop('method'), _isSafeMethod, not)(request);
+    const aintSafePath = pipe(_isSafePath, not)(request);
+    const aintSafeOrigin = pipe(_isSameOrigin, not)(request);
 
-    if (!_isSafeMethod(request.method) && !_isSafePath(request) && !_isSameOrigin(request)) {
+    // If earlier middleware determined that CSRF is not required, we can skip the check
+    if (not(request._checkCSRF)) return next();
+
+    if (aintSafeMethod && aintSafePath && aintSafeOrigin) {
       log().warn(
         {
           method: request.method,
@@ -228,12 +325,11 @@ const postInitializeServer = function (app, router) {
   });
 
   // Bind routes
-  router.bind();
+  router.registerRoutes();
 
   // Catch-all error handler
   const appTelemetry = TelemetryAPI.telemetry('server');
-  // eslint-disable-next-line no-unused-vars
-  app.use((error, request, response, next) => {
+  app.use((error, request, response, _next) => {
     appTelemetry.incr('error.count');
     log(request.ctx).error(
       {
@@ -275,15 +371,18 @@ const _applyAvailabilityHandling = function (server, app, port) {
     isAvailable = true;
   });
 
-  // Register a pre-shutdown handler that will close this express server to stop receiving requests
-  Shutdown.registerPreShutdownHandler('express-server-' + port, null, (callback) => {
+  /**
+   * Register a pre-shutdown handler that will close this fastify server
+   * to stop receiving requests
+   */
+  Shutdown.registerPreShutdownHandler('fastify-server-' + port, null, (callback) => {
     log().info('Beginning shutdown.');
 
     // Stop accepting web requests
     isAvailable = false;
 
     server.close(() => {
-      log().info('Express is now shut down.');
+      log().info('Server is now shut down.');
       callback();
     });
   });

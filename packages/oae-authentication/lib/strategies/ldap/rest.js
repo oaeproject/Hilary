@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport'
 
 import * as OAE from 'oae-util/lib/oae.js';
 
@@ -33,7 +33,7 @@ const _handleLDAPAuthentication = function (request, response, next) {
     AuthenticationConstants.providers.LDAP
   );
   const errorHandler = AuthenticationUtil.handlePassportError(request, response, next);
-  passport.authenticate(strategyId)(request, response, errorHandler);
+  fastifyPassport.authenticate(strategyId)(request, response, errorHandler);
 };
 
 /**

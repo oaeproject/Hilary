@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport';
 
 import * as OAE from 'oae-util/lib/oae.js';
 import * as OaeServer from 'oae-util/lib/server.js';
@@ -119,7 +119,7 @@ OAE.tenantRouter.on('post', '/api/auth/signed', (request, response, next) => {
   );
 
   // Authenticate this request using the information
-  passport.authenticate(strategyId, { successRedirect: '/', failureRedirect: '/' })(
+  fastifyPassport.authenticate(strategyId, { successRedirect: '/', failureRedirect: '/' })(
     request,
     response,
     next

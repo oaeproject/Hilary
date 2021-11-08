@@ -346,7 +346,7 @@ OAE.tenantRouter.on('post', '/api/user/create', (request, response) => {
 
   // An anonymous user, do the recaptcha check
   const recaptchaData = {
-    remoteip: request.connection.remoteAddress,
+    remoteip: request.socket.remoteAddress,
     challenge: request.body.recaptchaChallenge,
     response: request.body.recaptchaResponse
   };

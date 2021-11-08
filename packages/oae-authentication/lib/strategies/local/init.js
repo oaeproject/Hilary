@@ -14,7 +14,7 @@
  */
 
 import passportLocal from 'passport-local';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport'
 
 import * as ConfigAPI from 'oae-config';
 import { Context } from 'oae-context';
@@ -61,7 +61,7 @@ function initLocalAuth(config) {
     const passportStrategy = new LocalStrategy(
       { passReqToCallback: true },
       (request, username, password, done) => {
-        const { tenant } = request;
+        const { tenant } = request.raw;
 
         AuthenticationAPI.checkPassword(tenant.alias, username, password, (error, userId) => {
           if (error && error.code === 401) {
@@ -92,7 +92,7 @@ function initLocalAuth(config) {
             );
             const authObject = { user, strategyId };
             AuthenticationUtil.logAuthenticationSuccess(
-              request,
+              request.raw,
               authObject,
               AuthenticationConstants.providers.LOCAL
             );
@@ -115,7 +115,7 @@ function initLocalAuth(config) {
     globalTenant,
     AuthenticationConstants.providers.LOCAL
   );
-  passport.use(adminLocalPassportStrategyName, strategy.getPassportStrategy(globalTenant));
+  fastifyPassport.use(adminLocalPassportStrategyName, strategy.getPassportStrategy(globalTenant));
 }
 
 export { initLocalAuth };

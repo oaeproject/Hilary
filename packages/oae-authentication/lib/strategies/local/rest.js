@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import passport from 'passport';
-
+import fastifyPassport from 'fastify-passport'
 import * as OAE from 'oae-util/lib/oae.js';
 
 import * as AuthenticationAPI from 'oae-authentication';
@@ -40,8 +39,8 @@ const _handleLocalAuthentication = function (request, response, next) {
     request.tenant,
     AuthenticationConstants.providers.LOCAL
   );
-  const errorHandler = AuthenticationUtil.handlePassportError(request, response, next);
-  passport.authenticate(strategyId)(request, response, errorHandler);
+  const errorHandler = AuthenticationUtil.handlePassportError(request.hostname, response, next);
+  fastifyPassport.authenticate(strategyId)(request, response, errorHandler);
 };
 
 /**
@@ -52,9 +51,9 @@ const _handleLocalAuthentication = function (request, response, next) {
  * @param  {Response}           res                         The express response object
  * @api private
  */
-const _handleLocalAuthenticationSuccess = function (request, response) {
+const _handleLocalAuthenticationSuccess = function (request, reply) {
   // Simply return a 200 response with the user object
-  response.status(200).send(request.oaeAuthInfo.user);
+  reply.code(200).send(request.oaeAuthInfo.user);
 };
 
 OAE.globalAdminRouter.on('post', '/api/auth/login', [

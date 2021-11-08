@@ -14,6 +14,7 @@
  */
 
 /* eslint-disable import/no-mutable-exports */
+import { callbackify } from 'node:util';
 import process from 'node:process';
 import { logger } from 'oae-logger';
 import * as Modules from './modules.js';
@@ -76,27 +77,50 @@ const init = function (config, callback) {
   });
 
   // Start up the global and tenant servers
-  globalAdminServer = Server.setupServer(config.servers.globalAdminPort, config);
-  tenantServer = Server.setupServer(config.servers.tenantPort, config);
-  tenantRouter = Server.setupRouter(tenantServer);
-  globalAdminRouter = Server.setupRouter(globalAdminServer);
+  callbackify(Server.setupServer)(config.servers.globalAdminPort, config, (error, _globalAdminServer) => {
+    globalAdminServer = _globalAdminServer;
+    callbackify(Server.setupServer)(config.servers.tenantPort, config, (error, _tenantServer) => {
+      tenantServer = _tenantServer;
+      tenantRouter = Server.setupRouter(tenantServer);
+      // tenantRouter = _tenantRouter;
+      globalAdminRouter = Server.setupRouter(globalAdminServer);
+      // globalAdminRouter = _globalAdminRouter;
 
-  // Initialize the modules and their CFs, as well as registering the Rest endpoints
-  Modules.bootstrapModules(config, (error) => {
-    log().info('All modules are bootstrapped, initializing servers');
-    if (error) {
-      return callback(error);
-    }
+      // Initialize the modules and their CFs, as well as registering the Rest endpoints
+      Modules.bootstrapModules(config, (error) => {
+        log().info('All modules are bootstrapped, initializing servers');
+        if (error) {
+          return callback(error);
+        }
 
-    Server.postInitializeServer(globalAdminServer, globalAdminRouter);
-    Server.postInitializeServer(tenantServer, tenantRouter);
+        Server.postInitializeServer(globalAdminServer, globalAdminRouter);
+        Server.postInitializeServer(tenantServer, tenantRouter);
 
-    OaeEmitter.emit('ready');
+        callbackify(startListening)(globalAdminServer, config.servers.globalAdminPort, (error) => {
+          // TODO debug
+          console.log(error);
+          callbackify(startListening)(tenantServer, config.servers.tenantPort, (error) => {
+            // TODO debug
+            console.log(error);
 
-    log().info('Initialization all done ... Firing up tenants ... Enjoy!');
-    return callback();
+            OaeEmitter.emit('ready');
+            log().info('Initialization all done ... Firing up tenants ... Enjoy!');
+            return callback();
+          });
+        });
+      });
+    });
   });
 };
+
+async function startListening(server, port) {
+  try {
+    // TODO fix this, get address from config please
+    await server.listen(port, '0.0.0.0');
+  } catch (error) {
+    server.log.error(error);
+  }
+}
 
 /**
  * Register a handler that is invoked when the application process has been "killed" (SIGTERM). The purpose of the

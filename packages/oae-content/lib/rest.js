@@ -374,13 +374,18 @@ OAE.tenantRouter.on('get', '/api/content/:contentId', (request, response) => {
  * @HttpResponse                        401                 You have to be logged in to be able to update a content item
  */
 OAE.tenantRouter.on('post', '/api/content/:contentId', (request, response) => {
-  ContentAPI.updateContentMetadata(request.ctx, request.params.contentId, request.body, (error, newContentObject) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
-    }
+  ContentAPI.updateContentMetadata(
+    request.ctx,
+    request.params.contentId,
+    request.body,
+    (error, newContentObject) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    response.status(200).send(newContentObject);
-  });
+      response.status(200).send(newContentObject);
+    }
+  );
 });
 
 /**
@@ -601,13 +606,18 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previ
  * @HttpResponse                    404                     Content not available
  */
 OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId/previews', (request, response) => {
-  ContentAPI.getPreviewItems(request.ctx, request.params.contentId, request.params.revisionId, (error, previews) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
-    }
+  ContentAPI.getPreviewItems(
+    request.ctx,
+    request.params.contentId,
+    request.params.revisionId,
+    (error, previews) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    response.status(200).send(previews);
-  });
+      response.status(200).send(previews);
+    }
+  );
 });
 
 /**
@@ -736,13 +746,18 @@ OAE.tenantRouter.on('get', '/api/content/:contentId/revisions/:revisionId', (req
  * @HttpResponse                    404                 Content not available
  */
 OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/restore', (request, response) => {
-  ContentAPI.restoreRevision(request.ctx, request.params.contentId, request.params.revisionId, (error, newRevision) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
-    }
+  ContentAPI.restoreRevision(
+    request.ctx,
+    request.params.contentId,
+    request.params.revisionId,
+    (error, newRevision) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    response.status(200).send(newRevision);
-  });
+      response.status(200).send(newRevision);
+    }
+  );
 });
 
 /**
@@ -1083,13 +1098,18 @@ OAE.tenantRouter.on('get', '/api/content/library/:principalId', (request, respon
  * @HttpResponse                    401                     You must be authenticated to remove a piece of content from a library
  */
 OAE.tenantRouter.on('delete', '/api/content/library/:principalId/:contentId', (request, response) => {
-  ContentAPI.removeContentFromLibrary(request.ctx, request.params.principalId, request.params.contentId, (error) => {
-    if (error) {
-      return response.status(error.code).send(error.msg);
-    }
+  ContentAPI.removeContentFromLibrary(
+    request.ctx,
+    request.params.principalId,
+    request.params.contentId,
+    (error) => {
+      if (error) {
+        return response.status(error.code).send(error.msg);
+      }
 
-    response.status(200).end();
-  });
+      response.status(200).end();
+    }
+  );
 });
 
 /**

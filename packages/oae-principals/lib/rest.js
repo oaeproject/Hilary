@@ -23,6 +23,8 @@ import * as UserRESTEndpoints from 'oae-principals/lib/rest.user.js';
 // eslint-disable-next-line no-unused-vars
 import * as GroupRESTEndpoints from 'oae-principals/lib/rest.group.js';
 
+import i18next from 'i18next';
+import middleware from 'i18next-http-middleware';
 import * as userConfig from '../config/user.js';
 import PrincipalsAPI from './api.js';
 
@@ -35,17 +37,26 @@ let languages = userConfig.user.elements.defaultLanguage.list;
 languages = _.map(languages, (lang) => lang.value);
 
 // Use the locale middleware
-OAE.tenantServer.use(locale(languages));
+i18next.use(middleware.LanguageDetector).init({
+  // TODO confirm this is right
+  // preload: ['en', 'de', 'it'],
+  preload: languages
+});
+
+OAE.tenantServer.addHook('preHandler', middleware.handle(i18next));
+// OAE.tenantServer.use(locale(languages));
 
 /*!
  * Copy the request locale into the context
  */
-OAE.tenantServer.use((request, response, next) => {
+const injectLocale = (request, _reply, next) => {
   // The `locale` middleware will have added a `rawLocale` property. The `rawLocale.defaulted`
   // property indicates whether or not a best match was found
   request.ctx.locale(request.rawLocale);
   return next();
-});
+};
+
+OAE.tenantServer.addHook('preValidation', injectLocale);
 
 /**
  * Terms and conditions

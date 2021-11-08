@@ -810,6 +810,7 @@ const _getTemplatesForTemplateIds = function (basedir, module, templateIds, call
  * @return {type} {description}
  */
 const importTemplate = (templatePath) =>
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   import(templatePath)
     .then((pkg) => pkg)
     .catch((error) => {

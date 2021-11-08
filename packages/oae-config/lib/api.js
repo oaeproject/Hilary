@@ -381,6 +381,7 @@ const promiseToImportConfigFiles = (configFiles, moduleName) => {
     const fileToImport = path.join(moduleName, 'config', element);
 
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line node/no-unsupported-features/es-syntax
       import(fileToImport)
         .then((configFile) => {
           cachedGlobalSchema[moduleName] = pipe(

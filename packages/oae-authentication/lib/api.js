@@ -16,7 +16,8 @@
 import crypto from 'node:crypto';
 import { format } from 'node:util';
 import _ from 'underscore';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport'
+import fastifySecureSession from 'fastify-secure-session'
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
@@ -1450,14 +1451,14 @@ const refreshStrategies = function (tenant) {
     const passportStrategyName = AuthenticationUtil.getStrategyId(tenant, strategyName);
 
     // Disable the passport strategy if we registered it previously.
-    if (passport._strategy(passportStrategyName)) {
-      passport.unuse(passportStrategyName);
+    if (fastifyPassport._strategy(passportStrategyName)) {
+      fastifyPassport.unuse(passportStrategyName);
     }
 
     // If the tenant wants the strategy enabled, we enable it. We also create a new instance of the passport strategy so that
     // configuration updates to the strategy are taken into account
     if (strategy.shouldBeEnabled(tenant.alias)) {
-      passport.use(passportStrategyName, strategy.getPassportStrategy(tenant));
+      fastifyPassport.use(passportStrategyName, strategy.getPassportStrategy(tenant));
       log().debug(
         {
           tenant: tenant.alias,

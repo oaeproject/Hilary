@@ -14,7 +14,7 @@
  */
 
 import passportBearer from 'passport-http-bearer';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport'
 
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
@@ -36,7 +36,7 @@ function initOAuthAuth() {
    *
    * @see http://tools.ietf.org/html/rfc6750
    */
-  passport.use(
+  fastifyPassport.use(
     new BearerStrategy((accessToken, callback) => {
       OAuthDAO.AccessTokens.getAccessToken(accessToken, (error, token) => {
         if (error) {
@@ -69,13 +69,13 @@ function initOAuthAuth() {
    * that there is a token in the request. This needs to run before any other middleware that does something with
    * the user, as this middleware will put the `user` object on the request.
    */
-  OAE.tenantServer.use((request, response, next) => {
+  const injectUser = (request, response, next) => {
     if (!_hasAccessToken(request)) {
       // Don't invoke the OAuth workflow if there is no OAuth access token
       return next();
     }
 
-    passport.authenticate(['bearer'], { session: false })(request, response, () => {
+    fastifyPassport.authenticate(['bearer'], { session: false })(request, response, () => {
       if (request.oaeAuthInfo && request.oaeAuthInfo.user) {
         Telemetry.incr('success');
 
@@ -94,7 +94,10 @@ function initOAuthAuth() {
       // In either case, we need to move on to the next middleware
       return next();
     });
-  });
+  };
+
+  OAE.tenantServer.addHook('preValidation', injectUser);
+  // OAE.tenantServer.use();
 }
 
 /**

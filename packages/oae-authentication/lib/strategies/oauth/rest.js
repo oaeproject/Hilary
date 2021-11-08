@@ -16,7 +16,7 @@
 import { BasicStrategy } from 'passport-http';
 import OAuthPassport from 'passport-oauth2-client-password';
 import oauth2orize from 'oauth2orize';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport';
 
 import { logger } from 'oae-logger';
 
@@ -142,8 +142,8 @@ const verifyClientAuthentication = function (clientId, clientSecret, callback) {
  * to the `Authorization` header).  While this approach is not recommended by
  * the specification, in practice it is quite common.
  */
-passport.use(new BasicStrategy(verifyClientAuthentication));
-passport.use(new ClientPasswordStrategy(verifyClientAuthentication));
+fastifyPassport.use(new BasicStrategy(verifyClientAuthentication));
+fastifyPassport.use(new ClientPasswordStrategy(verifyClientAuthentication));
 
 /**
  * @REST postAuthOauthV2Token
@@ -163,7 +163,7 @@ passport.use(new ClientPasswordStrategy(verifyClientAuthentication));
 OAE.tenantRouter.on('post', '/api/auth/oauth/v2/token', [
   // OAuth allows for 2 possible strategies to authenticate an "Access Token Request" HTTP request
   // Currently we only support the "Client Credentials Grant".
-  passport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
+  fastifyPassport.authenticate(['basic', 'oauth2-client-password'], { session: false }),
 
   // If authentication was succesful, hand out a token
   server.token(),

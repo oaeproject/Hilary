@@ -14,7 +14,7 @@
  */
 
 import crypto from 'node:crypto';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport';
 import { Context } from 'oae-context';
 import * as OAE from 'oae-util/lib/oae.js';
 import * as PrincipalsDAO from 'oae-principals/lib/internal/dao.js';
@@ -37,7 +37,7 @@ export function init(config, callback) {
   AuthenticationUtil.setupAuthMiddleware(config, OAE.globalAdminServer);
   AuthenticationUtil.setupAuthMiddleware(config, OAE.tenantServer);
 
-  // Setup the passport serializers
+  // Setup the fastify-passport serializers
   setupPassportSerializers(config.cookie.secret);
 
   AuthenticationAPI.init(config.servers.globalAdminAlias);
@@ -52,11 +52,15 @@ export function init(config, callback) {
   initSigned(config);
   initTwitter(config);
 
-  // Add the OAE middleware to the ExpressJS server
-  // We do this *AFTER* all the authentication strategies have been initialized
-  // so they have a chance to add any middleware that could set the logged in user
-  OAE.tenantServer.use(contextMiddleware);
-  OAE.globalAdminServer.use(contextMiddleware);
+  /**
+   * Add the OAE middleware to the ExpressJS server
+   * We do this *AFTER* all the authentication strategies have been initialized
+   * so they have a chance to add any middleware that could set the logged in user
+   */
+  // OAE.tenantServer.use(contextMiddleware);
+  // OAE.globalAdminServer.use(contextMiddleware);
+  OAE.tenantServer.addHook('preValidation', contextMiddleware);
+  OAE.globalAdminServer.addHook('preValidation', contextMiddleware);
 
   return callback();
 }
@@ -69,23 +73,14 @@ export function init(config, callback) {
  * @param  {Response}   res     The express.js response
  * @param  {Function}   next    Standard callback function
  */
-const contextMiddleware = function (request, response, next) {
+const contextMiddleware = function (request, _response, next) {
   let user = null;
   let imposter = null;
-  let authenticationStrategy = null;
+  const authenticationStrategy = null;
 
   // If we have an authenticated request, store the user and imposter (if any) in the context
   if (request.oaeAuthInfo && request.oaeAuthInfo.user) {
     ({ user, imposter } = request.oaeAuthInfo);
-
-    // This is for backward compatibility in https://github.com/oaeproject/Hilary/pull/959 to ensure
-    // we don't get an error for cookies that did not previously contain the `strategyId`. This can be
-    // removed on or after the minor or major release after this fix has been released
-    if (request.oaeAuthInfo.strategyId) {
-      authenticationStrategy = AuthenticationUtil.parseStrategyId(
-        request.oaeAuthInfo.strategyId
-      ).strategyName;
-    }
   }
 
   request.ctx = new Context(request.tenant, user, authenticationStrategy, null, imposter);
@@ -99,9 +94,11 @@ const contextMiddleware = function (request, response, next) {
  * @api private
  */
 const setupPassportSerializers = function (cookieSecret) {
-  // Serialize the current user and potential imposter
-  // ids into the session cookie
-  passport.serializeUser((oaeAuthInfo, done) => {
+  /**
+   * Serialize the current user and potential imposter
+   * ids into the session cookie
+   */
+  fastifyPassport.registerUserSerializer((oaeAuthInfo, done) => {
     const toSerialize = {};
     if (oaeAuthInfo.user) {
       toSerialize.userId = oaeAuthInfo.user.id;
@@ -137,10 +134,12 @@ const setupPassportSerializers = function (cookieSecret) {
     return done(null, cookieData);
   });
 
-  // The user's full session is serialized into a cookie. When passport says "deserialize user", they're
-  // actually saying "deserialize user's session". In which we store the user's id and session imposter,
-  // if any
-  passport.deserializeUser((toDeserialize, callback) => {
+  /**
+   * The user's full session is serialized into a cookie. When passport says "deserialize user", they're
+   *  actually saying "deserialize user's session". In which we store the user's id and session imposter,
+   * if any
+   */
+  fastifyPassport.registerUserDeserializer((toDeserialize, callback) => {
     let sessionData = _decryptCookieData(toDeserialize, cookieSecret);
 
     try {

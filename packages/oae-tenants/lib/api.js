@@ -192,13 +192,25 @@ function init(_serverConfig, callback) {
   serverConfig = _serverConfig;
 
   // This middleware adds the tenant to each request on the global admin server
-  OAE.globalAdminServer.use((request, response, next) => {
+  /*
+  OAE.globalAdminServer.use((request, _response, next) => {
     request.tenant = globalTenant;
     return next();
   });
+  */
+
+  const injectGlobalTenant = (request, _reply, done) => {
+    request.tenant = globalTenant;
+    done();
+  };
+
+  OAE.globalAdminServer.addHook('preValidation', injectGlobalTenant);
 
   // This middleware adds the tenant to each request on the user tenant server
-  OAE.tenantServer.use((request, response, next) => {
+  /*
+  OAE.tenantServer.use();
+  */
+  const injectTenant = (request, reply, next) => {
     const shibbolethSPHost = path(['shibbolethSPHost'], serverConfig);
     const hostIsValid = equals(request.headers.host, shibbolethSPHost);
     if (hostIsValid) {
@@ -212,20 +224,22 @@ function init(_serverConfig, callback) {
     // We stop the request if we can't find a tenant associated to the current hostname
     const noAssociatedTenant = not(request.tenant);
     if (noAssociatedTenant) {
-      response.setHeader('Connection', 'Close');
-      return response.status(418).send('This hostname is not associated to any tenant');
+      reply.setHeader('Connection', 'Close');
+      return reply.status(418).send('This hostname is not associated to any tenant');
     }
 
     // Check whether or not the tenant has been disabled
     const tenantIsDisabled = not(request.tenant.active);
     if (tenantIsDisabled) {
       // If the tenant has been stopped, there is no point in keeping connections open
-      response.setHeader('Connection', 'Close');
-      return response.status(503).send('This server is currently disabled. Please check back later.');
+      reply.setHeader('Connection', 'Close');
+      return reply.status(503).send('This server is currently disabled. Please check back later.');
     }
 
     return next();
-  });
+  };
+
+  OAE.tenantServer.addHook('preValidation', injectTenant);
 
   // Cache the available tenants
   _cacheTenants((error) => {

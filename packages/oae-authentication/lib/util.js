@@ -18,12 +18,16 @@ import { format } from 'node:util';
 import _ from 'underscore';
 import cookieParser from 'cookie-parser';
 import cookieSession from 'cookie-session';
+
+import fastifyCookie from 'fastify-cookie';
 import MobileDetect from 'mobile-detect';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport'
+import fastifySecureSession from 'fastify-secure-session'
 import { Context } from 'oae-context';
 import { logger } from 'oae-logger';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { getOrCreateUser } from 'oae-authentication';
+import { defaultTo } from 'ramda';
 
 const log = logger('oae-authentication');
 
@@ -37,12 +41,17 @@ const setupAuthMiddleware = function (config, server) {
   // Tell express how to parse our cookies. All stateful data (e.g., authenticated user id,
   // imposter state) is stored on the user's session cookie. We encrypt that data with this
   // configured `secret`
-  server.use(cookieParser(config.cookie.secret));
+  // server.use();
+  // TODO not sure this works?
+  // server.register(cookieParser(config.cookie.secret));
+  server.register(fastifyCookie, {
+    secret: config.cookie.secret
+  });
 
   // This middleware uses cookieSession to tell express how to write a session (i.e., a cookie
   // with encryption signed by the configured secret). That said, it needs to come before passport
   // authentication (`passport.session()`) because passport needs to know how to write the cookie
-  server.use((request, response, next) => {
+  const writeSession = (request, response, next) => {
     const cookieOptions = {
       name: config.cookie.name,
       secret: config.cookie.secret
@@ -60,14 +69,19 @@ const setupAuthMiddleware = function (config, server) {
 
     // Pass through to the actual cookie session middleware
     return cookieSession(cookieOptions)(request, response, next);
-  });
+  };
+
+  server.addHook('preValidation', writeSession);
+  // server.use();
 
   // Now that we know how to parse the cookie, we can extract the user in session, if any. The
   // resulting session information will be located on `req.oaeAuthInfo`
-  server.use(passport.initialize({ userProperty: 'oaeAuthInfo' }));
+  server.addHook('preHandler', fastifyPassport.initialize({ userProperty: 'oaeAuthInfo' }));
+  // server.use(passport.initialize({ userProperty: 'oaeAuthInfo' }));
 
   // Perform the request authentication
-  server.use(passport.session());
+  server.addHook('preHandler', fastifyPassport.secureSession());
+  // server.use(passport.session());
 };
 
 /**
@@ -165,30 +179,30 @@ const logAuthenticationSuccess = function (request, authInfo, strategyName) {
 /**
  * A catch-all error handler for errors that bubbled out of passport strategies.
  *
- * @param  {Request}    req     The ExpressJS request object
+ * @param  {String}     host    hostname caming from request object
  * @param  {Response}   res     The ExpressJS response object
  * @param  {Function}   next    The middleware which should be executed next
  * @return {Function}           A function that can be used as part of the middleware chain
  */
-const handlePassportError = function (request, response, next) {
+const handlePassportError = function (host, response, next) {
   return function (error) {
     if (error) {
       // An OAE-specific error
       if (error.reason && error.msg) {
-        log().warn({ err: error, host: request.hostname }, error.msg);
+        log().warn({ error, host }, error.msg);
         return response.redirect('/?authentication=failed&reason=' + error.reason);
 
         // If someone tried to sign in with a disabled strategy
       }
 
       if (error.message && error.message.indexOf('Unknown authentication strategy') === 0) {
-        log().warn({ host: request.hostname }, 'Authentication attempt with disabled strategy');
+        log().warn({ host }, 'Authentication attempt with disabled strategy');
         return response.redirect('/?authentication=disabled');
 
         // Generic error
       }
 
-      log().error({ err: error, host: request.hostname }, 'An error occurred during login');
+      log().error({ error, host }, 'An error occurred during login');
       return response.redirect('/?authentication=error');
     }
 
@@ -218,7 +232,7 @@ const handleExternalSetup = function (strategyId, passportOptions, request, resp
   response.cookie('redirectUrl', redirectUrl);
 
   // Initiate the authentication process
-  passport.authenticate(strategyId, passportOptions)(request, response, errorHandler);
+  fastifyPassport.authenticate(strategyId, passportOptions)(request, response, errorHandler);
 };
 
 /**
@@ -275,8 +289,6 @@ const handleExternalGetOrCreateUser = function (
     }
   }
 
-  // Require the AuthenticationAPI inline to avoid cross-dependency issues
-  // during initialization
   const ctx = new Context(request.tenant);
   return getOrCreateUser(
     ctx,
@@ -305,7 +317,7 @@ const handleExternalCallback = function (strategyId, request, response, next) {
 
   // Authenticate this request with Passport. Because we specify a callback function
   // we will need to manually log the user in the system
-  passport.authenticate(strategyId, {}, (error, user, challenges, status) => {
+  fastifyPassport.authenticate(strategyId, {}, (error, user, challenges, status) => {
     if (error) {
       return errorHandler(error);
     }

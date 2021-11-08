@@ -14,7 +14,7 @@
  */
 
 import { format } from 'node:util';
-import passport from 'passport';
+import fastifyPassport from 'fastify-passport';
 
 import { logger } from 'oae-logger';
 import * as OAE from 'oae-util/lib/oae.js';
@@ -135,7 +135,7 @@ OAE.tenantRouter.on('get', '/api/auth/shibboleth/sp/callback', (request, respons
     );
 
     // Validate and authenticate the request
-    passport.authenticate(strategyId, {}, (error, user, challenges, status) => {
+    fastifyPassport.authenticate(strategyId, {}, (error, user, challenges, status) => {
       if (error) {
         log().error({ err: error, tenantAlias }, 'Error during Shibboleth authentication');
         return response.redirect(tenantUrl + '/?authentication=failed&reason=error');

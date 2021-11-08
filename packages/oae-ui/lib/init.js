@@ -45,6 +45,7 @@ export function init(config, callback) {
 }
 
 const _importHashes = (path) =>
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   import(path)
     .then((hashes) => hashes)
     .catch((error) => {

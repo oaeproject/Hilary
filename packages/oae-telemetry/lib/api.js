@@ -65,6 +65,7 @@ const init = (_telemetryConfig, callback) => {
   });
 };
 
+// eslint-disable-next-line node/no-unsupported-features/es-syntax
 const importPublisher = (publisherUrl) => import(publisherUrl);
 
 /**

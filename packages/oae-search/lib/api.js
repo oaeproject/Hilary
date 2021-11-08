@@ -533,6 +533,7 @@ const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
 };
 
 const importSchema = (schemaPath) =>
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   import(schemaPath)
     .then((module) => module)
     .catch((error) => {

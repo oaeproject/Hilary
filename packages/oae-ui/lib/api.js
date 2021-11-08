@@ -102,6 +102,7 @@ const init = function (_uiDirectory, _hashes, callback) {
   hashes = _hashes;
 
   // Load all the globalize cultures
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   import('globalize/lib/cultures/globalize.cultures.js').then((_globalize) => {
     // Cache all of the widget manifest files
     cacheWidgetManifests(() => {
@@ -1432,6 +1433,7 @@ const _getMimeTypeDescriptor = async function () {
 const _uiRequire = function (path) {
   path = uiDirectory + getHashedPath(path);
 
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   return import(path)
     .then((pkg) => pkg)
     .catch((error) => {

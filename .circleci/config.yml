@@ -82,7 +82,7 @@ aliases:
     run:
       name: Run linting test
       command: |
-        docker-compose run --rm oae-hilary "npm run lint-module $(circleci tests glob 'packages/**/*.js' | circleci tests split | tr '\n' ' ')"
+        docker-compose run --rm oae-hilary "npm run lint"
   - &then_save_cache # not being used
     save_cache:
       key: deps-cache-{{ checksum "package-lock.json" }}
@@ -169,6 +169,7 @@ jobs:
       - *install_etherpad
       - *install_3akai
       - *install_hilary
+      - *run_linting
       - *run_parallel_tests # doesn't include coverage
       - *copy_artifacts
       - *store_results
@@ -191,6 +192,7 @@ jobs:
       - *install_etherpad
       - *install_3akai
       - *install_hilary
+      - *run_linting
       - *run_sequential_tests # includes coverage
       - *copy_artifacts
       - *store_results

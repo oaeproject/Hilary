@@ -96,6 +96,7 @@ const bootstrapModulesInit = function (modules, config) {
             .then((stat) => {
               if (stat.isFile()) {
                 // ES6 modules cannot have an export default as a function, so init it exported instead
+                // eslint-disable-next-line node/no-unsupported-features/es-syntax
                 import(process.cwd() + '/node_modules/' + moduleName + MODULE_INIT_FILE)
                   .then((pkg) => promisify(pkg.init)(config))
                   .then(() => {
@@ -150,6 +151,7 @@ const bootstrapModulesRest = function (modules) {
             .then((stat) => {
               if (stat.isFile()) {
                 log().info('REST services for %s have been registered', moduleName);
+                // eslint-disable-next-line node/no-unsupported-features/es-syntax
                 import(process.cwd() + '/node_modules/' + moduleName + MODULE_REST_FILE)
                   .then((_restModule) => {
                     spinner.succeed(`Loaded routes for module ${moduleName}`);
@@ -215,37 +217,15 @@ const initAvailableModules = function () {
       )
     )
     .then((result) => {
-      // Order by the startup priority
       const sortByPriority = sortBy(prop('priority'));
       const getModuleName = map(prop('module'));
       const finalModules = compose(getModuleName, sortByPriority)(result);
 
-      // Cache the available modules
       cachedAvailableModules = finalModules;
 
       return finalModules;
     });
 };
-/*
-    // Aggregate the oae- modules
-    for (const module of modules) {
-      if (module.slice(0, 4) === 'oae-') {
-        // Determine module priority
-        const filename = module + '/package.json';
-        // const pkg = require(filename);
-        import(filename).then((pkg) => {
-          if (pkg.oae && pkg.oae.priority) {
-            // Found a priority in package.json at oae.priority
-            modulePriority[module] = pkg.oae.priority;
-          } else {
-            // No priority found, it goes in last
-            modulePriority[module] = Number.MAX_VALUE;
-          }
-          finalModules.push(module);
-        });
-      }
-    }
-    */
 
 /**
  * Returns the available modules from cache

@@ -29,15 +29,6 @@ const isNotFalse = pipe(equals('false'), not);
 process.env.OAE_BOOTSTRAP_LOG_LEVEL = 'trace';
 process.env.OAE_BOOTSTRAP_LOG_FILE = './tests.log';
 
-// TODO experimental !!!!!!!!!!!!!!!!!!!!!
-// Enabling ES6 support and defining global variables
-/*
-(function (globals) {
-  'use strict';
-  globals.oaeTests = {};
-})((1, eval)('this'));
-*/
-
 /**
  * Determine whether or not we should drop the keyspace before the test. In cases
  * where we want to set up the schema by another means (e.g., to test unit tests

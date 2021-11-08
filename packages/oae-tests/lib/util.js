@@ -67,10 +67,10 @@ import { User } from 'oae-principals/lib/model.js';
 
 import { logger } from 'oae-logger';
 import { config } from '../../../config.js';
-import { testingContext } from './context.js';
 
 let migrationRunner;
 (async function () {
+  // eslint-disable-next-line node/no-unsupported-features/es-syntax
   migrationRunner = await import(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
 })();
 // const migrationRunner = require(path.join(process.cwd(), 'etc/migration/migration-runner.js'));
@@ -216,8 +216,6 @@ const clearAllData = function (callback) {
  */
 const setUpTenants = function (callback) {
   global.oaeTests = { tenants: {} };
-
-  testingContext.oaeTests = { coco: 'xixi ' };
 
   // Create the Global Tenant admin context to authenticate with
   global.oaeTests.tenants.global = new Tenant('admin', 'Global tenant', 'localhost:3000', {
@@ -1186,6 +1184,7 @@ const createInitialTestConfig = async function () {
 
   // let envConfig;
   async function loadConfig() {
+    // eslint-disable-next-line node/no-unsupported-features/es-syntax
     let envConfig = await import(environment);
     envConfig = envConfig.config;
     let mergedConfig = _.extend({}, config, envConfig);

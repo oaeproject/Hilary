@@ -1,0 +1,83 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "args": ["node_modules/oae-tests/runner/before-tests.js", "packages/oae-*/tests"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha specific tests",
+      "program": "${workspaceFolder}/node_modules/.bin/mocha",
+      "args": [
+        "node_modules/oae-tests/runner/before-tests.js",
+        // "packages/oae-activity/tests/*.js"
+        // "packages/oae-authentication/tests/*.js",
+        // "packages/oae-authz/tests/*.js",
+        // "packages/oae-config/tests/*.js",
+        // "packages/oae-content/tests/*.js"
+        // "packages/oae-context/tests/*.js",
+        // "packages/oae-discussions/tests/*.js",
+        // "packages/oae-doc/tests/*.js",
+        // "packages/oae-email/tests/*.js",
+        // "packages/oae-emitter/tests/*.js"
+        // "packages/oae-folders/tests/*.js",
+        // "packages/oae-following/tests/*.js",
+        // "packages/oae-google-analytics/tests/*.js",
+        // "packages/oae-jitsi/tests/*.js"
+        // "packages/oae-library/tests/*.js",
+        // "packages/oae-logger/tests/*.js",
+        // "packages/oae-lti/tests/*.js"
+        // "packages/oae-messagebox/tests/*.js",
+        // "packages/oae-preview-processor/tests/*.js"
+        // "packages/oae-principals/tests/*.js",
+        // "packages/oae-search/tests/*.js",
+        // "packages/oae-telemetry/tests/*.js",
+        // "packages/oae-tenants/tests/*.js",
+        // "packages/oae-tincanapi/tests/*.js",
+        // "packages/oae-ui/tests/*.js",
+        // "packages/oae-util/tests/*.js",
+        // "packages/oae-version/tests/*.js"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Tenancy migration",
+      "program": "${workspaceFolder}/migrate",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Grunt 3akai-ux",
+      "cwd": "${workspaceFolder}/3akai-ux",
+      "program": "${workspaceFolder}/3akai-ux/node_modules/grunt-cli/bin/grunt",
+      "args": [],
+      "console": "integratedTerminal",
+      "timeout": 120000
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      // "env": { "NODE_ENV": "test" },
+      "name": "Hilary",
+      "runtimeExecutable": "node",
+      "program": "${workspaceFolder}/app.js",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "timeout": 20000,
+      "args": ["|npx bunyan"]
+    }
+  ]
+}

@@ -60,28 +60,30 @@ aliases:
   - &upload_logs
     store_artifacts:
       path: reports/logs/tests.log
+  - &setup_test_reporter
+    run:
+      name: Setup Code Climate test-reporter
+      command: |
+        # download test reporter as a static binary
+        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        chmod +x ./cc-test-reporter
+        docker cp cc-test-reporter oae-hilary:/usr/src/Hilary/
   - &run_sequential_tests
-    - run:
-        name: Setup Code Climate test-reporter
-        command: |
-          # download test reporter as a static binary
-          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-          chmod +x ./cc-test-reporter
-          docker cp cc-test-reporter oae-hilary:/usr/src/Hilary/
-    - run:
-        name: Run tests sequentially
-        command: |
-          docker-compose run --rm oae-hilary "\
-            npm run migrate; \
-            npx pm2 startOrReload process.json --only Etherpad; \
-            npx pm2 startOrReload process.json --only Ethercalc; \
-            ./cc-test-reporter before-build
-            npm run test-report-coverage
-            ./cc-test-reporter after-build --coverage-input-type clover --exit-code $?"
-    - run:
-        name: Upload coverage
-        command: |
-          docker-compose run --rm oae-hilary ""
+    run:
+      name: Run tests sequentially
+      command: |
+        docker-compose run --rm oae-hilary "\
+          npm run migrate; \
+          npx pm2 startOrReload process.json --only Etherpad; \
+          npx pm2 startOrReload process.json --only Ethercalc; \
+          ./cc-test-reporter before-build
+          npm run test-report-coverage
+          ./cc-test-reporter after-build --coverage-input-type clover --exit-code $?"
+  - &upload_test_coverage
+    run:
+      name: Upload coverage
+      command: |
+        docker-compose run --rm oae-hilary ""
   - &run_parallel_tests
     run:
       name: Run tests in parallel
@@ -184,8 +186,9 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
+      - *setup_test_reporter
       - *run_sequential_tests # includes coverage
-      # - *run_parallel_tests # doesn't include coverage
+      - *upload_test_coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs
@@ -208,7 +211,9 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
+      - *setup_test_reporter
       - *run_sequential_tests # includes coverage
+      - *upload_test_coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs

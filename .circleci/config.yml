@@ -78,7 +78,7 @@ aliases:
           npx pm2 startOrReload process.json --only Ethercalc; \
           ./cc-test-reporter before-build
           npm run test-report-coverage
-          ./cc-test-reporter after-build --coverage-input-type clover --exit-code $?"
+          ./cc-test-reporter after-build --coverage-input-type lcov --exit-code $?"
   - &upload_test_coverage
     run:
       name: Upload coverage

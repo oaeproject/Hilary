@@ -113,7 +113,6 @@
   },
   "devDependencies": {
     "chalk": "^3.0.0",
-    "codacy-coverage": "^3.3.0",
     "eslint": "^7.32.0",
     "eslint-plugin-unicorn": "^36.0.0",
     "is-builtin-module": "^3.1.0",
@@ -133,7 +132,7 @@
     "test-module": "mocha packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
     "ci:test": "nyc --reporter=html --reporter=text --reporter=lcov mocha 'node_modules/oae-tests/runner/before-tests.js' 'node_modules/oae-*/tests/**/*.js'",
     "ci:test-module": "nyc mocha --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml packages/oae-tests/runner/before-tests.js packages/$npm_config_module/tests",
-    "test-report-coverage": "nyc --reporter=lcov npm run test",
+    "test-report-coverage": "npx c8 --reporter=lcov npm run test",
     "migrate": "node migrate.js",
     "start": "node app.js | npx bunyan",
     "serve": "npx pm2 startOrReload process.json --only Hilary",
@@ -144,10 +143,10 @@
     "fix-module": "npx xo --fix 'packages/$npm_config_module/**/*.js'"
   },
   "nyc": {
-    "include": "packages/**/*",
+    "include": "./packages/**/*",
     "exclude": [
-      "3akai-ux",
-      "**/domstubs.js "
+      "./3akai-ux",
+      "./packages/oae-preview-processor/lib/processors/file/domstubs.js "
     ]
   },
   "xo": {

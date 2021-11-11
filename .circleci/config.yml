@@ -219,9 +219,11 @@ jobs:
 workflows:
   version: 2
   lint-and-test:
+    when: << pipeline.parameters.run_parallel_test >>
     jobs:
       - test
   scheduled:
+    when: << pipeline.parameters.run_sequential_test >>
     triggers:
       - schedule:
           cron: 0 1 * * *

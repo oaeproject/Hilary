@@ -13,6 +13,7 @@ Hilary is the back-end for the [Open Academic Environment](http://www.oaeproject
 [![CircleCI](https://circleci.com/gh/oaeproject/Hilary/tree/master.svg?style=shield)](https://circleci.com/gh/oaeproject/Hilary/tree/master)
 [![CodeFactor](https://www.codefactor.io/repository/github/oaeproject/hilary/badge)](https://www.codefactor.io/repository/github/oaeproject/hilary)
 [![Code Climate](https://codeclimate.com/github/oaeproject/Hilary/badges/gpa.svg)](https://codeclimate.com/github/oaeproject/Hilary)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/7cb1e7849641abc458e3/test_coverage)](https://codeclimate.com/github/oaeproject/Hilary/test_coverage)
 [![Depfu](https://badges.depfu.com/badges/6850bf0412f4446e0a9eecf4da358ba7/overview.svg)](https://depfu.com/github/oaeproject/Hilary?project_id=29898)
 [![Depfu](https://badges.depfu.com/badges/6850bf0412f4446e0a9eecf4da358ba7/count.svg)](https://depfu.com/github/oaeproject/Hilary?project_id=29898)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Foaeproject%2FHilary.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Foaeproject%2FHilary?ref=badge_shield)

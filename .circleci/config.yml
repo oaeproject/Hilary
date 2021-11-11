@@ -10,6 +10,7 @@ aliases:
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
       npm_config_yes: true
+      CC_TEST_REPORTER_ID: $CC_TEST_REPORTER_ID
     working_directory: ~/Hilary
   - &install_system_dependencies
     run:
@@ -59,15 +60,30 @@ aliases:
   - &upload_logs
     store_artifacts:
       path: reports/logs/tests.log
+  - &setup_test_reporter
+    run:
+      name: Setup Code Climate test-reporter
+      command: |
+        # download test reporter as a static binary
+        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        chmod +x ./cc-test-reporter
+        docker cp cc-test-reporter oae-hilary:/usr/src/Hilary/
   - &run_sequential_tests
     run:
-      name: Run tests sequentially and upload coverage
+      name: Run tests sequentially
       command: |
         docker-compose run --rm oae-hilary "\
           npm run migrate; \
           npx pm2 startOrReload process.json --only Etherpad; \
           npx pm2 startOrReload process.json --only Ethercalc; \
-          npm run test-update-coverage"
+          ./cc-test-reporter before-build
+          npm run test-report-coverage
+          ./cc-test-reporter after-build --coverage-input-type lcov --exit-code $?"
+  - &upload_test_coverage
+    run:
+      name: Upload coverage
+      command: |
+        docker-compose run --rm oae-hilary ""
   - &run_parallel_tests
     run:
       name: Run tests in parallel
@@ -170,7 +186,7 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
-      - *run_parallel_tests # doesn't include coverage
+      - *run_parallel_tests # does not include coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs
@@ -193,7 +209,9 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
+      - *setup_test_reporter
       - *run_sequential_tests # includes coverage
+      - *upload_test_coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs

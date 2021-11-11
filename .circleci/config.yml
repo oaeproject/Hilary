@@ -166,6 +166,13 @@ aliases:
       docker_layer_caching: true
 
 version: 2.1
+parameters:
+  trigger_parallel_tests:
+    default: true
+    type: boolean
+  trigger_sequential_tests:
+    default: false
+    type: boolean
 jobs:
   test:
     <<: *defaults
@@ -219,9 +226,11 @@ jobs:
 workflows:
   version: 2
   lint-and-test:
+    when: << pipeline.parameters.trigger_parallel_tests >>
     jobs:
       - test
   scheduled:
+    when: << pipeline.parameters.trigger_sequential_tests >>
     triggers:
       - schedule:
           cron: 0 1 * * *

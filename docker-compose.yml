@@ -61,7 +61,7 @@ services:
       - GOOGLE_CLIENT_SECRET
       - GIT_COMMIT_SHA
       - GIT_BRANCH
-      - CC_TEST_REPORTER_ID ENV
+      - CC_TEST_REPORTER_ID
     volumes:
       - .:/usr/src/Hilary
     cap_add:

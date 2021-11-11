@@ -10,7 +10,6 @@ aliases:
       REDIS_HOST: oae-redis
       REDIS_PORT: 6379
       npm_config_yes: true
-      CC_TEST_REPORTER_ID: $CC_TEST_REPORTER_ID
     working_directory: ~/Hilary
   - &install_system_dependencies
     run:
@@ -186,7 +185,9 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
-      - *run_parallel_tests # does not include coverage
+      - *setup_test_reporter
+      - *run_sequential_tests # includes coverage
+      - *upload_test_coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs

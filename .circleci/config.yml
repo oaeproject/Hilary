@@ -186,9 +186,7 @@ jobs:
       - *install_3akai
       - *install_hilary
       - *run_linting
-      - *setup_test_reporter
-      - *run_sequential_tests # includes coverage
-      - *upload_test_coverage
+      - *run_parallel_tests # does not include coverage
       - *copy_artifacts
       - *store_results
       - *upload_logs

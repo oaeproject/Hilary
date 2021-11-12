@@ -76,6 +76,16 @@ npm run serve
 
 To run tests just make sure you have installed all dependencies (check wiki page on how to set up a dev environment) and run `npm run test`. To run tests on a specific module, just append its path as follows: `npm run test-module --module=oae-principals`.
 
+To trigger a pipeline in CircleCI using the API, one needs to run the following (example for sequential tests):
+
+```bash
+curl --request POST \
+  --url https://circleci.com/api/v2/project/gh/oaeproject/Hilary/pipeline \
+  --header 'Circle-Token: YOUR_API_TOKEN' \
+  --header 'content-type: application/json' \
+  --data '{"parameters":{"trigger_parallel_tests":false, "trigger_sequential_tests":true}}'
+```
+
 ## Get in touch
 
 The project website can be found at http://www.oaeproject.org. The [project blog](http://www.oaeproject.org/blog) will be updated with the latest project news from time to time.

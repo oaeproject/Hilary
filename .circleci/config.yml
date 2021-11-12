@@ -229,8 +229,11 @@ workflows:
     when: << pipeline.parameters.trigger_parallel_tests >>
     jobs:
       - test
-  scheduled:
+  on-demand:
     when: << pipeline.parameters.trigger_sequential_tests >>
+    jobs:
+      - coverage
+  scheduled:
     triggers:
       - schedule:
           cron: 0 1 * * *

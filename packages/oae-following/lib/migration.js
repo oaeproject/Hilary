@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,15 +9,16 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      FollowingUsersFollowers:
-        'CREATE TABLE "FollowingUsersFollowers" ("userId" text, "followerId" text, "value" text, PRIMARY KEY ("userId", "followerId")) WITH COMPACT STORAGE',
-      FollowingUsersFollowing:
-        'CREATE TABLE "FollowingUsersFollowing" ("userId" text, "followingId" text, "value" text, PRIMARY KEY ("userId", "followingId")) WITH COMPACT STORAGE'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    FollowingUsersFollowers:
+      'CREATE TABLE "FollowingUsersFollowers" ("userId" text, "followerId" text, "value" text, PRIMARY KEY ("userId", "followerId")) WITH COMPACT STORAGE',
+    FollowingUsersFollowing:
+      'CREATE TABLE "FollowingUsersFollowing" ("userId" text, "followingId" text, "value" text, PRIMARY KEY ("userId", "followingId")) WITH COMPACT STORAGE'
+  });
+}
 
 export { ensureSchema };

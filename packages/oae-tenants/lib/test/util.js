@@ -74,9 +74,7 @@ const generateTestTenants = function (globalAdminRestCtx, numberToCreate, callba
  */
 const createTenantAndWait = function (globalAdminRestCtx, alias, displayName, host, options, callback) {
   RestAPI.Tenants.createTenant(globalAdminRestCtx, alias, displayName, host, options, (error, tenant) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Wait until all current config events have fired until calling back
     whenTenantChangePropagated(() => callback(null, tenant));

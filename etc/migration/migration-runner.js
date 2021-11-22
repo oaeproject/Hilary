@@ -25,8 +25,8 @@ import { createKeyspace } from 'oae-util/lib/cassandra.js';
 import * as LogAPI from 'oae-logger';
 
 import { reduce } from 'ramda';
-import { config } from '../../config.js';
 import { serial } from 'oae-util/lib/util.js';
+import { config } from '../../config.js';
 
 const _createLogger = function (config) {
   LogAPI.refreshLogConfiguration(config.log);
@@ -102,7 +102,7 @@ const promiseToRunMigrations = function (dbConfig) {
     .then(() => {
       spinner.succeed('Migrations completed.');
 
-      const createEtherpadKeyspace = promisify(createKeyspace);
+      const createEtherpadKeyspace = createKeyspace;
       return createEtherpadKeyspace('etherpad');
     })
     .then(() => {

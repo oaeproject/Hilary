@@ -21,7 +21,7 @@ import clone from 'clone';
 import ora from 'ora';
 
 import * as Modules from 'oae-util/lib/modules.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, runBatchQuery, rowToHash, runAutoPagedQuery } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
 import * as IO from 'oae-util/lib/io.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
@@ -440,7 +440,7 @@ const _cacheAllTenantConfigs = function (callback) {
  * @param  {Object}     callback.tenantConfigs  An object keyed by tenant alias, whose value is a key value pair of `configKey->value` for each stored configuration value for the tenant
  */
 const _getAllPersistentTenantConfigs = function (callback) {
-  Cassandra.runAutoPagedQuery(
+  runAutoPagedQuery(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config"',
     null,
     (error, rows) => {
@@ -463,7 +463,7 @@ const _getAllPersistentTenantConfigs = function (callback) {
  * @param  {Object}     callback.tenantConfig   An object keyed by configKey whose value is the value set for the tenant
  */
 const _getPersistentTenantConfig = function (alias, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "tenantAlias", "configKey", "value", WRITETIME("value") FROM "Config" WHERE "tenantAlias" = ?',
     [alias],
     (error, rows) => {
@@ -488,7 +488,7 @@ const _rowsToConfig = function (rows) {
   const persistentConfig = {};
 
   _.each(rows, (row) => {
-    const hash = Cassandra.rowToHash(row);
+    const hash = rowToHash(row);
     const key = hash.configKey;
     let { value } = hash;
     const timestamp = new Date(Math.floor(hash['writetime(value)'] / 1000));
@@ -694,10 +694,8 @@ const updateConfig = function (ctx, tenantAlias, configValues, callback) {
   eventEmitter.emit('preUpdate', tenantAlias);
 
   // Perform all the config field updates
-  Cassandra.runBatchQuery(queries, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runBatchQuery)(queries, (error) => {
+    if (error) return callback(error);
 
     Pubsub.publish('oae-config', tenantAlias);
     return callback();
@@ -815,10 +813,8 @@ const clearConfig = function (ctx, tenantAlias, configFields, callback) {
   // Indicate that config values are about to be cleared
   eventEmitter.emit('preClear', tenantAlias);
 
-  Cassandra.runBatchQuery(queries, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runBatchQuery)(queries, (error) => {
+    if (error) return callback(error);
 
     Pubsub.publish('oae-config', tenantAlias);
     return callback();

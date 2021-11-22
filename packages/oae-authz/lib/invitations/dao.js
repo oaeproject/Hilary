@@ -14,11 +14,11 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import Chance from 'chance';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, rowToHash, runBatchQuery, constructUpsertCQL } from 'oae-util/lib/cassandra.js';
 
 import { Validator as validator } from 'oae-authz/lib/validator.js';
 import { not, equals, forEachObjIndexed } from 'ramda';
@@ -61,10 +61,10 @@ const getOrCreateTokensByEmails = function (emails, callback) {
       if (!emailTokens[email]) {
         const token = chance.string({ length: 12, pool: TOKEN_POOL });
         queries.push(
-          Cassandra.constructUpsertCQL('AuthzInvitationsTokenByEmail', 'email', email, {
+          constructUpsertCQL('AuthzInvitationsTokenByEmail', 'email', email, {
             token
           }),
-          Cassandra.constructUpsertCQL('AuthzInvitationsEmailByToken', 'token', token, {
+          constructUpsertCQL('AuthzInvitationsEmailByToken', 'token', token, {
             email
           })
         );
@@ -78,10 +78,8 @@ const getOrCreateTokensByEmails = function (emails, callback) {
     }
 
     // Add the missing email tokens to the invitations token tables
-    Cassandra.runBatchQuery(queries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+    callbackify(runBatchQuery)(queries, (error_) => {
+      if (error_) return callback(error_);
 
       return callback(null, emailTokens);
     });
@@ -98,7 +96,7 @@ const getOrCreateTokensByEmails = function (emails, callback) {
  */
 const getTokensByEmails = function (emails, callback) {
   // Get all existing tokens for emails
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "AuthzInvitationsTokenByEmail" WHERE "email" IN ?',
     [emails],
     (error, rows) => {
@@ -107,7 +105,7 @@ const getTokensByEmails = function (emails, callback) {
       }
 
       const emailTokens = _.chain(rows)
-        .map(Cassandra.rowToHash)
+        .map(rowToHash)
         .indexBy('email')
         .mapObject((hash) => hash.token)
         .value();
@@ -125,7 +123,7 @@ const getTokensByEmails = function (emails, callback) {
  * @param  {String}     callback.email  The email that was associated to the token
  */
 const getEmailByToken = function (token, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "AuthzInvitationsEmailByToken" WHERE "token" = ?',
     [token],
     (error, rows) => {
@@ -140,7 +138,7 @@ const getEmailByToken = function (token, callback) {
         });
       }
 
-      const email = _.chain(rows).map(Cassandra.rowToHash).pluck('email').first().value();
+      const email = _.chain(rows).map(rowToHash).pluck('email').first().value();
 
       return callback(null, email);
     }
@@ -179,7 +177,7 @@ const getAllInvitationsByResourceId = function (
   _invitations = [],
   _nextToken = ''
 ) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" > ? ORDER BY "email" ASC LIMIT 150',
     [resourceId, _nextToken],
     (error, rows) => {
@@ -191,7 +189,7 @@ const getAllInvitationsByResourceId = function (
         return callback(null, _invitations);
       }
 
-      const invitations = _.map(rows, Cassandra.rowToHash);
+      const invitations = _.map(rows, rowToHash);
       return getAllInvitationsByResourceId(
         resourceId,
         callback,
@@ -212,7 +210,7 @@ const getAllInvitationsByResourceId = function (
  * @param  {Object}     callback.invitationHash     The invitation storage hash associated to the given resource id and email
  */
 const getInvitation = function (resourceId, email, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" = ? AND "email" = ?',
     [resourceId, email],
     (error, rows) => {
@@ -227,7 +225,7 @@ const getInvitation = function (resourceId, email, callback) {
         });
       }
 
-      return callback(null, Cassandra.rowToHash(_.first(rows)));
+      return callback(null, rowToHash(_.first(rows)));
     }
   );
 };
@@ -302,10 +300,9 @@ const createInvitations = function (resourceId, emailRoles, inviterUserId, callb
       ])
       .flatten()
       .value();
-    Cassandra.runBatchQuery(queries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+
+    callbackify(runBatchQuery)(queries, (error_) => {
+      if (error_) return callback(error_);
 
       return callback(null, emailTokens, invitationHashes);
     });
@@ -372,7 +369,7 @@ const updateInvitationRoles = function (resourceId, emailRoles, callback) {
     }
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -453,7 +450,7 @@ const deleteInvitationsByEmail = function (email, callback) {
         });
       });
 
-      return Cassandra.runBatchQuery(queries, callback);
+      return callbackify(runBatchQuery)(queries, callback);
     });
   });
 };
@@ -481,7 +478,7 @@ const _getAllInvitationResourceIdsByEmail = function (
   }
 
   cql += ' ORDER BY "resourceId" ASC LIMIT 100';
-  Cassandra.runQuery(cql, parameters, (error, rows) => {
+  callbackify(runQuery)(cql, parameters, (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -491,7 +488,7 @@ const _getAllInvitationResourceIdsByEmail = function (
     }
 
     // Join the resource ids we just fetched with our existing list
-    const resourceIds = _.chain(rows).map(Cassandra.rowToHash).pluck('resourceId').value();
+    const resourceIds = _.chain(rows).map(rowToHash).pluck('resourceId').value();
     _resourceIds = _.union(_resourceIds, resourceIds);
 
     return _getAllInvitationResourceIdsByEmail(email, callback, _resourceIds, _.last(resourceIds));
@@ -513,7 +510,7 @@ const _getInvitations = function (resourceIds, email, callback) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "AuthzInvitations" WHERE "resourceId" IN ? AND email = ?',
     [resourceIds, email],
     (error, rows) => {
@@ -521,7 +518,7 @@ const _getInvitations = function (resourceIds, email, callback) {
         return callback(error);
       }
 
-      return callback(null, _.map(rows, Cassandra.rowToHash));
+      return callback(null, _.map(rows, rowToHash));
     }
   );
 };

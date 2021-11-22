@@ -15,12 +15,13 @@
 
 /* eslint-disable unicorn/no-array-callback-reference */
 
+import { callbackify } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 import { Meeting } from 'oae-jitsi/lib/model.js';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { iterateAll as iterateResults, rowToHash, constructUpsertCQL, runQuery } from 'oae-util/lib/cassandra.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
@@ -48,8 +49,8 @@ const createMeeting = function (createdBy, displayName, description, chat, conta
     lastModified: created
   };
 
-  const query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, (error) => {
+  const query = constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) {
       return callback(error);
     }
@@ -89,7 +90,7 @@ const getMeetingsById = function (meetingIds, callback) {
   const parameters = [];
   parameters.push(meetingIds);
 
-  Cassandra.runQuery(query, parameters, (error, rows) => {
+  callbackify(runQuery)(query, parameters, (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -97,7 +98,7 @@ const getMeetingsById = function (meetingIds, callback) {
     // Convert the retrieved storage hashes into the Meeting model
     const meetings = {};
     _.chain(rows)
-      .map(Cassandra.rowToHash)
+      .map(rowToHash)
       .each((row) => {
         meetings[row.id] = _storageHashToMeeting(row.id, row);
       });
@@ -121,11 +122,9 @@ const updateMeeting = function (meeting, profileFields, callback) {
   storageHash.lastModified = storageHash.lastModified || Date.now();
   storageHash.lastModified = storageHash.lastModified.toString();
 
-  const query = Cassandra.constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  const query = constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
+    if (error) return callback(error);
 
     return callback(null, _createUpdatedMeetingFromStorageHash(meeting, storageHash));
   });
@@ -140,7 +139,7 @@ const updateMeeting = function (meeting, profileFields, callback) {
  * @param {Object}      callback.err        An error that occured, if any
  */
 const deleteMeeting = function (meetingId, callback) {
-  Cassandra.runQuery('DELETE FROM "MeetingsJitsi" WHERE id = ?', [meetingId], callback);
+  callbackify(runQuery)('DELETE FROM "MeetingsJitsi" WHERE id = ?', [meetingId], callback);
 };
 
 /**
@@ -172,10 +171,10 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
    */
   const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
-    return onEach(_.map(rows, Cassandra.rowToHash), done);
+    return onEach(_.map(rows, rowToHash), done);
   };
 
-  Cassandra.iterateAll(properties, 'MeetingsJitsi', 'id', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'MeetingsJitsi', 'id', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**

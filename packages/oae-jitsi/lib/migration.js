@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,13 +9,14 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      MeetingsJitsi:
-        'CREATE TABLE "MeetingsJitsi" ("id" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" text, "lastModified" text, "chat" boolean, "contactList" boolean)'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    MeetingsJitsi:
+      'CREATE TABLE "MeetingsJitsi" ("id" text PRIMARY KEY, "tenantAlias" text, "displayName" text, "visibility" text, "description" text, "createdBy" text, "created" text, "lastModified" text, "chat" boolean, "contactList" boolean)'
+  });
+}
 
 export { ensureSchema };

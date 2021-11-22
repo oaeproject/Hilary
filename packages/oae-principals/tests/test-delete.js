@@ -2600,11 +2600,13 @@ describe('Principals Delete and Restore', () => {
     it('verify deleting users by tenancy', (callback) => {
       TestsUtil.generateTestUsers(asCambridgeTenantAdmin, 3, (error, users) => {
         assert.notExists(error);
+
         const { 0: user1, 1: user2, 2: user3 } = users;
         PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
           PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
             PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () => {
               const globalAdminContext = TestsUtil.createGlobalAdminContext();
+
               DisableUsersMigration.doMigration(
                 globalAdminContext,
                 global.oaeTests.tenants.cam.alias,
@@ -2614,17 +2616,21 @@ describe('Principals Delete and Restore', () => {
                   // Update redis and search since we updated outside the scope of the API
                   Redis.flush((error_) => {
                     assert.notExists(error_);
+
                     PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
                       PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
                         PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
+
                           DisableUsersMigration.doMigration(
                             globalAdminContext,
                             global.oaeTests.tenants.cam.alias,
                             false,
                             (error /* , affectedUsers */) => {
                               assert.notExists(error);
+
                               Redis.flush((error_) => {
                                 assert.notExists(error_);
+
                                 PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {
                                   PrincipalsTestUtil.assertGetUserSucceeds(user2.restContext, user2.user.id, () => {
                                     PrincipalsTestUtil.assertGetUserSucceeds(user3.restContext, user3.user.id, () =>

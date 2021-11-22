@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,16 +9,17 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      Tenant:
-        'CREATE TABLE "Tenant" ("alias" text PRIMARY KEY, "displayName" text, "host" text, "emailDomains" text, "countryCode" text, "active" boolean)',
-      TenantNetwork: 'CREATE TABLE "TenantNetwork" ("id" text PRIMARY KEY, "displayName" text);',
-      TenantNetworkTenants:
-        'CREATE TABLE "TenantNetworkTenants" ("tenantNetworkId" text, "tenantAlias" text, "value" text, PRIMARY KEY ("tenantNetworkId", "tenantAlias")) WITH COMPACT STORAGE;'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    Tenant:
+      'CREATE TABLE "Tenant" ("alias" text PRIMARY KEY, "displayName" text, "host" text, "emailDomains" text, "countryCode" text, "active" boolean)',
+    TenantNetwork: 'CREATE TABLE "TenantNetwork" ("id" text PRIMARY KEY, "displayName" text);',
+    TenantNetworkTenants:
+      'CREATE TABLE "TenantNetworkTenants" ("tenantNetworkId" text, "tenantAlias" text, "value" text, PRIMARY KEY ("tenantNetworkId", "tenantAlias")) WITH COMPACT STORAGE;'
+  });
+}
 
 export { ensureSchema };

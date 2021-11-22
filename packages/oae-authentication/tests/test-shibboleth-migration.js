@@ -13,14 +13,14 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { format, callbackify } from 'node:util';
 import { assert } from 'chai';
 import _ from 'underscore';
 import csv from 'csv';
 import temp from 'temp';
 import { flatten, head, map, isEmpty, pipe, pluck } from 'ramda';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runBatchQuery, runQuery, rowToHash } from 'oae-util/lib/cassandra.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
 import { logger } from 'oae-logger';
@@ -28,14 +28,16 @@ import * as ShibbolethMigrator from '../../../etc/migration/shibboleth_migration
 
 const log = logger('oae-authentication');
 
+const { createTenantAdminRestContext } = TestsUtil;
+
 describe('Shibboleth Migration', () => {
   let camAdminRestContext = null;
   let gtAdminRestContext = null;
   let csvStream = null;
 
   before((callback) => {
-    camAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
-    gtAdminRestContext = TestsUtil.createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
+    camAdminRestContext = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
+    gtAdminRestContext = createTenantAdminRestContext(global.oaeTests.tenants.gt.host);
 
     // Set up the fake CSV file for errors
     const fakeStream = temp.createWriteStream();
@@ -66,20 +68,18 @@ describe('Shibboleth Migration', () => {
    * @throws {AssertionError}                     Thrown if the assertions fail
    */
   const _assertHaveShibbolethLoginIds = function (tenantAlias, users, callback) {
-    if (isEmpty(users)) {
-      return callback();
-    }
+    if (isEmpty(users)) return callback();
 
     const user = users.shift();
     const shibLogin = format('%s:shibboleth:%s', tenantAlias, user.email);
 
-    Cassandra.runQuery(
+    callbackify(runQuery)(
       'SELECT "loginId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
       [shibLogin],
       (error, rows) => {
         assert.notExists(error);
 
-        const result = pipe(map(Cassandra.rowToHash), pluck('loginId'), head)(rows);
+        const result = pipe(map(rowToHash), pluck('loginId'), head)(rows);
         assert.strictEqual(result, shibLogin);
         return _assertHaveShibbolethLoginIds(tenantAlias, users, callback);
       }
@@ -102,12 +102,12 @@ describe('Shibboleth Migration', () => {
     const user = users.shift();
     const shibLogin = format('%s:shibboleth:%s', tenantAlias, user.email);
 
-    Cassandra.runQuery(
+    callbackify(runQuery)(
       'SELECT "loginId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
       [shibLogin],
       (error, rows) => {
         assert.notExists(error);
-        const result = map(Cassandra.rowToHash, rows);
+        const result = map(rowToHash, rows);
 
         assert.ok(isEmpty(result));
         return _assertHaveNoShibbolethLoginIds(tenantAlias, users, callback);
@@ -163,7 +163,7 @@ describe('Shibboleth Migration', () => {
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, users);
 
-        Cassandra.runBatchQuery(queries, (error_) => {
+        callbackify(runBatchQuery)(queries, (error_) => {
           assert.notExists(error_);
 
           // Run the migration
@@ -194,7 +194,7 @@ describe('Shibboleth Migration', () => {
         const tenantAlias = tenant.alias;
         const queries = _createGoogleLogins(tenantAlias, googleUsers);
 
-        Cassandra.runBatchQuery(queries, (error_) => {
+        callbackify(runBatchQuery)(queries, (error_) => {
           assert.notExists(error_);
 
           // Run the migration

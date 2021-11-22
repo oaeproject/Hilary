@@ -14,13 +14,13 @@
  */
 
 import crypto from 'node:crypto';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { rowToHash, constructUpsertCQL, runQuery, runBatchQuery } from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
 import * as Locking from 'oae-util/lib/locking.js';
@@ -942,7 +942,7 @@ const checkPassword = function (tenantAlias, username, password, callback) {
     return callback(error);
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId", "password" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -956,7 +956,7 @@ const checkPassword = function (tenantAlias, username, password, callback) {
       }
 
       // Check if the user provided password matches the stored password
-      const result = Cassandra.rowToHash(rows[0]);
+      const result = rowToHash(rows[0]);
       const passwordMatches =
         result.userId &&
         result.password &&
@@ -1033,7 +1033,7 @@ const getResetPasswordSecret = function (ctx, username, callback) {
       const secret = crypto.randomBytes(16).toString('hex');
 
       // The secret is stored for 24 hours
-      Cassandra.runQuery(
+      callbackify(runQuery)(
         'UPDATE "AuthenticationLoginId" USING TTL 86400 SET "secret" = ? WHERE "loginId" = ?',
         [secret, _flattenLoginId(loginId)],
         (error_) => {
@@ -1103,7 +1103,7 @@ const resetPassword = function (ctx, username, secret, newPassword, callback) {
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
   // Lookup the database to check whether a token is associated with the current
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId", "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -1143,7 +1143,7 @@ const resetPassword = function (ctx, username, secret, newPassword, callback) {
  */
 const _changePassword = function (loginId, newPassword, callback) {
   const hash = AuthenticationUtil.hashPassword(newPassword);
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'UPDATE "AuthenticationLoginId" SET "password" = ? WHERE "loginId" = ?',
     [hash, _flattenLoginId(loginId)],
     (error) => {
@@ -1175,7 +1175,7 @@ const _associateLoginId = function (loginId, userId, callback) {
   delete loginId.properties.loginId;
   loginId.properties.userId = userId;
 
-  const query = Cassandra.constructUpsertCQL(
+  const query = constructUpsertCQL(
     'AuthenticationLoginId',
     'loginId',
     flattenedLoginId,
@@ -1188,7 +1188,7 @@ const _associateLoginId = function (loginId, userId, callback) {
         'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']
     });
-    return Cassandra.runBatchQuery(queries, callback);
+    return callbackify(runBatchQuery)(queries, callback);
   }
 
   log().error(
@@ -1269,7 +1269,7 @@ const _getUserLoginIds = function (userId, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
     [userId],
     (error, rows) => {
@@ -1279,7 +1279,7 @@ const _getUserLoginIds = function (userId, callback) {
 
       const loginIds = {};
       _.each(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         if (row.loginId) {
           const loginId = _expandLoginId(row.loginId);
           loginIds[loginId.provider] = loginId;
@@ -1301,7 +1301,7 @@ const _getUserLoginIds = function (userId, callback) {
  * @api private
  */
 const _getUserIdFromLoginId = function (loginId, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -1313,7 +1313,7 @@ const _getUserIdFromLoginId = function (loginId, callback) {
         return callback({ code: 404, msg: 'No user could be found with the provided login id' });
       }
 
-      const result = Cassandra.rowToHash(rows[0]);
+      const result = rowToHash(rows[0]);
       return callback(null, result.userId);
     }
   );

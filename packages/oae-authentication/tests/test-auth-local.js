@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';
@@ -2101,9 +2102,9 @@ describe('Authentication', () => {
         );
 
         // Associate a login id to the user, with no external id
-        AuthenticationAPI.associateLoginId(ctx, loginId, user.id, (error_) => {
-          assert.ok(error_);
-          assert.strictEqual(error_.code, 400);
+        AuthenticationAPI.associateLoginId(ctx, loginId, user.id, (error) => {
+          assert.ok(error);
+          assert.strictEqual(JSON.parse(error.message).code, 400);
           return callback();
         });
       });
@@ -2665,7 +2666,7 @@ describe('Authentication', () => {
               assert.notExists(error);
               const loginId = new LoginId(global.oaeTests.tenants.cam.alias, 'local', username);
               // Ensure secret is saved correctly in db
-              Cassandra.runQuery(
+              callbackify(Cassandra.runQuery)(
                 'SELECT "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
                 [loginId.tenantAlias + ':' + loginId.provider + ':' + loginId.externalId],
                 (error, rows) => {

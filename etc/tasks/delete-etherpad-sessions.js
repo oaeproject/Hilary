@@ -16,12 +16,15 @@
  */
 
 const path = require('path');
+const util = require('util');
 const _ = require('underscore');
 const optimist = require('optimist');
 
 const Cassandra = require('oae-util/lib/cassandra');
 const log = require('oae-logger').logger('delete-etherpad-sessions');
 const OAE = require('oae-util/lib/oae');
+
+const { callbackify } = util;
 
 const { argv } = optimist
   .usage('Delete the Etherpad session keys\n$0 [--config <path/to/config.js>]')
@@ -54,15 +57,11 @@ let totalDeletedKeys = 0;
  * @param  {Function}   callback        Standard callback function
  * @api private
  */
-const _deleteSessionRows = function(rows, callback) {
+const _deleteSessionRows = function (rows, callback) {
   // Get the session keys
   const keysToDelete = _.chain(rows)
-    .map(row => {
-      return row.get('key');
-    })
-    .filter(key => {
-      return key.indexOf('session') !== -1;
-    })
+    .map((row) => row.get('key'))
+    .filter((key) => key.includes('session'))
     .value();
 
   // If there were no session keys in this batch, we return immediately
@@ -72,22 +71,20 @@ const _deleteSessionRows = function(rows, callback) {
 
   totalDeletedKeys += keysToDelete.length;
   log().info('Deleting %d keys', keysToDelete.length);
-  return Cassandra.runQuery('DELETE FROM "Etherpad" WHERE key IN ?', [keysToDelete], callback);
+  return callbackify(Cassandra.runQuery)('DELETE FROM "Etherpad" WHERE key IN ?', [keysToDelete], callback);
 };
 
 // Initialize the application container
-OAE.init(config, err => {
-  if (err) {
-    log().error({ err }, 'Unable to spin up the application server');
-    process.exit(err.code);
+OAE.init(config, (error) => {
+  if (error) {
+    log().error({ err: error }, 'Unable to spin up the application server');
+    process.exit(error.code);
   }
 
-  log().info(
-    'Iterating over etherpad keys, depending on the amount of data in Etherpad this could take a while'
-  );
-  Cassandra.iterateAll(['key'], 'Etherpad', 'key', { batchSize: 500 }, _deleteSessionRows, err => {
-    if (err) {
-      log().error({ err }, 'An error occurred whilst deleting Etherpad keys');
+  log().info('Iterating over etherpad keys, depending on the amount of data in Etherpad this could take a while');
+  callbackify(Cassandra.iterateAll)(['key'], 'Etherpad', 'key', { batchSize: 500 }, _deleteSessionRows, (error) => {
+    if (error) {
+      log().error({ err: error }, 'An error occurred whilst deleting Etherpad keys');
       process.exit(1);
     }
 

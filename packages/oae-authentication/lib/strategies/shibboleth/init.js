@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import _ from 'underscore';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
@@ -199,7 +200,7 @@ function initShibbAuth(config) {
               return callback({ code: 500, msg: 'Unable to store Shibboleth metadata' });
             }
 
-            Cassandra.runQuery(q.query, q.parameters, (error_) => {
+            callbackify(Cassandra.runQuery)(q.query, q.parameters, (error_) => {
               if (error_) {
                 return callback(error_);
               }

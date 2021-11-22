@@ -15,7 +15,7 @@
 
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 
 import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
@@ -641,7 +641,7 @@ describe('Content Activity', () => {
                     // Query branden's activity stream to get the item that was persisted
                     const activityStreamId = format('%s#activity', marge.user.id);
 
-                    runQuery(
+                    callbackify(runQuery)(
                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                       [activityStreamId],
                       (error, rows) => {
@@ -664,7 +664,7 @@ describe('Content Activity', () => {
                           assert.notExists(error);
                           collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
                             assert.notExists(error_);
-                            runQuery(
+                            callbackify(runQuery)(
                               'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                               [activityStreamId],
                               (error, rows) => {
@@ -687,7 +687,7 @@ describe('Content Activity', () => {
                                   collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
                                     assert.notExists(error_);
 
-                                    runQuery(
+                                    callbackify(runQuery)(
                                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                                       [activityStreamId],
                                       (error, rows) => {
@@ -2713,9 +2713,9 @@ describe('Content Activity', () => {
                       assert.strictEqual(
                         activity.object['oae:profilePath'],
                         '/content/' +
-                          googleLink.tenant.alias +
-                          '/' +
-                          AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                        googleLink.tenant.alias +
+                        '/' +
+                        AuthzUtil.getResourceFromId(googleLink.id).resourceId
                       );
 
                       // Send a new activity into the feed so it is the most recent
@@ -2757,17 +2757,17 @@ describe('Content Activity', () => {
                                 assert.strictEqual(
                                   activity.actor['oae:profilePath'],
                                   '/user/' +
-                                    jack.user.tenant.alias +
-                                    '/' +
-                                    AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                                  jack.user.tenant.alias +
+                                  '/' +
+                                  AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                 );
                                 assert.ok(activity.object['oae:id'], googleLink.id);
                                 assert.strictEqual(
                                   activity.object['oae:profilePath'],
                                   '/content/' +
-                                    googleLink.tenant.alias +
-                                    '/' +
-                                    AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                  googleLink.tenant.alias +
+                                  '/' +
+                                  AuthzUtil.getResourceFromId(googleLink.id).resourceId
                                 );
                                 callback();
                               });
@@ -2867,9 +2867,9 @@ describe('Content Activity', () => {
                       assert.strictEqual(
                         activity.object['oae:profilePath'],
                         '/content/' +
-                          googleLink.tenant.alias +
-                          '/' +
-                          AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                        googleLink.tenant.alias +
+                        '/' +
+                        AuthzUtil.getResourceFromId(googleLink.id).resourceId
                       );
 
                       // Send a new activity into the feed so it is the most recent
@@ -2910,17 +2910,17 @@ describe('Content Activity', () => {
                                 assert.strictEqual(
                                   activity.actor['oae:profilePath'],
                                   '/user/' +
-                                    jack.user.tenant.alias +
-                                    '/' +
-                                    AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                                  jack.user.tenant.alias +
+                                  '/' +
+                                  AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                 );
                                 assert.ok(activity.object['oae:id'], googleLink.id);
                                 assert.strictEqual(
                                   activity.object['oae:profilePath'],
                                   '/content/' +
-                                    googleLink.tenant.alias +
-                                    '/' +
-                                    AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                  googleLink.tenant.alias +
+                                  '/' +
+                                  AuthzUtil.getResourceFromId(googleLink.id).resourceId
                                 );
                                 callback();
                               });

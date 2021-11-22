@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,13 +9,14 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      LibraryIndex:
-        'CREATE TABLE "LibraryIndex" ("bucketKey" text, "rankedResourceId" text, "value" text, PRIMARY KEY ("bucketKey", "rankedResourceId")) WITH COMPACT STORAGE'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    LibraryIndex:
+      'CREATE TABLE "LibraryIndex" ("bucketKey" text, "rankedResourceId" text, "value" text, PRIMARY KEY ("bucketKey", "rankedResourceId")) WITH COMPACT STORAGE'
+  });
+}
 
 export { ensureSchema };

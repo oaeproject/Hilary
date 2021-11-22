@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, rowToHash, constructUpsertCQL, runBatchQuery } from 'oae-util/lib/cassandra.js';
 import { Validator as validator } from 'oae-util/lib/validator.js';
 
 const { unless, isResourceId } = validator;
@@ -33,7 +34,7 @@ const { unless, isResourceId } = validator;
  * @param  {Object[]}   callback.previews   The preview objects.
  */
 const getContentPreviews = function (revisionId, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "name", "value" FROM "PreviewItems" WHERE "revisionId" = ?',
     [revisionId],
     (error, rows) => {
@@ -42,7 +43,7 @@ const getContentPreviews = function (revisionId, callback) {
       }
 
       const previews = _.map(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         row.value = row.value.split('#');
         return {
           size: row.value[0],
@@ -66,7 +67,7 @@ const getContentPreviews = function (revisionId, callback) {
  * @param  {Object}     callback.preview    The preview object.
  */
 const getContentPreview = function (revisionId, previewItem, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "value" FROM "PreviewItems" WHERE "revisionId" = ? AND "name" = ?',
     [revisionId, previewItem],
     (error, rows) => {
@@ -104,7 +105,7 @@ const getPreviewUris = function (revisionIds, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "revisionId", "thumbnailUri", "wideUri" FROM "Revisions" WHERE "revisionId" IN ?',
     [revisionIds],
     (error, rows) => {
@@ -199,7 +200,7 @@ const storeMetadata = function (
 
   previews = JSON.stringify(previews);
   const contentUpdate = _.extend({}, contentMetadata, { previews });
-  queries.push(Cassandra.constructUpsertCQL('Content', 'contentId', contentObject.id, contentUpdate));
+  queries.push(constructUpsertCQL('Content', 'contentId', contentObject.id, contentUpdate));
 
   // 4. Store the previews object on the revision
   const revisionUpdate = {
@@ -219,16 +220,14 @@ const storeMetadata = function (
     revisionUpdate.mediumUri = previewMetadata.mediumUri;
   }
 
-  queries.push(Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, revisionUpdate));
+  queries.push(constructUpsertCQL('Revisions', 'revisionId', revisionId, revisionUpdate));
 
   // First delete the existing previews
   _runQueryIfSpecified(deleteQuery, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Add the specified preview items
-    Cassandra.runBatchQuery(queries, callback);
+    callbackify(runBatchQuery)(queries, callback);
   });
 };
 
@@ -256,8 +255,11 @@ const copyPreviewItems = function (fromRevisionId, toRevisionId, callback) {
     return callback(error);
   }
 
-  // Select all the rows from the source revision preview items, then insert them into the destination revision preview items
-  Cassandra.runQuery('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (error, rows) => {
+  /**
+   *  Select all the rows from the source revision preview items,
+   * then insert them into the destination revision preview items
+   */
+  callbackify(runQuery)('SELECT * FROM "PreviewItems" WHERE "revisionId" = ?', [fromRevisionId], (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -268,14 +270,14 @@ const copyPreviewItems = function (fromRevisionId, toRevisionId, callback) {
 
     // Copy the content over to the target revision id
     const queries = _.map(rows, (row) => {
-      row = Cassandra.rowToHash(row);
+      row = rowToHash(row);
       return {
         query: 'INSERT INTO "PreviewItems" ("revisionId", "name", "value") VALUES (?, ?, ?)',
         parameters: [toRevisionId, row.name, row.value]
       };
     });
 
-    return Cassandra.runBatchQuery(queries, callback);
+    return callbackify(runBatchQuery)(queries, callback);
   });
 };
 
@@ -292,7 +294,7 @@ const _runQueryIfSpecified = function (query, callback) {
     return callback();
   }
 
-  Cassandra.runQuery(query.query, query.parameters, callback);
+  callbackify(runQuery)(query.query, query.parameters, callback);
 };
 
 /**

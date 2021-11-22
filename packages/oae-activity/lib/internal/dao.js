@@ -14,13 +14,13 @@
  */
 
 import crypto from 'node:crypto';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import process from 'node:process';
 import { equals, and } from 'ramda';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, runBatchQuery, runPagedQuery } from 'oae-util/lib/cassandra.js';
 
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
@@ -60,7 +60,7 @@ const getActivities = function (activityStreamId, start, limit, callback) {
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
   // Selecting with consistency ONE as having great consistency is not critical for activities
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'ActivityStreams',
     'activityStreamId',
     activityStreamId,
@@ -68,11 +68,12 @@ const getActivities = function (activityStreamId, start, limit, callback) {
     start,
     limit,
     { reversed: true },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
-
+      
+      const { rows, nextToken } = results;
       const activities = _rowsToActivities(rows);
       return callback(null, activities, nextToken);
     }
@@ -97,7 +98,7 @@ const getActivitiesFromStreams = function (activityStreamIds, start, callback) {
     parameters.push(start + ':');
   }
 
-  Cassandra.runQuery(query, parameters, (error, rows) => {
+  callbackify(runQuery)(query, parameters, (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -164,7 +165,7 @@ const deliverActivities = function (routedActivities, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -193,7 +194,7 @@ const deleteActivities = function (routeActivityIds, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -204,7 +205,7 @@ const deleteActivities = function (routeActivityIds, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const clearActivityStream = function (activityStreamId, callback) {
-  Cassandra.runQuery('DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?', [activityStreamId], callback);
+  callbackify(runQuery)('DELETE FROM "ActivityStreams" WHERE "activityStreamId" = ?', [activityStreamId], callback);
 };
 
 /**
@@ -931,7 +932,7 @@ const saveQueuedUserIdsForEmail = function (emailBuckets, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -946,7 +947,7 @@ const saveQueuedUserIdsForEmail = function (emailBuckets, callback) {
  * @param  {String}     callback.nextToken      The value that can be used as the `opts.start` parameter for the next query to get the next page of item
  */
 const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'EmailBuckets',
     'bucketId',
     bucketId,
@@ -954,11 +955,12 @@ const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
     start,
     limit,
     { end: '|' },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
-
+      
+      const { rows, nextToken } = results;
       const userIds = _.map(rows, (row) => row.get('userId'));
 
       return callback(null, userIds, nextToken);
@@ -983,7 +985,7 @@ const unqueueUsersForEmail = function (bucketId, userIds, callback) {
     query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
     parameters: [bucketId, userId]
   }));
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /// ////////////////

@@ -14,9 +14,10 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
+import { callbackify } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { rowToHash, runQuery, constructUpsertCQL, runBatchQuery } from 'oae-util/lib/cassandra.js';
 
 import { Client } from '../model.js';
 
@@ -36,20 +37,18 @@ import { Client } from '../model.js';
 const createClient = function (id, displayName, secret, userId, callback) {
   // Insert the OAuth client and its association to the user
   const queries = [
-    Cassandra.constructUpsertCQL('OAuthClient', 'id', id, {
+    constructUpsertCQL('OAuthClient', 'id', id, {
       displayName,
       secret,
       userId
     }),
-    Cassandra.constructUpsertCQL('OAuthClientsByUser', ['userId', 'clientId'], [userId, id], {
+    constructUpsertCQL('OAuthClientsByUser', ['userId', 'clientId'], [userId, id], {
       value: '1'
     })
   ];
 
-  Cassandra.runBatchQuery(queries, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runBatchQuery)(queries, (error) => {
+    if (error) return callback(error);
 
     return callback(null, new Client(id, displayName, secret, userId));
   });
@@ -66,11 +65,11 @@ const createClient = function (id, displayName, secret, userId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const updateClient = function (id, displayName, secret, callback) {
-  const query = Cassandra.constructUpsertCQL('OAuthClient', 'id', id, {
+  const query = constructUpsertCQL('OAuthClient', 'id', id, {
     displayName,
     secret
   });
-  Cassandra.runQuery(query.query, query.parameters, callback);
+  callbackify(runQuery)(query.query, query.parameters, callback);
 };
 
 /**
@@ -89,7 +88,7 @@ const deleteClient = function (id, userId, callback) {
       parameters: [userId, id]
     }
   ];
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -124,7 +123,7 @@ const getClientById = function (id, callback) {
  * @param  {Client[]}   callback.clients    The set of clients that are registered for this user
  */
 const getClientsByUser = function (userId, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "clientId" FROM "OAuthClientsByUser" WHERE "userId" = ?',
     [userId],
     (error, rows) => {
@@ -153,18 +152,22 @@ const _getClientsByIds = function (clientIds, callback) {
     return callback(null, []);
   }
 
-  Cassandra.runQuery('SELECT * FROM "OAuthClient" WHERE "id" IN ?', [clientIds], (error, rows) => {
-    if (error) {
-      return callback(error);
+  callbackify(runQuery)(
+    'SELECT * FROM "OAuthClient" WHERE "id" IN ?',
+    [clientIds],
+    (error, rows) => {
+      if (error) {
+        return callback(error);
+      }
+
+      const clients = _.chain(rows)
+        .map(rowToHash)
+        .map((hash) => new Client(hash.id, hash.displayName, hash.secret, hash.userId))
+        .value();
+
+      return callback(null, clients);
     }
-
-    const clients = _.chain(rows)
-      .map(Cassandra.rowToHash)
-      .map((hash) => new Client(hash.id, hash.displayName, hash.secret, hash.userId))
-      .value();
-
-    return callback(null, clients);
-  });
+  );
 };
 
 export { createClient, updateClient, deleteClient, getClientById, getClientsByUser };

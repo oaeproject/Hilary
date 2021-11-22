@@ -44,11 +44,11 @@ const doMigration = function (ctx, tenantAlias, disabled, callback) {
 
   PrincipalsAPI.deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disabled, (err, users) => {
     if (err) {
-      callback(err);
+      return callback(err);
     }
 
     log().info('Migration successful.');
-    callback(null, users);
+    return callback(null, users);
   });
 
   function _createNewContext() {

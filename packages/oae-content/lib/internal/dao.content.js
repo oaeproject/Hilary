@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
@@ -25,7 +25,7 @@ import _ from 'underscore';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, iterateAll as iterateResults, rowToHash, constructUpsertCQL } from 'oae-util/lib/cassandra.js';
 import * as LibraryAPI from 'oae-library';
 import { logger } from 'oae-logger';
 import * as OaeUtil from 'oae-util/lib/util.js';
@@ -49,7 +49,7 @@ const log = logger('content-dao');
  * @param  {Content}        callback.content    Retrieved content object
  */
 const getContent = function (contentId, callback) {
-  Cassandra.runQuery('SELECT * FROM "Content" WHERE "contentId" = ?', [contentId], (error, rows) => {
+  callbackify(runQuery)('SELECT * FROM "Content" WHERE "contentId" = ?', [contentId], (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -93,7 +93,7 @@ const getMultipleContentItems = function (contentIds, fields, callback) {
 
   parameters.push(contentIds);
 
-  Cassandra.runQuery(query, parameters, (error, rows) => {
+  callbackify(runQuery)(query, parameters, (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -188,10 +188,10 @@ const createContent = function (
 
     // Add the other values into the query
     parameters = _.extend(parameters, otherValues);
-    const q = Cassandra.constructUpsertCQL('Content', 'contentId', contentId, parameters);
+    const q = constructUpsertCQL('Content', 'contentId', contentId, parameters);
 
     // Create the content
-    Cassandra.runQuery(q.query, q.parameters, (error_) => {
+    callbackify(runQuery)(q.query, q.parameters, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -229,8 +229,8 @@ const updateContent = function (contentObject, profileUpdates, librariesUpdate, 
   const oldLastModified = contentObject.lastModified;
   profileUpdates.lastModified = Date.now().toString();
 
-  const q = Cassandra.constructUpsertCQL('Content', 'contentId', contentObject.id, profileUpdates);
-  Cassandra.runQuery(q.query, q.parameters, (error) => {
+  const q = constructUpsertCQL('Content', 'contentId', contentObject.id, profileUpdates);
+  callbackify(runQuery)(q.query, q.parameters, (error) => {
     if (error) {
       return callback(error);
     }
@@ -268,7 +268,7 @@ const updateContent = function (contentObject, profileUpdates, librariesUpdate, 
  * @param  {AuthzPrincipal[]}       callback.members        The set of authz principals who were members of the content item
  */
 const deleteContent = function (contentObject, callback) {
-  Cassandra.runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [contentObject.id], (error) => {
+  callbackify(runQuery)('DELETE FROM "Content" WHERE "contentId" = ?', [contentObject.id], (error) => {
     if (error) {
       return callback(error);
     }
@@ -394,10 +394,10 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
    */
   const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
-    return onEach(_.map(rows, Cassandra.rowToHash), done);
+    return onEach(_.map(rows, rowToHash), done);
   };
 
-  Cassandra.iterateAll(properties, 'Content', 'contentId', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'Content', 'contentId', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -518,7 +518,7 @@ const _updateContentLibraries = function (contentObject, oldLastModified, newLas
  * @api private
  */
 const _rowToContent = function (row) {
-  const hash = Cassandra.rowToHash(row);
+  const hash = rowToHash(row);
 
   // Try and parse and apply the previews object of the hash
   _parsePreviews(hash);

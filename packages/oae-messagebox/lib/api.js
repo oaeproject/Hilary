@@ -656,13 +656,12 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
     start,
     limit,
     { reversed: true },
-    // eslint-disable-next-line no-unused-vars
     (error, results) => {
       if (error) {
         return callback(error);
       }
 
-      const {rows} = results;
+      const { rows } = results;
       // Extract the contributor ids as the results
       const recentContributions = _.map(rows, (row) => row.get('contributorId'));
 

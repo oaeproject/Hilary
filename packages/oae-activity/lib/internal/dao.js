@@ -72,7 +72,7 @@ const getActivities = function (activityStreamId, start, limit, callback) {
       if (error) {
         return callback(error);
       }
-      
+
       const { rows, nextToken } = results;
       const activities = _rowsToActivities(rows);
       return callback(null, activities, nextToken);
@@ -959,7 +959,7 @@ const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
       if (error) {
         return callback(error);
       }
-      
+
       const { rows, nextToken } = results;
       const userIds = _.map(rows, (row) => row.get('userId'));
 

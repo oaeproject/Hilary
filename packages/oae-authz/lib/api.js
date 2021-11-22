@@ -852,7 +852,7 @@ const getPrincipalMembershipsGraph = function (principalId, callback) {
         const groupId = row.get('groupId');
 
         /**
-         * This is the stored members information for the group. 
+         * This is the stored members information for the group.
          * It is of the form: `{'memberId': 'g:oae:another-group', 'role': 'manager'}`
          */
         let memberRoles = {};

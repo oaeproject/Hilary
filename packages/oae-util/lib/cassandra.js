@@ -15,19 +15,7 @@
 
 import { format, callbackify } from 'node:util';
 import _ from 'underscore';
-import {
-  keys as getKeys,
-  and,
-  not,
-  equals,
-  map,
-  isEmpty,
-  mergeAll,
-  forEachObjIndexed,
-  pipe,
-  isNil,
-  defaultTo
-} from 'ramda';
+import { keys as getKeys, not, equals, map, isEmpty, mergeAll, forEachObjIndexed, pipe, isNil, defaultTo } from 'ramda';
 
 import * as cassandra from 'cassandra-driver';
 
@@ -60,39 +48,9 @@ const isZero = equals(0);
  * @param  {Object}    callback.err    An error that occurred, if any
  */
 const init = function (config, callback) {
-  callback = callback || function () {};
-  CONFIG = config;
-
-  log = logger('oae-cassandra');
-
-  Telemetry = telemetry('cassandra');
-  const { keyspace } = CONFIG;
-  CONFIG.keyspace = 'system';
-  client = _createNewClient(CONFIG.hosts, CONFIG.keyspace);
-
-  client.connect((error) => {
-    // Immediately switch the CONFIG keyspace back to the desired keyspace
-    CONFIG.keyspace = keyspace;
-
-    if (error) {
-      log().error({ err: error }, 'Error connecting to cassandra');
-      return callback({ code: 500, msg: 'Error connecting to cassandra' });
-    }
-
-    callbackify(createKeyspace)(keyspace, (error) => {
-      if (error) {
-        callbackify(close)(() => {
-          callback(error);
-        });
-      }
-
-      client = _createNewClient(CONFIG.hosts, keyspace);
-      callback();
-    });
-  });
+  callbackify(promiseToInit)(config, callback);
 };
 
-// TODO try to use this with callbackify from above
 const promiseToInit = async function (config) {
   CONFIG = config;
 
@@ -177,7 +135,9 @@ async function createKeyspace(keyspace) {
    * Pause for a second to ensure the keyspace gets agreed upon across the cluster.
    * eslint-disable-next-line no-promise-executor-return
    */
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 1000);
+  });
 
   return result;
 }

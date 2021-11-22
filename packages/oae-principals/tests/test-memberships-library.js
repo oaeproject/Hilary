@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { assert } from 'chai';
 import { callbackify } from 'node:util';
+import { assert } from 'chai';
 import {
   find,
   reject,

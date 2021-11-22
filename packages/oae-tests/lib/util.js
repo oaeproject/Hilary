@@ -721,7 +721,7 @@ const getUserFromRestContext = function (restCtx, callback) {
 const generateResourceIds = function (n, resourceType, tenantAlias, callback) {
   resourceType = resourceType || 'g';
   tenantAlias = tenantAlias || 'oae';
-  callback = callback || function () { };
+  callback = callback || function () {};
 
   const resourceIds = [];
   for (let i = 0; i < n; i++) {
@@ -776,7 +776,7 @@ const createFileReadableStream = function (filename, size) {
     rs.path = '/foo/bar/' + filename;
 
     // When we add a stream to request it gets delayed first, so we need to implement the `pause` method
-    rs.pause = function () { };
+    rs.pause = function () {};
 
     // Once `resume` has been called we can start emitting data
     rs.resume = function () {

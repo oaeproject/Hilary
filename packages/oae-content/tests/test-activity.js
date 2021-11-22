@@ -2713,9 +2713,9 @@ describe('Content Activity', () => {
                       assert.strictEqual(
                         activity.object['oae:profilePath'],
                         '/content/' +
-                        googleLink.tenant.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                          googleLink.tenant.alias +
+                          '/' +
+                          AuthzUtil.getResourceFromId(googleLink.id).resourceId
                       );
 
                       // Send a new activity into the feed so it is the most recent
@@ -2757,17 +2757,17 @@ describe('Content Activity', () => {
                                 assert.strictEqual(
                                   activity.actor['oae:profilePath'],
                                   '/user/' +
-                                  jack.user.tenant.alias +
-                                  '/' +
-                                  AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                                    jack.user.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                 );
                                 assert.ok(activity.object['oae:id'], googleLink.id);
                                 assert.strictEqual(
                                   activity.object['oae:profilePath'],
                                   '/content/' +
-                                  googleLink.tenant.alias +
-                                  '/' +
-                                  AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                    googleLink.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(googleLink.id).resourceId
                                 );
                                 callback();
                               });
@@ -2867,9 +2867,9 @@ describe('Content Activity', () => {
                       assert.strictEqual(
                         activity.object['oae:profilePath'],
                         '/content/' +
-                        googleLink.tenant.alias +
-                        '/' +
-                        AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                          googleLink.tenant.alias +
+                          '/' +
+                          AuthzUtil.getResourceFromId(googleLink.id).resourceId
                       );
 
                       // Send a new activity into the feed so it is the most recent
@@ -2910,17 +2910,17 @@ describe('Content Activity', () => {
                                 assert.strictEqual(
                                   activity.actor['oae:profilePath'],
                                   '/user/' +
-                                  jack.user.tenant.alias +
-                                  '/' +
-                                  AuthzUtil.getResourceFromId(jack.user.id).resourceId
+                                    jack.user.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(jack.user.id).resourceId
                                 );
                                 assert.ok(activity.object['oae:id'], googleLink.id);
                                 assert.strictEqual(
                                   activity.object['oae:profilePath'],
                                   '/content/' +
-                                  googleLink.tenant.alias +
-                                  '/' +
-                                  AuthzUtil.getResourceFromId(googleLink.id).resourceId
+                                    googleLink.tenant.alias +
+                                    '/' +
+                                    AuthzUtil.getResourceFromId(googleLink.id).resourceId
                                 );
                                 callback();
                               });

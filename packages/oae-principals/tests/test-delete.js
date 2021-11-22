@@ -2620,7 +2620,6 @@ describe('Principals Delete and Restore', () => {
                     PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
                       PrincipalsTestUtil.assertGetUserFails(user2.restContext, user2.user.id, 404, () => {
                         PrincipalsTestUtil.assertGetUserFails(user3.restContext, user3.user.id, 404, () => {
-
                           DisableUsersMigration.doMigration(
                             globalAdminContext,
                             global.oaeTests.tenants.cam.alias,

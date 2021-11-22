@@ -17,6 +17,7 @@ import crypto from 'node:crypto';
 import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
+import { compose, and, pipe, prop, not, propEq, is } from 'ramda';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
@@ -34,13 +35,28 @@ import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
 
-import { compose, and } from 'ramda';
 import isLength from 'validator/lib/isLength.js';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 import { LoginId } from 'oae-authentication/lib/model.js';
+
+const CODE = 'code';
+const MESSAGE = 'message';
+
+const isInstanceOfObject = is(Object);
+const isInstanceOfError = is(Error);
+const errorCodeAint404 = pipe(propEq(CODE, 404), not);
+
+const errorIsNot404 = (error) => {
+  const parsedErrorAint404 = pipe(prop(MESSAGE), JSON.parse, errorCodeAint404);
+  try {
+    return parsedErrorAint404(error);
+  } catch {
+    return false;
+  }
+};
 
 const {
   validateInCase: bothCheck,
@@ -366,7 +382,29 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
   options = options || {};
 
   _getUserIdFromLoginId(loginId, (error, userId) => {
-    if (error && error.code !== 404) {
+    /**
+     * This piece of code has no logic, but it is needed:
+     * this method catches both callback(error) and Error instances
+     * and so we must make sure we identify 404 in two different ways:
+     *
+     * return callback({code: 404, msg: 'bla bla bla'})
+     * and
+     * throw new Error(JSON.stringify({code: 404, msg: 'bla bla bla'}))
+     *
+     * Hence this. Ideally all errors would have the same format as the error, but that implies
+     * changing:
+     * callback({code: xxx, msg: 'bla'})
+     * ...to
+     * callback({message: JSON.stringify({code: XXX, msg: 'bla'})})
+     * ...everywhere.
+     *
+     * By the way, an Error is an Object but {} aint an Error, so the order of the if conditions matters
+     */
+    if (isInstanceOfError(error) && errorIsNot404(error)) {
+      return callback(error);
+    }
+
+    if (isInstanceOfObject(error) && errorCodeAint404(error)) {
       return callback(error);
     }
 
@@ -1012,7 +1050,10 @@ const getResetPasswordSecret = function (ctx, username, callback) {
   // Check if we can get an existing userID using the userName the user provided
   _getUserIdFromLoginId(loginId, (error, userId) => {
     if (error) {
-      return callback({ code: 404, msg: 'No user could be found with the provided username' });
+      return callback({
+        code: 404,
+        msg: 'no user could be found with the provided username'
+      });
     }
 
     // Get user's object as we will try to send the user an email with token
@@ -1310,7 +1351,10 @@ const _getUserIdFromLoginId = function (loginId, callback) {
       }
 
       if (_.isEmpty(rows)) {
-        return callback({ code: 404, msg: 'No user could be found with the provided login id' });
+        return callback({
+          code: 404,
+          msg: 'No user could be found with the provided login id'
+        });
       }
 
       const result = rowToHash(rows[0]);

@@ -15,7 +15,21 @@
 
 import { format, callbackify } from 'node:util';
 import _ from 'underscore';
-import { keys as getKeys, not, equals, map, isEmpty, mergeAll, forEachObjIndexed, pipe, isNil, defaultTo } from 'ramda';
+import {
+  keys as getKeys,
+  not,
+  equals,
+  of,
+  map,
+  isEmpty,
+  mergeAll,
+  forEachObjIndexed,
+  __,
+  pipe,
+  isNil,
+  defaultTo,
+  concat
+} from 'ramda';
 
 import * as cassandra from 'cassandra-driver';
 
@@ -39,6 +53,11 @@ let client = null;
 
 const defaultToEmptyArray = defaultTo([]);
 const isZero = equals(0);
+
+const LT_SIGN = '<';
+const LTE_SIGN = '<=';
+const GT_SIGN = '>';
+const GTE_SIGN = '>=';
 
 /**
  * Initializes the keyspace in config.keyspace with the CF's in all the modules their schema.js code.
@@ -368,39 +387,90 @@ async function runBatchQuery(queries) {
  * @param  {String}     [opts.end]              The *inclusive* ending point of the query. If unspecified, will query columns to the end of the row
  */
 async function runPagedQuery(tableName, keyColumnName, keyColumnValue, rangeColumnName, start, limit, options) {
-  limit = OaeUtil.getNumberParam(limit, 25);
-  options = defaultTo({}, options);
+  const refinedParameters = refineParameters({ limit, options });
+  limit = refinedParameters.limit;
+  options = refinedParameters.options;
+  const { startOperator, endOperator } = refinedParameters;
 
-  const startOperator = options.reversed ? '<' : '>';
-  const endOperator = options.reversed ? '>=' : '<=';
+  const parameters = pipe(of, applyStartParameters(start), applyEndParameters(options))(keyColumnValue);
 
-  let cql = format('SELECT * FROM "%s" WHERE "%s" = ?', tableName, keyColumnName);
-  const parameters = [keyColumnValue];
-
-  if (start) {
-    cql += format(' AND "%s" %s ?', rangeColumnName, startOperator);
-    parameters.push(start);
-  }
-
-  if (options.end) {
-    cql += format(' AND "%s" %s ?', rangeColumnName, endOperator);
-    parameters.push(options.end);
-  }
-
-  if (options.reversed) {
-    cql += format(' ORDER BY "%s" DESC', rangeColumnName);
-  }
-
-  cql += format(' LIMIT %s', limit);
+  let cql = `SELECT * FROM "${tableName}" WHERE "${keyColumnName}" = ?`;
+  cql = pipe(
+    applyStartPage(start, rangeColumnName, startOperator),
+    applyEndPage(options, rangeColumnName, endOperator),
+    applyOrderBy(options, rangeColumnName),
+    applyLimit(limit)
+  )(cql);
 
   const rows = await runQuery(cql, parameters);
-  if (isEmpty(rows)) return { rows: [], nextToken: null, startMatched: false };
 
+  if (isEmpty(rows)) return { rows: [], nextToken: null, startMatched: false };
   const results = rows.slice(0, limit);
   const nextToken = results.length === limit ? _.last(results).get(rangeColumnName) : null;
 
   return { rows: results, nextToken, startMatched: false };
 }
+
+const applyStartPage = (start, rangeColumnName, startOperator) => {
+  if (start) {
+    return concat(__, ` AND "${rangeColumnName}" ${startOperator} ?`);
+  }
+
+  return concat('');
+};
+
+const applyEndPage = (options, rangeColumnName, endOperator) => {
+  if (options.end) {
+    return concat(__, ` AND "${rangeColumnName}" ${endOperator} ?`);
+  }
+
+  return concat('');
+};
+
+const applyOrderBy = (options, rangeColumnName) => {
+  if (options.reversed) {
+    return concat(__, ` ORDER BY "${rangeColumnName}" DESC`);
+  }
+
+  return concat('');
+};
+
+const applyLimit = (limit) => concat(__, ` LIMIT ${limit}`);
+
+const applyStartParameters = (start) => {
+  if (start) {
+    return concat(__, of(start));
+  }
+
+  return concat([]);
+};
+
+const applyEndParameters = (options) => {
+  if (options.end) {
+    return concat(__, of(options.end));
+  }
+
+  return concat([]);
+};
+
+const refineParameters = (parameters) => {
+  let { limit, options } = parameters;
+
+  limit = OaeUtil.getNumberParam(limit, 25);
+  options = defaultTo({}, options);
+
+  let startOperator;
+  let endOperator;
+  if (options.reversed) {
+    startOperator = LT_SIGN;
+    endOperator = GTE_SIGN;
+  } else {
+    startOperator = GT_SIGN;
+    endOperator = LTE_SIGN;
+  }
+
+  return { limit, options, startOperator, endOperator };
+};
 
 /**
  * Similar to Cassandra#runPagedQuery, but this will automatically page through all the results and

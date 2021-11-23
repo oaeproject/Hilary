@@ -12,10 +12,11 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 
 import { head, find, equals, propSatisfies } from 'ramda';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery } from 'oae-util/lib/cassandra.js';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 import * as RestAPI from 'oae-rest';
 import * as TestsUtil from 'oae-tests';
@@ -561,7 +562,7 @@ describe('Tenant Networks', () => {
           assert.notExists(error);
 
           // Ensure we can get the tenant alias from Cassandra using the association
-          Cassandra.runQuery(
+          callbackify(runQuery)(
             'SELECT "tenantAlias" FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ?',
             [tenantNetwork.id],
             (error, rows) => {
@@ -573,7 +574,7 @@ describe('Tenant Networks', () => {
                 assert.notExists(error_);
 
                 // Ensure we no longer have the tenant alias associations in Cassandra
-                Cassandra.runQuery(
+                callbackify(runQuery)(
                   'SELECT "tenantAlias" FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ?',
                   [tenantNetwork.id],
                   (error, rows) => {

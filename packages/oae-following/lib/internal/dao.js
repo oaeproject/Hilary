@@ -13,9 +13,11 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
+import { defaultTo } from 'ramda';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, runPagedQuery, runBatchQuery, rowToHash } from 'oae-util/lib/cassandra.js';
 
 /**
  * Get the list of followers of the specified user
@@ -29,21 +31,18 @@ import * as Cassandra from 'oae-util/lib/cassandra.js';
  * @param  {String}     [callback.nextToken]    The value to provide as the `start` parameter when fetching the next page of followers. If unspecified, there are no more followers to fetch
  */
 const getFollowers = function (userId, start, limit, callback) {
-  start = start || '';
-
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'FollowingUsersFollowers',
     'userId',
     userId,
     'followerId',
-    start,
+    defaultTo('', start),
     limit,
     null,
-    (error, rows, nextToken) => {
-      if (error) {
-        return callback(error);
-      }
+    (error, results) => {
+      if (error) return callback(error);
 
+      const { rows, nextToken } = results;
       const followerIds = _.map(rows, (row) => row.get('followerId'));
 
       return callback(null, followerIds, nextToken);
@@ -63,21 +62,18 @@ const getFollowers = function (userId, start, limit, callback) {
  * @param  {String}     [callback.nextToken]        The value to provide as the `start` parameter when fetching the next page of followed users. If unspecified, there are no more users to fetch
  */
 const getFollowing = function (userId, start, limit, callback) {
-  start = start || '';
-
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'FollowingUsersFollowing',
     'userId',
     userId,
     'followingId',
-    start,
+    defaultTo('', start),
     limit,
     null,
-    (error, rows, nextToken) => {
-      if (error) {
-        return callback(error);
-      }
+    (error, results) => {
+      if (error) return callback(error);
 
+      const { rows, nextToken } = results;
       const followingIds = _.map(rows, (row) => row.get('followingId'));
 
       return callback(null, followingIds, nextToken);
@@ -99,7 +95,7 @@ const isFollowing = function (followingUserId, followedUserIds, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "followingId", "value" FROM "FollowingUsersFollowing" WHERE "userId" = ? AND "followingId" IN ?',
     [followingUserId, followedUserIds],
     (error, rows) => {
@@ -109,7 +105,7 @@ const isFollowing = function (followingUserId, followedUserIds, callback) {
 
       const following = {};
       _.each(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         if (row.value === '1') {
           following[row.followingId] = true;
         }
@@ -152,7 +148,7 @@ const saveFollows = function (followerUserId, followedUserIds, callback) {
     );
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**
@@ -189,7 +185,7 @@ const deleteFollows = function (followerUserId, followedUserIds, callback) {
     );
   });
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 export { getFollowers, getFollowing, isFollowing, saveFollows, deleteFollows };

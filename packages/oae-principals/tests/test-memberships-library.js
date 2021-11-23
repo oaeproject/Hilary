@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 import {
   find,
@@ -30,7 +31,7 @@ import {
 } from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery } from 'oae-util/lib/cassandra.js';
 import * as LibraryAPI from 'oae-library';
 import * as RestAPI from 'oae-rest';
 import * as SearchTestsUtil from 'oae-search/lib/test/util.js';
@@ -141,7 +142,7 @@ describe('Memberships Library', () => {
           const groupIds = reject(isNil, map(path(['group', 'id']), last(args)));
 
           // Update both groups through a back door to not have a lastModified
-          Cassandra.runQuery(
+          callbackify(runQuery)(
             'DELETE "lastModified" FROM "Principals" WHERE "principalId" IN ?',
             [groupIds],
             (error_) => {
@@ -157,7 +158,7 @@ describe('Memberships Library', () => {
                   const { 0: firstGroup, 1: secondGroup } = memberships;
 
                   // Update the lastModified of the second group so that it now has a library "rank"
-                  Cassandra.runQuery(
+                  callbackify(runQuery)(
                     'UPDATE "Principals" SET "lastModified" = ? WHERE "principalId" = ?',
                     [Date.now().toString(), secondGroup.id],
                     (error_) => {

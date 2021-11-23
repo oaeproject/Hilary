@@ -14,7 +14,7 @@
  */
 
 import fs from 'node:fs';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import _ from 'underscore';
@@ -24,7 +24,7 @@ import { assert } from 'chai';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery } from 'oae-util/lib/cassandra.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as FoldersTestUtil from 'oae-folders/lib/test/util.js';
 import * as LibraryTestUtil from 'oae-library/lib/test/util.js';
@@ -481,7 +481,7 @@ describe('Groups', () => {
                 assert.ok(fetchedGroup.picture.large);
 
                 // Delete the group createdBy user and assert the group can still be retrieved
-                Cassandra.runQuery(
+                callbackify(runQuery)(
                   'DELETE "createdBy" from "Principals" WHERE "principalId"=?',
                   [fetchedGroup.id],
                   (error_) => {

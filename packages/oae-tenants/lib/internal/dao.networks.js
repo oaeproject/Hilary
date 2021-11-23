@@ -14,14 +14,14 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import clone from 'clone';
 import ShortId from 'shortid';
 
 import { logger } from 'oae-logger';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { constructUpsertCQL, runBatchQuery, rowToHash, runQuery } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
 import * as Pubsub from 'oae-util/lib/pubsub.js';
 
@@ -71,12 +71,7 @@ const createTenantNetwork = function (displayName, callback) {
   const tenantNetwork = new TenantNetwork(ShortId.generate(), displayName);
 
   // Create a query that can be used to create the tenant network
-  const tenantNetworkQuery = Cassandra.constructUpsertCQL(
-    'TenantNetwork',
-    'id',
-    tenantNetwork.id,
-    _.omit(tenantNetwork, 'id')
-  );
+  const tenantNetworkQuery = constructUpsertCQL('TenantNetwork', 'id', tenantNetwork.id, _.omit(tenantNetwork, 'id'));
   if (!tenantNetworkQuery) {
     log().error(
       {
@@ -92,7 +87,7 @@ const createTenantNetwork = function (displayName, callback) {
   }
 
   // Execute the create query
-  Cassandra.runQuery(tenantNetworkQuery.query, tenantNetworkQuery.parameters, (error) => {
+  callbackify(runQuery)(tenantNetworkQuery.query, tenantNetworkQuery.parameters, (error) => {
     if (error) {
       return callback(error);
     }
@@ -161,8 +156,8 @@ const updateTenantNetwork = function (id, displayName, callback) {
       return callback(error);
     }
 
-    const query = Cassandra.constructUpsertCQL('TenantNetwork', 'id', id, { displayName });
-    Cassandra.runQuery(query.query, query.parameters, (error_) => {
+    const query = constructUpsertCQL('TenantNetwork', 'id', id, { displayName });
+    callbackify(runQuery)(query.query, query.parameters, (error_) => {
       if (error_) {
         return callback(error_);
       }
@@ -202,10 +197,8 @@ const deleteTenantNetwork = function (id, callback) {
       }
     ];
 
-    Cassandra.runBatchQuery(deleteQueries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+    callbackify(runBatchQuery)(deleteQueries, (error_) => {
+      if (error_) return callback(error_);
 
       _invalidateAllCaches();
       return callback();
@@ -239,18 +232,13 @@ const addTenantAliases = function (tenantNetworkId, tenantAliases, callback) {
 
     // Map all tenant aliases into the queries necessary to insert them all into the tenant network tenants table
     const queries = _.map(tenantAliases, (tenantAlias) =>
-      Cassandra.constructUpsertCQL(
-        'TenantNetworkTenants',
-        ['tenantNetworkId', 'tenantAlias'],
-        [tenantNetworkId, tenantAlias],
-        { value: '1' }
-      )
+      constructUpsertCQL('TenantNetworkTenants', ['tenantNetworkId', 'tenantAlias'], [tenantNetworkId, tenantAlias], {
+        value: '1'
+      })
     );
 
-    Cassandra.runBatchQuery(queries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+    callbackify(runBatchQuery)(queries, (error_) => {
+      if (error_) return callback(error_);
 
       _invalidateAllCaches();
       return callback();
@@ -300,10 +288,9 @@ const removeTenantAliases = function (tenantNetworkId, tenantAliases, callback) 
       query: 'DELETE FROM "TenantNetworkTenants" WHERE "tenantNetworkId" = ? AND "tenantAlias" = ?',
       parameters: [tenantNetworkId, tenantAlias]
     }));
-    Cassandra.runBatchQuery(queries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+
+    callbackify(runBatchQuery)(queries, (error_) => {
+      if (error_) return callback(error_);
 
       _invalidateAllCaches();
       return callback();
@@ -320,7 +307,7 @@ const removeTenantAliases = function (tenantNetworkId, tenantAliases, callback) 
  * @api private
  */
 const _getAllTenantNetworksFromCassandra = function (callback) {
-  Cassandra.runQuery('SELECT * FROM "TenantNetwork"', null, (error, rows) => {
+  callbackify(runQuery)('SELECT * FROM "TenantNetwork"', null, (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -345,7 +332,7 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function (tenantNetworkId
   }
 
   // Fetch all of the tenant aliases associated to the specified tenant network from Cassandra
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "tenantNetworkId", "tenantAlias" FROM "TenantNetworkTenants" WHERE "tenantNetworkId" IN ?',
     [tenantNetworkIds],
     (error, rows) => {
@@ -356,7 +343,7 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function (tenantNetworkId
       // Collect all tenant network aliases for each tenant network
       const tenantNetworkAliases = {};
       _.chain(rows)
-        .map(Cassandra.rowToHash)
+        .map(rowToHash)
         .each((rowHash) => {
           tenantNetworkAliases[rowHash.tenantNetworkId] = tenantNetworkAliases[rowHash.tenantNetworkId] || [];
           tenantNetworkAliases[rowHash.tenantNetworkId].push(rowHash.tenantAlias);
@@ -375,7 +362,7 @@ const _getAllTenantNetworkTenantAliasesFromCassandra = function (tenantNetworkId
  * @api private
  */
 const _rowToTenantNetwork = function (row) {
-  row = Cassandra.rowToHash(row);
+  row = rowToHash(row);
   if (!row.displayName) {
     return null;
   }

@@ -15,7 +15,7 @@
 
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 
 import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
@@ -641,7 +641,7 @@ describe('Content Activity', () => {
                     // Query branden's activity stream to get the item that was persisted
                     const activityStreamId = format('%s#activity', marge.user.id);
 
-                    runQuery(
+                    callbackify(runQuery)(
                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                       [activityStreamId],
                       (error, rows) => {
@@ -664,7 +664,7 @@ describe('Content Activity', () => {
                           assert.notExists(error);
                           collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
                             assert.notExists(error_);
-                            runQuery(
+                            callbackify(runQuery)(
                               'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                               [activityStreamId],
                               (error, rows) => {
@@ -687,7 +687,7 @@ describe('Content Activity', () => {
                                   collectAndGetActivityStream(asMarge, marge.user.id, null, (error_) => {
                                     assert.notExists(error_);
 
-                                    runQuery(
+                                    callbackify(runQuery)(
                                       'SELECT * FROM "ActivityStreams" WHERE "activityStreamId" = ?',
                                       [activityStreamId],
                                       (error, rows) => {

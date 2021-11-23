@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,13 +9,14 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      LtiTools:
-        'CREATE TABLE "LtiTools" ("id" text, "groupId" text, "launchUrl" text, "secret" text, "oauthConsumerKey" text, "displayName" text, "description" text, PRIMARY KEY ("groupId", "id"))'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    LtiTools:
+      'CREATE TABLE "LtiTools" ("id" text, "groupId" text, "launchUrl" text, "secret" text, "oauthConsumerKey" text, "displayName" text, "description" text, PRIMARY KEY ("groupId", "id"))'
+  });
+}
 
 export { ensureSchema };

@@ -14,6 +14,7 @@
  * the group will not be a part of indirect cache
  */
 
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -22,34 +23,34 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      // Deleted schema
-      AuthzDeleted:
-        'CREATE TABLE "AuthzDeleted" ("resourceId" text PRIMARY KEY, "deleted" boolean)',
-
-      // Invitations schema
-      AuthzInvitations:
-        'CREATE TABLE "AuthzInvitations" ("resourceId" text, "email" text, "inviterUserId" text, "role" text, PRIMARY KEY ("resourceId", "email"))',
-      AuthzInvitationsResourceIdByEmail:
-        'CREATE TABLE "AuthzInvitationsResourceIdByEmail" ("email" text, "resourceId" text, PRIMARY KEY ("email", "resourceId"))',
-      AuthzInvitationsTokenByEmail:
-        'CREATE TABLE "AuthzInvitationsTokenByEmail" ("email" text PRIMARY KEY, "token" text)',
-      AuthzInvitationsEmailByToken:
-        'CREATE TABLE "AuthzInvitationsEmailByToken" ("token" text PRIMARY KEY, "email" text)',
-
-      // Roles schema
-      AuthzMembers:
-        'CREATE TABLE "AuthzMembers" ("resourceId" text, "memberId" text, "role" text, PRIMARY KEY ("resourceId", "memberId")) WITH COMPACT STORAGE',
-      AuthzMembershipsCache:
-        'CREATE TABLE "AuthzMembershipsCache" ("principalId" text, "groupId" text, "value" text, PRIMARY KEY ("principalId", "groupId")) WITH COMPACT STORAGE',
-      AuthzMembershipsIndirectCache:
-        'CREATE TABLE "AuthzMembershipsIndirectCache" ("principalId" text, "groupId" text, "value" text, PRIMARY KEY ("principalId", "groupId")) WITH COMPACT STORAGE',
-      AuthzRoles:
-        'CREATE TABLE "AuthzRoles" ("principalId" text, "resourceId" text, "role" text, PRIMARY KEY ("principalId", "resourceId")) WITH COMPACT STORAGE'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamilies({
+    // Deleted schema
+    AuthzDeleted: 'CREATE TABLE "AuthzDeleted" ("resourceId" text PRIMARY KEY, "deleted" boolean)',
+
+    // Invitations schema
+    AuthzInvitations:
+      'CREATE TABLE "AuthzInvitations" ("resourceId" text, "email" text, "inviterUserId" text, "role" text, PRIMARY KEY ("resourceId", "email"))',
+    AuthzInvitationsResourceIdByEmail:
+      'CREATE TABLE "AuthzInvitationsResourceIdByEmail" ("email" text, "resourceId" text, PRIMARY KEY ("email", "resourceId"))',
+    AuthzInvitationsTokenByEmail:
+      'CREATE TABLE "AuthzInvitationsTokenByEmail" ("email" text PRIMARY KEY, "token" text)',
+    AuthzInvitationsEmailByToken:
+      'CREATE TABLE "AuthzInvitationsEmailByToken" ("token" text PRIMARY KEY, "email" text)',
+
+    // Roles schema
+    AuthzMembers:
+      'CREATE TABLE "AuthzMembers" ("resourceId" text, "memberId" text, "role" text, PRIMARY KEY ("resourceId", "memberId")) WITH COMPACT STORAGE',
+    AuthzMembershipsCache:
+      'CREATE TABLE "AuthzMembershipsCache" ("principalId" text, "groupId" text, "value" text, PRIMARY KEY ("principalId", "groupId")) WITH COMPACT STORAGE',
+    AuthzMembershipsIndirectCache:
+      'CREATE TABLE "AuthzMembershipsIndirectCache" ("principalId" text, "groupId" text, "value" text, PRIMARY KEY ("principalId", "groupId")) WITH COMPACT STORAGE',
+    AuthzRoles:
+      'CREATE TABLE "AuthzRoles" ("principalId" text, "resourceId" text, "role" text, PRIMARY KEY ("principalId", "resourceId")) WITH COMPACT STORAGE'
+  });
+}
 
 export { ensureSchema };

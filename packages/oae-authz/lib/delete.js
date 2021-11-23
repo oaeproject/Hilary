@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { defaultTo, isEmpty, forEach, pipe, map, filter, pluck } from 'ramda';
 
 import { logger } from 'oae-logger';
@@ -37,7 +38,7 @@ const setDeleted = function (resourceId, callback) {
     }
   }, callback);
 
-  return runQuery(
+  return callbackify(runQuery)(
     'UPDATE "AuthzDeleted" SET "deleted" = ? WHERE "resourceId" = ?',
     [true, resourceId],
     callback
@@ -61,7 +62,11 @@ const unsetDeleted = function (resourceId, callback) {
     }
   }, callback);
 
-  return runQuery('DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?', [resourceId], callback);
+  return callbackify(runQuery)(
+    'DELETE FROM "AuthzDeleted" WHERE "resourceId" = ?',
+    [resourceId],
+    callback
+  );
 };
 
 /**
@@ -75,7 +80,7 @@ const unsetDeleted = function (resourceId, callback) {
 const isDeleted = function (resourceIds, callback) {
   if (isEmpty(resourceIds)) return callback(null, {});
 
-  runQuery(
+  callbackify(runQuery)(
     'SELECT "resourceId", "deleted" FROM "AuthzDeleted" WHERE "resourceId" in ?',
     [resourceIds],
     (error, rows) => {

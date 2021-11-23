@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runBatchQuery, runQuery, runPagedQuery } from 'oae-util/lib/cassandra.js';
 import Counter from 'oae-util/lib/counter.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import { logger } from 'oae-logger';
@@ -226,7 +226,7 @@ const update = function (indexName, entries, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, (error) => {
+  callbackify(runBatchQuery)(queries, (error) => {
     updateCounter.decr();
     return callback(error);
   });
@@ -284,7 +284,7 @@ const remove = function (indexName, entries, callback) {
     });
   });
 
-  Cassandra.runBatchQuery(queries, (error) => {
+  callbackify(runBatchQuery)(queries, (error) => {
     updateCounter.decr();
     return callback(error);
   });
@@ -377,7 +377,7 @@ const list = function (indexName, libraryId, visibility, options, callback) {
           'Removing duplicate keys from a library index'
         );
 
-        Cassandra.runBatchQuery(deleteQueries);
+        callbackify(runBatchQuery)(deleteQueries, () => {});
       }
 
       return callback(null, entries, newNextToken);
@@ -402,7 +402,7 @@ const purge = function (indexName, libraryId, callback) {
 
   log().trace({ indexName, libraryId }, 'Purging library index');
 
-  Cassandra.runBatchQuery(purgeIndexQueries, callback);
+  callbackify(runBatchQuery)(purgeIndexQueries, callback);
 };
 
 /**
@@ -418,7 +418,7 @@ const purge = function (indexName, libraryId, callback) {
 const isStale = function (indexName, libraryId, visibility, callback) {
   // Select both the high and low slug column from the library
   const cql = 'SELECT "value" FROM "LibraryIndex" WHERE "bucketKey" = ? AND "rankedResourceId" IN ?';
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     cql,
     [_createBucketKey(indexName, libraryId, visibility), [SLUG_HIGH, SLUG_LOW]],
     (error, rows) => {
@@ -458,7 +458,7 @@ const _query = function (indexName, libraryId, visibility, options, callback) {
 
   // Query the items from cassandra
   const bucketKey = _createBucketKey(indexName, libraryId, visibility);
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'LibraryIndex',
     'bucketKey',
     bucketKey,
@@ -466,11 +466,12 @@ const _query = function (indexName, libraryId, visibility, options, callback) {
     options.start,
     internalLimit,
     { reversed: true },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows, nextToken } = results;
       if (_isStaleLibraryIndex(options.start, internalLimit, rows)) {
         if (options.rebuildIfNecessary) {
           // If we've specified to rebuild a stale index, rebuild it and try to query again
@@ -576,9 +577,11 @@ const _rebuild = function (indexName, libraryId, callback) {
       );
     });
 
-    // Add the slugs into the library index so we don't thrash it with rebuilds. The index will temporarily be empty
-    // or incomplete while the rebuild process takes place
-    Cassandra.runBatchQuery(seedLibraryQueries, (error) => {
+    /**
+     * Add the slugs into the library index so we don't thrash it with rebuilds. The index will temporarily be empty
+     * or incomplete while the rebuild process takes place
+     */
+    callbackify(runBatchQuery)(seedLibraryQueries, (error) => {
       if (error) {
         return callback(error);
       }
@@ -690,7 +693,7 @@ const _insert = function (indexName, indexEntries, callback) {
     'Inserting index entries into library index'
   );
 
-  Cassandra.runBatchQuery(queries, callback);
+  callbackify(runBatchQuery)(queries, callback);
 };
 
 /**

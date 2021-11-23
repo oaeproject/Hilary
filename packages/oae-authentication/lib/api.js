@@ -14,13 +14,14 @@
  */
 
 import crypto from 'node:crypto';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
+import { compose, and, pipe, prop, not, propEq, is } from 'ramda';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { rowToHash, constructUpsertCQL, runQuery, runBatchQuery } from 'oae-util/lib/cassandra.js';
 import * as ConfigAPI from 'oae-config';
 import * as EmitterAPI from 'oae-emitter';
 import * as Locking from 'oae-util/lib/locking.js';
@@ -34,13 +35,28 @@ import * as TenantsUtil from 'oae-tenants/lib/util.js';
 import { logger } from 'oae-logger';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
 
-import { compose, and } from 'ramda';
 import isLength from 'validator/lib/isLength.js';
 import { getTenantSkinVariables } from 'oae-ui';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import * as AuthenticationUtil from 'oae-authentication/lib/util.js';
 
 import { LoginId } from 'oae-authentication/lib/model.js';
+
+const CODE = 'code';
+const MESSAGE = 'message';
+
+const isInstanceOfObject = is(Object);
+const isInstanceOfError = is(Error);
+const errorCodeAint404 = pipe(propEq(CODE, 404), not);
+
+const errorIsNot404 = (error) => {
+  const parsedErrorAint404 = pipe(prop(MESSAGE), JSON.parse, errorCodeAint404);
+  try {
+    return parsedErrorAint404(error);
+  } catch {
+    return false;
+  }
+};
 
 const {
   validateInCase: bothCheck,
@@ -366,7 +382,29 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
   options = options || {};
 
   _getUserIdFromLoginId(loginId, (error, userId) => {
-    if (error && error.code !== 404) {
+    /**
+     * This piece of code has no logic, but it is needed:
+     * this method catches both callback(error) and Error instances
+     * and so we must make sure we identify 404 in two different ways:
+     *
+     * return callback({code: 404, msg: 'bla bla bla'})
+     * and
+     * throw new Error(JSON.stringify({code: 404, msg: 'bla bla bla'}))
+     *
+     * Hence this. Ideally all errors would have the same format as the error, but that implies
+     * changing:
+     * callback({code: xxx, msg: 'bla'})
+     * ...to
+     * callback({message: JSON.stringify({code: XXX, msg: 'bla'})})
+     * ...everywhere.
+     *
+     * By the way, an Error is an Object but {} aint an Error, so the order of the if conditions matters
+     */
+    if (isInstanceOfError(error) && errorIsNot404(error)) {
+      return callback(error);
+    }
+
+    if (isInstanceOfObject(error) && errorCodeAint404(error)) {
       return callback(error);
     }
 
@@ -942,7 +980,7 @@ const checkPassword = function (tenantAlias, username, password, callback) {
     return callback(error);
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId", "password" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -956,7 +994,7 @@ const checkPassword = function (tenantAlias, username, password, callback) {
       }
 
       // Check if the user provided password matches the stored password
-      const result = Cassandra.rowToHash(rows[0]);
+      const result = rowToHash(rows[0]);
       const passwordMatches =
         result.userId &&
         result.password &&
@@ -1012,7 +1050,10 @@ const getResetPasswordSecret = function (ctx, username, callback) {
   // Check if we can get an existing userID using the userName the user provided
   _getUserIdFromLoginId(loginId, (error, userId) => {
     if (error) {
-      return callback({ code: 404, msg: 'No user could be found with the provided username' });
+      return callback({
+        code: 404,
+        msg: 'no user could be found with the provided username'
+      });
     }
 
     // Get user's object as we will try to send the user an email with token
@@ -1033,7 +1074,7 @@ const getResetPasswordSecret = function (ctx, username, callback) {
       const secret = crypto.randomBytes(16).toString('hex');
 
       // The secret is stored for 24 hours
-      Cassandra.runQuery(
+      callbackify(runQuery)(
         'UPDATE "AuthenticationLoginId" USING TTL 86400 SET "secret" = ? WHERE "loginId" = ?',
         [secret, _flattenLoginId(loginId)],
         (error_) => {
@@ -1103,7 +1144,7 @@ const resetPassword = function (ctx, username, secret, newPassword, callback) {
   const loginId = new LoginId(tenantAlias, AuthenticationConstants.providers.LOCAL, username);
 
   // Lookup the database to check whether a token is associated with the current
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId", "secret" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -1143,7 +1184,7 @@ const resetPassword = function (ctx, username, secret, newPassword, callback) {
  */
 const _changePassword = function (loginId, newPassword, callback) {
   const hash = AuthenticationUtil.hashPassword(newPassword);
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'UPDATE "AuthenticationLoginId" SET "password" = ? WHERE "loginId" = ?',
     [hash, _flattenLoginId(loginId)],
     (error) => {
@@ -1175,7 +1216,7 @@ const _associateLoginId = function (loginId, userId, callback) {
   delete loginId.properties.loginId;
   loginId.properties.userId = userId;
 
-  const query = Cassandra.constructUpsertCQL(
+  const query = constructUpsertCQL(
     'AuthenticationLoginId',
     'loginId',
     flattenedLoginId,
@@ -1188,7 +1229,7 @@ const _associateLoginId = function (loginId, userId, callback) {
         'INSERT INTO "AuthenticationUserLoginId" ("userId", "loginId", "value") VALUES (?, ?, ?)',
       parameters: [userId, flattenedLoginId, '1']
     });
-    return Cassandra.runBatchQuery(queries, callback);
+    return callbackify(runBatchQuery)(queries, callback);
   }
 
   log().error(
@@ -1269,7 +1310,7 @@ const _getUserLoginIds = function (userId, callback) {
     return callback(null, {});
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
     [userId],
     (error, rows) => {
@@ -1279,7 +1320,7 @@ const _getUserLoginIds = function (userId, callback) {
 
       const loginIds = {};
       _.each(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         if (row.loginId) {
           const loginId = _expandLoginId(row.loginId);
           loginIds[loginId.provider] = loginId;
@@ -1301,7 +1342,7 @@ const _getUserLoginIds = function (userId, callback) {
  * @api private
  */
 const _getUserIdFromLoginId = function (loginId, callback) {
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "userId" FROM "AuthenticationLoginId" WHERE "loginId" = ?',
     [_flattenLoginId(loginId)],
     (error, rows) => {
@@ -1310,10 +1351,13 @@ const _getUserIdFromLoginId = function (loginId, callback) {
       }
 
       if (_.isEmpty(rows)) {
-        return callback({ code: 404, msg: 'No user could be found with the provided login id' });
+        return callback({
+          code: 404,
+          msg: 'No user could be found with the provided login id'
+        });
       }
 
-      const result = Cassandra.rowToHash(rows[0]);
+      const result = rowToHash(rows[0]);
       return callback(null, result.userId);
     }
   );

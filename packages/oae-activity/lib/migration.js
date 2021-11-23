@@ -1,3 +1,4 @@
+import { callbackify } from 'node:util';
 import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
 
 /**
@@ -8,16 +9,15 @@ import { createColumnFamilies } from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  createColumnFamilies(
-    {
-      ActivityStreams:
-        'CREATE TABLE "ActivityStreams" ("activityStreamId" text, "activityId" text, "activity" text, PRIMARY KEY ("activityStreamId", "activityId")) WITH COMPACT STORAGE',
-      EmailBuckets: 'CREATE TABLE "EmailBuckets" ("bucketId" text, "userId" text, PRIMARY KEY ("bucketId", "userId"))'
-    },
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
 
-const naConaDaTuaMae = () => {};
+async function _ensureSchema() {
+  await createColumnFamilies({
+    ActivityStreams:
+      'CREATE TABLE "ActivityStreams" ("activityStreamId" text, "activityId" text, "activity" text, PRIMARY KEY ("activityStreamId", "activityId")) WITH COMPACT STORAGE',
+    EmailBuckets: 'CREATE TABLE "EmailBuckets" ("bucketId" text, "userId" text, PRIMARY KEY ("bucketId", "userId"))'
+  });
+}
 
-export { ensureSchema, naConaDaTuaMae };
+export { ensureSchema };

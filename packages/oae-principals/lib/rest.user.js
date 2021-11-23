@@ -24,6 +24,7 @@ import * as OaeUtil from 'oae-util/lib/util.js';
 import { Recaptcha } from 'recaptcha';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import { LoginId } from 'oae-authentication/lib/model.js';
+import { prop, is, pipe } from 'ramda';
 import PrincipalsAPI from './api.js';
 
 const PrincipalsConfig = setUpConfig('oae-principals');
@@ -291,6 +292,18 @@ OAE.tenantRouter.on('post', '/api/user/create', (request, response) => {
 
   options.invitationToken = request.body.invitationToken;
 
+  const getErrorCode = (error) => {
+    if (is(Error, error)) {
+      const parseError = pipe(prop('message'), JSON.parse);
+      return {
+        responseErrorCode: pipe(parseError, prop('code'))(error),
+        responseErrorMessage: pipe(parseError, prop('msg'))(error)
+      };
+    }
+
+    return { responseErrorCode: error.code, responseErrorMessage: error.msg };
+  };
+
   /*!
    * Create a local user account
    */
@@ -304,7 +317,11 @@ OAE.tenantRouter.on('post', '/api/user/create', (request, response) => {
       options,
       (error, newUser, loginId, created) => {
         if (error) {
-          return response.status(error.code).send(error.msg);
+          /**
+           * Again, we need to deal with both Error and Object instances
+           */
+          const { responseErrorCode, responseErrorMessage } = getErrorCode(error);
+          return response.status(responseErrorCode).send(responseErrorMessage);
         }
 
         if (!created) {

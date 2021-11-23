@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';
@@ -1134,7 +1135,7 @@ describe('Content Libraries', () => {
          * be able to deal with this. Note that we go straight to Cassandra, as the
          * ContentDAO also takes care of removing the item from the appropriate libraries
          */
-        runQuery('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], (error) => {
+        callbackify(runQuery)('DELETE FROM "Content" WHERE "contentId" = ?', [privateContent.id], (error) => {
           assert.notExists(error);
 
           // Purge the library so that it has to be rebuild on the next request

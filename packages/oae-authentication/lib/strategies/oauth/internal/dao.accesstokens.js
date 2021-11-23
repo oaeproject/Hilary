@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { rowToHash, runQuery, constructUpsertCQL, runBatchQuery } from 'oae-util/lib/cassandra.js';
 
 import { AccessToken } from '../model.js';
 
@@ -32,22 +33,17 @@ import { AccessToken } from '../model.js';
 const createAccessToken = function (token, userId, clientId, callback) {
   // Insert the token and its association to the client and user
   const queries = [
-    Cassandra.constructUpsertCQL('OAuthAccessToken', 'token', token, {
+    constructUpsertCQL('OAuthAccessToken', 'token', token, {
       userId,
       clientId
     }),
-    Cassandra.constructUpsertCQL(
-      'OAuthAccessTokenByUser',
-      ['userId', 'clientId'],
-      [userId, clientId],
-      { token }
-    )
+    constructUpsertCQL('OAuthAccessTokenByUser', ['userId', 'clientId'], [userId, clientId], {
+      token
+    })
   ];
 
-  Cassandra.runBatchQuery(queries, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runBatchQuery)(queries, (error) => {
+    if (error) return callback(error);
 
     return callback(null, new AccessToken(token, userId, clientId));
   });
@@ -63,7 +59,7 @@ const createAccessToken = function (token, userId, clientId, callback) {
  */
 const getAccessToken = function (token, callback) {
   // TODO: As this gets called on every OAuth authenticated call, it might not be a bad idea to cache this in Redis
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT * FROM "OAuthAccessToken" WHERE "token" = ?',
     [token],
     (error, rows) => {
@@ -75,7 +71,7 @@ const getAccessToken = function (token, callback) {
         return callback(null, null);
       }
 
-      const hash = Cassandra.rowToHash(rows[0]);
+      const hash = rowToHash(rows[0]);
       const accessToken = new AccessToken(hash.token, hash.userId, hash.clientId);
       return callback(null, accessToken);
     }
@@ -93,7 +89,7 @@ const getAccessToken = function (token, callback) {
  */
 const getAccessTokenForUserAndClient = function (userId, clientId, callback) {
   // TODO: As this gets called on every OAuth authenticated call, it might not be a bad idea to cache this in Redis
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "token" FROM "OAuthAccessTokenByUser" WHERE "userId" = ? AND "clientId" = ?',
     [userId, clientId],
     (error, rows) => {
@@ -105,7 +101,7 @@ const getAccessTokenForUserAndClient = function (userId, clientId, callback) {
         return callback(null, null);
       }
 
-      const hash = Cassandra.rowToHash(rows[0]);
+      const hash = rowToHash(rows[0]);
       const accessToken = new AccessToken(hash.token, userId, clientId);
       return callback(null, accessToken);
     }

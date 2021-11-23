@@ -1,4 +1,5 @@
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { callbackify } from 'node:util';
+import { createColumnFamily } from 'oae-util/lib/cassandra.js';
 
 /**
  * Ensure that the config schema is created.
@@ -8,11 +9,14 @@ import * as Cassandra from 'oae-util/lib/cassandra.js';
  * @api private
  */
 const ensureSchema = function (callback) {
-  Cassandra.createColumnFamily(
-    'Config',
-    'CREATE TABLE "Config" ("tenantAlias" text, "configKey" text, "value" text, PRIMARY KEY ("tenantAlias", "configKey")) WITH COMPACT STORAGE',
-    callback
-  );
+  callbackify(_ensureSchema)(callback);
 };
+
+async function _ensureSchema() {
+  await createColumnFamily(
+    'Config',
+    'CREATE TABLE "Config" ("tenantAlias" text, "configKey" text, "value" text, PRIMARY KEY ("tenantAlias", "configKey")) WITH COMPACT STORAGE'
+  );
+}
 
 export { ensureSchema };

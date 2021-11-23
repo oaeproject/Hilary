@@ -14,6 +14,7 @@
  */
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
+import { callbackify } from 'node:util';
 
 import { fileURLToPath } from 'node:url';
 import { assert } from 'chai';
@@ -387,41 +388,45 @@ describe('Search', () => {
                  * Now, for whatever reason might not've been able to generate a plain.txt file,
                  * or the record got lost, or .. The search re-index should not get stalled by this fact
                  */
-                runQuery('DELETE FROM "PreviewItems" WHERE "revisionId" = ?', [content.latestRevisionId], (error_) => {
-                  assert.notExists(error_);
+                callbackify(runQuery)(
+                  'DELETE FROM "PreviewItems" WHERE "revisionId" = ?',
+                  [content.latestRevisionId],
+                  (error_) => {
+                    assert.notExists(error_);
 
-                  // Drop all the data
-                  deleteAll(() => {
-                    // Re-index everything
-                    reindexAll(asGlobalAdmin, () => {
-                      // Assert we can no longer find the document by its content
-                      searchAll(
-                        asUser,
-                        GENERAL,
-                        null,
-                        { resourceTypes: CONTENT, q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
-                        (error, results) => {
-                          assert.notExists(error);
-                          assert.isNotOk(_findDoc(results, content.id));
+                    // Drop all the data
+                    deleteAll(() => {
+                      // Re-index everything
+                      reindexAll(asGlobalAdmin, () => {
+                        // Assert we can no longer find the document by its content
+                        searchAll(
+                          asUser,
+                          GENERAL,
+                          null,
+                          { resourceTypes: CONTENT, q: 'b4c3f09e74f58b0aeee34d9c3cd9333a' },
+                          (error, results) => {
+                            assert.notExists(error);
+                            assert.isNotOk(_findDoc(results, content.id));
 
-                          // Assert we can find it by its name however
-                          searchAll(
-                            asUser,
-                            GENERAL,
-                            null,
-                            { resourceTypes: CONTENT, q: content.displayName },
-                            (error, results) => {
-                              assert.notExists(error);
-                              assert.ok(_findDoc(results, content.id));
+                            // Assert we can find it by its name however
+                            searchAll(
+                              asUser,
+                              GENERAL,
+                              null,
+                              { resourceTypes: CONTENT, q: content.displayName },
+                              (error, results) => {
+                                assert.notExists(error);
+                                assert.ok(_findDoc(results, content.id));
 
-                              return callback();
-                            }
-                          );
-                        }
-                      );
+                                return callback();
+                              }
+                            );
+                          }
+                        );
+                      });
                     });
-                  });
-                });
+                  }
+                );
               }
             );
           });

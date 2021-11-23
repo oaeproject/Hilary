@@ -19,7 +19,7 @@
  */
 
 /* eslint-disable */
-import * as util from 'util';
+import { callbackify, format } from 'util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';
@@ -37,7 +37,7 @@ let errors = 0;
  * @param  {String}     message                 A short message detailing the issue
  * @api private
  */
-function _writeErrorRow(userHash, message) {
+const _writeErrorRow = (userHash, message) => {
   csvStream.write({
     // eslint-disable-next-line camelcase
     principal_id: userHash.principalId ? userHash.principalId : '',
@@ -147,7 +147,7 @@ const _getExternalIds = function (userHashes, callback, _userHashes) {
  */
 function _findExternalId(userHash, callback) {
   const userId = userHash.principalId;
-  Cassandra.runQuery('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], (err, rows) => {
+  callbackify(Cassandra.runQuery)('SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?', [userId], (err, rows) => {
     if (err) {
       return callback(err);
     }
@@ -179,16 +179,16 @@ function _findExternalId(userHash, callback) {
 const _createNewUserLogin = function (userHash, callback) {
   const userId = userHash.principalId;
   const email = userHash.loginId.slice(userHash.loginId.lastIndexOf(':') + 1);
-  const newLoginId = util.format('%s:shibboleth:%s', userHash.tenantAlias, email);
+  const newLoginId = format('%s:shibboleth:%s', userHash.tenantAlias, email);
 
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'INSERT INTO "AuthenticationUserLoginId" ("loginId", "userId", "value") VALUES (?, ?, ?)',
     [newLoginId, userId, '1'],
     (err) => {
       if (err) {
         _notifyOfError('AuthenticationUserLoginId', userHash, err, callback);
       }
-      Cassandra.runQuery(
+      callbackify(Cassandra.runQuery)(
         'INSERT INTO "AuthenticationLoginId" ("loginId", "userId") VALUES (?, ?)',
         [newLoginId, userId],
         (err) => {
@@ -275,14 +275,10 @@ const _mapUsersToShibLogin = function (allUsers, callback) {
 const doMigration = function (tenantAlias, stream, callback) {
   csvStream = stream;
   _getAllUsersForTenant(tenantAlias, (err, userHashes) => {
-    if (err) {
-      return callback(err);
-    }
+    if (err) return callback(err);
 
     _getExternalIds(userHashes, (err, usersWithIds) => {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       _mapUsersToShibLogin(usersWithIds, (err, mappedUsers) => {
         if (err) {

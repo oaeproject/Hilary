@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import { logger } from 'oae-logger';
 
 import _ from 'underscore';
@@ -476,7 +476,7 @@ const _updateCachedTenant = function (tenantAlias, callback) {
   }, callback);
 
   // Get the available tenants
-  runQuery('SELECT * FROM "Tenant" WHERE "alias" = ?', [tenantAlias], (error, rows) => {
+  callbackify(runQuery)('SELECT * FROM "Tenant" WHERE "alias" = ?', [tenantAlias], (error, rows) => {
     if (error) return callback(error);
 
     const emitAndExit = () => {
@@ -695,7 +695,7 @@ const _createTenant = function (alias, displayName, host, options, callback) {
   // Create the tenant
   const tenant = new Tenant(alias, displayName, host, options);
   const query = constructUpsertCQL('Tenant', 'alias', alias, _tenantToStorageHash(tenant));
-  runQuery(query.query, query.parameters, (error) => {
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 
     // This event is not strictly necessary as it will be emitted by our PubSub publisher
@@ -819,7 +819,7 @@ const updateTenant = function (ctx, alias, tenantUpdates, callback) {
   }
 
   const query = constructUpsertCQL('Tenant', 'alias', alias, tenantUpdates);
-  runQuery(query.query, query.parameters, (error) => {
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 
     // Indicate that a caching operation is pending
@@ -873,7 +873,7 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
     aliases
   );
 
-  runBatchQuery(queries, (error) => {
+  callbackify(runBatchQuery)(queries, (error) => {
     if (error) return callback(error);
 
     // Broadcast the message accross the cluster so we can start/stop the tenants

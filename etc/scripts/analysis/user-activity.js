@@ -34,6 +34,8 @@ const log = require('oae-logger').logger('oae-script-main');
 const OAE = require('oae-util/lib/oae');
 const PrincipalsDAO = require('oae-principals/lib/internal/dao');
 
+const { callbackify } = util;
+
 const { argv } = optimist
   .usage('$0 [-t cam] [--config <path/to/config.js>]')
   .alias('t', 'tenant')
@@ -290,7 +292,7 @@ function _createUserRow(userHash, callback) {
  */
 function _findExternalId(userHash, callback) {
   const userId = userHash.principalId;
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT "loginId" FROM "AuthenticationUserLoginId" WHERE "userId" = ?',
     [userId],
     (err, rows) => {
@@ -367,7 +369,7 @@ function _findLatestActedActivityMillis(userHash, callback, _nextToken) {
  */
 function _findActivityStreamCount(userHash, callback) {
   const userId = userHash.principalId;
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "ActivityStreams" WHERE "activityStreamId" = ?',
     [util.format('%s#activity', userId)],
     _rowToCount(callback)
@@ -386,7 +388,7 @@ function _findActivityStreamCount(userHash, callback) {
 function _findLatestContentInLibraryMillis(userHash, callback) {
   const userId = userHash.principalId;
   const bucketKey = util.format('content:content#%s#private', userId);
-  Cassandra.runPagedQuery(
+  callbackify(Cassandra.runPagedQuery)(
     'LibraryIndex',
     'bucketKey',
     bucketKey,
@@ -398,6 +400,8 @@ function _findLatestContentInLibraryMillis(userHash, callback) {
       if (err) {
         return callback(err);
       }
+
+      rows = rows.rows;
       if (_.isEmpty(rows)) {
         return callback();
       }
@@ -432,7 +436,7 @@ function _findLatestContentInLibraryMillis(userHash, callback) {
 function _findContentLibraryCount(userHash, callback) {
   const userId = userHash.principalId;
   const bucketKey = util.format('content:content#%s#private', userId);
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "LibraryIndex" WHERE "bucketKey" = ?',
     [bucketKey],
     _rowToCount(callback)
@@ -449,10 +453,9 @@ function _findContentLibraryCount(userHash, callback) {
  * @api private
  */
 function _findAuthzMembershipsCacheCount(userHash, callback) {
-  const userId = userHash.principalId;
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "AuthzMembershipsCache" WHERE "principalId" = ?',
-    [userId],
+    [userHash.principalId],
     _rowToCount(callback)
   );
 }
@@ -467,10 +470,9 @@ function _findAuthzMembershipsCacheCount(userHash, callback) {
  * @api private
  */
 function _findResourceMembershipsCount(userHash, callback) {
-  const userId = userHash.principalId;
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "AuthzRoles" WHERE "principalId" = ?',
-    [userId],
+    [userHash.principalId],
     _rowToCount(callback)
   );
 }

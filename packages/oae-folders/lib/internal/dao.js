@@ -14,13 +14,21 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
+import { mergeAll, isEmpty, defaultTo, pipe, prop, when, of } from 'ramda';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import {
+  constructUpsertCQL,
+  runBatchQuery,
+  rowToHash,
+  iterateAll as iterateResults,
+  parsePreviewsFromRow,
+  runQuery
+} from 'oae-util/lib/cassandra.js';
 import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
@@ -55,14 +63,12 @@ const createFolder = function (createdBy, displayName, description, visibility, 
   };
 
   // Create the queries to insert both the folder and the record that indexes it with its surrogate group id
-  const insertGroupIdIndexQuery = Cassandra.constructUpsertCQL('FoldersGroupId', 'groupId', groupId, { folderId });
-  const insertFolderQuery = Cassandra.constructUpsertCQL('Folders', 'id', folderId, storageHash);
+  const insertGroupIdIndexQuery = constructUpsertCQL('FoldersGroupId', 'groupId', groupId, { folderId });
+  const insertFolderQuery = constructUpsertCQL('Folders', 'id', folderId, storageHash);
 
   // Insert the surrogate group id index entry
-  Cassandra.runBatchQuery([insertGroupIdIndexQuery, insertFolderQuery], (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runBatchQuery)([insertGroupIdIndexQuery, insertFolderQuery], (error) => {
+    if (error) return callback(error);
 
     return callback(null, _storageHashToFolder(folderId, storageHash));
   });
@@ -77,14 +83,10 @@ const createFolder = function (createdBy, displayName, description, visibility, 
  * @param  {Folder[]}       callback.folders    The folders that are identified by the given ids. The folders will be located in the same order as the given array of ids
  */
 const getFoldersByIds = function (folderIds, callback) {
-  if (_.isEmpty(folderIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(folderIds)) return callback(null, []);
 
-  Cassandra.runQuery('SELECT * FROM "Folders" WHERE "id" IN ?', [folderIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runQuery)('SELECT * FROM "Folders" WHERE "id" IN ?', [folderIds], (error, rows) => {
+    if (error) return callback(error);
 
     // Assemble the folders array, ensuring it is in the same order as the original ids
     const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
@@ -106,17 +108,13 @@ const getFoldersByIds = function (folderIds, callback) {
  * @param  {Folder[]}       callback.folders        The folders that are identified by the given list of group ids. The folders will be located in the same order as the given array of ids
  */
 const getFoldersByGroupIds = function (groupIds, callback) {
-  if (_.isEmpty(groupIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(groupIds)) return callback(null, []);
 
-  Cassandra.runQuery('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runQuery)('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (error, rows) => {
+    if (error) return callback(error);
 
     // Assemble the folder ids, ensuring the original ordering is maintained
-    const folderIdsByGroupIds = _.chain(rows).map(Cassandra.rowToHash).indexBy('groupId').value();
+    const folderIdsByGroupIds = _.chain(rows).map(rowToHash).indexBy('groupId').value();
     const folderIds = _.chain(groupIds)
       .map((groupId) => folderIdsByGroupIds[groupId])
       .compact()
@@ -137,11 +135,9 @@ const getFoldersByGroupIds = function (groupIds, callback) {
  */
 const getFolder = function (folderId, callback) {
   getFoldersByIds([folderId], (error, folders) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    if (_.isEmpty(folders)) {
+    if (isEmpty(folders)) {
       return callback({
         code: 404,
         msg: format('A folder with the id "%s" could not be found', folderId)
@@ -160,7 +156,7 @@ const getFolder = function (folderId, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const deleteFolder = function (folderId, callback) {
-  Cassandra.runQuery('DELETE FROM "Folders" WHERE "id" = ?', [folderId], callback);
+  callbackify(runQuery)('DELETE FROM "Folders" WHERE "id" = ?', [folderId], callback);
 };
 
 /**
@@ -173,14 +169,14 @@ const deleteFolder = function (folderId, callback) {
  * @param  {Folder}     callback.folder     The updated folder
  */
 const updateFolder = function (folder, profileFields, callback) {
-  const storageHash = _.extend({}, profileFields);
-  storageHash.lastModified = storageHash.lastModified || Date.now();
+  const storageHash = mergeAll([{}, profileFields]);
+  const defaultToNow = defaultTo(Date.now());
 
-  const query = Cassandra.constructUpsertCQL('Folders', 'id', folder.id, storageHash);
-  Cassandra.runQuery(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow)(storageHash);
+  const query = constructUpsertCQL('Folders', 'id', folder.id, storageHash);
+
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
+    if (error) return callback(error);
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, storageHash));
   });
@@ -211,16 +207,12 @@ const getContentItems = function (folderGroupId, options, callback) {
     options.start,
     options.limit,
     (error, roles, nextToken) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       // Get all the content items that we queried by id
       const ids = _.pluck(roles, 'id');
       ContentDAO.Content.getMultipleContentItems(ids, options.fields, (error, contentItems) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         return callback(null, contentItems, nextToken);
       });
@@ -239,11 +231,9 @@ const getContentItems = function (folderGroupId, options, callback) {
  * @param  {Folder}     callback.folder     The updated folder
  */
 const setPreviews = function (folder, previews, callback) {
-  const query = Cassandra.constructUpsertCQL('Folders', 'id', folder.id, { previews });
-  Cassandra.runQuery(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+  const query = constructUpsertCQL('Folders', 'id', folder.id, { previews });
+  callbackify(runQuery)(query.query, query.parameters, (error) => {
+    if (error) return callback(error);
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, { previews }));
   });
@@ -268,9 +258,7 @@ const setPreviews = function (folder, previews, callback) {
  * @see Cassandra#iterateAll
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
-  if (_.isEmpty(properties)) {
-    properties = ['id'];
-  }
+  properties = when(isEmpty, () => of('id'))(properties);
 
   /*!
    * Handles each batch from the cassandra iterateAll method
@@ -279,10 +267,10 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
    */
   const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
-    return onEach(_.map(rows, Cassandra.rowToHash), done);
+    return onEach(_.map(rows, rowToHash), done);
   };
 
-  Cassandra.iterateAll(properties, 'Folders', 'id', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'Folders', 'id', { batchSize }, _iterateAllOnEach, callback);
 };
 
 /**
@@ -317,7 +305,7 @@ const _createUpdatedFolderFromStorageHash = function (folder, updatedStorageHash
  * @api private
  */
 const _rowToFolder = function (row) {
-  const hash = Cassandra.parsePreviewsFromRow(row);
+  const hash = parsePreviewsFromRow(row);
   return _storageHashToFolder(hash.id, hash);
 };
 

@@ -15,7 +15,7 @@
 
 import path from 'node:path';
 import stream from 'node:stream';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import process from 'node:process';
 import { assert } from 'chai';
 
@@ -43,7 +43,7 @@ import {
 
 import * as AuthenticationAPI from 'oae-authentication';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, init, close, dropKeyspace } from 'oae-util/lib/cassandra.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import { Context } from 'oae-context';
 import * as LibraryAPI from 'oae-library';
@@ -198,7 +198,7 @@ const clearAllData = function (callback) {
       _.each(columnFamiliesToClear, (cf) => {
         const query = format('TRUNCATE "%s"', cf);
 
-        Cassandra.runQuery(query, [], (error) => {
+        callbackify(runQuery)(query, [], (error) => {
           assert.notExists(error);
           return truncated();
         });
@@ -1196,8 +1196,10 @@ const createInitialTestConfig = async function () {
     mergedConfig = clone(mergedConfig);
     mergedConfig.log = logConfig;
 
-    // The Cassandra connection config that should be used for unit tests, using
-    // a custom keyspace for just the tests
+    /**
+     * The Cassandra connection config that should be used for unit tests, using
+     * a custom keyspace for just the tests
+     */
     mergedConfig.cassandra.keyspace = 'oaeTest';
 
     // We'll stick all our redis data in a separate DB index.
@@ -1312,7 +1314,7 @@ const _bindRequestLogger = function () {
  * @param  {Function}    callback                  Standard callback function
  */
 const setUpBeforeTests = function (config, dropKeyspaceBeforeTest, callback) {
-  Cassandra.init(config.cassandra, (error) => {
+  init(config.cassandra, (error) => {
     if (error) return callback(new Error(error.msg || error.message));
 
     const done = function (error) {
@@ -1320,7 +1322,7 @@ const setUpBeforeTests = function (config, dropKeyspaceBeforeTest, callback) {
 
       // Run migrations otherwise keyspace is empty
       migrationRunner.runMigrations(config.cassandra, () => {
-        Cassandra.close(() => {
+        callbackify(close)(() => {
           // Initialize the application modules
           OAE.init(config, (error_) => {
             if (error_) return callback(new Error(error_.msg));
@@ -1353,7 +1355,7 @@ const setUpBeforeTests = function (config, dropKeyspaceBeforeTest, callback) {
 
     if (dropKeyspaceBeforeTest) {
       log().info('Dropping keyspace "%s" to clean up before tests', config.cassandra.keyspace);
-      Cassandra.dropKeyspace(config.cassandra.keyspace, done);
+      callbackify(dropKeyspace)(config.cassandra.keyspace, done);
     } else {
       done();
     }

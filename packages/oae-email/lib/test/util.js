@@ -14,7 +14,7 @@
  */
 
 import assert from 'node:assert';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 
 import * as ActivityAggregator from 'oae-activity/lib/internal/aggregator.js';
@@ -27,7 +27,8 @@ import * as EmailAPI from 'oae-email';
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 /**
- * Send and return a single email message. This helper utility will ensure that the activity / notifications queue
+ * Send and return a single email message.
+ * This helper utility will ensure that the activity / notifications queue
  * is cleaned out to avoid a different email being triggered and the wrong message being inspected.
  *
  * For parameters, @see EmailAPI#sendEmail
@@ -244,7 +245,7 @@ const clearEmailCollections = function (callback) {
       // Force an activity collection so all emails get scheduled
       ActivityAggregator.collectAllBuckets(() => {
         // Clear the scheduled emails from the buckets
-        Cassandra.runQuery('TRUNCATE "EmailBuckets"', [], (error) => {
+        callbackify(Cassandra.runQuery)('TRUNCATE "EmailBuckets"', [], (error) => {
           assert.ok(!error);
 
           return callback();

@@ -13,11 +13,17 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import { map, pipe, filter, pluck, union } from 'ramda';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import {
+  runQuery,
+  rowToHash,
+  runBatchQuery,
+  runAllPagesQuery,
+  runPagedQuery
+} from 'oae-util/lib/cassandra.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
@@ -95,7 +101,7 @@ const getDirectRoles = function (principalIds, resourceId, callback) {
     return callback(error);
   }
 
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "memberId", "role" FROM "AuthzMembers" WHERE "resourceId" = ? AND "memberId" IN ?',
     [resourceId, principalIds],
     (error, rows) => {
@@ -105,7 +111,7 @@ const getDirectRoles = function (principalIds, resourceId, callback) {
 
       const roles = {};
       _.each(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         roles[row.memberId] = row.role;
       });
 
@@ -219,7 +225,7 @@ const _getResourceGroupMembers = function (resourceId, callback) {
   const start = AuthzConstants.principalTypes.GROUP + ':';
   const end = start + '|';
 
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'AuthzMembers',
     'resourceId',
     resourceId,
@@ -232,10 +238,12 @@ const _getResourceGroupMembers = function (resourceId, callback) {
         return callback(error);
       }
 
+      rows = rows.rows;
+
       // Convert all roles to an object mapping memberId -> role
       const associatedGroups = {};
       _.each(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         associatedGroups[row.memberId] = row.role;
       });
 
@@ -483,12 +491,11 @@ const _updateRoles = function (resourceId, changes, callback) {
     // the list of memberships update queries we already need to execute
     queries = _.union(queries, _getInvalidateMembershipsCacheQueries(usersToInvalidate));
 
-    // Finally execute all the queries and return the final list of invalidated users to the
-    // caller
-    Cassandra.runBatchQuery(queries, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+    /**
+     * Finally execute all the queries and return the final list of invalidated users to the caller
+     */
+    callbackify(runBatchQuery)(queries, (error_) => {
+      if (error_) return callback(error_);
 
       return callback(null, usersToInvalidate);
     });
@@ -509,7 +516,7 @@ const _updateRoles = function (resourceId, changes, callback) {
  * @param  {String}      callback.nextToken      The value to provide in the `start` parameter to get the next set of results
  */
 const getAllAuthzMembers = function (resourceId, callback /* , _members, _nextToken */) {
-  Cassandra.runAllPagesQuery(
+  callbackify(runAllPagesQuery)(
     'AuthzMembers',
     'resourceId',
     resourceId,
@@ -521,7 +528,7 @@ const getAllAuthzMembers = function (resourceId, callback /* , _members, _nextTo
       }
 
       const members = pipe(
-        map(Cassandra.rowToHash),
+        map(rowToHash),
         map((hash) => ({ id: hash.memberId, role: hash.role }))
       )(rows);
       return callback(null, members);
@@ -553,7 +560,7 @@ const getAuthzMembers = function (resourceId, start, limit, callback) {
     return callback(error);
   }
 
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'AuthzMembers',
     'resourceId',
     resourceId,
@@ -561,14 +568,16 @@ const getAuthzMembers = function (resourceId, start, limit, callback) {
     start,
     limit,
     null,
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows, nextToken } = results;
+
       // Build the members array from the rows
       const members = _.map(rows, (row) => {
-        row = Cassandra.rowToHash(row);
+        row = rowToHash(row);
         return { id: row.memberId, role: row.role };
       });
 
@@ -592,7 +601,7 @@ const getAuthzMembers = function (resourceId, start, limit, callback) {
  */
 const _checkGroupMembershipsForUser = function (userId, groupIds, callback) {
   // Check if the memberships cache is populated
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'SELECT "groupId" FROM "AuthzMembershipsCache" WHERE "principalId" = ? LIMIT 1',
     [userId],
     (error, rows) => {
@@ -602,7 +611,7 @@ const _checkGroupMembershipsForUser = function (userId, groupIds, callback) {
 
       // There are columns in the cache, so we use it as-is
       if (rows.length === 1) {
-        Cassandra.runQuery(
+        callbackify(runQuery)(
           'SELECT "groupId" FROM "AuthzMembershipsCache" WHERE "principalId" = ? AND "groupId" IN ?',
           [userId, groupIds],
           (error, rows) => {
@@ -699,7 +708,7 @@ const _explodeGroupMemberships = function (principalId, callback) {
     }));
 
     // Update both the full memberships cache and the dedicated indirect cache with the exploded memberships
-    Cassandra.runBatchQuery(
+    callbackify(runBatchQuery)(
       _.union(authzMembershipsCacheQueries, authzMembershipsIndirectCacheQueries),
       (error_) => {
         if (error_) {
@@ -808,7 +817,7 @@ const getPrincipalMembershipsGraph = function (principalId, callback) {
   }
 
   // First try the full memberships cache
-  Cassandra.runAllPagesQuery(
+  callbackify(runAllPagesQuery)(
     'AuthzMembershipsCache',
     'principalId',
     principalId,
@@ -842,8 +851,10 @@ const getPrincipalMembershipsGraph = function (principalId, callback) {
         // The id of a group that the `principalId` is directly or indirectly a member
         const groupId = row.get('groupId');
 
-        // This is the stored members information for the group. It is of the form:
-        // `{'memberId': 'g:oae:another-group', 'role': 'manager'}`
+        /**
+         * This is the stored members information for the group.
+         * It is of the form: `{'memberId': 'g:oae:another-group', 'role': 'manager'}`
+         */
         let memberRoles = {};
         try {
           memberRoles = JSON.parse(row.get('value'));
@@ -904,7 +915,7 @@ const getPrincipalMemberships = function (principalId, start, limit, callback) {
     return callback(error);
   }
 
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'AuthzMembershipsCache',
     'principalId',
     principalId,
@@ -912,14 +923,16 @@ const getPrincipalMemberships = function (principalId, start, limit, callback) {
     start,
     limit,
     null,
-    (error, rows, nextToken, startMatched) => {
-      if (error) {
-        return callback(error);
-      }
+    (error, results) => {
+      if (error) return callback(error);
+
+      let { rows, nextToken, startMatched } = results;
 
       if (startMatched || !_.isEmpty(rows)) {
-        // If we received some groups from the memberships cache, it means it is valid and we can
-        // use the data we have
+        /**
+         * If we received some groups from the memberships cache,
+         * it means it is valid and we can use the data we have
+         */
         const groupIds = _.map(rows, (row) => row.get('groupId'));
 
         return callback(null, groupIds, nextToken);
@@ -928,9 +941,7 @@ const getPrincipalMemberships = function (principalId, start, limit, callback) {
       // If no rows were fetched, we must populate the cache, and we can use the graph we have
       // from the cache result
       _explodeGroupMemberships(principalId, (error, graph) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         // Flatten the graph nodes into just their ids, and remove the current principal
         const allMemberships = _.chain(graph.getNodes())
@@ -1038,7 +1049,7 @@ const getIndirectPrincipalMemberships = function (principalId, start, limit, cal
  * @api private
  */
 const _getIndirectPrincipalMembershipsFromCache = function (principalId, start, limit, callback) {
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'AuthzMembershipsIndirectCache',
     'principalId',
     principalId,
@@ -1046,21 +1057,27 @@ const _getIndirectPrincipalMembershipsFromCache = function (principalId, start, 
     start,
     limit,
     null,
-    (error, rows, nextToken, startMatched) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows, nextToken, startMatched } = results;
+
       if (startMatched || !_.isEmpty(rows)) {
-        // If we received some groups from the memberships cache, it means it is valid and we
-        // can use the data we have
+        /**
+         * If we received some groups from the memberships cache,
+         * it means it is valid and we can use the data we have
+         */
         const groupIds = _.map(rows, (row) => row.get('groupId'));
 
         return callback(null, groupIds, nextToken);
       }
 
-      // If no rows were fetched, we must populate the cache, and we can use the data we have from
-      // the population
+      /**
+       * If no rows were fetched, we must populate the cache,
+       * and we can use the data we have from the population
+       */
       return _getIndirectPrincipalMembershipsByExplosion(principalId, start, limit, callback);
     }
   );
@@ -1229,7 +1246,7 @@ const getAllRolesForPrincipalAndResourceType = function (principalId, resourceTy
   const start = format('%s:', resourceType);
   const end = format('%s:|', resourceType);
 
-  Cassandra.runAllPagesQuery(
+  callbackify(runAllPagesQuery)(
     'AuthzRoles',
     'principalId',
     principalId,
@@ -1295,7 +1312,7 @@ const getRolesForPrincipalAndResourceType = function (
 
   const end = resourceType + ':|';
 
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'AuthzRoles',
     'principalId',
     principalId,
@@ -1303,10 +1320,12 @@ const getRolesForPrincipalAndResourceType = function (
     start,
     limit,
     { end },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
+
+      const { rows, nextToken } = results;
 
       // Build the response roles array
       const roles = _.map(rows, (row) => ({
@@ -1382,7 +1401,7 @@ const getRolesForPrincipalsAndResourceType = function (principalIds, resourceTyp
   let numberCompleted = 0;
   const entries = {};
   _.each(principalIds, (principalId) => {
-    Cassandra.runAllPagesQuery(
+    callbackify(runAllPagesQuery)(
       'AuthzRoles',
       'principalId',
       principalId,

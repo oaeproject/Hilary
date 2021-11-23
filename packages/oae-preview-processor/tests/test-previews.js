@@ -16,7 +16,7 @@
 /* eslint-disable camelcase */
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { keys, equals, find, toUpper, not, compose, head, values, prop } from 'ramda';
@@ -30,7 +30,7 @@ import { SearchConstants } from 'oae-search/lib/constants.js';
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 
 import * as ActivityTestsUtil from 'oae-activity/lib/test/util.js';
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery } from 'oae-util/lib/cassandra.js';
 import * as ConfigTestUtil from 'oae-config/lib/test/util.js';
 import * as ContentTestUtil from 'oae-content/lib/test/util.js';
 import * as Etherpad from 'oae-content/lib/internal/etherpad.js';
@@ -2101,7 +2101,7 @@ describe('Preview processor', () => {
               MQTestUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
                 MQTestUtil.whenTasksEmpty(ActivityConstants.mq.TASK_ACTIVITY_PROCESSING, () => {
                   // Trash all the content items
-                  Cassandra.runQuery('TRUNCATE "Content"', [], (error) => {
+                  callbackify(runQuery)('TRUNCATE "Content"', [], (error) => {
                     assert.notExists(error);
 
                     // Create a piece of content that we can reprocess

@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { format } from 'node:util';
+import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 
 import * as Cassandra from 'oae-util/lib/cassandra.js';
@@ -44,7 +44,7 @@ const getRevisions = function (contentId, start, limit, options, callback) {
   limit = OaeUtil.getNumberParam(limit, 10);
   start = start || '';
 
-  Cassandra.runPagedQuery(
+  callbackify(Cassandra.runPagedQuery)(
     'RevisionByContent',
     'contentId',
     contentId,
@@ -52,11 +52,12 @@ const getRevisions = function (contentId, start, limit, options, callback) {
     start,
     limit,
     { reversed: true },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows, nextToken } = results;
       if (_.isEmpty(rows)) {
         return callback(null, []);
       }
@@ -99,7 +100,7 @@ const getMultipleRevisions = function (revisionIds, options, callback) {
     columns = format('"%s"', options.fields.join('","'));
   }
 
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     format('SELECT %s FROM "Revisions" WHERE "revisionId" IN ?', columns),
     [revisionIds],
     (error, rows) => {
@@ -126,7 +127,7 @@ const getMultipleRevisions = function (revisionIds, options, callback) {
  * @param  {Object}     callback.revisions  An object where arrays of revisions are keyed by their content ID
  */
 const getAllRevisionsForContent = function (contentIds, callback) {
-  Cassandra.runQuery(
+  callbackify(Cassandra.runQuery)(
     'SELECT "contentId", "revisionId" FROM "RevisionByContent" WHERE "contentId" IN ?',
     [contentIds],
     (error, rows) => {
@@ -176,7 +177,7 @@ const getAllRevisionsForContent = function (contentIds, callback) {
  * @param  {Revision}   callback.revision   The retrieved revision
  */
 const getRevision = function (revisionId, callback) {
-  Cassandra.runQuery('SELECT * FROM "Revisions" WHERE "revisionId" = ?', [revisionId], (error, rows) => {
+  callbackify(Cassandra.runQuery)('SELECT * FROM "Revisions" WHERE "revisionId" = ?', [revisionId], (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -222,13 +223,13 @@ const createRevision = function (revisionId, contentId, createdBy, revisionPrope
     }
 
     const q = Cassandra.constructUpsertCQL('Revisions', 'revisionId', revisionId, values);
-    Cassandra.runQuery(q.query, q.parameters, (error) => {
+    callbackify(Cassandra.runQuery)(q.query, q.parameters, (error) => {
       if (error) {
         return callback(error);
       }
 
       // Add the revision to the revisions listing for the content item
-      Cassandra.runQuery(
+      callbackify(Cassandra.runQuery)(
         'INSERT INTO "RevisionByContent" ("contentId", "created", "revisionId") VALUES (?, ?, ?)',
         [contentId, values.created, revisionId],
         (error) => {

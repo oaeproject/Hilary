@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
-import { indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
+import { callbackify, format } from 'node:util';
+import { isEmpty, indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
 import _ from 'underscore';
 
-import * as Cassandra from 'oae-util/lib/cassandra.js';
+import { runQuery, runPagedQuery, rowToHash, constructUpsertCQL } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
 import * as Locking from 'oae-util/lib/locking.js';
 import * as OaeUtil from 'oae-util/lib/util.js';
@@ -194,13 +194,13 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
 
   // Fetch the threadKey of the parent so we can nest under it
   _getMessageThreadKey(replyToMessageId, (error, replyToThreadKey) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    // Generate an ID that can be used for locking and is as specific as possible.
-    // Locking is required to make sure we don't end up with 2 messages that were
-    // created at exactly the same time
+    /**
+     * Generate an ID that can be used for locking and is as specific as possible.
+     * Locking is required to make sure we don't end up with 2 messages that were
+     * created at exactly the same time
+     */
     const id = replyToThreadKey ? replyToThreadKey : messageBoxId;
     _lockUniqueTimestamp(id, Date.now(), (created, lock) => {
       // Data that will be output in diagnostic error messages
@@ -233,7 +233,7 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
       };
 
       // Create the query that creates the message object
-      const createMessageQuery = Cassandra.constructUpsertCQL('Messages', 'id', messageId, messageStorageHash);
+      const createMessageQuery = constructUpsertCQL('Messages', 'id', messageId, messageStorageHash);
       if (!createMessageQuery) {
         log().error(diagnosticData, 'Failed to create a new message query.');
         return callback({ code: 500, msg: 'Failed to create a new message' });
@@ -254,19 +254,15 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
       };
 
       // First insert the new message object, if this fails we do not want to update the messagebox index
-      Cassandra.runQuery(createMessageQuery.query, createMessageQuery.parameters, (error_) => {
-        if (error_) {
-          return callback(error_);
-        }
+      callbackify(runQuery)(createMessageQuery.query, createMessageQuery.parameters, (error_) => {
+        if (error_) return callback(error_);
 
         // Update the messagebox index, so this message will turn up in queries for all messages in the messagebox
-        Cassandra.runQuery(indexMessageQuery.query, indexMessageQuery.parameters, (error_) => {
-          if (error_) {
-            return callback(error_);
-          }
+        callbackify(runQuery)(indexMessageQuery.query, indexMessageQuery.parameters, (error_) => {
+          if (error_) return callback(error_);
 
           // Asynchronously update the recent contributions
-          Cassandra.runQuery(recentContributionsQuery.query, recentContributionsQuery.parameters);
+          callbackify(runQuery)(recentContributionsQuery.query, recentContributionsQuery.parameters, () => {});
 
           // Get the expanded Message object, emit it so it can be indexed, and return it to the caller.
           const message = _storageHashToMessage(messageId, messageStorageHash);
@@ -358,10 +354,8 @@ const updateMessageBody = function (messageBoxId, created, newBody, callback) {
   // permission issues
   const body = replaceLinks(newBody);
 
-  Cassandra.runQuery('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], (error) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runQuery)('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], (error) => {
+    if (error) return callback(error);
 
     MessageBoxAPI.emit(MessageBoxConstants.events.UPDATED_MESSAGE, messageId, newBody);
     callback();
@@ -397,16 +391,12 @@ const getMessagesFromMessageBox = function (messageBoxId, start, limit, options,
   }
 
   _getThreadKeysFromMessageBox(messageBoxId, start, limit, (error, threadKeys, nextToken) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Will maintain the output order of the messages according to their threadkey
     const createdTimestamps = _.map(threadKeys, _parseCreatedFromThreadKey);
     getMessages(messageBoxId, createdTimestamps, { scrubDeleted: options.scrubDeleted }, (error, messages) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       return callback(null, messages, nextToken);
     });
@@ -487,18 +477,14 @@ const getMessagesById = function (messageIds, options, callback) {
   options = options || {};
   options.scrubDeleted = options.scrubDeleted !== false;
 
-  if (_.isEmpty(messageIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(messageIds)) return callback(null, []);
 
-  Cassandra.runQuery('SELECT * FROM "Messages" WHERE "id" IN ?', [messageIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+  callbackify(runQuery)('SELECT * FROM "Messages" WHERE "id" IN ?', [messageIds], (error, rows) => {
+    if (error) return callback(error);
 
     const messages = [];
     _.each(rows, (row) => {
-      row = Cassandra.rowToHash(row);
+      row = rowToHash(row);
       let message = _storageHashToMessage(row.id, row);
 
       // The message will be null here if it didn't actually exist, or had recently been deleted
@@ -648,7 +634,7 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
     return callback(error);
   }
 
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'MessageBoxRecentContributions',
     'messageBoxId',
     messageBoxId,
@@ -656,12 +642,12 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
     start,
     limit,
     { reversed: true },
-    // eslint-disable-next-line no-unused-vars
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows } = results;
       // Extract the contributor ids as the results
       const recentContributions = _.map(rows, (row) => row.get('contributorId'));
 
@@ -685,7 +671,7 @@ const _getMessageThreadKey = function (messageId, callback) {
     return callback();
   }
 
-  Cassandra.runQuery('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (error, rows) => {
+  callbackify(runQuery)('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (error, rows) => {
     if (error) {
       return callback(error);
     }
@@ -764,7 +750,7 @@ const _hardDelete = function (message, callback) {
   const createdTimestamp = message.created;
 
   // First move the created timestamp of the message in a CF that can help us find and recover the message for a messagebox
-  Cassandra.runQuery(
+  callbackify(runQuery)(
     'INSERT INTO "MessageBoxMessagesDeleted" ("messageBoxId", "createdTimestamp", "value") VALUES (?, ?, ?)',
     [messageBoxId, createdTimestamp, '1'],
     (error) => {
@@ -773,7 +759,7 @@ const _hardDelete = function (message, callback) {
       }
 
       // Delete the index entry from the messagebox. This fixes things like paging so this comment does not get returned in feeds anymore
-      Cassandra.runQuery(
+      callbackify(runQuery)(
         'DELETE FROM "MessageBoxMessages" WHERE "messageBoxId" = ? AND "threadKey" = ?',
         [messageBoxId, threadKey],
         (error) => {
@@ -810,16 +796,20 @@ const _softDelete = function (message, callback) {
   const deletedTimestamp = Date.now().toString();
 
   // Set the deleted flag to the current timestamp
-  Cassandra.runQuery('UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?', [deletedTimestamp, messageId], (error) => {
-    if (error) {
-      return callback(error);
+  callbackify(runQuery)(
+    'UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?',
+    [deletedTimestamp, messageId],
+    (error) => {
+      if (error) {
+        return callback(error);
+      }
+
+      message.deleted = deletedTimestamp;
+      message = _scrubMessage(message);
+
+      return callback(null, message);
     }
-
-    message.deleted = deletedTimestamp;
-    message = _scrubMessage(message);
-
-    return callback(null, message);
-  });
+  );
 };
 
 /**
@@ -837,7 +827,7 @@ const _softDelete = function (message, callback) {
  */
 const _getThreadKeysFromMessageBox = function (messageBoxId, start, limit, callback) {
   // Fetch `limit` number of message ids from the message box
-  Cassandra.runPagedQuery(
+  callbackify(runPagedQuery)(
     'MessageBoxMessages',
     'messageBoxId',
     messageBoxId,
@@ -845,11 +835,12 @@ const _getThreadKeysFromMessageBox = function (messageBoxId, start, limit, callb
     start,
     limit,
     { reversed: true },
-    (error, rows, nextToken) => {
+    (error, results) => {
       if (error) {
         return callback(error);
       }
 
+      const { rows, nextToken } = results;
       const threadKeys = _.map(rows, (row) => row.get('threadKey'));
 
       return callback(null, threadKeys, nextToken);

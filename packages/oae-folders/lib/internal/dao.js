@@ -17,6 +17,7 @@
 import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
+import { mergeAll, isEmpty, defaultTo, pipe, prop, when, of } from 'ramda';
 
 import * as AuthzAPI from 'oae-authz';
 import * as AuthzUtil from 'oae-authz/lib/util.js';
@@ -82,14 +83,10 @@ const createFolder = function (createdBy, displayName, description, visibility, 
  * @param  {Folder[]}       callback.folders    The folders that are identified by the given ids. The folders will be located in the same order as the given array of ids
  */
 const getFoldersByIds = function (folderIds, callback) {
-  if (_.isEmpty(folderIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(folderIds)) return callback(null, []);
 
   callbackify(runQuery)('SELECT * FROM "Folders" WHERE "id" IN ?', [folderIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Assemble the folders array, ensuring it is in the same order as the original ids
     const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
@@ -111,14 +108,10 @@ const getFoldersByIds = function (folderIds, callback) {
  * @param  {Folder[]}       callback.folders        The folders that are identified by the given list of group ids. The folders will be located in the same order as the given array of ids
  */
 const getFoldersByGroupIds = function (groupIds, callback) {
-  if (_.isEmpty(groupIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(groupIds)) return callback(null, []);
 
   callbackify(runQuery)('SELECT * FROM "FoldersGroupId" WHERE "groupId" IN ?', [groupIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Assemble the folder ids, ensuring the original ordering is maintained
     const folderIdsByGroupIds = _.chain(rows).map(rowToHash).indexBy('groupId').value();
@@ -142,11 +135,9 @@ const getFoldersByGroupIds = function (groupIds, callback) {
  */
 const getFolder = function (folderId, callback) {
   getFoldersByIds([folderId], (error, folders) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    if (_.isEmpty(folders)) {
+    if (isEmpty(folders)) {
       return callback({
         code: 404,
         msg: format('A folder with the id "%s" could not be found', folderId)
@@ -178,14 +169,14 @@ const deleteFolder = function (folderId, callback) {
  * @param  {Folder}     callback.folder     The updated folder
  */
 const updateFolder = function (folder, profileFields, callback) {
-  const storageHash = _.extend({}, profileFields);
-  storageHash.lastModified = storageHash.lastModified || Date.now();
+  const storageHash = mergeAll([{}, profileFields]);
+  const defaultToNow = defaultTo(Date.now());
 
+  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow)(storageHash);
   const query = constructUpsertCQL('Folders', 'id', folder.id, storageHash);
+
   callbackify(runQuery)(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, storageHash));
   });
@@ -216,16 +207,12 @@ const getContentItems = function (folderGroupId, options, callback) {
     options.start,
     options.limit,
     (error, roles, nextToken) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       // Get all the content items that we queried by id
       const ids = _.pluck(roles, 'id');
       ContentDAO.Content.getMultipleContentItems(ids, options.fields, (error, contentItems) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         return callback(null, contentItems, nextToken);
       });
@@ -246,9 +233,7 @@ const getContentItems = function (folderGroupId, options, callback) {
 const setPreviews = function (folder, previews, callback) {
   const query = constructUpsertCQL('Folders', 'id', folder.id, { previews });
   callbackify(runQuery)(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     return callback(null, _createUpdatedFolderFromStorageHash(folder, { previews }));
   });
@@ -273,9 +258,7 @@ const setPreviews = function (folder, previews, callback) {
  * @see Cassandra#iterateAll
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
-  if (_.isEmpty(properties)) {
-    properties = ['id'];
-  }
+  properties = when(isEmpty, () => of('id'))(properties);
 
   /*!
    * Handles each batch from the cassandra iterateAll method

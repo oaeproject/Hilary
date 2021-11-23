@@ -14,6 +14,7 @@
  */
 
 import { callbackify } from 'node:util';
+import { defaultTo } from 'ramda';
 import _ from 'underscore';
 
 import { runQuery, runPagedQuery, runBatchQuery, rowToHash } from 'oae-util/lib/cassandra.js';
@@ -30,20 +31,16 @@ import { runQuery, runPagedQuery, runBatchQuery, rowToHash } from 'oae-util/lib/
  * @param  {String}     [callback.nextToken]    The value to provide as the `start` parameter when fetching the next page of followers. If unspecified, there are no more followers to fetch
  */
 const getFollowers = function (userId, start, limit, callback) {
-  start = start || '';
-
   callbackify(runPagedQuery)(
     'FollowingUsersFollowers',
     'userId',
     userId,
     'followerId',
-    start,
+    defaultTo('', start),
     limit,
     null,
     (error, results) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const { rows, nextToken } = results;
       const followerIds = _.map(rows, (row) => row.get('followerId'));
@@ -65,20 +62,16 @@ const getFollowers = function (userId, start, limit, callback) {
  * @param  {String}     [callback.nextToken]        The value to provide as the `start` parameter when fetching the next page of followed users. If unspecified, there are no more users to fetch
  */
 const getFollowing = function (userId, start, limit, callback) {
-  start = start || '';
-
   callbackify(runPagedQuery)(
     'FollowingUsersFollowing',
     'userId',
     userId,
     'followingId',
-    start,
+    defaultTo('', start),
     limit,
     null,
     (error, results) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const { rows, nextToken } = results;
       const followingIds = _.map(rows, (row) => row.get('followingId'));

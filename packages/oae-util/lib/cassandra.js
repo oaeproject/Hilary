@@ -369,7 +369,7 @@ async function runBatchQuery(queries) {
  */
 async function runPagedQuery(tableName, keyColumnName, keyColumnValue, rangeColumnName, start, limit, options) {
   limit = OaeUtil.getNumberParam(limit, 25);
-  options = options || {};
+  options = defaultTo({}, options);
 
   const startOperator = options.reversed ? '<' : '>';
   const endOperator = options.reversed ? '>=' : '<=';

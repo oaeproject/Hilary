@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/no-array-callback-reference */
 import { callbackify, format } from 'node:util';
 import _ from 'underscore';
+import { map, forEach, isEmpty, when, toString, pipe, prop, defaultTo, mergeAll, of } from 'ramda';
 import ShortId from 'shortid';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
@@ -77,11 +77,12 @@ const createDiscussion = function (createdBy, displayName, description, visibili
  * @param  {Discussion} callback.discussion The updated discussion object
  */
 const updateDiscussion = function (discussion, profileFields, callback) {
-  const storageHash = _.extend({}, profileFields);
-  storageHash.lastModified = storageHash.lastModified || Date.now();
-  storageHash.lastModified = storageHash.lastModified.toString();
+  const storageHash = mergeAll([{}, profileFields]);
+  const defaultToNow = defaultTo(Date.now());
 
+  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow, toString)(storageHash);
   const query = constructUpsertCQL('Discussions', 'id', discussion.id, storageHash);
+
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 
@@ -130,9 +131,7 @@ const deleteDiscussion = function (discussionId, callback) {
  * @param  {Discussion[]}   callback.discussions    The discussion objects requested, in the same order as the discussion ids
  */
 const getDiscussionsById = function (discussionIds, fields, callback) {
-  if (_.isEmpty(discussionIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(discussionIds)) return callback(null, []);
 
   let query = null;
   const parameters = [];
@@ -153,11 +152,12 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
 
     // Convert the retrieved storage hashes into the Discussion model
     const discussions = {};
-    _.chain(rows)
-      .map(rowToHash)
-      .each((row) => {
+    pipe(
+      map(rowToHash),
+      forEach((row) => {
         discussions[row.id] = _storageHashToDiscussion(row.id, row);
-      });
+      })
+    )(rows);
 
     // Order the discussions according to the array of discussion ids
     const orderedDiscussions = _.map(discussionIds, (discussionId) => discussions[discussionId]);
@@ -184,9 +184,7 @@ const getDiscussionsById = function (discussionIds, fields, callback) {
  * @see Cassandra#iterateAll
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
-  if (_.isEmpty(properties)) {
-    properties = ['id'];
-  }
+  properties = when(isEmpty, () => of('id'))(properties);
 
   /*!
    * Handles each batch from the cassandra iterateAll method

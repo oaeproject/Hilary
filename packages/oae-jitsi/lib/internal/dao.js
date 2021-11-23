@@ -13,9 +13,8 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/no-array-callback-reference */
-
 import { callbackify } from 'node:util';
+import { isEmpty, forEach, map, pipe, prop, defaultTo, mergeAll } from 'ramda';
 import _ from 'underscore';
 import ShortId from 'shortid';
 import { Meeting } from 'oae-jitsi/lib/model.js';
@@ -51,9 +50,7 @@ const createMeeting = function (createdBy, displayName, description, chat, conta
 
   const query = constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
   callbackify(runQuery)(query.query, query.parameters, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     return callback(null, _storageHashToMeeting(meetingId, storageHash));
   });
@@ -64,9 +61,7 @@ const createMeeting = function (createdBy, displayName, description, chat, conta
  */
 const getMeeting = function (meetingId, callback) {
   getMeetingsById([meetingId], (error, meetings) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     return callback(null, meetings[0]);
   });
@@ -81,9 +76,7 @@ const getMeeting = function (meetingId, callback) {
  * @param  {Meeting[]}      callback.meetings       The meeting objects requested, in the same order as the meeting ids
  */
 const getMeetingsById = function (meetingIds, callback) {
-  if (_.isEmpty(meetingIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(meetingIds)) return callback(null, []);
 
   const query = 'SELECT * FROM "MeetingsJitsi" WHERE "id" in ?';
   // Create a copy of the meetingIds array, otherwise the runQuery function will empty it
@@ -91,20 +84,19 @@ const getMeetingsById = function (meetingIds, callback) {
   parameters.push(meetingIds);
 
   callbackify(runQuery)(query, parameters, (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Convert the retrieved storage hashes into the Meeting model
     const meetings = {};
-    _.chain(rows)
-      .map(rowToHash)
-      .each((row) => {
+    pipe(
+      map(rowToHash),
+      forEach((row) => {
         meetings[row.id] = _storageHashToMeeting(row.id, row);
-      });
+      })
+    )(rows);
 
     // Order the meetings according to the array of meetings ids
-    const orderedMeetings = _.map(meetingIds, (meetingId) => meetings[meetingId]);
+    const orderedMeetings = map((meetingId) => meetings[meetingId], meetingIds);
 
     return callback(null, orderedMeetings);
   });
@@ -118,11 +110,12 @@ const getMeetingsById = function (meetingIds, callback) {
  * @param {any} callback
  */
 const updateMeeting = function (meeting, profileFields, callback) {
-  const storageHash = _.extend({}, profileFields);
-  storageHash.lastModified = storageHash.lastModified || Date.now();
-  storageHash.lastModified = storageHash.lastModified.toString();
+  const storageHash = mergeAll([{}, profileFields]);
+  const defaultToNow = defaultTo(Date.now());
 
+  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow, toString)(storageHash);
   const query = constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
+
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 

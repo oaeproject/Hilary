@@ -453,10 +453,9 @@ function _findContentLibraryCount(userHash, callback) {
  * @api private
  */
 function _findAuthzMembershipsCacheCount(userHash, callback) {
-  const userId = userHash.principalId;
   callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "AuthzMembershipsCache" WHERE "principalId" = ?',
-    [userId],
+    [userHash.principalId],
     _rowToCount(callback)
   );
 }
@@ -471,10 +470,9 @@ function _findAuthzMembershipsCacheCount(userHash, callback) {
  * @api private
  */
 function _findResourceMembershipsCount(userHash, callback) {
-  const userId = userHash.principalId;
   callbackify(Cassandra.runQuery)(
     'SELECT COUNT(*) FROM "AuthzRoles" WHERE "principalId" = ?',
-    [userId],
+    [userHash.principalId],
     _rowToCount(callback)
   );
 }

@@ -16,7 +16,7 @@
 import crypto from 'node:crypto';
 import { callbackify, format } from 'node:util';
 import process from 'node:process';
-import { equals, and } from 'ramda';
+import { isEmpty, equals, and } from 'ramda';
 import _ from 'underscore';
 import ShortId from 'shortid';
 
@@ -69,9 +69,7 @@ const getActivities = function (activityStreamId, start, limit, callback) {
     limit,
     { reversed: true },
     (error, results) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const { rows, nextToken } = results;
       const activities = _rowsToActivities(rows);
@@ -99,9 +97,7 @@ const getActivitiesFromStreams = function (activityStreamIds, start, callback) {
   }
 
   callbackify(runQuery)(query, parameters, (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     const activitiesPerStream = {};
     _.each(rows, (row) => {
@@ -176,9 +172,7 @@ const deliverActivities = function (routedActivities, callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  */
 const deleteActivities = function (routeActivityIds, callback) {
-  if (_.isEmpty(routeActivityIds)) {
-    return callback();
-  }
+  if (isEmpty(routeActivityIds)) return callback();
 
   const queries = [];
   _.each(routeActivityIds, (activityIds, route) => {
@@ -219,9 +213,7 @@ const clearActivityStream = function (activityStreamId, callback) {
  * @param  {Object}        callback.err        An error that occurred, if any
  */
 const saveQueuedActivities = function (activityBuckets, callback) {
-  if (_.isEmpty(activityBuckets)) {
-    return callback();
-  }
+  if (isEmpty(activityBuckets)) return callback();
 
   log().trace({ activityBuckets }, 'Saving queued activities.');
 
@@ -272,9 +264,7 @@ const getQueuedActivities = function (bucketNumber, limit, callback) {
   // Get the first `limit` routed activities from the bucket. Since they are stored in a sorted list in Redis, we use the
   // "zrange" command. The "z" prefix to the command indicates that it is a sorted-list operation.
   redisClient.zrange(_createBucketCacheKey(bucketNumber), 0, limit, (error, routedActivities) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     const numberToDelete = _.size(routedActivities);
 
@@ -314,9 +304,7 @@ const getQueuedActivities = function (bucketNumber, limit, callback) {
  * @param  {Object}    callback.err        An error that occurred, if any
  */
 const deleteQueuedActivities = function (bucketNumber, numberToDelete, callback) {
-  if (!numberToDelete) {
-    return callback();
-  }
+  if (!numberToDelete) return callback();
 
   log().trace({ bucketNumber, numberToDelete }, 'Deleting queued activities.');
 
@@ -354,9 +342,7 @@ const getAggregateStatus = function (aggregateKeys, callback) {
     return global.alternateAggregateStatus(aggregateKeys, callback);
   }
 
-  if (_.isEmpty(aggregateKeys)) {
-    return callback(null, {});
-  }
+  if (_.isEmpty(aggregateKeys)) return callback(null, {});
 
   // Fetch each aggregate status by key. This uses a Redis multi-get ("mget"), whose arguments must be an array of all the keys to fetch
   const mgetArgs = [];
@@ -366,9 +352,7 @@ const getAggregateStatus = function (aggregateKeys, callback) {
 
   // Gather the redis keys for the aggregate statii
   redisClient.mget(mgetArgs, (error, results) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     /**
      * The result is each aggregate status separated by a new line,
@@ -405,9 +389,7 @@ const getAggregateStatus = function (aggregateKeys, callback) {
  */
 const indexAggregateData = function (statusUpdatesByActivityStreamId, callback) {
   const activityStreamIds = _.keys(statusUpdatesByActivityStreamId);
-  if (_.isEmpty(activityStreamIds)) {
-    return callback();
-  }
+  if (isEmpty(activityStreamIds)) return callback();
 
   // We will have to execute multiple redis update commands, so we use a multi object which will handle this.
   const multi = redisClient.multi();
@@ -513,9 +495,7 @@ const resetAggregationForActivityStreams = function (activityStreamIds, callback
 
     // Delete all the active aggregate keys if there are any
     const activeAggregateCacheKeysToDelete = _getAggregateCacheKeysForAggregateKeys(allActiveAggregateKeys);
-    if (_.isEmpty(activeAggregateCacheKeysToDelete)) {
-      return callback();
-    }
+    if (_.isEmpty(activeAggregateCacheKeysToDelete)) return callback();
 
     multi.del(activeAggregateCacheKeysToDelete);
     multi.exec((error_) => {
@@ -593,9 +573,7 @@ const getActiveAggregateKeysForActivityStreams = function (activityStreams, call
  * @param  {Object}    callback.aggregatedEntities An object holding the entities that have been aggregated for the entities. See summary for more information
  */
 const getAggregatedEntities = function (aggregateKeys, callback) {
-  if (_.isEmpty(aggregateKeys)) {
-    return callback(null, {});
-  }
+  if (_.isEmpty(aggregateKeys)) return callback(null, {});
 
   /*!
    * Each aggregate key has actors, objects and targets associated to it, and each of those are stored as separate cache entries. For
@@ -658,9 +636,7 @@ const getAggregatedEntities = function (aggregateKeys, callback) {
 
   // First fetch the references to the aggregated entity objects
   multiGetAggregateEntities.exec((error, results) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     log().trace({ results }, 'Multi fetch identities result.');
 
@@ -686,9 +662,7 @@ const getAggregatedEntities = function (aggregateKeys, callback) {
 
     // Get the full entity objects using the identities
     _fetchEntitiesByIdentities(_.keys(entityIdentities), (error, entitiesByIdentity) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const aggregateEntities = {};
       _.each(results, (result, i) => {
@@ -754,9 +728,7 @@ const getAggregatedEntities = function (aggregateKeys, callback) {
  * @api private
  */
 const _fetchEntitiesByIdentities = function (entityIdentities, callback) {
-  if (_.isEmpty(entityIdentities)) {
-    return callback(null, {});
-  }
+  if (_.isEmpty(entityIdentities)) return callback(null, {});
 
   const entitiesByIdentity = {};
 
@@ -766,9 +738,7 @@ const _fetchEntitiesByIdentities = function (entityIdentities, callback) {
   );
 
   redisClient.mget(entityIdentityCacheKeys, (error, results) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Parse each entity from storage as they are stored as stringified JSON
     _.each(results, (entityString, i) => {
@@ -801,9 +771,7 @@ const _fetchEntitiesByIdentities = function (entityIdentities, callback) {
  * @param  {Object}    callback.err    An error that occurred, if any
  */
 const saveAggregatedEntities = function (aggregates, callback) {
-  if (_.isEmpty(aggregates)) {
-    return callback();
-  }
+  if (_.isEmpty(aggregates)) return callback();
 
   log().trace({ aggregates }, 'Saving aggregate entities.');
 
@@ -918,9 +886,7 @@ const createActivityId = function (published) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const saveQueuedUserIdsForEmail = function (emailBuckets, callback) {
-  if (_.isEmpty(emailBuckets)) {
-    return callback();
-  }
+  if (_.isEmpty(emailBuckets)) return callback();
 
   const queries = [];
   _.each(emailBuckets, (userIds, bucketId) => {
@@ -956,9 +922,7 @@ const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
     limit,
     { end: '|' },
     (error, results) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const { rows, nextToken } = results;
       const userIds = _.map(rows, (row) => row.get('userId'));
@@ -977,9 +941,7 @@ const getQueuedUserIdsForEmail = function (bucketId, start, limit, callback) {
  * @param  {Object}     callback.err        An error that occurred, if any
  */
 const unqueueUsersForEmail = function (bucketId, userIds, callback) {
-  if (_.isEmpty(userIds)) {
-    return callback();
-  }
+  if (isEmpty(userIds)) return callback();
 
   const queries = _.map(userIds, (userId) => ({
     query: 'DELETE FROM "EmailBuckets" WHERE "bucketId" = ? AND "userId" = ?',
@@ -1021,9 +983,7 @@ const incrementNotificationsUnreadCounts = function (userIdsIncrBy, callback) {
     .value();
 
   // Return back to the caller if there are no real updates to perform
-  if (_.isEmpty(userIds)) {
-    return callback(null, {});
-  }
+  if (_.isEmpty(userIds)) return callback(null, {});
 
   // We use a batch of Redis incrby commands to update each count
   const multi = redisClient.multi();
@@ -1033,9 +993,7 @@ const incrementNotificationsUnreadCounts = function (userIdsIncrBy, callback) {
   });
 
   multi.exec((error, results) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     /*!
      * The result is the new counts for the cache keys, separated by new line:

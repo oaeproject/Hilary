@@ -14,7 +14,7 @@
  */
 
 import { callbackify, format } from 'node:util';
-import { indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
+import { isEmpty, indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
 import _ from 'underscore';
 
 import { runQuery, runPagedQuery, rowToHash, constructUpsertCQL } from 'oae-util/lib/cassandra.js';
@@ -194,13 +194,13 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
 
   // Fetch the threadKey of the parent so we can nest under it
   _getMessageThreadKey(replyToMessageId, (error, replyToThreadKey) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    // Generate an ID that can be used for locking and is as specific as possible.
-    // Locking is required to make sure we don't end up with 2 messages that were
-    // created at exactly the same time
+    /**
+     * Generate an ID that can be used for locking and is as specific as possible.
+     * Locking is required to make sure we don't end up with 2 messages that were
+     * created at exactly the same time
+     */
     const id = replyToThreadKey ? replyToThreadKey : messageBoxId;
     _lockUniqueTimestamp(id, Date.now(), (created, lock) => {
       // Data that will be output in diagnostic error messages
@@ -255,15 +255,11 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
 
       // First insert the new message object, if this fails we do not want to update the messagebox index
       callbackify(runQuery)(createMessageQuery.query, createMessageQuery.parameters, (error_) => {
-        if (error_) {
-          return callback(error_);
-        }
+        if (error_) return callback(error_);
 
         // Update the messagebox index, so this message will turn up in queries for all messages in the messagebox
         callbackify(runQuery)(indexMessageQuery.query, indexMessageQuery.parameters, (error_) => {
-          if (error_) {
-            return callback(error_);
-          }
+          if (error_) return callback(error_);
 
           // Asynchronously update the recent contributions
           callbackify(runQuery)(recentContributionsQuery.query, recentContributionsQuery.parameters, () => {});
@@ -359,9 +355,7 @@ const updateMessageBody = function (messageBoxId, created, newBody, callback) {
   const body = replaceLinks(newBody);
 
   callbackify(runQuery)('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     MessageBoxAPI.emit(MessageBoxConstants.events.UPDATED_MESSAGE, messageId, newBody);
     callback();
@@ -397,16 +391,12 @@ const getMessagesFromMessageBox = function (messageBoxId, start, limit, options,
   }
 
   _getThreadKeysFromMessageBox(messageBoxId, start, limit, (error, threadKeys, nextToken) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Will maintain the output order of the messages according to their threadkey
     const createdTimestamps = _.map(threadKeys, _parseCreatedFromThreadKey);
     getMessages(messageBoxId, createdTimestamps, { scrubDeleted: options.scrubDeleted }, (error, messages) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       return callback(null, messages, nextToken);
     });
@@ -487,14 +477,10 @@ const getMessagesById = function (messageIds, options, callback) {
   options = options || {};
   options.scrubDeleted = options.scrubDeleted !== false;
 
-  if (_.isEmpty(messageIds)) {
-    return callback(null, []);
-  }
+  if (isEmpty(messageIds)) return callback(null, []);
 
   callbackify(runQuery)('SELECT * FROM "Messages" WHERE "id" IN ?', [messageIds], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     const messages = [];
     _.each(rows, (row) => {

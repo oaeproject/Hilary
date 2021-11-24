@@ -28,8 +28,8 @@ const PACKAGE_JSON = 'package.json';
 const { createTenantRestContext } = TestsUtil;
 
 describe('Git information', () => {
-  before((done) => {
-    redis.flush(done);
+  before(async () => {
+    await redis.flush();
   });
 
   /**

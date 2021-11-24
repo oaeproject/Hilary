@@ -117,17 +117,11 @@ const getClient = () => client;
  * @param  {Function} callback       Standard callback function
  * @param  {Object}   callback.err   An error that occurred, if any
  */
-const flush = function (callback) {
-  const done = (error) => {
-    if (error) return callback({ code: 500, msg: error });
-
-    return callback();
-  };
-
+const flush = async function () {
   if (client) {
-    client.flushall(done);
+    await client.flushall();
   } else {
-    done('Unable to flush redis. Try initializing it first.');
+    throw new Error(JSON.stringify({ code: 500, msg: 'Unable to flush redis. Try initializing it first.' }));
   }
 };
 

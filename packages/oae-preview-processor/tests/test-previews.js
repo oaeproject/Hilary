@@ -463,9 +463,7 @@ describe('Preview processor', () => {
           PreviewTestUtil.purgeFoldersPreviewsQueue(() => {
             // Enable the Preview Processor
             PreviewAPI.enable((error) => {
-              if (error) {
-                return callback(new Error(error.msg));
-              }
+              if (error) return callback(new Error(error.msg));
 
               return callback();
             });
@@ -485,9 +483,7 @@ describe('Preview processor', () => {
 
       // Disable the API
       PreviewAPI.disable((error) => {
-        if (error) {
-          return callback(new Error(error.msg));
-        }
+        if (error) return callback(new Error(error.msg));
 
         return callback();
       });
@@ -932,7 +928,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor only handles http urls.
      */
-    it('verify default link processing only handles http(s)', (callback) => {
+    it.only('verify default link processing only handles http(s)', (callback) => {
       const content = { resourceSubType: 'link', link: 'file://localhost/etc/passwd' };
       PreviewDefaultLinks.test(null, content, (error, score) => {
         assert.notExists(error);

@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 import _ from 'underscore';
 

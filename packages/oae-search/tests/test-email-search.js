@@ -94,7 +94,9 @@ describe('Email Search', () => {
   // Rest context that can be used every time we need to make a request as a global admin
   let asGlobalAdmin = null;
 
-  before((done) => callbackify(flush)(done));
+  before(async () => {
+    await flush();
+  });
 
   /**
    * Function that will fill up the anonymous and admin REST context.

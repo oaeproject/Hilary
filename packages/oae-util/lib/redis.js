@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import process from 'node:process';
 import Redis from 'ioredis';
 import { logger } from 'oae-logger';
@@ -30,10 +31,11 @@ const retryTimeout = 5;
  * @param  {Function} callback          Standard callback function
  */
 const init = function (redisConfig, callback) {
-  createClient(redisConfig, (error, _client) => {
+  callbackify(createClient)(redisConfig, (error, _client) => {
     if (error) return callback(error);
 
     client = _client;
+
     return callback(null, client);
   });
 };
@@ -45,7 +47,7 @@ const init = function (redisConfig, callback) {
  * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
-const createClient = function (_config, callback) {
+const createClient = async function (_config) {
   const log = logger('oae-redis');
   const onTestingEnvironment = equals('true', process.env.OAE_TESTS_RUNNING);
   const notOnTestingEnvironment = not(onTestingEnvironment);
@@ -55,6 +57,7 @@ const createClient = function (_config, callback) {
     host: _config.host,
     db: _config.dbIndex || 0,
     password: _config.pass,
+    lazyConnect: true,
     /**
      * If we are running tests, then we need to tell redis connections NOT to
      * auto-subscribe and NOT to resume previous BRPOPs and such blocking commands
@@ -77,7 +80,12 @@ const createClient = function (_config, callback) {
       true
   };
 
-  const redisClient = Redis.createClient(connectionOptions);
+  const redisClient = new Redis(connectionOptions);
+
+  /**
+   * lazyConnect was true, let's do it manually then
+   */
+  await redisClient.connect();
 
   // Register an error handler.
   redisClient.on('close', () => {
@@ -103,7 +111,8 @@ const createClient = function (_config, callback) {
     isDown = false;
   });
 
-  return callback(null, redisClient);
+  // return callback(null, redisClient);
+  return redisClient;
 };
 
 /**
@@ -141,12 +150,18 @@ const reconnect = (connection, done) => {
  * @param {Function} done Standard callback function
  */
 const reconnectAll = (connections, done) => {
-  if (connections.length === 0) {
-    return done();
-  }
-
-  const someConnection = connections.shift();
-  return reconnect(someConnection, done);
+  callbackify(promiseToReconnectAll)(connections, done);
 };
+
+async function promiseToReconnectAll(connections) {
+  const promises = connections.map(
+    (eachConnection) =>
+      new Promise((resolve, reject) => {
+        eachConnection.connect().then(resolve).catch(reject);
+      })
+  );
+
+  await Promise.all(promises);
+}
 
 export { createClient, getClient, flush, init, reconnect, reconnectAll };

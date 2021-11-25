@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { callbackify, format } from 'node:util';
+import { promisify, callbackify, format } from 'node:util';
 import _ from 'underscore';
 import { map, forEach, isEmpty, when, toString, pipe, prop, defaultTo, mergeAll, of } from 'ramda';
 import ShortId from 'shortid';
@@ -196,7 +196,7 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
     return onEach(_.map(rows, rowToHash), done);
   };
 
-  callbackify(iterateResults)(properties, 'Discussions', 'id', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'Discussions', 'id', { batchSize }, promisify(_iterateAllOnEach), callback);
 };
 
 /**

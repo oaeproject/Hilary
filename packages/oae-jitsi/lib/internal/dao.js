@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { callbackify } from 'node:util';
+import { promisify, callbackify } from 'node:util';
 import { isEmpty, forEach, map, pipe, prop, defaultTo, mergeAll } from 'ramda';
 import _ from 'underscore';
 import ShortId from 'shortid';
@@ -153,7 +153,7 @@ const deleteMeeting = function (meetingId, callback) {
  * @see Cassandra#iterateAll
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
-  if (_.isEmpty(properties)) {
+  if (isEmpty(properties)) {
     properties = ['id'];
   }
 
@@ -167,7 +167,7 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
     return onEach(_.map(rows, rowToHash), done);
   };
 
-  callbackify(iterateResults)(properties, 'MeetingsJitsi', 'id', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'MeetingsJitsi', 'id', { batchSize }, promisify(_iterateAllOnEach), callback);
 };
 
 /**

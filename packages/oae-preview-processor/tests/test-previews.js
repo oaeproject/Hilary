@@ -928,7 +928,7 @@ describe('Preview processor', () => {
     /**
      * Test that verifies the default link processor only handles http urls.
      */
-    it.only('verify default link processing only handles http(s)', (callback) => {
+    it('verify default link processing only handles http(s)', (callback) => {
       const content = { resourceSubType: 'link', link: 'file://localhost/etc/passwd' };
       PreviewDefaultLinks.test(null, content, (error, score) => {
         assert.notExists(error);

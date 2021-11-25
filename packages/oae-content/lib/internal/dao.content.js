@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-import { callbackify, format } from 'node:util';
+import { promisify, callbackify, format } from 'node:util';
 import {
   isResourceACollabDoc,
   isResourceACollabSheet,
@@ -397,7 +397,14 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
     return onEach(_.map(rows, rowToHash), done);
   };
 
-  callbackify(iterateResults)(properties, 'Content', 'contentId', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(
+    properties,
+    'Content',
+    'contentId',
+    { batchSize },
+    promisify(_iterateAllOnEach),
+    callback
+  );
 };
 
 /**

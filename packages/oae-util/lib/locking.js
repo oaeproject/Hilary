@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import Redlock from 'redlock';
 
 import { logger } from 'oae-logger';
@@ -31,28 +32,29 @@ let locker;
  * Initialize the Redis based locking
  */
 const init = (done) => {
-  Redis.createClient(config.redis, (error, client) => {
-    if (error) return done(error);
-    locker = new Redlock([client], {
-      /**
-       *
-       * Redlock cannot tell you with certainty if a resource is currently locked.
-       * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
-       * but you don't know if the lock exists on the other side; all you know is that you can't
-       * guarantee exclusivity on yours.
-       *
-       * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
-       * failure as the resource being "locked" or (more correctly) "unavailable",
-       * With retryCount=-1 there will be unlimited retries until the lock is aquired.
-       */
-      retryDelay: 500, // the time in ms between attempts
-      retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
-      retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
-    });
-
-    return done(null, locker);
-  });
+  callbackify(promiseToInit)(done);
 };
+
+async function promiseToInit() {
+  const client = await Redis.createClient(config.redis);
+  locker = new Redlock([client], {
+    /**
+     * Redlock cannot tell you with certainty if a resource is currently locked.
+     * For example, if you are on the smaller side of a network partition you will fail to acquire a lock,
+     * but you don't know if the lock exists on the other side; all you know is that you can't
+     * guarantee exclusivity on yours.
+     *
+     * That said, for many tasks it's sufficient to attempt a lock with retryCount=0, and treat a
+     * failure as the resource being "locked" or (more correctly) "unavailable",
+     * With retryCount=-1 there will be unlimited retries until the lock is aquired.
+     */
+    retryDelay: 500, // the time in ms between attempts
+    retryJitter: 500, // the max time in ms randomly added to retries to improve performance under high contention
+    retryCount: 0 // the max number of times Redlock will attempt to lock a resource before erroring
+  });
+
+  return locker;
+}
 
 /**
  * Try and acquire a temporary lock with the specified key. The lock key should be unique to your module, so it

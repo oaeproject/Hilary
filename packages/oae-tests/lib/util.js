@@ -166,7 +166,7 @@ const clearAllData = function (callback) {
     // Flush the data from redis, so we can recreate our admins
     // And by doing that we also clean the preview processing queues
     // instead of waiting on them to be empty
-    Redis.flush((error) => {
+    callbackify(Redis.flush)((error) => {
       assert.notExists(error);
 
       // Mock a global admin request context so we can create a proper global administrator in the system
@@ -1368,7 +1368,7 @@ const setUpBeforeTests = function (config, dropKeyspaceBeforeTest, callback) {
  * @param  {Function}    callback    Standard callback function
  */
 const cleanUpAfterTests = (callback) => {
-  Redis.flush((error) => {
+  callbackify(Redis.flush)((error) => {
     if (error) log().error({ err: error }, 'Error flushing Redis data after test completion');
 
     return callback();

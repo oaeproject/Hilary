@@ -463,9 +463,7 @@ describe('Preview processor', () => {
           PreviewTestUtil.purgeFoldersPreviewsQueue(() => {
             // Enable the Preview Processor
             PreviewAPI.enable((error) => {
-              if (error) {
-                return callback(new Error(error.msg));
-              }
+              if (error) return callback(new Error(error.msg));
 
               return callback();
             });
@@ -485,9 +483,7 @@ describe('Preview processor', () => {
 
       // Disable the API
       PreviewAPI.disable((error) => {
-        if (error) {
-          return callback(new Error(error.msg));
-        }
+        if (error) return callback(new Error(error.msg));
 
         return callback();
       });

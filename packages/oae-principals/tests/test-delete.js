@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 import _ from 'underscore';
 
@@ -2614,7 +2615,7 @@ describe('Principals Delete and Restore', () => {
                 (error /* , affectedUsers */) => {
                   assert.notExists(error);
                   // Update redis and search since we updated outside the scope of the API
-                  Redis.flush((error_) => {
+                  callbackify(Redis.flush)((error_) => {
                     assert.notExists(error_);
 
                     PrincipalsTestUtil.assertGetUserFails(user1.restContext, user1.user.id, 404, () => {
@@ -2627,7 +2628,7 @@ describe('Principals Delete and Restore', () => {
                             (error /* , affectedUsers */) => {
                               assert.notExists(error);
 
-                              Redis.flush((error_) => {
+                              callbackify(Redis.flush)((error_) => {
                                 assert.notExists(error_);
 
                                 PrincipalsTestUtil.assertGetUserSucceeds(user1.restContext, user1.user.id, () => {

@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { callbackify, format } from 'node:util';
+import { promisify, callbackify, format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 import { setUpConfig } from 'oae-config';
@@ -586,7 +586,7 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
     'Principals',
     'principalId',
     { batchSize },
-    _iterateAllOnEach,
+    promisify(_iterateAllOnEach),
     callback
   );
 };

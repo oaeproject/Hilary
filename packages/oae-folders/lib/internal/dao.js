@@ -14,7 +14,7 @@
  */
 
 /* eslint-disable unicorn/no-array-callback-reference */
-import { callbackify, format } from 'node:util';
+import { promisify, callbackify, format } from 'node:util';
 import _ from 'underscore';
 import ShortId from 'shortid';
 import { mergeAll, isEmpty, defaultTo, pipe, prop, when, of } from 'ramda';
@@ -270,7 +270,7 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
     return onEach(_.map(rows, rowToHash), done);
   };
 
-  callbackify(iterateResults)(properties, 'Folders', 'id', { batchSize }, _iterateAllOnEach, callback);
+  callbackify(iterateResults)(properties, 'Folders', 'id', { batchSize }, promisify(_iterateAllOnEach), callback);
 };
 
 /**

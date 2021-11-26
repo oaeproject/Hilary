@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { EventEmitter } from 'oae-emitter';
 import * as Redis from './redis.js';
 import { Validator as validator } from './validator.js';
@@ -40,15 +41,15 @@ const init = function (config, callback) {
   // Only init if the connections haven't been opened.
   if (redisManager === null) {
     // Create 3 clients, one for managing redis and 2 for the actual pub/sub communication.
-    Redis.createClient(config, (error, client) => {
+    callbackify(Redis.createClient)(config, (error, client) => {
       if (error) return callback(error);
 
       redisManager = client;
-      Redis.createClient(config, (error, client) => {
+      callbackify(Redis.createClient)(config, (error, client) => {
         if (error) return callback(error);
 
         redisSubscriber = client;
-        Redis.createClient(config, (error, client) => {
+        callbackify(Redis.createClient)(config, (error, client) => {
           if (error) return callback(error);
 
           redisPublisher = client;

@@ -14,6 +14,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import process from 'node:process';
 import _ from 'underscore';
 
@@ -169,7 +170,7 @@ const init = function (config, callback) {
 
   // Only init if the connections haven't been opened
   if (hasNotBeenCreated) {
-    Redis.createClient(config, (error, client) => {
+    callbackify(Redis.createClient)(config, (error, client) => {
       if (error) return callback(error);
       theRedisPurger = client;
       theRedisPurger.queueName = MQConstants.staticConnectionNames.THE_PURGER;
@@ -543,7 +544,7 @@ const quitAllConnectedClients = () => {
  * @param  {Function} callback  Standard callback function
  */
 const createNewClient = (queueName, callback) => {
-  Redis.createClient(redisConfig, (error, client) => {
+  callbackify(Redis.createClient)(redisConfig, (error, client) => {
     if (error) return callback(error);
 
     client.queueName = queueName;
@@ -558,13 +559,7 @@ const createNewClient = (queueName, callback) => {
  * @param  {Function} callback  Standard callback function
  */
 const reconnectClient = (queueName, callback) => {
-  const subscriber = subscribers[queueName];
-  Redis.reconnect(subscriber, (error) => {
-    if (error) return callback(error);
-
-    subscribers[queueName] = subscriber;
-    return callback(null, subscriber);
-  });
+  callbackify(Redis.reconnect)(subscribers[queueName], (_error) => callback(null, subscribers[queueName]));
 };
 
 /**

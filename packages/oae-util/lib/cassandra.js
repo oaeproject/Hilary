@@ -17,6 +17,7 @@ import { format, callbackify } from 'node:util';
 import _ from 'underscore';
 import {
   keys as getKeys,
+  is,
   not,
   equals,
   of,
@@ -588,7 +589,10 @@ async function _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyCo
   ];
 
   const query = _buildIterateAllQuery(columnNames, columnFamily, keyColumnName, batchSize, fromKey);
-  // Since runQuery jumps into a new process tick, there is no issue over this recursion exceeding stack size with large data-sets
+  /**
+   * Since runQuery jumps into a new process tick,
+   * there is no issue over this recursion exceeding stack size with large data-sets
+   */
   let rows = await runQuery(query.query, query.parameters);
 
   // Notify the caller that we've finished
@@ -628,12 +632,10 @@ async function _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyCo
      * (in the same processor tick) then we can still catch the error
      * and invoke the callback with it
      */
-    onEach(rows, async (error_) => {
-      if (error_) return error_;
+    await onEach(rows);
 
-      // Start the next iteration
-      await _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, batchSize, onEach, fromKey);
-    });
+    // Start the next iteration
+    await _iterateAll(columnNames, columnFamily, keyColumnName, returnKeyColumn, batchSize, onEach, fromKey);
   } catch (error) {
     log().error({ err: error }, 'Error invoking consumer onEach during iterateAll');
     throw new Error(JSON.stringify({ code: 500, msg: error.message }));
@@ -901,7 +903,7 @@ const _truncateLogParameters = function (error, query, parameters) {
  * @api private
  */
 const _truncateString = function (string, ifOverSize) {
-  if (_.isString(string) && string.length > ifOverSize) {
+  if (is(String, string) && string.length > ifOverSize) {
     string = format('%s (and %s more)', string.slice(0, ifOverSize), string.length - ifOverSize);
   }
 

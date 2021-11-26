@@ -14,7 +14,7 @@
  */
 
 import { assert } from 'chai';
-import { is, forEach, map, head, keys, range } from 'ramda';
+import { equals, of, is, forEach, map, head, keys, range } from 'ramda';
 import * as OaeUtil from 'oae-util/lib/util.js';
 import * as TestsUtil from 'oae-tests/lib/util.js';
 
@@ -188,10 +188,9 @@ describe('Utilities', () => {
       let numberInvoked = 0;
 
       // Verify the callback is only invoked once, and when it does it is marked complete, without an error
-      await iterateAll(['colOne', 'colTwo'], 'testIterateAllEmpty', 'keyId', null, (rows, done) => {
+      await iterateAll(['colOne', 'colTwo'], 'testIterateAllEmpty', 'keyId', null, (rows) => {
         assert.isNotOk(rows, 'Expected no rows to be specified');
         assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
-        done();
       });
     });
 
@@ -218,7 +217,7 @@ describe('Utilities', () => {
       await runBatchQuery(batch);
 
       try {
-        await iterateAll(null, 'testIterateAllException', 'keyId', null, (rows, _done) => {
+        await iterateAll(null, 'testIterateAllException', 'keyId', null, (rows) => {
           // Ensure we return only once, and then throw an error to ensure it gets caught
           assert.isNotOk(invoked);
           assert.ok(rows);
@@ -247,22 +246,21 @@ describe('Utilities', () => {
       );
       assert.ok(created);
 
-      const batch = [];
-      batch.push(
-        constructUpsertCQL('testIterateAllAllColumns', 'keyId', 'key1', {
-          colOne: 'one',
-          colTwo: 'two'
-        })
+      await runBatchQuery(
+        of(
+          constructUpsertCQL('testIterateAllAllColumns', 'keyId', 'key1', {
+            colOne: 'one',
+            colTwo: 'two'
+          })
+        )
       );
-
-      await runBatchQuery(batch);
 
       let numberInvoked = 0;
 
       /*!
        * Verifies that the onEach is invoked only once and that only one row is returned
        */
-      const _onEach = function (rows, done) {
+      let _onEach = function (rows) {
         assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
         assert.ok(rows, 'Expected there to be rows provided to the onEach');
         assert.strictEqual(rows.length, 1, 'Expected there to be exactly one row');
@@ -271,42 +269,38 @@ describe('Utilities', () => {
         assert.strictEqual(rows[0].get('keyId'), 'key1', 'Invalid value for keyId');
         assert.strictEqual(rows[0].get('colOne'), 'one', 'Invalid value for colOne');
         assert.strictEqual(rows[0].get('colTwo'), 'two', 'Invalid value for colTwo');
-
-        done();
       };
 
       /**
        * Verify the callback is only invoked once,
        * and when it does it is marked complete, without an error
        */
-      await iterateAll(null, 'testIterateAllAllColumns', 'keyId', null, _onEach, async (error__) => {
-        assert.notExists(error__);
+      await iterateAll(null, 'testIterateAllAllColumns', 'keyId', null, _onEach);
+      numberInvoked = 0;
 
-        numberInvoked = 0;
+      /*!
+       * Verifies that the onEach is invoked only once,
+       * that only one row is returned and it only contains
+       * the colOne column
+       */
+      _onEach = function (rows) {
+        assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
+        assert.ok(rows, 'Expected a rows object to be specified');
+        assert.strictEqual(rows.length, 1, 'Expected there to be exactly one row');
 
-        /*!
-         * Verifies that the onEach is invoked only once,
-         * that only one row is returned and it only contains
-         * the colOne column
-         */
-        const _onEach = function (rows, done) {
-          assert.strictEqual(++numberInvoked, 1, 'Expected onEach to only be invoked once');
-          assert.ok(rows, 'Expected a rows object to be specified');
-          assert.strictEqual(rows.length, 1, 'Expected there to be exactly one row');
+        // Verify only colOne is set
+        assert.isNotOk(rows[0].get('keyId'), 'Expected the keyId not to be fetched');
+        assert.isNotOk(rows[0].get('colTwo'), 'expected no colTwo column to be fetched');
+        assert.strictEqual(rows[0].get('colOne'), 'one', 'Invalid value for colOne');
+      };
 
-          // Verify only colOne is set
-          assert.isNotOk(rows[0].get('keyId'), 'Expected the keyId not to be fetched');
-          assert.isNotOk(rows[0].get('colTwo'), 'expected no colTwo column to be fetched');
-          assert.strictEqual(rows[0].get('colOne'), 'one', 'Invalid value for colOne');
+      // Iterate all again with just one column specified and verify only the one column returns
 
-          done();
-        };
-
-        // Iterate all again with just one column specified and verify only the one column returns
-        await iterateAll(['colOne'], 'testIterateAllAllColumns', 'keyId', null, _onEach, (error_) => {
-          assert.isNotOk(error_, JSON.stringify(error_, null, 2));
-        });
-      });
+      try {
+        await iterateAll(['colOne'], 'testIterateAllAllColumns', 'keyId', null, _onEach);
+      } catch (error) {
+        assert.isNotOk(error, JSON.stringify(error, null, 2));
+      }
     });
 
     /**
@@ -317,20 +311,14 @@ describe('Utilities', () => {
         'testIterateAllPaging',
         'CREATE TABLE "testIterateAllPaging" ("keyId" text PRIMARY KEY, "colOne" text, "colTwo" text)'
       );
-
       assert.ok(created);
 
-      // Create 10 rows to page through
-      const batch = [];
-      for (let i = 0; i < 10; i++) {
-        batch.push(
-          constructUpsertCQL('testIterateAllPaging', 'keyId', 'key' + i, {
-            colOne: 'colOne' + i,
-            colTwo: 'colTwo' + i
-          })
-        );
-      }
-
+      const batch = [...Array.from({ length: 10 })].map((_eachQuery, counter) =>
+        constructUpsertCQL('testIterateAllPaging', 'keyId', 'key' + counter, {
+          colOne: 'colOne' + counter,
+          colTwo: 'colTwo' + counter
+        })
+      );
       await runBatchQuery(batch);
 
       let numberInvoked = 0;
@@ -341,109 +329,116 @@ describe('Utilities', () => {
        * and aggregates them so we can inspect their
        * data when finished.
        */
-      const _onEach = function (rows, done) {
+      let _onEach = function (rows) {
         numberInvoked++;
         // Store the row so we can verify them all later
-        assert.strictEqual(rows.length, 1, 'Expected to only get 1 row at a time');
-        allRows[rows[0].get('keyId')] = rows[0];
-
-        done();
+        assert.lengthOf(rows, 1, 'Expected to only get 1 row at a time');
+        allRows[head(rows).get('keyId')] = head(rows);
       };
 
       // Verify paging all 10 items by batches of size 1
-      await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 1 }, _onEach, async (error__) => {
-        assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+      try {
+        await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 1 }, _onEach);
         assert.strictEqual(numberInvoked, 10, 'Expected to have exactly 10 batches of data');
+      } catch {
+        assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+      }
 
-        // Verify the contents of all the rows
-        assert.strictEqual(keys(allRows).length, 10, 'Expected exactly 10 distinct rows');
-        for (let i = 0; i < 10; i++) {
-          const key = 'key' + i;
-          assert.ok(allRows[key], 'Expected to get a row with key ' + key);
-          assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i, 'Invalid colOne value');
-          assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i, 'Invalid colTwo value');
+      // Verify the contents of all the rows
+      assert.lengthOf(keys(allRows), 10, 'Expected exactly 10 distinct rows');
+      for (let i = 0; i < 10; i++) {
+        const key = 'key' + i;
+        assert.ok(allRows[key], 'Expected to get a row with key ' + key);
+        assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i, 'Invalid colOne value');
+        assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i, 'Invalid colTwo value');
+      }
+
+      // Verify paging of all 10 items by batches of size 5
+      numberInvoked = 0;
+      allRows = {};
+
+      /*!
+       * Verifies that the onEach is invoked with 5 rows at a time,
+       * and aggregates them so we can
+       * inspect their data when finished.
+       */
+      _onEach = function (rows) {
+        numberInvoked++;
+        // Record the rows so we can verify their contents at the end
+        assert.lengthOf(rows, 5);
+        for (let i = 0; i < 5; i++) {
+          allRows[rows[i].get('keyId')] = rows[i];
         }
+      };
 
-        // Verify paging of all 10 items by batches of size 5
-        numberInvoked = 0;
-        allRows = {};
+      try {
+        await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 5 }, _onEach);
+        assert.strictEqual(numberInvoked, 2, 'Expected the onEach to be invoked exactly 2 times');
+      } catch {
+        // assert.isNotOk(error__, JSON.stringify(error__, null, 4));
+      }
 
-        /*!
-         * Verifies that the onEach is invoked with 5 rows at a time,
-         * and aggregates them so we can
-         * inspect their data when finished.
+      // Verify the contents of all the rows
+      assert.lengthOf(keys(allRows), 10);
+      for (let i = 0; i < 10; i++) {
+        const key = 'key' + i;
+        assert.ok(allRows[key]);
+        assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
+        assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
+      }
+
+      // Verify paging of all 10 items by batches of size 7
+      numberInvoked = 0;
+      allRows = {};
+
+      const isOne = equals(1);
+      const isTwo = equals(2);
+
+      /*!
+       * Verifies that the onEach is called once with 7 rows,
+       * and then once with 3 rows, and aggregates
+       * them so we can inspect their data when finished.
+       */
+      _onEach = function (rows) {
+        numberInvoked++;
+        assert.ok(rows);
+        /**
+         * The first batch should contain exactly 7 rows.
+         * Record them to verify the data when done iterating.
          */
-        const _onEach = function (rows, done) {
-          numberInvoked++;
-          // Record the rows so we can verify their contents at the end
-          assert.strictEqual(rows.length, 5);
-          for (let i = 0; i < 5; i++) {
+        if (isOne(numberInvoked)) {
+          assert.lengthOf(rows, 7);
+          for (let i = 0; i < 7; i++) {
             allRows[rows[i].get('keyId')] = rows[i];
           }
 
-          done();
-        };
-
-        await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 5 }, _onEach, async (error__) => {
-          assert.isNotOk(error__, JSON.stringify(error__, null, 4));
-          assert.strictEqual(numberInvoked, 2, 'Expected the onEach to be invoked exactly 2 times');
-
-          // Verify the contents of all the rows
-          assert.strictEqual(keys(allRows).length, 10);
-          for (let i = 0; i < 10; i++) {
-            const key = 'key' + i;
-            assert.ok(allRows[key]);
-            assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
-            assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
-          }
-
-          // Verify paging of all 10 items by batches of size 7
-          numberInvoked = 0;
-          allRows = {};
-
-          /*!
-           * Verifies that the onEach is called once with 7 rows,
-           * and then once with 3 rows, and aggregates
-           * them so we can inspect their data when finished.
+          /**
+           * The second batch should contain exactly 3 rows.
+           * Record them to verify the data when done iterating.
            */
-          const _onEach = function (rows, done) {
-            numberInvoked++;
-            if (numberInvoked === 1) {
-              assert.ok(rows);
+        } else if (isTwo(numberInvoked)) {
+          assert.lengthOf(rows, 3);
+          for (let ii = 0; ii < 3; ii++) {
+            allRows[rows[ii].get('keyId')] = rows[ii];
+          }
+        }
+      };
 
-              // The first batch should contain exactly 7 rows. Record them to verify the data when done iterating.
-              assert.strictEqual(rows.length, 7);
-              for (let i = 0; i < 7; i++) {
-                allRows[rows[i].get('keyId')] = rows[i];
-              }
-            } else if (numberInvoked === 2) {
-              assert.ok(rows);
+      try {
+        await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 7 }, _onEach);
+        assert.strictEqual(numberInvoked, 2, 'Expected the onEach callback to be invoked exactly twice');
+      } catch (error) {
+        assert.isNotOk(error, JSON.stringify(error, null, 4));
+      }
 
-              // The second batch should contain exactly 3 rows. Record them to verify the data when done iterating.
-              assert.strictEqual(rows.length, 3);
-              for (let ii = 0; ii < 3; ii++) {
-                allRows[rows[ii].get('keyId')] = rows[ii];
-              }
-            }
-
-            done();
-          };
-
-          await iterateAll(null, 'testIterateAllPaging', 'keyId', { batchSize: 7 }, _onEach, (error__) => {
-            assert.isNotOk(error__, JSON.stringify(error__, null, 4));
-            assert.strictEqual(numberInvoked, 2, 'Expected the onEach callback to be invoked exactly twice');
-
-            // Verify the contents of all the rows
-            assert.strictEqual(keys(allRows).length, 10);
-            for (let i = 0; i < 10; i++) {
-              const key = 'key' + i;
-              assert.ok(allRows[key]);
-              assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
-              assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
-            }
-          });
-        });
-      });
+      // Verify the contents of all the rows
+      assert.lengthOf(keys(allRows), 10);
+      for (let i = 0; i < 10; i++) {
+        const key = 'key' + i;
+        assert.ok(allRows[key]);
+        assert.strictEqual(allRows[key].get('colOne'), 'colOne' + i);
+        assert.strictEqual(allRows[key].get('colTwo'), 'colTwo' + i);
+      }
     });
 
     /**

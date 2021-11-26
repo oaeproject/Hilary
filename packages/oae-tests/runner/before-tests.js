@@ -45,7 +45,7 @@ before((callback) => {
   callbackify(createInitialTestConfig)((error, config) => {
     if (error) return callback(error);
     setUpBeforeTests(config, dropKeyspaceBeforeTest, () => {
-      flush((error) => {
+      callbackify(flush)((error) => {
         if (error) {
           log().warn('Not able to flush redis');
         }

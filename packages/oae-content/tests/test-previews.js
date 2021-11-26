@@ -14,6 +14,7 @@
  */
 /* eslint-disable camelcase */
 
+import { callbackify } from 'node:util';
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -117,7 +118,7 @@ describe('File previews', () => {
       getMe(asGlobalAdminOnTenant, (error, user) => {
         assert.notExists(error);
         assert.isNotOk(user.anon);
-        flush(callback);
+        callbackify(flush)(callback);
       });
     });
   });

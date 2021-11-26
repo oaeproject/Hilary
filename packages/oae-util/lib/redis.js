@@ -44,7 +44,6 @@ const init = function (redisConfig, callback) {
  * Creates a redis connection from a defined set of configuration.
  *
  * @param  {Object}   _config      A redis configuration object
- * @param  {Function} callback      Standard callback function
  * @return {RedisClient}            A redis client that is configured with the given configuration
  */
 const createClient = async function (_config) {
@@ -111,7 +110,6 @@ const createClient = async function (_config) {
     isDown = false;
   });
 
-  // return callback(null, redisClient);
   return redisClient;
 };
 
@@ -122,9 +120,6 @@ const getClient = () => client;
 
 /**
  * Flushes all messages from the system that we're currently pushing to.
- *
- * @param  {Function} callback       Standard callback function
- * @param  {Object}   callback.err   An error that occurred, if any
  */
 const flush = async function () {
   if (client) {
@@ -138,16 +133,12 @@ const flush = async function () {
  * Reconnect a previously closed redis connection
  *
  * @param {Object} connection A redis client created by ioredis (which should be closed)
- * @param {Function} done Standard callback function
  */
-const reconnect = (connection, done) => {
-  connection.connect(() => done());
-};
+const reconnect = (connection) => connection.connect();
 
 /**
  * @function reconnectAll
  * @param  {Array} connections Array of connections to reconnect one after the other
- * @param {Function} done Standard callback function
  */
 const reconnectAll = (connections, done) => {
   callbackify(promiseToReconnectAll)(connections, done);

@@ -559,13 +559,7 @@ const createNewClient = (queueName, callback) => {
  * @param  {Function} callback  Standard callback function
  */
 const reconnectClient = (queueName, callback) => {
-  const subscriber = subscribers[queueName];
-  Redis.reconnect(subscriber, (error) => {
-    if (error) return callback(error);
-
-    subscribers[queueName] = subscriber;
-    return callback(null, subscriber);
-  });
+  callbackify(Redis.reconnect)(subscribers[queueName], (_error) => callback(null, subscribers[queueName]));
 };
 
 /**

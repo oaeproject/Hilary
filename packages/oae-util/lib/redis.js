@@ -18,11 +18,12 @@ import process from 'node:process';
 import Redis from 'ioredis';
 import { logger } from 'oae-logger';
 
-import { equals, not } from 'ramda';
+import { defaultTo, equals, not } from 'ramda';
 
 let client = null;
 let isDown = false;
 const retryTimeout = 5;
+const TRUE = 'true';
 
 /**
  * Initialize this Redis utility.
@@ -31,14 +32,13 @@ const retryTimeout = 5;
  * @param  {Function} callback          Standard callback function
  */
 const init = function (redisConfig, callback) {
-  callbackify(createClient)(redisConfig, (error, _client) => {
-    if (error) return callback(error);
-
-    client = _client;
-
-    return callback(null, client);
-  });
+  callbackify(promiseToInit)(redisConfig, callback);
 };
+
+async function promiseToInit(redisConfig) {
+  client = await createClient(redisConfig);
+  return client;
+}
 
 /**
  * Creates a redis connection from a defined set of configuration.
@@ -48,13 +48,13 @@ const init = function (redisConfig, callback) {
  */
 const createClient = async function (_config) {
   const log = logger('oae-redis');
-  const onTestingEnvironment = equals('true', process.env.OAE_TESTS_RUNNING);
+  const onTestingEnvironment = equals(TRUE, process.env.OAE_TESTS_RUNNING);
   const notOnTestingEnvironment = not(onTestingEnvironment);
 
   const connectionOptions = {
     port: _config.port,
     host: _config.host,
-    db: _config.dbIndex || 0,
+    db: defaultTo(0, _config.dbIndex),
     password: _config.pass,
     lazyConnect: true,
     /**
@@ -63,20 +63,24 @@ const createClient = async function (_config) {
      */
     autoResendUnfulfilledCommands: notOnTestingEnvironment,
     autoResubscribe: notOnTestingEnvironment,
-    // By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed
-    // Check https://github.com/luin/ioredis#auto-reconnect
+    /**
+     * By default, ioredis will try to reconnect when the connection to Redis
+     * is lost except when the connection is closed
+     *
+     * Check https://github.com/luin/ioredis#auto-reconnect
+     */
     retryStrategy: () => {
       log().error('Error connecting to redis, retrying in ' + retryTimeout + 's...');
       isDown = true;
-      if (notOnTestingEnvironment) {
-        return retryTimeout * 1000;
-      }
+      if (notOnTestingEnvironment) return retryTimeout * 1000;
 
       return null;
     },
-    reconnectOnError: () =>
-      // Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the reconnectOnError option.
-      true
+    /**
+     * Besides auto-reconnect when the connection is closed,
+     * ioredis supports reconnecting on the specified errors by the reconnectOnError option.
+     */
+    reconnectOnError: () => true
   };
 
   const redisClient = new Redis(connectionOptions);

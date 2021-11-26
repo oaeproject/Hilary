@@ -98,13 +98,12 @@ const refreshConfiguration = function (config, callback) {
 
   log().info({ config }, 'Refreshing activity configuration');
 
-  // Configure redis. Either uses the main connection pool, or a dedicated one if config.activity.redis was configured
-  let redisClient = Redis.getClient();
-  if (config.redis) {
-    redisClient = Redis.createClient(config.redis);
-  }
-
-  ActivityDAO.init(redisClient);
+  /**
+   * Configure redis.
+   * Either uses the main connection pool,
+   * or a dedicated one if config.activity.redis was configured
+   */
+  ActivityDAO.init(Redis.getClient());
 
   // Reset the collection polling interval
   clearInterval(collectionPollingTimer);

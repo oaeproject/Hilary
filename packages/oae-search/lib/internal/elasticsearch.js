@@ -50,9 +50,9 @@ let client = null;
 /**
  * Helper functions
  */
-const justTheOne = compose(isOne, length, keys);
 const returned200 = propEq('statusCode', 200);
 const isOne = equals(1);
+const justTheOne = compose(isOne, length, keys);
 const firstKeyOf = compose(head, keys);
 
 /**
@@ -408,11 +408,41 @@ const transformEachOperation = (eachOperation) => {
   return eachOperation;
 };
 
+const _reportErrors = (bulkResponse, error, operationsToRun) => {
+  if (bulkResponse.errors) {
+    const erroredDocuments = [];
+    /**
+     * The items array has the same order of the dataset we just indexed.
+     * The presence of the `error` key indicates that the operation
+     * that we did for the document has failed.
+     */
+    for (const [i, action] of bulkResponse.items.entries()) {
+      const operation = pipe(keys, head)(action);
+      if (action[operation].error) {
+        erroredDocuments.push({
+          /**
+           * If the status is 429 it means that you can retry the document,
+           * otherwise it's very likely a mapping error, and you should
+           * fix the document before to try it again.
+           */
+          status: action[operation].status,
+          error: action[operation].error,
+          operation: operationsToRun[i * 2],
+          document: operationsToRun[i * 2 + 1]
+        });
+      }
+    }
+
+    _logError(BULK, erroredDocuments);
+    throw error;
+  }
+};
+
 const bulk = async (operationsToRun) => {
-  const transformOperations = map(transformEachOperation);
   const start = Date.now();
   let bulkResponse;
 
+  const transformOperations = map(transformEachOperation);
   operationsToRun = pipe(transformOperations, insertRoutingIntoActionPairs)(operationsToRun);
   log().trace({ operations: operationsToRun }, 'Performing a bulk set of operations.');
 
@@ -424,34 +454,7 @@ const bulk = async (operationsToRun) => {
     });
   } catch (error) {
     _logError(BULK, error);
-
-    if (bulkResponse.errors) {
-      const erroredDocuments = [];
-      /**
-       * The items array has the same order of the dataset we just indexed.
-       * The presence of the `error` key indicates that the operation
-       * that we did for the document has failed.
-       */
-      for (const [i, action] of bulkResponse.items.entries()) {
-        const operation = pipe(keys, head)(action);
-        if (action[operation].error) {
-          erroredDocuments.push({
-            /**
-             * If the status is 429 it means that you can retry the document,
-             * otherwise it's very likely a mapping error, and you should
-             * fix the document before to try it again.
-             */
-            status: action[operation].status,
-            error: action[operation].error,
-            operation: operationsToRun[i * 2],
-            document: operationsToRun[i * 2 + 1]
-          });
-        }
-      }
-
-      _logError(BULK, erroredDocuments);
-      throw error;
-    }
+    _reportErrors(bulkResponse, error, operationsToRun);
   } finally {
     Telemetry.appendDuration('exec.' + BULK + '.time', start);
   }

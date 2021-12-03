@@ -82,13 +82,13 @@ OAE.init(config, (error) => {
   }
 
   log().info('Iterating over etherpad keys, depending on the amount of data in Etherpad this could take a while');
-  callbackify(Cassandra.iterateAll)(['key'], 'Etherpad', 'key', { batchSize: 500 }, _deleteSessionRows, (error) => {
-    if (error) {
-      log().error({ err: error }, 'An error occurred whilst deleting Etherpad keys');
-      process.exit(1);
-    }
+  try {
+    Cassandra.iterateAll(['key'], 'Etherpad', 'key', { batchSize: 500 }, _deleteSessionRows);
+  } catch (error) {
+    log().error({ err: error }, 'An error occurred whilst deleting Etherpad keys');
+    process.exit(1);
+  }
 
-    log().info('%d session keys have been deleted', totalDeletedKeys);
-    process.exit(0);
-  });
+  log().info('%d session keys have been deleted', totalDeletedKeys);
+  process.exit(0);
 });

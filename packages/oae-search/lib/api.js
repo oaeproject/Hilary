@@ -331,7 +331,7 @@ const refreshSearchConfiguration = function (searchConfig, callback) {
  * @param  {Object}     callback.err    An error that occurred, if any
  */
 const buildIndex = (destroy, callback) => {
-  _ensureIndex(index.name, index.settings, destroy, (error) => {
+  callbackify(_ensureIndex)(index.name, index.settings, destroy, (error) => {
     if (error) return callback(error);
 
     return _ensureSearchSchema(null, callback);
@@ -374,7 +374,7 @@ const search = function (ctx, searchType, options, callback) {
     options.storedFields = '*';
 
     // Perform the search with the query data
-    client.search(queryBody, options, (error, elasticSearchResponse) => {
+    callbackify(client.search)(queryBody, options, (error, elasticSearchResponse) => {
       if (error) {
         log().error({ err: error }, 'An unexpected error occurred performing a search');
         return callback({ code: 500, msg: 'An unexpected error occurred performing the search' });
@@ -491,44 +491,35 @@ const postDeleteTask = function (id, children, callback) {
  * @param  {Object}     indexSettings           The settings of the index
  * @param  {Object[]}   indexSettings.hosts     An array of hosts (e.g., `[{ "host": "localhost", "port": 9200 }]`) to use
  * @param  {Boolean}    destroy                 If true, the index will be destroyed if it exists, then recreated
- * @param  {Function}   callback                Standard callback function
- * @param  {Object}     callback.err            An error that occurred, if any
  * @api private
  */
-const _ensureIndex = function (indexName, indexSettings, destroy, callback) {
+const _ensureIndex = async function (indexName, indexSettings, destroy) {
   if (destroy) {
     log().info('Destroying index "%s"', indexName);
-    client.deleteIndex(indexName, (error) => {
-      if (error) return callback(error);
+    await client.deleteIndex(indexName);
 
-      client.createIndex(indexName, indexSettings, (error) => {
-        if (error) {
-          log().error({ err: error }, 'Error recreating index "%s" after deletion.', indexName);
-          return callback(error);
-        }
+    try {
+      await client.createIndex(indexName, indexSettings);
+    } catch (error) {
+      log().error({ err: error }, 'Error recreating index "%s" after deletion.', indexName);
+      throw error;
+    }
 
-        /**
-         * Create the children / parent relationship, which must be done as a one-off operation
-         * Check the documentation:
-         * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
-         */
-        client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren, (error) => {
-          if (error) return callback(error);
+    /**
+     * Create the children / parent relationship, which must be done as a one-off operation
+     * Check the documentation:
+     * https://www.elastic.co/guide/en/elasticsearch/reference/current/parent-join.html#_multiple_children_per_parent
+     */
+    await client.mapChildrenToParent(SearchConstants.search.MAPPING_RESOURCE, resourceChildren);
 
-          log().info('Recreated index "%s" after deletion', indexName);
-          return callback();
-        });
-      });
-    });
+    log().info('Recreated index "%s" after deletion', indexName);
   } else {
-    client.createIndex(indexName, indexSettings, (error) => {
-      if (error) {
-        log().error({ err: error }, 'Error creating index "%s"', indexName);
-        return callback(error);
-      }
-
-      return callback();
-    });
+    try {
+      await client.createIndex(indexName, indexSettings);
+    } catch (error) {
+      log().error({ err: error }, 'Error creating index "%s"', indexName);
+      throw error;
+    }
   }
 };
 
@@ -552,7 +543,7 @@ const _ensureSearchSchema = (names, callback) => {
     return callbackify(importSchema)('./schema/resource-schema.js', (error, resourceSchema) => {
       if (error) return callback(error);
 
-      return client.putMapping(resourceSchema, null, (error) => {
+      return callbackify(client.putMapping)(resourceSchema, null, (error) => {
         if (error) return callback(error);
 
         return _ensureSearchSchema(keys(childSearchDocuments), callback);
@@ -581,7 +572,7 @@ const _ensureSearchSchema = (names, callback) => {
  * @api private
  */
 const _createChildSearchDocumentMapping = (schema, callback) => {
-  client.putMapping(schema, null, callback);
+  callbackify(client.putMapping)(schema, null, callback);
 };
 
 /**
@@ -721,12 +712,12 @@ const _deleteAll = function (deletes, callback) {
 
   // Perform the appropriate delete operations
   if (del.deleteType === 'id') {
-    return client.del(del.documentType, del.id, _handleDocumentsDeleted);
+    return callbackify(client.del)(del.documentType, del.id, _handleDocumentsDeleted);
   }
 
   if (del.deleteType === 'query') {
     const query = { query: del.query };
-    return client.deleteByQuery(del.documentType, query, null, _handleDocumentsDeleted);
+    return callbackify(client.deleteByQuery)(del.documentType, query, null, _handleDocumentsDeleted);
   }
 };
 
@@ -810,7 +801,7 @@ const _handleIndexDocumentTask = function (data, callback) {
 
       if (theresMoreThanOneDoc) {
         const ops = SearchUtil.createBulkIndexOperations(allDocs);
-        client.bulk(ops, (error_) => {
+        callbackify(client.bulk)(ops, (error_) => {
           if (error_) {
             log().error({ err: error_, ops }, 'Error indexing %s documents', allDocs.length);
           } else {
@@ -843,7 +834,7 @@ const _handleIndexDocumentTask = function (data, callback) {
         // These properties go in the request metadata, not the actual document
         delete topDoc.id;
 
-        client.runIndex(topDoc._type, id, topDoc, options, (error_) => {
+        callbackify(client.runIndex)(topDoc._type, id, topDoc, options, (error_) => {
           if (error_) {
             log().error({ err: error_, id, doc: topDoc, opts: options }, 'Error indexing a document');
           } else {

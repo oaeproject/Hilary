@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 import _ from 'underscore';
 
@@ -226,7 +227,7 @@ const whenIndexingComplete = function (callback) {
         MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_INDEX_DOCUMENT_PROCESSING, () => {
           MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT, () => {
             MqTestsUtil.whenTasksEmpty(SearchConstants.mq.TASK_DELETE_DOCUMENT_PROCESSING, () => {
-              ElasticSearch.refresh((error) => {
+              callbackify(ElasticSearch.refresh)((error) => {
                 assert.notExists(error);
                 return callback();
               });
@@ -239,8 +240,10 @@ const whenIndexingComplete = function (callback) {
 };
 
 /**
- * Perform a search with the given parameters, but first perform a delay and then a `SearchAPI.Search.refresh`. This is
- * useful for tests, where we need to allow time for an indexing event to take place before performing a validation.
+ * Perform a search with the given parameters, but first perform a delay and
+ * then a `SearchAPI.Search.refresh`. This is
+ * useful for tests, where we need to allow time for an indexing event
+ * to take place before performing a validation.
  *
  * @see RestAPI.Search#search for the meaning of the method parameters.
  */

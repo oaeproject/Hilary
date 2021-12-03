@@ -16,6 +16,24 @@
 import fs from 'node:fs';
 import { isResourceACollabDoc, isResourceACollabSheet } from 'oae-content/lib/backends/util.js';
 import _ from 'underscore';
+import {
+  forEach,
+  prop,
+  assoc,
+  pipe,
+  map,
+  and,
+  mergeLeft,
+  path,
+  compose,
+  isEmpty,
+  reject,
+  not,
+  defaultTo,
+  head,
+  mergeDeepLeft,
+  mapObjIndexed
+} from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
@@ -29,27 +47,13 @@ import * as ContentDAO from 'oae-content/lib/internal/dao.js';
 import * as ContentUtil from 'oae-content/lib/internal/util.js';
 import { ContentConstants } from 'oae-content/lib/constants.js';
 
-import {
-  prop,
-  assoc,
-  pipe,
-  map,
-  and,
-  mergeLeft,
-  path,
-  compose,
-  isEmpty,
-  defaultTo,
-  head,
-  mergeDeepLeft,
-  mapObjIndexed
-} from 'ramda';
-
 import * as contentBodySchema from './search/schema/content-body-schema.js';
 
 const { getTenant } = TenantsAPI;
 const log = logger('content-search');
 
+const compact = reject(pipe(Boolean, not));
+const defaultToEmptyArray = defaultTo([]);
 const getResourceId = prop('resourceId');
 const getTenantAlias = prop('tenantAlias');
 const { getSignedDownloadUrl } = ContentUtil;
@@ -215,10 +219,9 @@ ContentAPI.emitter.on(ContentConstants.events.DELETED_COMMENT, (ctx, comment, co
  * @api private
  */
 const _produceContentCommentDocuments = function (resources, callback, _documents, _errs) {
-  _documents = _documents || [];
-  if (isEmpty(resources)) {
-    return callback(_errs, _documents);
-  }
+  _documents = defaultToEmptyArray(_documents);
+
+  if (isEmpty(resources)) return callback(_errs, _documents);
 
   const resource = resources.pop();
   if (resource.comments) {
@@ -402,34 +405,32 @@ const _getRevisionItems = function (contentItems, callback) {
  * @api private
  */
 const _getContentItems = function (resources, callback) {
-  // For indexing resources that have content items attached, return the content item. For those that don't,
-  // aggregate the ids so the content items may be fetched
+  /**
+   * For indexing resources that have content items attached, return the content item.
+   * For those that don't, aggregate the ids so the content items may be fetched
+   */
   let contentIdsToFetch = [];
   let contentItems = [];
-  _.each(resources, (resource) => {
+  forEach((resource) => {
     if (resource.content) {
       contentItems.push(resource.content);
     } else {
       contentIdsToFetch.push(resource.id);
     }
-  });
+  }, resources);
 
   // Remove duplicates (if any)
   contentIdsToFetch = _.uniq(contentIdsToFetch);
 
-  if (_.isEmpty(contentIdsToFetch)) {
-    // No content items to be fetched, return what we have
-    return callback(null, contentItems);
-  }
+  // No content items to be fetched, return what we have
+  if (isEmpty(contentIdsToFetch)) return callback(null, contentItems);
 
   // Get the content objects
   ContentDAO.Content.getMultipleContentItems(contentIdsToFetch, null, (error, extraContentItems) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Filter the null values from the multiple content items array
-    extraContentItems = _.compact(extraContentItems);
+    extraContentItems = compact(extraContentItems);
 
     // Add the content items that came from Cassandra
     contentItems = _.union(contentItems, extraContentItems);
@@ -447,7 +448,7 @@ const _getContentItems = function (resources, callback) {
  */
 const _produceContentSearchDocument = function (content, revision) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
-  let fullText = _.compact([content.displayName, content.description]).join(' ');
+  let fullText = compact([content.displayName, content.description]).join(' ');
   if (isResourceACollabDoc(content.resourceSubType) && revision && revision.etherpadHtml) {
     fullText += ' ' + revision.etherpadHtml;
   } else if (isResourceACollabSheet(content.resourceSubType) && revision && revision.ethercalcHtml) {

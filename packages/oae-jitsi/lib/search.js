@@ -17,7 +17,7 @@ import { format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
-import { map, forEach, join, not, pipe, reject, isEmpty } from 'ramda';
+import { defaultTo, map, forEach, join, not, pipe, reject, isEmpty } from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
@@ -30,6 +30,7 @@ import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 const log = logger('meeting-jitsi-search');
 
+const defaultToEmptyArray = defaultTo([]);
 const compact = reject(pipe(Boolean, not));
 
 /**
@@ -58,7 +59,7 @@ const init = function (callback) {
  * @api private
  */
 const _produceMeetingMessageDocuments = function (resources, callback, _documents, _errs) {
-  _documents = _documents || [];
+  _documents = defaultToEmptyArray(_documents);
 
   if (isEmpty(resources)) {
     return callback(_errs, _documents);

@@ -27,6 +27,7 @@ import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-search');
 
+const defaultToEmptyArray = defaultTo([]);
 const defaultToEmptyObject = defaultTo({});
 const getResourceId = prop('resourceId');
 const { getTenant } = TenantsAPI;
@@ -132,10 +133,9 @@ DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, 
  * @api private
  */
 const _produceDiscussionMessageDocuments = function (resources, callback, _documents, _errs) {
-  _documents = _documents || [];
-  if (isEmpty(resources)) {
-    return callback(_errs, _documents);
-  }
+  _documents = defaultToEmptyArray(_documents);
+
+  if (isEmpty(resources)) return callback(_errs, _documents);
 
   const resource = resources.pop();
   if (resource.messages) {

@@ -17,6 +17,8 @@ import { format } from 'node:util';
 import _ from 'underscore';
 import { logger } from 'oae-logger';
 
+import { map, forEach, join, not, pipe, reject, isEmpty } from 'ramda';
+
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
@@ -27,6 +29,8 @@ import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao.js';
 import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
 const log = logger('meeting-jitsi-search');
+
+const compact = reject(pipe(Boolean, not));
 
 /**
  * Initializes the child search documents for the meeting module
@@ -43,9 +47,9 @@ const init = function (callback) {
   );
 };
 
-/// /////////////////////
-// DOCUMENT PRODUCERS //
-/// /////////////////////
+/**
+ * Document producers
+ */
 
 /**
  * Produce the necessary meeting message search documents.
@@ -56,7 +60,7 @@ const init = function (callback) {
 const _produceMeetingMessageDocuments = function (resources, callback, _documents, _errs) {
   _documents = _documents || [];
 
-  if (_.isEmpty(resources)) {
+  if (isEmpty(resources)) {
     return callback(_errs, _documents);
   }
 
@@ -100,11 +104,11 @@ const _produceMeetingSearchDocuments = function (resources, callback) {
       return callback([error]);
     }
 
-    if (_.isEmpty(meetings)) {
+    if (isEmpty(meetings)) {
       return callback();
     }
 
-    const docs = _.map(meetings, _produceMeetingSearchDocument);
+    const docs = map(_produceMeetingSearchDocument, meetings);
     return callback(null, docs);
   });
 };
@@ -120,25 +124,21 @@ const _getMeetings = function (resources, callback) {
   let meetings = [];
   const meetingIdsToFetch = [];
 
-  _.each(resources, (resource) => {
+  forEach((resource) => {
     if (resource.meeting) {
       meetings.push(resource.meeting);
     } else {
       meetingIdsToFetch.push(resource.id);
     }
-  });
+  }, resources);
 
-  if (_.isEmpty(meetingIdsToFetch)) {
-    return callback(null, meetings);
-  }
+  if (isEmpty(meetingIdsToFetch)) return callback(null, meetings);
 
   MeetingsDAO.getMeetingsById(meetingIdsToFetch, (error, extraMeetings) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Some meetings might have already been deleted
-    extraMeetings = _.compact(extraMeetings);
+    extraMeetings = compact(extraMeetings);
 
     // Add the meetings item that came from Cassandra
     meetings = _.union(meetings, extraMeetings);
@@ -156,7 +156,7 @@ const _getMeetings = function (resources, callback) {
  */
 const _produceMeetingSearchDocument = function (meeting) {
   // Allow full-text search on name and description, but only if they are specified
-  const fullText = _.compact([meeting.displayName, meeting.description]).join(' ');
+  const fullText = pipe(compact, join(' '))([meeting.displayName, meeting.description]);
 
   // Add all properties for the resource document metadata
   const doc = {

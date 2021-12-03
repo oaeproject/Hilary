@@ -15,6 +15,7 @@
 
 import _ from 'underscore';
 
+import { pipe, keys, length, equals } from 'ramda';
 import Counter from 'oae-util/lib/counter.js';
 import { logger } from 'oae-logger';
 import { PrincipalsConstants } from 'oae-principals/lib/constants.js';
@@ -29,8 +30,11 @@ import * as ActivityAggregator from './aggregator.js';
 
 const log = logger('oae-activity-notifications');
 
-// Tracks the handling of notifications for synchronization to determine when there are no
-// notifications being processed
+const isZero = equals(0);
+
+/**
+ * Tracks the handling of notifications for synchronization to determine when there are no notifications being processed
+ */
 const notificationsCounter = new Counter();
 
 /*!
@@ -82,22 +86,22 @@ const markNotificationsRead = function (user, callback) {
 
   // Clear all the notifications unread to 0
   ActivityDAO.clearNotificationsUnreadCount(user.id, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Update the notifications values in the basic profile
     PrincipalsDAO.updatePrincipal(user.id, profileFields, (error) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
-      // We can return here as resetting the activity aggregation and removing the
-      // activities from the email activity stream can happen asynchronously
+      /**
+       * We can return here as resetting the activity aggregation and removing the
+       * activities from the email activity stream can happen asynchronously
+       */
       callback(null, lastReadTime);
 
-      // Reset the aggregator for this user his notification stream. New notifications will not aggregate
-      // with older notifications which will make it clearer to the user which activity is the new one
+      /**
+       * Reset the aggregator for this user his notification stream. New notifications will not aggregate
+       * with older notifications which will make it clearer to the user which activity is the new one
+       */
       const notificationActivityStreamId = ActivityUtil.createActivityStreamId(user.id, 'notification');
       ActivityAggregator.resetAggregationForActivityStreams([notificationActivityStreamId]);
 
@@ -134,14 +138,12 @@ const incrementNotificationsUnread = function (userIdIncrs, callback) {
    *      become accurate again for a user until they "mark as read".
    */
   ActivityDAO.incrementNotificationsUnreadCounts(userIdIncrs, (error, newValues) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    let todo = _.keys(newValues).length;
+    let todo = pipe(keys, length)(newValues);
     let complete = false;
 
-    if (todo === 0) {
+    if (isZero(todo)) {
       return callback();
     }
 
@@ -158,7 +160,7 @@ const incrementNotificationsUnread = function (userIdIncrs, callback) {
         return callback(error);
       } else {
         todo--;
-        if (todo === 0) {
+        if (isZero(todo)) {
           complete = true;
           return callback();
         }

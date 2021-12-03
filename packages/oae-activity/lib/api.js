@@ -25,7 +25,7 @@ import * as PrincipalsUtil from 'oae-principals/lib/util.js';
 import * as Redis from 'oae-util/lib/redis.js';
 import { Validator as validator } from 'oae-authz/lib/validator.js';
 
-import { both } from 'ramda';
+import { not, both } from 'ramda';
 import isIn from 'validator/lib/isIn.js';
 
 import { setUpConfig } from 'oae-config';
@@ -557,21 +557,17 @@ const getActivityStream = function (ctx, principalId, start, limit, transformerT
   limit = OaeUtil.getNumberParam(limit, 25, 1);
 
   PrincipalsUtil.getPrincipal(ctx, principalId, (error, principal) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    // Determining which activity stream should be returned is exactly the same
-    // as resolving which library should be returned to a user. We can simply
-    // re-use the library-authz logic
+    /**
+     * Determining which activity stream should be returned is exactly the same
+     * as resolving which library should be returned to a user. We can simply
+     * re-use the library-authz logic
+     */
     LibraryAuthz.resolveTargetLibraryAccess(ctx, principalId, principal, (error, hasAccess, visibility) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
-      if (!hasAccess) {
-        return callback({ code: 401, msg: 'You cannot access this activity stream' });
-      }
+      if (not(hasAccess)) return callback({ code: 401, msg: 'You cannot access this activity stream' });
 
       let activityStreamType = 'activity';
       if (visibility === 'public' || visibility === 'loggedin') {

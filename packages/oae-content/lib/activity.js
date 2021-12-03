@@ -14,6 +14,7 @@
  */
 
 import _ from 'underscore';
+import { pluck, has } from 'ramda';
 
 import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityModel from 'oae-activity/lib/model.js';
@@ -29,6 +30,10 @@ import { ContentConstants } from 'oae-content/lib/constants.js';
 import * as Etherpad from './internal/etherpad.js';
 import * as ContentUtil from './internal/util.js';
 import * as ContentDAO from './internal/dao.js';
+
+const ID = 'id';
+const INVITATION = 'invitation';
+const hasInvitation = has(INVITATION);
 
 /**
  * Content create
@@ -415,14 +420,14 @@ ActivityAPI.registerActivityType(ContentConstants.activity.ACTIVITY_CONTENT_UPDA
  * Post a content-share or content-add-to-library activity based on content sharing
  */
 ContentAPI.emitter.on(ContentConstants.events.UPDATED_CONTENT_MEMBERS, (ctx, content, memberChangeInfo, options) => {
-  if (options.invitation) {
-    // If this member update came from an invitation, we bypass adding activity as there is a
-    // dedicated activity for that
-    return;
-  }
+  /**
+   * If this member update came from an invitation,
+   * we bypass adding activity as there is a dedicated activity for that
+   */
+  if (hasInvitation(options)) return;
 
-  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+  const addedMemberIds = pluck(ID, memberChangeInfo.members.added);
+  const updatedMemberIds = pluck(ID, memberChangeInfo.members.updated);
 
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {

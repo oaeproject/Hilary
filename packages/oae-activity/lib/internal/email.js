@@ -390,9 +390,7 @@ const collectMails = function (bucketNumber, emailPreference, dayOfWeek, hour, c
   // Get the timestamp which we consider to be the cut-off point for activities. Older activities will not be included
   const oldestActivityTimestamp = _getCollectionCycleStart(emailPreference);
   _collectMails(bucketId, oldestActivityTimestamp, null, (error, recipients) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     Telemetry.incr(format('sent.%s.count', emailPreference), recipients.length);
     Telemetry.appendDuration(format('sent.%s.time', emailPreference), collectionStart);
@@ -425,13 +423,9 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
 
   // 1. Get all the recipients who are queued for email delivery
   ActivityDAO.getQueuedUserIdsForEmail(bucketId, start, MAX_COLLECTION_BATCH_SIZE, (error, recipientIds, nextToken) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    if (_.isEmpty(recipientIds)) {
-      return callback(null, []);
-    }
+    if (isEmpty(recipientIds)) return callback(null, []);
 
     const recipientIdsByActivityStreamIds = _.chain(recipientIds)
       .map((recipientId) => [
@@ -445,9 +439,7 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
       _.keys(recipientIdsByActivityStreamIds),
       oldestActivityTimestamp,
       (error, activitiesPerStream) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         // Will hold the activities (keyed per stream) who have no activities within the grace period
         const activitiesPerMailableStreams = {};
@@ -472,15 +464,11 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
         // 4. Reset aggregation for the those streams we'll be sending out an email for
         // so that the next e-mail doesn't contain the same activities
         ActivityDAO.resetAggregationForActivityStreams(_.keys(activitiesPerMailableStreams), (error_) => {
-          if (error_) {
-            return callback(error_);
-          }
+          if (error_) return callback(error_);
 
           // 5. Remove the users we'll email from the buckets
           ActivityDAO.unqueueUsersForEmail(bucketId, recipientIdsToMail, (error_) => {
-            if (error_) {
-              return callback(error_);
-            }
+            if (error_) return callback(error_);
 
             // 6. Delete these activities as we will be pushing them out
             const activitiesPerStreamToDelete = {};
@@ -491,9 +479,7 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
               );
             });
             ActivityDAO.deleteActivities(activitiesPerStreamToDelete, (error_) => {
-              if (error_) {
-                return callback(error_);
-              }
+              if (error_) return callback(error_);
 
               // Get all the recipient profiles
               _getEmailRecipientResources(recipientIdsToMail, (error, recipients) => {
@@ -507,10 +493,12 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
 
                 // Keep track of whom we need to email
                 const recipientsToMail = _.filter(recipients, (recipient) => {
-                  // Although it's very unlikely that a user who changed their email preferences would end up here,
-                  // we take it into account as it would be really unfortunate to send them any further email. Additionally,
-                  // if the email stream for the user was empty (because they marked their notifications as read), we can't
-                  // send them any mail either
+                  /**
+                   * Although it's very unlikely that a user who changed their email preferences would end up here,
+                   * we take it into account as it would be really unfortunate to send them any further email.
+                   * Additionally, if the email stream for the user was empty (because they marked their notifications as read),
+                   * we can'tsend them any mail either
+                   */
                   const emailActivityStreamId = ActivityUtil.createActivityStreamId(
                     recipient.id,
                     ActivityConstants.streams.EMAIL
@@ -535,9 +523,7 @@ const _collectMails = function (bucketId, oldestActivityTimestamp, start, callba
 
                 // 7. Send out the emails
                 _mailAll(toMail, (error_) => {
-                  if (error_) {
-                    return callback(error_);
-                  }
+                  if (error_) return callback(error_);
 
                   _collectedRecipients = [..._collectedRecipients, ...recipientsToMail];
 

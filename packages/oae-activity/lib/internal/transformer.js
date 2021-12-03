@@ -92,9 +92,7 @@ const transformActivities = function (ctx, activities, transformerType, callback
     for (const objectType of objectTypes) {
       const transformer = _getEntityTypeTransformer(objectType, transformerType);
       transformer(ctx, activityEntitiesByObjectType[objectType], (error, transformedActivityEntities) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         // Ensure all transformed entities have at least the objectType and the oae:id
         for (const activityId of _.keys(transformedActivityEntities)) {

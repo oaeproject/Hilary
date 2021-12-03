@@ -50,6 +50,7 @@ let client = null;
 /**
  * Helper functions
  */
+const justTheOne = compose(isOne, length, keys);
 const returned200 = propEq('statusCode', 200);
 const isOne = equals(1);
 const firstKeyOf = compose(head, keys);
@@ -393,28 +394,27 @@ const runIndex = async function (_typeName, id, body, options) {
  *
  * @param  {Object[]}  operationsToRun      An array of ordered operations, as per the ElasticSearch Bulk API specification
  */
-const bulk = async (operationsToRun) => {
+const transformEachOperation = (eachOperation) => {
+  const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
+  const justOneOperation = justTheOne(eachOperation);
   let numberOfOperations = 0;
 
-  const transformOperations = (eachOperation) => {
-    const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
-    const justOneOperation = compose(isOne, length, keys)(eachOperation);
+  if (and(justOneOperation, operationFields)) {
+    numberOfOperations = inc(numberOfOperations);
+    eachOperation = assocPath([firstKeyOf(eachOperation), '_index'], index, eachOperation);
+  }
 
-    if (and(justOneOperation, operationFields)) {
-      numberOfOperations = inc(numberOfOperations);
-      eachOperation = assocPath([firstKeyOf(eachOperation), '_index'], index, eachOperation);
-    }
+  log().trace('Performing a bulk set of %s operations.', numberOfOperations);
+  return eachOperation;
+};
 
-    return eachOperation;
-  };
-
-  operationsToRun = map(transformOperations, operationsToRun);
-  operationsToRun = insertRoutingIntoActionPairs(operationsToRun);
-
-  log().trace({ operations: operationsToRun }, 'Performing a bulk set of %s operations.', numberOfOperations);
-
+const bulk = async (operationsToRun) => {
+  const transformOperations = map(transformEachOperation);
   const start = Date.now();
   let bulkResponse;
+
+  operationsToRun = pipe(transformOperations, insertRoutingIntoActionPairs)(operationsToRun);
+  log().trace({ operations: operationsToRun }, 'Performing a bulk set of operations.');
 
   try {
     Telemetry.incr('exec.' + BULK + '.count');
@@ -438,8 +438,8 @@ const bulk = async (operationsToRun) => {
           erroredDocuments.push({
             /**
              * If the status is 429 it means that you can retry the document,
-             *  otherwise it's very likely a mapping error, and you should
-             *  fix the document before to try it again.
+             * otherwise it's very likely a mapping error, and you should
+             * fix the document before to try it again.
              */
             status: action[operation].status,
             error: action[operation].error,

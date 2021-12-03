@@ -52,6 +52,7 @@ let client = null;
  */
 const returned200 = propEq('statusCode', 200);
 const isOne = equals(1);
+const justTheOne = compose(isOne, length, keys);
 const firstKeyOf = compose(head, keys);
 
 /**
@@ -95,129 +96,112 @@ const refreshSearchConfiguration = function (_index, serverNodes) {
  *
  * @param  {String}      indexName       The name of the index
  * @param  {Object}      settings        The settings of the ElasticSearch index
- * @param  {Function}    callback        Standard callback function
- * @param  {Object}      callback.err    An error that occurred, if any
  */
-const createIndex = function (index, settings, callback) {
-  indexExists(index, (error, indexExists) => {
-    if (error) return callback(error);
-    if (indexExists) return callback(null, true);
+const createIndex = async function (index, settings) {
+  const indexDoesExist = await indexExists(index);
+  if (indexDoesExist) return true;
 
-    log().info(
-      {
-        indexName: index,
-        indexSettings: settings
-      },
-      'Creating new search index.'
-    );
+  log().info(
+    {
+      indexName: index,
+      indexSettings: settings
+    },
+    'Creating new search index.'
+  );
 
-    const body = { settings };
+  const body = { settings };
+  const start = Date.now();
+  let result;
 
+  try {
     Telemetry.incr('exec.' + CREATE_INDEX + '.count');
-    const start = Date.now();
-    return client.indices.create(
-      {
-        index,
-        body
-      },
-      (error, result) => {
-        if (error) {
-          _logError(CREATE_INDEX, error);
-          return callback(error);
-        }
+    result = await client.indices.create({
+      index,
+      body
+    });
+  } catch (error) {
+    _logError(CREATE_INDEX, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + CREATE_INDEX + '.time', start);
+  }
 
-        Telemetry.appendDuration('exec.' + CREATE_INDEX + '.time', start);
-        return callback(null, result);
-      }
-    );
-  });
+  return result;
 };
 
 /**
  * Delete the index with the given name.
  *
  * @param  {String}    indexName       The name of the index to delete
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
  */
-const deleteIndex = function (index, callback) {
-  indexExists(index, (error, indexExists) => {
-    if (error) return callback(error);
+const deleteIndex = async function (index) {
+  const indexDoesExist = await indexExists(index);
 
-    if (indexExists) {
-      log().info('Deleting index "%s"...', index);
+  if (indexDoesExist) {
+    log().info('Deleting index "%s"...', index);
 
+    const start = Date.now();
+    let result;
+
+    try {
       Telemetry.incr('exec.' + DELETE_INDEX + '.count');
-      const start = Date.now();
-      return client.indices.delete(
-        {
-          index
-        },
-        (error, result) => {
-          if (error) {
-            _logError(DELETE_INDEX, error);
-          }
-
-          Telemetry.appendDuration('exec.' + DELETE_INDEX + '.time', start);
-          return callback(null, result);
-        }
-      );
+      result = await client.indices.delete({
+        index
+      });
+    } catch (error) {
+      _logError(DELETE_INDEX, error);
+    } finally {
+      Telemetry.appendDuration('exec.' + DELETE_INDEX + '.time', start);
     }
 
-    return callback();
-  });
+    return result;
+  }
 };
 
 /**
  * Determine whether or not the specified index exists.
  *
  * @param  {String}      indexName       The name of the index to test
- * @param  {Function}    callback        Standard callback function
- * @param  {Object}      callback.err    An error that occurred, if any
- * @param  {Boolean}     callback.exists Whether or not the index exists
  */
-const indexExists = function (index, callback) {
-  Telemetry.incr('exec.' + INDEX_STATUS + '.count');
+const indexExists = async function (index) {
   const start = Date.now();
-  return client.indices.exists(
-    {
-      index
-    },
-    (error, queryResult) => {
-      if (error) {
-        _logError(INDEX_STATUS, error);
-        return callback(error);
-      }
+  let queryResult;
 
-      Telemetry.appendDuration('exec.' + INDEX_STATUS + '.time', start);
-      return callback(null, returned200(queryResult));
-    }
-  );
+  try {
+    Telemetry.incr('exec.' + INDEX_STATUS + '.count');
+    queryResult = await client.indices.exists({
+      index
+    });
+  } catch (error) {
+    _logError(INDEX_STATUS, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + INDEX_STATUS + '.time', start);
+  }
+
+  return returned200(queryResult);
 };
 
 /**
  * Refresh the current index so that all its documents are available for querying.
- *
- * @param  {Function}    callback        Standard callback function
- * @param  {Object}      callback.err    An error that occurred, if any
  */
-const refresh = (callback) => {
-  Telemetry.incr('exec.' + REFRESH + '.count');
+const refresh = async () => {
   const start = Date.now();
-  return client.indices.refresh(
-    {
-      index
-    },
-    (error, result) => {
-      if (error) {
-        _logError(REFRESH, error);
-        return callback(error);
-      }
+  let result;
 
-      Telemetry.appendDuration('exec.' + REFRESH + '.time', start);
-      return callback(null, result);
-    }
-  );
+  try {
+    Telemetry.incr('exec.' + REFRESH + '.count');
+    result = await client.indices.refresh({
+      index
+    });
+  } catch (error) {
+    _logError(REFRESH, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + REFRESH + '.time', start);
+  }
+
+  return result;
 };
 
 /**
@@ -246,58 +230,52 @@ const refresh = (callback) => {
  * @param  {Object}    [opts]              Advanced mapping options
  * @param  {String}    [opts._parent]      The parent document type, if applicable
  * @param  {Boolean}   [opts._source]      Whether or not the `_source` document should be enabled for storage and inclusion in queries. Defaults to `false`.
- * @param  {Function}  callback            Standard callback function
- * @param  {Object}    callback.err        An error that occurred, if any
  */
-const putMapping = function (properties, options, callback) {
-  options = options || {};
+const putMapping = async function (properties, _options = {}) {
+  const exists = await indexExists(index);
+  if (not(exists)) return;
 
-  indexExists(index, (error, exists) => {
-    if (error) return callback(error);
-    if (not(exists)) return callback();
+  /**
+   * We're using a custom implementation of type since ES7+ is typeless
+   * Type here can be one of the following:
+   * - Resource
+   * - Resource members
+   * - Resource memberships
+   * - Discussion message
+   * - Content body
+   * - Content comment
+   * - Folder message
+   * - Resource followers
+   * - Resource following
+   * - Meeting jitsi message
+   */
+  properties = mergeAll([properties, {}]);
+  properties.type = { type: 'keyword' };
 
-    /**
-     * We're using a custom implementation of type since ES7+ is typeless
-     * Type here can be one of the following:
-     * - Resource
-     * - Resource members
-     * - Resource memberships
-     * - Discussion message
-     * - Content body
-     * - Content comment
-     * - Folder message
-     * - Resource followers
-     * - Resource following
-     * - Meeting jitsi message
-     */
-    properties = mergeAll([properties, {}]);
-    properties.type = { type: 'keyword' };
+  // This must be done because this is Module Object, whatever that is
+  const body = {
+    properties
+  };
 
-    // This must be done because this is Module Object, whatever that is
-    const body = {
-      properties
-    };
+  log().info({ typeData: body }, 'Creating new search type mapping');
 
-    log().info({ typeData: body }, 'Creating new search type mapping');
+  const start = Date.now();
+  let result;
 
+  try {
     Telemetry.incr('exec.' + PUT_MAPPING + '.count');
-    const start = Date.now();
-    client.indices.putMapping(
-      {
-        index,
-        body
-      },
-      (error, result) => {
-        if (error) {
-          _logError(PUT_MAPPING, error);
-          return callback(error);
-        }
+    result = await client.indices.putMapping({
+      index,
+      body
+    });
+  } catch (error) {
+    _logError(PUT_MAPPING, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + PUT_MAPPING + '.time', start);
+  }
 
-        Telemetry.appendDuration('exec.' + PUT_MAPPING + '.time', start);
-        return callback(null, result);
-      }
-    );
-  });
+  return result;
 };
 
 /**
@@ -306,10 +284,9 @@ const putMapping = function (properties, options, callback) {
  * @function mapChildrenToParent
  * @param  {type} parentName   parent resource type
  * @param  {type} childrenName children resource type
- * @param  {type} callback     Standard callback function
  */
-const mapChildrenToParent = function (parentName, childrenName, callback) {
-  if (isEmpty(childrenName)) return callback();
+const mapChildrenToParent = function (parentName, childrenName) {
+  if (isEmpty(childrenName)) return;
 
   const relations = assoc(parentName, childrenName, {});
   const body = {
@@ -321,41 +298,35 @@ const mapChildrenToParent = function (parentName, childrenName, callback) {
     }
   };
 
-  client.indices.putMapping(
-    {
-      index,
-      body
-    },
-    callback
-  );
+  return client.indices.putMapping({
+    index,
+    body
+  });
 };
 
 /**
  * Determine whether or not the mapping exists.
  *
  * @param  {String}    typeName        The name of the type to map.
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
  */
-const mappingExists = function (property, callback) {
-  Telemetry.incr('exec.' + GET_MAPPING + '.count');
+const mappingExists = async function (property) {
   const start = Date.now();
-  client.indices.getMapping(
-    {
+  let result;
+
+  try {
+    Telemetry.incr('exec.' + GET_MAPPING + '.count');
+    result = await client.indices.getMapping({
       index
-    },
-    (error, result) => {
-      if (error) {
-        _logError(GET_MAPPING, error);
-        return callback(error);
-      }
+    });
+  } catch (error) {
+    _logError(GET_MAPPING, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + GET_MAPPING + '.time', start);
+  }
 
-      Telemetry.appendDuration('exec.' + GET_MAPPING + '.time', start);
-      const mappingExists = compose(Boolean, prop(property), path(['body', index, 'mappings', 'properties']))(result);
-
-      return callback(null, mappingExists);
-    }
-  );
+  const doesMappingExist = compose(Boolean, prop(property), path(['body', index, 'mappings', 'properties']));
+  return doesMappingExist(result);
 };
 
 /**
@@ -363,35 +334,31 @@ const mappingExists = function (property, callback) {
  *
  * @param  {Object}    query           The query object
  * @param  {Object}    options         Options to send with the query
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
- * @param  {Object}    callback.data   The response of the query
  */
-const search = function (body, options, callback) {
+const search = async function (body, options) {
   log().trace({ query: body }, 'Querying elastic search');
 
   const { storedFields, from, size } = options;
-  Telemetry.incr('exec.' + SEARCH + '.count');
   const start = Date.now();
+  let result;
 
-  return client.search(
-    {
+  try {
+    Telemetry.incr('exec.' + SEARCH + '.count');
+    result = await client.search({
       index,
       body,
       storedFields,
       from,
       size
-    },
-    (error, result) => {
-      if (error) {
-        _logError(SEARCH, error);
-        return callback(error);
-      }
+    });
+  } catch (error) {
+    _logError(SEARCH, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + SEARCH + '.time', start);
+  }
 
-      Telemetry.appendDuration('exec.' + SEARCH + '.time', start);
-      return callback(null, result);
-    }
-  );
+  return result;
 };
 
 /**
@@ -401,100 +368,64 @@ const search = function (body, options, callback) {
  * @param  {String}    id              The id of the document to index
  * @param  {Object}    doc             The document to index
  * @param  {Object}    options         The querystring options to send with the index call
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
  */
-const runIndex = function (typeName, id, body, options, callback) {
+const runIndex = async function (_typeName, id, body, options) {
   log().trace({ id, document: body, options }, 'Indexing a document');
 
   const { routing } = options;
-  Telemetry.incr('exec.' + RUN_INDEX + '.count');
   const start = Date.now();
+  let result;
 
-  return client.index({ id, index, body, routing }, (error, result) => {
-    if (error) {
-      _logError(RUN_INDEX, error);
-      return callback(error);
-    }
-
+  try {
+    Telemetry.incr('exec.' + RUN_INDEX + '.count');
+    result = await client.index({ id, index, body, routing });
+  } catch (error) {
+    _logError(RUN_INDEX, error);
+    throw error;
+  } finally {
     Telemetry.appendDuration('exec.' + RUN_INDEX + '.time', start);
-    return callback(null, result);
-  });
+  }
+
+  return result;
 };
 
 /**
  * Index a bulk number of documents in ElasticSearch.
  *
  * @param  {Object[]}  operationsToRun      An array of ordered operations, as per the ElasticSearch Bulk API specification
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
  */
-const bulk = (operationsToRun, callback) => {
+const transformEachOperation = (eachOperation) => {
+  const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
+  const justOneOperation = justTheOne(eachOperation);
   let numberOfOperations = 0;
 
-  const transformOperations = (eachOperation) => {
-    const operationFields = eachOperation.create || eachOperation.index || eachOperation.delete;
-    const justOneOperation = compose(isOne, length, keys)(eachOperation);
+  if (and(justOneOperation, operationFields)) {
+    numberOfOperations = inc(numberOfOperations);
+    eachOperation = assocPath([firstKeyOf(eachOperation), '_index'], index, eachOperation);
+  }
 
-    if (and(justOneOperation, operationFields)) {
-      numberOfOperations = inc(numberOfOperations);
-      eachOperation = assocPath([firstKeyOf(eachOperation), '_index'], index, eachOperation);
-    }
+  log().trace('Performing a bulk set of %s operations.', numberOfOperations);
+  return eachOperation;
+};
 
-    return eachOperation;
-  };
-
-  operationsToRun = map(transformOperations, operationsToRun);
-  operationsToRun = insertRoutingIntoActionPairs(operationsToRun);
-
-  log().trace({ operations: operationsToRun }, 'Performing a bulk set of %s operations.', numberOfOperations);
-
-  Telemetry.incr('exec.' + BULK + '.count');
+const bulk = async (operationsToRun) => {
   const start = Date.now();
-  return client.bulk(
-    {
+
+  const transformOperations = map(transformEachOperation);
+  operationsToRun = pipe(transformOperations, insertRoutingIntoActionPairs)(operationsToRun);
+  log().trace({ operations: operationsToRun }, 'Performing a bulk set of operations.');
+
+  try {
+    Telemetry.incr('exec.' + BULK + '.count');
+    await client.bulk({
       index,
       body: operationsToRun
-    },
-    (error, bulkResponse) => {
-      if (error) {
-        _logError(BULK, error);
-        return callback(error);
-      }
-
-      Telemetry.appendDuration('exec.' + BULK + '.time', start);
-
-      if (bulkResponse.errors) {
-        const erroredDocuments = [];
-        /**
-         * The items array has the same order of the dataset we just indexed.
-         * The presence of the `error` key indicates that the operation
-         * that we did for the document has failed.
-         */
-        for (const [i, action] of bulkResponse.items.entries()) {
-          const operation = pipe(keys, head)(action);
-          if (action[operation].error) {
-            erroredDocuments.push({
-              /**
-               * If the status is 429 it means that you can retry the document,
-               *  otherwise it's very likely a mapping error, and you should
-               *  fix the document before to try it again.
-               */
-              status: action[operation].status,
-              error: action[operation].error,
-              operation: operationsToRun[i * 2],
-              document: operationsToRun[i * 2 + 1]
-            });
-          }
-        }
-
-        _logError(BULK, erroredDocuments);
-        return callback(error);
-      }
-
-      return callback();
-    }
-  );
+    });
+  } catch (error) {
+    _logError(BULK, error);
+  } finally {
+    Telemetry.appendDuration('exec.' + BULK + '.time', start);
+  }
 };
 
 /**
@@ -534,29 +465,27 @@ const insertRoutingIntoActionPairs = (operationsToRun) => {
  *
  * @param  {String}    typeName        The type of document to delete
  * @param  {Object}    id              The id of the document to delete
- * @param  {Function}  callback        Standard callback function
- * @param  {Object}    callback.err    An error that occurred, if any
  */
-const del = function (typeName, id, callback) {
+const del = async function (typeName, id) {
   log().trace({ typeName, documentId: id }, 'Deleting an index document.');
 
-  Telemetry.incr('exec.' + DELETE + '.count');
   const start = Date.now();
-  return client.delete(
-    {
+  let result;
+
+  try {
+    Telemetry.incr('exec.' + DELETE + '.count');
+    result = await client.delete({
       id,
       index
-    },
-    (error, result) => {
-      if (error) {
-        _logError(DELETE, error);
-        return callback(error);
-      }
+    });
+  } catch (error) {
+    _logError(DELETE, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + DELETE + '.time', start);
+  }
 
-      Telemetry.appendDuration('exec.' + DELETE + '.time', start);
-      return callback(null, result);
-    }
-  );
+  return result;
 };
 
 /**
@@ -565,30 +494,28 @@ const del = function (typeName, id, callback) {
  * @param  {String}     typeName        The type of document to delete
  * @param  {Object}     query           The query to invoke to match the documents to delete
  * @param  {Object}     options         The querystring to send with the delete call
- * @param  {Function}   callback        Standard callback function
- * @param  {Object}     callback.err    An error that occurred, if any
  */
-const deleteByQuery = function (type, query, options, callback) {
+const deleteByQuery = async function (type, query, options) {
   log().trace({ typeName: type, query, options }, 'Deleting search documents by query');
 
-  Telemetry.incr('exec.' + DELETE_BY_QUERY + '.count');
   const start = Date.now();
-  return client.deleteByQuery(
-    {
+  let result;
+
+  try {
+    Telemetry.incr('exec.' + DELETE_BY_QUERY + '.count');
+    result = await client.deleteByQuery({
       index,
       type,
       q: query
-    },
-    (error, result) => {
-      if (error) {
-        _logError(DELETE_BY_QUERY, error);
-        return callback(error);
-      }
+    });
+  } catch (error) {
+    _logError(DELETE_BY_QUERY, error);
+    throw error;
+  } finally {
+    Telemetry.appendDuration('exec.' + DELETE_BY_QUERY + '.time', start);
+  }
 
-      Telemetry.appendDuration('exec.' + DELETE_BY_QUERY + '.time', start);
-      return callback(null, result);
-    }
-  );
+  return result;
 };
 
 /**

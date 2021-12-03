@@ -12,6 +12,7 @@
  * or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+import { callbackify } from 'node:util';
 import { assert } from 'chai';
 import _ from 'underscore';
 
@@ -68,7 +69,7 @@ describe('Search', () => {
             assert.ok(userDoc);
 
             // Delete the content item from the index under the hood, this is to avoid the automatic index events invalidating the test
-            ElasticSearch.del('resource', jack.user.id, (error_) => {
+            callbackify(ElasticSearch.del)('resource', jack.user.id, (error_) => {
               assert.notExists(error_);
 
               // Verify the content item no longer exists
@@ -138,7 +139,7 @@ describe('Search', () => {
               assert.ok(groupDoc);
 
               // Delete the content item from the index under the hood, this is to avoid the automatic index events invalidating the test
-              ElasticSearch.del('resource', group.id, (error_) => {
+              callbackify(ElasticSearch.del)('resource', group.id, (error_) => {
                 assert.notExists(error_);
 
                 // Verify the content item no longer exists

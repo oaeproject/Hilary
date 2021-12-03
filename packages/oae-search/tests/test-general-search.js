@@ -1373,7 +1373,10 @@ describe('General Search', () => {
                   const firstFoundDoc = prop('id', head(getResultsWithin(results)));
                   assert.ok(firstFoundDoc);
 
-                  // Perform the same search, but with start=0, and make sure the first document is still the same. Verifies default paging
+                  /**
+                   * Perform the same search, but with start=0,
+                   * and make sure the first document is still the same. Verifies default paging
+                   */
                   search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 0 }, (error, results) => {
                     assert.notExists(error);
                     assert.ok(results);
@@ -1381,7 +1384,10 @@ describe('General Search', () => {
                     assert.strictEqual(numberOf(results), 1);
                     assert.strictEqual(prop('id', head(getResultsWithin(results))), firstFoundDoc);
 
-                    // Search again with start=1 and verify the first document id of the previous search is not the same as the first document id of this search
+                    /**
+                     * Search again with start=1 and verify the first document id
+                     * of the previous search is not the same as the first document id of this search
+                     */
                     search(asBarbosa, GENERAL_SEARCH, null, { limit: 1, start: 1 }, (error, results) => {
                       assert.notExists(error);
                       assert.ok(results);
@@ -1519,9 +1525,9 @@ describe('General Search', () => {
                 searchForResource(asGlobalAdmin, ALL_SCOPE, someLoggedInUserFrom(privateTenantA), true, () => {
                   searchForResource(asGlobalAdmin, ALL_SCOPE, somePrivateUserFrom(privateTenantA), true, () => {
                     /**
-                     * It should search public resources from public tenants but not private tenants when searching as a regular user
+                     * It should search public resources from public tenants
+                     * but not private tenants when searching as a regular user
                      */
-
                     setupMultiTenantPrivacyEntities(
                       (/* publicTenant0, publicTenant1, privateTenant0, privateTenant1 */) => {
                         searchForResource(
@@ -1560,7 +1566,10 @@ describe('General Search', () => {
                                               somePrivateUserFrom(privateTenantA),
                                               shouldNotBeAbleToFindIt,
                                               () => {
-                                                // It should search public resources from private tenants when searching as a private tenant user
+                                                /**
+                                                 * It should search public resources from private
+                                                 * tenants when searching as a private tenant user
+                                                 */
                                                 setupMultiTenantPrivacyEntities(
                                                   (
                                                     publicTenantA,

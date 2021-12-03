@@ -717,7 +717,8 @@ describe('Library Search', () => {
 
                   /**
                    * Verify the first item comes on the first page.
-                   * We don't need to refresh this search because we haven't indexed anything since the previous search
+                   * We don't need to refresh this search because we haven't indexed anything 
+                   * since the previous search
                    */
                   search(asHomer, CONTENT_LIBRARY, [homer.user.id], { limit: 1, start: 0 }, (error, results) => {
                     assert.notExists(error);

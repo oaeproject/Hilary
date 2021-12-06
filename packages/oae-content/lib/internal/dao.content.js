@@ -192,23 +192,22 @@ const createContent = function (
 
     // Create the content
     callbackify(runQuery)(q.query, q.parameters, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+      if (error_) return callback(error_);
 
-      const contentObject = new Content(
-        tenantAlias,
-        contentId,
+      const contentData = {
+        id: contentId,
         visibility,
         displayName,
         description,
         resourceSubType,
-        parameters.createdBy,
-        parameters.created,
-        parameters.lastModified,
-        revision.revisionId,
-        { status: 'pending' }
-      );
+        createdBy: parameters.createdBy,
+        created: parameters.created,
+        lastModified: parameters.lastModified,
+        latestRevisionId: revision.revisionId,
+        previews: { status: 'pending' }
+      };
+
+      const contentObject = new Content(tenantAlias, contentData);
       return callback(null, contentObject, revision);
     });
   });
@@ -530,19 +529,20 @@ const _rowToContent = function (row) {
   // Try and parse and apply the previews object of the hash
   _parsePreviews(hash);
 
-  const contentObject = new Content(
-    hash.tenantAlias,
-    hash.contentId,
-    hash.visibility,
-    hash.displayName,
-    hash.description,
-    hash.resourceSubType,
-    hash.createdBy,
-    hash.created,
-    hash.lastModified,
-    hash.latestRevisionId,
-    hash.previews
-  );
+  const contentData = {
+    id: hash.contentId,
+    visibility: hash.visibility,
+    displayName: hash.displayName,
+    description: hash.description,
+    resourceSubType: hash.resourceSubType,
+    createdBy: hash.createdBy,
+    created: hash.created,
+    lastModified: hash.lastModified,
+    latestRevisionId: hash.latestRevisionId,
+    previews: hash.previews
+  };
+
+  const contentObject = new Content(hash.tenantAlias, contentData);
   if (isResourceAFile(contentObject.resourceSubType)) {
     contentObject.filename = hash.filename;
     contentObject.size = hash.size > 0 ? Number.parseInt(hash.size, 10) : 0;

@@ -38,19 +38,19 @@ import * as TenantsAPI from 'oae-tenants';
  * @param  {String}     latestRevisionId    The id of the current content item revision
  * @param  {Object}     previews            The thumbnails for the content item
  */
-const Content = function (
-  tenantAlias,
-  id,
-  visibility,
-  displayName,
-  description,
-  resourceSubType,
-  createdBy,
-  created,
-  lastModified,
-  latestRevisionId,
-  previews
-) {
+const Content = function (tenantAlias, contentData) {
+  const {
+    id,
+    visibility,
+    displayName,
+    description,
+    resourceSubType,
+    createdBy,
+    created,
+    lastModified,
+    latestRevisionId,
+    previews
+  } = contentData;
   const that = {};
   const { resourceId } = AuthzUtil.getResourceFromId(id);
 

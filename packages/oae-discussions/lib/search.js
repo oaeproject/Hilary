@@ -13,19 +13,35 @@
  * permissions and limitations under the License.
  */
 
-import _ from 'underscore';
-
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
 import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import { logger } from 'oae-logger';
-import { isEmpty, pipe, compose, map, mapObjIndexed, prop, defaultTo, mergeDeepLeft, head, mergeLeft } from 'ramda';
+import {
+  union,
+  isEmpty,
+  pipe,
+  not,
+  reject,
+  compose,
+  map,
+  mapObjIndexed,
+  prop,
+  defaultTo,
+  mergeDeepLeft,
+  head,
+  forEach,
+  mergeLeft
+} from 'ramda';
 import * as DiscussionsDAO from './internal/dao.js';
 import DiscussionsAPI from './api.js';
 import { DiscussionsConstants } from './constants.js';
 
 const log = logger('discussions-search');
+
+const DISCUSSION = 'discussion';
+const ID = 'id';
 
 const defaultToEmptyArray = defaultTo([]);
 const defaultToEmptyObject = defaultTo({});
@@ -33,6 +49,7 @@ const getResourceId = prop('resourceId');
 const { getTenant } = TenantsAPI;
 const { getResourceFromId } = AuthzUtil;
 const getTenantAlias = prop('tenantAlias');
+const compact = reject(pipe(Boolean, not));
 
 /**
  * Initializes the child search documents for the Discussions module
@@ -43,7 +60,7 @@ const getTenantAlias = prop('tenantAlias');
 const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
-    ['discussion'],
+    [DISCUSSION],
     (resources, callback) => _produceDiscussionMessageDocuments([...resources], callback),
     callback
   );
@@ -57,11 +74,10 @@ const init = function (callback) {
  * When a discussion is created, we must index it and all its potential members
  */
 DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussion) => {
-  SearchAPI.postIndexTask('discussion', [{ id: discussion.id }], {
+  SearchAPI.postIndexTask(DISCUSSION, [{ id: discussion.id }], {
     resource: true,
     children: {
-      // eslint-disable-next-line camelcase
-      resource_members: true
+      resource_members: true // eslint-disable-line camelcase
     }
   });
 });
@@ -70,7 +86,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION, (ctx, discussi
  * When a discussion is updated, we must reindex its resource document
  */
 DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, discussion) => {
-  SearchAPI.postIndexTask('discussion', [{ id: discussion.id }], {
+  SearchAPI.postIndexTask(DISCUSSION, [{ id: discussion.id }], {
     resource: true
   });
 });
@@ -79,10 +95,9 @@ DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION, (ctx, discussi
  * When a discussion's membership is updated, we must reindex its members child document
  */
 DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS, (ctx, discussion) => {
-  SearchAPI.postIndexTask('discussion', [{ id: discussion.id }], {
+  SearchAPI.postIndexTask(DISCUSSION, [{ id: discussion.id }], {
     children: {
-      // eslint-disable-next-line camelcase
-      resource_members: true
+      resource_members: true // eslint-disable-line camelcase
     }
   });
 });
@@ -90,23 +105,22 @@ DiscussionsAPI.on(DiscussionsConstants.events.UPDATED_DISCUSSION_MEMBERS, (ctx, 
 /*!
  * When a discussion is deleted, we must cascade delete its resource document and children
  */
-DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION, (ctx, discussion) => {
+DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION, (_ctx, discussion) => {
   SearchAPI.postDeleteTask(discussion.id);
 });
 
 /*!
  * When a message is added to a discussion, we must index the child message document
  */
-DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, message, discussion) => {
+DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (_ctx, message, discussion) => {
   const resource = {
     id: discussion.id,
     messages: [message]
   };
 
-  SearchAPI.postIndexTask('discussion', [resource], {
+  SearchAPI.postIndexTask(DISCUSSION, [resource], {
     children: {
-      // eslint-disable-next-line camelcase
-      discussion_message: true
+      discussion_message: true // eslint-disable-line camelcase
     }
   });
 });
@@ -114,7 +128,7 @@ DiscussionsAPI.on(DiscussionsConstants.events.CREATED_DISCUSSION_MESSAGE, (ctx, 
 /*!
  * When a discussion message is deleted, we must delete the child message document
  */
-DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, message, discussion, _) =>
+DiscussionsAPI.on(DiscussionsConstants.events.DELETED_DISCUSSION_MESSAGE, (ctx, message, discussion) =>
   MessageBoxSearch.deleteMessageSearchDocument(
     DiscussionsConstants.search.MAPPING_DISCUSSION_MESSAGE,
     discussion.id,
@@ -144,7 +158,7 @@ const _produceDiscussionMessageDocuments = function (resources, callback, _docum
       resource.id,
       resource.messages
     );
-    _documents = _.union(_documents, documents);
+    _documents = union(_documents, documents);
     return _produceDiscussionMessageDocuments(resources, callback, _documents, _errs);
   }
 
@@ -155,10 +169,10 @@ const _produceDiscussionMessageDocuments = function (resources, callback, _docum
     resource.id,
     (error, documents) => {
       if (error) {
-        _errs = _.union(_errs, [error]);
+        _errs = union(_errs, [error]);
       }
 
-      _documents = _.union(_documents, documents);
+      _documents = union(_documents, documents);
       return _produceDiscussionMessageDocuments(resources, callback, _documents, _errs);
     }
   );
@@ -172,17 +186,13 @@ const _produceDiscussionMessageDocuments = function (resources, callback, _docum
  */
 const _produceDiscussionSearchDocuments = function (resources, callback) {
   _getDiscussions(resources, (error, discussions) => {
-    if (error) {
-      return callback([error]);
-    }
+    if (error) return callback([error]);
 
     // Some discussions might have already been deleted
-    discussions = _.compact(discussions);
-    if (_.isEmpty(discussions)) {
-      return callback();
-    }
+    discussions = compact(discussions);
+    if (isEmpty(discussions)) return callback();
 
-    const docs = _.map(discussions, _produceDiscussionSearchDocument);
+    const docs = map(_produceDiscussionSearchDocument, discussions);
     return callback(null, docs);
   });
 };
@@ -198,17 +208,15 @@ const _getDiscussions = function (resources, callback) {
   const discussions = [];
   const discussionIds = [];
 
-  _.each(resources, (resource) => {
+  forEach((resource) => {
     if (resource.discussion) {
       discussions.push(resource.discussion);
     } else {
       discussionIds.push(resource.id);
     }
-  });
+  }, resources);
 
-  if (_.isEmpty(discussionIds)) {
-    return callback(null, discussions);
-  }
+  if (isEmpty(discussionIds)) return callback(null, discussions);
 
   DiscussionsDAO.getDiscussionsById(discussionIds, null, callback);
 };
@@ -222,7 +230,7 @@ const _getDiscussions = function (resources, callback) {
  */
 const _produceDiscussionSearchDocument = function (discussion) {
   // Allow full-text search on name and description, but only if they are specified. We also sort on this text
-  const fullText = _.compact([discussion.displayName, discussion.description]).join(' ');
+  const fullText = compact([discussion.displayName, discussion.description]).join(' ');
 
   // Add all properties for the resource document metadata
   const doc = {
@@ -231,10 +239,8 @@ const _produceDiscussionSearchDocument = function (discussion) {
     tenantAlias: discussion.tenant.alias,
     displayName: discussion.displayName,
     visibility: discussion.visibility,
-    // eslint-disable-next-line camelcase
-    q_high: discussion.displayName,
-    // eslint-disable-next-line camelcase
-    q_low: fullText,
+    q_high: discussion.displayName, // eslint-disable-line camelcase
+    q_low: fullText, // eslint-disable-line camelcase
     sort: discussion.displayName,
     dateCreated: discussion.created,
     lastModified: discussion.lastModified,
@@ -251,7 +257,7 @@ const _produceDiscussionSearchDocument = function (discussion) {
   return doc;
 };
 
-SearchAPI.registerSearchDocumentProducer('discussion', _produceDiscussionSearchDocuments);
+SearchAPI.registerSearchDocumentProducer(DISCUSSION, _produceDiscussionSearchDocuments);
 
 /**
  * Document transformers
@@ -294,7 +300,7 @@ const _transformDiscussionDocuments = function (ctx, docs, callback) {
 };
 
 // Bind the transformer to the search API
-SearchAPI.registerSearchDocumentTransformer('discussion', _transformDiscussionDocuments);
+SearchAPI.registerSearchDocumentTransformer(DISCUSSION, _transformDiscussionDocuments);
 
 /**
  * Reindex all handler
@@ -311,18 +317,16 @@ SearchAPI.registerReindexAllHandler('discussion', (callback) => {
   const _onEach = function (discussionRows, done) {
     // Batch up this iteration of task resources
     const discussionResources = [];
-    _.each(discussionRows, (discussionRow) => {
+    forEach((discussionRow) => {
       discussionResources.push({ id: discussionRow.id });
-    });
+    }, discussionRows);
 
     log().info('Firing re-indexing task for %s discussions.', discussionResources.length);
-
-    SearchAPI.postIndexTask('discussion', discussionResources, { resource: true, children: true });
-
+    SearchAPI.postIndexTask(DISCUSSION, discussionResources, { resource: true, children: true });
     done();
   };
 
-  DiscussionsDAO.iterateAll(['id'], 100, _onEach, callback);
+  DiscussionsDAO.iterateAll([ID], 100, _onEach, callback);
 });
 
 export { init };

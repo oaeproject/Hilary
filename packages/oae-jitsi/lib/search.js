@@ -14,10 +14,24 @@
  */
 
 import { format } from 'node:util';
-import _ from 'underscore';
 import { logger } from 'oae-logger';
 
-import { defaultTo, map, forEach, join, not, pipe, reject, isEmpty } from 'ramda';
+import {
+  mergeRight,
+  pick,
+  union,
+  defaultTo,
+  map,
+  forEach,
+  join,
+  not,
+  pipe,
+  reject,
+  isEmpty,
+  forEachObjIndexed,
+  prop,
+  head
+} from 'ramda';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import * as MessageBoxSearch from 'oae-messagebox/lib/search.js';
@@ -25,11 +39,18 @@ import * as SearchAPI from 'oae-search';
 import * as TenantsAPI from 'oae-tenants';
 import * as MeetingsAPI from 'oae-jitsi';
 import * as MeetingsDAO from 'oae-jitsi/lib/internal/dao.js';
-
 import { MeetingsConstants } from 'oae-jitsi/lib/constants.js';
 
-const log = logger('meeting-jitsi-search');
+const LAST_MODIFIED = 'lastModified';
+const FIELDS = 'fields';
+const ID = 'id';
+const _EXTRA = '_extra';
+const MEETING = 'meeting';
+const MEETING_JITSI = 'meeting-jitsi';
+const { MAPPING_MEETING_MESSAGE } = MeetingsConstants.search;
 
+const defaultToEmptyObject = defaultTo({});
+const log = logger('meeting-jitsi-search');
 const defaultToEmptyArray = defaultTo([]);
 const compact = reject(pipe(Boolean, not));
 
@@ -41,8 +62,8 @@ const compact = reject(pipe(Boolean, not));
  */
 const init = function (callback) {
   return MessageBoxSearch.registerMessageSearchDocument(
-    MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
-    ['meeting-jitsi'],
+    MAPPING_MEETING_MESSAGE,
+    [MEETING_JITSI],
     (resources, callback) => _produceMeetingMessageDocuments([...resources], callback),
     callback
   );
@@ -61,33 +82,31 @@ const init = function (callback) {
 const _produceMeetingMessageDocuments = function (resources, callback, _documents, _errs) {
   _documents = defaultToEmptyArray(_documents);
 
-  if (isEmpty(resources)) {
-    return callback(_errs, _documents);
-  }
+  if (isEmpty(resources)) return callback(_errs, _documents);
 
   const resource = resources.pop();
 
   if (resource.messages) {
     const documents = MessageBoxSearch.createMessageSearchDocuments(
-      MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
+      MAPPING_MEETING_MESSAGE,
       resource.id,
       resource.messages
     );
-    _documents = _.union(_documents, documents);
+    _documents = union(_documents, documents);
     return _produceMeetingMessageDocuments(resources, callback, _documents, _errs);
   }
 
   // If there were no messages stored on the resource object, we go ahead and index all messages for the meeting
   MessageBoxSearch.createAllMessageSearchDocuments(
-    MeetingsConstants.search.MAPPING_MEETING_MESSAGE,
+    MAPPING_MEETING_MESSAGE,
     resource.id,
     resource.id,
     (error, documents) => {
       if (error) {
-        _errs = _.union(_errs, [error]);
+        _errs = union(_errs, [error]);
       }
 
-      _documents = _.union(_documents, documents);
+      _documents = union(_documents, documents);
       return _produceMeetingMessageDocuments(resources, callback, _documents, _errs);
     }
   );
@@ -101,13 +120,8 @@ const _produceMeetingMessageDocuments = function (resources, callback, _document
  */
 const _produceMeetingSearchDocuments = function (resources, callback) {
   _getMeetings(resources, (error, meetings) => {
-    if (error) {
-      return callback([error]);
-    }
-
-    if (isEmpty(meetings)) {
-      return callback();
-    }
+    if (error) return callback([error]);
+    if (isEmpty(meetings)) return callback();
 
     const docs = map(_produceMeetingSearchDocument, meetings);
     return callback(null, docs);
@@ -142,7 +156,7 @@ const _getMeetings = function (resources, callback) {
     extraMeetings = compact(extraMeetings);
 
     // Add the meetings item that came from Cassandra
-    meetings = _.union(meetings, extraMeetings);
+    meetings = union(meetings, extraMeetings);
 
     return callback(null, meetings);
   });
@@ -161,15 +175,13 @@ const _produceMeetingSearchDocument = function (meeting) {
 
   // Add all properties for the resource document metadata
   const doc = {
-    resourceType: 'meeting',
+    resourceType: MEETING,
     id: meeting.id,
     tenantAlias: meeting.tenant.alias,
     displayName: meeting.displayName,
     visibility: meeting.visibility,
-    // eslint-disable-next-line camelcase
-    q_high: meeting.displayName,
-    // eslint-disable-next-line camelcase
-    q_low: fullText,
+    q_high: meeting.displayName, // eslint-disable-line camelcase
+    q_low: fullText, // eslint-disable-line camelcase
     sort: meeting.displayName,
     dateCreated: meeting.created,
     lastModified: meeting.lastModified,
@@ -186,11 +198,11 @@ const _produceMeetingSearchDocument = function (meeting) {
   return doc;
 };
 
-SearchAPI.registerSearchDocumentProducer('meeting-jitsi', _produceMeetingSearchDocuments);
+SearchAPI.registerSearchDocumentProducer(MEETING_JITSI, _produceMeetingSearchDocuments);
 
-/// ////////////////////////
-// DOCUMENT TRANSFORMERS //
-/// ////////////////////////
+/**
+ * Document transformers
+ */
 
 /**
  * Given an array of meeting search documents, transform them into search documents suitable to be displayed to the user in context.
@@ -202,49 +214,48 @@ SearchAPI.registerSearchDocumentProducer('meeting-jitsi', _produceMeetingSearchD
  * @param  {Object}    callback.docs   The transformed docs, in the same form as the `docs` parameter.
  * @api private
  */
-const _transformMeetingDocuments = function (ctx, docs, callback) {
+const _transformMeetingDocuments = function (_ctx, docs, callback) {
   const transformeDocs = {};
 
-  _.each(docs, (doc, docId) => {
+  forEachObjIndexed((doc, docId) => {
     // Extract the extra object from the search document
-    const extra = _.first(doc.fields._extra) || {};
+    const extractExtraObject = pipe(prop(FIELDS), prop(_EXTRA), head, defaultToEmptyObject);
 
     // Build the transformed result document from the ElasticSearch document
-    const result = { id: docId };
-    _.each(doc.fields, (value, name) => {
-      result[name] = _.first(value);
-    });
+    let result = { id: docId };
+    forEachObjIndexed((value, name) => {
+      result[name] = head(value);
+    }, doc.fields);
 
     // Take just the `lastModified` from the extra fields, if specified
-    _.extend(result, _.pick(extra, 'lastModified'));
+    result = mergeRight(result, pick(LAST_MODIFIED, extractExtraObject(doc)));
 
     // Add the full tenant object and profile path
-    _.extend(result, {
+    result = mergeRight(result, {
       tenant: TenantsAPI.getTenant(result.tenantAlias).compact(),
       profilePath: format('/meeting-jitsi/%s/%s', result.tenantAlias, AuthzUtil.getResourceFromId(result.id).resourceId)
     });
 
     transformeDocs[docId] = result;
-  });
+  }, docs);
 
   return callback(null, transformeDocs);
 };
 
-SearchAPI.registerSearchDocumentTransformer('meeting-jitsi', _transformMeetingDocuments);
+SearchAPI.registerSearchDocumentTransformer(MEETING_JITSI, _transformMeetingDocuments);
 
-/// /////////////////
-// INDEXING TASKS //
-/// /////////////////
+/**
+ * Indexing tasks
+ */
 
 /**
  * When a meeting is created, we must index it and all its potential members
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting /* members */) => {
-  SearchAPI.postIndexTask('meeting-jitsi', [{ id: meeting.id }], {
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (_ctx, meeting, _members) => {
+  SearchAPI.postIndexTask(MEETING_JITSI, [{ id: meeting.id }], {
     resource: true,
     children: {
-      // eslint-disable-next-line camelcase
-      resource_members: true
+      resource_members: true // eslint-disable-line camelcase
     }
   });
 });
@@ -252,8 +263,8 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING, (ctx, meeting /
 /**
  * When a meeting is updated, we must reindex its resource document
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, meeting /* updatedMeeting */) => {
-  SearchAPI.postIndexTask('meeting-jitsi', [{ id: meeting.id }], {
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (_ctx, meeting, _updatedMeeting) => {
+  SearchAPI.postIndexTask(MEETING_JITSI, [{ id: meeting.id }], {
     resource: true
   });
 });
@@ -261,11 +272,10 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING, (ctx, meeting /
 /**
  * When a meeting's membership is updated, we must reindex its members child document
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, meeting) => {
-  SearchAPI.postIndexTask('meeting-jitsi', [{ id: meeting.id }], {
+MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (_ctx, meeting) => {
+  SearchAPI.postIndexTask(MEETING_JITSI, [{ id: meeting.id }], {
     children: {
-      // eslint-disable-next-line camelcase
-      resource_members: true
+      resource_members: true // eslint-disable-line camelcase
     }
   });
 });
@@ -273,20 +283,20 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.UPDATED_MEETING_MEMBERS, (ctx, m
 /**
  * When a meeting is deleted, we must cascade delete its resource document and children
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING, (ctx, meeting) => {
+MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING, (_ctx, meeting) => {
   SearchAPI.postDeleteTask(meeting.id);
 });
 
 /**
  * When a message is added to a meeting, we must index the child message document
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, message, meeting) => {
+MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (_ctx, message, meeting) => {
   const resource = {
     id: meeting.id,
     messages: [message]
   };
 
-  SearchAPI.postIndexTask('meeting-jitsi', [resource], {
+  SearchAPI.postIndexTask(MEETING_JITSI, [resource], {
     children: {
       'meeting-jitsi_message': true
     }
@@ -296,15 +306,15 @@ MeetingsAPI.emitter.on(MeetingsConstants.events.CREATED_MEETING_MESSAGE, (ctx, m
 /**
  * When a meeting message is deleted, we must delete the child message document
  */
-MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (ctx, message, meeting /* deleteType */) =>
+MeetingsAPI.emitter.on(MeetingsConstants.events.DELETED_MEETING_MESSAGE, (_ctx, message, meeting, _deleteType) =>
   MessageBoxSearch.deleteMessageSearchDocument(MeetingsConstants.search.MAPPING_MEETING_MESSAGE, meeting.id, message)
 );
 
-/// //////////////////////
-// REINDEX ALL HANDLER //
-/// //////////////////////
+/**
+ * Reindex all handler
+ */
 
-SearchAPI.registerReindexAllHandler('meeting-jitsi', (callback) => {
+SearchAPI.registerReindexAllHandler(MEETING_JITSI, (callback) => {
   /*
    * Handles each iteration of the MeetingDAO iterate all method, firing tasks for all meetings to
    * be reindexed.
@@ -316,18 +326,17 @@ SearchAPI.registerReindexAllHandler('meeting-jitsi', (callback) => {
     // Batch up this iteration of task resources
     const meetingResources = [];
 
-    _.each(meetingRows, (meetingRow) => {
+    forEach((meetingRow) => {
       meetingResources.push({ id: meetingRow.id });
-    });
+    }, meetingRows);
 
     log().info('Firing re-indexing task for %s meetings.', meetingResources.length);
-
-    SearchAPI.postIndexTask('meeting-jitsi', meetingResources, { resource: true, children: true });
+    SearchAPI.postIndexTask(MEETING_JITSI, meetingResources, { resource: true, children: true });
 
     return done();
   };
 
-  MeetingsDAO.iterateAll(['id'], 100, _onEach, callback);
+  MeetingsDAO.iterateAll([ID], 100, _onEach, callback);
 });
 
 export { init };

@@ -17,7 +17,7 @@ import crypto from 'node:crypto';
 import { callbackify, format } from 'node:util';
 import _ from 'underscore';
 import passport from 'passport';
-import { compose, and, pipe, prop, not, propEq, is } from 'ramda';
+import { has, both, compose, and, pipe, prop, not, propEq, is } from 'ramda';
 
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import * as AuthzInvitationsDAO from 'oae-authz/lib/invitations/dao.js';
@@ -45,9 +45,11 @@ import { LoginId } from 'oae-authentication/lib/model.js';
 const CODE = 'code';
 const MESSAGE = 'message';
 
+const hasCode = has(CODE);
+const codeIs404 = propEq(CODE, 404);
+const errorCodeAint404 = pipe(propEq(CODE, 404), not);
 const isInstanceOfObject = is(Object);
 const isInstanceOfError = is(Error);
-const errorCodeAint404 = pipe(propEq(CODE, 404), not);
 
 const errorIsNot404 = (error) => {
   const parsedErrorAint404 = pipe(prop(MESSAGE), JSON.parse, errorCodeAint404);
@@ -188,13 +190,9 @@ const localUsernameExists = function (ctx, tenantAlias, username, callback) {
   }
 
   _getUserIdFromLoginId(loginId, (error, userId) => {
-    if (error && error.code !== 404) {
-      return callback(error);
-    }
+    if (both(hasCode, codeIs404)(error)) return callback(error);
 
-    if (!userId) {
-      return callback(null, false);
-    }
+    if (not(userId)) return callback(null, false);
 
     return callback(null, true);
   });
@@ -280,9 +278,7 @@ const getOrCreateGlobalAdminUser = function (
     displayName,
     options,
     (error, user, loginId, created) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       if (!created) {
         // The user already existed, just return the existing user
@@ -291,9 +287,7 @@ const getOrCreateGlobalAdminUser = function (
 
       // The user was created, mark them as a global admin user
       PrincipalsAPI.setGlobalAdmin(ctx, user.id, true, (error_) => {
-        if (error_) {
-          return callback(error_);
-        }
+        if (error_) return callback(error_);
 
         if (created) {
           log().info({ user, username }, 'Global Admin account created');
@@ -301,9 +295,7 @@ const getOrCreateGlobalAdminUser = function (
 
         // Fetch the user again to get the updated version of the user
         PrincipalsAPI.getUser(ctx, user.id, (error, user) => {
-          if (error) {
-            return callback(error);
-          }
+          if (error) return callback(error);
 
           return callback(null, user, loginId, true);
         });
@@ -400,24 +392,17 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
      *
      * By the way, an Error is an Object but {} aint an Error, so the order of the if conditions matters
      */
-    if (isInstanceOfError(error) && errorIsNot404(error)) {
-      return callback(error);
-    }
+    if (isInstanceOfError(error) && errorIsNot404(error)) return callback(error);
 
-    if (isInstanceOfObject(error) && errorCodeAint404(error)) {
-      return callback(error);
-    }
+    if (isInstanceOfObject(error) && errorCodeAint404(error)) return callback(error);
 
     if (userId) {
       // The user existed, simply fetch their profile
       PrincipalsDAO.getPrincipal(userId, (error, user) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
-        if (user.deleted) {
+        if (user.deleted)
           return callback({ code: 401, msg: 'Provided login id belongs to a deleted user' });
-        }
 
         return callback(null, user, _flattenLoginId(loginId), false);
       });
@@ -450,9 +435,7 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
         AuthzInvitationsDAO.getEmailByToken,
         options.invitationToken,
         (error, email) => {
-          if (error) {
-            return callback(error);
-          }
+          if (error) return callback(error);
 
           if (email && !options.email) {
             // If no email is provided by the auth provider, set the email associated to the
@@ -492,9 +475,7 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
               }
 
               createUser(ctx, loginId, displayName, options, (error, user) => {
-                if (error) {
-                  return callback(error);
-                }
+                if (error) return callback(error);
 
                 return callback(null, user, _flattenLoginId(loginId), true);
               });

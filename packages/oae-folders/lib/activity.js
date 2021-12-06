@@ -14,6 +14,7 @@
  */
 
 import _ from 'underscore';
+import { has, pluck } from 'ramda';
 
 import * as ActivityAPI from 'oae-activity/lib/api.js';
 import * as ActivityModel from 'oae-activity/lib/model.js';
@@ -32,6 +33,10 @@ import { AuthzConstants } from 'oae-authz/lib/constants.js';
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import { ContentConstants } from 'oae-content/lib/constants.js';
 import { FoldersConstants } from 'oae-folders/lib/constants.js';
+
+const ID = 'id';
+const INVITATION = 'invitation';
+const hasInvitation = has(INVITATION);
 
 ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_CREATE, {
   groupBy: [{ actor: true, target: true }],
@@ -339,14 +344,14 @@ ActivityAPI.registerActivityType(FoldersConstants.activity.ACTIVITY_FOLDER_UPDAT
 });
 
 FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, folder, memberChangeInfo, options) => {
-  if (options.invitation) {
-    // If this member update came from an invitation, we bypass adding activity as there is a
-    // dedicated activity for that
-    return;
-  }
+  /**
+   * If this member update came from an invitation,
+   * we bypass adding activity as there is a dedicated activity for that
+   */
+  if (hasInvitation(options)) return;
 
-  const addedMemberIds = _.pluck(memberChangeInfo.members.added, 'id');
-  const updatedMemberIds = _.pluck(memberChangeInfo.members.updated, 'id');
+  const addedMemberIds = pluck(ID, memberChangeInfo.members.added);
+  const updatedMemberIds = pluck(ID, memberChangeInfo.members.updated);
 
   const millis = Date.now();
   const actorResource = new ActivityModel.ActivitySeedResource('user', ctx.user().id, {

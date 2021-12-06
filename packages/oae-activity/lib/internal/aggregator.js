@@ -15,7 +15,7 @@
 
 import { format } from 'node:util';
 import _ from 'underscore';
-import { pipe, sort, map, join, values } from 'ramda';
+import { equals, pipe, sort, map, join, values } from 'ramda';
 
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
@@ -32,6 +32,7 @@ import * as ActivityBuckets from './buckets.js';
 
 const log = logger('oae-activity-aggregator');
 
+const isZero = equals(0);
 const Telemetry = telemetry('activity');
 
 // Used in an aggregate key to denote that there was no entity provided for an activity. This differs from an empty string in that
@@ -152,24 +153,20 @@ const _collectBucket = function (bucketNumber, callback) {
 
   // Step #1: Get the next batch of queued activities to process
   ActivityDAO.getQueuedActivities(bucketNumber, limit, (error, routedActivities, numberToDelete) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    if (numberToDelete === 0) {
-      // No more to process, so stop and report that we're empty
-      return callback(null, true);
-    }
+    // No more to process, so stop and report that we're empty
+    if (isZero(numberToDelete)) return callback(null, true);
 
-    // Step #2: Delete the queued activities that we're processing. We do
-    // this right away because if there is any bad data, we want to make
-    // sure that the existence of that data does not permanently inhibit
-    // future collection rounds, so we need to ensure we pull that data out
-    // regardless if aggregation is successful
+    /**
+     * Step #2: Delete the queued activities that we're processing. We do
+     * this right away because if there is any bad data, we want to make
+     * sure that the existence of that data does not permanently inhibit
+     * future collection rounds, so we need to ensure we pull that data out
+     * regardless if aggregation is successful
+     */
     ActivityDAO.deleteQueuedActivities(bucketNumber, numberToDelete, (error_) => {
-      if (error_) {
-        return callback(error_);
-      }
+      if (error_) return callback(error_);
 
       // Step #3: Explode the routed activities into their potential aggregates, according to their configured pivot points
       const allAggregates = createAggregates(_.values(routedActivities));
@@ -178,9 +175,7 @@ const _collectBucket = function (bucketNumber, callback) {
       // Step #4: Get all aggregate statuses to determine which ones are expired and which are active. Expired aggregates
       // should be deleted, while active aggregates should be merged and redelivered
       ActivityDAO.getAggregateStatus(allAggregateKeys, (error, statusByAggregateKey) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         // Figure out which aggregates are "active" (have an activity in its aggregate) and "expired" (no new activities in the aggregate before expiry time)
         const activeAggregates = {};
@@ -207,9 +202,7 @@ const _collectBucket = function (bucketNumber, callback) {
 
           // Step #6: Retrieve all entities that are aggregated within the active aggregates so they can be collected into redelivered activities
           ActivityDAO.getAggregatedEntities(_.keys(activeAggregates), (error, fetchedEntities) => {
-            if (error) {
-              return callback(error);
-            }
+            if (error) return callback(error);
 
             /*!
              * Step #7:

@@ -185,10 +185,8 @@ const _collectBucket = function (type, bucketNumber, callback) {
   let hadLock = true;
 
   Locking.acquire(lockKey, bucketInfo.collectionExpiry, (error, lock) => {
-    if (error) {
-      // We could not acquire a lock, someone else came around and managed to snag the bucket
-      return callback(error);
-    }
+    // We could not acquire a lock, someone else came around and managed to snag the bucket
+    if (error) return callback(error);
 
     log().trace({ lockId: lock.value, type }, 'Acquired a lock on bucket number %s', bucketNumber);
 

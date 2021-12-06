@@ -96,9 +96,7 @@ const getStandardResourcePropagation = function (resourceVisibility, resourceJoi
  */
 const getAllAuthzMembersByRole = function (resourceId, callback) {
   AuthzAPI.getAuthzMembers(resourceId, null, 10_000, (error, members) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     const membersByRole = {};
     const groupMembersByRole = {};
@@ -117,9 +115,7 @@ const getAllAuthzMembersByRole = function (resourceId, callback) {
 
     // Merge the descendants by role of all the group members descendants
     _getAllAuthzGroupMembersByRole(groupMembersByRole, (error, indirectMembersByRole) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       // Aggregate each set of indirect members into its associated group of roles
       _.each(indirectMembersByRole, (indirectMembers, role) => {
@@ -194,9 +190,7 @@ const _getAllAuthzMembers = function (groupIds, callback, aggregatedMembers) {
 
   const groupId = groupIds.shift();
   AuthzAPI.getAuthzMembers(groupId, null, 10_000, (error, members) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Aggregate the memberIds
     for (const element of members) {

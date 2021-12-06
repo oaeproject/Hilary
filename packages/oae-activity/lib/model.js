@@ -258,18 +258,20 @@ const AssociationsSession = function (registeredAssociations, actor, object, tar
       associationsSession.createAssociationsContext(entityType, entityId),
       entity,
       (error, association) => {
-        if (error) {
-          return callback(error);
-        }
+        if (error) return callback(error);
 
         if (!association) {
-          // A successful but falsey association is simply treated as an empty result, as it cannot be confused with
-          // the association (or context entity) not existing
+          /**
+           * A successful but falsey association is simply treated as an empty result, as it cannot be confused with
+           * the association (or context entity) not existing
+           */
           association = [];
         }
 
-        // Cache the association result. We plant an object with field association so we can distinguish a cached `undefined` result
-        // from a non-existing cache entry
+        /**
+         * Cache the association result. We plant an object with field association
+         * so we can distinguish a cached `undefined` result from a non-existing cache entry
+         */
         _associationsCache[entityType] = _associationsCache[entityType] || {};
         _associationsCache[entityType][entityId] = _associationsCache[entityType][entityId] || {};
         _associationsCache[entityType][entityId][associationName] = association;

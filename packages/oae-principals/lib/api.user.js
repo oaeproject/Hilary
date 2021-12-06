@@ -42,7 +42,23 @@ import * as Signature from 'oae-util/lib/signature.js';
 import { setUpConfig } from 'oae-config';
 import { Context } from 'oae-context';
 import { Validator as validator } from 'oae-util/lib/validator.js';
-import { add, equals, path, __, slice, join, last, split, curry, forEach, ifElse, compose, not, isNil } from 'ramda';
+import {
+  isEmpty,
+  add,
+  equals,
+  path,
+  __,
+  slice,
+  join,
+  last,
+  split,
+  curry,
+  forEach,
+  ifElse,
+  compose,
+  not,
+  isNil
+} from 'ramda';
 import isIn from 'validator/lib/isIn.js';
 import { AuthenticationConstants } from 'oae-authentication/lib/constants.js';
 import { AuthzConstants } from 'oae-authz/lib/constants.js';
@@ -878,7 +894,7 @@ function getAllUsersForTenant(ctx, tenantAlias, callback) {
   PrincipalsDAO.getAllUsersForTenant(tenantAlias, (error, users) => {
     if (error) return callback(error);
 
-    if (_.isEmpty(users)) {
+    if (isEmpty(users)) {
       log().info('No users found for tenant %s', tenantAlias);
     } else {
       users = _.chain(users).compact().uniq().value();
@@ -1714,7 +1730,7 @@ function collectDataToExport(ctx, userId, exportType, callback) {
  * @param  {Objetc}     callback.uploadData     Object contain all the uploaded files' data
  */
 function _getUploadedFiles(ctx, uploadedFiles, callback) {
-  if (_.isEmpty(uploadedFiles)) {
+  if (isEmpty(uploadedFiles)) {
     return callback();
   }
 
@@ -1752,7 +1768,7 @@ function _getUploadedFiles(ctx, uploadedFiles, callback) {
 }
 
 const _collabsheetToCSV = function (ctx, collabsheets, callback) {
-  if (_.isEmpty(collabsheets)) return callback();
+  if (isEmpty(collabsheets)) return callback();
 
   let txtCollabsheet = '';
   const collabsheetData = [];
@@ -1807,9 +1823,7 @@ const _collabsheetToCSV = function (ctx, collabsheets, callback) {
  * @param  {Objetc}     callback.collabdocData  Object contain all the collabdocs' data
  */
 const _collabdocToTxt = function (ctx, collabdocs, callback) {
-  if (_.isEmpty(collabdocs)) {
-    return callback();
-  }
+  if (isEmpty(collabdocs)) return callback();
 
   let txtCollabdoc = '';
   const collabdocData = [];
@@ -1867,9 +1881,7 @@ const _collabdocToTxt = function (ctx, collabdocs, callback) {
  * @param  {Obejct}     callback.linkData       Object contain all the links' data
  */
 const _linkToTxt = function (ctx, links, callback) {
-  if (_.isEmpty(links)) {
-    return callback();
-  }
+  if (isEmpty(links)) return callback();
 
   let txtLink = '';
   const linkData = [];
@@ -1923,9 +1935,7 @@ const _linkToTxt = function (ctx, links, callback) {
  * @param  {Object}     callback.meetingData    Object contain all meetings' data
  */
 const _meetingToTxt = function (ctx, meetings, callback) {
-  if (_.isEmpty(meetings)) {
-    return callback();
-  }
+  if (isEmpty(meetings)) return callback();
 
   let txtMeeting = '';
   const meetingData = [];
@@ -1980,9 +1990,7 @@ const _meetingToTxt = function (ctx, meetings, callback) {
  * @param  {Object}     callback.discussionData     Object contain all the discussions' data
  */
 const _discussionToTxt = function (ctx, discussions, callback) {
-  if (_.isEmpty(discussions)) {
-    return callback();
-  }
+  if (isEmpty(discussions)) return callback();
 
   let txtDiscussion = '';
   const discussionData = [];

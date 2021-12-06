@@ -30,9 +30,7 @@ import * as Email from './internal/email.js';
 
 export function init(config, callback) {
   ActivityAPI.refreshConfiguration(config.activity, (error) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
     // Configure the push notifications
     ActivityPush.init(callback);

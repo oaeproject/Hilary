@@ -85,6 +85,7 @@ const extractCreated = pipe(split(CARDINAL), last, split(PIPE), head);
  * after the URL so we can determine whether the URL is already provided in markdown format
  * eslint-disable-next-line prefer-regex-literals
  */
+// eslint-disable-next-line prefer-regex-literals
 const REGEXP_LINK = new RegExp(
   '(.?)https?://([^/\\r\\n\\s]+)(/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])(.?)',
   'gi'

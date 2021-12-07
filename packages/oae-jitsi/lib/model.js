@@ -17,18 +17,9 @@ import { format } from 'node:util';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 
-const Meeting = function (
-  tenant,
-  id,
-  createdBy,
-  displayName,
-  description,
-  chat,
-  contactList,
-  visibility,
-  created,
-  lastModified
-) {
+const Meeting = function (tenant, meetingData) {
+  const { id, createdBy, displayName, description, chat, contactList, visibility, created, lastModified } = meetingData;
+
   const { resourceId } = AuthzUtil.getResourceFromId(id);
   const that = {};
   that.tenant = tenant;

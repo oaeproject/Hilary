@@ -14,15 +14,19 @@
  */
 
 import { promisify, callbackify } from 'node:util';
-import { isEmpty, forEach, map, pipe, prop, defaultTo, mergeAll } from 'ramda';
-import _ from 'underscore';
+import { head, isEmpty, forEach, map, pipe, prop, defaultTo, mergeAll, mergeRight } from 'ramda';
 import ShortId from 'shortid';
 import { Meeting } from 'oae-jitsi/lib/model.js';
 
-import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { getPrincipalFromId, toId } from 'oae-authz/lib/util.js';
 import { iterateAll as iterateResults, rowToHash, constructUpsertCQL, runQuery } from 'oae-util/lib/cassandra.js';
-import * as OaeUtil from 'oae-util/lib/util.js';
-import * as TenantsAPI from 'oae-tenants';
+import { getNumberParam as toNumber } from 'oae-util/lib/util.js';
+import { getTenant } from 'oae-tenants';
+
+const LAST_MODIFIED = 'lastModified';
+const MEETINGS_TABLE = 'MeetingsJitsi';
+const ID = 'id';
+const MEETING_SYMBOL = 'm';
 
 /**
  * PUBLIC FUNCTIONS
@@ -33,9 +37,9 @@ import * as TenantsAPI from 'oae-tenants';
  */
 const createMeeting = function (createdBy, displayName, description, chat, contactList, visibility, callback) {
   const created = Date.now().toString();
-
-  const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
+  const { tenantAlias } = getPrincipalFromId(createdBy);
   const meetingId = _createMeetingId(tenantAlias);
+
   const storageHash = {
     tenantAlias,
     createdBy,
@@ -48,7 +52,7 @@ const createMeeting = function (createdBy, displayName, description, chat, conta
     lastModified: created
   };
 
-  const query = constructUpsertCQL('MeetingsJitsi', 'id', meetingId, storageHash);
+  const query = constructUpsertCQL(MEETINGS_TABLE, ID, meetingId, storageHash);
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 
@@ -63,7 +67,7 @@ const getMeeting = function (meetingId, callback) {
   getMeetingsById([meetingId], (error, meetings) => {
     if (error) return callback(error);
 
-    return callback(null, meetings[0]);
+    return callback(null, head(meetings));
   });
 };
 
@@ -113,8 +117,8 @@ const updateMeeting = function (meeting, profileFields, callback) {
   const storageHash = mergeAll([{}, profileFields]);
   const defaultToNow = defaultTo(Date.now());
 
-  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow, toString)(storageHash);
-  const query = constructUpsertCQL('MeetingsJitsi', 'id', meeting.id, storageHash);
+  storageHash.lastModified = pipe(prop(LAST_MODIFIED), defaultToNow, toString)(storageHash);
+  const query = constructUpsertCQL(MEETINGS_TABLE, ID, meeting.id, storageHash);
 
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
@@ -154,7 +158,7 @@ const deleteMeeting = function (meetingId, callback) {
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
   if (isEmpty(properties)) {
-    properties = ['id'];
+    properties = [ID];
   }
 
   /*
@@ -164,10 +168,10 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
    */
   const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
-    return onEach(_.map(rows, rowToHash), done);
+    return onEach(map(rowToHash, rows), done);
   };
 
-  callbackify(iterateResults)(properties, 'MeetingsJitsi', 'id', { batchSize }, promisify(_iterateAllOnEach), callback);
+  callbackify(iterateResults)(properties, MEETINGS_TABLE, ID, { batchSize }, promisify(_iterateAllOnEach), callback);
 };
 
 /**
@@ -181,29 +185,30 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
  * @returns
  */
 const _createMeetingId = function (tenantAlias) {
-  return AuthzUtil.toId('m', tenantAlias, ShortId.generate());
+  return toId(MEETING_SYMBOL, tenantAlias, ShortId.generate());
 };
 
 /**
  * Create a meeting model object from its id and the storage hash
  *
- * @param {any} meetingId
+ * @param {any} id        The meeting Id
  * @param {any} hash
  * @returns
  */
-const _storageHashToMeeting = function (meetingId, hash) {
-  return new Meeting(
-    TenantsAPI.getTenant(hash.tenantAlias),
-    meetingId,
-    hash.createdBy,
-    hash.displayName,
-    hash.description,
-    hash.chat,
-    hash.contactList,
-    hash.visibility,
-    OaeUtil.getNumberParam(hash.created),
-    OaeUtil.getNumberParam(hash.lastModified)
-  );
+const _storageHashToMeeting = function (id, hash) {
+  const { tenantAlias, created, chat, createdBy, contactList, description, displayName, visibility, lastModified } =
+    hash;
+  return new Meeting(getTenant(tenantAlias), {
+    id,
+    createdBy,
+    displayName,
+    description,
+    chat,
+    contactList,
+    visibility,
+    created: toNumber(created),
+    lastModified: toNumber(lastModified)
+  });
 };
 
 /**
@@ -214,31 +219,25 @@ const _storageHashToMeeting = function (meetingId, hash) {
  * @returns
  */
 const _createUpdatedMeetingFromStorageHash = function (meeting, hash) {
-  // Chat and contactList are boolean values, we can make the same processing
-  // with them as we do for the other string variables
-  // description can be an empty string, same remark
-  let chat = null;
-  let contactList = null;
-  let description = null;
+  /**
+   * Chat and contactList are boolean values, we can make the same processing
+   * with them as we do for the other string variables
+   * description can be an empty string, same remark
+   */
+  meeting = mergeRight(meeting, hash);
+  const { id, created, chat, createdBy, contactList, description, displayName, visibility, lastModified } = meeting;
 
-  chat = typeof hash.chat === 'undefined' ? meeting.chat : hash.chat;
-
-  contactList = typeof hash.contactList === 'undefined' ? meeting.contactList : hash.contactList;
-
-  description = typeof hash.description === 'undefined' ? meeting.description : hash.description;
-
-  return new Meeting(
-    meeting.tenant,
-    meeting.id,
-    meeting.createdBy,
-    hash.displayName || meeting.displayName,
+  return new Meeting(meeting.tenant, {
+    id,
+    createdBy,
+    displayName,
     description,
     chat,
     contactList,
-    hash.visibility || meeting.visibility,
-    OaeUtil.getNumberParam(meeting.created),
-    OaeUtil.getNumberParam(hash.lastModified || meeting.lastModified)
-  );
+    visibility,
+    created: toNumber(created),
+    lastModified: toNumber(lastModified)
+  });
 };
 
 export { createMeeting, getMeeting, getMeetingsById, updateMeeting, deleteMeeting, iterateAll };

@@ -381,12 +381,14 @@ const _produceAllRoutes = function (activitySeed, actor, object, target, callbac
 
               // First filter down the routes by the actor propagation
               _applyPropagations(
-                ActivityConstants.entityTypes.ACTOR,
-                actorPropagationRules,
-                allRoutes,
-                associationsContexts,
-                actor,
-                actorRoutes,
+                {
+                  objectType: ActivityConstants.entityTypes.ACTOR,
+                  propagations: actorPropagationRules,
+                  routes: allRoutes,
+                  associationsContexts,
+                  entity: actor,
+                  entityRoutes: actorRoutes
+                },
                 (error, includedRoutes) => {
                   if (error) return callback(error);
 
@@ -395,12 +397,14 @@ const _produceAllRoutes = function (activitySeed, actor, object, target, callbac
 
                   // Further filter routes down by object propagation
                   _applyPropagations(
-                    ActivityConstants.entityTypes.OBJECT,
-                    objectPropagationRules,
-                    includedRoutes,
-                    associationsContexts,
-                    object,
-                    objectRoutes,
+                    {
+                      objectType: ActivityConstants.entityTypes.OBJECT,
+                      propagations: objectPropagationRules,
+                      routes: includedRoutes,
+                      associationsContexts,
+                      entity: object,
+                      entityRoutes: objectRoutes
+                    },
                     (error, includedRoutes) => {
                       if (error) return callback(error);
 
@@ -409,12 +413,14 @@ const _produceAllRoutes = function (activitySeed, actor, object, target, callbac
 
                       // Further filter routes down by target propagation
                       _applyPropagations(
-                        ActivityConstants.entityTypes.TARGET,
-                        targetPropagationRules,
-                        includedRoutes,
-                        associationsContexts,
-                        target,
-                        targetRoutes,
+                        {
+                          objectType: ActivityConstants.entityTypes.TARGET,
+                          propagations: targetPropagationRules,
+                          routes: includedRoutes,
+                          associationsContexts,
+                          entity: target,
+                          entityRoutes: targetRoutes
+                        },
                         (error, includedRoutes) => {
                           if (error) return callback(error);
 
@@ -510,23 +516,14 @@ const _getGroupEntity = function (actor, object, target) {
  * @param  {String[]}               callback.excludedRoutes         The routes to which the propagation rules indicate are unsafe to receive the entity
  * @api private
  */
-const _applyPropagations = function (
-  objectType,
-  propagations,
-  routes,
-  associationsContexts,
-  entity,
-  entityRoutes,
-  callback,
-  _includeRoutes,
-  _excludeRoutes
-) {
-  if (!entity) {
-    return callback(null, routes, []);
-  }
+const _applyPropagations = function (data, callback, _includeRoutes, _excludeRoutes) {
+  const { objectType, propagations, routes, associationsContexts, entity, entityRoutes } = data;
+  if (!entity) return callback(null, routes, []);
 
-  // Seed the _includeRoutes and _excludeRoutes, such that by default all routes are excluded. As we go through the propagations chain,
-  // routes are added to the includes list as they are determined to be safe
+  /**
+   * Seed the _includeRoutes and _excludeRoutes, such that by default all routes are excluded.
+   * As we go through the propagations chain, routes are added to the includes list as they are determined to be safe
+   */
   _includeRoutes = _includeRoutes || [];
   _excludeRoutes = _excludeRoutes || routes;
   if (_.isEmpty(propagations)) {
@@ -558,12 +555,14 @@ const _applyPropagations = function (
 
       // There are still more routes to try and include. Continue shifting through the propagation rules chain
       return _applyPropagations(
-        objectType,
-        propagations,
-        routes,
-        associationsContexts,
-        entity,
-        entityRoutes,
+        {
+          objectType,
+          propagations,
+          routes,
+          associationsContexts,
+          entity,
+          entityRoutes
+        },
         callback,
         _includeRoutes,
         _excludeRoutes

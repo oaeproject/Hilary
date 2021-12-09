@@ -13,14 +13,26 @@
  * permissions and limitations under the License.
  */
 
-/* eslint-disable unicorn/no-array-callback-reference */
-import { promisify, callbackify, format } from 'node:util';
-import _ from 'underscore';
+import { promisify, callbackify } from 'node:util';
 import ShortId from 'shortid';
-import { mergeAll, isEmpty, defaultTo, pipe, prop, when, of } from 'ramda';
+import {
+  not,
+  reject,
+  indexBy,
+  map,
+  pluck,
+  mergeAll,
+  isEmpty,
+  defaultTo,
+  pipe,
+  prop,
+  when,
+  of,
+  mergeRight
+} from 'ramda';
 
-import * as AuthzAPI from 'oae-authz';
-import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { getRolesForPrincipalAndResourceType } from 'oae-authz';
+import { getPrincipalFromId, toId } from 'oae-authz/lib/util.js';
 import {
   constructUpsertCQL,
   runBatchQuery,
@@ -30,10 +42,23 @@ import {
   runQuery
 } from 'oae-util/lib/cassandra.js';
 import * as ContentDAO from 'oae-content/lib/internal/dao.js';
-import * as PrincipalsUtil from 'oae-principals/lib/util.js';
-import * as TenantsAPI from 'oae-tenants';
-
+import { createGroupId } from 'oae-principals/lib/util.js';
+import { getTenant } from 'oae-tenants';
 import { Folder } from 'oae-folders/lib/model.js';
+
+const { getMultipleContentItems } = ContentDAO.Content;
+
+const defaultToEmptyObject = defaultTo({});
+const compact = reject(pipe(Boolean, not));
+
+const FOLDER_SYMBOL = 'f';
+const CONTENT_SYMBOL = 'c';
+const FOLDERS_TABLE = 'Folders';
+const FOLDER_ID = 'folderId';
+const ID = 'id';
+const GROUP_ID = 'groupId';
+const FOLDERS_GROUP_ID = 'FoldersGroupId';
+const LAST_MODIFIED = 'lastModified';
 
 /**
  * Create a folder
@@ -47,10 +72,11 @@ import { Folder } from 'oae-folders/lib/model.js';
  * @param  {Folder}         callback.folder         The folder that was created
  */
 const createFolder = function (createdBy, displayName, description, visibility, callback) {
-  const { tenantAlias } = AuthzUtil.getPrincipalFromId(createdBy);
+  const { tenantAlias } = getPrincipalFromId(createdBy);
   const folderId = _createFolderId(tenantAlias);
-  const groupId = PrincipalsUtil.createGroupId(tenantAlias);
-  const created = Date.now();
+  const groupId = createGroupId(tenantAlias);
+  const now = Date.now();
+
   const storageHash = {
     tenantAlias,
     groupId,
@@ -58,13 +84,13 @@ const createFolder = function (createdBy, displayName, description, visibility, 
     displayName,
     description,
     visibility,
-    created,
-    lastModified: created
+    created: now,
+    lastModified: now
   };
 
   // Create the queries to insert both the folder and the record that indexes it with its surrogate group id
-  const insertGroupIdIndexQuery = constructUpsertCQL('FoldersGroupId', 'groupId', groupId, { folderId });
-  const insertFolderQuery = constructUpsertCQL('Folders', 'id', folderId, storageHash);
+  const insertGroupIdIndexQuery = constructUpsertCQL(FOLDERS_GROUP_ID, GROUP_ID, groupId, { folderId });
+  const insertFolderQuery = constructUpsertCQL(FOLDERS_TABLE, ID, folderId, storageHash);
 
   // Insert the surrogate group id index entry
   callbackify(runBatchQuery)([insertGroupIdIndexQuery, insertFolderQuery], (error) => {
@@ -89,11 +115,11 @@ const getFoldersByIds = function (folderIds, callback) {
     if (error) return callback(error);
 
     // Assemble the folders array, ensuring it is in the same order as the original ids
-    const foldersById = _.chain(rows).map(_rowToFolder).indexBy('id').value();
-    const folders = _.chain(folderIds)
-      .map((folderId) => foldersById[folderId])
-      .compact()
-      .value();
+    const foldersById = pipe(map(_rowToFolder), indexBy(prop(ID)))(rows);
+    const folders = pipe(
+      map((folderId) => foldersById[folderId]),
+      compact
+    )(folderIds);
 
     return callback(null, folders);
   });
@@ -114,12 +140,12 @@ const getFoldersByGroupIds = function (groupIds, callback) {
     if (error) return callback(error);
 
     // Assemble the folder ids, ensuring the original ordering is maintained
-    const folderIdsByGroupIds = _.chain(rows).map(rowToHash).indexBy('groupId').value();
-    const folderIds = _.chain(groupIds)
-      .map((groupId) => folderIdsByGroupIds[groupId])
-      .compact()
-      .pluck('folderId')
-      .value();
+    const folderIdsByGroupIds = pipe(map(rowToHash), indexBy(prop(GROUP_ID)))(rows);
+    const folderIds = pipe(
+      map((groupId) => folderIdsByGroupIds[groupId]),
+      compact,
+      pluck(FOLDER_ID)
+    )(groupIds);
 
     return getFoldersByIds(folderIds, callback);
   });
@@ -140,7 +166,7 @@ const getFolder = function (folderId, callback) {
     if (isEmpty(folders)) {
       return callback({
         code: 404,
-        msg: format('A folder with the id "%s" could not be found', folderId)
+        msg: `A folder with the id "${folderId}" could not be found`
       });
     }
 
@@ -172,8 +198,8 @@ const updateFolder = function (folder, profileFields, callback) {
   const storageHash = mergeAll([{}, profileFields]);
   const defaultToNow = defaultTo(Date.now());
 
-  storageHash.lastModified = pipe(prop('lastModified'), defaultToNow)(storageHash);
-  const query = constructUpsertCQL('Folders', 'id', folder.id, storageHash);
+  storageHash.lastModified = pipe(prop(LAST_MODIFIED), defaultToNow)(storageHash);
+  const query = constructUpsertCQL(FOLDERS_TABLE, ID, folder.id, storageHash);
 
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
@@ -196,22 +222,24 @@ const updateFolder = function (folder, profileFields, callback) {
  * @param  {String}     callback.nextToken      The value to use for `start` in subsequent requests to page through the items
  */
 const getContentItems = function (folderGroupId, options, callback) {
-  options = options || {};
+  options = defaultToEmptyObject(options);
 
-  // Query all the content ids ('c') to which the folder is directly associated in this batch of
-  // paged resources. Since the group can be a member of both user groups and folder groups, we
-  // filter down to just the folder groups for folder libraries
-  AuthzAPI.getRolesForPrincipalAndResourceType(
+  /**
+   * Query all the content ids ('c') to which the folder is directly associated in this batch of
+   * paged resources. Since the group can be a member of both user groups and folder groups, we
+   * filter down to just the folder groups for folder libraries
+   */
+  getRolesForPrincipalAndResourceType(
     folderGroupId,
-    'c',
+    CONTENT_SYMBOL,
     options.start,
     options.limit,
     (error, roles, nextToken) => {
       if (error) return callback(error);
 
       // Get all the content items that we queried by id
-      const ids = _.pluck(roles, 'id');
-      ContentDAO.Content.getMultipleContentItems(ids, options.fields, (error, contentItems) => {
+      const ids = pluck(ID, roles);
+      getMultipleContentItems(ids, options.fields, (error, contentItems) => {
         if (error) return callback(error);
 
         return callback(null, contentItems, nextToken);
@@ -231,7 +259,7 @@ const getContentItems = function (folderGroupId, options, callback) {
  * @param  {Folder}     callback.folder     The updated folder
  */
 const setPreviews = function (folder, previews, callback) {
-  const query = constructUpsertCQL('Folders', 'id', folder.id, { previews });
+  const query = constructUpsertCQL(FOLDERS_TABLE, ID, folder.id, { previews });
   callbackify(runQuery)(query.query, query.parameters, (error) => {
     if (error) return callback(error);
 
@@ -258,7 +286,7 @@ const setPreviews = function (folder, previews, callback) {
  * @see Cassandra#iterateAll
  */
 const iterateAll = function (properties, batchSize, onEach, callback) {
-  properties = when(isEmpty, () => of('id'))(properties);
+  properties = when(isEmpty, () => of(ID))(properties);
 
   /*!
    * Handles each batch from the cassandra iterateAll method
@@ -267,10 +295,10 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
    */
   const _iterateAllOnEach = function (rows, done) {
     // Convert the rows to a hash and delegate action to the caller onEach method
-    return onEach(_.map(rows, rowToHash), done);
+    return onEach(map(rowToHash, rows), done);
   };
 
-  callbackify(iterateResults)(properties, 'Folders', 'id', { batchSize }, promisify(_iterateAllOnEach), callback);
+  callbackify(iterateResults)(properties, FOLDERS_TABLE, ID, { batchSize }, promisify(_iterateAllOnEach), callback);
 };
 
 /**
@@ -278,23 +306,33 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
  * the folder with the updates applied
  *
  * @param  {Folder}     folder              The base folder to which the updates will be applied
- * @param  {Object}     updatedStorageHash  The updates to apply to the folder
+ * @param  {Object}     updatedVersion  The updates to apply to the folder
  * @return {Folder}                         The updated folder
  * @api private
  */
-const _createUpdatedFolderFromStorageHash = function (folder, updatedStorageHash) {
-  return new Folder(
-    folder.tenant,
-    folder.id,
-    folder.groupId,
-    folder.createdBy,
-    updatedStorageHash.displayName || folder.displayName,
-    updatedStorageHash.description || folder.description,
-    updatedStorageHash.visibility || folder.visibility,
-    folder.created,
-    updatedStorageHash.lastModified || folder.lastModified,
-    updatedStorageHash.previews || folder.previews
-  );
+const _createUpdatedFolderFromStorageHash = function (folder, updatedVersion) {
+  folder = mergeRight(folder, updatedVersion);
+
+  const { tenant, id, groupId, createdBy, displayName, description, visibility, created, lastModified, previews } =
+    folder;
+
+  // displayName = updatedVersion.displayName || folder.displayName;
+  // description = updatedVersion.description || folder.description;
+  // visibility = updatedVersion.visibility || folder.visibility;
+  // lastModified = updatedVersion.lastModified || folder.lastModified;
+  // previews = updatedVersion.previews || folder.previews;
+
+  return new Folder(tenant, {
+    id,
+    groupId,
+    createdBy,
+    displayName,
+    description,
+    visibility,
+    created,
+    lastModified,
+    previews
+  });
 };
 
 /**
@@ -312,24 +350,26 @@ const _rowToFolder = function (row) {
 /**
  * Given a simple storage hash, convert it into a Folder object with the provided id
  *
- * @param  {String}         folderId        The id to apply to the created folder object
+ * @param  {String}         id        The id to apply to the created folder object
  * @param  {Object}         storageHash     The simple key-value pair representing the fields of the folder
  * @return {Folder}                         The folder represented by the provided data
  * @api private
  */
-const _storageHashToFolder = function (folderId, storageHash) {
-  return new Folder(
-    TenantsAPI.getTenant(storageHash.tenantAlias),
-    folderId,
-    storageHash.groupId,
-    storageHash.createdBy,
-    storageHash.displayName,
-    storageHash.description,
-    storageHash.visibility,
-    storageHash.created,
-    storageHash.lastModified,
-    storageHash.previews
-  );
+const _storageHashToFolder = function (id, storageHash) {
+  const { tenantAlias, groupId, createdBy, displayName, description, visibility, created, lastModified, previews } =
+    storageHash;
+
+  return new Folder(getTenant(tenantAlias), {
+    id,
+    groupId,
+    createdBy,
+    displayName,
+    description,
+    visibility,
+    created,
+    lastModified,
+    previews
+  });
 };
 
 /**
@@ -340,7 +380,7 @@ const _storageHashToFolder = function (folderId, storageHash) {
  * @api private
  */
 const _createFolderId = function (tenantAlias) {
-  return AuthzUtil.toId('f', tenantAlias, ShortId.generate());
+  return toId(FOLDER_SYMBOL, tenantAlias, ShortId.generate());
 };
 
 export {

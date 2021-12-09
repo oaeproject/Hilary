@@ -30,7 +30,8 @@ import * as AuthzUtil from 'oae-authz/lib/util.js';
  * @param  {Number}         lastModified    The timestamp (millis since epoch) at which the discussion was last modified (or received the last message)
  * @return {Discussion}                     The discussion with the data provided
  */
-const Discussion = function (tenant, id, createdBy, displayName, description, visibility, created, lastModified) {
+const Discussion = function (tenant, discussionData) {
+  const { id, createdBy, displayName, description, visibility, created, lastModified } = discussionData;
   const { resourceId } = AuthzUtil.getResourceFromId(id);
   const that = {};
   that.tenant = tenant;

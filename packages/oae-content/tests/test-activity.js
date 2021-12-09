@@ -114,8 +114,10 @@ describe('Content Activity', () => {
     asCambridgeTenantAdmin = createTenantAdminRestContext(global.oaeTests.tenants.cam.host);
     asGlobalAdmin = createGlobalAdminRestContext();
 
-    // An object that adheres to the RestAPI.Content.setPreviewItems.files parameter.
-    // We need 4 different files here as request.js mixes up the filenames.
+    /**
+     * An object that adheres to the RestAPI.Content.setPreviewItems.files parameter.
+     * We need 4 different files here as request.js mixes up the filenames.
+     */
     suitableFiles = {
       'file.small.jpg': getFunctionThatReturnsFileStream('apereo-conference-2013.jpeg'),
       'file.medium.jpg': getFunctionThatReturnsFileStream('apereo.jpg'),

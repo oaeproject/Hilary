@@ -126,6 +126,7 @@ const isNotHttps = compose(not, isHttps);
 const isDifferent = compose(not, equals);
 const isZero = equals(0);
 const isString = is(String);
+const defaultToEmptyObject = defaultTo({});
 
 /**
  * ### Events
@@ -322,38 +323,30 @@ const createLink = (ctx, linkDetails, callback) => {
   const contentId = _generateContentId(ctx.tenant().alias);
   const revisionId = _generateRevisionId(contentId);
 
-  _createContent(
-    ctx,
+  const data = {
     contentId,
     revisionId,
-    'link',
+    resourceSubType: 'link',
     displayName,
     description,
     visibility,
-    additionalMembers,
-    folders,
-    { link },
-    {},
-    (error, content, revision, memberChangeInfo) => {
-      if (error) return callback(error);
+    roles: additionalMembers,
+    folderIds: folders,
+    otherValues: { link },
+    revisionData: {}
+  };
 
-      emitter.emit(
-        ContentConstants.events.CREATED_CONTENT,
-        ctx,
-        content,
-        revision,
-        memberChangeInfo,
-        folders,
-        (errs) => {
-          if (errs) {
-            return callback(head(errs));
-          }
+  _createContent(ctx, data, (error, content, revision, memberChangeInfo) => {
+    if (error) return callback(error);
 
-          return callback(null, content);
-        }
-      );
-    }
-  );
+    emitter.emit(ContentConstants.events.CREATED_CONTENT, ctx, content, revision, memberChangeInfo, folders, (errs) => {
+      if (errs) {
+        return callback(head(errs));
+      }
+
+      return callback(null, content);
+    });
+  });
 };
 
 /**
@@ -534,40 +527,41 @@ const _createFile = function (ctx, fileDetails, callback) {
       filename: file.name
     };
     const revisionData = mergeAll([{}, otherValues, { uri }]);
-    _createContent(
-      ctx,
+
+    const data = {
       contentId,
       revisionId,
-      'file',
+      resourceSubType: 'file',
       displayName,
       description,
       visibility,
-      additionalMembers,
-      folders,
+      roles: additionalMembers,
+      folderIds: folders,
       otherValues,
-      revisionData,
-      (error, content, revision, memberChangeInfo) => {
-        if (error) return callback(error);
+      revisionData
+    };
 
-        content.filename = file.name;
-        content.size = file.size;
-        content.mime = file.type;
+    _createContent(ctx, data, (error, content, revision, memberChangeInfo) => {
+      if (error) return callback(error);
 
-        emitter.emit(
-          ContentConstants.events.CREATED_CONTENT,
-          ctx,
-          content,
-          revision,
-          memberChangeInfo,
-          folders,
-          (errs) => {
-            if (errs) return callback(head(errs));
+      content.filename = file.name;
+      content.size = file.size;
+      content.mime = file.type;
 
-            return callback(null, content);
-          }
-        );
-      }
-    );
+      emitter.emit(
+        ContentConstants.events.CREATED_CONTENT,
+        ctx,
+        content,
+        revision,
+        memberChangeInfo,
+        folders,
+        (errs) => {
+          if (errs) return callback(head(errs));
+
+          return callback(null, content);
+        }
+      );
+    });
   });
 };
 
@@ -595,39 +589,39 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
   Etherpad.createPad(contentId, (error, ids) => {
     if (error) return callback(error);
 
-    _createContent(
-      ctx,
+    const data = {
       contentId,
       revisionId,
-      COLLABDOC,
+      resourceSubType: COLLABDOC,
       displayName,
       description,
       visibility,
-      additionalMembers,
-      folders,
-      ids,
-      {},
-      (error, content, revision, memberChangeInfo) => {
-        if (error) return callback(error);
+      roles: additionalMembers,
+      folderIds: folders,
+      otherValues: ids,
+      revisionData: {}
+    };
 
-        content.etherpadPadId = ids.etherpadPadId;
-        content.etherpadGroupId = ids.etherpadGroupId;
+    _createContent(ctx, data, (error, content, revision, memberChangeInfo) => {
+      if (error) return callback(error);
 
-        emitter.emit(
-          ContentConstants.events.CREATED_CONTENT,
-          ctx,
-          content,
-          revision,
-          memberChangeInfo,
-          folders,
-          (errs) => {
-            if (errs) return callback(head(errs));
+      content.etherpadPadId = ids.etherpadPadId;
+      content.etherpadGroupId = ids.etherpadGroupId;
 
-            return callback(null, content);
-          }
-        );
-      }
-    );
+      emitter.emit(
+        ContentConstants.events.CREATED_CONTENT,
+        ctx,
+        content,
+        revision,
+        memberChangeInfo,
+        folders,
+        (errs) => {
+          if (errs) return callback(head(errs));
+
+          return callback(null, content);
+        }
+      );
+    });
   });
 };
 
@@ -655,38 +649,38 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
   Ethercalc.createRoom(contentId, (error, roomId) => {
     if (error) return callback(error);
 
-    _createContent(
-      ctx,
+    const data = {
       contentId,
       revisionId,
-      COLLABSHEET,
+      resourceSubType: COLLABSHEET,
       displayName,
       description,
       visibility,
-      additionalMembers,
-      folders,
-      { ethercalcRoomId: roomId },
-      {},
-      (error, content, revision, memberChangeInfo) => {
-        if (error) return callback(error);
+      roles: additionalMembers,
+      folderIds: folders,
+      otherValues: { ethercalcRoomId: roomId },
+      revisionData: {}
+    };
 
-        content.ethercalcRoomId = roomId;
+    _createContent(ctx, data, (error, content, revision, memberChangeInfo) => {
+      if (error) return callback(error);
 
-        emitter.emit(
-          ContentConstants.events.CREATED_CONTENT,
-          ctx,
-          content,
-          revision,
-          memberChangeInfo,
-          folders,
-          (error) => {
-            if (error) return callback(head(error));
+      content.ethercalcRoomId = roomId;
 
-            return callback(null, content);
-          }
-        );
-      }
-    );
+      emitter.emit(
+        ContentConstants.events.CREATED_CONTENT,
+        ctx,
+        content,
+        revision,
+        memberChangeInfo,
+        folders,
+        (error) => {
+          if (error) return callback(head(error));
+
+          return callback(null, content);
+        }
+      );
+    });
   });
 };
 
@@ -710,27 +704,27 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
  * @param  {Revision}       callback.revision   The created revision
  * @api private
  */
-const _createContent = function (
-  ctx,
-  contentId,
-  revisionId,
-  resourceSubType,
-  displayName,
-  description,
-  visibility,
-  roles,
-  folderIds,
-  otherValues,
-  revisionData,
-  callback
-) {
+const _createContent = function (ctx, data, callback) {
   callback = defaultTo(() => {}, callback);
+
+  let {
+    contentId,
+    revisionId,
+    resourceSubType,
+    displayName,
+    description,
+    visibility,
+    roles,
+    folderIds,
+    otherValues,
+    revisionData
+  } = data;
 
   // Use an empty description if no description has been provided
   description = defaultTo(emptyString, description);
   // Make sure the otherValues and roles are valid objects
-  roles = defaultTo({}, roles);
-  otherValues = defaultTo({}, otherValues);
+  roles = defaultToEmptyObject(roles);
+  otherValues = defaultToEmptyObject(otherValues);
 
   // Parameter validation
   try {
@@ -1252,7 +1246,7 @@ const joinCollabDoc = (ctx, contentId, callback) => {
  * @param  {Object}    callback.err      An error that occurred, if any
  */
 const deleteContent = (ctx, contentId, callback) => {
-  callback = defaultTo({}, callback);
+  callback = defaultToEmptyObject(callback);
 
   // Parameter validation
   try {
@@ -1795,21 +1789,12 @@ const _updateFileBody = function (ctx, contentId, file, callback) {
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any
  */
-const setPreviewItems = function (
-  ctx,
-  contentId,
-  revisionId,
-  status,
-  files,
-  sizes,
-  contentMetadata,
-  previewMetadata,
-  callback
-) {
-  files = defaultTo({}, files);
-  sizes = defaultTo({}, sizes);
-  contentMetadata = defaultTo({}, contentMetadata);
-  previewMetadata = defaultTo({}, previewMetadata);
+const setPreviewItems = function (ctx, data, callback) {
+  let { contentId, revisionId, status, files, sizes, contentMetadata, previewMetadata } = data;
+  files = defaultToEmptyObject(files);
+  sizes = defaultToEmptyObject(sizes);
+  contentMetadata = defaultToEmptyObject(contentMetadata);
+  previewMetadata = defaultToEmptyObject(previewMetadata);
 
   // Wrap the callback method, which takes care of cleaning up the files if something goes wrong
   const cleanUpCallback = _getCleanUpCallback(files, callback);

@@ -13,9 +13,15 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
+import { pipe, concat, join } from 'ramda';
 
-import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { getResourceFromId } from 'oae-authz/lib/util.js';
+
+const FOLDER = 'folder';
+const SLASH = '/';
+
+const slasher = join(SLASH);
+const toAbsolutePath = concat(SLASH);
 
 /**
  * A model object that represents a folder
@@ -31,33 +37,29 @@ import * as AuthzUtil from 'oae-authz/lib/util.js';
  * @param  {Number}     lastModified    The timestamp (millis since epoch) that the folder was last modified
  * @param  {Object}     previews        The previews object for this folder
  */
-const Folder = function (
-  tenant,
-  id,
-  groupId,
-  createdBy,
-  displayName,
-  description,
-  visibility,
-  created,
-  lastModified,
-  previews
-) {
-  const { resourceId } = AuthzUtil.getResourceFromId(id);
-  const that = {};
-  that.tenant = tenant;
-  that.id = id;
-  that.groupId = groupId;
-  that.createdBy = createdBy;
-  that.displayName = displayName;
-  that.description = description;
-  that.visibility = visibility;
-  that.created = created;
-  that.lastModified = lastModified;
-  that.previews = previews;
-  that.profilePath = format('/folder/%s/%s', tenant.alias, resourceId);
-  that.resourceType = 'folder';
-  return that;
+const Folder = function (tenant, folderData) {
+  const { id, groupId, createdBy, displayName, description, visibility, created, lastModified, previews } = folderData;
+
+  const turnIntoAbsolutePath = pipe(slasher, toAbsolutePath);
+
+  const { resourceId } = getResourceFromId(id);
+  const profilePath = turnIntoAbsolutePath([FOLDER, tenant.alias, resourceId]);
+  const resourceType = FOLDER;
+
+  return {
+    tenant,
+    id,
+    groupId,
+    createdBy,
+    displayName,
+    description,
+    visibility,
+    created,
+    lastModified,
+    previews,
+    profilePath,
+    resourceType
+  };
 };
 
 export { Folder };

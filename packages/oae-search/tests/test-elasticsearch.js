@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-import { callbackify } from 'node:util';
 import { assert } from 'chai';
 
 import { generateTestElasticSearchName } from 'oae-tests/lib/util.js';
@@ -33,77 +32,48 @@ describe('ElasticSearch', () => {
   /**
    * Test that verifies the ability to create, verify (check "exists") and delete an ElasticSearch index
    */
-  it('verify create, verify and delete index', (callback) => {
+  it('verify create, verify and delete index', async () => {
     const indexName = generateTestElasticSearchName('oaetest-create-verify-delete');
 
-    callbackify(indexExists)(indexName, (error, exists) => {
-      assert.ok(not(error));
-      assert.ok(not(exists));
+    let exists = await indexExists(indexName);
+    assert.ok(not(exists));
 
-      callbackify(createIndex)(indexName, {}, (error_) => {
-        assert.ok(not(error_));
+    await createIndex(indexName, {});
 
-        callbackify(indexExists)(indexName, (error, exists) => {
-          assert.ok(not(error));
-          assert.ok(exists);
+    exists = await indexExists(indexName);
+    assert.ok(exists);
 
-          callbackify(deleteIndex)(indexName, (error_) => {
-            assert.ok(not(error_));
+    await deleteIndex(indexName);
 
-            callbackify(indexExists)(indexName, (error, exists) => {
-              assert.ok(not(error));
-              assert.ok(not(exists));
-
-              callback();
-            });
-          });
-        });
-      });
-    });
+    exists = await indexExists(indexName);
+    assert.ok(not(exists));
   });
 
   /**
    * Test that verifies there is no error when trying to create an index that already exists. It should just leave it alone
    */
-  it('verify no error creating existing index', (callback) => {
+  it('verify no error creating existing index', async () => {
     const indexName = generateTestElasticSearchName('oaetest-create-nonerror-existing');
 
-    callbackify(indexExists)(indexName, (error, exists) => {
-      assert.ok(not(error));
-      assert.ok(not(exists));
+    const exists = await indexExists(indexName);
+    assert.ok(not(exists));
 
-      callbackify(createIndex)(indexName, {}, (error_) => {
-        assert.ok(not(error_));
+    await createIndex(indexName, {});
+    await createIndex(indexName, {});
 
-        callbackify(createIndex)(indexName, {}, (error_) => {
-          assert.ok(not(error_));
-
-          callbackify(deleteIndex)(indexName, (error_) => {
-            assert.ok(not(error_));
-
-            callback();
-          });
-        });
-      });
-    });
+    await deleteIndex(indexName);
   });
 
   /**
    * Test that verifies there is no error when trying to delete a non-existing index
    */
-  it('verify no error deleting non-existing index', (callback) => {
+  it('verify no error deleting non-existing index', async () => {
     const indexName = generateTestElasticSearchName('oaetest-delete-nonerror-existing');
 
-    callbackify(indexExists)(indexName, (error, exists) => {
-      assert.ok(not(error));
-      assert.ok(not(exists));
+    const exists = await indexExists(indexName);
+    assert.ok(not(exists));
 
-      callbackify(deleteIndex)(indexName, (error_) => {
-        assert.ok(not(error_));
-
-        callback();
-      });
-    });
+    await deleteIndex(indexName);
   });
 
   /**

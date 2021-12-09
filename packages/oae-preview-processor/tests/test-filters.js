@@ -45,22 +45,61 @@ describe('Preview processor - filters', () => {
   const _getMockData = function () {
     // Fake 5 content items
     const content = [
-      new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3'),
-      new Content('camtest', 'c:camtest:b', 'public', 'B', 'B', 'link', 'u:camtest:nico', times.B, times.B, 'b-1'),
-      new Content(
-        'camtest',
-        'c:camtest:c',
-        'public',
-        'C',
-        'C',
-        'collabdoc',
-        'u:camtest:mrvisser',
-        times.B,
-        times.D,
-        'c-3'
-      ),
-      new Content('camtest', 'c:camtest:d', 'public', 'D', 'D', 'file', 'u:camtest:simon', times.C, times.D, 'd-2'),
-      new Content('gttest', 'c:gttest:e', 'public', 'E', 'E', 'file', 'u:gttest:stuart', times.D, times.F, 'e-2')
+      new Content('camtest', {
+        id: 'c:camtest:a',
+        visibility: 'public',
+        displayName: 'A',
+        description: 'A',
+        resourceSubType: 'file',
+        createdBy: 'u:camtest:simon',
+        created: times.A,
+        lastModified: times.E,
+        latestRevisionId: 'a-3'
+      }),
+      new Content('camtest', {
+        id: 'c:camtest:b',
+        visibility: 'public',
+        displayName: 'B',
+        description: 'B',
+        resourceSubType: 'link',
+        createdBy: 'u:camtest:nico',
+        created: times.B,
+        lastModified: times.B,
+        latestRevisionId: 'b-1'
+      }),
+      new Content('camtest', {
+        id: 'c:camtest:c',
+        visibility: 'public',
+        displayName: 'C',
+        description: 'C',
+        resourceSubType: 'collabdoc',
+        createdBy: 'u:camtest:mrvisser',
+        created: times.B,
+        lastModified: times.D,
+        latestRevisionId: 'c-3'
+      }),
+      new Content('camtest', {
+        id: 'c:camtest:d',
+        visibility: 'public',
+        displayName: 'D',
+        description: 'D',
+        resourceSubType: 'file',
+        createdBy: 'u:camtest:simon',
+        created: times.C,
+        lastModified: times.D,
+        latestRevisionId: 'd-2'
+      }),
+      new Content('gttest', {
+        id: 'c:gttest:e',
+        visibility: 'public',
+        displayName: 'E',
+        description: 'E',
+        resourceSubType: 'file',
+        createdBy: 'u:gttest:stuart',
+        created: times.D,
+        lastModified: times.F,
+        latestRevisionId: 'e-2'
+      })
     ];
 
     // Make sure we create the contentId field because we need it for the contentIdFilter test
@@ -430,7 +469,17 @@ describe('Preview processor - filters', () => {
 
       // Ensure that content items without a proper previews object get reprocessed
       const content = [
-        new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
+        new Content('camtest', {
+          id: 'c:camtest:a',
+          visibility: 'public',
+          displayName: 'A',
+          description: 'A',
+          resourceSubType: 'file',
+          createdBy: 'u:camtest:simon',
+          created: times.A,
+          lastModified: times.E,
+          latestRevisionId: 'a-3'
+        })
       ];
       const filterGenerator = new FilterGenerator(filters);
       assert.ok(isFalse(filterGenerator.hasErrors()));
@@ -464,7 +513,17 @@ describe('Preview processor - filters', () => {
 
       // Ensure that revision items without a proper previews object get reprocessed
       const content = [
-        new Content('camtest', 'c:camtest:a', 'public', 'A', 'A', 'file', 'u:camtest:simon', times.A, times.E, 'a-3')
+        new Content('camtest', {
+          id: 'c:camtest:a',
+          visibility: 'public',
+          displayName: 'A',
+          description: 'A',
+          resourceSubType: 'file',
+          createdBy: 'u:camtest:simon',
+          created: times.A,
+          lastModified: times.E,
+          latestRevisionId: 'a-3'
+        })
       ];
       head(content).revisions = [
         {

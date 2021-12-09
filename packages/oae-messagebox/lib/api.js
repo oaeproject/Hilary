@@ -14,8 +14,26 @@
  */
 
 import { callbackify, format } from 'node:util';
-import { isEmpty, indexOf, equals, compose, not, pipe, prop, head, split } from 'ramda';
-import _ from 'underscore';
+import {
+  values,
+  forEach,
+  isEmpty,
+  pick,
+  indexOf,
+  equals,
+  compose,
+  last,
+  gt,
+  __,
+  defaultTo,
+  map,
+  not,
+  pipe,
+  prop,
+  head,
+  split,
+  all
+} from 'ramda';
 
 import { runQuery, runPagedQuery, rowToHash, constructUpsertCQL } from 'oae-util/lib/cassandra.js';
 import * as EmitterAPI from 'oae-emitter';
@@ -44,13 +62,29 @@ const {
 
 const log = logger('oae-messagebox-api');
 
-const isZero = equals(0);
-
 // A contribution will be considered "recent" for 30 days after it occurs
 const DURATION_RECENT_CONTRIBUTIONS_SECONDS = 30 * 24 * 60 * 60;
+const PIPE = '|';
+const CARDINAL = '#';
+const MESSAGES = 'Messages';
+const ID = 'id';
+const LENGTH = 'length';
+const CONTRIBUTOR_ID = 'contributorId';
+const MESSAGEBOX_ID = 'messageBoxId';
 
-// A regex that will find links in the body. Note that we capture the characters just before and
-// after the URL so we can determine whether the URL is already provided in markdown format
+const defaultToEmptyString = defaultTo('');
+const defaultToEmptyObject = defaultTo({});
+const isZero = equals(0);
+const aintFalse = pipe(equals(false), not);
+const lengthGreaterThanOne = pipe(prop(LENGTH), gt(__, 1));
+const extractHierarchy = pipe(split(PIPE), head, split(CARDINAL));
+const extractCreated = pipe(split(CARDINAL), last, split(PIPE), head);
+
+/**
+ * A regex that will find links in the body. Note that we capture the characters just before and
+ * after the URL so we can determine whether the URL is already provided in markdown format
+ * eslint-disable-next-line prefer-regex-literals
+ */
 // eslint-disable-next-line prefer-regex-literals
 const REGEXP_LINK = new RegExp(
   '(.?)https?://([^/\\r\\n\\s]+)(/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])(.?)',
@@ -80,9 +114,7 @@ const replaceLinks = function (body = '') {
   // Replace any matched URLs with relative links in markdown format
   return body.replace(REGEXP_LINK, (fullMatch, preURLChar, host, path, postURLChar, offset) => {
     // If the host doesn't match an OAE tenant we disregard it as it is an external link
-    if (!TenantsAPI.getTenantByHost(host)) {
-      return fullMatch;
-    }
+    if (not(TenantsAPI.getTenantByHost(host))) return fullMatch;
 
     // If there are an odd number of backtics before the match it's inside a quote and should be
     // left as is
@@ -103,29 +135,26 @@ const replaceLinks = function (body = '') {
         let lines = preMatchBody.split('\n');
         lines = lines.slice(lastParaLine, -1);
         // Check that all lines in this block start with 4 spaces
-        const allLinesStartWith4Spaces = _.every(lines, (line) => line.slice(0, 4) === '    ');
-        inBlockQuote = _.isEmpty(lines) || allLinesStartWith4Spaces;
+        const allLinesStartWith4Spaces = all((line) => line.slice(0, 4) === '    ', lines);
+        inBlockQuote = isEmpty(lines) || allLinesStartWith4Spaces;
       }
     }
 
-    if (inQuote || inBlockQuote) {
-      return fullMatch;
-    }
+    if (inQuote || inBlockQuote) return fullMatch;
 
-    // Check for a match in the title of a markdown link. Note that the target link
-    // will be replaced in the next if clause
-    if (preURLChar === '[' && postURLChar === ']') {
-      return '[' + path + ']';
+    /**
+     * Check for a match in the title of a markdown link.
+     * Note that the target link will be replaced in the next if clause
+     */
 
-      // Check for a match in the target of a markdown link
-    }
+    // Check for a match in the target of a markdown link
+    if (preURLChar === '[' && postURLChar === ']') return '[' + path + ']';
 
-    if (preURLChar === '(' && postURLChar === ')') {
-      return '(' + path + ')';
-
-      // If the URL wasn't wrapped in braces we can assume that it was not provided in
-      // markdown format. If that's the case, we do the conversion ourselves
-    }
+    /**
+     * If the URL wasn't wrapped in braces we can assume that it was not provided in markdown format.
+     * If that's the case, we do the conversion ourselves
+     */
+    if (preURLChar === '(' && postURLChar === ')') return '(' + path + ')';
 
     return preURLChar + '[' + path + '](' + path + ')' + postURLChar;
   });
@@ -147,7 +176,7 @@ const replaceLinks = function (body = '') {
  * @param  {Message}    [callback.message]      The message model object that was persisted
  */
 const createMessage = function (messageBoxId, createdBy, body, options, callback) {
-  options = options || {};
+  options = defaultToEmptyObject(options);
 
   try {
     unless(isNotNull, {
@@ -211,8 +240,8 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
         replyToMessageId
       };
 
-      if (replyToMessageId && !replyToThreadKey) {
-        // We specified a message that doesn't actually exist in our message box, don't let that happen
+      // We specified a message that doesn't actually exist in our message box, don't let that happen
+      if (replyToMessageId && not(replyToThreadKey)) {
         log().error(diagnosticData, 'Reply-to message does not exist');
         return callback({ code: 400, msg: 'Reply-to message does not exist' });
       }
@@ -220,8 +249,9 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
       // Derive this message's thread key by appending it to the parent, if applicable. Otherwise, it is a top-level key
       const threadKey = replyToThreadKey ? _appendToThreadKey(replyToThreadKey, created) : created + '|';
 
-      // Replace absolute OAE links with relative ones to avoid cross-tenant
-      // permission issues
+      /**
+       * Replace absolute OAE links with relative ones to avoid cross-tenant permission issues
+       */
       const bodyWithLinks = replaceLinks(body);
 
       // A low-level storage hash that represents this item stored in Cassandra or Redis
@@ -233,8 +263,8 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
       };
 
       // Create the query that creates the message object
-      const createMessageQuery = constructUpsertCQL('Messages', 'id', messageId, messageStorageHash);
-      if (!createMessageQuery) {
+      const createMessageQuery = constructUpsertCQL(MESSAGES, ID, messageId, messageStorageHash);
+      if (not(createMessageQuery)) {
         log().error(diagnosticData, 'Failed to create a new message query.');
         return callback({ code: 500, msg: 'Failed to create a new message' });
       }
@@ -290,14 +320,14 @@ const createMessage = function (messageBoxId, createdBy, body, options, callback
 const _lockUniqueTimestamp = function (id, timestamp, callback) {
   const key = 'oae-messagebox:' + id + ':' + timestamp;
   Locking.acquire(key, 1, (error, lock) => {
-    if (error) {
-      // Migration from redback to redlock:
-      // This should only occur if Redis is down, just return the requested ts
-      // In that case, one should `return callback(timestamp, lockToken);`
-      // Or
-      // Someone else has the requested ts, try to lock one ms later
-      return _lockUniqueTimestamp(id, timestamp + 1, callback);
-    }
+    /**
+     * Migration from redback to redlock:
+     * This should only occur if Redis is down, just return the requested ts
+     * In that case, one should `return callback(timestamp, lockToken);`
+     * Or
+     * Someone else has the requested ts, try to lock one ms later
+     */
+    if (error) return _lockUniqueTimestamp(id, timestamp + 1, callback);
 
     // Successful lock, return the details
     return callback(timestamp, lock);
@@ -350,8 +380,9 @@ const updateMessageBody = function (messageBoxId, created, newBody, callback) {
 
   const messageId = _createMessageId(messageBoxId, created);
 
-  // Replace absolute OAE links with relative ones to avoid cross-tenant
-  // permission issues
+  /**
+   * Replace absolute OAE links with relative ones to avoid cross-tenant permission issues
+   */
   const body = replaceLinks(newBody);
 
   callbackify(runQuery)('UPDATE "Messages" SET "body" = ? WHERE "id" = ?', [body, messageId], (error) => {
@@ -376,10 +407,11 @@ const updateMessageBody = function (messageBoxId, created, newBody, callback) {
  * @param  {String}     callback.nextToken  The value to provide in the `start` parameter to get the next set of results
  */
 const getMessagesFromMessageBox = function (messageBoxId, start, limit, options, callback) {
-  start = start || '';
+  start = defaultToEmptyString(start);
+  options = defaultToEmptyObject(options);
   limit = OaeUtil.getNumberParam(limit, 10);
-  options = options || {};
-  options.scrubDeleted = options.scrubDeleted !== false;
+
+  options.scrubDeleted = aintFalse(options.scrubDeleted);
 
   try {
     unless(isNotNull, {
@@ -394,7 +426,7 @@ const getMessagesFromMessageBox = function (messageBoxId, start, limit, options,
     if (error) return callback(error);
 
     // Will maintain the output order of the messages according to their threadkey
-    const createdTimestamps = _.map(threadKeys, _parseCreatedFromThreadKey);
+    const createdTimestamps = map(_parseCreatedFromThreadKey, threadKeys);
     getMessages(messageBoxId, createdTimestamps, { scrubDeleted: options.scrubDeleted }, (error, messages) => {
       if (error) return callback(error);
 
@@ -419,7 +451,7 @@ const getMessagesFromMessageBox = function (messageBoxId, start, limit, options,
  * @param  {Message[]}          callback.messages   An array of messages, ordered in the same way as the createdTimestamps array.
  */
 const getMessages = function (messageBoxId, createdTimestamps, options, callback) {
-  options = options || {};
+  options = defaultToEmptyObject(options);
   options.scrubDeleted = options.scrubDeleted !== false;
 
   try {
@@ -449,7 +481,7 @@ const getMessages = function (messageBoxId, createdTimestamps, options, callback
   }
 
   // Convert messagebox + createdTimestamps into the compound key containing the two
-  const messageIds = _.map(createdTimestamps, (created) => _createMessageId(messageBoxId, created));
+  const messageIds = map((created) => _createMessageId(messageBoxId, created), createdTimestamps);
 
   // Delegate to getMessagesById to fetch by the actual message ids
   getMessagesById(messageIds, { scrubDeleted: options.scrubDeleted }, callback);
@@ -474,7 +506,7 @@ const getMessages = function (messageBoxId, createdTimestamps, options, callback
  * @param  {Object}             callback.messages   A hash mapping messageId -> Message for each requested message
  */
 const getMessagesById = function (messageIds, options, callback) {
-  options = options || {};
+  options = defaultToEmptyObject(options);
   options.scrubDeleted = options.scrubDeleted !== false;
 
   if (isEmpty(messageIds)) return callback(null, []);
@@ -483,7 +515,7 @@ const getMessagesById = function (messageIds, options, callback) {
     if (error) return callback(error);
 
     const messages = [];
-    _.each(rows, (row) => {
+    forEach((row) => {
       row = rowToHash(row);
       let message = _storageHashToMessage(row.id, row);
 
@@ -497,7 +529,7 @@ const getMessagesById = function (messageIds, options, callback) {
         // Add the message in the array on the same index as its ID in the messageIds array.
         messages[messageIds.indexOf(message.id)] = message;
       }
-    });
+    }, rows);
 
     return callback(null, messages);
   });
@@ -526,7 +558,7 @@ const getMessagesById = function (messageIds, options, callback) {
  * @param  {String}         [callback.message]  If a soft-delete took place, this parameter will be the new representation of the deleted message object
  */
 const deleteMessage = function (messageBoxId, createdTimestamp, options, callback) {
-  options = options || {};
+  options = defaultToEmptyObject(options);
 
   try {
     unless(isNotNull, {
@@ -550,7 +582,7 @@ const deleteMessage = function (messageBoxId, createdTimestamp, options, callbac
     })(createdTimestamp);
 
     const isDeleteTypeDefined = Boolean(options.deleteType);
-    const deleteValues = _.values(MessageBoxConstants.deleteTypes);
+    const deleteValues = values(MessageBoxConstants.deleteTypes);
     unless(bothCheck(isDeleteTypeDefined, isIn), {
       code: 400,
       msg: 'If the deleteType is specified it should be one of: ' + deleteValues.join(', ')
@@ -561,14 +593,13 @@ const deleteMessage = function (messageBoxId, createdTimestamp, options, callbac
 
   getMessages(messageBoxId, [createdTimestamp], { scrubDeleted: false }, (error, messages) => {
     if (error) return callback(error);
-
     if (not(head(messages))) return callback({ code: 404, msg: 'Message not found.' });
 
     const message = messages[0];
     if (message) {
       if (options.deleteType === MessageBoxConstants.deleteTypes.HARD) {
         return _hardDelete(message, (error_) => {
-          if (!error_) {
+          if (not(error_)) {
             MessageBoxAPI.emit(
               MessageBoxConstants.events.DELETED_MESSAGE,
               message.id,
@@ -582,7 +613,7 @@ const deleteMessage = function (messageBoxId, createdTimestamp, options, callbac
 
       if (options.deleteType === MessageBoxConstants.deleteTypes.SOFT) {
         return _softDelete(message, (error, message_) => {
-          if (!error) {
+          if (not(error)) {
             MessageBoxAPI.emit(
               MessageBoxConstants.events.DELETED_MESSAGE,
               message.id,
@@ -595,7 +626,7 @@ const deleteMessage = function (messageBoxId, createdTimestamp, options, callbac
       }
 
       return _leafDelete(message, (error, deleteType, message_) => {
-        if (!error) {
+        if (not(error)) {
           MessageBoxAPI.emit(MessageBoxConstants.events.DELETED_MESSAGE, message.id, deleteType);
         }
 
@@ -620,8 +651,10 @@ const deleteMessage = function (messageBoxId, createdTimestamp, options, callbac
  * @param  {String[]}   callback.recentContributions    An array of principal IDs specifying the recent contributions.
  */
 const getRecentContributions = function (messageBoxId, start, limit, callback) {
-  // For this use-case, we want the limit to be quite large since it
-  // will fuel things like activity routing. Maybe 100, or more?
+  /**
+   * For this use-case, we want the limit to be quite large since it
+   * will fuel things like activity routing. Maybe 100, or more?
+   */
   limit = OaeUtil.getNumberParam(limit, 5, 1, 100);
   start = start ? format('%s:%s', start.userId, start.created) : '';
 
@@ -636,20 +669,18 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
 
   callbackify(runPagedQuery)(
     'MessageBoxRecentContributions',
-    'messageBoxId',
+    MESSAGEBOX_ID,
     messageBoxId,
-    'contributorId',
+    CONTRIBUTOR_ID,
     start,
     limit,
     { reversed: true },
     (error, results) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       const { rows } = results;
       // Extract the contributor ids as the results
-      const recentContributions = _.map(rows, (row) => row.get('contributorId'));
+      const recentContributions = map((row) => row.get(CONTRIBUTOR_ID), rows);
 
       return callback(null, recentContributions);
     }
@@ -667,21 +698,15 @@ const getRecentContributions = function (messageBoxId, start, limit, callback) {
  */
 const _getMessageThreadKey = function (messageId, callback) {
   // The message id is not specified, simply return with nothing.
-  if (!messageId) {
-    return callback();
-  }
+  if (not(messageId)) return callback();
 
   callbackify(runQuery)('SELECT "threadKey" FROM "Messages" WHERE "id" = ?', [messageId], (error, rows) => {
-    if (error) {
-      return callback(error);
-    }
+    if (error) return callback(error);
 
-    if (_.isEmpty(rows)) {
-      // A message by that id may not have existed, simply return undefined
-      return callback();
-    }
+    // A message by that id may not have existed, simply return undefined
+    if (isEmpty(rows)) return callback();
 
-    return callback(null, rows[0].get('threadKey'));
+    return callback(null, head(rows).get('threadKey'));
   });
 };
 
@@ -697,7 +722,6 @@ const _getMessageThreadKey = function (messageId, callback) {
  * @api private
  */
 const _leafDelete = function (message, callback) {
-  const PIPE = '|';
   const threadKeyWithoutPipe = pipe(prop('threadKey'), split(PIPE), head)(message);
 
   // Check to see if this message has a reply. If so, we will soft delete, if not we hard delete
@@ -706,8 +730,8 @@ const _leafDelete = function (message, callback) {
 
     let hasReply = false;
     const replyKey = head(threadKeys);
+    // If the next message's threadKey is a descendant of the message being deleted, it is a reply.
     if (replyKey) {
-      // If the next message's threadKey is a descendant of the message being deleted, it is a reply.
       hasReply = compose(isZero, indexOf(threadKeyWithoutPipe))(replyKey);
     }
 
@@ -754,24 +778,18 @@ const _hardDelete = function (message, callback) {
     'INSERT INTO "MessageBoxMessagesDeleted" ("messageBoxId", "createdTimestamp", "value") VALUES (?, ?, ?)',
     [messageBoxId, createdTimestamp, '1'],
     (error) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       // Delete the index entry from the messagebox. This fixes things like paging so this comment does not get returned in feeds anymore
       callbackify(runQuery)(
         'DELETE FROM "MessageBoxMessages" WHERE "messageBoxId" = ? AND "threadKey" = ?',
         [messageBoxId, threadKey],
         (error) => {
-          if (error) {
-            return callback(error);
-          }
+          if (error) return callback(error);
 
           // Proceed to flag the message as deleted, but we still don't hard-delete its contents
           _softDelete(message, (error) => {
-            if (error) {
-              return callback(error);
-            }
+            if (error) return callback(error);
 
             return callback();
           });
@@ -800,9 +818,7 @@ const _softDelete = function (message, callback) {
     'UPDATE "Messages" SET "deleted" = ? WHERE "id" = ?',
     [deletedTimestamp, messageId],
     (error) => {
-      if (error) {
-        return callback(error);
-      }
+      if (error) return callback(error);
 
       message.deleted = deletedTimestamp;
       message = _scrubMessage(message);
@@ -841,7 +857,7 @@ const _getThreadKeysFromMessageBox = function (messageBoxId, start, limit, callb
       }
 
       const { rows, nextToken } = results;
-      const threadKeys = _.map(rows, (row) => row.get('threadKey'));
+      const threadKeys = map((row) => row.get('threadKey'), rows);
 
       return callback(null, threadKeys, nextToken);
     }
@@ -861,13 +877,13 @@ const _storageHashToMessage = function (messageId, hash) {
 
   // Use threadKey as a slug column to ensure that this hash was an existing message
   if (hash.threadKey) {
-    const messageBoxId = _parseMessageBoxIdFromMessageId(messageId);
     const { threadKey, deleted, body, createdBy } = hash;
+    const messageBoxId = _parseMessageBoxIdFromMessageId(messageId);
     const created = _parseCreatedFromThreadKey(threadKey);
     const level = _getLevelFromThreadKey(threadKey);
     const replyTo = _parseReplyToTimestampFromThreadKey(threadKey);
-    message = new MessageBoxModel.Message(
-      messageId,
+
+    message = new MessageBoxModel.Message(messageId, {
       messageBoxId,
       threadKey,
       body,
@@ -876,7 +892,7 @@ const _storageHashToMessage = function (messageId, hash) {
       level,
       replyTo,
       deleted
-    );
+    });
   }
 
   return message;
@@ -940,8 +956,7 @@ const _parseCreatedFromMessageId = function (messageId) {
  */
 const _parseCreatedFromThreadKey = function (threadKey) {
   // The created timestamp is the timestamp of the deepest message in the threadKey hierarchy
-  const timestampWithPipe = threadKey.split('#').pop();
-  return timestampWithPipe.split('|')[0];
+  return extractCreated(threadKey);
 };
 
 /**
@@ -953,7 +968,7 @@ const _parseCreatedFromThreadKey = function (threadKey) {
  */
 const _getLevelFromThreadKey = function (threadKey) {
   // Extract the depth of this message from the threadKey hierarchy. Top-level messages are depth 0
-  return threadKey.split('#').length - 1;
+  return threadKey.split(CARDINAL).length - 1;
 };
 
 /**
@@ -965,7 +980,7 @@ const _getLevelFromThreadKey = function (threadKey) {
  * @api private
  */
 const _scrubMessage = function (message) {
-  return _.pick(message, 'id', 'messageBoxId', 'threadKey', 'created', 'replyTo', 'deleted', 'level');
+  return pick(['id', 'messageBoxId', 'threadKey', 'created', 'replyTo', 'deleted', 'level'], message);
 };
 
 /**
@@ -977,11 +992,10 @@ const _scrubMessage = function (message) {
  */
 const _parseReplyToTimestampFromThreadKey = function (threadKey) {
   // Converts: "timestamp1#timestamp2#timestamp3|" -> [ "timestamp1", "timestamp2", "timestamp3" ]
-  const hierarchy = threadKey.split('|')[0].split('#');
-  if (hierarchy.length > 1) {
-    // "timestamp3" is a reply to "timestamp2", so we pick out the second last one in the hierarchy
-    return hierarchy[hierarchy.length - 2];
-  }
+  const hierarchy = extractHierarchy(threadKey);
+
+  // "timestamp3" is a reply to "timestamp2", so we pick out the second last one in the hierarchy
+  if (lengthGreaterThanOne(hierarchy)) return hierarchy[hierarchy.length - 2];
 
   // If we only had 1 element, then this is not a reply at all
   return null;

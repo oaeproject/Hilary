@@ -15,13 +15,13 @@
 
 import { promisify, callbackify, format } from 'node:util';
 import _ from 'underscore';
-import { map, forEach, isEmpty, when, toString, pipe, prop, defaultTo, mergeAll, of } from 'ramda';
+import { map, forEach, isEmpty, when, toString, pipe, prop, defaultTo, mergeAll, of, mergeRight } from 'ramda';
 import ShortId from 'shortid';
 
 import * as AuthzUtil from 'oae-authz/lib/util.js';
 import { runQuery, constructUpsertCQL, rowToHash, iterateAll as iterateResults } from 'oae-util/lib/cassandra.js';
 import { logger } from 'oae-logger';
-import * as OaeUtil from 'oae-util/lib/util.js';
+import { getNumberParam } from 'oae-util/lib/util.js';
 import * as TenantsAPI from 'oae-tenants';
 
 import { Discussion } from 'oae-discussions/lib/model.js';
@@ -208,16 +208,19 @@ const iterateAll = function (properties, batchSize, onEach, callback) {
  * @api private
  */
 const _storageHashToDiscussion = function (discussionId, hash) {
-  return new Discussion(
-    TenantsAPI.getTenant(hash.tenantAlias),
-    discussionId,
-    hash.createdBy,
-    hash.displayName,
-    hash.description,
-    hash.visibility,
-    OaeUtil.getNumberParam(hash.created),
-    OaeUtil.getNumberParam(hash.lastModified)
-  );
+  let { tenantAlias, createdBy, displayName, description, visibility, created, lastModified } = hash;
+  created = getNumberParam(created);
+  lastModified = getNumberParam(lastModified);
+
+  return new Discussion(TenantsAPI.getTenant(tenantAlias), {
+    id: discussionId,
+    createdBy,
+    displayName,
+    description,
+    visibility,
+    created,
+    lastModified
+  });
 };
 
 /**
@@ -229,16 +232,20 @@ const _storageHashToDiscussion = function (discussionId, hash) {
  * @api private
  */
 const _createUpdatedDiscussionFromStorageHash = function (discussion, hash) {
-  return new Discussion(
-    discussion.tenant,
-    discussion.id,
-    discussion.createdBy,
-    hash.displayName || discussion.displayName,
-    hash.description || discussion.description,
-    hash.visibility || discussion.visibility,
-    OaeUtil.getNumberParam(discussion.created),
-    OaeUtil.getNumberParam(hash.lastModified || discussion.lastModified)
-  );
+  discussion = mergeRight(discussion, hash);
+  let { tenant, id, createdBy, displayName, description, visibility, created, lastModified } = discussion;
+  created = getNumberParam(created);
+  lastModified = getNumberParam(lastModified);
+
+  return new Discussion(tenant, {
+    id,
+    createdBy,
+    displayName,
+    description,
+    visibility,
+    created,
+    lastModified
+  });
 };
 
 /**

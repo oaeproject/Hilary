@@ -14,24 +14,56 @@
  */
 
 import { format } from 'node:util';
-import _ from 'underscore';
 
-import { not, defaultTo, isEmpty } from 'ramda';
+import {
+  is,
+  equals,
+  pipe,
+  filter,
+  keys,
+  difference,
+  reject,
+  and,
+  mergeRight,
+  length,
+  forEach,
+  values,
+  union,
+  not,
+  either,
+  prop,
+  defaultTo,
+  isEmpty,
+  forEachObjIndexed
+} from 'ramda';
 
-import * as AuthzUtil from 'oae-authz/lib/util.js';
+import { isUserId, isGroupId, getResourceFromId, isEmail } from 'oae-authz/lib/util.js';
 import { logger } from 'oae-logger';
 import { telemetry } from 'oae-telemetry';
 import * as TenantsUtil from 'oae-tenants/lib/util.js';
 
 import { ActivityConstants } from 'oae-activity/lib/constants.js';
 import * as ActivityModel from 'oae-activity/lib/model.js';
-import * as ActivityUtil from 'oae-activity/lib/util.js';
+import { createActivityStreamId } from 'oae-activity/lib/util.js';
 import ActivityEmitter from './emitter.js';
 import * as ActivityRegistry from './registry.js';
 import * as ActivitySystemConfig from './config.js';
 
-import * as ActivityDAO from './dao.js';
-import * as ActivityBuckets from './buckets.js';
+import { createActivityId, saveQueuedActivities } from './dao.js';
+import { getBucketNumber } from './buckets.js';
+
+const { NOTIFICATION, EMAIL } = ActivityConstants.streams;
+
+const STREAM_TYPE = 'streamType';
+
+const differs = pipe(equals, not);
+const defaultToEmptyArray = defaultTo([]);
+const defaultToEmptyObject = defaultTo({});
+const compact = reject(pipe(Boolean, not));
+const aintAFunction = pipe(is(Function), not);
+const aintArray = pipe(is(Array), not);
+const streamTypeIsNotification = pipe(prop(STREAM_TYPE), equals(NOTIFICATION));
+const streamTypeIsEmail = pipe(prop(STREAM_TYPE), equals(EMAIL));
 
 const log = logger('oae-activity-router');
 const Telemetry = telemetry('activity');
@@ -44,13 +76,11 @@ const Telemetry = telemetry('activity');
  * @param  {Object}        [callback.err]      An error that occurred, if any
  */
 const routeActivity = function (activitySeed, callback) {
-  callback =
-    callback ||
-    function (error) {
-      if (error) {
-        log().error({ err: error, activitySeed }, 'Error handling activity');
-      }
-    };
+  callback = defaultTo((error) => {
+    if (error) {
+      log().error({ err: error, activitySeed }, 'Error handling activity');
+    }
+  })(callback);
 
   log().trace({ activitySeed }, 'Routing activity seed');
 
@@ -72,23 +102,26 @@ const routeActivity = function (activitySeed, callback) {
         return callback(error);
       }
 
-      if (isEmpty(routes)) {
-        // If no routes were generated then we're done
-        return callback();
-      }
+      // If no routes were generated then we're done
+      if (isEmpty(routes)) return callback();
 
-      // A hash that maps: {resourceId -> streamType -> activity} for each routed destination of an activity
+      /**
+       * A hash that maps: {resourceId -> streamType -> activity} for each
+       * routed destination of an activity
+       */
       const allRoutedActivities = {};
 
-      // A hash that maps {activityId -> activity} for each activity that will be delivered to
-      // a persistent activity stream
+      /**
+       * A hash that maps {activityId -> activity} for each
+       * activity that will be delivered to a persistent activity stream
+       */
       const allDeliveredActivities = {};
 
       // Generate an ID for this activity
-      const activityId = ActivityDAO.createActivityId(activitySeed.published);
+      const activityId = createActivityId(activitySeed.published);
 
       // Create the routed activities
-      _.each(routes, (route) => {
+      forEach((route) => {
         // Create the activity metadata
         const activity = {};
         activity[ActivityConstants.properties.OAE_ACTIVITY_TYPE] = activitySeed.activityType;
@@ -115,7 +148,7 @@ const routeActivity = function (activitySeed, callback) {
         // Select the activities that are not part of a transient route so they can be stored
         let activityStreamId = null;
         if (!route.transient) {
-          activityStreamId = ActivityUtil.createActivityStreamId(route.resourceId, route.streamType);
+          activityStreamId = createActivityStreamId(route.resourceId, route.streamType);
           allDeliveredActivities[activityStreamId] = activity;
         }
 
@@ -131,10 +164,10 @@ const routeActivity = function (activitySeed, callback) {
              * If we're routing to a user who is also the actor of the activity we
              * will also route the activity to the public activitystream of the user
              */
-            if (AuthzUtil.isUserId(route.resourceId) && route.resourceId === actor.id) {
+            if (isUserId(route.resourceId) && route.resourceId === actor.id) {
               allRoutedActivities[route.resourceId][route.streamType + '#public'] = activity;
               if (!route.transient) {
-                activityStreamId = ActivityUtil.createActivityStreamId(route.resourceId, route.streamType + '#public');
+                activityStreamId = createActivityStreamId(route.resourceId, route.streamType + '#public');
                 allDeliveredActivities[activityStreamId] = activity;
               }
             }
@@ -142,14 +175,13 @@ const routeActivity = function (activitySeed, callback) {
             // If a group is involved in a public activity we route the activity to the group's public activity stream
             const publicGroupEntity = _getGroupEntity(actor, object, target);
             if (publicGroupEntity) {
-              allRoutedActivities[publicGroupEntity.id] = allRoutedActivities[publicGroupEntity.id] || {};
+              allRoutedActivities[publicGroupEntity.id] = defaultToEmptyObject(
+                allRoutedActivities[publicGroupEntity.id]
+              );
               allRoutedActivities[publicGroupEntity.id][route.streamType + '#public'] = activity;
 
-              if (!route.transient) {
-                activityStreamId = ActivityUtil.createActivityStreamId(
-                  publicGroupEntity.id,
-                  route.streamType + '#public'
-                );
+              if (not(route.transient)) {
+                activityStreamId = createActivityStreamId(publicGroupEntity.id, route.streamType + '#public');
                 allDeliveredActivities[activityStreamId] = activity;
               }
             }
@@ -164,13 +196,10 @@ const routeActivity = function (activitySeed, callback) {
              * If we're routing to a user who is also the actor of the activity we
              * will also route the activity to the loggedin activitystream of the user
              */
-            if (AuthzUtil.isUserId(route.resourceId) && route.resourceId === actor.id) {
+            if (isUserId(route.resourceId) && route.resourceId === actor.id) {
               allRoutedActivities[route.resourceId][route.streamType + '#loggedin'] = activity;
-              if (!route.transient) {
-                activityStreamId = ActivityUtil.createActivityStreamId(
-                  route.resourceId,
-                  route.streamType + '#loggedin'
-                );
+              if (not(route.transient)) {
+                activityStreamId = createActivityStreamId(route.resourceId, route.streamType + '#loggedin');
                 allDeliveredActivities[activityStreamId] = activity;
               }
             }
@@ -178,28 +207,25 @@ const routeActivity = function (activitySeed, callback) {
             // If a group is involved in a loggedin activity we route the activity to the group's loggedin activity stream
             const loggedinGroupEntity = _getGroupEntity(actor, object, target);
             if (loggedinGroupEntity) {
-              allRoutedActivities[loggedinGroupEntity.id] = allRoutedActivities[loggedinGroupEntity.id] || {};
+              allRoutedActivities[loggedinGroupEntity.id] = defaultToEmptyObject(
+                allRoutedActivities[loggedinGroupEntity.id]
+              );
               allRoutedActivities[loggedinGroupEntity.id][route.streamType + '#loggedin'] = activity;
 
-              if (!route.transient) {
-                activityStreamId = ActivityUtil.createActivityStreamId(
-                  loggedinGroupEntity.id,
-                  route.streamType + '#loggedin'
-                );
+              if (not(route.transient)) {
+                activityStreamId = createActivityStreamId(loggedinGroupEntity.id, route.streamType + '#loggedin');
                 allDeliveredActivities[activityStreamId] = activity;
               }
             }
           }
         }
-      });
+      }, routes);
 
       log().trace({ activitySeed, allRoutedActivities }, 'Finished routed activities');
 
       // Queue the activity entities to be collected and aggregated
       _queueActivities(activitySeed, allDeliveredActivities, (error_) => {
-        if (error_) {
-          return callback(error_);
-        }
+        if (error_) return callback(error_);
 
         // Emit an event for the routed activities
         ActivityEmitter.emit(ActivityConstants.events.ROUTED_ACTIVITIES, allRoutedActivities);
@@ -208,7 +234,7 @@ const routeActivity = function (activitySeed, callback) {
         Telemetry.incr('count');
 
         // How many routed activities are created and how long it took
-        Telemetry.incr('routed.count', _.values(allDeliveredActivities).length);
+        Telemetry.incr('routed.count', length(values(allDeliveredActivities)));
         Telemetry.appendDuration('routing.time', routingStartTime);
         return callback();
       });
@@ -256,14 +282,16 @@ const _produceEntity = function (resource, callback) {
   if (not(resource)) return callback();
 
   // Find the producer for this resource type. If there isn't one registered, we fall back to the default producer
-  const activityEntityType = ActivityRegistry.getRegisteredActivityEntityTypes()[resource.resourceType] || {};
-  const producer = activityEntityType.producer || _defaultActivityEntityProducer;
+  const activityEntityType = defaultToEmptyObject(
+    ActivityRegistry.getRegisteredActivityEntityTypes()[resource.resourceType]
+  );
+  const producer = defaultTo(_defaultActivityEntityProducer, activityEntityType.producer);
 
   producer(resource, (error, entity) => {
     if (error) return callback(error);
 
     // Ensure a valid resource id and resource type
-    entity = defaultTo({}, entity);
+    entity = defaultToEmptyObject(entity);
     entity.objectType = resource.resourceType;
     entity[ActivityConstants.properties.OAE_ID] = resource.resourceId;
 
@@ -311,16 +339,18 @@ const _produceAllRoutes = function (activitySeed, actor, object, target, callbac
   const activityConfig = ActivityRegistry.getRegisteredActivityTypes()[activitySeed.activityType];
 
   // If this is an unknown activity entity, we can't route it as we don't know how
-  if (!activityConfig) {
-    return callback(null, []);
-  }
+  if (not(activityConfig)) return callback(null, []);
 
   const actorRouteConfig = _getRouterConfigForObjectType(activityConfig, ActivityConstants.entityTypes.ACTOR);
   const objectRouteConfig = _getRouterConfigForObjectType(activityConfig, ActivityConstants.entityTypes.OBJECT);
   const targetRouteConfig = _getRouterConfigForObjectType(activityConfig, ActivityConstants.entityTypes.TARGET);
 
-  // Create the associations context primed for each entity. All these contexts are created with the same associations session, which means access to the same
-  // association for the same entity will not duplicate queries to the database within this routing session
+  /**
+   * Create the associations context primed for each entity.
+   * All these contexts are created with the same associations session,
+   * which means access to the same association for the same entity will not
+   * duplicate queries to the database within this routing session
+   */
   const associationsContexts = {
     actor: associationsSession.createAssociationsContext(actor.objectType, actor[ActivityConstants.properties.OAE_ID]),
     object: object
@@ -360,24 +390,24 @@ const _produceAllRoutes = function (activitySeed, actor, object, target, callbac
                * We will need to further filter this list down to those that the propagation rules specify
                * it is "allowed" to be routed to based on the individual entity propagation rules
                */
-              const allRoutes = _.chain(actorRoutes)
-                .union(objectRoutes, targetRoutes)
-                .compact()
-                .filter((route) => {
-                  if (
-                    route.streamType === ActivityConstants.streams.NOTIFICATION ||
-                    route.streamType === ActivityConstants.streams.EMAIL
-                  ) {
+              const allRoutes = pipe(
+                union([...objectRoutes, ...targetRoutes]),
+                compact,
+                filter((route) => {
+                  if (either(streamTypeIsNotification, streamTypeIsEmail)(route)) {
                     // If this is a notification or email route, we can only accept users other than the actor
-                    const isPrincipalRoute =
-                      AuthzUtil.isUserId(route.resourceId) || AuthzUtil.isEmail(route.resourceId);
-                    return isPrincipalRoute && route.resourceId !== actor[ActivityConstants.properties.OAE_ID];
+                    const isPrincipalRoute = either(isUserId, isEmail)(route.resourceId);
+                    const resourceIdAintTheActor = differs(
+                      actor[ActivityConstants.properties.OAE_ID],
+                      route.resourceId
+                    );
+                    return and(isPrincipalRoute, resourceIdAintTheActor);
                   }
 
                   // This route is not a notification or email, we need to include it so we can apply propagation on it
                   return true;
                 })
-                .value();
+              )(actorRoutes);
 
               // First filter down the routes by the actor propagation
               _applyPropagations(
@@ -486,11 +516,11 @@ const _canRouteToLoggedinStream = function (actor, object, target) {
  * @api private
  */
 const _getGroupEntity = function (actor, object, target) {
-  if (object && AuthzUtil.isGroupId(object.id)) {
+  if (object && isGroupId(object.id)) {
     return object;
   }
 
-  if (target && AuthzUtil.isGroupId(target.id)) {
+  if (target && isGroupId(target.id)) {
     return target;
   }
 
@@ -526,10 +556,8 @@ const _applyPropagations = function (data, callback, _includeRoutes, _excludeRou
    */
   _includeRoutes = _includeRoutes || [];
   _excludeRoutes = _excludeRoutes || routes;
-  if (_.isEmpty(propagations)) {
-    // We have exhausted the list of propagation rules, return the result
-    return callback(null, _includeRoutes, _excludeRoutes);
-  }
+  // We have exhausted the list of propagation rules, return the result
+  if (isEmpty(propagations)) return callback(null, _includeRoutes, _excludeRoutes);
 
   const propagation = propagations.shift();
   _applyPropagation(
@@ -543,15 +571,14 @@ const _applyPropagations = function (data, callback, _includeRoutes, _excludeRou
       if (error) {
         log().warn({ err: error, propagation, entity }, 'There was an error applying a propagation rule for an entity');
       } else {
-        _includeRoutes = _.union(_includeRoutes, includeRoutes);
+        _includeRoutes = union(_includeRoutes, includeRoutes);
         _excludeRoutes = excludeRoutes;
       }
 
-      if (_.isEmpty(excludeRoutes)) {
-        // If there are no more routes to exclude, then we have included all. There is no value in looking at more propagation
-        // rules in this chain as we've already included them all
-        return callback(null, _includeRoutes, _excludeRoutes);
-      }
+      /** If there are no more routes to exclude, then we have included all.
+       * There is no value in looking at more propagationrules in this chain as we've already included them all
+       */
+      if (isEmpty(excludeRoutes)) return callback(null, _includeRoutes, _excludeRoutes);
 
       // There are still more routes to try and include. Continue shifting through the propagation rules chain
       return _applyPropagations(
@@ -601,7 +628,7 @@ const _applyPropagation = function (
   entityRoutes = entityRoutes || [];
 
   const entityId = entity[ActivityConstants.properties.OAE_ID];
-  const entityTenantAlias = AuthzUtil.getResourceFromId(entityId).tenantAlias;
+  const entityTenantAlias = getResourceFromId(entityId).tenantAlias;
 
   const includedRoutes = [];
   const excludedRoutes = [];
@@ -623,52 +650,50 @@ const _applyPropagation = function (
 
       // Index the entity associations into a hash to make the next loop O(n) instead of O(n^2)
       const associationRoutesHash = {};
-      _.each(associations, (associationRoute) => {
+      forEach((associationRoute) => {
         associationRoutesHash[associationRoute] = true;
-      });
+      }, defaultToEmptyArray(associations));
 
       // Split the routes into those who are in the entity associations and those who are not
-      _.each(routes, (route) => {
+      forEach((route) => {
         if (associationRoutesHash[route.resourceId]) {
           includedRoutes.push(route);
         } else {
           excludedRoutes.push(route);
         }
-      });
+      }, routes);
 
       return callback();
     });
   };
 
-  if (propagation.type === ActivityConstants.entityPropagation.ALL) {
-    // Include all the routes
-    return callback(null, routes, []);
-  }
+  // Include all the routes
+  if (propagation.type === ActivityConstants.entityPropagation.ALL) return callback(null, routes, []);
 
   if (propagation.type === ActivityConstants.entityPropagation.TENANT) {
     // Split the routes into those in the same tenant, and those in other tenants
-    _.each(routes, (route) => {
-      const routeTenantAlias = AuthzUtil.getResourceFromId(route.resourceId).tenantAlias;
+    forEach((route) => {
+      const routeTenantAlias = getResourceFromId(route.resourceId).tenantAlias;
       if (routeTenantAlias === entityTenantAlias) {
         includedRoutes.push(route);
       } else {
         excludedRoutes.push(route);
       }
-    });
+    }, routes);
 
     return callback(null, includedRoutes, excludedRoutes);
   }
 
   if (propagation.type === ActivityConstants.entityPropagation.INTERACTING_TENANTS) {
     // Split the routes into those who can interact with the entity's tenant, and those who cannot
-    _.each(routes, (route) => {
-      const routeTenantAlias = AuthzUtil.getResourceFromId(route.resourceId).tenantAlias;
+    forEach((route) => {
+      const routeTenantAlias = getResourceFromId(route.resourceId).tenantAlias;
       if (TenantsUtil.canInteract(entityTenantAlias, routeTenantAlias)) {
         includedRoutes.push(route);
       } else {
         excludedRoutes.push(route);
       }
-    });
+    }, routes);
 
     return callback(null, includedRoutes, excludedRoutes);
   }
@@ -676,18 +701,18 @@ const _applyPropagation = function (
   if (propagation.type === ActivityConstants.entityPropagation.ROUTES) {
     // Index the entity routes into a hash to make the next loop O(n) instead of O(n^2)
     const entityRoutesHash = {};
-    _.each(entityRoutes, (entityRoute) => {
+    forEach((entityRoute) => {
       entityRoutesHash[entityRoute.resourceId] = true;
-    });
+    }, entityRoutes);
 
     // Split the routes into those who are in the entity routes and those who are not
-    _.each(routes, (route) => {
+    forEach((route) => {
       if (entityRoutesHash[route.resourceId]) {
         includedRoutes.push(route);
       } else {
         excludedRoutes.push(route);
       }
-    });
+    }, routes);
 
     return callback(null, includedRoutes, excludedRoutes);
   }
@@ -739,10 +764,8 @@ const _applyPropagation = function (
        */
 
       const externalAssociationsCtx = associationsContexts[propagation.objectType];
-      if (!externalAssociationsCtx) {
-        // There is no entity that is of this object type (e.g., no object or no target), therefore we apply no inclusions
-        return callback(null, [], routes);
-      }
+      // There is no entity that is of this object type (e.g., no object or no target), therefore we apply no inclusions
+      if (not(externalAssociationsCtx)) return callback(null, [], routes);
 
       _applyAssociationsCtx(externalAssociationsCtx, propagation.association, (error) => {
         if (error) return callback(error);
@@ -773,7 +796,7 @@ const _producePropagation = function (associationsCtx, entity, callback) {
   if (not(entity)) return callback();
 
   const entityTypeConfig = ActivityRegistry.getRegisteredActivityEntityTypes()[entity.objectType];
-  if (!entityTypeConfig || !_.isFunction(entityTypeConfig.propagation)) {
+  if (not(entityTypeConfig) || aintAFunction(entityTypeConfig.propagation)) {
     return callback(null, [{ type: ActivityConstants.entityPropagation.ROUTES }]);
   }
 
@@ -792,9 +815,7 @@ const _producePropagation = function (associationsCtx, entity, callback) {
  * @api private
  */
 const _produceRoutes = function (associationsCtx, entity, routeConfig, callback) {
-  if (!entity || _.isEmpty(routeConfig)) {
-    return callback(null, []);
-  }
+  if (not(entity) || isEmpty(routeConfig)) return callback(null, []);
 
   const routes = [];
 
@@ -802,7 +823,7 @@ const _produceRoutes = function (associationsCtx, entity, routeConfig, callback)
    * Recursively produce the routes for the activity entity based on the routing configuration of the activity that is applied to this entity
    */
   const routeStreamAssociations = function () {
-    if (_.isEmpty(routeConfig)) {
+    if (isEmpty(routeConfig)) {
       log().trace({ entity, routes }, 'Generated routes for activity entity');
       return callback(null, routes);
     }
@@ -812,13 +833,13 @@ const _produceRoutes = function (associationsCtx, entity, routeConfig, callback)
       if (error) return callback(error);
 
       // Collect the routes for this stream
-      _.each(streamRoutes, (streamRoute) => {
+      forEach((streamRoute) => {
         routes.push({
           resourceId: streamRoute,
           streamType: stream.streamType,
           transient: stream.transient
         });
-      });
+      }, streamRoutes);
 
       routeStreamAssociations();
     });
@@ -839,10 +860,8 @@ const _produceRoutes = function (associationsCtx, entity, routeConfig, callback)
  * @api private
  */
 const _routeAssociations = function (associationsCtx, associationNames, callback, _routes) {
-  _routes = _routes || [];
-  if (_.isEmpty(associationNames)) {
-    return callback(null, _routes);
-  }
+  _routes = defaultToEmptyArray(_routes);
+  if (isEmpty(associationNames)) return callback(null, _routes);
 
   // Pick off the next association
   let associationName = associationNames.shift();
@@ -855,17 +874,20 @@ const _routeAssociations = function (associationsCtx, associationNames, callback
     // Remove the ^-character from the association name
     associationName = associationName.slice(1);
 
-    // TODO: There is potential for a slight optimization here. If the collected routes so far (_routes array)
-    // is empty, there is nothing to exclude and we could skip executing the association and move on to the next one.
+    /**
+     * TODO: There is potential for a slight optimization here.
+     * If the collected routes so far (_routes array) is empty, there is nothing to exclude
+     * and we could skip executing the association and move on to the next one.
+     */
   }
 
   associationsCtx.get(associationName, (error, associations) => {
     if (error) {
       log().warn({ err: error }, 'Error fetching association "%s"', associationName);
-    } else if (associations && !_.isArray(associations)) {
+    } else if (associations && aintArray(associations)) {
       log().warn('Ignoring using association "%s" as a route which returns a non-array object', associationName);
     } else if (associations) {
-      _routes = exclusionAssociation ? _.difference(_routes, associations) : _.union(_routes, associations);
+      _routes = exclusionAssociation ? difference(_routes, associations) : union(_routes, associations);
     }
 
     return _routeAssociations(associationsCtx, associationNames, callback, _routes);
@@ -881,11 +903,12 @@ const _routeAssociations = function (associationsCtx, associationNames, callback
  */
 const _getRouterConfigForObjectType = function (activityConfig, objectType) {
   const routerConfig = [];
-  if (!activityConfig || !activityConfig.streams) {
-    return routerConfig;
-  }
+  const noStreams = pipe(prop('streams'), not);
+  const noActivityConfig = not;
 
-  _.each(activityConfig.streams, (streamConfig, streamType) => {
+  if (either(noActivityConfig, noStreams)(activityConfig)) return routerConfig;
+
+  forEachObjIndexed((streamConfig, streamType) => {
     if (streamConfig.router && streamConfig.router[objectType]) {
       routerConfig.push({
         streamType,
@@ -893,7 +916,7 @@ const _getRouterConfigForObjectType = function (activityConfig, objectType) {
         transient: streamConfig.transient
       });
     }
-  });
+  }, activityConfig.streams);
 
   return routerConfig;
 };
@@ -904,9 +927,9 @@ const _getRouterConfigForObjectType = function (activityConfig, objectType) {
  * @see #registerActivityEntityType for parameter details in the `producer` option.
  * @api private
  */
+// Simply return the resourceData. If no resource data was specified, the router will just default to an empty object
 const _defaultActivityEntityProducer = function (resource, callback) {
-  // Simply return the resourceData. If no resource data was specified, the router will just default to an empty object
-  return callback(null, _.extend({}, resource.resourceData));
+  return callback(null, mergeRight({}, resource.resourceData));
 };
 
 /**
@@ -920,32 +943,35 @@ const _defaultActivityEntityProducer = function (resource, callback) {
  * @api private
  */
 const _queueActivities = function (activitySeed, routedActivities, callback) {
-  const allRoutes = _.keys(routedActivities);
+  const allRoutes = keys(routedActivities);
   const activityBuckets = [];
 
+  // Assign all activities to their processing buckets to support safe concurrency
   for (const route of allRoutes) {
-    // Assign all activities to their processing buckets to support safe concurrency
     const bucketNumber = _getBucketNumber(route, activitySeed);
     activityBuckets[bucketNumber] = activityBuckets[bucketNumber] || [];
     activityBuckets[bucketNumber].push({ route, activity: routedActivities[route] });
   }
 
-  // Queue the aggregates into their associated buckets to indicate they need to be collected and delivered
-  ActivityDAO.saveQueuedActivities(activityBuckets, (error) => {
+  /**
+   * Queue the aggregates into their associated buckets to
+   * indicate they need to be collected and delivered
+   */
+  saveQueuedActivities(activityBuckets, (error) => {
     if (error) {
       log().error({ err: error, activitySeed }, 'Could not save the queued activities for an activity seed');
       return callback(error);
     }
 
     // Log telemetry for each bucket. Important to monitor for "hot buckets"
-    _.each(activityBuckets, (bucket, bucketNumber) => {
+    forEach((bucket, bucketNumber) => {
       // eslint-disable-next-line unicorn/explicit-length-check
       if (bucket && bucket.length) {
         Telemetry.incr('routed.' + bucketNumber + '.count', bucket.length);
       }
-    });
+    }, activityBuckets);
 
-    return callback(null, _.keys(activityBuckets));
+    return callback(null, keys(activityBuckets));
   });
 };
 
@@ -976,7 +1002,7 @@ const _queueActivities = function (activitySeed, routedActivities, callback) {
  */
 const _getBucketNumber = function (route, activitySeed) {
   const numberOfBuckets = ActivitySystemConfig.getConfig().numberOfProcessingBuckets;
-  return ActivityBuckets.getBucketNumber(route + activitySeed.activityType, numberOfBuckets);
+  return getBucketNumber(route + activitySeed.activityType, numberOfBuckets);
 };
 
 export { routeActivity };

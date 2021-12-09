@@ -567,13 +567,15 @@ OAE.tenantRouter.on('post', '/api/content/:contentId/revisions/:revisionId/previ
 
   ContentAPI.setPreviewItems(
     request.ctx,
-    request.params.contentId,
-    request.params.revisionId,
-    request.body.status,
-    files,
-    sizes,
-    contentMetadata,
-    previewMetadata,
+    {
+      contentId: request.params.contentId,
+      revisionId: request.params.revisionId,
+      status: request.body.status,
+      files,
+      sizes,
+      contentMetadata,
+      previewMetadata
+    },
     (error) => {
       if (error) {
         return response.status(error.code).send(error.msg);

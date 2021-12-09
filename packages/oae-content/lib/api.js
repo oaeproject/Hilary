@@ -126,6 +126,7 @@ const isNotHttps = compose(not, isHttps);
 const isDifferent = compose(not, equals);
 const isZero = equals(0);
 const isString = is(String);
+const defaultToEmptyObject = defaultTo({});
 
 /**
  * ### Events
@@ -722,8 +723,8 @@ const _createContent = function (ctx, data, callback) {
   // Use an empty description if no description has been provided
   description = defaultTo(emptyString, description);
   // Make sure the otherValues and roles are valid objects
-  roles = defaultTo({}, roles);
-  otherValues = defaultTo({}, otherValues);
+  roles = defaultToEmptyObject(roles);
+  otherValues = defaultToEmptyObject(otherValues);
 
   // Parameter validation
   try {
@@ -1245,7 +1246,7 @@ const joinCollabDoc = (ctx, contentId, callback) => {
  * @param  {Object}    callback.err      An error that occurred, if any
  */
 const deleteContent = (ctx, contentId, callback) => {
-  callback = defaultTo({}, callback);
+  callback = defaultToEmptyObject(callback);
 
   // Parameter validation
   try {
@@ -1788,21 +1789,12 @@ const _updateFileBody = function (ctx, contentId, file, callback) {
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any
  */
-const setPreviewItems = function (
-  ctx,
-  contentId,
-  revisionId,
-  status,
-  files,
-  sizes,
-  contentMetadata,
-  previewMetadata,
-  callback
-) {
-  files = defaultTo({}, files);
-  sizes = defaultTo({}, sizes);
-  contentMetadata = defaultTo({}, contentMetadata);
-  previewMetadata = defaultTo({}, previewMetadata);
+const setPreviewItems = function (ctx, data, callback) {
+  let { contentId, revisionId, status, files, sizes, contentMetadata, previewMetadata } = data;
+  files = defaultToEmptyObject(files);
+  sizes = defaultToEmptyObject(sizes);
+  contentMetadata = defaultToEmptyObject(contentMetadata);
+  previewMetadata = defaultToEmptyObject(previewMetadata);
 
   // Wrap the callback method, which takes care of cleaning up the files if something goes wrong
   const cleanUpCallback = _getCleanUpCallback(files, callback);

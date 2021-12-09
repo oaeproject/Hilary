@@ -233,11 +233,9 @@ workflows:
     jobs:
       - coverage
   scheduled:
-    triggers:
-      - schedule:
-          cron: 0 1 * * *
-          filters:
-            branches:
-              only: master
+    when:
+      and:
+        - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+        - equal: [ "Sequential testing", << pipeline.schedule.name >> ]
     jobs:
       - coverage

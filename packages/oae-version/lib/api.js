@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
 import { nth, reduce, gt as greaterThan, head, last } from 'ramda';
+import { callbackify } from 'node:util';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,7 +38,7 @@ const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
 const getVersionCB = function (callback) {
-  getVersion().then((version) => callback(null, version));
+  return callbackify(getVersion, callback);
 };
 
 const getVersion = async function (repoPath = hilaryDirectory, repoInformation = new Map()) {

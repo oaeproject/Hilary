@@ -20,7 +20,6 @@ import { fileURLToPath } from 'node:url';
 import { Map } from 'immutable';
 import * as git from 'isomorphic-git';
 import { nth, reduce, gt as greaterThan, head, last } from 'ramda';
-import { callbackify } from 'node:util';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

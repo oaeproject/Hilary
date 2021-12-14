@@ -341,7 +341,7 @@ const buildIndex = (destroy, callback) => {
 /**
  * Perform a search
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         searchType          The type of search to perform (e.g., 'general')
  * @param  {Object}         opts                A hash describing the search parameters
  * @param  {String[]}       [opts.pathParams]   An array of path parameters for the search. The requirements of the path parameters are specific to the type of search being performed
@@ -406,7 +406,7 @@ const search = function (ctx, searchType, options, callback) {
  * Submits a task that will re-index all search documents in storage. This task is permission protected to
  * the global admin user as the impact of reindexing all documents can stress the system.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */

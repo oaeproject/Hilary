@@ -187,7 +187,7 @@ FollowingAPI.emitter.on(FollowingConstants.events.UNFOLLOW, (ctx, followingUser,
  * Handle the change in follower/following index. The `followingUserId` will have their following index updated
  * while the `followedUserId` will have their followers index updated
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     followingUserId     The id of the user whose following index to update
  * @param  {String}     followedUserId      The id of the user whose followers index to update
  */

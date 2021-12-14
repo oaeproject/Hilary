@@ -561,7 +561,7 @@ const _updateCachedTenant = function (tenantAlias, callback) {
 /**
  * Create a new tenant and spin it up on the fly
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     alias                   The unique alias for the tenant
  * @param  {String}     displayName             A descriptive short name for the tenant
  * @param  {String}     host                    The host on which this tenant will be proxying (e.g. oae.cam.ac.uk or oae.gatech.edu)
@@ -593,7 +593,7 @@ const createTenant = function (ctx, alias, displayName, host, options, callback)
 /**
  * Create a new tenant and spin it up on the fly, without performing any permission checks
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     alias                   The unique alias for the tenant
  * @param  {String}     displayName             A descriptive short name for the tenant
  * @param  {String}     host                    The host on which this tenant will be proxying (e.g. oae.cam.ac.uk or oae.gatech.edu)
@@ -724,7 +724,7 @@ const _createTenant = function (alias, displayName, host, options, callback) {
 /**
  * Update a tenant's metadata
  *
- * @param  {Context}    ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                             Current execution context
  * @param  {String}     alias                           The alias of the tenant to update
  * @param  {Object}     tenantUpdates                   Object where the keys represents the metadata identifiers and the values represent the new metadata values
  * @param  {String}     [tenantUpdates.displayName]     Updated tenant display name
@@ -833,7 +833,7 @@ const updateTenant = function (ctx, alias, tenantUpdates, callback) {
 /**
  * Disable or enable a tenant
  *
- * @param  {Context}      ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}      ctx             Current execution context
  * @param  {String[]}     aliases         An array of aliases representing the tenants that should be stopped
  * @param  {Boolean}      disabled        True if the tenant needs to be disabled
  * @param  {Function}     [callback]      Callback function executed when request is completed
@@ -908,7 +908,7 @@ const disableTenants = function (ctx, aliases, disabled, callback) {
 /**
  * Get the configured landing page for the current tenant
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @return {Object[]}                           The configured landing page blocks for the current tenant
  */
 const getLandingPage = function (ctx) {
@@ -930,7 +930,7 @@ const getLandingPage = function (ctx) {
 /**
  * Get a landing page block
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         blockName           The name of the block. Formatted as `block_i`
  * @return {Object}                             A landing page block
  * @api private
@@ -972,7 +972,7 @@ const _getLandingPageBlock = function (ctx, blockName) {
 /**
  * Set an attribute value on a landing page block
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Object}         block               The block on which to set an attribute
  * @param  {String}         blockName           The name of the block. Formatted as `block_i`
  * @param  {String}         attributeName       The name of the attribute to set on the block

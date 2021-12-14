@@ -29,7 +29,7 @@ const { unless, isLoggedInUser, isUserId, isNotEmpty } = validator;
 /**
  * Get all OAuth clients for a user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user for which to get the available OAuth clients
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -69,7 +69,7 @@ const getClients = function (ctx, userId, callback) {
  * They can create a client *for another* user if they choose to do so. The access associated to
  * that client will be the full access of the user for which you've created the client.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user for which to create an OAuth client
  * @param  {String}     displayName         The name of the OAuth client
  * @param  {Function}   callback            Standard callback function
@@ -111,7 +111,7 @@ const createClient = function (ctx, userId, displayName, callback) {
 /**
  * Update an OAuth client
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     clientId            The id of the OAuth client to update
  * @param  {String}     displayName         The updated name for the OAuth client
  * @param  {String}     secret              The updated secret for the OAuth client
@@ -170,7 +170,7 @@ const updateClient = function (ctx, clientId, displayName, secret, callback) {
 /**
  * Delete an OAuth client
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     clientId        The id of the OAuth client to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any

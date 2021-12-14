@@ -154,7 +154,7 @@ function registerFullUserProfileDecorator(namespace, decorator) {
  * authentication strategy with this user record as the user would otherwise have no means
  * of logging onto the system.
  *
- * @param  {Context}   ctx                      Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                      Current execution context
  * @param  {String}    displayName              The display name for the user
  * @param  {Object}    [opts]                   Optional parameters for the user
  * @param  {String}    [opts.visibility]        The visibility of the user. One of AuthzConstants.visibility
@@ -290,7 +290,7 @@ function createUser(ctx, tenantAlias, displayName, options, callback) {
  * Create a new user record. This assumes all validation has happened
  * at an earlier point in time
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {User}       user                        The user to create
  * @param  {String}     [email]                     The email address of the user. If an email address was specified but not persisted on the `user` object, a verification email will be sent to the given email address
  * @param  {Function}   callback                    Standard callback function
@@ -334,7 +334,7 @@ function _createUser(ctx, user, email, callback) {
  *
  * When the `forceProfileUpdate` parameter is provided, the user's display name and email address will always be set to the values provided in the CSV file.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         [tenantAlias]           The alias of the tenant for which the users should imported
  * @param  {Object}         userCSV                 File object representing the uploaded CSV file as returned by express
  * @param  {String}         authenticationStrategy  The authentication strategy with which the provided external ids should be associated (One of AuthenticationConstants.providers)
@@ -612,7 +612,7 @@ function _cleanUpCSVFile(userCSV, callback) {
 /**
  * Update a user
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         userId          The id of the user to update
  * @param  {Object}         profileFields   Object that represent the profile fields that should be updated. Possible keys are `visibility`, `displayName`, `publicAlias`, `locale`, `email` and `emailPreference`
  * @param  {Function}       callback        Standard callback function
@@ -736,7 +736,7 @@ function updateUser(ctx, userId, profileFields, callback) {
  * Update a user record in the database. This is an internal method that performs no validation.
  * It will also not send out any email verification tokens if an email address were to change
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         userId          The user to update
  * @param  {Object}         profileFields   Object that represent the profile fields that should be updated. Possible keys are `visibility`, `displayName`, `publicAlias`, `locale`, `email` and `emailPreference`
  * @param  {Function}       callback        Standard callback function
@@ -759,7 +759,7 @@ function _updateUser(ctx, oldUser, profileFields, callback) {
 /**
  * Determine if the user in context can delete the specified user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user being deleted
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -786,7 +786,7 @@ function canDeleteUser(ctx, userId, callback) {
 /**
  * Delete a user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
@@ -840,7 +840,7 @@ function deleteUser(ctx, userId, callback) {
  * Delete or restore users within a tenancy
  *
  * @function deleteOrRestoreUsersByTenancy
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     tenantAlias      The tenant alias we want to delete or restore users from
  * @param  {Boolean}    disableUsers     Sets the behaviour to delete if true and restore if false
  * @param  {Function}   callback         Standard callback function
@@ -870,7 +870,7 @@ function deleteOrRestoreUsersByTenancy(ctx, tenantAlias, disableUsers, callback)
 /**
  * Get all users for a given tenant
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     tenantAlias             The tenant alias to filter by
  * @param  {Function}   callback                Invoked when users have been collected
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -954,7 +954,7 @@ function _restorePrincipals(usersToRestore, afterRestored) {
 /**
  * Restore a user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user to restore
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
@@ -989,7 +989,7 @@ function restoreUser(ctx, userId, callback) {
 /**
  * Determine if the user in context can restore the specified user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user being restored
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -1016,7 +1016,7 @@ function canRestoreUser(ctx, userId, callback) {
 /**
  * Get a user from the DB
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {String}    userId          The userId for the user you wish to retrieve
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
@@ -1039,7 +1039,7 @@ function getUser(ctx, userId, callback) {
  * Get the full user profile of a user. In addition to the basic profile, this also fetches the
  * decorated properties.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user whose full profile to fetch
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -1138,7 +1138,7 @@ function getFullUserProfile(ctx, userId, callback) {
  *
  * If error returns error object
  *
- * @param  {Context}   ctx            Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx            Current execution context
  * @param  {Function}  callback       Standard callback function
  * @param  {Object}    callback.err   An error that occurred, if any
  * @param  {Object}    callback.data  The me feed for the current user
@@ -1198,7 +1198,7 @@ function getMe(ctx, callback) {
  * Set a flag that indicates whether a user is a tenant admin.
  * The ctx user must be a tenant or global admin to be able to do this.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {String}    userId          The id of the user to update the tenant administrator setting for
  * @param  {Boolean}   isAdmin         Whether or not the user should become a tenant administrator
  * @param  {Function}  callback        Standard callback function
@@ -1220,7 +1220,7 @@ function setTenantAdmin(ctx, userId, isAdmin, callback) {
  * Set a flag that indicates whether a user is a global admin. The user in context must be a global
  * admin to be able to do this
  *
- * @param  {Context}   ctx              Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx              Current execution context
  * @param  {String}    userId           The id of the user to update the global administrator setting for
  * @param  {Boolean}   isAdmin          Whether or not the user should become a global administrator
  * @param  {Function}  callback         Standard callback function
@@ -1238,7 +1238,7 @@ function setGlobalAdmin(ctx, userId, isAdmin, callback) {
  * Internal method that either promotes or demotes a user to or from being an admin. This method
  * will do all the necessary validation of the user in context and passed in parameters
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     adminType       One of `admin:global` or `admin:tenant`
  * @param  {Boolean}    isAdmin         Flag that indicates whether this user should be an admin or not
  * @param  {String}     userId          The id of the user whose admin status to set or unset
@@ -1266,7 +1266,7 @@ function _setAdmin(ctx, adminType, isAdmin, principalId, callback) {
 /**
  * Send an email token to a user that can be used to verify the user owns the email address
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {User}       user            The user to send the email token to
  * @param  {String}     email           The email address where to send the token to
  * @param  {String}     [token]         The token to send. If left null, a new one will be generated
@@ -1318,7 +1318,7 @@ function _sendEmailToken(ctx, user, email, token, callback) {
 /**
  * Resend an email token
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user for who to resend the email token
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -1361,7 +1361,7 @@ function resendEmailToken(ctx, userId, callback) {
 /**
  * Verify an email token
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user to verify the email address for
  * @param  {String}     token           The token with which to verify the email address
  * @param  {Function}   callback        Standard callback function
@@ -1426,7 +1426,7 @@ function verifyEmail(ctx, userId, token, callback) {
 /**
  * Check whether a user has a pending email token
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user for which to check whether they have a pending email token
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -1467,7 +1467,7 @@ function getEmailToken(ctx, userId, callback) {
 /**
  * Delete a pending email token for a user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user for which to delete the pending email token
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -1516,7 +1516,7 @@ function deleteEmailToken(ctx, userId, callback) {
 /**
  * Get data of a principal
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     userId                  The id of the user for which to get his personal data
  * @param  {String}     exportType              Export type can be 'personal-data', 'content' or 'shared'
  * @param  {Function}   callback                Standard callback function
@@ -1587,7 +1587,7 @@ function exportData(ctx, userId, exportType, callback) {
 /**
  * Get profile picture
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {Array}      principal                   The user for which to get his personal data
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any
@@ -1638,7 +1638,7 @@ function _assemblePersonalData(personalDetails, profilePicture, data, callback) 
 /**
  * Get content informations
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     userId                  The id of the user for which to get his personal data
  * @param  {String}     exportType              Export type can be 'personal-data', 'content' or 'shared'
  * @param  {Function}   callback                Standard callback function
@@ -1723,7 +1723,7 @@ function collectDataToExport(ctx, userId, exportType, callback) {
 /**
  * Get information about uploaded files
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Array}      uploadedFiles           Array of uploaded files
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -1816,7 +1816,7 @@ const _collabsheetToCSV = function (ctx, collabsheets, callback) {
 /**
  * Get information about collabdocs
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Array}      collabdocs              Array of collabdocs
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -1874,7 +1874,7 @@ const _collabdocToTxt = function (ctx, collabdocs, callback) {
 /**
  * Get information about links
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Array}      links                   Array of links
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -1928,7 +1928,7 @@ const _linkToTxt = function (ctx, links, callback) {
 /**
  * Get information about meetings
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Array}      meetings                Array of meetings
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -1983,7 +1983,7 @@ const _meetingToTxt = function (ctx, meetings, callback) {
 /**
  * Get information about discussions
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {Array}      discussions                 Array of discussions
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any
@@ -2038,7 +2038,7 @@ const _discussionToTxt = function (ctx, discussions, callback) {
 /**
  * Return comments as String
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {Array}      messages            Array of messages
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any

@@ -154,7 +154,7 @@ const verifyExpiringSignature = function (data, expires, signature) {
  * Note that this method does not do access checks. You must perform the required access checks prior to requesting and issuing a
  * signature for a resource.
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     resourceId  The id of the resource for which the signature is being created
  * @param  {Number}     [duration]  The nominal number of seconds for which this signature is valid as described in `createExpiringSignature`. Default: 12 hours
  * @param  {Number}     [offset]    The minimum number of seconds for which this signature is valid as described in `createExpiringSignature`. Default: 12 hours
@@ -167,7 +167,7 @@ const createExpiringResourceSignature = function (ctx, resourceId, duration, off
  * Verify that the user in the given request is providing a valid signature in which to access a resource. This method will take care
  * of the expiry logic as well as verifying that all the components that indicate they have access are authentic
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     resourceId  The id of the resource to which the user is trying to gain access
  * @param  {Number}     expires     The expiry date (in millis since the epoch) that the signature is set to expire
  * @param  {String}     signature   The string signature that was generated from `createExpiringResourceSignature`
@@ -193,7 +193,7 @@ const _createExpiringData = function (data, expires) {
 /**
  * Given a context and resource id, create the data that should be signed in order to create an expiring resource signature
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     resourceId  The id of the resource for which to create the data to sign
  * @return {Object}                 A data object that can be signed, such that the signature will validate the current user and resource id
  * @api private

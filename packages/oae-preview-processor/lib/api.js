@@ -252,7 +252,7 @@ const unregisterProcessor = function (processorId) {
 /**
  * Returns the processor that is best equiped to generate previews for a piece of content.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {Content}    contentObj          The content object for which we need to find a processor.
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -338,7 +338,7 @@ const submitFolderForProcessing = function (folderId) {
 /**
  * Submits a task that triggers preview items matching specified filters to be regenerated.
  *
- * @param  {Context}    ctx                                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                                 Current execution context
  * @param  {Object}     filters                             An object that holds the filters that should be applied on the content items. See `FilterGenerator` for more information
  * @param  {Function}   [callback]                          Invoked when the task has been fired
  * @param  {Object}     [callback.err]                      An error that occurred, if any
@@ -383,7 +383,7 @@ const reprocessPreviews = function (ctx, filters, callback) {
 /**
  * Reprocess a single preview for a content revision.
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     contentId   The id of the content item for which to reprocess the preview
  * @param  {String}     revisionId  The id of the revision to reprocess
  */

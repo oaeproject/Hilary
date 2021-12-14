@@ -91,7 +91,7 @@ const FoldersAPI = new EmitterAPI.EventEmitter();
 /**
  * Create a folder
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the folder
  * @param  {String}         [description]           The description of the folder. By default, a folder will have no description
  * @param  {String}         [visibility]            The visibility of the folder. One of `AuthzConstants.visibility`. This will default to a value configured for the tenant
@@ -185,7 +185,7 @@ const createFolder = function (ctx, displayName, description, visibility, roles,
 /**
  * Update a folder's metadata
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         folderId                        The id of the folder to update
  * @param  {Object}         updates                         The updates that should be persisted on the folder
  * @param  {String}         [updates.displayName]           The new display name for the folder
@@ -281,7 +281,7 @@ const updateFolder = function (ctx, folderId, updates, callback) {
 /**
  * Update the content items in a folder
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         folderId                        The id of the folder for which to update the visibility of the content items
  * @param  {String}         visibility                      The new visibility for the content items in the folder
  * @param  {Function}       callback                        Standard callback function
@@ -347,7 +347,7 @@ const updateFolderContentVisibility = function (ctx, folderId, visibility, callb
  *   -  Each update triggers a search reindex of the content item
  *   -  Purges the folder content library
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {Folder}         folder                      The folder for which to update the visibility of the content items
  * @param  {String}         visibility                  The new visibility for the content items
  * @param  {Function}       callback                    Standard callback function
@@ -452,7 +452,7 @@ const _updateFolderContentVisibility = function (ctx, folder, visibility, callba
  * the visibility of the content item if, and only if, the current user has
  * manager rights on that item. It will *NOT* trigger any content-update activities
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {Folder}         content                     The content item for which to update the visibility
  * @param  {String}         visibility                  The new visibility of the content item
  * @param  {Function}       callback                    Standard callback function
@@ -485,7 +485,7 @@ const _updateContentVisibility = function (ctx, content, visibility, callback) {
 /**
  * Get a folder by its id
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         folderId            The id of the folder to get
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
@@ -526,7 +526,7 @@ const getFolder = function (ctx, folderId, callback) {
  * Get the full folder profile, which includes additional information about the relation of the
  * current user to the folder
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         folderId                        The id of the folder whose full profile to get
  * @param  {Function}       callback                        Standard callback function
  * @param  {Object}         callback.err                    An error that occurred, if any
@@ -562,7 +562,7 @@ const getFullFolderProfile = function (ctx, folderId, callback) {
  * added to it by the current user and finally a signature that allows the user to sign up for push notifications relating
  * to the folder
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {Folder}         folder                          The folder whose full profile to get
  * @param  {Function}       callback                        Standard callback function
  * @param  {Object}         callback.err                    An error that occurred, if any
@@ -621,7 +621,7 @@ const _getFullFolderProfile = function (ctx, folder, callback) {
 /**
  * Delete a folder
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String}         folderId                    The id of the folder to delete
  * @param  {Boolean}        deleteContent               Whether or not to delete the content that's in the folder
  * @param  {Function}       callback                    Standard callback function
@@ -746,7 +746,7 @@ const _deleteFolder = function (folder, callback) {
 /**
  * Delete a set of content items
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String[]}       contentIds                  The ids of the content items to remove
  * @param  {Function}       callback                    Standard callback function
  * @param  {Content[]}      callback.failedContent      The content items that could not be deleted
@@ -831,7 +831,7 @@ const _removeAuthzFolderFromContentItems = function (folder, contentIds, callbac
 /**
  * List the members of a folder
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         folderId                        The id of the folder whose members to get
  * @param  {String}         [start]                         A token that indicates where in the list to start returning members. Use the `nextToken` result from this method to determine where to start the next page of members
  * @param  {Number}         [limit]                         The maximum number of members to return
@@ -886,7 +886,7 @@ const getFolderMembers = function (ctx, folderId, start, limit, callback) {
 /**
  * Get the invitations for the specified folder
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         folderId                The id of the folder to get the invitations for
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -914,7 +914,7 @@ const getFolderInvitations = function (ctx, folderId, callback) {
 /**
  * Resend an invitation email for the specified email and folder
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         folderId        The id of the folder to which the email was invited
  * @param  {String}         email           The email that was previously invited
  * @param  {Function}       callback        Standard callback function
@@ -944,7 +944,7 @@ const resendFolderInvitation = function (ctx, folderId, email, callback) {
  * folder will be given the `member` role. However, if they already have a different role, the
  * existing role will not be changed
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     folderId        The id of the folder to share
  * @param  {String[]}   principalIds    The ids of the users and groups with whom to share the folder
  * @param  {Function}   callback        Standard callback function
@@ -998,7 +998,7 @@ const shareFolder = function (ctx, folderId, principalIds, callback) {
  * only giving users and groups the `member` role, other roles can be applied and also users and
  * groups can be removed from the folder membership
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     folderId        The id of the folder whose permissions to set
  * @param  {Object}     changes         An object whose key is the user or group id to set on the folder, and the value is the role you wish them to have. If the role of a user is set to `false`, then it indicates to remove the user from the folder
  * @param  {Function}   callback        Standard callback function
@@ -1067,7 +1067,7 @@ const setFolderPermissions = function (ctx, folderId, changes, callback) {
 /**
  * Add a set of content items to a folder
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     folderId        The id of the folder to which to add the content items
  * @param  {String[]}   contentIds      The ids of the content items to add to the folder
  * @param  {Function}   callback        Standard callback function
@@ -1195,7 +1195,7 @@ const _addContentItemsToFolderLibrary = function (ctx, actionContext, folder, co
 /**
  * Remove a set of content items from a folder
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     folderId        The id of the folder from which to remove the content items
  * @param  {String[]}   contentIds      The ids of the content items to remove from the folder
  * @param  {Function}   callback        Standard callback function
@@ -1291,7 +1291,7 @@ const removeContentItemsFromFolder = function (ctx, folderId, contentIds, callba
 /**
  * List a user or group library of folders
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         principalId             The id of the user or group whose library of folders to list
  * @param  {String}         [start]                 A token that indicates where in the list to start returning folders. Use the `nextToken` result from this method to determine where to start the next page of folders
  * @param  {Number}         [limit]                 The maximum number of folders to return
@@ -1363,7 +1363,7 @@ const getFoldersLibrary = function (ctx, principalId, start, limit, callback) {
 /**
  * Get the folders that are managed by the current user
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
  * @param  {Folder[]}       callback.folders        The folders which the current user can manage
@@ -1408,7 +1408,7 @@ const getManagedFolders = function (ctx, callback) {
 /**
  * Remove a folder from a principal's library
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         principalId         The principal id of the library from which to remove this folder
  * @param  {String}         folderId            The id of the folder that should be removed
  * @param  {Function}       callback            Standard callback function
@@ -1474,7 +1474,7 @@ const removeFolderFromLibrary = function (ctx, principalId, folderId, callback) 
 /**
  * List the library of content items that have been added to a folder
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         folderId                The id of the folder whose content library to list
  * @param  {String}         [start]                 A token that indicates where in the list to start returning content items. Use the `nextToken` result from this method to determine where to start the next page of content items
  * @param  {Number}         [limit]                 The maximum number of content items to return
@@ -1548,7 +1548,7 @@ const getFolderContentLibrary = function (ctx, folderId, start, limit, callback)
  * Create a new message in a folder. If `replyToCreatedTimestamp` is specified, the message will be
  * a reply to the message in the folder identified by that timestamp.
  *
- * @param  {Context}            ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                             Current execution context
  * @param  {String}             folderId                        The id of the folder to which to post the message
  * @param  {String}             body                            The body of the message
  * @param  {String|Number}      [replyToCreatedTimestamp]       The timestamp of the message to which this message is a reply. Not specifying this will create a top level message
@@ -1637,7 +1637,7 @@ const createMessage = function (ctx, folderId, body, replyToCreatedTimestamp, ca
  * Delete a message in a folder. Managers of the folder can delete all messages while people that have access
  * to the folder can only delete their own messages. Therefore, anonymous users will never be able to delete messages.
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String}         folderId                    The id of the folder from which to delete the message
  * @param  {Number}         messageCreatedDate          The timestamp of the message that should be deleted
  * @param  {Function}       callback                    Standard callback function
@@ -1716,7 +1716,7 @@ const deleteMessage = function (ctx, folderId, messageCreatedDate, callback) {
 /**
  * Get the messages in a folder
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         folderId                The id of the folder for which to get the messages
  * @param  {String}         [start]                 The `threadKey` of the message from which to start retrieving messages (exclusively). By default, will start fetching from the most recent message
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
@@ -1846,7 +1846,7 @@ const _removeContentItemsFromFolder = function (folder, contentIds, callback) {
 /**
  * Augment the folder object by signing the preview uris
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {Folder}     folder      The folder object to augment
  * @return {Folder}                 The augmented folder holding the signed urls
  * @api private

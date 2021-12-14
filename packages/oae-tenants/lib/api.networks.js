@@ -25,7 +25,7 @@ const { unless, isNotEmpty, isGlobalAdministratorUser, isNotNull, isObject, isAr
 /**
  * Create a tenant network
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the tenant network
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -52,7 +52,7 @@ const createTenantNetwork = function (ctx, displayName, callback) {
 /**
  * Get all tenant networks and their associated tenants
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any
  * @param  {Object}     callback.tenantNetworks     All tenant networks in the system, keyed by their tenant network id
@@ -95,7 +95,7 @@ const getTenantNetworks = function (ctx, callback) {
 /**
  * Update a tenant network
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         id                      The id of the tenant network to update
  * @param  {String}         displayName             The new display name of the tenant network
  * @param  {Function}       callback                Standard callback function
@@ -128,7 +128,7 @@ const updateTenantNetwork = function (ctx, id, displayName, callback) {
 /**
  * Delete a tenant network
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     id              The id of the tenant network to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -154,7 +154,7 @@ const deleteTenantNetwork = function (ctx, id, callback) {
 /**
  * Add the provided tenant(s) to a tenant network
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     tenantNetworkId     The id of the tenant network to which to add the provided tenant aliases
  * @param  {String[]}   tenantAlises        The tenant aliases to add to the tenant network
  * @param  {Function}   callback            Standard callback function
@@ -198,7 +198,7 @@ const addTenantAliases = function (ctx, tenantNetworkId, tenantAliases, callback
 /**
  * Remove the provided tenant(s) from a tenant network
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     tenantNetworkId     The id of the tenant network from which to remove the provided tenant aliases
  * @param  {String[]}   tenantAlises        The tenant alias(es) to remove from the tenant network
  * @param  {Function}   callback            Standard callback function

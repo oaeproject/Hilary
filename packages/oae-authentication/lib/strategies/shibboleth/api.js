@@ -65,7 +65,7 @@ const isEnabled = function (tenantAlias) {
 /**
  * Get the url to the Shibboleth Service Provider.
  *
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  * @return {String}             The URL to the Shibboleth Service Provider
  */
 const getServiceProviderUrl = function (ctx) {

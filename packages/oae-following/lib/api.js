@@ -41,7 +41,7 @@ const FollowingAPI = new EmitterAPI.EventEmitter();
 /**
  * Get the users who are following a user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user whose followers to get
  * @param  {String}     [start]             From where to start fetching the page of followers, as specified by the `nextToken` return param
  * @param  {Number}     [limit]             The maximum number of followers to retrieve
@@ -109,7 +109,7 @@ const getFollowers = function (ctx, userId, start, limit, callback) {
 /**
  * Get the users who are followed by a specific user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The id of the user whose list of followed users to get
  * @param  {String}     [start]             From where to start fetching the page of followed users, as specified by the `nextToken` return param
  * @param  {Number}     [limit]             The maximum number of followed users to retrieve
@@ -178,7 +178,7 @@ const getFollowing = function (ctx, userId, start, limit, callback) {
 /**
  * Follow a user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     followedUserId  The id of the user to follow
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -237,7 +237,7 @@ const follow = function (ctx, followedUserId, callback) {
 /**
  * Unfollow a user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     unfollowedUserId    The id of the user to unfollow
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -270,7 +270,7 @@ const unfollow = function (ctx, unfollowedUserId, callback) {
 /**
  * Expand the array of user ids into the associated (scrubbed if necessary) basic user profiles array in the same order
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String[]}   userIds         The user ids to expand into basic profiles
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -300,7 +300,7 @@ const _expandUserIds = function (ctx, userIds, callback) {
 /**
  * Remove all following from a user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     user            The user to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
@@ -329,7 +329,7 @@ const deleteFollowing = function (ctx, user, callback) {
 /**
  * Remove all followers from a user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     user            The user to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any

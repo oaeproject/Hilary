@@ -528,7 +528,7 @@ const registerActivityEntityAssociation = function (activityEntityType, associat
 /**
  * Get the activity stream for a principal
  *
- * @param  {Context}            ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                     Current execution context
  * @param  {String}             principalId             The ID of the user for which the activity stream should be retrieved
  * @param  {String}             [start]                 Determines the point at which activities are returned for paging purposes.  If not provided, the first x elements will be returned
  * @param  {Number}             [limit]                 The maximum number of activities to return. Default: 25
@@ -583,7 +583,7 @@ const getActivityStream = function (ctx, principalId, start, limit, transformerT
 /**
  * Get the notification stream for a user
  *
- * @param  {Context}            ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                         Current execution context
  * @param  {String}             userId                      The ID of the user for which the notifications should be retrieved
  * @param  {String}             [start]                     Determines the point at which activities are returned for paging purposes.  If not provided, the first x elements will be returned
  * @param  {Number}             [limit]                     The maximum number of activities to return. Default: 25
@@ -629,7 +629,7 @@ const getNotificationStream = function (ctx, userId, start, limit, transformerTy
 /**
  * Mark all notifications for the current user as read
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  */
@@ -648,7 +648,7 @@ const markNotificationsRead = function (ctx, callback) {
 
 /**
  * @function isActivityFeedDisabled
- * @param  {Context}       ctx              Standard context object containing the current user and the current tenant
+ * @param  {Context}       ctx              Current execution context
  * @return {Boolean|String|Number|Object}   cachedConfiguration     The requested config value e.g. `true`. This will be null if the config element cannot be found
  */
 const isActivityFeedDisabled = (ctx) => !ActivityConfig.getValue(ctx.tenant().alias, 'activity', 'enabled');
@@ -656,7 +656,7 @@ const isActivityFeedDisabled = (ctx) => !ActivityConfig.getValue(ctx.tenant().al
 /**
  * Post an activity in the system to be routed.
  *
- * @param  {Context}       ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}       ctx                 Current execution context
  * @param  {ActivitySeed}  activitySeed        The activity "seed" object, which represents the smallest amount of information necessary to generate an activity
  * @param  {Function}      callback            Standard callback function
  * @param  {Object}        callback.err        An error that occurred, if any
@@ -747,7 +747,7 @@ const postActivity = function (ctx, activitySeed, callback) {
 /**
  * Internal function to get an activity stream by its ID. This bypasses permission checks.
  *
- * @param  {Context}           ctx                      Standard context object containing the current user and the current tenant
+ * @param  {Context}           ctx                      Current execution context
  * @param  {String}            activtyStreamId          The ID of the activity stream to fetch. ex: `u:cam:abc123#activity`
  * @param  {Number}            start                    Determines the point at which activities are returned for paging purposes.  If not provided, the first x elements will be returned
  * @param  {Number}            limit                    The number of activities to fetch

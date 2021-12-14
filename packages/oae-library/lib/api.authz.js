@@ -38,7 +38,7 @@ import { AuthzConstants } from 'oae-authz/lib/constants.js';
  * private group  ||       /     |        /          |  private      ||        /     |        /          |   private   ||        /     |        /              private
  *
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     libraryId                   The authz id used to index the library. Note that this is not always the id of the "library owner" resource, as in cases like folders, it uses a surrogate group id to be represented in authz
  * @param  {Object}     libraryOwner                A standard resource object that represents the resource that "owns" the library
  * @param  {Tenant}     libraryOwner.tenant         The tenant of the resource that owns the library

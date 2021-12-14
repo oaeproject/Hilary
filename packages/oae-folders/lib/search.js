@@ -136,7 +136,7 @@ FoldersAPI.emitter.on(FoldersConstants.events.UPDATED_FOLDER_MEMBERS, (ctx, fold
 /**
  * Index the resource members for a set of content items
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {Folder}         folder          The folder where the content items where added to/removed from
  * @param  {Content[]}      contentItems    The content items that were added or removed
  * @api private
@@ -308,7 +308,7 @@ SearchAPI.registerSearchDocumentProducer('folder', _produceFolderSearchDocuments
 /**
  * Given an array of folder search documents, transform them into search documents suitable to be displayed to the user in context.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {Object}    docs            A hash where the keys are the document ids and the values are the documents to transform
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any

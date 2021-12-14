@@ -46,7 +46,7 @@ const TIME_1_WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
  * before defaulting to the configured tenant backend. This allows for a tenant to switch storage
  * systems yet still serve the old files
  *
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  * @param  {String}     [uri]   An storage URI that references a file in storage. If not specified, the tenant default backend will be used
  * @return {Backend}            The appropriate backend
  * @throws {Error}              Thrown if there is no backend available that matches the `uri`
@@ -76,7 +76,7 @@ const getStorageBackend = function (ctx, uri) {
 /**
  * Convert the content object into one that can be returned by the APIs to the consumer
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {Content}    content     The content object that needs to be augmented with signatures and download urls
  * @param  {Number}     [duration]  The approximate time in seconds for which the generated picture URLs will be valid. The larger this value is, the more effective browser caching is on the download which is good for thumbnail images. Default: 1 week
  * @param  {Number}     [offset]    The minimum time in seconds for which the generated picture URLs will be valid. Default: 1 week
@@ -121,7 +121,7 @@ const augmentContent = function (ctx, content, duration, offset) {
  * will be provided directly rather than a signed request that comes back through the /api/download/signed endpoint.
  * Therefore the expiry parameters `duration` and `offset` are invalid concepts and have no effect in that case
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     uri         The storage URI of the item being downloaded
  * @param  {Number}     [duration]  The approximate time in seconds for which the generated picture URLs will be valid. The larger this value is, the more effective browser caching is on the download which is good for thumbnail images. If `-1`, the download URL will be valid forever. Default: 1 week
  * @param  {Number}     [offset]    The minimum time in seconds for which the generated picture URLs will be valid. If the `duration` is `-1`, then this value has no impact. Default: 1 week
@@ -189,7 +189,7 @@ const createPersistentContentActivityEntity = function (content) {
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityTransformer
  *
- * @param  {Context}            ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                 Current execution context
  * @param  {Object}             entity              The persisted activity entity to transform
  * @param  {Object}             previews            An object that holds the thumbnailUri and wideUri if they are present on the revision
  * @return {ActivityEntity}                         The activity entity that represents the given content item
@@ -242,7 +242,7 @@ const transformPersistentContentActivityEntity = function (ctx, entity, previews
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityTransformer
  *
- * @param  {Context}           ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}           ctx         Current execution context
  * @param  {Object}            entity      The persisted activity entity to transform.
  * @param  {Object}            previews    An object that holds the thumbnailUri and wideUri if they are present on the revision.
  * @return {Content}                       The content object suitable for an internal stream

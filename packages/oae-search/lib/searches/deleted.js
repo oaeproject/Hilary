@@ -27,7 +27,7 @@ const { filterAnd, filterResources, createQueryStringQuery, createQuery, filterS
  * In addition to the specific `opts` parameters documented here, there are more generic options available that impact all
  * searches. @see SearchAPI#search for more information.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Object}         [opts]                  General search options
  * @param  {String}         [opts.scope]            The scope of the query (One of `SearchConstants.general.SCOPE_*`)
  * @param  {String[]}       [opts.resourceTypes]    An array of resource types to search (e.g., content, user). If not specified, then the search will not filter on resource type at all. Possible resource types are those that have registered producers in SearchAPI#registerSearchDocumentProducer.
@@ -70,7 +70,7 @@ function searchDeleted(ctx, options, callback) {
 /**
  * Resolve the scope for the search based on who is performing it and how they specified the scope
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     [scope]     The scope that was specified in the search request, if any
  * @return {String}                 The scope to use for the search
  * @api private

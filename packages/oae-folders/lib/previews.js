@@ -57,7 +57,7 @@ const whenPreviewsComplete = function (callback) {
 /**
  * Regenerate the preview for a folder when content items have been added or removed
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Folder}     folder          The folder that was changed
  * @param  {Content[]}  contentItems    The set of content items that were added or removed
  * @api private

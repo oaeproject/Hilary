@@ -64,7 +64,7 @@ const GROUP_PREFIX = 'g';
 /**
  * Get or create user archive
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Object}     user                    User to be archived
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occured, if any
@@ -109,7 +109,7 @@ const fetchOrCloneFromUser = (ctx, user, callback) => {
 /**
  * Delete rights on a user + update roles on editors && on user archive
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     user                    User that will be deleted
  * @param  {String}     cloneUsers              Users Archive
  * @param  {Function}   callback                Standard callback function
@@ -226,7 +226,7 @@ const _parseMember = (list, resource, user, action, callback) => {
 /**
  * Send an email token to a user that have a resource shared with the deleted user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Object}     data            User to send mail + resource
  * @param  {Object}     cloneUser       The archive user
  * @param  {Object}     userDeleted     The user deleted
@@ -307,7 +307,7 @@ const _sendEmail = (ctx, data, cloneUser, userDeleted, callback) => {
 /**
  * Delete rights on element + update roles on editors && on user archive
  *
- * @param  {Context}    ctx                                          Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                                          Current execution context
  * @param  {String}     user                                         The user to delete
  * @param  {String}     archiveUser                                  User Archive
  * @param  {String}     listEmail                                    Array of users to email
@@ -529,7 +529,7 @@ const _isManagerOfContent = (userId, resource, resourceType, callback) => {
 /**
  * Remove elements from library
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     userId              The user id
  * @param  {String}     element             Element to remove from library
  * @param  {String}     type                Type can be : 'content', 'folder', 'discussion', 'meeting' or 'group'
@@ -592,7 +592,7 @@ const _removeFromLibrary = (ctx, userId, element, type, callback) => {
 /**
  * Get members of a resource
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     elementId               The element id
  * @param  {String}     type                    Type can be : 'content', 'folder', 'discussion', 'meeting' or 'group'
  * @param  {Function}   callback                Standard callback function
@@ -650,7 +650,7 @@ const _getMembers = (ctx, elementId, type, callback) => {
 /**
  * Get members of a resource
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     userId                  The user id
  * @param  {String}     type                    Type can be : 'content', 'folder', 'discussion', 'meeting' or 'group'
  * @param  {Function}   callback                Standard callback function
@@ -708,7 +708,7 @@ const _getLibrary = (ctx, userId, type, callback) => {
 /**
  * Update roles and make the archive user manager of the resource
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {Object}     element             The resource
  * @param  {String}     archiveUser         User Archive
  * @param  {String}     type                Type can be : 'content', 'folder', 'discussion', 'meeting' or 'group'
@@ -748,7 +748,7 @@ const _updateRoles = (ctx, element, archiveUser, type, callback) => {
 /**
  * Definitive delete of user
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     user            User that will be deleted
  * @param  {String}     alias           Tenant alias
  * @param  {Function}   callback        Standard callback function
@@ -950,7 +950,7 @@ const removeProfilePicture = (ctx, user, callback) => {
 /**
  * Remove all his rights on resources
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     user            The user to delete
  * @param  {String}     archiveId       The user archive of the tenant
  * @param  {Object}     data            Data of the user from the table DataArchive
@@ -1038,7 +1038,7 @@ const _deleteResourcePermissions = (ctx, user, archiveId, data, callback) => {
 /**
  * Return the group a folder belongs to
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     idResource      The id of the resource to delete
  * @param  {String}     splitId        The first part of a resource id (e.g. f:test:ryfQL_D4b, it will be 'f') who define the type of resource
  * @param  {Function}   callback        Standard callback function
@@ -1060,7 +1060,7 @@ const _ifFolderGetIdGroup = (ctx, idResource, splitId, callback) => {
 /**
  * Remove right on content or remove it if there is no manager
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Boolean}    del             Boolean who determine if the element should be remove or just removed from the library
  * @param  {String}     archiveId       The id user archive of the tenant
  * @param  {String}     idResource      The id of the resource to delete
@@ -1088,7 +1088,7 @@ const _deletePermissionsOnContent = (ctx, del, archiveId, idResource, callback) 
 /**
  * Remove right on discussion or remove it if there is no manager
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Boolean}    del             Boolean who determine if the element should be remove or just removed from the library
  * @param  {String}     archiveId       The id user archive of the tenant
  * @param  {String}     idResource      The id of the resource to delete
@@ -1117,7 +1117,7 @@ const _deletePermissionsOnDiscussion = (ctx, del, archiveId, idResource, callbac
 /**
  * Remove right on folder or remove it if there is no manager
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Boolean}    del             Boolean who determine if the element should be remove or just removed from the library
  * @param  {String}     archiveId       The id user archive of the tenant
  * @param  {String}     idResource      The id of the resource to delete
@@ -1145,7 +1145,7 @@ const _deletePermissionsOnFolder = (ctx, del, archiveId, idResource, callback) =
 /**
  * Remove right on group or remove it if there is no manager
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Boolean}    del             Boolean who determine if the element should be remove or just removed from the library
  * @param  {String}     archiveId       The id user archive of the tenant
  * @param  {String}     idResource      The id of the resource to delete
@@ -1181,7 +1181,7 @@ const _deletePermissionsOnGroup = (ctx, del, archiveId, idResource, callback) =>
 /**
  * Remove right on meeting or remove it if there is no manager
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Boolean}    del             Boolean who determine if the element should be remove or just removed from the library
  * @param  {String}     archiveId       The id user archive of the tenant
  * @param  {String}     idResource      The id of the resource to delete

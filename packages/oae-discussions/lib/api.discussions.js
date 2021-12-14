@@ -68,7 +68,7 @@ const DISCUSSION_UPDATE_FIELDS = [DISPLAY_NAME, DESCRIPTION, VISIBILITY];
 /**
  * Create a new discussion
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     displayName         The display name of the discussion
  * @param  {String}     [description]       A longer description for the discussion
  * @param  {String}     [visibility]        The visibility of the discussion. One of public, loggedin, private. Defaults to the configured tenant default
@@ -157,7 +157,7 @@ const createDiscussion = function (ctx, displayName, description, visibility, ro
 /**
  * Update a discussion
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     discussionId        The id of the discussion to update
  * @param  {Object}     profileFields       An object whose keys are profile field names, and the value is the value to which you wish the field to change. Keys must be one of: displayName, visibility, discription
  * @param  {Function}   callback            Standard callback function
@@ -258,7 +258,7 @@ const updateDiscussion = function (ctx, discussionId, profileFields, callback) {
 /**
  * Deletes the specified discussion.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     discussionId        The id of the discussion to delete
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -340,7 +340,7 @@ const deleteDiscussion = function (ctx, discussionId, callback) {
  * Get the discussions library items for a user or group. Depending on the access of the principal in context,
  * either a library of public, loggedin, or all items will be returned.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         principalId             The id of the principal whose discussion library to fetch
  * @param  {String}         [start]                 The discussion ordering token from which to start fetching discussions (see `nextToken` in callback params)
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
@@ -417,7 +417,7 @@ const getDiscussionsLibrary = function (ctx, principalId, start, limit, callback
 /**
  * Get a discussion basic profile by its id.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     discussionId        The id of the discussion to get
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -452,7 +452,7 @@ const getDiscussion = function (ctx, discussionId, callback) {
  * Get a full discussion profile. In addition to the basic profile, the full profile contains
  * the basic profile of the creator, and access information (see parameters)
  *
- * @param  {Context}    ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                             Current execution context
  * @param  {String}     discussionId                    The id of the discussion to get
  * @param  {Function}   callback                        Standard callback function
  * @param  {Object}     callback.err                    An error that occurred, if any
@@ -524,7 +524,7 @@ const getFullDiscussionProfile = function (ctx, discussionId, callback) {
 /**
  * Get the members of a discussion and their roles
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         discussionId                    The id of the discussion to get the members for
  * @param  {String}         [start]                         The id of the principal from which to begin the page of results (exclusively). By default, begins from the first in the list
  * @param  {Number}         [limit]                         The maximum number of results to return. Default: 10
@@ -580,7 +580,7 @@ const getDiscussionMembers = function (ctx, discussionId, start, limit, callback
 /**
  * Get the invitations for the specified discussion
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         discussionId            The id of the discussion to get the invitations for
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -608,7 +608,7 @@ const getDiscussionInvitations = function (ctx, discussionId, callback) {
 /**
  * Resend an invitation email for the specified email and discussion
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         discussionId    The id of the discussion to which the email was invited
  * @param  {String}         email           The email that was previously invited
  * @param  {Function}       callback        Standard callback function
@@ -638,7 +638,7 @@ const resendDiscussionInvitation = function (ctx, discussionId, email, callback)
  * any principals in the list already have the discussion in their library, then this will have no impact for
  * that user with no error. Only those who do not have the discussion in their library will be impacted.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     discussionId        The id of the discussion to share
  * @param  {String[]}   principalIds        The ids of the principals with which the discussion will be shared
  * @param  {Function}   callback            Standard callback function
@@ -695,7 +695,7 @@ const shareDiscussion = function (ctx, discussionId, principalIds, callback) {
  * Set the permissions of a discussion. This method will ensure that the current user in context has access to change the
  * permissions, as well as ensure the discussion does not end up with no manager members.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     discussionId            The id of the discussion to share
  * @param  {Object}     changes                 An object that describes the permission changes to apply to the discussion. The key is the id of the principal to which to apply the change, and the value is the role to apply to the principal. If the value is `false`, the principal will be revoked access.
  * @param  {Function}   callback                Standard callback function
@@ -774,7 +774,7 @@ const setDiscussionPermissions = function (ctx, discussionId, changes, callback)
  * necessarily have access to update the permissions of the private discussion (e.g., they are only a member). Also, tenant privacy
  * rules do not come into play in this case.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     libraryOwnerId  The owner of the library, should be a principal id (either user or group id)
  * @param  {String}     discussionId    The id of the discussion to remove from the library
  * @param  {Function}   callback        Standard callback function
@@ -846,7 +846,7 @@ const removeDiscussionFromLibrary = function (ctx, libraryOwnerId, discussionId,
  * Create a new message in a discussion. If `replyToCreatedTimestamp` is specified, the message will be
  * a reply to the message in the discussion identified by that timestamp.
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String}         discussionId                The id of the discussion to which to post the message
  * @param  {String}         body                        The body of the message
  * @param  {String|Number}  [replyToCreatedTimestamp]   The timestamp of the message to which this message is a reply. Not specifying this will create a top level comment
@@ -938,7 +938,7 @@ const createMessage = function (ctx, discussionId, body, replyToCreatedTimestamp
  * Delete a message in a discussion. Managers of the discussion can delete all messages while people that have access
  * to the discussion can only delete their own messages. Therefore, anonymous users will never be able to delete messages.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     discussionId            The id of the discussion from which to delete the message
  * @param  {Number}     messageCreatedDate      The timestamp of the message that should be deleted
  * @param  {Function}   callback                Standard callback function
@@ -1021,7 +1021,7 @@ const deleteMessage = function (ctx, discussionId, messageCreatedDate, callback)
 /**
  * Get the messages in a discussion
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         discussionId            The id of the discussion for which to get the messages
  * @param  {String}         [start]                 The `threadKey` of the message from which to start retrieving messages (exclusively). By default, will start fetching from the most recent message
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
@@ -1086,7 +1086,7 @@ const getMessages = function (ctx, discussionId, start, limit, callback) {
  * Get the discussion with the specified id. If it doesn't exist, a 404 error will be thrown. No permission checks
  * will be performed.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     discussionId        The id of the discussion to get
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any

@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-import { format } from 'node:util';
-import * as VersionAPI from 'oae-version';
+import { callbackify, format } from 'node:util';
+import { getVersion } from 'oae-version';
 
 import oauth from 'oauth-sign';
 import ShortId from 'shortid';
@@ -35,7 +35,7 @@ const log = logger('oae-lti');
 /**
  * Get the parameters required to launch an LTI tool
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     id                  The id of the LTI tool to be launched
  * @param  {String}     groupId             The group linked to the LTI tool to be launched
  * @param  {Function}   callback            Standard callback function
@@ -57,7 +57,7 @@ const getLtiTool = function (ctx, id, groupId, callback) {
         return callback(error);
       }
 
-      VersionAPI.getVersionCB((error, gitRepoInformation) => {
+      callbackify(getVersion)((error, gitRepoInformation) => {
         if (error) {
           log().warn('Failed to fetch OAE version');
           version = '';
@@ -109,7 +109,7 @@ const getLtiTool = function (ctx, id, groupId, callback) {
 /**
  * Create a new LTI tool linked to a group
  *
- * @param  {Context}    ctx                  Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                  Current execution context
  * @param  {String}     groupId              The id of the group the LTI tool will be linked to
  * @param  {String}     launchUrl            The URL from which the LTI tool will launch
  * @param  {String}     secret               The OAUTH secret for the LTI tool
@@ -209,7 +209,7 @@ const addLtiTool = function (ctx, groupId, launchUrl, secret, consumerKey, optio
 /**
  * Get a list of LTI tools belonging to a group.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     groupId             The id of the group the LTI tool will be linked to
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -245,7 +245,7 @@ const getLtiTools = function (ctx, groupId, callback) {
 /**
  * Delete an LTI tool from storage.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      id                  The id of the LTI tool to be deleted
  * @param  {String}      groupId             The id of the group the LTI tool will be linked to
  * @param  {Function}    callback            Standard callback function

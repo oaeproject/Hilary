@@ -31,7 +31,7 @@ import * as PrincipalsDAO from './internal/dao.js';
 /**
  * Get a principal (user or group)
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     principalId         The ID of the principal that should be retrieved.
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -55,7 +55,7 @@ const getPrincipal = function (ctx, principalId, callback) {
  * Get a set of principals (user or groups). This method *will* return an error if some of the principals
  * don't exist
  *
- * @param  {Context}        ctx                                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                                 Current execution context
  * @param  {String[]}       principalIds                        The ID of the principal that should be retrieved
  * @param  {Object}         callback.err                        An error that occurred, if any
  * @param  {Object}         callback.err.existingPrincipals     Object representing the principals that existed in storage. The keys will be the principal ids and the values will be the user-friendly principal basic profiles
@@ -100,7 +100,7 @@ const touchLastModified = function (oldPrincipal, callback) {
  * Set the verified email address of the specified user, clearing any invitations that they have
  * pending
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userId          The id of the user to verify the email address for
  * @param  {String}     email           The email address to place as the verified email
  * @param  {Function}   callback        Standard callback function
@@ -171,7 +171,7 @@ const isUser = function (userId) {
  *
  * If the user has access but is not the user themself, the publicAlias is scrubbed from the user.
  *
- * @param  {Context}     ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx     Current execution context
  * @param  {User}        user    The user object to hide as necessary
  * @api private
  */
@@ -262,7 +262,7 @@ const createPersistentUserActivityEntity = function (userId, user) {
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityType
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         userId              The id of the user
  * @param  {User}           [user]              The user object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {ActivityEntity}                     The activity entity that represents the given user data
@@ -313,7 +313,7 @@ const transformPersistentUserActivityEntity = function (ctx, userId, user) {
  * Transform a persisted user activity entity that can be used in an activity stream. The user property will be taken from
  * the persisted entity, scrubbed and returned as the "transformed entity"
  *
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  * @param  {String}     userId  The id of the user
  * @param  {User}       [user]  The user object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {User}               The scrubbed user object
@@ -345,7 +345,7 @@ const createPersistentGroupActivityEntity = function (groupId, group) {
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityType
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         groupId             The id of the group
  * @param  {Group}          [group]             The group object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {ActivityEntity}                     The activity entity that represents the given group data
@@ -403,7 +403,7 @@ const transformPersistentGroupActivityEntity = function (ctx, groupId, group) {
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityType
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     groupId             The id of the group
  * @param  {Group}      [group]             The group object. If not specified, the generated entity with be abbreviated with just the information available
  * @return {Group}                          The group object
@@ -422,7 +422,7 @@ const transformPersistentGroupActivityEntityToInternal = function (ctx, groupId,
  * Given a set of principals, transform their model so the required UI-level information is
  * available
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {Object[]}   principals  The array of users and groups to transform
  * @api private
  */
@@ -438,7 +438,7 @@ const _transformPrincipals = function (ctx, principals) {
 /**
  * Replace the URI properties with signed URL paths to actually download the files
  *
- * @param  {Context}        ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx         Current execution context
  * @param  {Group|User}     principal   The principal for which to generate the picture URL paths
  * @param  {Number}         [duration]  The approximate time in seconds for which the generated picture URLs will be valid. Default: 1 week
  * @param  {Number}         [offset]    The minimum time in seconds for which the generated picture URLs will be valid. Default: 1 week

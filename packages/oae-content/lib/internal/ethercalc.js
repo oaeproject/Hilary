@@ -265,7 +265,7 @@ const setSheetContents = async (roomId, snapshot, callback) => {
  * Joins the current user in an ethercalc room.
  * This assumes that the current user has access to the collaborative spreadsheet.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Content}    contentObj              The content object for the room that should be joined
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any

@@ -388,7 +388,7 @@ const getMontageCoordinates = (gravity, size) => {
 /**
  * Retrieve the content thumbnails
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Content[]}      contentItems        The content items whose thumbnails should be retrieved
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
@@ -434,7 +434,7 @@ const _removeAll = function (paths, callback) {
 /**
  * Remove the old preview images for a folder
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Folder}     folder          The folder for which to remove the old preview images
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -451,7 +451,7 @@ const _removeOldPreviews = function (ctx, folder, callback) {
 /**
  * Remove an old preview for a folder if it exists
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Folder}     folder          The folder for which to remove the old preview image
  * @param  {String}     type            One of `thumbnailUri` or `wideUri`
  * @param  {Function}   callback        Standard callback function
@@ -470,7 +470,7 @@ const _removeOldPreview = function (ctx, folder, type, callback) {
 /**
  * Store the new preview images for a folder
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Folder}     folder          The folder for which to store the preview images
  * @param  {File}       thumbnail       The thumbnail image that should be stored
  * @param  {File}       wide            The wide image that should be stored

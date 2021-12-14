@@ -35,7 +35,7 @@ const log = logger('oae-script-main');
  * Disable users from the system by updating the deleted flag
  *
  * @function doMigration
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     tenantAlias     Tenant alias we want to delete users from
  * @param  {Function}   callback        Standard callback function
  */

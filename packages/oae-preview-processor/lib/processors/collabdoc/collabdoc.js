@@ -169,7 +169,7 @@ const generatePreviews = function (ctx, contentObject, callback) {
 /**
  * Take the provided Collab HTML, wrap into the preview template and store it to disk
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     collabHtml      The HTML to wrap into the preview template
  * @param  {String}     type            Standard callback function
  * @param  {Function}   callback        Standard callback function
@@ -207,7 +207,7 @@ const _writeCollabHtml = function (ctx, collabHtml, type, callback) {
 /**
  * Wrap provided HTML into an HTML template
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     etherpadHtml    The HTML as retrieved from the API
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any

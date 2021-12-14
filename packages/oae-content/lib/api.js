@@ -158,7 +158,7 @@ const emitter = new EmitterAPI.EventEmitter();
  * Get a content's basic profile information based on a pooled content id.
  * An access-check will be run to determine if the user can view this piece of content.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         contentId               The id of the content object we want to retrieve
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -191,7 +191,7 @@ const getContent = (ctx, contentId, callback) => {
  * the user who originally created the content, and a isManager property specifying whether or not the current user can
  * manage the content.
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String}         contentId                   The id of the content item to get
  * @param  {Function}       callback                    Standard callback function
  * @param  {Object}         callback.err                An error that occurred, if any
@@ -224,7 +224,7 @@ const getFullContentProfile = (ctx, contentId, callback) => {
 /**
  * Add the `isManager` flag, `createdBy` user object, `canShare` flag as well as `latestRevision` and `isEditor` in case it's a collaborative document.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {Content}    contentObj                  The content object to add the extra profile information on.
  * @param  {Boolean}    isManager                   Whether or not the current user is a manager of the piece of content.
  * @param  {Function}   callback                    Standard callback function
@@ -281,7 +281,7 @@ const _getFullContentProfile = (ctx, contentObject, isManager, callback) => {
 /**
  * Create a new link
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the link
  * @param  {String}         [description]           A longer description for the link
  * @param  {String}         [visibility]            The visibility of the link. One of `public`, `loggedin`, `private`
@@ -352,7 +352,7 @@ const createLink = (ctx, linkDetails, callback) => {
 /**
  * Create a new file
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the file
  * @param  {String}         [description]           A longer description for the file
  * @param  {String}         [visibility]            The visibility of the file. One of `public`, `loggedin`, `private`
@@ -435,7 +435,7 @@ const _cleanupUploadedFiles = (files, callback) => {
 /**
  * Create a new file
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the file
  * @param  {String}         [description]           A longer description for the file
  * @param  {String}         [visibility]            The visibility of the file. One of `public`, `loggedin`, `private`
@@ -568,7 +568,7 @@ const _createFile = function (ctx, fileDetails, callback) {
 /**
  * Create a collaborative document as a pooled content item
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         displayName             The display name of the collaborative document
  * @param  {String}         [description]           A longer description for the collaborative document
  * @param  {String}         [visibility]            The visibility of the collaborative document. One of `public`, `loggedin`, `private`
@@ -627,7 +627,7 @@ const createCollabDoc = (ctx, displayName, description, visibility, additionalMe
 
 /**
  * Create a collaborative sheet as a pooled content item
- * @param  {Context} ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context} ctx                     Current execution context
  *
  * @param  {String} displayName             The display name of the collaborative spreadsheet
  * @param  {String} [description]           A longer description for the collaborative spreadsheet
@@ -687,7 +687,7 @@ const createCollabSheet = function (ctx, displayName, description, visibility, a
 /**
  * Create a new piece of pooled content
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content item
  * @param  {Strign}         revisionId          The id of the revision for the content item
  * @param  {String}         resourceSubType     The content item type. One of `file`, `collabdoc`, `collabsheet`, `link`
@@ -816,7 +816,7 @@ const _createContent = function (ctx, data, callback) {
  * Retrieve the specified folders ensuring that they exist and
  * that the current user can manage all of them.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String[]}       folderIds               The ids of the folders to retrieve
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error object, if any
@@ -858,7 +858,7 @@ const canManageFolders = (ctx, folderIds, callback) => {
  * Check whether the current user can manage a set of folders. This operation
  * is destructive to the `folders` array.
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {Folder[]}       folders         The set of folders to check
  * @param  {Function}       callback        Standard callback function
  * @param  {Object}         callback.err    An error object, if any
@@ -881,7 +881,7 @@ const _canManageAllFolders = function (ctx, folders, callback) {
  * Add a content item to a set of folders. This operation
  * is destructive to the `folders` array.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Content}        content             The content item that should be added to the folders
  * @param  {Folder[]}       folders             A set of folders where the content item should be added to
  * @param  {Function}       callback            Standard callback function
@@ -1189,7 +1189,7 @@ const ethercalcPublish = function (data, callback) {
  * Join a collaborative document or spreadsheet.
  * Only users who have manager permissions on the collaborative document can join the pad/room
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     contentId       The ID of the collaborative document or spreadsheet that should be joined
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -1240,7 +1240,7 @@ const joinCollabDoc = (ctx, contentId, callback) => {
 /**
  * Delete a content item
  *
- * @param  {Context}   ctx               Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx               Current execution context
  * @param  {String}    contentId         The id of the content item to delete
  * @param  {Function}  callback          Standard callback function
  * @param  {Object}    callback.err      An error that occurred, if any
@@ -1302,7 +1302,7 @@ const deleteContent = (ctx, contentId, callback) => {
  * in and the content item is public or visible to logged in users only. In case that the content is shared with principals that
  * are already content members, no updates to the existing role of those principals will be made
  *
- * @param  {Context}   ctx               Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx               Current execution context
  * @param  {String}    contentId         The id of the content item to share
  * @param  {String[]}  principalIds      Array of principal ids with whom the content will be shared. By default, they will all be made members.
  * @param  {Function}  callback          Standard callback function
@@ -1344,7 +1344,7 @@ const shareContent = function (ctx, contentId, principalIds, callback) {
 /**
  * Ensure that the content item exists and the user in context can manage it
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content object we want to check
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
@@ -1367,7 +1367,7 @@ const _canManage = function (ctx, contentId, callback) {
 /**
  * Check whether or not the current user can edit a piece of content
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content object we want to check
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
@@ -1388,7 +1388,7 @@ const _canEdit = function (ctx, contentId, callback) {
 /**
  * Update, add or remove the role of a set of principals on a piece of content
  *
- * @param  {Context}         ctx            Standard context object containing the current user and the current tenant
+ * @param  {Context}         ctx            Current execution context
  * @param  {String}          contentId      The id of the content item to update the members for
  * @param  {Object}          changes        Object where the keys represent the principal ids for which the content permissions should be updated/added/removed. The value is a string representing the new role. If false is passed in, the permissions for that principal will be removed e.g. {'user1': 'manager', 'user2': 'viewer', 'user3': false}
  * @param  {Function}        callback       Standard callback function
@@ -1452,7 +1452,7 @@ const setContentPermissions = function (ctx, contentId, changes, callback) {
  * necessarily have access to update the permissions of the private content (e.g., they are only a member). Also, tenant privacy
  * rules do not come into play in this case.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     libraryOwnerId  The id of the principal from whose content library to remove the content item
  * @param  {String}     contentId       The id of the content item to remove from the library
  * @param  {Function}   callback        Standard callback function
@@ -1508,7 +1508,7 @@ const removeContentFromLibrary = function (ctx, libraryOwnerId, contentId, callb
 /**
  * Get the members of a content item and their roles
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content item to get the members for
  * @param  {String}         start               The content paging token from which to start fetching content members. If not provided, the first x elements will be returned
  * @param  {Number}         limit               The maximum number of results to return. Default: 10
@@ -1588,7 +1588,7 @@ const getContentMembersLibrary = function (ctx, contentId, start, limit, callbac
 /**
  * Get the invitations for the specified content item
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         contentId               The id of the content item to get the invitations for
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -1616,7 +1616,7 @@ const getContentInvitations = function (ctx, contentId, callback) {
 /**
  * Resend an invitation email for the specified email and content item
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         contentId       The id of the content item to which the email was invited
  * @param  {String}         email           The email that was previously invited
  * @param  {Function}       callback        Standard callback function
@@ -1646,7 +1646,7 @@ const resendContentInvitation = function (ctx, contentId, email, callback) {
 /**
  * Update the file body that is associated with a file content item.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     contentId           The id of the file to upload a new version for
  * @param  {File}       file                An expressjs File object that holds the data for the file that needs updating
  * @param  {Function}   [callback]          Standard callback function
@@ -1668,7 +1668,7 @@ const updateFileBody = function (ctx, contentId, file, callback) {
 /**
  * Update the file body that is associated with an uploaded file.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     contentId           The id of the file to upload a new version for
  * @param  {File}       file                An expressjs File object that holds the data for the file that needs updating.
  * @param  {Function}   [callback]          Standard callback function
@@ -1778,7 +1778,7 @@ const _updateFileBody = function (ctx, contentId, file, callback) {
  * Attaches preview items to, or set the status of, a revision of a piece of content. This can only be used by a global admin and should technically only
  *  be executed by the preview processor.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      contentId           The ID of the content item.
  * @param  {String}      revisionId          The revision ID of the content item.
  * @param  {String}      status              The result of the preview processing operation. It should be one of the values of ContentConstants.previews.
@@ -1963,7 +1963,7 @@ const setPreviewItems = function (ctx, data, callback) {
  * If the signature is valid, an object will be returned that the REST handlers can use
  * to redirect the user to the actual file.
  *
- * @param  {Context}            ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                             Current execution context
  * @param  {String}             contentId                       The content ID that the preview item is associated with
  * @param  {String}             revisionId                      The revision ID that the preview item is associated with
  * @param  {String}             previewItem                     The preview item that needs to be retrieved
@@ -2016,7 +2016,7 @@ const getSignedPreviewDownloadInfo = function (ctx, contentId, revisionId, previ
 /**
  * Get the revisions for a revision
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      contentId           The id of the content item to get the previews for
  * @param  {String}      revisionId          The id of the revision to get the previews for
  * @param  {Function}    callback            Standard callback function
@@ -2045,7 +2045,7 @@ const getPreviewItems = (ctx, contentId, revisionId, callback) => {
 /**
  * Update a content item. This can only be done by the manager of that piece of content.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         contentId               The id of the content item to update
  * @param  {Object}         profileFields           Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fields e.g. {'displayName': 'New content name', 'description': 'New content description', 'visibility': 'private'}
  * @param  {Function}       callback                Standard callback function
@@ -2151,7 +2151,7 @@ const updateContentMetadata = function (ctx, contentId, profileFields, callback)
  * Create a new comment on a content item. Returns an error if saving the comment goes wrong or the user doesn't have access.
  * Only logged in users who can see the content are able to post comments.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     contentId                   The id of the content item to which to post the comment
  * @param  {String}     body                        The body of the comment
  * @param  {String}     [replyToCreatedTimestamp]   The timestamp of the comment to which this comment is a reply. Not specifying this will create a top level comment
@@ -2220,7 +2220,7 @@ const createComment = function (ctx, contentId, body, replyToCreatedTimestamp, c
 /**
  * Get the comments for a content item. Everyone who has access to the content item will be able to retrieve the list of comments.
  *
- * @param  {Context}    ctx                  Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                  Current execution context
  * @param  {String}     contentId            The id of the content item for which to get the comments
  * @param  {String}     start                The comments paging token from which to start fetching comments
  * @param  {Number}     limit                The maximum number of results to return. Default: 10
@@ -2278,7 +2278,7 @@ const getComments = function (ctx, contentId, start, limit, callback) {
  * Delete a comment from a content item. Managers of the content can delete all comments whilst people that have access
  * to the content can only delete their own comments. Therefore, anonymous users will never be able to delete comments.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     contentId               The id of the content item from which to delete the comment
  * @param  {String}     commentCreatedDate      The timestamp of the comment that should be deleted
  * @param  {Function}   callback                Standard callback function
@@ -2330,7 +2330,7 @@ const deleteComment = function (ctx, contentId, commentCreatedDate, callback) {
  * Delete the comment (either hard or soft, depending on if there are any replies) with the given timestamp from the
  * message box with the given id.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Content}        content                 The content object on which a comment should be deleted
  * @param  {Message}        commentToDelete         The comment to delete
  * @param  {Function}       callback                Standard callback function
@@ -2374,7 +2374,7 @@ const _deleteComment = function (ctx, content, commentToDelete, callback) {
  * only content that's visible to logged in people or the public. In case of an anonymous user, the :public stream will be returned, containing
  * only content that is public
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         principalId         The id of the principal whose content library to fetch
  * @param  {String}         start               The content paging token from which to start fetching content items. If not provided, the first x elements will be returned
  * @param  {Number}         limit               The maximum number of results to return. Default: 10
@@ -2449,7 +2449,7 @@ const getContentLibraryItems = function (ctx, principalId, start, limit, callbac
 /**
  * Get the revisions for a content item
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content item to get the revisions for
  * @param  {Number}         [start]             The revision paging token from which to start fetching revisions
  * @param  {Number}         [limit]             The maximum number of results to return. Default: 10
@@ -2506,7 +2506,7 @@ const getRevisions = function (ctx, contentId, start, limit, callback) {
  * Internal method that retrieves revisions and augments them with the principal profile who created it.
  * This method performs no access checks.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Content}        contentObj          The content object for which we need to retrieve the revisions.
  * @param  {Number}         [start]             The revision paging token from which to start fetching revisions
  * @param  {Number}         [limit]             The maximum number of results to return. Default: 10
@@ -2544,7 +2544,7 @@ const _getRevisions = function (ctx, contentObject, start, limit, options, callb
 /**
  * Get a revision
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content item to get the revision for
  * @param  {String}         [revisionId]        The id of the revision to get. If unspecified, the latest revision will be retrieved
  * @param  {Function}       callback            Standard callback function
@@ -2580,7 +2580,7 @@ const getRevision = function (ctx, contentId, revisionId, callback) {
 /**
  * Get the download strategy information for downloading a revision
  *
- * @param  {Context}            ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                             Current execution context
  * @param  {String}             contentId                       The id of the content item for which we want to get the revision download information
  * @param  {String}             [revisionId]                    The id of the revision whose download information to retrieve. If unspecified, the latest revision download information will be retrieved
  * @param  {Function}           callback                        Standard callback function
@@ -2649,7 +2649,7 @@ const getRevisionDownloadInfo = function (ctx, contentId, revisionId, callback) 
  * Internal method for retrieving a specific revision.
  * It's assumed that the parameters have been properly validated beforehand.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Content}        contentObj          The content object for which we need to retrieve a revision.
  * @param  {String}         [revisionId]        The id of the revision to get. If unspecified, the latest will be retrieved
  * @param  {Function}       callback            Standard callback function
@@ -2699,7 +2699,7 @@ const _getRevision = function (ctx, contentObject, revisionId, callback) {
 /**
  * Convert the given revision to a model that can be returned to the consumer from the API
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {Revision}   revision    The revision to augment
  * @param  {Content}    contentObj  The content object that the revision is attached to
  * @api private
@@ -2722,7 +2722,7 @@ const _augmentRevision = function (ctx, revision, contentObject) {
 /**
  * Takes a revision and makes it the "current" revision by creating a new one and copying the existing revision's fields.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         contentId           The id of the content item to restore the revision for
  * @param  {String}         revisionId          The id of the revision to restore
  * @param  {Function}       callback            Standard callback function
@@ -2812,7 +2812,7 @@ const restoreRevision = function (ctx, contentId, revisionId, callback) {
  * Verifies if a uri and signature match up and returns an object that the REST handlers can use to redirect users
  * to the actual download page.
  *
- * @param  {Context}            ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                             Current execution context
  * @param  {Object}             qs                              The query string object of the download request as generated by `ContenUtil.getSignedDownloadUrl`
  * @param  {Object}             callback.err                    An error that occurred, if any
  * @param  {Object}             callback.downloadInfo           An object containing information necessary for downloading the signed download
@@ -2837,7 +2837,7 @@ const verifySignedDownloadQueryString = function (ctx, qs, callback) {
  * Store the preview reference (if necessary), producing the backend URI that can be used to
  * download it afterward.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String|Stream}  previewReference    Either a string indicating the external URL of the preview, or a stream indicating its location on disk for upload to back-end storage
  * @param  {Object}         [options]           The storage options indicating the `resourceId` of the content object and the storage prefix. Only applicable if the preview reference is a stream
  * @param  {Function}       callback            Standard callback function
@@ -2860,7 +2860,7 @@ const _storePreview = function (ctx, previewReference, options, callback) {
 /**
  * Get the download url from a storage uri
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @param  {String}     uri         The storage URI
  * @param  {String}     [parentId]  For logging purposes, the owner of this URI in case the URI is invalid
  * @return {String}                 A reference that can be used directly in a link to download the file

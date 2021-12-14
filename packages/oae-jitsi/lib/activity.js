@@ -506,7 +506,7 @@ const _meetingMessageInternalTransformer = function (ctx, activityEntities, call
  *
  * For more details on the transformed entity model, @see ActivityAPI#registerActivityEntityTransformer
  *
- * @param  {Context}           ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}           ctx         Current execution context
  * @param  {Object}            entity      The persistent activity entity to transform
  * @return {ActivityEntity}                The activity entity that represents the given meeting item
  */

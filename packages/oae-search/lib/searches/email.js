@@ -39,7 +39,7 @@ const collectMustNotConditions = pluck(MUST_NOT);
  * In addition to the specific `opts` parameters documented here, there are more generic options available that impact all
  * searches. @see SearchAPI#search for more information.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Object}         [opts]              Email search options
  * @param  {String[]}       [opts.q]            The email to search for
  * @param  {String}         [opts.scope]        The scope of the query (One of `SearchConstants.general.SCOPES_ALL`)
@@ -106,7 +106,7 @@ const queryBuilder = function (ctx, options, callback) {
  * the given email address. If no tenant matched, the guest tenant
  * will be returned
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Object}         [opts]              Email search options
  * @param  {String[]}       [opts.q]            The email to search for
  * @param  {String}         [opts.scope]        The scope of the query (One of `SearchConstants.general.SCOPES_ALL`)

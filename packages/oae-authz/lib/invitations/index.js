@@ -26,7 +26,7 @@ import { Invitation } from 'oae-authz/lib/invitations/model.js';
 /**
  * Get all the invitations for the specified resource
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Resource}       resource                The resource for which to fetch invitations
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -55,7 +55,7 @@ const getAllInvitations = function (ctx, resource, callback) {
 /**
  * Convert all the invitation hashes into a full invitation model object
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Resource}       resource                The resource for which to convert the invitation hashes
  * @param  {Object[]}       invitationHashes        The list of invitation storage hashes to convert
  * @param  {Function}       callback                Standard callback function

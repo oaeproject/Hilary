@@ -58,7 +58,7 @@ const ResourceActions = new EmitterAPI.EventEmitter();
  *  TODO:   Passing in a `createFn` is not an ideal pattern. Would be better to have a central
  *          registry for handling CRUD operations on resources, however it is outscoped ATM
  *
- * @param  {Context}            ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                         Current execution context
  * @param  {Object}             roles                       The roles, keyed by a share target expression (e.g., principal id, email address, or `email:userId` expression), whose value is the role the target should have on the resource
  * @param  {Function}           createFn                    The function to use to create the actual resource
  * @param  {Object}             createFn.err                An error that occurred while creating the resource, if any
@@ -151,7 +151,7 @@ const create = function (ctx, roles, createFn, callback) {
 /**
  * Validate and share the resource with the target principals and emails
  *
- * @param  {Context}            ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                         Current execution context
  * @param  {Resource}           resource                    The resource to share
  * @param  {String[]}           targetIds                   The share target expressions (e.g., principal id, email address, or `email:userId` expression) describing the targets to share with
  * @param  {String}             role                        The share role for this resource (e.g., "viewer", "member")
@@ -246,7 +246,7 @@ const share = function (ctx, resource, targetIds, role, callback) {
 /**
  * Validate and set the member and invitation roles on the resource
  *
- * @param  {Context}            ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                         Current execution context
  * @param  {Resource}           resource                    The resource whose roles to set
  * @param  {Object}             roles                       The roles, keyed by a share target (e.g., principal id or email address), whose value is the role the target should have
  * @param  {Function}           callback                    Standard callback function
@@ -340,7 +340,7 @@ const setRoles = function (ctx, resource, roles, callback) {
 /**
  * Resend the email invitation for the given resource and email
  *
- * @param  {Context}            ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx             Current execution context
  * @param  {Resource}           resource        The resource for which to resend the invitation
  * @param  {String}             email           The email that was invited into the resource
  * @param  {Function}           callback        Standard callback function
@@ -399,7 +399,7 @@ const resendInvitation = function (ctx, resource, email, callback) {
  * Perform the action for a user to accept an email invitation, giving them access to a heterogenous
  * set of resources to which the email was invited
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         token               The private token to use to authenticate the invitation
  * @param  {Function}       callback            Standard callback function
  * @param  {Object}         callback.err        An error that occurred, if any
@@ -515,7 +515,7 @@ const acceptInvitation = function (ctx, token, callback) {
  * Ensure that the user in context has a verified email. If they currently don't have one associated
  * to their profile, the specified email address will be set as it is verified from an invitation
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     email           The email to set if there is no verified email associated to the user in context
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -533,7 +533,7 @@ const _ensureVerifiedEmail = function (ctx, email, callback) {
 /**
  * Perform an accept action with the validated information
  *
- * @param  {Context}    ctx                                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                                     Current execution context
  * @param  {String}     token                                   The invitation token being accepted
  * @param  {Function}   callback                                Standard callback function
  * @param  {Object}     callback.err                            An error that occurred, if any
@@ -767,7 +767,7 @@ const _applyAllMemberChanges = function (memberRolesByResourceId, callback) {
 /**
  * Apply the member role changes provided by the member change info object
  *
- * @param  {Context}            ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                 Current execution context
  * @param  {Resource}           resource            The resource for which to make the role changes
  * @param  {MemberChangeInfo}   memberChangeInfo    The member change info to apply
  * @param  {Function}           callback            Standard callback function
@@ -786,7 +786,7 @@ const _applyMemberChanges = function (ctx, resource, memberChangeInfo, callback)
 /**
  * Apply the invitation role changes provided by the email change info object
  *
- * @param  {Context}            ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                 Current execution context
  * @param  {Resource}           resource            The resource for which to make the role changes
  * @param  {EmailChangeInfo}    emailChangeInfo     The email change info to apply
  * @param  {Function}           callback            Standard callback function
@@ -829,7 +829,7 @@ const _applyInvitationChanges = function (ctx, resource, emailChangeInfo, callba
  * Emit the `ResourceConstants.events.INVITED` event for the given email invitation role changes
  * that were applied
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {Resource}       resource        The resource whose invitations were updated
  * @param  {EmailRoles}     emailRoles      The email role changes that were applied to the authz invitations of the resource
  * @param  {Object}         emailTokens     An object keyed by email, whose value is the associated email token that can be used to accept the invitation

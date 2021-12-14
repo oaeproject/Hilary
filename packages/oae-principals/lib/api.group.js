@@ -65,7 +65,7 @@ const JOINABLE = 'joinable';
 /**
  * Get the basic profile for a group.
  *
- * @param  {Context}  ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}  ctx             Current execution context
  * @param  {String}   groupId         An identifier for a group. ex: g:cam:oae-team
  * @param  {Function} callback        Standard callback function
  * @param  {Object}   callback.err    An error that occurred, if any
@@ -92,7 +92,7 @@ const getGroup = function (ctx, groupId, callback) {
  *
  * This also differs from `getGroup` in that if the current user is not allowed to access the group, rather than "scrubbing" sensitive information from the group, it will send back a 401 error.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {String}    groupId         The id of the group to get
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
@@ -187,7 +187,7 @@ const getFullGroupProfile = function (ctx, groupId, callback) {
 /**
  * Get the members of a group and their roles
  *
- * @param  {Context}            ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                     Current execution context
  * @param  {String}             groupId                 The id of the group to get the members for
  * @param  {String}             start                   The group paging token from which to start fetching group members
  * @param  {Number}             limit                   The maximum number of results to return. Default: 10
@@ -226,7 +226,7 @@ const getMembersLibrary = function (ctx, groupId, start, limit, callback) {
 /**
  * Get the invitations for the specified group
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         groupId                 The id of the group to get the invitations for
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -254,7 +254,7 @@ const getGroupInvitations = function (ctx, groupId, callback) {
 /**
  * Resend an invitation email for the specified email and group
  *
- * @param  {Context}        ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx             Current execution context
  * @param  {String}         groupId         The id of the group to which the email was invited
  * @param  {String}         email           The email that was previously invited
  * @param  {Function}       callback        Standard callback function
@@ -282,7 +282,7 @@ const resendGroupInvitation = function (ctx, groupId, email, callback) {
 /**
  * Get the members library of the given group
  *
- * @param  {Context}            ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                     Current execution context
  * @param  {Group}              group                   The group for which to get the members library
  * @param  {Boolean}            [hasRole]               Whether or not it has already been determined that the current user has explicit access to the group. If truthy, it implies they do. If falsey, it implies that we don't know yet
  * @param  {String}             [start]                 The group paging token from which to start fetching group members. Defaults to the beginning of the library
@@ -356,7 +356,7 @@ const _getMembersLibrary = function (ctx, group, hasRole, start, limit, callback
 /**
  * Get the group memberships of a principal
  *
- * @param  {Context}     ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                     Current execution context
  * @param  {String}      principalId             The principal to retrieve all the groups for
  * @param  {String}      start                   The principalId that comes just before the first principal you wish to have in your results
  * @param  {Number}      limit                   The maximum number of results to return. Default: 10
@@ -405,7 +405,7 @@ const getMembershipsLibrary = function (ctx, principalId, start, limit, callback
  * items from the database until the requested amount of groups have been retrieved.
  * Folders will be filtered out of the results.
  *
- * @param  {Context}     ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                     Current execution context
  * @param  {String}      principalId             The principal to retrieve all the groups for
  * @param  {String}      start                   The principalId that comes just before the first principal you wish to have in your results
  * @param  {Number}      limit                   The maximum number of results to return
@@ -480,7 +480,7 @@ const _getMembershipsLibrary = function (ctx, principalId, visibility, start, li
 /**
  * Get the most recently visited groups for a user
  *
- * @param  {Context}     ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                     Current execution context
  * @param  {String}      principalId             The user to retrieve recent groups for
  * @param  {Number}      limit                   The maximum number of results to return. Default: 5
  * @param  {Function}    callback                Standard callback function
@@ -519,7 +519,7 @@ const getRecentGroupsForUserId = function (ctx, principalId, limit, callback) {
 /**
  * Get the most recently visited groups of a user.
  *
- * @param  {Context}     ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                     Current execution context
  * @param  {String}      principalId             The user to retrieve recent groups for
  * @param  {Number}      limit                   The maximum number of results to return
  * @param  {Function}    callback                Standard callback function
@@ -564,7 +564,7 @@ const _validateEveryRoleChange = (changes) => {
 /**
  * Update the members of a group
  *
- * @param  {Context}     ctx                Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                Current execution context
  * @param  {String}      groupId            The id of the group to update the members for
  * @param  {Object}      changes            Object where the keys represent the principal ids which should be updated/added/removed. The value is a string representing the new role. If false is passed in, the membership for that principal will be removed e.g. {'user1': 'manager', 'user2': 'viewer', 'user3': false}
  * @param  {Function}    [callback]         Standard callback function
@@ -637,7 +637,7 @@ const setGroupMembers = function (ctx, groupId, changes, callback) {
 /**
  * Leave a group. For this to be successful, the user must be a part of the group (role does not matter).
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     groupId         The id of the group to leave
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -693,7 +693,7 @@ const leaveGroup = function (ctx, groupId, callback) {
  * Join a group. For this to be successful, the user must not already be a member of the group, and the group
  * must be joinable. If successful, the user will be added to the group with rol 'member'.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     groupId         The id of the group to join
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -763,7 +763,7 @@ const joinGroup = function (ctx, groupId, callback) {
 /**
  * Create a new group
  *
- * @param  {Context}   ctx                  Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                  Current execution context
  * @param  {String}    displayName          The display name of the group
  * @param  {String}    [description]        A longer description for the group
  * @param  {String}    [visibility]         The visibility of the group. Should be one of `AuthzConstants.visibility`'s values. If left undefined, it defaults to the configured tenant default
@@ -858,7 +858,7 @@ const createGroup = function (ctx, displayName, description, visibility, joinabl
 /**
  * Update a group
  *
- * @param  {Context}        ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                             Current execution context
  * @param  {String}         groupId                         The id of the group to update
  * @param  {Object}         profileFields                   Object where the keys represent the profile fields that need to be updated and the values represent the new values for those profile fields
  * @param  {String}         [profileFields.displayName]     Updated display name for the discussion
@@ -970,7 +970,7 @@ const updateGroup = function (ctx, groupId, profileFields, callback) {
 /**
  * Delete a group
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     groupId         The id of the group to delete
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
@@ -1012,7 +1012,7 @@ const deleteGroup = function (ctx, groupId, callback) {
 /**
  * Restore a group
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     groupId         The id of the group to restore
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occured, if any
@@ -1051,7 +1051,7 @@ const restoreGroup = function (ctx, groupId, callback) {
 /**
  * Determine whether or not the user in context can restore a given group
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     groupId                 The group to check
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any
@@ -1082,7 +1082,7 @@ const canRestoreGroup = function (ctx, groupId, callback) {
  * Check if the current user can manage any principal in a set of principals. This function
  * returns as soon as one principal that can be managed is found.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String[]}   principalIds                The set of principal ids that should be checked
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
@@ -1119,7 +1119,7 @@ const canManageAny = function (ctx, principalIds, callback) {
 /**
  * Check if the current user can manage any groups in the provided list of groups.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String[]}   groupIds                    The set of group ids that should be checked
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
@@ -1175,7 +1175,7 @@ const _validateJoinGroupRequest = function (ctx, groupId, callback) {
 /**
  * Create a request
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     groupId                     The group id
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
@@ -1212,7 +1212,7 @@ const createRequestJoinGroup = function (ctx, groupId, callback) {
 /**
  * Get all requests related to a group
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     groupId                     The group id
  * @param  {String}     start                       The group paging token from which to start fetching group members
  * @param  {Number}     limit                       The maximum number of results to return. Default: 10
@@ -1246,7 +1246,7 @@ const getJoinGroupRequests = function (ctx, filter, callback) {
 /**
  * Get a request
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     groupId                     The group id
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occured, if any
@@ -1320,7 +1320,7 @@ const _validateUpdateJoinGroupByRequest = function (ctx, joinRequest, callback) 
 /**
  * Update a request
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     groupId         The id of the group to join
  * @param  {String}     principalId     The id of the principal who wants to join this group
  * @param  {String}     role            The role validated by the admin

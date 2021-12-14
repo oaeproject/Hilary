@@ -18,7 +18,7 @@ import * as AuthzPermissions from 'oae-authz/lib/permissions.js';
 /**
  * Determine if the current user in context is allowed to see the followers list of the provided user.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {User}       user                The user whose followers are being requested
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -34,7 +34,7 @@ const canViewFollowers = function (ctx, user, callback) {
 /**
  * Determine if the current user in context is allowed to see the followering list of the provided user.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {User}       user                The user whose followees are being requested
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
@@ -50,7 +50,7 @@ const canViewFollowing = function (ctx, user, callback) {
 /**
  * Determine whether or not the current user in context is allowed to follow the provided user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {User}       followerUser        The user whose follower list is being updated
  * @param  {User}       followedUser        The user who is to be followed
  * @param  {Function}   callback            Standard callback function

@@ -37,10 +37,6 @@ const hilaryDirectory = path.resolve(__dirname, '..', '..', '..');
  * @param  {String}     callback.version.hilary     The version information for Hilary
  * @param  {String}     callback.version.3akai-ux   The version information for the UI
  */
-const getVersionCB = function (callback) {
-  return callbackify(getVersion, callback);
-};
-
 const getVersion = async function (repoPath = hilaryDirectory, repoInformation = new Map()) {
   const commitLog = await git.log({ fs, dir: repoPath, depth: 1 });
   const headCommit = head(commitLog);
@@ -98,4 +94,4 @@ const getVersion = async function (repoPath = hilaryDirectory, repoInformation =
   return repoInformation;
 };
 
-export { getVersion, getVersionCB };
+export { getVersion };

@@ -178,7 +178,7 @@ const getArrayParameter = function (value, defaultValue) {
  * Transform the raw search `results` from ElasticSearch into a `SearchResult`
  * that can be returned to the client.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {Object}         transformers        An object keyed by the resource type, and the value is the transformer object that can transform a set of search documents into client-viewable documents
  * @param  {Object}         results             The search results sent back from ElasticSearch
  * @param  {Function}       callback            Standard callback function
@@ -562,7 +562,7 @@ const filterInteractingTenants = function (tenantAlias) {
  * Create an ElasticSearch filter that will filter to resources of the provided scope to which the
  * current user has access.
  *
- * @param  {Context}    ctx                             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                             Current execution context
  * @param  {String}     scope                           The specified scope of the request, as per `SearchConstants.general.SCOPE_*` or the alias of a tenant
  * @param  {Boolean}    needsFilterByExplicitAccess     Whether or not the access filter should take into consideration explicit access
  * @param  {Function}   callback                        Standard callback function
@@ -676,7 +676,7 @@ const filterScopeAndAccess = function (ctx, options, needsFilterByExplicitAccess
  * Create an ElasticSearch filter that will filter to all resources the provided user has access to
  * implicitly using visibility rules.
  *
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  * @return {Object}             The filter that filters the user's access by anything they implicitly have access to in the system. If unspecified, it indicates they have access to everything (i.e., global admin)
  */
 const filterImplicitAccess = function (ctx) {
@@ -732,7 +732,7 @@ const filterImplicitAccess = function (ctx) {
  * case of a global administrator, they have implicit access to everything therefore this does not restrict
  * their access in any way.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any
  * @param  {Object}     callback.filter     The ElasticSearch filter that will filter by explicit access. If unspecified, it implies the user has explicit access to *nothing*
@@ -792,7 +792,7 @@ const filterExplicitAccess = function (ctx, index, callback) {
  * Create an ElasticSearch filter that will filter only the items created by
  * the current user or items NOT created by the current user
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     createdBy           A string used to filter items by
  */
 const filterCreatedBy = function (ctx, createdBy) {

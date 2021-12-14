@@ -28,7 +28,7 @@ const log = logger('oae-activity-push');
 /**
  * Given an array of persistent activities from a stream, convert them into activities suitable to be delivered to the UI.
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {Object[]}   activities          The array of persistent activities to transform. These activities will be modified in-place. The specific model of each activity entity is proprietary to the custom producer and transformer that persist and convert the entities.
  * @param  {String}     [transformerType]   The type of transformer to retrieve. One of `ActivityConstants.transformerTypes`. Defaults to `activitystreams`
  * @param  {Function}   callback            Standard callback function

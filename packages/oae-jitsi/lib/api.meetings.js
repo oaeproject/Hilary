@@ -56,7 +56,7 @@ const FALSE = 'false';
 /**
  * Create a new meeting.
  *
- * @param {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param {Context}    ctx                     Current execution context
  * @param {String}     displayName             The display name of the meeting
  * @param {String}     [description]           A longer description for the meeting
  * @param {Boolean}    [chat]                  A boolean declaring whether or not Jitsi chat should be enabled
@@ -157,7 +157,7 @@ const createMeeting = function (
 /**
  * Get a full meeting profile.
  *
- * @param  {Context}   ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                     Current execution context
  * @param  {String}    meetingId               The ID of the meeting
  * @param  {Function}  callback                Standard callback function
  * @param  {Object}    callback.err            An error that occurred, if any
@@ -224,7 +224,7 @@ const getFullMeetingProfile = function (ctx, meetingId, callback) {
 /**
  * Get a meeting basic profile.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         meetingId               The ID of the meeting
  * @param  {Function}       callback                Standard callback function
  * @param  {Object}         callback.err            An error that occurred, if any
@@ -258,7 +258,7 @@ const getMeeting = function (ctx, meetingId, callback) {
 /**
  * Get the invitations for a meeting.
  *
- * @param  {Context}   ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                     Current execution context
  * @param  {String}    meetingId               The ID of the meeting
  * @param  {Function}  callback                Standard callback function
  */
@@ -284,7 +284,7 @@ const getMeetingInvitations = function (ctx, meetingId, callback) {
 /**
  * Get the meeting members with their roles.
  *
- * @param  {Context}   ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                     Current execution context
  * @param  {String}    meetingId               The ID of the meeting
  * @param  {Function}  callback                Standard callback function
  */
@@ -334,7 +334,7 @@ const getMeetingMembers = function (ctx, meetingId, start, limit, callback) {
 /**
  * Update a meeting's metadata
  *
- * @param  {Context}   ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                 Current execution context
  * @param  {String}    meetingId           The ID of the meeting
  * @param  {Object}    profileFields       An object whose keys are profile field names, and the value is the value to which you wish the field to change. Keys must be one of: displayName, visibility, discription
  * @param  {Function}  callback            Standard callback function
@@ -450,7 +450,7 @@ const updateMeeting = function (ctx, meetingId, profileFields, callback) {
 /**
  * Delete the specified meeting
  *
- * @param {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param {Context}     ctx                 Current execution context
  * @param {String}      meetingId           The id of the meeting to delete
  * @param {Function}    callback            Standard callback function
  * @param {Object}      callback.err        An error that occured, if any
@@ -520,7 +520,7 @@ const deleteMeeting = function (ctx, meetingId, callback) {
 /**
  * Update the members of a meeting
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     meetingId               The id of the meeting to share
  * @param  {Object}     changes                 An object that describes the permission changes to apply to the meeting. The key is the id of the principal to which to apply the change, and the value is the role to apply to the principal. If the value is `false`, the principal will be revoked access.
  * @param  {Function}   callback                Standard callback function
@@ -590,7 +590,7 @@ const setMeetingMembers = function (ctx, meetingId, changes, callback) {
 /**
  * Get the messages in a meeting
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         meetingId               The id of the meeting for which to get the messages
  * @param  {String}         [start]                 The `threadKey` of the message from which to start retrieving messages (exclusively). By default, will start fetching from the most recent message
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
@@ -656,7 +656,7 @@ const getMessages = function (ctx, meetingId, start, limit, callback) {
  * Create a new message in a meeting. If `replyToCreatedTimestamp` is specified, the message will be
  * a reply to the message in the meeting identified by that timestamp.
  *
- * @param  {Context}        ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                         Current execution context
  * @param  {String}         meetingId                   The id of the meeting to which to post the message
  * @param  {String}         body                        The body of the message
  * @param  {String|Number}  [replyToCreatedTimestamp]   The timestamp of the message to which this message is a reply. Not specifying this will create a top level comment
@@ -751,7 +751,7 @@ const createMessage = function (ctx, meetingId, body, replyToCreatedTimestamp, c
  * Delete a message in a meeting. Managers of the meeting can delete all messages while people that have access
  * to the meeting can only delete their own messages. Therefore, anonymous users will never be able to delete messages.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     meetingId               The id of the meeting from which to delete the message
  * @param  {Number}     messageCreatedDate      The timestamp of the message that should be deleted
  * @param  {Function}   callback                Standard callback function
@@ -837,7 +837,7 @@ const deleteMessage = function (ctx, meetingId, messageCreatedDate, callback) {
  * Get the meetings library items for a user or group. Depending on the access of the principal in context,
  * either a library of public, loggedin, or all items will be returned.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         principalId             The id of the principal whose meeting library to fetch
  * @param  {String}         [start]                 The meeting ordering token from which to start fetching meetings (see `nextToken` in callback params)
  * @param  {Number}         [limit]                 The maximum number of results to return. Default: 10
@@ -917,7 +917,7 @@ const getMeetingsLibrary = function (ctx, principalId, start, limit, callback) {
  * necessarily have access to update the permissions of the private meeting (e.g., they are only a member). Also, tenant privacy
  * rules do not come into play in this case.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     libraryOwnerId  The owner of the library, should be a principal id (either user or group id)
  * @param  {String}     meetingId       The id of the meeting to remove from the library
  * @param  {Function}   callback        Standard callback function

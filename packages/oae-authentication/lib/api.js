@@ -165,7 +165,7 @@ const init = function (_globalTenantAlias) {
 /**
  * Determine if a local username already exists
  *
- * @param  {Context}   ctx                Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                Current execution context
  * @param  {String}    [tenantAlias]      The alias of the tenant on which to check for existence. Defaults to the current tenant
  * @param  {String}    username           The username to check existence for
  * @param  {Function}  callback           Standard callback function
@@ -203,7 +203,7 @@ const localUsernameExists = function (ctx, tenantAlias, username, callback) {
  * create a private user with the provided username, password and profile information and make them
  * a global admin
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     username                The unique username for the global administrator
  * @param  {String}     password                The password for the global administrator
  * @param  {String}     displayName             The display name for the global administrator
@@ -307,7 +307,7 @@ const getOrCreateGlobalAdminUser = function (
 /**
  * Utility methods that gets a user by the login id. If the user doesn't exist yet, it will be created.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {String}     authProvider            The authentication provider of the login id
  * @param  {String}     externalId              The desired externalId/username for this user
  * @param  {String}     displayName             The display name for the user
@@ -357,7 +357,7 @@ const getOrCreateUser = function (
 /**
  * Create a user with the given login id if no user exists for it yet
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {LoginId}    loginId                 The login id to use to fetch or create the user
  * @param  {String}     displayName             The display name for the user
  * @param  {Object}     [opts]                  Optional user profile parameters
@@ -490,7 +490,7 @@ const _getOrCreateUser = function (ctx, loginId, displayName, options, callback)
 /**
  * Validate that an email address belongs to the tenant in context
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     email           The email address to validate
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -522,7 +522,7 @@ const _validateEmailBelongsToTenant = function (ctx, email, callback) {
 /**
  * Create a private tenant administrator user with the provided login id
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {LoginId}    loginId                     The login id that will be associated with the tenant administrator so they may log in
  * @param  {String}     displayName                 The display name for the tenant administrator
  * @param  {Object}     [opts]                      Optional user profile parameters
@@ -603,7 +603,7 @@ const createTenantAdminUser = function (ctx, loginId, displayName, options, call
 /**
  * Create a user with the provided login id
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {LoginId}    loginId                     The login id that will be associated with the user so they may log in
  * @param  {String}     displayName                 The display name for the user
  * @param  {Object}     [opts]                      Optional user profile parameters
@@ -665,7 +665,7 @@ const createUser = function (ctx, loginId, displayName, options, callback) {
  * Internal utility function to create a user. Validation on inputs should be performed before
  * calling this function
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {LoginId}    loginId                     The login id that will be associated with the user so they may log in
  * @param  {String}     displayName                 The display name for the user
  * @param  {Object}     [opts]                      Optional user profile parameters
@@ -749,7 +749,7 @@ const _createUser = function (ctx, loginId, displayName, options, callback) {
  * Associate the given Login ID info to the specified user. This makes it possible for the associated user to login with the provided
  * login credentials.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {LoginId}   loginId         The login id to associate to the user
  * @param  {String}    userId          The id of the user to which to associate the login id
  * @param  {Function}  callback        Standard callback function
@@ -840,7 +840,7 @@ const associateLoginId = function (ctx, loginId, userId, callback) {
 /**
  * Change a user's local password
  *
- * @param  {Context}    ctx               Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx               Current execution context
  * @param  {String}     userId            The id of user for which to change the local password
  * @param  {String}     [oldPassword]     The previous password for the user. This is only required when the current user is not an administrator
  * @param  {String}     newPassword       The new password for the user
@@ -1015,7 +1015,7 @@ const getUserIdFromLoginId = function (tenantAlias, provider, externalId, callba
 /**
  * Get the secret for an existing user's resetpassword request
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     userName        The user's own unique username
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
@@ -1085,7 +1085,7 @@ const getResetPasswordSecret = function (ctx, username, callback) {
 /**
  * Reset the password for an user with an existing username and a valid token
  *
- * @param  {Context}    ctx            Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx            Current execution context
  * @param  {String}     userName       The user's own unique username
  * @param  {String}     token          The token that user generated within 24 hours
  * @param  {String}     newPassword    The new password for the user
@@ -1226,7 +1226,7 @@ const _associateLoginId = function (loginId, userId, callback) {
 /**
  * Get the login ids that are mapped to a user.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      userId              The id of the user
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any

@@ -21,7 +21,7 @@ const TenantsConfig = setUpConfig('oae-tenants');
 /**
  * Determine whether or not the given context represents a session that is authenticated to the specified tenant.
  *
- * @param  {Context}   ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx                 Current execution context
  * @param  {String}    tenantAlias         The alias of the tenant to check
  * @return {Boolean}                       Whether or not the user in context (if any) is authenticated to the specified alias
  */

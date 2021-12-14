@@ -29,7 +29,7 @@ const TIME_1_MINUTE_IN_SECONDS = 60;
 /**
  * Create request information that a global administrator can use to authenticate as themself to a particular tenant.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     tenantAlias                 The target tenant alias to which the global admin is trying to authenticate
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any
@@ -88,7 +88,7 @@ const getSignedTenantAuthenticationRequest = function (ctx, tenantAlias, callbac
 /**
  * Create request information that an administrator can use to authenticate themself as a different user.
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {String}     becomeUserId                The id of the user the administrator is requesting to become
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any
@@ -171,7 +171,7 @@ const getSignedBecomeUserAuthenticationRequest = function (ctx, becomeUserId, ca
 /**
  * Verify the authenticity of a signed authentication request
  *
- * @param  {Context}    ctx                         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                         Current execution context
  * @param  {Object}     body                        The POST data that was sent with the request
  * @param  {Function}   callback                    Standard callback function
  * @param  {Object}     callback.err                An error that occurred, if any

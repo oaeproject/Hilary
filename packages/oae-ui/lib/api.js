@@ -399,7 +399,7 @@ const sortSections = function (sections) {
 /**
  * Get the skin for the current tenant
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Function}   callback        Standard callback function
  * @param  {Object}     callback.err    An error that occurred, if any
  * @param  {String}     callback.css    The generated CSS
@@ -416,7 +416,7 @@ const getSkin = function (ctx, callback) {
 /**
  * Get the logo URL for the current tenant
  *
- * @param  {Context}  ctx            Standard context object containing the current user and the current tenant
+ * @param  {Context}  ctx            Current execution context
  * @param  {Function} callback       Standard callback function
  * @param  {Object}   callback.err   An error that occurred, if any
  * @param  {String}   callback.logo  The generated URL String
@@ -435,7 +435,7 @@ const getLogo = function (ctx, callback) {
  * Get the LESS variables that are present in the tenant skin.
  * Each variable will be annotated with the tenant value
  *
- * @param  {Context}    ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                 Current execution context
  * @param  {String}     [tenantAlias]       The optional alias of the tenant for which the variables should be retrieved. If no tenant alias is provided, the current tenant will be used
  * @param  {Function}   callback            Standard callback function
  * @param  {Object}     callback.err        An error that occurred, if any

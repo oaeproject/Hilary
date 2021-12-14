@@ -163,7 +163,7 @@ emitter.on(PrincipalsConstants.events.LEFT_GROUP, (ctx, group, memberChangeInfo)
 /**
  * Submits the indexing operation required when a group's members have changed.
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Group}      group           The group object whose membership changed
  * @param  {String[]}   principalIds    The ids of all the members whose status in the group changed
  * @api private
@@ -354,7 +354,7 @@ const _assignExtraIfNeeded = (user) => {
  * Given an array of user search documents, transform them into search documents
  * suitable to be displayed to the user in context.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {Object}    docs            A hash, keyed by the document id, while the value is the document to transform
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any
@@ -457,7 +457,7 @@ const _assignProfilePathIfNeeded = (tenantAlias, resourceId, result) => {
 /**
  * Given an array of group search documents, transform them into search documents suitable to be displayed to the user in context.
  *
- * @param  {Context}   ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx             Current execution context
  * @param  {Object}    docs            A hash, keyed by the document id, while the value is the document to transform
  * @param  {Function}  callback        Standard callback function
  * @param  {Object}    callback.err    An error that occurred, if any

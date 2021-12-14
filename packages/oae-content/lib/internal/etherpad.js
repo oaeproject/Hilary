@@ -178,7 +178,7 @@ const setHTML = function (contentId, padId, html, callback) {
  * Joins the current user in an etherpad.
  * This assumes that the current user has access to the collaborative document.
  *
- * @param  {Context}    ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                     Current execution context
  * @param  {Content}    contentObj              The content object for the pad that should be joined
  * @param  {Function}   callback                Standard callback function
  * @param  {Object}     callback.err            An error that occurred, if any

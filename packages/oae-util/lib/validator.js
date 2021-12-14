@@ -199,7 +199,7 @@ const getNestedObject = (nestedObject) =>
  * Check whether or not a context represents a logged in user
  *
  * @function isLoggedInUser
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     [tenantAlias]   The alias of the tenant to verify the context is authenticated to. If unspecified, the check will validate that the context is simply authenticated anywhere
  *
  * Usage:
@@ -231,7 +231,7 @@ const isLoggedInUser = function (ctx, tenantAlias) {
  * Check whether or not a context represents a global administrator
  *
  * @function isGlobalAdministratorUser
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  *
  * Usage:
  * ```

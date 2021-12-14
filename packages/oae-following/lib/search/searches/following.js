@@ -28,7 +28,7 @@ const { isUserId, unless } = validator;
  * In addition to the specific `opts` parameters documented here, there are more generic options available that impact all
  * searches. @see SearchAPI#search for more information.
  *
- * @param  {Context}       ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}       ctx                 Current execution context
  * @param  {Object}        opts                General search options
  * @param  {String[]}      opts.pathParams     An array of required parameters for the search
  * @param  {String}        opts.pathParams[0]  The user whose following list to search
@@ -67,7 +67,7 @@ function searchFollowing(ctx, options, callback) {
 /**
  * Perform the search that searches a user's list of followed users
  *
- * @param  {Context}       ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}       ctx                 Current execution context
  * @param  {Object}        opts                General search options
  * @param  {Function}      callback            Standard callback function
  * @param  {Object}        callback.err        An error that occurred, if any

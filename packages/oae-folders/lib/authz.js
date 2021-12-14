@@ -27,7 +27,7 @@ const log = logger('folders-authz');
  * Determine if the user invoking the current request is allowed to add content items to a given
  * folder, and if it is possible for the target content items to be added to the folder
  *
- * @param  {Context}    ctx                                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                                 Current execution context
  * @param  {Folder}     folder                              The folder for which to check if the current user can add items to it
  * @param  {String[]}   contentItems                        The content items being added to the folder
  * @param  {Function}   callback                            Standard callback function

@@ -21,7 +21,7 @@ import { ActivityConstants } from 'oae-activity/lib/constants.js';
 /**
  * Post the "accept invitation" activity for the given context and target resource
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {Resource}   resource        The resource to which the user in context accepted an invitation
  * @param  {User}       inviterUser     The user who performed the invitation
  */

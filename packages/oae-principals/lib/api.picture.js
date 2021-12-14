@@ -51,7 +51,7 @@ const zeroOrGreater = pipe(String, toInt, isZeroOrGreater);
 /**
  * Store the large picture for a principal that can be re-used later on
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         principalId         The id of the group to store the large picture for
  * @param  {File}           file                An object representing the picture being upload and where to find it on disk
  * @param  {String}         file.name           The name of the file you wish to store
@@ -142,7 +142,7 @@ const storePicture = function (ctx, principalId, file, callback) {
  * assumes that all the parameters have been validated previously. It will auto orient the picture so it can be
  * displayed correctly in all browsers.
  *
- * @param  {Context}        ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                 Current execution context
  * @param  {String}         principalId         The id of the principal for which we will store the large picture
  * @param  {File}           file                The file to store
  * @param  {Function}       callback            Standard callback function
@@ -180,7 +180,7 @@ const _storeLargePicture = function (ctx, principalId, file, callback) {
  * Crops a square out of the large picture attached to a principal and generates
  * a small and medium sized version of that square.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      principalId         The ID of the principal to crop the large picture for
  * @param  {Number}      x                   The x coordinate of the top left corner to start cropping at
  * @param  {Number}      y                   The y coordinate of the top left corner to start cropping at
@@ -281,7 +281,7 @@ const generateSizes = function (ctx, principalId, x, y, width, callback) {
  * Internal method that retrieves the large picture attached to this principal, crops out the desired square
  * and scales that square to a small and medium sized verison.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {Group|User}  principal           The principal to crop the large picture for
  * @param  {Number}      x                   The x coordinate of the topleft corner to start cropping
  * @param  {Number}      y                   The y coordinate of the topleft corner to start cropping
@@ -340,7 +340,7 @@ const _generateSizes = function (ctx, principal, x, y, width, callback) {
 /**
  * Store the resized files and save their URIs on the principal object.
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {Group|User}  principal           The principal to crop the large picture for
  * @param  {Object}      files               An object with file objects
  * @param  {Function}    callback            Standard callback function
@@ -393,7 +393,7 @@ const _storeCroppedPictures = function (ctx, principal, files, callback) {
 /**
  * Saves the small and medium uris to cassandra and sticks them on the Principal Object
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {Group|User}  principal           The principal object to update
  * @param  {String}      smallPictureUri     The URI for the small image
  * @param  {String}      mediumPictureUri    The URI for the large image
@@ -431,7 +431,7 @@ const _saveCroppedPictureUris = function (ctx, principal, smallPictureUri, mediu
  * Checks if the current user can edit the principal. If they cannot edit the principal, a 401 error object
  * will be returned
  *
- * @param  {Context}     ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}     ctx                 Current execution context
  * @param  {String}      principalId         The ID of the principal to check
  * @param  {Function}    callback            Standard callback function
  * @param  {Object}      callback.err        An error that occurred, if any

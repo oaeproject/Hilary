@@ -219,7 +219,7 @@ OAE.tenantRouter.on('post', '/api/content/create', (request, response) => {
 /**
  * Create a piece of content
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {String}         resourceSubType         The type of content to create
  * @param  {String}         displayName             The display name of the content item
  * @param  {String}         [description]           A longer description for the content item

@@ -98,7 +98,7 @@ const _createPersistentMessageActivityEntity = function (message, context) {
 /**
  * Create a message activity entity that can be used in an activity stream.
  *
- * @param  {Context}            ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                 Current execution context
  * @param  {Message}            message             The message object that was posted
  * @param  {Object}             [context]           Some context about the message
  * @param  {Comment}            [context.parent]    The parent of the message, if it is a reply
@@ -127,7 +127,7 @@ const transformPersistentMessageActivityEntity = function (ctx, entity, profileP
 /**
  * Transforms the given message object into an activity entity for an activity stream.
  *
- * @param  {Context}            ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx         Current execution context
  * @param  {Comment}            message     The message object to transform
  * @param  {String}             urlFormat   The format that can be passed to `format`. Only the created timestamp will be passed into the format. This will be used to construct a global ID for the entity and will be prefixed with the tenant hostname.
  * @param  {String}             profilePath The path where the message will be displayed.
@@ -159,7 +159,7 @@ const _transformMessageActivityEntity = function (ctx, entity, message, urlForma
 /**
  * Scrub a message that can be used in an internal activity stream
  *
- * @param  {Context}            ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}            ctx                 Current execution context
  * @param  {Message}            message             The message object that was posted
  * @return {Message}                                The scrubbed message that represents the given message data
  */

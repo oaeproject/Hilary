@@ -50,7 +50,7 @@ const RESOURCE_TYPES_ACCESS_SCOPED = [
  * In addition to the specific `opts` parameters documented here, there are more generic options available that impact all
  * searches. @see SearchAPI#search for more information.
  *
- * @param  {Context}        ctx                     Standard context object containing the current user and the current tenant
+ * @param  {Context}        ctx                     Current execution context
  * @param  {Object}         [opts]                  General search options
  * @param  {String}         [opts.scope]            The scope of the query (One of `SearchConstants.general.SCOPE_*`)
  * @param  {String[]}       [opts.resourceTypes]    An array of resource types to search (e.g., content, user). If not specified, then the search will not filter on resource type at all. Possible resource types are those that have registered producers in SearchAPI#registerSearchDocumentProducer.
@@ -75,7 +75,7 @@ function searchGeneral(ctx, options, callback) {
  * Perform the search that searches a 'q' analyzed field on documents, scoping it by user access. This is delegated from the
  * `module.exports` function for convenience, as it will access the members array only if necessary.
  *
- * @param  {Context}       ctx                 Standard context object containing the current user and the current tenant
+ * @param  {Context}       ctx                 Current execution context
  * @param  {Object}        opts                General search options
  * @param  {Function}      callback            Standard callback function
  * @param  {Object}        callback.err        An error that occurred, if any
@@ -124,7 +124,7 @@ const _search = function (ctx, options, callback) {
 /**
  * Create the ElasticSearch query object for the general search.
  *
- * @param  {Context}    ctx     Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx     Current execution context
  * @param  {Object}     opts    The general search options, as per the `module.exports` function
  * @return {Object}             The ElasticSearch query
  * @api private
@@ -217,7 +217,7 @@ const _createQuery = function (ctx, options) {
  *  3 The search includes content and groups (users are not filtered by access); and
  *  4 The search is actually specifying a query (e.g., if the search is '*', then we only include implicit access)
  *
- * @param  {Context}   ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}   ctx         Current execution context
  * @param  {Object}    opts        The (sanitized) search options
  * @return {Boolean}               Whether or not the query specified by this user and options requires filtering by access privileges
  * @api private

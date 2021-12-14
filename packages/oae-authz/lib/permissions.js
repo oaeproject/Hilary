@@ -29,7 +29,7 @@ import * as TenantsUtil from 'oae-tenants/lib/util.js';
 /**
  * Determine which of all potential permissions a user has
  *
- * @param  {Context}    ctx                                 Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx                                 Current execution context
  * @param  {Resource}   resource                            The resource on which we are determining permissions
  * @param  {Function}   callback                            Standard callback function
  * @param  {Object}     callback.err                        An error that occurred, if any

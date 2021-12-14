@@ -36,7 +36,7 @@ const PrincipalsConfig = setUpConfig('oae-principals');
  * If a locale was specified or retrieved from the user/context but no Terms and Conditions are available in that locale
  * the Terms and Conditions as specified in the `default` locale will be returned
  *
- * @param  {Context}    ctx             Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx             Current execution context
  * @param  {String}     [locale]        The locale in which the Terms and Conditions should be retrieved. Defaults to the default Terms and Conditions
  * @return {Object}                     An object that holds a `text` key with the Terms and Conditions in the requested locale and a `lastUpdate` key that holds the timestamp when the config was last updated
  */
@@ -108,7 +108,7 @@ const acceptTermsAndConditions = function (ctx, userId, callback) {
 /**
  * Checks if a users needs to accept or re-accept the Terms and Conditions
  *
- * @param  {Context}    ctx         Standard context object containing the current user and the current tenant
+ * @param  {Context}    ctx         Current execution context
  * @return {Boolean}                Whether or not the current user needs to accept or re-accept the Terms and Conditions
  */
 const needsToAcceptTermsAndConditions = function (ctx) {

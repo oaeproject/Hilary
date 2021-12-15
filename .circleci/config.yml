@@ -225,17 +225,31 @@ jobs:
 workflows:
   version: 2
   lint-and-test:
-    when: << pipeline.parameters.trigger_parallel_tests >>
+    when:
+      and:
+        # trigger this workflow only by sending "trigger_parallel_tests" as true
+        # via the API and skip it if scheduled
+        - equal: [ true, << pipeline.parameters.trigger_parallel_tests >> ]
+        - not:
+            equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - test
   on-demand:
-    when: << pipeline.parameters.trigger_sequential_tests >>
+    when:
+      and:
+        # trigger this workflow only by sending "trigger_sequential_tests" as true
+        # via the API and skip it if scheduled
+        - equal: [ true, << pipeline.parameters.trigger_sequential_tests >>]
+        - not:
+            equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - coverage
   scheduled:
     when:
       and:
+        # trigger this workflow only by scheduled trigger configured on
+        # project settings
         - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
-        - equal: [ "Sequential testing", << pipeline.schedule.name >> ]
+        - equal: [ "scheduled-sequential", << pipeline.schedule.name >> ]
     jobs:
       - coverage

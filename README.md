@@ -44,16 +44,35 @@ npm -v # make sure you have 7.0.8+
 
 git clone https://github.com/oaeproject/Hilary.git && cd Hilary
 git submodule update --init
+
+# launch supporting servers through docker
 docker-compose up -d oae-cassandra oae-elasticsearch oae-redis oae-nginx
+
+# install dependencies for ethercalc
 cd ethercalc && npm install && cd ..
+
+# install and setup etherpad
 cp ep-settings.json etherpad/settings.json
-# on settings.json, please change `oae-redis` and `oae-cassandra` to `localhost`, for now
+# edit etherpad/settings.json and change `oae-redis` and `oae-cassandra` to `localhost`
 cp ep-package.json etherpad/src/package.json
 cp ep-root-package.json etherpad/package.json
 ./prepare-etherpad.sh
+
+# install dependencies for 3akai-ux
 cd 3akai-ux && npm install && cd ..
+
+# SSL certificate for 3akai-ux
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout 3akai-ux/nginx/nginx-selfsigned.key -out 3akai-ux/nginx/nginx-selfsigned.crt
+openssl dhparam -out 3akai-ux/nginx/dhparam.pem 2048
+
+# install dependencies for Hilary
 npm i
-npm run migrate ; npx pm2 startOrReload process.json ; npx pm2 logs
+
+# run schema migration
+npm run migrate
+
+# Run all servers: ethercalc, etherpad and Hilary
+npx pm2 startOrReload process.json ; npx pm2 logs
 ```
 
 ## Github Codespaces

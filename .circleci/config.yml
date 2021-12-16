@@ -223,13 +223,13 @@ jobs:
       - *upload_logs
 
 workflows:
-  version: 2
+  version: 2.1
   lint-and-test:
     when:
       and:
         # trigger this workflow only by sending "trigger_parallel_tests" as true
         # via the API and skip it if scheduled
-        - equal: [ true, << pipeline.parameters.trigger_parallel_tests >> ]
+        - << pipeline.parameters.trigger_parallel_tests >>
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
@@ -239,7 +239,7 @@ workflows:
       and:
         # trigger this workflow only by sending "trigger_sequential_tests" as true
         # via the API and skip it if scheduled
-        - equal: [ true, << pipeline.parameters.trigger_sequential_tests >>]
+        - << pipeline.parameters.trigger_sequential_tests >>
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:

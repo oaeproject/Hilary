@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "7.9.0",
-    "async": "^3.2.0",
+    "async": "^3.2.4",
     "awssum": "^1.2.0",
     "awssum-amazon": "^1.4.0",
     "awssum-amazon-s3": "^1.5.0",

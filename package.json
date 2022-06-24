@@ -39,7 +39,7 @@
     "cheerio": "1.0.0-rc.3",
     "clone": "^2.1.1",
     "connect": "^3.7.0",
-    "cookie-parser": "^1.4.2",
+    "cookie-parser": "^1.4.6",
     "cookie-session": "^1.4.0",
     "cron": "^1.8.2",
     "csv": "^5.3.2",

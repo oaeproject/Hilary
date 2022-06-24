@@ -71,7 +71,7 @@
     "nodemailer-html-to-text": "^3.0.0",
     "oauth": "^0.9.15",
     "oauth-sign": "^0.9.0",
-    "oauth2orize": "^1.11.0",
+    "oauth2orize": "^1.11.1",
     "optimist": "^0.6.1",
     "ora": "^6.0.0",
     "passport": "^0.4.1",

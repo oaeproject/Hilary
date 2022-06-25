@@ -41,7 +41,7 @@
     "connect": "^3.7.0",
     "cookie-parser": "^1.4.6",
     "cookie-session": "^1.4.0",
-    "cron": "^1.8.2",
+    "cron": "^1.8.3",
     "csv": "^5.3.2",
     "data-structures": "^1.4.2",
     "date-fns": "^2.12.0",

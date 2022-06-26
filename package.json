@@ -98,7 +98,7 @@
     "sharp": "^0.30.6",
     "shortid": "^2.2.8",
     "slideshare": "git://github.com/oaeproject/node-slideshare",
-    "sockjs": "^0.3.20",
+    "sockjs": "^0.3.24",
     "sockjs-client": "^1.4.0",
     "strftime": "^0.10.0",
     "temp": "^0.9.0",

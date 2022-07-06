@@ -74,7 +74,7 @@
     "oauth2orize": "^1.11.1",
     "optimist": "^0.6.1",
     "ora": "^6.0.0",
-    "passport": "^0.4.1",
+    "passport": "^0.6.0",
     "passport-cas": "git://github.com/oaeproject/passport-cas#samlValidateLoginUrl",
     "passport-facebook": "git://github.com/oaeproject/passport-facebook",
     "passport-google-oauth": "^1.0.0",

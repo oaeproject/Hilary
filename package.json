@@ -113,7 +113,7 @@
   },
   "devDependencies": {
     "chalk": "^3.0.0",
-    "eslint": "^7.32.0",
+    "eslint": "^9.39.2",
     "eslint-plugin-unicorn": "^36.0.0",
     "is-builtin-module": "^3.1.0",
     "mocha": "^8.3.0",
